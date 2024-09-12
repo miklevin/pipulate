@@ -8,11 +8,16 @@ This repository provides a reproducible JupyterLab environment for the Pipulate 
 
 ## Getting Started
 
-### Clone the Repository
+### Clone the Repository & CD Into It
 
 ```bash
-git clone https://github.com/miklevin/pipulate-jupyter-env.git
-cd pipulate-jupyter-env
+git clone https://github.com/miklevin/pipulate.git
+cd pipulate
+```
+
+### Run JupyterLab
+
+```bash
 nix develop
 jupyter lab
 ```
