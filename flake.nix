@@ -13,18 +13,15 @@
       # Import local configuration if present
       localConfig = if builtins.pathExists ./local.nix then import ./local.nix else {};
 
-      # Import lib from nixpkgs
-      lib = nixpkgs.lib;
-
-      # Use lib.getAttrDefault instead of builtins.getAttrDefault
-      cudaSupport = lib.getAttrDefault "cudaSupport" false localConfig;
+      # Use the ? operator to check for cudaSupport
+      cudaSupport = if localConfig ? cudaSupport then localConfig.cudaSupport else false;
 
     in
     {
       devShells = forAllSystems (system: {
         default = let
           pkgs = import nixpkgs { inherit system; };
-          inherit (pkgs) lib;
+          lib = pkgs.lib;
 
           # CUDA-specific packages (only on your system)
           cudaPackages = lib.optionals (cudaSupport && system == "x86_64-linux") (with pkgs; [
