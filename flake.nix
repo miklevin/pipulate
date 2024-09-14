@@ -12,14 +12,19 @@
 
       # Import local configuration if present
       localConfig = if builtins.pathExists ./local.nix then import ./local.nix else {};
-      cudaSupport = builtins.getAttrDefault "cudaSupport" false localConfig;
+
+      # Import lib from nixpkgs
+      lib = nixpkgs.lib;
+
+      # Use lib.getAttrDefault instead of builtins.getAttrDefault
+      cudaSupport = lib.getAttrDefault "cudaSupport" false localConfig;
 
     in
     {
       devShells = forAllSystems (system: {
         default = let
           pkgs = import nixpkgs { inherit system; };
-          lib = pkgs.lib;
+          inherit (pkgs) lib;
 
           # CUDA-specific packages (only on your system)
           cudaPackages = lib.optionals (cudaSupport && system == "x86_64-linux") (with pkgs; [
@@ -68,7 +73,7 @@
             echo "Welcome to the Pipulate development environment on ${system}!"
             ${if cudaSupport then "echo 'CUDA support enabled.'" else ""}
           '';
-        };  # Added semicolon here
-      });  # Added semicolon here
-    };  # Added semicolon here
+        };
+      });
+    };
 }
