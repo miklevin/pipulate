@@ -1,4 +1,6 @@
 {
+  # pipulate/flake.nix
+
   description = "Pipulate Development Environment";
 
   inputs = {
@@ -59,7 +61,7 @@
           # Common development tools
           devTools = with pkgs; [
             git
-            vim
+            nvim
             # Add other development tools if needed
           ];
 
