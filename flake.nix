@@ -68,7 +68,7 @@
             echo "Welcome to the Pipulate development environment on ${system}!"
             ${if cudaSupport then "echo 'CUDA support enabled.'" else ""}
           '';
-        };
-      });
-    }
+        };  # Added semicolon here
+      });  # Added semicolon here
+    };  # Added semicolon here
 }
