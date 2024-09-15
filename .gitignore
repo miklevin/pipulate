@@ -1,1 +1,4 @@
 /local.nix
+.sesskey
+.venv/
+__pycache__/
