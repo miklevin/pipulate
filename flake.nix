@@ -61,7 +61,7 @@
           # Common development tools
           devTools = with pkgs; [
             git
-            nvim
+            neovim
             # Add other development tools if needed
           ];
 
