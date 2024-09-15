@@ -71,12 +71,17 @@
             # Install python-fasthtml if not already installed
             if ! python -c "import fasthtml" 2>/dev/null; then
               echo "Installing python-fasthtml..."
-              pip install python-fasthtml
+              pip install python-fasthtml > /dev/null 2>&1
+              if [ $? -eq 0 ]; then
+                echo "python-fasthtml installed successfully."
+              else
+                echo "Failed to install python-fasthtml. Please check your internet connection and try again."
+              fi
             else
               echo "python-fasthtml is already installed."
             fi
             
-            echo "python-fasthtml is ready to use."
+            echo "Development environment is ready!"
           '';
         };
       });
