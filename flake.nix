@@ -16,7 +16,7 @@
     {
       devShells = forAllSystems (system: {
         default = let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
           lib = pkgs.lib;
           # CUDA-specific packages (only on your system)
           cudaPackages = lib.optionals (cudaSupport && system == "x86_64-linux") (with pkgs; [
@@ -56,6 +56,7 @@
         in pkgs.mkShell {
           buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages;
           shellHook = ''
+            export NIXPKGS_ALLOW_UNFREE=1
             echo "Welcome to the Pipulate development environment on ${system}!"
             ${if cudaSupport then "echo 'CUDA support enabled.'" else ""}
             
