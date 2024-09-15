@@ -1,9 +1,11 @@
 {
   # pipulate/flake.nix
   description = "Pipulate Development Environment with python-fasthtml";
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
   };
+
   outputs = { self, nixpkgs }:
     let
       systems = [ "x86_64-linux" "aarch64-darwin" ];
@@ -55,6 +57,7 @@
           ];
         in pkgs.mkShell {
           buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages;
+
           shellHook = ''
             export NIXPKGS_ALLOW_UNFREE=1
             echo "Welcome to the Pipulate development environment on ${system}!"
@@ -82,6 +85,30 @@
             fi
             
             echo "Development environment is ready!"
+
+            # === Start Jupyter Lab and Python Server ===
+
+            # Start Jupyter Lab in the background
+            echo "Starting Jupyter Lab..."
+            jupyter lab &
+            JUPYTER_PID=$!
+
+            # Start Python server in the background
+            echo "Starting Python server..."
+            python server.py &
+            SERVER_PID=$!
+
+            # Function to handle cleanup on exit
+            cleanup() {
+              echo "Stopping Jupyter Lab..."
+              kill $JUPYTER_PID
+
+              echo "Stopping Python server..."
+              kill $SERVER_PID
+            }
+
+            # Trap the EXIT signal to trigger cleanup
+            trap cleanup EXIT
           '';
         };
       });
