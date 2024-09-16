@@ -56,7 +56,7 @@
             # Add other development tools if needed
           ];
         in pkgs.mkShell {
-          buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages;
+          buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages ++ [ pkgs.gcc-libs ];
 
           shellHook = ''
             export NIXPKGS_ALLOW_UNFREE=1
