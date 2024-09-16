@@ -51,12 +51,11 @@
           # Common development tools
           devTools = with pkgs; [
             git
-            neovim
             # Add other development tools if needed
           ];
         in pkgs.mkShell {
           buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages ++ [
-            pkgs.stdenv.cc.cc.lib  # Add this line to include libstdc++
+            pkgs.stdenv.cc.cc.lib  # Include libstdc++
           ];
 
           shellHook = ''
