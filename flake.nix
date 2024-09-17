@@ -77,6 +77,9 @@
                 echo "$package is already installed."
               fi
             }
+
+            # Check and install nbdev
+            check_and_install nbdev
             
             # Check and install python-fasthtml
             check_and_install python-fasthtml
