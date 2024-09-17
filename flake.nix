@@ -38,7 +38,6 @@
             ps.matplotlib
             ps.nbdev
             ps.fastapi
-            ps.simplenote
             pytorchPackage
             ps.pip
           ]);
