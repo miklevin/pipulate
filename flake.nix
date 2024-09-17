@@ -79,7 +79,7 @@
             }
             
             # Check and install python-fasthtml
-            check_and_install fasthtml
+            check_and_install python-fasthtml
             
             # Check and install jupyter_ai
             check_and_install jupyter_ai
