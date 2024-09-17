@@ -76,6 +76,7 @@
             if ! python -c "import fasthtml" 2>/dev/null; then
               echo "Installing python-fasthtml..."
               pip install python-fasthtml > /dev/null 2>&1
+              pip install jupyter_ai > /dev/null 2>&1
               if [ $? -eq 0 ]; then
                 echo "python-fasthtml installed successfully."
               else
