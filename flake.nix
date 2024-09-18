@@ -95,7 +95,8 @@
             # Function to check if a Python package is installed and install it if not
             check_and_install() {
               package=$1
-              if ! python -c "import $package" 2>/dev/null; then
+              import_name=$2
+              if ! python -c "import $import_name" 2>/dev/null; then
                 echo "Installing $package..."
                 pip install $package > /dev/null 2>&1
                 if [ $? -eq 0 ]; then
@@ -104,14 +105,14 @@
                   echo "Failed to install $package. Please check your internet connection and try again."
                 fi
               else
-                echo "$package is already installed."
+                echo "$import_name is already installed."
               fi
             }
 
             # Check and install required Python packages
-            check_and_install nbdev
-            check_and_install python-fasthtml
-            check_and_install jupyter_ai
+            check_and_install nbdev nbdev
+            check_and_install python-fasthtml fasthtml
+            check_and_install jupyter_ai jupyter_ai
             
             echo "Development environment is ready!"
 
