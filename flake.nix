@@ -59,7 +59,7 @@
             ps.matplotlib
             ps.nbdev
             ps.fastapi
-            pytorchPackage
+            pytorchPackage  # Not prefixed with .ps because of conditional logic
             ps.pip
           ]);
 
@@ -109,8 +109,7 @@
               fi
             }
 
-            # Check and install required Python packages
-            check_and_install nbdev nbdev
+            # Check and install required Python packages not yet packaged for nix 
             check_and_install python-fasthtml fasthtml
             check_and_install jupyter_ai jupyter_ai
             
