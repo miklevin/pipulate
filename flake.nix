@@ -52,6 +52,9 @@
           # Define the Python environment with required packages
           pythonPackages = pkgs.python311.withPackages (ps: [
             ps.jupyterlab
+            # ps.jupyter-lsp  # provides the backend support for LSP
+            # ps.jupyterlab-lsp  # integrates LSP features into the JupyterLab user interface
+            # ps.python-lsp-server  # a Python implementation of the Language Server Protocol
             ps.pandas
             ps.requests
             ps.sqlitedict
@@ -71,6 +74,7 @@
           # Combine all required packages into the shell's build inputs
           buildInputs = devTools ++ [ pythonPackages ] ++ cudaPackages ++ [
             pkgs.stdenv.cc.cc.lib
+            # pkgs.nodejs
           ];
 
           # Define the shell hook that runs when entering the development environment
@@ -98,7 +102,7 @@
               import_name=$2
               if ! python -c "import $import_name" 2>/dev/null; then
                 echo "Installing $package..."
-                pip install $package > /dev/null 2>&1
+                pip install --upgrade $package > /dev/null 2>&1
                 if [ $? -eq 0 ]; then
                   echo "$package installed successfully."
                 else
@@ -112,7 +116,7 @@
             # Check and install required Python packages not yet packaged for nix 
             check_and_install python-fasthtml fasthtml
             check_and_install jupyter_ai jupyter_ai
-            
+
             echo "Development environment is ready!"
 
             # Start Jupyter Lab and Python Server
