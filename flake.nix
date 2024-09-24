@@ -33,8 +33,8 @@
         ${if cudaSupport && isLinux then "echo 'CUDA support enabled.'" else ""}
         test -d .venv || ${pkgs.python311.interpreter} -m venv .venv
         source .venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install --upgrade pip --quiet
+        pip install -r requirements.txt --quiet
         exec bash
       '';
       
