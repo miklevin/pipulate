@@ -1,0 +1,10 @@
+jupyterlab
+pandas
+requests
+sqlitedict
+numpy
+matplotlib
+nbdev
+fastapi
+python-fasthtml
+jupyter_ai
