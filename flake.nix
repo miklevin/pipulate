@@ -38,7 +38,7 @@
         
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
-        PS1='$(printf "\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+        PS1='$(printf "\033[01;34m(%s)\033[00m \033[01;32m[%s@%s:%s]$\033[00m " "$(basename "$VIRTUAL_ENV")" "\u" "\h" "\w")'
         export PS1
         
         exec bash --norc --noprofile
