@@ -1,5 +1,9 @@
-/local.nix
+*.log
+*.pid
+.env
+.ipynb_checkpoints/
+.nix-shell
 .sesskey
 .venv/
+/local.nix
 __pycache__/
-.ipynb_checkpoints/

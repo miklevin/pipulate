@@ -37,22 +37,22 @@ def get_best_llama_model(models):
 
 def check_ollama(timeout=10):
     try:
-        print("Requesting available models...")
+        # print("Requesting available models...")
         models_response = requests.get("http://localhost:11434/api/tags", timeout=timeout)
         models_response.raise_for_status()
         
         models = models_response.json()['models']
-        print("Available models:")
-        for model in models:
-            print(f"- {model['name']}")
+        # print("Available models:")
+        # for model in models:
+        #     print(f"- {model['name']}")
         
         model_names = [model['name'] for model in models]
         
         chosen_model = get_best_llama_model(model_names) or model_names[0]
         
-        print(f"Chosen model: {chosen_model}")
+        # print(f"Chosen model: {chosen_model}")
         
-        print("Sending chat request...")
+        # print("Sending chat request...")
         chat_response = requests.post(
             "http://localhost:11434/api/chat",
             json={
@@ -73,6 +73,5 @@ def check_ollama(timeout=10):
         return f"Error connecting to Ollama server: {e}"
 
 if __name__ == "__main__":
-    print("Checking Ollama connectivity...")
     result = check_ollama()
     print(result)

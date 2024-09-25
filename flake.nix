@@ -64,10 +64,10 @@
         if python -c "import numpy" 2>/dev/null; then
           echo "- numpy is importable (good to go!)"
           echo
-          echo "Start JupyterLab and server with: start"
-          echo "Stop JupyterLab and server with: stop"
+          echo "- Start JupyterLab and FastHTML server with: start"
+          echo "- Stop JupyterLab and FastHTML server with: stop"
+          echo "- To exit the Pipulate environment, type 'exit' twice."
           echo
-          echo "To exit the Pipulate environment, type 'exit' twice."
           echo "Learn more at https://pipulate.com <--Ctrl+Click"
         else
           echo "Error: numpy could not be imported. Check your installation."
@@ -79,14 +79,6 @@
         ollama_response=$(python ollama_check.py)
         echo "Ollama says: $ollama_response"
         
-        # Create a new executable script in .venv/bin
-        echo "Creating new executable scripts in .venv/bin..."
-        cat << EOF > .venv/bin/hello
-        #!/bin/sh
-        echo "Hello from Pipulate!"
-        EOF
-        chmod +x .venv/bin/hello
-        
         # Create the improved start script
         cat << EOF > .venv/bin/start
         #!/bin/sh
@@ -96,7 +88,6 @@
         echo "JupyterLab and server started in the background."
         echo "JupyterLab log: jupyter.log"
         echo "Server log: server.log"
-        echo "Use 'jobs' to see running processes and 'fg' to bring a process to the foreground."
         EOF
         chmod +x .venv/bin/start
 
@@ -119,8 +110,6 @@
         EOF
         chmod +x .venv/bin/stop
 
-        echo "New scripts 'hello', 'start', and 'stop' created and made executable."
-        
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
         PS1='$(printf "\033[01;34m(%s)\033[00m \033[01;32m[%s@%s:%s]$\033[00m " "$(basename "$VIRTUAL_ENV")" "\u" "\h" "\w")'
