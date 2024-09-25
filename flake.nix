@@ -25,6 +25,7 @@
         git
         zlib
         stdenv.cc.cc.lib
+        figlet
       ];
       
       runScript = pkgs.writeShellScriptBin "runScript" ''
@@ -32,12 +33,23 @@
         export NIXPKGS_ALLOW_UNFREE=1
         export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
         ${if isLinux && cudaSupport then "export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH" else ""}
+        figlet "Pipulate"
         echo "Welcome to the Pipulate development environment on ${system}!"
+        echo "Checking if pip packages are installed..."
         ${if cudaSupport && isLinux then "echo 'CUDA support enabled.'" else ""}
         test -d .venv || ${pkgs.python311.interpreter} -m venv .venv
         source .venv/bin/activate
         pip install --upgrade pip --quiet
         pip install -r requirements.txt --quiet
+        echo "Done."
+        # Check if numpy is importable
+        echo "Checking if numpy is importable..."
+        if python -c "import numpy" 2>/dev/null; then
+          echo "numpy is successfully imported!"
+        else
+          echo "Error: numpy could not be imported. Check your installation."
+        fi
+        
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
         PS1='$(printf "\033[01;34m(%s)\033[00m \033[01;32m[%s@%s:%s]$\033[00m " "$(basename "$VIRTUAL_ENV")" "\u" "\h" "\w")'
