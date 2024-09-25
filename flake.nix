@@ -68,16 +68,17 @@
           echo "- Stop JupyterLab and FastHTML server with: stop"
           echo "- To exit the Pipulate environment, type 'exit' twice."
           echo
-          echo "Learn more at https://pipulate.com <--Ctrl+Click"
         else
           echo "Error: numpy could not be imported. Check your installation."
         fi
         
-        # Add Ollama check here
-        echo
+        # Check for Ollama server
         echo "Checking Ollama connectivity..."
         ollama_response=$(python ollama_check.py)
         echo "Ollama says: $ollama_response"
+        echo
+
+        echo "Learn more at https://pipulate.com <--Ctrl+Click"
         
         # Create the improved start script
         cat << EOF > .venv/bin/start
