@@ -43,7 +43,8 @@
         if source .venv/bin/activate && \
            pip install --upgrade pip --quiet && \
            pip install -r requirements.txt --quiet; then
-            echo "Done."
+            package_count=$(pip list --format=freeze | wc -l)
+            echo "Done. $package_count pip packages installed."
         else
             echo "Warning: An error occurred during setup."
         fi
