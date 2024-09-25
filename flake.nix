@@ -83,12 +83,21 @@
         # Create the improved start script
         cat << EOF > .venv/bin/start
         #!/bin/sh
+        stop
         echo "Starting JupyterLab and server..."
         jupyter lab > jupyter.log 2>&1 &
         python server.py > server.log 2>&1 &
         echo "JupyterLab and server started in the background."
         echo "JupyterLab log: jupyter.log"
         echo "Server log: server.log"
+        sleep 2
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            xdg-open "http://localhost:5001" > /dev/null 2>&1 &
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            open "http://localhost:5001" > /dev/null 2>&1 &
+        else
+            echo "Unsupported OS."
+        fi
         EOF
         chmod +x .venv/bin/start
 
