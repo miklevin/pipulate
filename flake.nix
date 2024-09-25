@@ -35,8 +35,9 @@
         ${if isLinux && cudaSupport then "export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH" else ""}
         figlet "Pipulate"
         echo "Welcome to the Pipulate development environment on ${system}!"
-        echo "Checking if pip packages are installed..."
-        ${if cudaSupport && isLinux then "echo 'CUDA support enabled.'" else ""}
+        echo
+        echo "- Checking if pip packages are installed..."
+        ${if cudaSupport && isLinux then "echo '- CUDA support enabled.'" else ""}
         test -d .venv || ${pkgs.python311.interpreter} -m venv .venv
         set -e  # Exit immediately if a command exits with a non-zero status
 
@@ -44,14 +45,20 @@
            pip install --upgrade pip --quiet && \
            pip install -r requirements.txt --quiet; then
             package_count=$(pip list --format=freeze | wc -l)
-            echo "Done. $package_count pip packages installed."
+            echo "- Done. $package_count pip packages installed."
         else
             echo "Warning: An error occurred during setup."
         fi
         # Check if numpy is importable
-        echo "Checking if numpy is importable..."
+        echo "- Checking if numpy is importable..."
         if python -c "import numpy" 2>/dev/null; then
-          echo "numpy is successfully imported!"
+          echo "- numpy is importable (good to go!)"
+          echo
+          echo "Start JupyterLab with: jupyter lab"
+          echo "Start FastHTML with: python server.py"
+          echo
+          echo "To exit the Pipulate environment, type 'exit' twice."
+          echo "Learn more at https://pipulate.com <--Ctrl+Click"
         else
           echo "Error: numpy could not be imported. Check your installation."
         fi
