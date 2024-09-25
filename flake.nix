@@ -64,8 +64,8 @@
         if python -c "import numpy" 2>/dev/null; then
           echo "- numpy is importable (good to go!)"
           echo
-          echo "Start JupyterLab with: jupyter lab"
-          echo "Start FastHTML with: python server.py"
+          echo "Start JupyterLab and server with: start"
+          echo "Stop JupyterLab and server with: stop"
           echo
           echo "To exit the Pipulate environment, type 'exit' twice."
           echo "Learn more at https://pipulate.com <--Ctrl+Click"
@@ -78,6 +78,48 @@
         echo "Checking Ollama connectivity..."
         ollama_response=$(python ollama_check.py)
         echo "Ollama says: $ollama_response"
+        
+        # Create a new executable script in .venv/bin
+        echo "Creating new executable scripts in .venv/bin..."
+        cat << EOF > .venv/bin/hello
+        #!/bin/sh
+        echo "Hello from Pipulate!"
+        EOF
+        chmod +x .venv/bin/hello
+        
+        # Create the improved start script
+        cat << EOF > .venv/bin/start
+        #!/bin/sh
+        echo "Starting JupyterLab and server..."
+        jupyter lab > jupyter.log 2>&1 &
+        python server.py > server.log 2>&1 &
+        echo "JupyterLab and server started in the background."
+        echo "JupyterLab log: jupyter.log"
+        echo "Server log: server.log"
+        echo "Use 'jobs' to see running processes and 'fg' to bring a process to the foreground."
+        EOF
+        chmod +x .venv/bin/start
+
+        # Create the stop script
+        cat << EOF > .venv/bin/stop
+        #!/bin/sh
+        echo "Stopping JupyterLab, Jupyter kernels, and server..."
+        pkill -f "jupyter-lab"
+        pkill -f "ipykernel_launcher"
+        pkill -f "python server.py"
+        echo "Waiting for processes to terminate..."
+        sleep 2
+        if pgrep -f "jupyter-lab" > /dev/null || pgrep -f "ipykernel_launcher" > /dev/null || pgrep -f "python server.py" > /dev/null; then
+          echo "Some processes are still running. Forcefully terminating..."
+          pkill -9 -f "jupyter-lab"
+          pkill -9 -f "ipykernel_launcher"
+          pkill -9 -f "python server.py"
+        fi
+        echo "All processes have been stopped."
+        EOF
+        chmod +x .venv/bin/stop
+
+        echo "New scripts 'hello', 'start', and 'stop' created and made executable."
         
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
@@ -128,5 +170,3 @@
       devShell = if isLinux then linuxDevShell else darwinDevShell;
     });
 }
-
-        
