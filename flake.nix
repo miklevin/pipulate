@@ -23,24 +23,25 @@
         ninja
         gcc
         git
+        zlib
+        stdenv.cc.cc.lib
       ];
       
       runScript = pkgs.writeShellScriptBin "runScript" ''
         set -e
         export NIXPKGS_ALLOW_UNFREE=1
-        ${if isLinux then "export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH" else ""}
+        export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+        ${if isLinux && cudaSupport then "export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH" else ""}
         echo "Welcome to the Pipulate development environment on ${system}!"
         ${if cudaSupport && isLinux then "echo 'CUDA support enabled.'" else ""}
         test -d .venv || ${pkgs.python311.interpreter} -m venv .venv
         source .venv/bin/activate
         pip install --upgrade pip --quiet
         pip install -r requirements.txt --quiet
-        
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
         PS1='$(printf "\033[01;34m(%s)\033[00m \033[01;32m[%s@%s:%s]$\033[00m " "$(basename "$VIRTUAL_ENV")" "\u" "\h" "\w")'
-        export PS1
-        
+        export PS1       
         exec bash --norc --noprofile
       '';
       
@@ -64,3 +65,5 @@
       devShell = if isLinux then linuxDevShell else darwinDevShell;
     });
 }
+
+        
