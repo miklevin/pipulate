@@ -38,10 +38,15 @@
         echo "Checking if pip packages are installed..."
         ${if cudaSupport && isLinux then "echo 'CUDA support enabled.'" else ""}
         test -d .venv || ${pkgs.python311.interpreter} -m venv .venv
-        source .venv/bin/activate
-        pip install --upgrade pip --quiet
-        pip install -r requirements.txt --quiet
-        echo "Done."
+        set -e  # Exit immediately if a command exits with a non-zero status
+
+        if source .venv/bin/activate && \
+           pip install --upgrade pip --quiet && \
+           pip install -r requirements.txt --quiet; then
+            echo "Done."
+        else
+            echo "Warning: An error occurred during setup."
+        fi
         # Check if numpy is importable
         echo "Checking if numpy is importable..."
         if python -c "import numpy" 2>/dev/null; then
