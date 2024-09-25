@@ -1,20 +1,42 @@
 import requests
 import re
 
-def parse_model_size(model_name):
-    match = re.search(r'(\d+)([bm])', model_name.lower())
-    if match:
-        size, unit = match.groups()
-        size = int(size)
-        if unit == 'b':
-            return size * 1000000000
-        elif unit == 'm':
-            return size * 1000000
-    return float('inf')  # Return infinity for models we can't parse, so they're least preferred
+def parse_version(version_string):
+    return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
+
+def compare_versions(v1, v2):
+    v1_parts = parse_version(v1)
+    v2_parts = parse_version(v2)
+    return (v1_parts > v2_parts) - (v1_parts < v2_parts)
+
+def get_best_llama_model(models):
+    llama_models = [model for model in models if model.lower().startswith('llama')]
+    if not llama_models:
+        return None
+
+    # First, check for llama3.1:latest
+    if "llama3.1:latest" in llama_models:
+        return "llama3.1:latest"
+
+    def key_func(model):
+        # Split the model name and version
+        parts = model.split(':')
+        base_name = parts[0]
+        version = parts[1] if len(parts) > 1 else ''
+
+        # Extract the version number from the base name
+        base_version = re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower())
+        base_version = base_version.group(1) if base_version else ''
+
+        # Prioritize 'latest' tag, then base version, then additional version info
+        return (-1 if version == 'latest' else 1, 
+                parse_version(base_version), 
+                parse_version(version))
+
+    return min(llama_models, key=key_func)
 
 def check_ollama(timeout=10):
     try:
-        # Check available models
         print("Requesting available models...")
         models_response = requests.get("http://localhost:11434/api/tags", timeout=timeout)
         models_response.raise_for_status()
@@ -26,25 +48,10 @@ def check_ollama(timeout=10):
         
         model_names = [model['name'] for model in models]
         
-        # First, look for "llama3.1:latest"
-        if "llama3.1:latest" in model_names:
-            chosen_model = "llama3.1:latest"
-        else:
-            # If not found, look for other llama models with "latest" tag
-            llama_latest_models = [name for name in model_names if name.startswith('llama') and name.endswith(':latest')]
-            if llama_latest_models:
-                chosen_model = llama_latest_models[0]
-            elif "llama3.1" in model_names:
-                # If no llama:latest models, use base "llama3.1"
-                chosen_model = "llama3.1"
-            else:
-                # If no llama models, choose any model with "latest" tag
-                latest_models = [name for name in model_names if name.endswith(':latest')]
-                chosen_model = latest_models[0] if latest_models else model_names[0]
+        chosen_model = get_best_llama_model(model_names) or model_names[0]
         
         print(f"Chosen model: {chosen_model}")
         
-        # Test the chosen model
         print("Sending chat request...")
         chat_response = requests.post(
             "http://localhost:11434/api/chat",
