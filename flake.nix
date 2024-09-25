@@ -35,7 +35,13 @@
         source .venv/bin/activate
         pip install --upgrade pip --quiet
         pip install -r requirements.txt --quiet
-        exec bash
+        
+        # Override PROMPT_COMMAND and set custom PS1
+        export PROMPT_COMMAND=""
+        PS1='$(printf "\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+        export PS1
+        
+        exec bash --norc --noprofile
       '';
       
       linuxDevShell = pkgs.mkShell {
