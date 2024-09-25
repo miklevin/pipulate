@@ -73,6 +73,12 @@
           echo "Error: numpy could not be imported. Check your installation."
         fi
         
+        # Add Ollama check here
+        echo
+        echo "Checking Ollama connectivity..."
+        ollama_response=$(python ollama_check.py)
+        echo "Ollama says: $ollama_response"
+        
         # Override PROMPT_COMMAND and set custom PS1
         export PROMPT_COMMAND=""
         PS1='$(printf "\033[01;34m(%s)\033[00m \033[01;32m[%s@%s:%s]$\033[00m " "$(basename "$VIRTUAL_ENV")" "\u" "\h" "\w")'
