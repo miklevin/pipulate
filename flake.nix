@@ -54,12 +54,31 @@
           cudnn
           (ollama.override { acceleration = "cuda"; })
         ]);
-        shellHook = "${runScript}/bin/runScript";
+        shellHook = ''
+          ${runScript}/bin/runScript
+          # Set up Nix prompt for when user exits Python venv
+          nix_prompt='\[\033[1;34m\][nix-dev]\[\033[0m\] \w $ '
+          if [ -n "$ZSH_VERSION" ]; then
+            setopt PROMPT_SUBST
+            PS1="%F{blue}[nix-dev]%f %~ $ "
+          else
+            PS1="$nix_prompt"
+          fi
+        '';
       };
       
       darwinDevShell = pkgs.mkShell {
         buildInputs = commonPackages;
-        shellHook = "${runScript}/bin/runScript";
+        shellHook = ''
+          ${runScript}/bin/runScript
+          # Set up Nix prompt for when user exits Python venv
+          if [ -n "$ZSH_VERSION" ]; then
+            setopt PROMPT_SUBST
+            PS1="%F{blue}[nix-dev]%f %~ $ "
+          else
+            PS1='\[\033[1;34m\][nix-dev]\[\033[0m\] \w $ '
+          fi
+        '';
       };
     in {
       devShell = if isLinux then linuxDevShell else darwinDevShell;
