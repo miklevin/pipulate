@@ -1,20 +1,29 @@
 {
+  # Define the external dependencies (other flakes) this flake uses
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";  # Nix packages source
+    flake-utils.url = "github:numtide/flake-utils";    # Helpful utilities for flakes
   };
+
+  # Define the outputs of this flake
   outputs = inputs @ { self, nixpkgs, flake-utils, ... }:
+    # Generate outputs for each default system (e.g., x86_64-linux, aarch64-darwin)
     flake-utils.lib.eachDefaultSystem (system: let
+      # Import nixpkgs for the current system, allowing unfree packages
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
+
+      # Import local configuration if it exists, otherwise use an empty set
       localConfig = if builtins.pathExists ./local.nix then import ./local.nix else {};
       cudaSupport = if localConfig ? cudaSupport then localConfig.cudaSupport else false;
       
+      # Detect the current platform
       isLinux = pkgs.stdenv.isLinux;
       isDarwin = pkgs.stdenv.isDarwin;
       
+      # Define common packages used across all platforms
       commonPackages = with pkgs; [
         python311
         python311.pkgs.pip
@@ -28,6 +37,7 @@
         figlet
       ];
       
+      # Create a shell script to set up the development environment
       runScript = pkgs.writeShellScriptBin "runScript" ''
         set -e
         export NIXPKGS_ALLOW_UNFREE=1
@@ -49,7 +59,7 @@
         else
             echo "Warning: An error occurred during setup."
         fi
-        # Check if numpy is importable
+        # Check if numpy is importable (the lyncpin to know if the environment is ready)
         echo "- Checking if numpy is importable..."
         if python -c "import numpy" 2>/dev/null; then
           echo "- numpy is importable (good to go!)"
@@ -70,6 +80,7 @@
         exec bash --norc --noprofile
       '';
       
+      # Define the development shell for Linux systems
       linuxDevShell = pkgs.mkShell {
         buildInputs = commonPackages ++ (with pkgs; [
           pythonManylinuxPackages.manylinux2014Package
@@ -92,6 +103,7 @@
         '';
       };
       
+      # Define the development shell for Darwin (macOS) systems
       darwinDevShell = pkgs.mkShell {
         buildInputs = commonPackages;
         shellHook = ''
@@ -106,6 +118,7 @@
         '';
       };
     in {
+      # Choose the appropriate devShell based on the current platform
       devShell = if isLinux then linuxDevShell else darwinDevShell;
     });
 }
