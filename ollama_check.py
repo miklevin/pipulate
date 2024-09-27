@@ -14,10 +14,6 @@ def get_best_llama_model(models):
     if not llama_models:
         return None
 
-    # First, check for llama3.1:latest
-    if "llama3.1:latest" in llama_models:
-        return "llama3.1:latest"
-
     def key_func(model):
         # Split the model name and version
         parts = model.split(':')
@@ -26,14 +22,14 @@ def get_best_llama_model(models):
 
         # Extract the version number from the base name
         base_version = re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower())
-        base_version = base_version.group(1) if base_version else ''
+        base_version = base_version.group(1) if base_version else '0'
 
-        # Prioritize 'latest' tag, then base version, then additional version info
-        return (-1 if version == 'latest' else 1, 
-                parse_version(base_version), 
+        # Prioritize based on base version, then 'latest' tag
+        return (parse_version(base_version),
+                1 if version == 'latest' else 0,
                 parse_version(version))
 
-    return min(llama_models, key=key_func)
+    return max(llama_models, key=key_func)
 
 def check_ollama(timeout=10):
     try:

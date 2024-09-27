@@ -1,4 +1,12 @@
 {
+  #  ____  _             _       _          This is a Nix flake that defines a reproducible
+  # |  _ \(_)_ __  _   _| | __ _| |_ ___    development environment for a project called
+  # | |_) | | '_ \| | | | |/ _` | __/ _ \   Pipulate. This flake sets up a development shell
+  # |  __/| | |_) | |_| | | (_| | ||  __/   with all necessary dependencies and includes
+  # |_|   |_| .__/ \__,_|_|\__,_|\__\___|   scripts to start and stop services like JupyterLab
+  #         |_|                             and a custom FastHTML server.                     
+
+
   # Define the external dependencies (other flakes) this flake uses
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";  # Nix packages source
@@ -80,7 +88,7 @@
 
         echo "Learn more at https://pipulate.com <--Ctrl+Click"
         
-        # Create the improved start script
+        # Create the start script
         cat << EOF > .venv/bin/start
         #!/bin/sh
         stop
