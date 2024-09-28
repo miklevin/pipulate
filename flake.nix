@@ -1,12 +1,4 @@
 {
-  #  ____  _             _       _          This is a Nix flake that defines a reproducible
-  # |  _ \(_)_ __  _   _| | __ _| |_ ___    development environment for a project called
-  # | |_) | | '_ \| | | | |/ _` | __/ _ \   Pipulate. This flake sets up a development shell
-  # |  __/| | |_) | |_| | | (_| | ||  __/   with all necessary dependencies and includes
-  # |_|   |_| .__/ \__,_|_|\__,_|\__\___|   scripts to start and stop services like JupyterLab
-  #         |_|                             and a custom FastHTML server.                     
-
-
   # Define the external dependencies (other flakes) this flake uses
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";  # Nix packages source
@@ -43,6 +35,7 @@
         zlib
         stdenv.cc.cc.lib
         figlet
+        tmux
       ];
       
       # Create a shell script to set up the development environment
@@ -51,8 +44,16 @@
         export NIXPKGS_ALLOW_UNFREE=1
         export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
         ${if isLinux && cudaSupport then "export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH" else ""}
-        figlet "Pipulate"
-        echo "Welcome to the Pipulate development environment on ${system}!"
+        
+        # Get the name of the current directory (repo folder)
+        REPO_NAME=$(basename "$PWD")
+        
+        # Convert the repo name to Proper case (first letter uppercase, rest lowercase)
+        PROPER_REPO_NAME=$(echo "$REPO_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+        
+        # Use the Proper case repo name in the figlet output
+        figlet "$PROPER_REPO_NAME"
+        echo "Welcome to the $PROPER_REPO_NAME development environment on ${system}!"
         echo
         echo "- Checking if pip packages are installed..."
         ${if cudaSupport && isLinux then "echo '- CUDA support enabled.'" else ""}
@@ -62,7 +63,7 @@
         if source .venv/bin/activate && \
            pip install --upgrade pip --quiet && \
            pip install -r requirements.txt --quiet && \
-           nb-clean --add-filter; then
+           nb-clean add-filter; then
             package_count=$(pip list --format=freeze | wc -l)
             echo "- Done. $package_count pip packages installed."
         else
@@ -89,16 +90,16 @@
 
         echo "Learn more at https://pipulate.com <--Ctrl+Click"
         
-        # Create the start script
+        # Create the improved start script
         cat << EOF > .venv/bin/start
         #!/bin/sh
         stop
-        echo "Starting JupyterLab and server..."
-        jupyter lab > jupyter.log 2>&1 &
-        python server.py > server.log 2>&1 &
-        echo "JupyterLab and server started in the background."
-        echo "JupyterLab log: jupyter.log"
-        echo "Server log: server.log"
+        echo "Starting JupyterLab and server in tmux sessions..."
+        tmux new-session -d -s jupyter 'source .venv/bin/activate && jupyter lab'
+        tmux new-session -d -s server 'source .venv/bin/activate && python server.py'
+        echo "JupyterLab and server started in tmux sessions."
+        echo "To view JupyterLab: tmux attach -t jupyter"
+        echo "To view server: tmux attach -t server"
         sleep 2
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             xdg-open "http://localhost:5001" > /dev/null 2>&1 &
@@ -110,22 +111,12 @@
         EOF
         chmod +x .venv/bin/start
 
-        # Create the stop script
+        # Create the improved stop script
         cat << EOF > .venv/bin/stop
         #!/bin/sh
-        echo "Stopping JupyterLab, Jupyter kernels, and server..."
-        pkill -f "jupyter-lab"
-        pkill -f "ipykernel_launcher"
-        pkill -f "python server.py"
-        echo "Waiting for processes to terminate..."
-        sleep 2
-        if pgrep -f "jupyter-lab" > /dev/null || pgrep -f "ipykernel_launcher" > /dev/null || pgrep -f "python server.py" > /dev/null; then
-          echo "Some processes are still running. Forcefully terminating..."
-          pkill -9 -f "jupyter-lab"
-          pkill -9 -f "ipykernel_launcher"
-          pkill -9 -f "python server.py"
-        fi
-        echo "All processes have been stopped."
+        echo "Stopping all tmux sessions..."
+        tmux kill-server 2>/dev/null || echo "No tmux sessions were running."
+        echo "All tmux sessions have been stopped."
         EOF
         chmod +x .venv/bin/stop
 
