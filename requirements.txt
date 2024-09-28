@@ -4,6 +4,7 @@ requests
 sqlitedict
 numpy
 matplotlib
+nb-clean
 nbdev
 fastapi
 python-fasthtml
