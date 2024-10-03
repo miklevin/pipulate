@@ -31,7 +31,7 @@ def get_best_llama_model(models):
 
     return max(llama_models, key=key_func)
 
-def check_ollama(timeout=10):
+def check_ollama(keyword="Pipulate", timeout=10):
     try:
         # print("Requesting available models...")
         models_response = requests.get("http://localhost:11434/api/tags", timeout=timeout)
@@ -53,14 +53,18 @@ def check_ollama(timeout=10):
             "http://localhost:11434/api/chat",
             json={
                 "model": chosen_model,
-                "messages": [{"role": "user", "content": "Say 'Ready to pipulate!' in a clever way."}],
+                "messages": [{"role": "user", "content": f"Say 'Ready to {keyword}!' as a short, clever one-liner."}],
                 "stream": False
             },
             timeout=timeout
         )
         chat_response.raise_for_status()
         
-        return f"Using model: {chosen_model}\n" + chat_response.json()['message']['content']
+        response_content = chat_response.json()['message']['content']
+        # Remove surrounding quotes if present
+        response_content = response_content.strip('"')
+        
+        return f"Using model {chosen_model}\n{response_content}"
     except requests.exceptions.Timeout:
         return f"Error: Connection to Ollama server timed out after {timeout} seconds. The server might be busy or slow to respond."
     except requests.exceptions.ConnectionError:
@@ -69,5 +73,7 @@ def check_ollama(timeout=10):
         return f"Error connecting to Ollama server: {e}"
 
 if __name__ == "__main__":
-    result = check_ollama()
+    import sys
+    keyword = sys.argv[1] if len(sys.argv) > 1 else "Pipulate"
+    result = check_ollama(keyword)
     print(result)
