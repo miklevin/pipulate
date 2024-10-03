@@ -1,75 +1,35 @@
-import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from starlette.websockets import WebSocketState
-from fastapi.responses import HTMLResponse  # Add this import
+from fasthtml.common import *
 
-app = FastAPI()
+app = FastHTML(ws_hdr=True)  # Enable WebSocket header
+rt = app.route
 
-# Global dictionary to hold queues for communication between tasks and WebSocket connections
-task_queues = {}
+# Home route
+@rt('/')
+def home():
+    cts = Div(
+        Div(id='notifications'),  # Div to display notifications
+        Form(Input(id='msg'), id='form', ws_send=True),  # Form to send messages
+        hx_ext='ws',  # Enable HTMX WebSocket extension
+        ws_connect='/ws'  # Connect to the WebSocket endpoint
+    )
+    return Titled('WebSocket Test', cts)
 
-@app.get("/", response_class=HTMLResponse)  # Specify the response class
-async def get():
-    return """
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <title>WebSocket with FastAPI</title>
-            <script type="text/javascript">
-                function startTask() {
-                    let ws = new WebSocket("ws://localhost:8000/ws");
-                    ws.onmessage = function(event) {
-                        document.getElementById("log").innerHTML += "<br>" + event.data;
-                    };
-                    ws.onclose = function() {
-                        document.getElementById("log").innerHTML += "<br>Task complete.";
-                    };
-                }
-            </script>
-        </head>
-        <body>
-            <h1>FastAPI WebSocket Example</h1>
-            <button onclick="startTask()">Start Long Task</button>
-            <div id="log"></div>
-        </body>
-    </html>
-    """
+# WebSocket connection management
+users = {}
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    queue = asyncio.Queue()
-    task_id = id(websocket)
-    task_queues[task_id] = queue
+def on_conn(ws, send):
+    users[str(id(ws))] = send  # Store the send function for the connected user
 
-    # Start keep-alive task
-    asyncio.create_task(keep_alive(websocket))
+def on_disconn(ws):
+    users.pop(str(id(ws)), None)  # Remove the user on disconnect
 
-    try:
-        # Start long-running task in the background
-        asyncio.create_task(long_running_task(queue))
+# WebSocket route
+@app.ws('/ws', conn=on_conn, disconn=on_disconn)
+async def ws(msg: str, send):
+    await send(Div('Hello ' + msg, id='notifications'))  # Send a greeting message
+    # Optionally, you can broadcast the message to all connected users
+    for u in users.values():
+        await u(Div('User said: ' + msg, id='notifications'))
 
-        # Stream messages from the queue to the WebSocket
-        while True:
-            message = await queue.get()
-            if websocket.application_state == WebSocketState.CONNECTED:
-                await websocket.send_text(message)
-            else:
-                break
-    except WebSocketDisconnect:
-        pass
-    finally:
-        del task_queues[task_id]
-
-async def long_running_task(queue):
-    for i in range(5):
-        await asyncio.sleep(1)  # Simulating a long task
-        await queue.put(f"Step {i + 1} completed")
-    await queue.put("Task complete")
-
-# Add a keep-alive mechanism to ensure the connection remains open
-async def keep_alive(websocket: WebSocket):
-    while True:
-        await asyncio.sleep(10)  # Send a ping every 10 seconds
-        if websocket.application_state == WebSocketState.CONNECTED:
-            await websocket.send_text("ping")  # Optional: send a ping message
+# Start the server
+serve()
