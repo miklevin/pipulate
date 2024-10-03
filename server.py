@@ -7,7 +7,7 @@ rt = app.route
 msgs = []
 @rt('/')
 def home(): return Div(
-    Div(Ul(*[Li(m) for m in msgs], id='msg-list')),
+    Div("foo", id='msg-list'),
     Form(Input(id='msg', name='msg', placeholder='Type a message...'),  # Input for new messages
          Button("Send", type='submit', ws_send=True)),  # Button to send message
     hx_ext='ws',  # Enable HTMX WebSocket extension
@@ -24,9 +24,6 @@ async def ws(msg: str):
         msgs.append(msg)  # Append the message to the list
         # Simulate a long-running task
         await long_running_task(msg)  # Call the long-running task
-        # Update all users with the new message list
-        for u in users.values():
-            await u(Ul(*[Li(m) for m in msgs], id='msg-list'))  # Update the message list for each user
 
 async def long_running_task(msg: str):
     # Simulate a long-running task
