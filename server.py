@@ -5,13 +5,12 @@ app, rt = fast_app(ws_hdr=True, live=True)
 
 msgs = []
 @rt('/')
-def get(): return Titled("Pipulate", Div(
+def get(): return Titled("Pipulate", 
     Div("foo bar baz", id='msg-list'),
     Form(Input(id='msg', name='msg', placeholder='Type a message...'),  # Input for new messages
          Button("Send", type='submit', ws_send=True)),  # Button to send message
     hx_ext='ws',  # Enable HTMX WebSocket extension
     ws_connect='/ws'  # Connect to the WebSocket endpoint
-    )
 )
 
 users = {}
