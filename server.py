@@ -1,16 +1,17 @@
 from fasthtml.common import *
 import asyncio
 
-app, rt = fast_app(ws_hdr=True)
+app, rt = fast_app(ws_hdr=True, live=True)
 
 msgs = []
 @rt('/')
-def home(): return Div(
-    Div("foo", id='msg-list'),
+def get(): return Titled("Pipulate", Div(
+    Div("foo bar baz", id='msg-list'),
     Form(Input(id='msg', name='msg', placeholder='Type a message...'),  # Input for new messages
          Button("Send", type='submit', ws_send=True)),  # Button to send message
     hx_ext='ws',  # Enable HTMX WebSocket extension
     ws_connect='/ws'  # Connect to the WebSocket endpoint
+    )
 )
 
 users = {}
