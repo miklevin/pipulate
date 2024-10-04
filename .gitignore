@@ -1,6 +1,8 @@
 *.log
 *.pid
+*.db
 .env
+data/
 .ipynb_checkpoints/
 .nix-shell
 .sesskey
