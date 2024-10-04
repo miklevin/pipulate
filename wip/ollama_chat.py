@@ -22,7 +22,7 @@ def chat_with_ollama(model, messages):
         return f"Error: {response.status_code}, {response.text}"
 
 # Example usage
-model = "llama3.1"  # or whatever model you have installed
+model = "llama3.2"  # or whatever model you have installed
 conversation = [
     {"role": "user", "content": "What is the capital of France?"},
 ]
