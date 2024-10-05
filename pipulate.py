@@ -9,7 +9,6 @@ from starlette.concurrency import run_in_threadpool
 
 from fasthtml.common import *
 
-from todo_app import todos, Todo, mk_input as todo_mk_input
 
 # Configuration and Constants
 MAX_LLM_RESPONSE_WORDS = 40
@@ -141,6 +140,14 @@ def render(todo):
         id=tid,
         cls='done' if todo.done else '',
     )
+
+
+# from todo_app import todos, Todo, mk_input as todo_mk_input
+def todo_mk_input(): 
+    return Input(placeholder='Add a new item', 
+                 id='title', 
+                 hx_swap_oob='true',
+                 autofocus=True)  # Add this line
 
 
 # Define a function to create the input group
@@ -513,7 +520,7 @@ async def chat_interface(chat_type: str):
     )
 
     # Generate AI response
-    prompt = f"You selected '{selected_chat}'. Respond cleverly, mentioning '{selected_chat}' in your reply. Be brief and sassy."
+    prompt = f"Respond mentioning '{selected_chat}' in your reply, keeing it brief, under 20 words."
     chatter = SimpleChatter(
         send=lambda msg: asyncio.gather(
             *[
