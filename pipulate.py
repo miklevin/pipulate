@@ -138,12 +138,11 @@ def get():
 async def post(todo:Todo):
     inserted_todo = todos.insert(todo)
     
-    # Start the AI response in the background
+    # Adjusted prompt for brevity
     asyncio.create_task(generate_and_stream_ai_response(
-        f"A new todo item was added: '{todo.title}'. Give a brief, sassy comment or advice in 40 words or less."
+        f"New todo: '{todo.title}'. Brief, sassy comment or advice in under 30 words."
     ))
     
-    # Return the inserted todo item immediately
     return render(inserted_todo), todo_mk_input()
 
 async def generate_and_stream_ai_response(prompt):
@@ -166,9 +165,9 @@ async def delete(tid:int):
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
     
-    # Start the AI response for deletion in the background
+    # Adjusted prompt for brevity
     asyncio.create_task(generate_and_stream_ai_response(
-        f"The todo item '{todo.title}' was just deleted. Give a brief, sassy comment or reaction in 40 words or less."
+        f"Todo '{todo.title}' deleted. Brief, sassy reaction in under 30 words."
     ))
     
     return ''  # Return an empty string to remove the item from the DOM
@@ -181,9 +180,9 @@ async def post(tid: int):
     new_status = "Done" if todo.done else "Not Done"
     updated_todo = todos.update(todo)
     
-    # Start the AI response for toggle in the background
+    # Adjusted prompt for brevity
     asyncio.create_task(generate_and_stream_ai_response(
-        f"The todo item '{todo.title}' was just toggled from {old_status} to {new_status}. Give a brief, sassy comment or reaction in 40 words or less."
+        f"Todo '{todo.title}' toggled from {old_status} to {new_status}. Brief, sassy comment in under 30 words."
     ))
     
     return Input(type="checkbox", 
@@ -230,7 +229,7 @@ async def ws(msg: str):
 async def poke():
     response = await run_in_threadpool(chat_with_ollama, model, [
         {"role": "system", "content": "You are a sassy Todo List. Respond briefly to being poked."},
-        {"role": "user", "content": "You've just been poked. React in 20 words or less."}
+        {"role": "user", "content": "You've been poked. React in under 30 words."}
     ])
     return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
