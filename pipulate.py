@@ -26,11 +26,14 @@ conversation = [
     {"role": "system", "content": "You are a Todo App with attitude. Be sassy but helpful."},
 ]
 
+def mk_input():
+    return Input(id='msg', name='msg', placeholder='Type a message...', autofocus='autofocus')
+
 @rt('/')
 def get(): 
     return Titled("Pipulate Todo App", 
         Div(id='msg-list'),
-        Form(Input(id='msg', name='msg', placeholder='Type a message...'),
+        Form(mk_input(),
              Button("Send", type='submit', ws_send=True)),
         hx_ext='ws',
         ws_connect='/ws'
@@ -61,5 +64,11 @@ async def ws(msg: str):
             for u in users.values():
                 await u(Div(f"Todo App: {partial_response}", id='msg-list', _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
             await asyncio.sleep(0.1)  # Adjust delay as needed
+        
+        # Clear the input field after the response is complete and keep it focused
+        clear_input = Input(id='msg', name='msg', placeholder='Type a message...', value='', 
+                            hx_swap_oob="true", autofocus='autofocus')
+        for u in users.values():
+            await u(clear_input)
 
 serve()
