@@ -191,7 +191,7 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
 
 
 def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
-    """Create the navigation menu with chat and action dropdowns."""
+    """Create the navigation menu with a filler item, chat, and action dropdowns."""
     common_style = (
         "font-size: 1rem; height: 32px; line-height: 32px; "
         "display: inline-flex; align-items: center; justify-content: center; "
@@ -207,13 +207,22 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
                 hx_target=f"#{summary_id}",
                 hx_swap="outerHTML",
                 hx_trigger="click",
-                hx_push_url="false",  # Add this to prevent URL changes
+                hx_push_url="false",  # Prevent URL changes
                 cls="menu-item",
             )
         )
 
     chat_summary_id = "chat-summary"
     action_summary_id = "action-summary"
+
+    # Filler Item: Non-interactive, occupies significant space
+    filler_item = Li(
+        Span(" "),  # Empty span as a filler
+        style=(
+            "flex-grow: 1; min-width: 300px; "  # Allows it to grow and ensures a minimum width
+            "list-style-type: none;"  # Removes the bullet point
+        ),
+    )
 
     chat_menu = Details(
         Summary(
@@ -289,10 +298,14 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
     )
 
     nav = Div(
+        filler_item,  # Add the filler item first
         chat_menu,
         action_menu,
         search_group,
-        style="display: flex; align-items: center; gap: 8px;",
+        style=(
+            "display: flex; align-items: center; gap: 8px; "
+            "width: 100%;"  # Ensure the nav takes full width
+        ),
     )
 
     return nav
