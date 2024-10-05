@@ -91,10 +91,10 @@ async def generate_and_stream_ai_response(prompt):
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 def create_nav_menu():
-    common_style = "font-size: 1.1rem; padding: 0.5rem 0.75rem; height: 40px; line-height: 40px; display: inline-flex; align-items: center; justify-content: center;"
+    common_style = "font-size: 1.1rem; height: 36px; line-height: 36px; display: inline-flex; align-items: center; justify-content: center; margin: 0 3px; border-radius: 9px; padding: 0 0.5rem;"
     return Nav(
         Group(
-            Strong("Pipulate", style=common_style),
+            Strong("Pipulate", style=f"{common_style} background-color: var(--pico-primary-background); color: var(--pico-primary-inverse);"),
             style="margin-right: auto;"
         ),
         Group(
@@ -106,19 +106,19 @@ def create_nav_menu():
                 hx_trigger="keyup[keyCode==13]",
                 hx_target="#msg-list",
                 hx_swap="innerHTML",
-                style=f"{common_style} width: 150px;"
+                style=f"{common_style} width: 150px; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
             ),
             Button(
-                "×",
+                " × ",
                 type="button",
                 onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                style=f"{common_style} width: 40px; color: var(--pico-muted-color); opacity: 0.7;"
+                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; font-size: 0.9rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
             ),
-            style="display: flex; align-items: center;"
+            style="display: flex; align-items: center; position: relative;"
         ),
         Group(
             Details(
-                Summary("Chat Interface", style=f"{common_style} width: 170px;"),
+                Summary("Chat Interface", style=f"{common_style} width: 170px; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
                 Ul(
                     Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                     Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
@@ -129,7 +129,7 @@ def create_nav_menu():
                 cls="dropdown"
             ),
             Details(
-                Summary("Actions", style=f"{common_style} width: 150px;"),
+                Summary("Actions", style=f"{common_style} width: 140px; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
                 Ul(
                     Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                     Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
@@ -139,9 +139,9 @@ def create_nav_menu():
                 ),
                 cls="dropdown"
             ),
-            style="display: flex; align-items: center;"
+            style="display: flex; align-items: center; gap: 20px;"  # Increased gap between dropdowns
         ),
-        style="flex: 3; display: flex; align-items: center;"
+        style="display: flex; align-items: center; gap: 20px; width: 100%; padding: 0.5rem 1rem;"  # Increased gap between main groups
     )
 
 @rt('/')
