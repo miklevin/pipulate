@@ -188,21 +188,29 @@ async def ws(msg: str):
         global conversation
         conversation.append({"role": "user", "content": msg})
         
-        user_id = str(id(ws))
-        async def send(content: str):
-            await users[user_id](Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE))
+        # Send user message immediately
+        for u in users.values():
+            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in', style=MATRIX_STYLE))
         
-        async def update(content: str):
-            await users[user_id](Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE,
-                                     _="this.scrollIntoView({behavior: 'smooth'});"))
+        # Start streaming response
+        response = await run_in_threadpool(chat_with_ollama, model, conversation)
+        conversation.append({"role": "assistant", "content": response})
         
-        async def finish():
-            clear_input = Input(id='msg', name='msg', placeholder='Type a message...', value='', 
-                                hx_swap_oob="true", autofocus='autofocus')
-            await users[user_id](clear_input)
+        # Simulate typing effect
+        words = response.split()
+        for i in range(len(words)):
+            partial_response = " ".join(words[:i+1])
+            for u in users.values():
+                await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
+                            style=MATRIX_STYLE,
+                            _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+            await asyncio.sleep(0.05)  # Reduced delay for faster typing
         
-        chatter = Chatter(send, update, finish)
-        await chat_handler(chatter, msg)
+        # Clear the input field after the response is complete and keep it focused
+        clear_input = Input(id='msg', name='msg', placeholder='Type a message...', value='', 
+                            hx_swap_oob="true", autofocus='autofocus')
+        for u in users.values():
+            await u(clear_input)
 
 @rt('/poke')
 async def poke():
