@@ -143,13 +143,26 @@ def render(todo):
     )
 
 
-def mk_input():
-    """Create the chat input field."""
-    return Input(
-        id='msg',
-        name='msg',
-        placeholder='Type a message...',
-        autofocus='autofocus',
+# Define a function to create the input group
+def mk_input_group(disabled=False, value='', autofocus=True):
+    """Create the chat input group."""
+    return Group(
+        Input(
+            id='msg',
+            name='msg',
+            placeholder='Type a message...',
+            value=value,
+            disabled=disabled,
+            autofocus='autofocus' if autofocus else None,
+        ),
+        Button(
+            "Send",
+            type='submit',
+            ws_send=True,
+            id='send-btn',
+            disabled=disabled,
+        ),
+        id='input-group',
     )
 
 
@@ -380,10 +393,7 @@ def get():
                             style='height: 40vh;',
                         ),
                         footer=Form(
-                            Group(
-                                mk_input(),
-                                Button("Send", type='submit', ws_send=True),
-                            )
+                            mk_input_group(),
                         ),
                     ),
                 ),
@@ -593,14 +603,20 @@ def toggle_theme():
     return ''  # Theme change is handled client-side
 
 
-# WebSocket Handlers
+# WebSocket Handler Modification
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
 async def ws(msg: str):
     """Handle WebSocket messages."""
     if msg:
+        # Disable the input group
+        disable_input_group = mk_input_group(disabled=True, value=msg, autofocus=False)
+        disable_input_group.attrs['hx_swap_oob'] = "true"
+        for u in users.values():
+            await u(disable_input_group)
+
+        # Process the message and generate response
         global conversation
         conversation.append({"role": "user", "content": msg})
-
 
         # Start streaming response
         response = await run_in_threadpool(chat_with_ollama, model, conversation)
@@ -622,17 +638,11 @@ async def ws(msg: str):
                 )
             await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
-        # Clear the input field after the response is complete and keep it focused
-        clear_input = Input(
-            id='msg',
-            name='msg',
-            placeholder='Type a message...',
-            value='',
-            hx_swap_oob="true",
-            autofocus='autofocus',
-        )
+        # Re-enable the input group
+        enable_input_group = mk_input_group(disabled=False, value='', autofocus=True)
+        enable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
-            await u(clear_input)
+            await u(enable_input_group)
 
 
 serve()
