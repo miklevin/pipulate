@@ -81,47 +81,59 @@ def get():
                     Button('Add')),
                     hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
     
-    # Create two navigation dropdown menus
-    nav_dropdown1 = Select(
-        Option("Select Chat Interface", selected=True, disabled=True, value=""),
-        Option("Todo Chat"),
-        Option("Future Chat 1"),
-        Option("Future Chat 2"),
-        Option("Future Chat 3"),
-        name="nav1",
-        aria_label="Navigation 1",
-        style="padding: 10px; margin-right: 10px; flex: 1;"
+    # Create the navigation bar
+    nav = Nav(
+        Ul(
+            Li(Strong("Pipulate"))
+        ),
+        Ul(
+            Li(
+                Details(
+                    Summary("Chat Interface"),
+                    Ul(
+                        Li(A("Todo Chat", href="#")),
+                        Li(A("Future Chat 1", href="#")),
+                        Li(A("Future Chat 2", href="#")),
+                        Li(A("Future Chat 3", href="#")),
+                        dir="rtl"
+                    ),
+                    cls="dropdown"
+                )
+            ),
+            Li(
+                Details(
+                    Summary("Actions"),
+                    Ul(
+                        Li(A("Action 1", href="#")),
+                        Li(A("Action 2", href="#")),
+                        Li(A("Action 3", href="#")),
+                        Li(A("Action 4", href="#")),
+                        dir="rtl"
+                    ),
+                    cls="dropdown"
+                )
+            )
+        ),
+        style="flex: 3;"  # Increased flex value to give more space to nav
     )
     
-    nav_dropdown2 = Select(
-        Option("Select Action", selected=True, disabled=True, value=""),
-        Option("Action 1"),
-        Option("Action 2"),
-        Option("Action 3"),
-        Option("Action 4"),
-        name="nav2",
-        aria_label="Navigation 2",
-        style="padding: 10px; margin-right: 10px; flex: 1;"
-    )
-    
-    # Add a new input field
+    # Add the input field with reduced width
     nav_input = Input(
         placeholder="Search or enter command",
         name="nav_input",
-        style="padding: 10px; flex: 2;"
+        style="flex: 1; padding: 10px; max-width: 200px;"  # Reduced flex and added max-width
     )
     
-    # Group the two dropdowns and the input field
+    # Group the nav and input together
     nav_group = Group(
-        nav_dropdown1,
-        nav_dropdown2,
+        nav,
         nav_input,
-        style="display: flex; margin-bottom: 20px; width: 100%;"
+        style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;"
     )
     
     return Titled("Pipulate Todo App", 
         Container(
-            nav_group,  # Add the grouped dropdown menus and input field at the top
+            nav_group,  # Add the grouped nav and input
             Grid(
                 Div(
                     Card(
@@ -133,7 +145,7 @@ def get():
                 Div(
                     Card(
                         H2("Chat Interface"),
-                        Div(id='msg-list', cls='overflow-auto', style='height: 40vh;'),  # Changed from 60vh to 40vh
+                        Div(id='msg-list', cls='overflow-auto', style='height: 40vh;'),
                         footer=Form(
                             Group(
                                 mk_input(),
