@@ -35,11 +35,20 @@ def mk_input():
 @rt('/')
 def get(): 
     return Titled("Pipulate Todo App", 
-        Div(id='msg-list'),
-        Form(mk_input(),
-             Button("Send", type='submit', ws_send=True)),
+        Container(
+            Card(
+                Div(id='msg-list', cls='overflow-auto', style='height: 70vh;'),
+                footer=Form(
+                    Group(
+                        mk_input(),
+                        Button("Send", type='submit', ws_send=True)
+                    )
+                )
+            )
+        ),
         hx_ext='ws',
-        ws_connect='/ws'
+        ws_connect='/ws',
+        data_theme="dark"
     )
 
 users = {}
@@ -54,7 +63,7 @@ async def ws(msg: str):
         
         # Send user message immediately
         for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list'))
+            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in'))
         
         # Start streaming response
         response = chat_with_ollama(model, conversation)
@@ -65,7 +74,7 @@ async def ws(msg: str):
         for i in range(len(words)):
             partial_response = " ".join(words[:i+1])
             for u in users.values():
-                await u(Div(f"Todo App: {partial_response}", id='msg-list', _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+                await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in', _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
             await asyncio.sleep(0.1)  # Adjust delay as needed
         
         # Clear the input field after the response is complete and keep it focused
