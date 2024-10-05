@@ -107,7 +107,7 @@ def get():
                 Div(
                     Card(
                         H2("Chat Interface"),
-                        Div(id='msg-list', cls='overflow-auto', style='height: 60vh;'),
+                        Div(id='msg-list', cls='overflow-auto', style='height: 40vh;'),  # Changed from 60vh to 40vh
                         footer=Form(
                             Group(
                                 mk_input(),
@@ -119,12 +119,12 @@ def get():
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             ),
-            # Fixed position Poke Todo List link (corrected to replace content)
+            # Fixed position Poke Todo List link
             Div(
                 A("Poke Todo List", 
                   hx_post="/poke", 
                   hx_target="#msg-list", 
-                  hx_swap="innerHTML",  # Changed from "beforeend" to "innerHTML"
+                  hx_swap="innerHTML",
                   cls="button"),
                 style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
             )
