@@ -122,10 +122,34 @@ async def generate_ai_response_for_deletion(title):
     #   await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 @rt('/toggle/{tid}')
-def get(tid:int):
+async def get(tid:int):
     todo = todos[tid]
+    old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
-    return todos.update(todo)
+    new_status = "Done" if todo.done else "Not Done"
+    updated_todo = todos.update(todo)
+    
+    # Start the AI response for toggle in the background
+    asyncio.create_task(generate_ai_response_for_toggle(todo.title, old_status, new_status))
+    
+    return updated_todo
+
+async def generate_ai_response_for_toggle(title, old_status, new_status):
+    # Prompt Ollama about the toggled todo item, requesting a short response
+    prompt = f"The todo item '{title}' was just toggled from {old_status} to {new_status}. Give a brief, sassy comment or reaction in 40 words or less."
+    conversation.append({"role": "user", "content": prompt})
+    response = await run_in_threadpool(chat_with_ollama, model, conversation)
+    conversation.append({"role": "assistant", "content": response})
+    
+    # Simulate faster typing effect
+    words = response.split()
+    for i in range(len(words)):
+        partial_response = " ".join(words[:i+1])
+        for u in users.values():
+            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
+                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
+                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+        await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 users = {}
 def on_conn(ws, send): users[str(id(ws))] = send
