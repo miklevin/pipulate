@@ -101,63 +101,77 @@ async def generate_and_stream_ai_response(prompt):
                         _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
-def create_nav_menu(active_item=None):
+def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
     common_style = "font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem;"
     
-    def create_menu_item(title, hx_get):
-        cls = "menu-item active" if title == active_item else "menu-item"
+    def create_menu_item(title, hx_get, summary_id):
         return Li(A(title, 
                     hx_get=hx_get, 
-                    hx_target="body",
-                    hx_swap="none",
+                    hx_target=f"#{summary_id}",
+                    hx_swap="outerHTML",
                     hx_trigger="click",
                     hx_push_url="true",
-                    cls=cls))
-
-    return Group(
-        Details(
-            Summary("Chat Interface", style=f"{common_style} width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
-            Ul(
-                create_menu_item("Todo Chat", "/chat/todo"),
-                create_menu_item("Future Chat 1", "/chat/future1"),
-                create_menu_item("Future Chat 2", "/chat/future2"),
-                create_menu_item("Future Chat 3", "/chat/future3"),
-                dir="rtl"
-            ),
-            cls="dropdown"
+                    cls="menu-item"))
+    
+    chat_summary_id = "chat-summary"
+    action_summary_id = "action-summary"
+    
+    chat_menu = Details(
+        Summary(selected_chat, style=f"{common_style} width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=chat_summary_id),
+        Ul(
+            create_menu_item("Todo Chat", "/chat/todo", chat_summary_id),
+            create_menu_item("Future Chat 1", "/chat/future1", chat_summary_id),
+            create_menu_item("Future Chat 2", "/chat/future2", chat_summary_id),
+            create_menu_item("Future Chat 3", "/chat/future3", chat_summary_id),
+            dir="rtl",
+            id="chat-menu-list"
         ),
-        Details(
-            Summary("Actions", style=f"{common_style} width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
-            Ul(
-                create_menu_item("Action 1", "/action/1"),
-                create_menu_item("Action 2", "/action/2"),
-                create_menu_item("Action 3", "/action/3"),
-                create_menu_item("Action 4", "/action/4"),
-                dir="rtl"
-            ),
-            cls="dropdown"
+        cls="dropdown",
+        id="chat-menu"
+    )
+    
+    action_menu = Details(
+        Summary(selected_action, style=f"{common_style} width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=action_summary_id),
+        Ul(
+            create_menu_item("Action 1", "/action/1", action_summary_id),
+            create_menu_item("Action 2", "/action/2", action_summary_id),
+            create_menu_item("Action 3", "/action/3", action_summary_id),
+            create_menu_item("Action 4", "/action/4", action_summary_id),
+            dir="rtl",
+            id="action-menu-list"
         ),
-        Group(
-            Input(
-                placeholder="Search",
-                name="nav_input",
-                id="nav-input",
-                hx_post="/search",
-                hx_trigger="keyup[keyCode==13]",
-                hx_target="#msg-list",
-                hx_swap="innerHTML",
-                style=f"{common_style} width: {SEARCH_WIDTH}; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
-            ),
-            Button(
-                "×",
-                type="button",
-                onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
-            ),
-            style="display: flex; align-items: center; position: relative;"
+        cls="dropdown",
+        id="action-menu"
+    )
+    
+    search_group = Group(
+        Input(
+            placeholder="Search",
+            name="nav_input",
+            id="nav-input",
+            hx_post="/search",
+            hx_trigger="keyup[keyCode==13]",
+            hx_target="#msg-list",
+            hx_swap="innerHTML",
+            style=f"{common_style} width: {SEARCH_WIDTH}; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
         ),
+        Button(
+            "×",
+            type="button",
+            onclick="document.getElementById('nav-input').value = ''; this.blur();",
+            style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
+        ),
+        style="display: flex; align-items: center; position: relative;"
+    )
+    
+    nav = Div(
+        chat_menu,
+        action_menu,
+        search_group,
         style="display: flex; align-items: center; gap: 8px;"
     )
+    
+    return nav
 
 @rt('/')
 def get(): 
@@ -311,17 +325,17 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
 
 @rt('/chat/{chat_type}')
 async def chat_interface(chat_type: str):
-    prompt = f"Initiate a conversation about {chat_type}. Be brief and sassy in under 30 words."
-    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
-    asyncio.create_task(quick_message(chatter, prompt))
-    return ''
+    # Update the summary element with the selected chat type
+    chat_summary_id = "chat-summary"
+    summary_content = Summary(chat_type.replace('_', ' ').title(), style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=chat_summary_id)
+    return summary_content
 
 @rt('/action/{action_id}')
-async def perform_action(action_id: int):
-    prompt = f"Perform action {action_id}. Describe what you did briefly and sassily in under 30 words."
-    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
-    asyncio.create_task(quick_message(chatter, prompt))
-    return ''
+async def perform_action(action_id: str):
+    # Update the summary element with the selected action
+    action_summary_id = "action-summary"
+    summary_content = Summary(f"Action {action_id}", style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=action_summary_id)
+    return summary_content
 
 @rt('/toggle-theme', methods=['POST'])
 def toggle_theme():
