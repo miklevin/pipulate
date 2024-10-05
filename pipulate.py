@@ -128,8 +128,7 @@ def create_nav_menu():
                     hx_post="/search",
                     hx_trigger="keyup[keyCode==13]",
                     hx_target="#msg-list",
-                    hx_swap="innerHTML",
-                    style=f"{common_style} width: 150px; padding-right: 25px; border: 1px solid var(--pico-primary);"
+                    hx_swap="innerHTML"
                 ),
                 Button(
                     "×",

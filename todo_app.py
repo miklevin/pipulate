@@ -24,8 +24,7 @@ app, rt, todos, Todo = fast_app("data/todo.db", live=True, render=render,
 def mk_input(): 
     return Input(placeholder='Add a new item', 
                  id='title', 
-                 hx_swap_oob='true',
-                 style="border-color: var(--pico-primary);")
+                 hx_swap_oob='true')
 
 
 @rt('/')
