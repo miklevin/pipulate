@@ -105,8 +105,10 @@ def get():
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             ),
-            # Add the test link at the bottom
-            A("Poke Todo List", hx_post="/poke", hx_target="#msg-list", hx_swap="beforeend")
+            # Add a container for the poke response
+            Div(id='poke-response-container'),
+            # Update the test link at the bottom
+            A("Poke Todo List", hx_post="/poke", hx_target="#poke-response-container", hx_swap="innerHTML")
         ),
         hx_ext='ws',
         ws_connect='/ws',
@@ -200,13 +202,16 @@ async def ws(msg: str):
 @rt('/poke')
 async def poke():
     async def send(content: str):
-        return Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+        return Div(content, id='poke-response', cls='fade-in', style=MATRIX_STYLE)
     
     chatter = SimpleChatter(send)
-    response = await quick_message(chatter, "Ouch! You poked the Todo List. It's now slightly annoyed but still functional.")
+    response = await quick_message(chatter, "The Todo List was just poked. Give a brief, sassy reaction in 20 words or less.")
     return response
 
-async def quick_message(chatter: SimpleChatter, msg: str):
-    return await chatter.send(msg)
+async def quick_message(chatter: SimpleChatter, prompt: str):
+    conversation.append({"role": "user", "content": prompt})
+    response = await run_in_threadpool(chat_with_ollama, model, conversation)
+    conversation.append({"role": "assistant", "content": response})
+    return await chatter.send(f"Todo App: {response}")
 
 serve()
