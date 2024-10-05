@@ -429,9 +429,18 @@ def get():
 @rt('/todo')
 async def post_todo(todo: Todo):
     """Handle adding a new todo item."""
+    if not todo.title.strip():
+        # Empty todo case
+        asyncio.create_task(
+            generate_and_stream_ai_response(
+                "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
+            )
+        )
+        return ''  # Return empty string to prevent insertion
+    
+    # Non-empty todo case
     inserted_todo = todos.insert(todo)
 
-    # Adjusted prompt for brevity
     asyncio.create_task(
         generate_and_stream_ai_response(
             f"New todo: '{todo.title}'. Brief, sassy comment or advice."
