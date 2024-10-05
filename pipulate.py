@@ -52,6 +52,9 @@ model = get_best_model()
 # Define the MATRIX_STYLE constant
 MATRIX_STYLE = "color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"
 
+# Define a new style for user messages
+USER_STYLE = "color: #ffff00; text-shadow: 0 0 5px #ffff00; font-family: 'Courier New', monospace;"
+
 # Ollama chat function
 def chat_with_ollama(model, messages):
     url = "http://localhost:11434/api/chat"
@@ -239,15 +242,15 @@ async def ws(msg: str):
         global conversation
         conversation.append({"role": "user", "content": msg})
         
-        # Send user message immediately
+        # Send user message immediately with yellow color
         for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in', style=MATRIX_STYLE))
+            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in', style=USER_STYLE))
         
         # Start streaming response
         response = await run_in_threadpool(chat_with_ollama, model, conversation)
         conversation.append({"role": "assistant", "content": response})
         
-        # Simulate typing effect
+        # Simulate typing effect (AI response remains green)
         words = response.split()
         for i in range(len(words)):
             partial_response = " ".join(words[:i+1])
