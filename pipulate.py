@@ -81,21 +81,47 @@ def get():
                     Button('Add')),
                     hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
     
-    # Create the navigation dropdown menu
-    nav_dropdown = Select(
+    # Create two navigation dropdown menus
+    nav_dropdown1 = Select(
         Option("Select Chat Interface", selected=True, disabled=True, value=""),
         Option("Todo Chat"),
         Option("Future Chat 1"),
         Option("Future Chat 2"),
         Option("Future Chat 3"),
-        name="nav",
-        aria_label="Navigation",
-        style="margin-bottom: 20px; width: 100%; padding: 10px;"
+        name="nav1",
+        aria_label="Navigation 1",
+        style="padding: 10px; margin-right: 10px; flex: 1;"
+    )
+    
+    nav_dropdown2 = Select(
+        Option("Select Action", selected=True, disabled=True, value=""),
+        Option("Action 1"),
+        Option("Action 2"),
+        Option("Action 3"),
+        Option("Action 4"),
+        name="nav2",
+        aria_label="Navigation 2",
+        style="padding: 10px; margin-right: 10px; flex: 1;"
+    )
+    
+    # Add a new input field
+    nav_input = Input(
+        placeholder="Search or enter command",
+        name="nav_input",
+        style="padding: 10px; flex: 2;"
+    )
+    
+    # Group the two dropdowns and the input field
+    nav_group = Group(
+        nav_dropdown1,
+        nav_dropdown2,
+        nav_input,
+        style="display: flex; margin-bottom: 20px; width: 100%;"
     )
     
     return Titled("Pipulate Todo App", 
         Container(
-            nav_dropdown,  # Add the dropdown menu at the top
+            nav_group,  # Add the grouped dropdown menus and input field at the top
             Grid(
                 Div(
                     Card(
