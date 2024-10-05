@@ -45,12 +45,21 @@ async def ws(msg: str):
     if msg:
         global conversation
         conversation.append({"role": "user", "content": msg})
+        
+        # Send user message immediately
+        for u in users.values():
+            await u(Div(f"You: {msg}", id='msg-list'))
+        
+        # Start streaming response
         response = chat_with_ollama(model, conversation)
         conversation.append({"role": "assistant", "content": response})
         
-        # Send the response to all connected users
-        for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list'))
-            await u(Div(f"Todo App: {response}", id='msg-list'))
+        # Simulate typing effect
+        words = response.split()
+        for i in range(len(words)):
+            partial_response = " ".join(words[:i+1])
+            for u in users.values():
+                await u(Div(f"Todo App: {partial_response}", id='msg-list', _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+            await asyncio.sleep(0.1)  # Adjust delay as needed
 
 serve()
