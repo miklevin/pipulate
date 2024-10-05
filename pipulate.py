@@ -16,7 +16,7 @@ NAV_FILLER_WIDTH = "40%"
 SEARCH_WIDTH = "20%"
 CHAT_INTERFACE_WIDTH = "150px"
 LOGO_WIDTH = "100px"
-NAME = ""
+APP_NAME = ""
 
 # Styles
 MATRIX_STYLE = (
@@ -188,7 +188,7 @@ async def generate_and_stream_ai_response(prompt: str):
         for u in users.values():
             await u(
                 Div(
-                    f"{NAME}{partial_response}",
+                    f"{APP_NAME}{partial_response}",
                     id='msg-list',
                     cls='fade-in',
                     style=MATRIX_STYLE,
@@ -208,7 +208,7 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
     words = response.split()
     for i in range(len(words)):
         partial_response = " ".join(words[: i + 1])
-        await chatter.send(f"{NAME}{partial_response}")
+        await chatter.send(f"{APP_NAME}{partial_response}")
         await asyncio.sleep(0.05)  # Adjust this delay as needed
 
 
@@ -509,7 +509,7 @@ async def poke():
             },
         ],
     )
-    return Div(f"{NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+    return Div(f"{APP_NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 
 @rt('/chat/{chat_type}')
@@ -647,7 +647,7 @@ async def ws(msg: str):
             for u in users.values():
                 await u(
                     Div(
-                        f"{NAME}{partial_response}",
+                        f"{APP_NAME}{partial_response}",
                         id='msg-list',
                         cls='fade-in',
                         style=MATRIX_STYLE,
