@@ -91,10 +91,10 @@ def get():
                 Details(
                     Summary("Chat Interface"),
                     Ul(
-                        Li(A("Todo Chat", href="#")),
-                        Li(A("Future Chat 1", href="#")),
-                        Li(A("Future Chat 2", href="#")),
-                        Li(A("Future Chat 3", href="#")),
+                        Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML")),
                         dir="rtl"
                     ),
                     cls="dropdown"
@@ -104,10 +104,10 @@ def get():
                 Details(
                     Summary("Actions"),
                     Ul(
-                        Li(A("Action 1", href="#")),
-                        Li(A("Action 2", href="#")),
-                        Li(A("Action 3", href="#")),
-                        Li(A("Action 4", href="#")),
+                        Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML")),
                         dir="rtl"
                     ),
                     cls="dropdown"
@@ -276,5 +276,21 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
     response = await run_in_threadpool(chat_with_ollama, model, conversation)
     conversation.append({"role": "assistant", "content": response})
     return await chatter.send(f"Todo App: {response}")
+
+@rt('/chat/{chat_type}')
+async def chat_interface(chat_type: str):
+    prompt = f"Initiate a conversation about {chat_type}. Be brief and sassy in under 30 words."
+    return await generate_ai_response(prompt)
+
+@rt('/action/{action_id}')
+async def perform_action(action_id: int):
+    prompt = f"Perform action {action_id}. Describe what you did briefly and sassily in under 30 words."
+    return await generate_ai_response(prompt)
+
+async def generate_ai_response(prompt: str):
+    conversation.append({"role": "user", "content": prompt})
+    response = await run_in_threadpool(chat_with_ollama, model, conversation)
+    conversation.append({"role": "assistant", "content": response})
+    return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 serve()
