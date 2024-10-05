@@ -105,10 +105,8 @@ def get():
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             ),
-            # Add a container for the poke response
-            Div(id='poke-response-container'),
             # Update the test link at the bottom
-            A("Poke Todo List", hx_post="/poke", hx_target="#poke-response-container", hx_swap="innerHTML")
+            A("Poke Todo List", hx_post="/poke", hx_target="#msg-list", hx_swap="beforeend")
         ),
         hx_ext='ws',
         ws_connect='/ws',
@@ -202,7 +200,7 @@ async def ws(msg: str):
 @rt('/poke')
 async def poke():
     async def send(content: str):
-        return Div(content, id='poke-response', cls='fade-in', style=MATRIX_STYLE)
+        return Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE)
     
     chatter = SimpleChatter(send)
     response = await quick_message(chatter, "The Todo List was just poked. Give a brief, sassy reaction in 20 words or less.")
