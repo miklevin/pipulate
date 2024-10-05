@@ -103,8 +103,7 @@ def create_nav_menu():
                     hx_post="/search",
                     hx_trigger="keyup[keyCode==13]",
                     hx_target="#msg-list",
-                    hx_swap="beforeend",
-                    style="flex: 1; padding: 10px; max-width: 200px;"
+                    hx_swap="innerHTML",
                 ),
                 style="margin-right: auto;"
             ),
@@ -142,19 +141,8 @@ def create_nav_menu():
 def get(): 
     nav = create_nav_menu()
     
-    nav_input = Input(
-        placeholder="Search or enter command",
-        name="nav_input",
-        hx_post="/search",
-        hx_trigger="keyup[keyCode==13]",
-        hx_target="#msg-list",
-        hx_swap="beforeend",
-        style="flex: 1; padding: 10px; max-width: 200px;"
-    )
-    
     nav_group = Group(
         nav,
-        nav_input,
         style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;"
     )
     
