@@ -80,8 +80,22 @@ def get():
     todo_form = Form(Group(todo_mk_input(),
                     Button('Add')),
                     hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
+    
+    # Create the navigation dropdown menu
+    nav_dropdown = Select(
+        Option("Select Chat Interface", selected=True, disabled=True, value=""),
+        Option("Todo Chat"),
+        Option("Future Chat 1"),
+        Option("Future Chat 2"),
+        Option("Future Chat 3"),
+        name="nav",
+        aria_label="Navigation",
+        style="margin-bottom: 20px; width: 100%; padding: 10px;"
+    )
+    
     return Titled("Pipulate Todo App", 
         Container(
+            nav_dropdown,  # Add the dropdown menu at the top
             Grid(
                 Div(
                     Card(
@@ -105,12 +119,12 @@ def get():
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             ),
-            # Fixed position Poke Todo List link
+            # Fixed position Poke Todo List link (corrected to replace content)
             Div(
                 A("Poke Todo List", 
                   hx_post="/poke", 
                   hx_target="#msg-list", 
-                  hx_swap="outerHTML",
+                  hx_swap="innerHTML",  # Changed from "beforeend" to "innerHTML"
                   cls="button"),
                 style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
             )
