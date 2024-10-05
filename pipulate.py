@@ -9,6 +9,17 @@ from typing import Callable, Awaitable
 from dataclasses import dataclass
 from starlette.requests import Request
 
+# Configuration
+MAX_LLM_RESPONSE_WORDS = 40
+SEARCH_WIDTH = "140px"
+ACTIONS_WIDTH = "120px"
+CHAT_INTERFACE_WIDTH = "150px"
+LOGO_WIDTH = "100px"
+
+def limit_llm_response(response):
+    words = response.split()
+    return ' '.join(words[:MAX_LLM_RESPONSE_WORDS])
+
 @dataclass
 class Chatter:
     send: Callable[[str], Awaitable[None]]
