@@ -78,6 +78,17 @@ conversation = [
 def mk_input():
     return Input(id='msg', name='msg', placeholder='Type a message...', autofocus='autofocus')
 
+async def generate_and_stream_ai_response(prompt):
+    response = await run_in_threadpool(chat_with_ollama, model, [{"role": "user", "content": prompt}])
+    words = response.split()
+    for i in range(len(words)):
+        partial_response = " ".join(words[:i+1])
+        for u in users.values():
+            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
+                        style=MATRIX_STYLE,
+                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+        await asyncio.sleep(0.05)  # Reduced delay for faster typing
+
 def create_nav_menu():
     return Nav(
         Ul(
@@ -92,7 +103,7 @@ def create_nav_menu():
                           hx_swap="attributes"),
                     "Dark mode"
                 ),
-                style="margin-right: auto;"  # This pushes the toggle to the left
+                style="margin-right: auto;"
             ),
             Li(
                 Details(
@@ -200,21 +211,6 @@ async def post(todo:Todo):
     
     return render(inserted_todo), todo_mk_input()
 
-async def generate_and_stream_ai_response(prompt):
-    conversation.append({"role": "user", "content": prompt})
-    response = await run_in_threadpool(chat_with_ollama, model, conversation)
-    conversation.append({"role": "assistant", "content": response})
-    
-    # Simulate faster typing effect
-    words = response.split()
-    for i in range(len(words)):
-        partial_response = " ".join(words[:i+1])
-        for u in users.values():
-            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                        style=MATRIX_STYLE,
-                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
-        await asyncio.sleep(0.05)  # Reduced delay for faster typing
-
 @rt('/{tid}')
 async def delete(tid:int):
     todo = todos[tid]  # Get the todo item before deleting it
@@ -289,26 +285,26 @@ async def poke():
     return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 async def quick_message(chatter: SimpleChatter, prompt: str):
-    conversation.append({"role": "user", "content": prompt})
-    response = await run_in_threadpool(chat_with_ollama, model, conversation)
-    conversation.append({"role": "assistant", "content": response})
-    return await chatter.send(f"Todo App: {response}")
+    response = await run_in_threadpool(chat_with_ollama, model, [{"role": "user", "content": prompt}])
+    words = response.split()
+    for i in range(len(words)):
+        partial_response = " ".join(words[:i+1])
+        await chatter.send(f"Todo App: {partial_response}")
+        await asyncio.sleep(0.05)  # Adjust this delay as needed
 
 @rt('/chat/{chat_type}')
 async def chat_interface(chat_type: str):
     prompt = f"Initiate a conversation about {chat_type}. Be brief and sassy in under 30 words."
-    return await generate_ai_response(prompt)
+    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
+    asyncio.create_task(quick_message(chatter, prompt))
+    return ''
 
 @rt('/action/{action_id}')
 async def perform_action(action_id: int):
     prompt = f"Perform action {action_id}. Describe what you did briefly and sassily in under 30 words."
-    return await generate_ai_response(prompt)
-
-async def generate_ai_response(prompt: str):
-    conversation.append({"role": "user", "content": prompt})
-    response = await run_in_threadpool(chat_with_ollama, model, conversation)
-    conversation.append({"role": "assistant", "content": response})
-    return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
+    asyncio.create_task(quick_message(chatter, prompt))
+    return ''
 
 @rt('/toggle-theme', methods=['POST'])
 def toggle_theme():
