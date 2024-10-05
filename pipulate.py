@@ -36,14 +36,22 @@ def mk_input():
 def get(): 
     return Titled("Pipulate Todo App", 
         Container(
-            Card(
-                Div(id='msg-list', cls='overflow-auto', style='height: 70vh;'),
-                footer=Form(
-                    Group(
-                        mk_input(),
-                        Button("Send", type='submit', ws_send=True)
+            Grid(
+                Card(
+                    H2("Left Column"),
+                    P("This is the left column content. You can add more components here.")
+                ),
+                Card(
+                    H2("Chat Interface"),
+                    Div(id='msg-list', cls='overflow-auto', style='height: 60vh;'),
+                    footer=Form(
+                        Group(
+                            mk_input(),
+                            Button("Send", type='submit', ws_send=True)
+                        )
                     )
-                )
+                ),
+                cls="grid"
             )
         ),
         hx_ext='ws',
