@@ -91,59 +91,55 @@ async def generate_and_stream_ai_response(prompt):
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 def create_nav_menu():
+    common_style = "font-size: 1.1rem; padding: 0.5rem 0.75rem; height: 40px; line-height: 40px; display: inline-flex; align-items: center; justify-content: center;"
     return Nav(
-        Ul(
-            Li(Strong("Pipulate"))
+        Group(
+            Strong("Pipulate", style=common_style),
+            style="margin-right: auto;"
         ),
-        Ul(
-            Li(
-                Group(
-                    Input(
-                        placeholder="Search or enter command",
-                        name="nav_input",
-                        id="nav-input",
-                        hx_post="/search",
-                        hx_trigger="keyup[keyCode==13]",
-                        hx_target="#msg-list",
-                        hx_swap="innerHTML",
-                        style="flex: 1; padding-right: 2.5em;"
-                    ),
-                    Button(
-                        "×",
-                        type="button",
-                        onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                        style="position: absolute; right: 0; top: 0; bottom: 0; width: 2.5em; padding: 0; background: none; border: none; color: var(--pico-muted-color); opacity: 0.7;"
-                    ),
-                    style="position: relative; display: flex; align-items: center; margin-right: auto;"
+        Group(
+            Input(
+                placeholder="Search or enter command",
+                name="nav_input",
+                id="nav-input",
+                hx_post="/search",
+                hx_trigger="keyup[keyCode==13]",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                style=f"{common_style} width: 150px;"
+            ),
+            Button(
+                "×",
+                type="button",
+                onclick="document.getElementById('nav-input').value = ''; this.blur();",
+                style=f"{common_style} width: 40px; color: var(--pico-muted-color); opacity: 0.7;"
+            ),
+            style="display: flex; align-items: center;"
+        ),
+        Group(
+            Details(
+                Summary("Chat Interface", style=f"{common_style} width: 170px;"),
+                Ul(
+                    Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    dir="rtl"
                 ),
-                style="margin-right: auto;"
+                cls="dropdown"
             ),
-            Li(
-                Details(
-                    Summary("Chat Interface"),
-                    Ul(
-                        Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        dir="rtl"
-                    ),
-                    cls="dropdown"
-                )
+            Details(
+                Summary("Actions", style=f"{common_style} width: 150px;"),
+                Ul(
+                    Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                    dir="rtl"
+                ),
+                cls="dropdown"
             ),
-            Li(
-                Details(
-                    Summary("Actions"),
-                    Ul(
-                        Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                        dir="rtl"
-                    ),
-                    cls="dropdown"
-                )
-            )
+            style="display: flex; align-items: center;"
         ),
         style="flex: 3; display: flex; align-items: center;"
     )
