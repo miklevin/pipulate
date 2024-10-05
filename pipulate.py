@@ -16,6 +16,7 @@ SEARCH_WIDTH = "100px"
 ACTIONS_WIDTH = "120px"
 CHAT_INTERFACE_WIDTH = "150px"
 LOGO_WIDTH = "100px"
+NAME = ""
 
 # Styles
 MATRIX_STYLE = (
@@ -139,6 +140,7 @@ def render(todo):
         delete,
         id=tid,
         cls='done' if todo.done else '',
+        style="list-style-type: none;"  # Add this line
     )
 
 
@@ -157,7 +159,7 @@ def mk_input_group(disabled=False, value='', autofocus=True):
         Input(
             id='msg',
             name='msg',
-            placeholder='Type a message...',
+            placeholder='Chat...',
             value=value,
             disabled=disabled,
             autofocus='autofocus' if autofocus else None,
@@ -186,7 +188,7 @@ async def generate_and_stream_ai_response(prompt: str):
         for u in users.values():
             await u(
                 Div(
-                    f"Todo App: {partial_response}",
+                    f"{NAME}{partial_response}",
                     id='msg-list',
                     cls='fade-in',
                     style=MATRIX_STYLE,
@@ -206,7 +208,7 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
     words = response.split()
     for i in range(len(words)):
         partial_response = " ".join(words[: i + 1])
-        await chatter.send(f"Todo App: {partial_response}")
+        await chatter.send(f"{NAME}{partial_response}")
         await asyncio.sleep(0.05)  # Adjust this delay as needed
 
 
@@ -379,7 +381,7 @@ def get():
                 Div(
                     Card(
                         H2("Todo List"),
-                        Ul(*[render(todo) for todo in todos()], id='todo-list'),
+                        Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),  # Add style here
                         header=Form(
                             Group(
                                 todo_mk_input(),
@@ -498,7 +500,7 @@ async def poke():
             },
         ],
     )
-    return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+    return Div(f"{NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 
 @rt('/chat/{chat_type}')
@@ -636,7 +638,7 @@ async def ws(msg: str):
             for u in users.values():
                 await u(
                     Div(
-                        f"Todo App: {partial_response}",
+                        f"{NAME}{partial_response}",
                         id='msg-list',
                         cls='fade-in',
                         style=MATRIX_STYLE,
