@@ -13,7 +13,7 @@ from todo_app import todos, Todo, mk_input as todo_mk_input
 
 # Configuration and Constants
 MAX_LLM_RESPONSE_WORDS = 40
-SEARCH_WIDTH = "140px"
+SEARCH_WIDTH = "100px"
 ACTIONS_WIDTH = "120px"
 CHAT_INTERFACE_WIDTH = "150px"
 LOGO_WIDTH = "100px"
@@ -203,11 +203,11 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
         return Li(
             A(
                 title,
-                hx_get=hx_get,
+                hx_get=hx_get,  # Keep the original hx_get
                 hx_target=f"#{summary_id}",
                 hx_swap="outerHTML",
                 hx_trigger="click",
-                hx_push_url="true",
+                hx_push_url="false",  # Add this to prevent URL changes
                 cls="menu-item",
             )
         )
@@ -333,21 +333,6 @@ def get():
     """Handle the main page GET request."""
     nav = create_nav_menu()
 
-    # Include the client-side script to close menus after selection
-    script = Script(
-        """
-        document.body.addEventListener('htmx:afterSwap', function(evt) {
-            if (evt.detail.target.id === 'chat-summary' || evt.detail.target.id === 'action-summary') {
-                const detailsElement = evt.detail.target.closest('details');
-                if (detailsElement) {
-                    detailsElement.removeAttribute('open');
-                    detailsElement.blur();
-                }
-            }
-        });
-        """
-    )
-
     nav_group = Group(
         nav,
         style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;",
@@ -402,7 +387,6 @@ def get():
                 ),
                 style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;",
             ),
-            script,  # Include the script here
         ),
         hx_ext='ws',
         ws_connect='/ws',
@@ -450,10 +434,11 @@ async def toggle(tid: int):
     new_status = "Done" if todo.done else "Not Done"
     updated_todo = todos.update(todo)
 
-    # Adjusted prompt for brevity
+    # Adjusted prompt to include the todo title
     asyncio.create_task(
         generate_and_stream_ai_response(
-            f"Todo '{todo.title}' toggled from {old_status} to {new_status}. Brief, sassy comment in under 30 words."
+            f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
+            f"Brief, sassy comment mentioning '{todo.title}' in under 30 words."
         )
     )
 
@@ -505,7 +490,7 @@ async def chat_interface(chat_type: str):
     )
 
     # Generate AI response
-    prompt = f"You selected {selected_chat}. Briefly respond in character."
+    prompt = f"You selected '{selected_chat}'. Respond cleverly, mentioning '{selected_chat}' in your reply. Be brief and sassy."
     chatter = SimpleChatter(
         send=lambda msg: asyncio.gather(
             *[
@@ -545,7 +530,7 @@ async def perform_action(action_id: str):
     )
 
     # Generate AI response
-    prompt = f"You selected {selected_action}. Briefly respond in character."
+    prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
     chatter = SimpleChatter(
         send=lambda msg: asyncio.gather(
             *[
@@ -647,6 +632,4 @@ async def ws(msg: str):
             await u(clear_input)
 
 
-# Start the application
-if __name__ == "__main__":
-    serve()
+serve()
