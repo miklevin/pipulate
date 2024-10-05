@@ -7,6 +7,7 @@ from todo_app import todos, Todo, mk_input as todo_mk_input
 from starlette.concurrency import run_in_threadpool
 from typing import Callable, Awaitable
 from dataclasses import dataclass
+from starlette.requests import Request
 
 @dataclass
 class Chatter:
@@ -96,6 +97,18 @@ def create_nav_menu():
         ),
         Ul(
             Li(
+                Input(
+                    placeholder="Search or enter command",
+                    name="nav_input",
+                    hx_post="/search",
+                    hx_trigger="keyup[keyCode==13]",
+                    hx_target="#msg-list",
+                    hx_swap="beforeend",
+                    style="flex: 1; padding: 10px; max-width: 200px;"
+                ),
+                style="margin-right: auto;"
+            ),
+            Li(
                 Details(
                     Summary("Chat Interface"),
                     Ul(
@@ -132,6 +145,10 @@ def get():
     nav_input = Input(
         placeholder="Search or enter command",
         name="nav_input",
+        hx_post="/search",
+        hx_trigger="keyup[keyCode==13]",
+        hx_target="#msg-list",
+        hx_swap="beforeend",
         style="flex: 1; padding: 10px; max-width: 200px;"
     )
     
@@ -299,5 +316,16 @@ async def perform_action(action_id: int):
 @rt('/toggle-theme', methods=['POST'])
 def toggle_theme():
     return ''  # We're handling the theme change client-side, so we just return an empty string
+
+@rt('/search', methods=['POST'])
+async def search(request: Request):
+    form_data = await request.form()
+    nav_input = form_data.get('nav_input', '')
+    
+    # Generate LLM response
+    prompt = f"The user searched for: '{nav_input}'. Respond briefly acknowledging the search."
+    response = await run_in_threadpool(chat_with_ollama, model, [{"role": "user", "content": prompt}])
+    
+    return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 serve()
