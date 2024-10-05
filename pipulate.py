@@ -101,74 +101,62 @@ async def generate_and_stream_ai_response(prompt):
                         _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
-def create_nav_menu():
-    # Define widths for nav elements
-    logo_width = "100px"
-    chat_interface_width = "150px"
-    actions_width = "120px"
-    search_width = "150px"
+def create_nav_menu(active_item=None):
+    common_style = "font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem;"
+    
+    def create_menu_item(title, hx_get):
+        cls = "menu-item active" if title == active_item else "menu-item"
+        return Li(A(title, 
+                    hx_get=hx_get, 
+                    hx_target="body",
+                    hx_swap="none",
+                    hx_trigger="click",
+                    hx_push_url="true",
+                    cls=cls))
 
-    common_style = """
-        font-size: 1rem;
-        height: 32px;
-        line-height: 32px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 2px;
-        border-radius: 16px;
-        padding: 0 0.6rem;
-    """
-    return Nav(
-        Group(
-            "Pipulate: Description of app here.",
-            style="margin-right: auto;"
+    return Group(
+        Details(
+            Summary("Chat Interface", style=f"{common_style} width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
+            Ul(
+                create_menu_item("Todo Chat", "/chat/todo"),
+                create_menu_item("Future Chat 1", "/chat/future1"),
+                create_menu_item("Future Chat 2", "/chat/future2"),
+                create_menu_item("Future Chat 3", "/chat/future3"),
+                dir="rtl"
+            ),
+            cls="dropdown"
+        ),
+        Details(
+            Summary("Actions", style=f"{common_style} width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
+            Ul(
+                create_menu_item("Action 1", "/action/1"),
+                create_menu_item("Action 2", "/action/2"),
+                create_menu_item("Action 3", "/action/3"),
+                create_menu_item("Action 4", "/action/4"),
+                dir="rtl"
+            ),
+            cls="dropdown"
         ),
         Group(
-            Details(
-                Summary("Chat Interface", style=f"{common_style} width: {chat_interface_width}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
-                Ul(
-                    Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    dir="rtl"
-                ),
-                cls="dropdown"
+            Input(
+                placeholder="Search",
+                name="nav_input",
+                id="nav-input",
+                hx_post="/search",
+                hx_trigger="keyup[keyCode==13]",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                style=f"{common_style} width: {SEARCH_WIDTH}; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
             ),
-            Details(
-                Summary("Actions", style=f"{common_style} width: {actions_width}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
-                Ul(
-                    Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
-                    dir="rtl"
-                ),
-                cls="dropdown"
+            Button(
+                "×",
+                type="button",
+                onclick="document.getElementById('nav-input').value = ''; this.blur();",
+                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
             ),
-            Group(
-                Input(
-                    placeholder="Search or enter command",
-                    name="nav_input",
-                    id="nav-input",
-                    hx_post="/search",
-                    hx_trigger="keyup[keyCode==13]",
-                    hx_target="#msg-list",
-                    hx_swap="innerHTML",
-                    style=f"{common_style} width: {search_width}; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
-                ),
-                Button(
-                    "×",
-                    type="button",
-                    onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                    style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
-                ),
-                style="display: flex; align-items: center; position: relative;"
-            ),
-            style="display: flex; align-items: center; gap: 8px;"
+            style="display: flex; align-items: center; position: relative;"
         ),
-        style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 0.3rem 0.6rem; background-color: var(--pico-background-color); border-radius: 18px;"
+        style="display: flex; align-items: center; gap: 8px;"
     )
 
 @rt('/')
