@@ -127,17 +127,16 @@ def render(todo):
         hx_swap="outerHTML",
     )
     delete = A(
-        'Delete',
+        '🗑',  # Changed to use the wastebasket emoji
         hx_delete=f'/{todo.id}',
         hx_swap='outerHTML',
         hx_target=f"#{tid}",
     )
     return Li(
-        checkbox,
-        ' ',
-        todo.title,
-        ' | ',
         delete,
+        '\u00A0\u00A0',  # Non-breaking spaces between checkbox and wastebasket
+        checkbox,
+        todo.title,
         id=tid,
         cls='done' if todo.done else '',
         style="list-style-type: none;"  # Add this line
@@ -664,4 +663,3 @@ async def ws(msg: str):
 
 
 serve()
-
