@@ -601,16 +601,6 @@ async def ws(msg: str):
         global conversation
         conversation.append({"role": "user", "content": msg})
 
-        # Send user message immediately with yellow color
-        for u in users.values():
-            await u(
-                Div(
-                    f"You: {msg}",
-                    id='msg-list',
-                    cls='fade-in',
-                    style=USER_STYLE,
-                )
-            )
 
         # Start streaming response
         response = await run_in_threadpool(chat_with_ollama, model, conversation)
