@@ -32,7 +32,7 @@ USER_STYLE = (
 conversation = [
     {
         "role": "system",
-        "content": f"You are a Todo App with attitude. Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words.",
+        "content": f"You are a Todo App with attitude. Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, and without leading and trailing quotes.",
     },
 ]
 
