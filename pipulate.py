@@ -4,6 +4,7 @@ import requests
 import json
 from check_environment import get_best_model
 from todo_app import render, todos, Todo, mk_input as todo_mk_input
+from starlette.concurrency import run_in_threadpool
 
 app, rt, todos, Todo = fast_app("data/todo.db", ws_hdr=True, live=True, render=render,
                                 id=int, title=str, done=bool, pk="id")
@@ -69,18 +70,28 @@ def get():
 async def post(todo:Todo):
     inserted_todo = todos.insert(todo)
     
-    # Prompt Ollama about the new todo item
-    prompt = f"A new todo item was added: '{todo.title}'. Any sassy comments or advice?"
+    # Start the AI response in the background
+    asyncio.create_task(generate_ai_response(todo.title))
+    
+    # Return the inserted todo item immediately
+    return inserted_todo, todo_mk_input()
+
+async def generate_ai_response(title):
+    # Prompt Ollama about the new todo item, requesting a short response
+    prompt = f"A new todo item was added: '{title}'. Give a brief, sassy comment or advice in 40 words or less."
     conversation.append({"role": "user", "content": prompt})
     response = await run_in_threadpool(chat_with_ollama, model, conversation)
     conversation.append({"role": "assistant", "content": response})
     
-    # Send the Ollama response to all connected clients
-    for u in users.values():
-        await u(Div(f"Todo App: {response}", id='msg-list', cls='fade-in',
-                    style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"))
-    
-    return inserted_todo, todo_mk_input()
+    # Simulate faster typing effect
+    words = response.split()
+    for i in range(len(words)):
+        partial_response = " ".join(words[:i+1])
+        for u in users.values():
+            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
+                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
+                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+        await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 @rt('/{tid}')
 def delete(tid:int): todos.delete(tid)
