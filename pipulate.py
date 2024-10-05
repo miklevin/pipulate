@@ -69,7 +69,7 @@ def get():
 def post(todo:Todo):
     return todos.insert(todo), todo_mk_input()
 
-@rt('/todo/{tid}')
+@rt('/{tid}')
 def delete(tid:int): todos.delete(tid)
 
 @rt('/toggle/{tid}')
