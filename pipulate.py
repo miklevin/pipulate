@@ -3,8 +3,10 @@ import asyncio
 import requests
 import json
 from check_environment import get_best_model
+from todo_app import render, todos, Todo, mk_input as todo_mk_input
 
-app, rt = fast_app(ws_hdr=True, live=True)
+app, rt, todos, Todo = fast_app("data/todo.db", ws_hdr=True, live=True, render=render,
+                                id=int, title=str, done=bool, pk="id")
 
 # Choose the best available model
 model = get_best_model()
@@ -34,12 +36,16 @@ def mk_input():
 
 @rt('/')
 def get(): 
+    todo_form = Form(Group(todo_mk_input(),
+                    Button('Add')),
+                    hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
     return Titled("Pipulate Todo App", 
         Container(
             Grid(
                 Card(
-                    H2("Left Column"),
-                    P("This is the left column content. You can add more components here.")
+                    H2("Todo List"),
+                    Ul(*todos(), id='todo-list'),
+                    header=todo_form
                 ),
                 Card(
                     H2("Chat Interface"),
@@ -58,6 +64,19 @@ def get():
         ws_connect='/ws',
         data_theme="dark"
     )
+
+@rt('/todo')
+def post(todo:Todo):
+    return todos.insert(todo), todo_mk_input()
+
+@rt('/todo/{tid}')
+def delete(tid:int): todos.delete(tid)
+
+@rt('/toggle/{tid}')
+def get(tid:int):
+    todo = todos[tid]
+    todo.done = not todo.done
+    return todos.update(todo)
 
 users = {}
 def on_conn(ws, send): users[str(id(ws))] = send
