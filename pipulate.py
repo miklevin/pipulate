@@ -12,6 +12,9 @@ app, rt, todos, Todo = fast_app("data/todo.db", ws_hdr=True, live=True, render=r
 # Choose the best available model
 model = get_best_model()
 
+# Define the MATRIX_STYLE constant
+MATRIX_STYLE = "color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"
+
 # Ollama chat function
 def chat_with_ollama(model, messages):
     url = "http://localhost:11434/api/chat"
@@ -71,14 +74,14 @@ async def post(todo:Todo):
     inserted_todo = todos.insert(todo)
     
     # Start the AI response in the background
-    asyncio.create_task(generate_ai_response(todo.title))
+    asyncio.create_task(generate_and_stream_ai_response(
+        f"A new todo item was added: '{todo.title}'. Give a brief, sassy comment or advice in 40 words or less."
+    ))
     
     # Return the inserted todo item immediately
     return inserted_todo, todo_mk_input()
 
-async def generate_ai_response(title):
-    # Prompt Ollama about the new todo item, requesting a short response
-    prompt = f"A new todo item was added: '{title}'. Give a brief, sassy comment or advice in 40 words or less."
+async def generate_and_stream_ai_response(prompt):
     conversation.append({"role": "user", "content": prompt})
     response = await run_in_threadpool(chat_with_ollama, model, conversation)
     conversation.append({"role": "assistant", "content": response})
@@ -89,7 +92,7 @@ async def generate_ai_response(title):
         partial_response = " ".join(words[:i+1])
         for u in users.values():
             await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
+                        style=MATRIX_STYLE,
                         _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
@@ -99,27 +102,11 @@ async def delete(tid:int):
     todos.delete(tid)
     
     # Start the AI response for deletion in the background
-    asyncio.create_task(generate_ai_response_for_deletion(todo.title))
+    asyncio.create_task(generate_and_stream_ai_response(
+        f"The todo item '{todo.title}' was just deleted. Give a brief, sassy comment or reaction in 40 words or less."
+    ))
     
     return ''  # Return an empty string to remove the item from the DOM
-
-async def generate_ai_response_for_deletion(title):
-    # Prompt Ollama about the deleted todo item, requesting a short response
-    prompt = f"The todo item '{title}' was just deleted. Give a brief, sassy comment or reaction in 40 words or less."
-    conversation.append({"role": "user", "content": prompt})
-    response = await run_in_threadpool(chat_with_ollama, model, conversation)
-    conversation.append({"role": "assistant", "content": response})
-    
-    # Simulate faster typing effect
-    words = response.split()
-    for i in range(len(words)):
-        partial_response = " ".join(words[:i+1])
-        for u in users.values():
-            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
-                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
-        await asyncio.sleep(0.05)  # Reduced delay for faster typing
-    #   await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 @rt('/toggle/{tid}')
 async def get(tid:int):
@@ -130,26 +117,11 @@ async def get(tid:int):
     updated_todo = todos.update(todo)
     
     # Start the AI response for toggle in the background
-    asyncio.create_task(generate_ai_response_for_toggle(todo.title, old_status, new_status))
+    asyncio.create_task(generate_and_stream_ai_response(
+        f"The todo item '{todo.title}' was just toggled from {old_status} to {new_status}. Give a brief, sassy comment or reaction in 40 words or less."
+    ))
     
     return updated_todo
-
-async def generate_ai_response_for_toggle(title, old_status, new_status):
-    # Prompt Ollama about the toggled todo item, requesting a short response
-    prompt = f"The todo item '{title}' was just toggled from {old_status} to {new_status}. Give a brief, sassy comment or reaction in 40 words or less."
-    conversation.append({"role": "user", "content": prompt})
-    response = await run_in_threadpool(chat_with_ollama, model, conversation)
-    conversation.append({"role": "assistant", "content": response})
-    
-    # Simulate faster typing effect
-    words = response.split()
-    for i in range(len(words)):
-        partial_response = " ".join(words[:i+1])
-        for u in users.values():
-            await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
-                        _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
-        await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 users = {}
 def on_conn(ws, send): users[str(id(ws))] = send
@@ -163,8 +135,7 @@ async def ws(msg: str):
         
         # Send user message immediately
         for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in',
-                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"))
+            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in', style=MATRIX_STYLE))
         
         # Start streaming response
         response = chat_with_ollama(model, conversation)
@@ -176,7 +147,7 @@ async def ws(msg: str):
             partial_response = " ".join(words[:i+1])
             for u in users.values():
                 await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                            style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
+                            style=MATRIX_STYLE,
                             _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
             await asyncio.sleep(0.1)  # Adjust delay as needed
         
