@@ -66,8 +66,21 @@ def get():
     )
 
 @rt('/todo')
-def post(todo:Todo):
-    return todos.insert(todo), todo_mk_input()
+async def post(todo:Todo):
+    inserted_todo = todos.insert(todo)
+    
+    # Prompt Ollama about the new todo item
+    prompt = f"A new todo item was added: '{todo.title}'. Any sassy comments or advice?"
+    conversation.append({"role": "user", "content": prompt})
+    response = await run_in_threadpool(chat_with_ollama, model, conversation)
+    conversation.append({"role": "assistant", "content": response})
+    
+    # Send the Ollama response to all connected clients
+    for u in users.values():
+        await u(Div(f"Todo App: {response}", id='msg-list', cls='fade-in',
+                    style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"))
+    
+    return inserted_todo, todo_mk_input()
 
 @rt('/{tid}')
 def delete(tid:int): todos.delete(tid)
