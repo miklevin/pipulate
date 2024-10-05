@@ -105,8 +105,15 @@ def get():
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             ),
-            # Update the test link at the bottom
-            A("Poke Todo List", hx_post="/poke", hx_target="#msg-list", hx_swap="outerHTML")
+            # Fixed position Poke Todo List link
+            Div(
+                A("Poke Todo List", 
+                  hx_post="/poke", 
+                  hx_target="#msg-list", 
+                  hx_swap="outerHTML",
+                  cls="button"),
+                style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
+            )
         ),
         hx_ext='ws',
         ws_connect='/ws',
