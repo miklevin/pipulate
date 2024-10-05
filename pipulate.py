@@ -563,7 +563,7 @@ async def perform_action(action_id: str):
             f"font-size: 1rem; height: 32px; line-height: 32px; "
             "display: inline-flex; align-items: center; justify-content: center; "
             "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; "
-            f"; background-color: var(--pico-background-color); "
+            f"width: {ACTION_MENU_WIDTH}; background-color: var(--pico-background-color); "
             "border: 1px solid var(--pico-muted-border-color);"
         ),
         id=action_summary_id,
