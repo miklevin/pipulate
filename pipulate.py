@@ -306,14 +306,10 @@ def toggle_theme():
     return ''  # We're handling the theme change client-side, so we just return an empty string
 
 @rt('/search', methods=['POST'])
-async def search(request: Request):
-    form_data = await request.form()
-    nav_input = form_data.get('nav_input', '')
-    
-    # Generate LLM response
+async def search(nav_input: str):
     prompt = f"The user searched for: '{nav_input}'. Respond briefly acknowledging the search."
-    response = await run_in_threadpool(chat_with_ollama, model, [{"role": "user", "content": prompt}])
-    
-    return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
+    asyncio.create_task(quick_message(chatter, prompt))
+    return ''
 
 serve()
