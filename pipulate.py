@@ -5,6 +5,31 @@ import json
 from check_environment import get_best_model
 from todo_app import todos, Todo, mk_input as todo_mk_input
 from starlette.concurrency import run_in_threadpool
+from typing import Callable, Awaitable
+from dataclasses import dataclass
+
+@dataclass
+class Chatter:
+    send: Callable[[str], Awaitable[None]]
+    update: Callable[[str], Awaitable[None]]
+    finish: Callable[[], Awaitable[None]]
+
+@dataclass
+class SimpleChatter:
+    send: Callable[[str], Awaitable[None]]
+
+async def chat_handler(chatter: Chatter, msg: str):
+    await chatter.send(f"You: {msg}")
+    
+    response = await run_in_threadpool(chat_with_ollama, model, conversation)
+    words = response.split()
+    
+    for i in range(len(words)):
+        partial_response = " ".join(words[:i+1])
+        await chatter.update(f"Todo App: {partial_response}")
+        await asyncio.sleep(0.05)
+    
+    await chatter.finish()
 
 def render(todo):
     tid = f'todo-{todo.id}'
@@ -79,7 +104,9 @@ def get():
                 ),
                 cls="grid",
                 style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
-            )
+            ),
+            # Add the test link at the bottom
+            A("Poke Todo List", hx_post="/poke", hx_target="#msg-list", hx_swap="beforeend")
         ),
         hx_ext='ws',
         ws_connect='/ws',
@@ -154,28 +181,32 @@ async def ws(msg: str):
         global conversation
         conversation.append({"role": "user", "content": msg})
         
-        # Send user message immediately
-        for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in', style=MATRIX_STYLE))
+        user_id = str(id(ws))
+        async def send(content: str):
+            await users[user_id](Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE))
         
-        # Start streaming response
-        response = chat_with_ollama(model, conversation)
-        conversation.append({"role": "assistant", "content": response})
+        async def update(content: str):
+            await users[user_id](Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE,
+                                     _="this.scrollIntoView({behavior: 'smooth'});"))
         
-        # Simulate typing effect
-        words = response.split()
-        for i in range(len(words)):
-            partial_response = " ".join(words[:i+1])
-            for u in users.values():
-                await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
-                            style=MATRIX_STYLE,
-                            _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
-            await asyncio.sleep(0.1)  # Adjust delay as needed
+        async def finish():
+            clear_input = Input(id='msg', name='msg', placeholder='Type a message...', value='', 
+                                hx_swap_oob="true", autofocus='autofocus')
+            await users[user_id](clear_input)
         
-        # Clear the input field after the response is complete and keep it focused
-        clear_input = Input(id='msg', name='msg', placeholder='Type a message...', value='', 
-                            hx_swap_oob="true", autofocus='autofocus')
-        for u in users.values():
-            await u(clear_input)
+        chatter = Chatter(send, update, finish)
+        await chat_handler(chatter, msg)
+
+@rt('/poke')
+async def poke():
+    async def send(content: str):
+        return Div(content, id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+    
+    chatter = SimpleChatter(send)
+    response = await quick_message(chatter, "Ouch! You poked the Todo List. It's now slightly annoyed but still functional.")
+    return response
+
+async def quick_message(chatter: SimpleChatter, msg: str):
+    return await chatter.send(msg)
 
 serve()
