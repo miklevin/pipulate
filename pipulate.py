@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from dataclasses import dataclass
 from typing import Callable, Awaitable
 
@@ -8,7 +9,6 @@ from starlette.concurrency import run_in_threadpool
 
 from fasthtml.common import *
 
-from check_environment import get_best_model
 from todo_app import todos, Todo, mk_input as todo_mk_input
 
 # Configuration and Constants
@@ -39,20 +39,66 @@ conversation = [
 # Active users connected via WebSocket
 users = {}
 
+
 @dataclass
 class Chatter:
     send: Callable[[str], Awaitable[None]]
     update: Callable[[str], Awaitable[None]]
     finish: Callable[[], Awaitable[None]]
 
+
 @dataclass
 class SimpleChatter:
     send: Callable[[str], Awaitable[None]]
+
 
 def limit_llm_response(response: str) -> str:
     """Limit the LLM response to a maximum number of words."""
     words = response.split()
     return ' '.join(words[:MAX_LLM_RESPONSE_WORDS])
+
+
+def parse_version(version_string):
+    """Parse a version string into a list of integers and strings for comparison."""
+    return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
+
+
+def get_best_llama_model(models):
+    """Select the best available LLaMA model from the list of models."""
+    llama_models = [model for model in models if model.lower().startswith('llama')]
+    if not llama_models:
+        return None
+
+    def key_func(model):
+        parts = model.split(':')
+        base_name = parts[0]
+        version = parts[1] if len(parts) > 1 else ''
+        base_version = re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower())
+        base_version = base_version.group(1) if base_version else '0'
+        return (
+            parse_version(base_version),
+            1 if version == 'latest' else 0,
+            parse_version(version),
+        )
+
+    return max(llama_models, key=key_func)
+
+
+def get_available_models():
+    """Retrieve the list of available models from the Ollama API."""
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=10)
+        response.raise_for_status()
+        return [model['name'] for model in response.json()['models']]
+    except requests.exceptions.RequestException:
+        return []
+
+
+def get_best_model():
+    """Get the best available model or default to 'llama2'."""
+    available_models = get_available_models()
+    return get_best_llama_model(available_models) or (available_models[0] if available_models else "llama2")
+
 
 def chat_with_ollama(model: str, messages: list) -> str:
     """Interact with the Ollama model to generate a response."""
@@ -68,6 +114,7 @@ def chat_with_ollama(model: str, messages: list) -> str:
         return response.json()['message']['content']
     else:
         return f"Error: {response.status_code}, {response.text}"
+
 
 def render(todo):
     """Render a todo item."""
@@ -95,6 +142,7 @@ def render(todo):
         cls='done' if todo.done else '',
     )
 
+
 def mk_input():
     """Create the chat input field."""
     return Input(
@@ -103,6 +151,7 @@ def mk_input():
         placeholder='Type a message...',
         autofocus='autofocus',
     )
+
 
 async def generate_and_stream_ai_response(prompt: str):
     """Generate and stream AI response to users."""
@@ -126,6 +175,7 @@ async def generate_and_stream_ai_response(prompt: str):
             )
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
+
 async def quick_message(chatter: SimpleChatter, prompt: str):
     """Send a quick message to the chat interface."""
     response = await run_in_threadpool(
@@ -138,6 +188,7 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
         partial_response = " ".join(words[: i + 1])
         await chatter.send(f"Todo App: {partial_response}")
         await asyncio.sleep(0.05)  # Adjust this delay as needed
+
 
 def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
     """Create the navigation menu with chat and action dropdowns."""
@@ -246,6 +297,7 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
 
     return nav
 
+
 # Application Setup
 app, rt, todos, Todo = fast_app(
     "data/todo.db",
@@ -264,13 +316,16 @@ model = get_best_model()
 # WebSocket users
 users = {}
 
+
 def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
 
+
 def on_disconn(ws):
     """Handle WebSocket disconnection."""
     users.pop(str(id(ws)), None)
+
 
 # Route Handlers
 @rt('/')
@@ -354,6 +409,7 @@ def get():
         data_theme="dark",
     )
 
+
 @rt('/todo')
 async def post_todo(todo: Todo):
     """Handle adding a new todo item."""
@@ -367,6 +423,7 @@ async def post_todo(todo: Todo):
     )
 
     return render(inserted_todo), todo_mk_input()
+
 
 @rt('/{tid}')
 async def delete(tid: int):
@@ -382,6 +439,7 @@ async def delete(tid: int):
     )
 
     return ''  # Return an empty string to remove the item from the DOM
+
 
 @rt('/toggle/{tid}')
 async def toggle(tid: int):
@@ -407,6 +465,7 @@ async def toggle(tid: int):
         hx_swap="outerHTML",
     )
 
+
 @rt('/poke')
 async def poke():
     """Handle poking the todo list for a response."""
@@ -425,6 +484,7 @@ async def poke():
         ],
     )
     return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+
 
 @rt('/chat/{chat_type}')
 async def chat_interface(chat_type: str):
@@ -465,6 +525,7 @@ async def chat_interface(chat_type: str):
 
     return summary_content
 
+
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
@@ -504,6 +565,7 @@ async def perform_action(action_id: str):
 
     return summary_content
 
+
 @rt('/search', methods=['POST'])
 async def search(nav_input: str):
     """Handle search input."""
@@ -526,10 +588,12 @@ async def search(nav_input: str):
     asyncio.create_task(quick_message(chatter, prompt))
     return ''
 
+
 @rt('/toggle-theme', methods=['POST'])
 def toggle_theme():
     """Handle theme toggle."""
     return ''  # Theme change is handled client-side
+
 
 # WebSocket Handlers
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
@@ -582,5 +646,7 @@ async def ws(msg: str):
         for u in users.values():
             await u(clear_input)
 
+
 # Start the application
-serve()
+if __name__ == "__main__":
+    serve()
