@@ -91,15 +91,31 @@ async def generate_and_stream_ai_response(prompt):
         await asyncio.sleep(0.05)  # Reduced delay for faster typing
 
 def create_nav_menu():
-    common_style = "font-size: 1.1rem; height: 36px; line-height: 36px; display: inline-flex; align-items: center; justify-content: center; margin: 0 3px; border-radius: 9px; padding: 0 0.75rem;"
+    # Define widths for nav elements
+    logo_width = "100px"
+    chat_interface_width = "150px"
+    actions_width = "120px"
+    search_width = "150px"
+
+    common_style = """
+        font-size: 1rem;
+        height: 32px;
+        line-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 2px;
+        border-radius: 16px;
+        padding: 0 0.6rem;
+    """
     return Nav(
         Group(
-            Strong("Pipulate", style=f"{common_style} background-color: var(--pico-primary-background); color: var(--pico-primary-inverse);"),
+            "Pipulate: Description of app here.",
             style="margin-right: auto;"
         ),
         Group(
             Details(
-                Summary("Chat Interface", style=f"{common_style} width: 170px; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
+                Summary("Chat Interface", style=f"{common_style} width: {chat_interface_width}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
                 Ul(
                     Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                     Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
@@ -110,7 +126,7 @@ def create_nav_menu():
                 cls="dropdown"
             ),
             Details(
-                Summary("Actions", style=f"{common_style} width: 140px; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
+                Summary("Actions", style=f"{common_style} width: {actions_width}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);"),
                 Ul(
                     Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                     Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
@@ -122,25 +138,26 @@ def create_nav_menu():
             ),
             Group(
                 Input(
-                    placeholder="Search or enter command",
+                    placeholder="Search",
                     name="nav_input",
                     id="nav-input",
                     hx_post="/search",
                     hx_trigger="keyup[keyCode==13]",
                     hx_target="#msg-list",
-                    hx_swap="innerHTML"
+                    hx_swap="innerHTML",
+                    style=f"{common_style} width: {search_width}; padding-right: 25px; border: 1px solid var(--pico-primary);"
                 ),
                 Button(
                     "×",
                     type="button",
                     onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; font-size: 0.9rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
+                    style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"
                 ),
                 style="display: flex; align-items: center; position: relative;"
             ),
-            style="display: flex; align-items: center; gap: 10px;"
+            style="display: flex; align-items: center; gap: 8px;"
         ),
-        style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 0.4rem 0.8rem; background-color: var(--pico-background-color); border-radius: 20px;"
+        style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 0.3rem 0.6rem; background-color: var(--pico-background-color); border-radius: 18px;"
     )
 
 @rt('/')
