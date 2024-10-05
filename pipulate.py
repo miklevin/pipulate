@@ -100,10 +100,11 @@ def create_nav_menu():
                     Input(type="checkbox", role="switch", id="theme-switch", 
                           hx_post="/toggle-theme", 
                           hx_target="html",
-                          hx_swap="attributes"),
+                          hx_swap="attributes",
+                          checked=True),  # Set to checked by default
                     "Dark mode"
                 ),
-                style="margin-right: auto;"
+                style="margin-right: auto;"  # Keep it on the left
             ),
             Li(
                 Details(
