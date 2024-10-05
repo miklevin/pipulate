@@ -12,10 +12,10 @@ from fasthtml.common import *
 
 # Configuration and Constants
 MAX_LLM_RESPONSE_WORDS = 30
-NAV_FILLER_WIDTH = "40%"
+NAV_FILLER_WIDTH = "30%"
 SEARCH_WIDTH = "20%"
-CHAT_INTERFACE_WIDTH = "150px"
-LOGO_WIDTH = "100px"
+CHAT_INTERFACE_WIDTH = "200px"  # Width for the chat interface
+ACTION_MENU_WIDTH = "150px"      # Width for the action menu
 APP_NAME = ""
 
 # Styles
@@ -249,7 +249,7 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
         Summary(
             selected_chat,
             style=(
-                f"{common_style} width: {CHAT_INTERFACE_WIDTH}; "
+                f"{common_style} width: {CHAT_INTERFACE_WIDTH}; "  # Use constant for chat interface width
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
@@ -271,7 +271,7 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
         Summary(
             selected_action,
             style=(
-                f"{common_style} "
+                f"{common_style} width: {ACTION_MENU_WIDTH}; "  # Use constant for action menu width
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
