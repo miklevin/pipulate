@@ -11,7 +11,7 @@ from fasthtml.common import *
 
 
 # Configuration and Constants
-MAX_LLM_RESPONSE_WORDS = 40
+MAX_LLM_RESPONSE_WORDS = 30
 SEARCH_WIDTH = "100px"
 ACTIONS_WIDTH = "120px"
 CHAT_INTERFACE_WIDTH = "150px"
@@ -32,7 +32,7 @@ USER_STYLE = (
 conversation = [
     {
         "role": "system",
-        "content": "You are a Todo App with attitude. Be sassy but helpful.",
+        "content": f"You are a Todo App with attitude. Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words.",
     },
 ]
 
@@ -434,7 +434,7 @@ async def post_todo(todo: Todo):
     # Adjusted prompt for brevity
     asyncio.create_task(
         generate_and_stream_ai_response(
-            f"New todo: '{todo.title}'. Brief, sassy comment or advice in under 30 words."
+            f"New todo: '{todo.title}'. Brief, sassy comment or advice."
         )
     )
 
@@ -450,7 +450,7 @@ async def delete(tid: int):
     # Adjusted prompt for brevity
     asyncio.create_task(
         generate_and_stream_ai_response(
-            f"Todo '{todo.title}' deleted. Brief, sassy reaction in under 30 words."
+            f"Todo '{todo.title}' deleted. Brief, sassy reaction."
         )
     )
 
@@ -470,7 +470,7 @@ async def toggle(tid: int):
     asyncio.create_task(
         generate_and_stream_ai_response(
             f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
-            f"Brief, sassy comment mentioning '{todo.title}' in under 30 words."
+            f"Brief, sassy comment mentioning '{todo.title}'."
         )
     )
 
@@ -496,7 +496,7 @@ async def poke():
             },
             {
                 "role": "user",
-                "content": "You've been poked. React in under 30 words.",
+                "content": "You've been poked.",
             },
         ],
     )
