@@ -12,8 +12,8 @@ from fasthtml.common import *
 
 # Configuration and Constants
 MAX_LLM_RESPONSE_WORDS = 30
-SEARCH_WIDTH = "100px"
-ACTIONS_WIDTH = "120px"
+NAV_FILLER_WIDTH = "40%"
+SEARCH_WIDTH = "20%"
 CHAT_INTERFACE_WIDTH = "150px"
 LOGO_WIDTH = "100px"
 NAME = ""
@@ -241,7 +241,7 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
     filler_item = Li(
         Span(" "),  # Empty span as a filler
         style=(
-            "flex-grow: 1; min-width: 300px; "  # Allows it to grow and ensures a minimum width
+            f"flex-grow: 1; min-width: {NAV_FILLER_WIDTH}; "  # Allows it to grow and ensures a minimum width
             "list-style-type: none;"  # Removes the bullet point
         ),
     )
@@ -272,7 +272,7 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
         Summary(
             selected_action,
             style=(
-                f"{common_style} width: {ACTIONS_WIDTH}; "
+                f"{common_style} "
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
@@ -564,7 +564,7 @@ async def perform_action(action_id: str):
             f"font-size: 1rem; height: 32px; line-height: 32px; "
             "display: inline-flex; align-items: center; justify-content: center; "
             "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; "
-            f"width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); "
+            f"; background-color: var(--pico-background-color); "
             "border: 1px solid var(--pico-muted-border-color);"
         ),
         id=action_summary_id,
