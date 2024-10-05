@@ -3,20 +3,29 @@ from fasthtml.common import *
 
 def render(todo):
     tid = f'todo-{todo.id}'
-    toggle = A('Toggle', hx_get=f'/toggle/{todo.id}', target_id=tid)
+    checkbox = Input(type="checkbox", 
+                     name="english" if todo.done else None, 
+                     checked=todo.done,
+                     hx_post=f"/toggle/{todo.id}",
+                     hx_swap="outerHTML",
+                     hx_target=f"#checkbox-{tid}")
     delete = A('Delete', hx_delete=f'/{todo.id}', 
-               hx_swap='outerHTML', target_id=tid)
-    return Li(toggle, ' | ', delete, ' ',
-              todo.title + (' (Done)' if todo.done else ''),
-              id=tid)
+               hx_swap='outerHTML', hx_target=f"#{tid}")
+    return Li(Span(checkbox, id=f"checkbox-{tid}"), ' ', 
+              todo.title,
+              ' ', delete,
+              id=tid, cls='done' if todo.done else '')
 
 
 app, rt, todos, Todo = fast_app("data/todo.db", live=True, render=render,
                                 id=int, title=str, done=bool, pk="id")
 
 
-def mk_input(): return Input(placeholder='Add a new item', 
-                             id='title', hx_swap_oob='true')
+def mk_input(): 
+    return Input(placeholder='Add a new item', 
+                 id='title', 
+                 hx_swap_oob='true',
+                 style="border-color: var(--pico-primary);")
 
 
 @rt('/')
