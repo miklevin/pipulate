@@ -63,7 +63,8 @@ async def ws(msg: str):
         
         # Send user message immediately
         for u in users.values():
-            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in'))
+            await u(Div(f"You: {msg}", id='msg-list', cls='fade-in',
+                        style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;"))
         
         # Start streaming response
         response = chat_with_ollama(model, conversation)
@@ -74,7 +75,9 @@ async def ws(msg: str):
         for i in range(len(words)):
             partial_response = " ".join(words[:i+1])
             for u in users.values():
-                await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in', _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
+                await u(Div(f"Todo App: {partial_response}", id='msg-list', cls='fade-in',
+                            style="color: #00ff00; text-shadow: 0 0 5px #00ff00; font-family: 'Courier New', monospace;",
+                            _=f"this.scrollIntoView({{behavior: 'smooth'}});"))
             await asyncio.sleep(0.1)  # Adjust delay as needed
         
         # Clear the input field after the response is complete and keep it focused
