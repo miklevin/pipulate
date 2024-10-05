@@ -24,7 +24,8 @@ app, rt, todos, Todo = fast_app("data/todo.db", live=True, render=render,
 def mk_input(): 
     return Input(placeholder='Add a new item', 
                  id='title', 
-                 hx_swap_oob='true')
+                 hx_swap_oob='true',
+                 autofocus=True)  # Add this line
 
 
 @rt('/')
@@ -35,7 +36,12 @@ def get():
     return Titled('Todos', 
                   Card(
                   Ul(*todos(), id='todo-list'),
-                  header=frm)
+                  header=frm),
+                  Script("""
+                  document.addEventListener('htmx:afterSettle', function(event) {
+                      document.getElementById('title').focus();
+                  });
+                  """)
                 )
 
 
