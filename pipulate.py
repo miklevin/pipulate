@@ -66,7 +66,7 @@ def get():
                     ),
                 ),
                 cls="grid",
-                style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px;"
+                style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;"
             )
         ),
         hx_ext='ws',
