@@ -78,14 +78,8 @@ conversation = [
 def mk_input():
     return Input(id='msg', name='msg', placeholder='Type a message...', autofocus='autofocus')
 
-@rt('/')
-def get(): 
-    todo_form = Form(Group(todo_mk_input(),
-                    Button('Add')),
-                    hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
-    
-    # Create the navigation bar
-    nav = Nav(
+def create_nav_menu():
+    return Nav(
         Ul(
             Li(Strong("Pipulate"))
         ),
@@ -94,10 +88,10 @@ def get():
                 Details(
                     Summary("Chat Interface"),
                     Ul(
-                        Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Todo Chat", hx_post="/chat/todo", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Future Chat 1", hx_post="/chat/future1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Future Chat 2", hx_post="/chat/future2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Future Chat 3", hx_post="/chat/future3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                         dir="rtl"
                     ),
                     cls="dropdown"
@@ -107,18 +101,27 @@ def get():
                 Details(
                     Summary("Actions"),
                     Ul(
-                        Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML")),
-                        Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML")),
+                        Li(A("Action 1", hx_post="/action/1", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Action 2", hx_post="/action/2", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Action 3", hx_post="/action/3", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
+                        Li(A("Action 4", hx_post="/action/4", hx_target="#msg-list", hx_swap="innerHTML", onclick="this.closest('details').removeAttribute('open')")),
                         dir="rtl"
                     ),
                     cls="dropdown"
                 )
             )
         ),
-        style="flex: 3;"  # Increased flex value to give more space to nav
+        style="flex: 3;"
     )
+
+@rt('/')
+def get(): 
+    todo_form = Form(Group(todo_mk_input(),
+                    Button('Add')),
+                    hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
+    
+    # Create the navigation bar
+    nav = create_nav_menu()
     
     # Add the input field with reduced width
     nav_input = Input(
