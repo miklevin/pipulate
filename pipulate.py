@@ -109,6 +109,14 @@ def create_nav_menu():
                     ),
                     cls="dropdown"
                 )
+            ),
+            Li(
+                Label(
+                    Input(type="checkbox", role="switch", id="theme-switch", 
+                          hx_post="/toggle-theme", 
+                          hx_swap="none"),
+                    "Dark mode"
+                )
             )
         ),
         style="flex: 3;"
@@ -116,21 +124,14 @@ def create_nav_menu():
 
 @rt('/')
 def get(): 
-    todo_form = Form(Group(todo_mk_input(),
-                    Button('Add')),
-                    hx_post='/todo', target_id='todo-list', hx_swap="beforeend")
-    
-    # Create the navigation bar
     nav = create_nav_menu()
     
-    # Add the input field with reduced width
     nav_input = Input(
         placeholder="Search or enter command",
         name="nav_input",
-        style="flex: 1; padding: 10px; max-width: 200px;"  # Reduced flex and added max-width
+        style="flex: 1; padding: 10px; max-width: 200px;"
     )
     
-    # Group the nav and input together
     nav_group = Group(
         nav,
         nav_input,
@@ -139,13 +140,21 @@ def get():
     
     return Titled("Pipulate Todo App", 
         Container(
-            nav_group,  # Add the grouped nav and input
+            nav_group,
             Grid(
                 Div(
                     Card(
                         H2("Todo List"),
                         Ul(*[render(todo) for todo in todos()], id='todo-list'),
-                        header=todo_form
+                        header=Form(
+                            Group(
+                                todo_mk_input(),
+                                Button("Add", type="submit")
+                            ),
+                            hx_post="/todo",
+                            hx_swap="beforeend",
+                            hx_target="#todo-list"
+                        )
                     ),
                 ),
                 Div(
@@ -298,5 +307,9 @@ async def generate_ai_response(prompt: str):
     response = await run_in_threadpool(chat_with_ollama, model, conversation)
     conversation.append({"role": "assistant", "content": response})
     return Div(f"Todo App: {response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+
+@rt('/toggle-theme', methods=['POST'])
+def toggle_theme():
+    return ''  # We're handling the theme change client-side, so we just return an empty string
 
 serve()
