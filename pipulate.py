@@ -112,7 +112,7 @@ def create_nav_menu():
                         "×",
                         type="button",
                         onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                        style="position: absolute; right: 0; top: 0; bottom: 0; width: 2.5em; padding: 0;"
+                        style="position: absolute; right: 0; top: 0; bottom: 0; width: 2.5em; padding: 0; background: none; border: none; color: var(--pico-muted-color); opacity: 0.7;"
                     ),
                     style="position: relative; display: flex; align-items: center; margin-right: auto;"
                 ),
