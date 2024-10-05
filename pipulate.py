@@ -46,22 +46,27 @@ def get():
     return Titled("Pipulate Todo App", 
         Container(
             Grid(
-                Card(
-                    H2("Todo List"),
-                    Ul(*todos(), id='todo-list'),
-                    header=todo_form
+                Div(
+                    Card(
+                        H2("Todo List"),
+                        Ul(*todos(), id='todo-list'),
+                        header=todo_form
+                    ),
                 ),
-                Card(
-                    H2("Chat Interface"),
-                    Div(id='msg-list', cls='overflow-auto', style='height: 60vh;'),
-                    footer=Form(
-                        Group(
-                            mk_input(),
-                            Button("Send", type='submit', ws_send=True)
+                Div(
+                    Card(
+                        H2("Chat Interface"),
+                        Div(id='msg-list', cls='overflow-auto', style='height: 60vh;'),
+                        footer=Form(
+                            Group(
+                                mk_input(),
+                                Button("Send", type='submit', ws_send=True)
+                            )
                         )
-                    )
+                    ),
                 ),
-                cls="grid"
+                cls="grid",
+                style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px;"
             )
         ),
         hx_ext='ws',
