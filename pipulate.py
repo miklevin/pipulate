@@ -138,14 +138,14 @@ def create_nav_menu():
             ),
             Group(
                 Input(
-                    placeholder="Search",
+                    placeholder="Search or enter command",
                     name="nav_input",
                     id="nav-input",
                     hx_post="/search",
                     hx_trigger="keyup[keyCode==13]",
                     hx_target="#msg-list",
                     hx_swap="innerHTML",
-                    style=f"{common_style} width: {search_width}; padding-right: 25px; border: 1px solid var(--pico-primary);"
+                    style=f"{common_style} width: {search_width}; padding-right: 25px; border: 1px solid var(--pico-muted-border-color);"
                 ),
                 Button(
                     "×",
