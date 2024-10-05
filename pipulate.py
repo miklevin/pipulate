@@ -211,7 +211,7 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
         await asyncio.sleep(0.05)  # Adjust this delay as needed
 
 
-def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
+def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     common_style = (
         "font-size: 1rem; height: 32px; line-height: 32px; "
