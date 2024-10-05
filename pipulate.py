@@ -85,6 +85,16 @@ def create_nav_menu():
         ),
         Ul(
             Li(
+                Label(
+                    Input(type="checkbox", role="switch", id="theme-switch", 
+                          hx_post="/toggle-theme", 
+                          hx_target="html",
+                          hx_swap="attributes"),
+                    "Dark mode"
+                ),
+                style="margin-right: auto;"  # This pushes the toggle to the left
+            ),
+            Li(
                 Details(
                     Summary("Chat Interface"),
                     Ul(
@@ -109,17 +119,9 @@ def create_nav_menu():
                     ),
                     cls="dropdown"
                 )
-            ),
-            Li(
-                Label(
-                    Input(type="checkbox", role="switch", id="theme-switch", 
-                          hx_post="/toggle-theme", 
-                          hx_swap="none"),
-                    "Dark mode"
-                )
             )
         ),
-        style="flex: 3;"
+        style="flex: 3; display: flex; align-items: center;"
     )
 
 @rt('/')
