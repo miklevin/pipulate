@@ -3,8 +3,20 @@ import asyncio
 import requests
 import json
 from check_environment import get_best_model
-from todo_app import render, todos, Todo, mk_input as todo_mk_input
+from todo_app import todos, Todo, mk_input as todo_mk_input
 from starlette.concurrency import run_in_threadpool
+
+def render(todo):
+    tid = f'todo-{todo.id}'
+    checkbox = Input(type="checkbox", 
+                     name="english" if todo.done else None, 
+                     checked=todo.done,
+                     hx_post=f"/toggle/{todo.id}",
+                     hx_swap="outerHTML")
+    delete = A('Delete', hx_delete=f'/{todo.id}', 
+               hx_swap='outerHTML', hx_target=f"#{tid}")
+    return Li(checkbox, ' ', todo.title, ' | ', delete,
+              id=tid, cls='done' if todo.done else '')
 
 app, rt, todos, Todo = fast_app("data/todo.db", ws_hdr=True, live=True, render=render,
                                 id=int, title=str, done=bool, pk="id")
@@ -49,16 +61,7 @@ def get():
                 Div(
                     Card(
                         H2("Todo List"),
-                        Ul(*[Li(
-                            Input(type="checkbox", 
-                                  name="english" if todo.done else None, 
-                                  checked=todo.done,
-                                  hx_post=f"/toggle/{todo.id}",
-                                  hx_swap="outerHTML"),
-                            " ",
-                            todo.title,
-                            cls='done' if todo.done else ''
-                        ) for todo in todos()], id='todo-list'),
+                        Ul(*[render(todo) for todo in todos()], id='todo-list'),
                         header=todo_form
                     ),
                 ),
@@ -93,14 +96,7 @@ async def post(todo:Todo):
     ))
     
     # Return the inserted todo item immediately
-    return Li(
-        Input(type="checkbox", 
-              hx_post=f"/toggle/{inserted_todo.id}",
-              hx_swap="outerHTML"),
-        " ",
-        inserted_todo.title,
-        cls=''
-    ), todo_mk_input()
+    return render(inserted_todo), todo_mk_input()
 
 async def generate_and_stream_ai_response(prompt):
     conversation.append({"role": "user", "content": prompt})
@@ -143,9 +139,9 @@ async def post(tid: int):
     ))
     
     return Input(type="checkbox", 
-                 name="english" if todo.done else None, 
-                 checked=todo.done,
-                 hx_post=f"/toggle/{todo.id}",
+                 name="english" if updated_todo.done else None, 
+                 checked=updated_todo.done,
+                 hx_post=f"/toggle/{updated_todo.id}",
                  hx_swap="outerHTML")
 
 users = {}
