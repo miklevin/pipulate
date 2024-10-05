@@ -49,7 +49,16 @@ def get():
                 Div(
                     Card(
                         H2("Todo List"),
-                        Ul(*todos(), id='todo-list'),
+                        Ul(*[Li(
+                            Input(type="checkbox", 
+                                  name="english" if todo.done else None, 
+                                  checked=todo.done,
+                                  hx_post=f"/toggle/{todo.id}",
+                                  hx_swap="outerHTML"),
+                            " ",
+                            todo.title,
+                            cls='done' if todo.done else ''
+                        ) for todo in todos()], id='todo-list'),
                         header=todo_form
                     ),
                 ),
@@ -84,7 +93,14 @@ async def post(todo:Todo):
     ))
     
     # Return the inserted todo item immediately
-    return inserted_todo, todo_mk_input()
+    return Li(
+        Input(type="checkbox", 
+              hx_post=f"/toggle/{inserted_todo.id}",
+              hx_swap="outerHTML"),
+        " ",
+        inserted_todo.title,
+        cls=''
+    ), todo_mk_input()
 
 async def generate_and_stream_ai_response(prompt):
     conversation.append({"role": "user", "content": prompt})
@@ -114,7 +130,7 @@ async def delete(tid:int):
     return ''  # Return an empty string to remove the item from the DOM
 
 @rt('/toggle/{tid}')
-async def get(tid:int):
+async def post(tid: int):
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
@@ -126,7 +142,11 @@ async def get(tid:int):
         f"The todo item '{todo.title}' was just toggled from {old_status} to {new_status}. Give a brief, sassy comment or reaction in 40 words or less."
     ))
     
-    return updated_todo
+    return Input(type="checkbox", 
+                 name="english" if todo.done else None, 
+                 checked=todo.done,
+                 hx_post=f"/toggle/{todo.id}",
+                 hx_swap="outerHTML")
 
 users = {}
 def on_conn(ws, send): users[str(id(ws))] = send
