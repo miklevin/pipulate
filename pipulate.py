@@ -119,10 +119,10 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
     chat_menu = Details(
         Summary(selected_chat, style=f"{common_style} width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=chat_summary_id),
         Ul(
-            create_menu_item("Todo Chat", "/chat/todo", chat_summary_id),
-            create_menu_item("Future Chat 1", "/chat/future1", chat_summary_id),
-            create_menu_item("Future Chat 2", "/chat/future2", chat_summary_id),
-            create_menu_item("Future Chat 3", "/chat/future3", chat_summary_id),
+            create_menu_item("Todo Chat", "/chat/todo_chat", chat_summary_id),
+            create_menu_item("Future Chat 1", "/chat/future_chat_1", chat_summary_id),
+            create_menu_item("Future Chat 2", "/chat/future_chat_2", chat_summary_id),
+            create_menu_item("Future Chat 3", "/chat/future_chat_3", chat_summary_id),
             dir="rtl",
             id="chat-menu-list"
         ),
@@ -177,6 +177,19 @@ def create_nav_menu(selected_chat="Chat Interface", selected_action="Actions"):
 def get(): 
     nav = create_nav_menu()
     
+    # Include the client-side script to close menus after selection
+    script = Script("""
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'chat-summary' || evt.detail.target.id === 'action-summary') {
+            const detailsElement = evt.detail.target.closest('details');
+            if (detailsElement) {
+                detailsElement.removeAttribute('open');
+                detailsElement.blur();
+            }
+        }
+    });
+    """)
+    
     nav_group = Group(
         nav,
         style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;"
@@ -224,7 +237,8 @@ def get():
                   hx_swap="innerHTML",
                   cls="button"),
                 style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
-            )
+            ),
+            script  # Include the script here
         ),
         hx_ext='ws',
         ws_connect='/ws',
@@ -327,14 +341,28 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
 async def chat_interface(chat_type: str):
     # Update the summary element with the selected chat type
     chat_summary_id = "chat-summary"
-    summary_content = Summary(chat_type.replace('_', ' ').title(), style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=chat_summary_id)
+    selected_chat = chat_type.replace('_', ' ').title()
+    summary_content = Summary(selected_chat, style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=chat_summary_id)
+    
+    # Generate AI response
+    prompt = f"You selected {selected_chat}. Briefly respond in character."
+    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
+    asyncio.create_task(quick_message(chatter, prompt))
+    
     return summary_content
 
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     # Update the summary element with the selected action
     action_summary_id = "action-summary"
-    summary_content = Summary(f"Action {action_id}", style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=action_summary_id)
+    selected_action = f"Action {action_id}"
+    summary_content = Summary(selected_action, style=f"font-size: 1rem; height: 32px; line-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; width: {ACTIONS_WIDTH}; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color);", id=action_summary_id)
+    
+    # Generate AI response
+    prompt = f"You selected {selected_action}. Briefly respond in character."
+    chatter = SimpleChatter(send=lambda msg: asyncio.gather(*[u(Div(msg, id='msg-list', cls='fade-in', style=MATRIX_STYLE)) for u in users.values()]))
+    asyncio.create_task(quick_message(chatter, prompt))
+    
     return summary_content
 
 @rt('/toggle-theme', methods=['POST'])
