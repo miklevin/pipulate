@@ -20,26 +20,27 @@ ACTION_MENU_WIDTH = "150px"     # Width for the action menu
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
-# Function to generate menu styles
+# Initialize conversation
+conversation = [
+    {
+        "role": "system",
+        "content": (
+            f"You are a Todo App with attitude. "
+            f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, "
+            "and without leading and trailing quotes."
+        ),
+    },
+]
 
+@dataclass
+class Chatter:
+    send: Callable[[str], Awaitable[None]]
+    update: Callable[[str], Awaitable[None]]
+    finish: Callable[[], Awaitable[None]]
 
-def generate_menu_style(width: str) -> str:
-    """Generate a common style for menu elements with a specified width."""
-    return COMMON_MENU_STYLE + f"width: {width}; "
+# WebSocket users
+users = {}
 
-
-# Styles
-MATRIX_STYLE = (
-    "color: #00ff00; "
-    "font-family: 'Courier New', monospace; "
-    "text-shadow: 0 0 5px #00ff00; "
-)
-
-USER_STYLE = (
-    "color: #ffff00; "
-    "font-family: 'Courier New', monospace; "
-    "text-shadow: 0 0 5px #ffff00; "
-)
 
 # Additional Styles
 COMMON_MENU_STYLE = (
@@ -55,30 +56,29 @@ COMMON_MENU_STYLE = (
     "margin: 0 2px; "
 )
 
+# Styles
+MATRIX_STYLE = (
+    "color: #00ff00; "
+    "font-family: 'Courier New', monospace; "
+    "text-shadow: 0 0 5px #00ff00; "
+)
+
+USER_STYLE = (
+    "color: #ffff00; "
+    "font-family: 'Courier New', monospace; "
+    "text-shadow: 0 0 5px #ffff00; "
+)
+
+
+# Function to generate menu styles
+def generate_menu_style(width: str) -> str:
+    """Generate a common style for menu elements with a specified width."""
+    return COMMON_MENU_STYLE + f"width: {width}; "
+
 
 # *******************************
 # Ollama LLM Configuration
 # *******************************
-# Initialize conversation
-conversation = [
-    {
-        "role": "system",
-        "content": (
-            f"You are a Todo App with attitude. "
-            f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, "
-            "and without leading and trailing quotes."
-        ),
-    },
-]
-
-
-@dataclass
-class Chatter:
-    send: Callable[[str], Awaitable[None]]
-    update: Callable[[str], Awaitable[None]]
-    finish: Callable[[], Awaitable[None]]
-
-
 def limit_llm_response(response: str) -> str:
     """Truncate the response to a maximum number of words."""
     return ' '.join(response.split()[:MAX_LLM_RESPONSE_WORDS])
@@ -160,6 +160,12 @@ def chat_with_ollama(model: str, messages: list) -> str:
         return f"An error occurred: {req_err}"  # Return an error message
 
 
+# Choose the best available model
+model = get_best_model()
+
+# *******************************
+# Todo Render Function (Must come before Application Setup)
+# *******************************
 def render(todo):
     """Render a todo item as an HTML list item.
 
@@ -197,105 +203,23 @@ def render(todo):
     )
 
 
-# from todo_app import todos, Todo, mk_input as todo_mk_input
-def todo_mk_input():
-    """Create an input field for adding a new todo item.
+# *******************************
+# Application Setup
+# *******************************
+app, rt, todos, Todo = fast_app(
+    "data/todo.db",
+    ws_hdr=True,
+    live=True,
+    render=render,
+    id=int,
+    title=str,
+    done=bool,
+    pk="id",
+)
 
-    This function generates an HTML input element that allows users to enter a new todo item.
-
-    Returns:
-        Input: An HTML input element configured for adding a new todo.
-    """
-    return Input(
-        placeholder='Add a new item',
-        id='title',
-        hx_swap_oob='true',
-        autofocus=True  # Add this line
-    )
-
-
-# Define a function to create the input group
-def mk_input_group(disabled=False, value='', autofocus=True):
-    """Create a chat input group with a message input and a send button.
-
-    This function generates a group of HTML elements for user input in the chat interface,
-    including an input field for messages and a button to send the message.
-
-    Args:
-        disabled (bool, optional): Whether the input group should be disabled. Defaults to False.
-        value (str, optional): The initial value for the message input. Defaults to an empty string.
-        autofocus (bool, optional): Whether to autofocus the message input. Defaults to True.
-
-    Returns:
-        Group: An HTML group containing the message input and send button.
-    """
-    return Group(
-        Input(
-            id='msg',
-            name='msg',
-            placeholder='Chat...',
-            value=value,
-            disabled=disabled,
-            autofocus='autofocus' if autofocus else None,
-        ),
-        Button(
-            "Send",
-            type='submit',
-            ws_send=True,
-            id='send-btn',
-            disabled=disabled,
-        ),
-        id='input-group',
-    )
-
-
-async def stream_chat(prompt: str, quick: bool = False):
-    """Generate and stream an AI response to users.
-
-    If quick is True, send the entire response at once. Otherwise, stream the response word by word.
-
-    Args:
-        prompt (str): The input message to generate a response for.
-        quick (bool, optional): If True, sends the entire response at once. Defaults to False.
-
-    Returns:
-        None
-    """
-    response = await run_in_threadpool(
-        chat_with_ollama,
-        model,
-        [{"role": "user", "content": prompt}],
-    )
-
-    if quick:
-        # Send the entire response at once
-        for u in users.values():
-            await u(
-                Div(
-                    f"{APP_NAME}{response}",
-                    id='msg-list',
-                    cls='fade-in',
-                    style=MATRIX_STYLE,
-                )
-            )
-    else:
-        # Stream the response word by word
-        words = response.split()
-        for i in range(len(words)):
-            partial_response = " ".join(words[: i + 1])
-            for u in users.values():
-                await u(
-                    Div(
-                        f"{APP_NAME}{partial_response}",
-                        id='msg-list',
-                        cls='fade-in',
-                        style=MATRIX_STYLE,
-                        _=f"this.scrollIntoView({{behavior: 'smooth'}});",
-                    )
-                )
-            await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
-
-
+# *******************************
+# Site Navigation
+# *******************************
 def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     # Use generate_menu_style for the common style
@@ -426,58 +350,61 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     return nav
 
 
-# *******************************
-# Framework Site Navigation
-# *******************************
-# Application Setup
-app, rt, todos, Todo = fast_app(
-    "data/todo.db",
-    ws_hdr=True,
-    live=True,
-    render=render,
-    id=int,
-    title=str,
-    done=bool,
-    pk="id",
-)
+def mk_chat_input_group(disabled=False, value='', autofocus=True):
+    """Create a chat input group with a message input and a send button.
 
-# Choose the best available model
-model = get_best_model()
-
-# WebSocket users
-users = {}
-
-
-def on_conn(ws, send):
-    """Handle WebSocket connection."""
-    users[str(id(ws))] = send
-
-
-def on_disconn(ws):
-    """Handle WebSocket disconnection."""
-    users.pop(str(id(ws)), None)
-
-
-# *******************************
-# Todo App Functions
-# *******************************
-async def chatq(message: str):
-    """Queue a message for the chat stream.
-
-    This function creates an asyncio task to send a message to the chat interface.
+    This function generates a group of HTML elements for user input in the chat interface,
+    including an input field for messages and a button to send the message.
 
     Args:
-        message (str): The message to be queued for the chat stream.
+        disabled (bool, optional): Whether the input group should be disabled. Defaults to False.
+        value (str, optional): The initial value for the message input. Defaults to an empty string.
+        autofocus (bool, optional): Whether to autofocus the message input. Defaults to True.
 
     Returns:
-        None
+        Group: An HTML group containing the message input and send button.
     """
-    # Create a task for streaming the chat response without blocking
-    asyncio.create_task(stream_chat(message))
+    return Group(
+        Input(
+            id='msg',
+            name='msg',
+            placeholder='Chat...',
+            value=value,
+            disabled=disabled,
+            autofocus='autofocus' if autofocus else None,
+        ),
+        Button(
+            "Send",
+            type='submit',
+            ws_send=True,
+            id='send-btn',
+            disabled=disabled,
+        ),
+        id='input-group',
+    )
 
 
 # *******************************
-# Left-over Endpoint Functions
+# Todo Common Support Functions
+# *******************************
+def todo_mk_input():
+    """Create an input field for adding a new todo item.
+
+    This function generates an HTML input element that allows users to enter a new todo item.
+
+    Returns:
+        Input: An HTML input element configured for adding a new todo.
+    """
+    return Input(
+        placeholder='Add a new item',
+        id='title',
+        hx_swap_oob='true',
+        autofocus=True  # Add this line
+    )
+
+
+# *******************************
+# Site Navigation Main Endpoints
 # *******************************
 @rt('/')
 def get():
@@ -533,7 +460,7 @@ def get():
                             style='height: 40vh;',
                         ),
                         footer=Form(
-                            mk_input_group(),
+                            mk_chat_input_group(),
                         ),
                     ),
                 ),
@@ -565,7 +492,91 @@ def get():
         data_theme="dark",
     )
 
+@rt('/profile/{profile_type}')
+async def profile_menu(profile_type: str):
+    """Handle profile menu selection."""
+    profile_id = "profile-summary"
+    selected_profile = profile_type.replace('_', ' ').title()
 
+    # Generate the style dynamically using the current PROFILE_MENU_WIDTH
+    summary_content = Summary(
+        selected_profile,
+        style=generate_menu_style(PROFILE_MENU_WIDTH),  # Use the common style function dynamically
+        id=profile_id,
+    )
+
+    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
+    await chatq(prompt)
+    return summary_content
+
+
+@rt('/action/{action_id}')
+async def perform_action(action_id: str):
+    """Handle action menu selection."""
+    action_summary_id = "action-summary"
+    selected_action = f"Action {action_id}"  # Get the selected action name
+
+    # Update the summary content to reflect the selected action
+    summary_content = Summary(
+        selected_action,  # Use the selected action name here
+        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use the common style function
+        id=action_summary_id,
+    )
+
+    # Optionally, you can also send a prompt or response to the chat
+    prompt = (
+        f"You selected '{selected_action}'. "
+        "Respond cleverly, mentioning '{selected_action}' in your reply. "
+        "Be brief and sassy."
+    )
+    await chatq(prompt)
+
+    return summary_content  # Return the updated summary content
+
+
+@rt('/search', methods=['POST'])
+async def search(nav_input: str):
+    """Handle search input."""
+    prompt = (
+        f"The user searched for: '{nav_input}'. "
+        "Respond briefly acknowledging the search."
+    )
+    await chatq(prompt)
+    return ''
+
+
+@rt('/poke')
+async def poke():
+    """Handle poking the todo list for a response.
+
+    This function sends a prompt to the chat model to generate a brief response
+    when the todo list is "poked." It serves as a placeholder for quick (non-streaming)
+    information display in the chat interface.
+
+    Returns:
+        Div: An HTML Div element containing the response from the chat model,
+        formatted for display in the message list.
+    """
+    response = await run_in_threadpool(
+        chat_with_ollama,
+        model,
+        [
+            {
+                "role": "system",
+                "content": "You are a sassy Todo List. Respond briefly to being poked.",
+            },
+            {
+                "role": "user",
+                "content": "You've been poked.",
+            },
+        ],
+    )
+    return Div(f"{APP_NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
+
+
+# *******************************
+# Todo App Endpoints
+# *******************************
 @rt('/todo')
 async def post_todo(todo: Todo):
     """Create a new todo item.
@@ -659,97 +670,87 @@ async def toggle(tid: int):
     )
 
 
-@rt('/poke')
-async def poke():
-    """Handle poking the todo list for a response.
+# *******************************
+# Streaming WebSocket Functions
+# *******************************
+def on_conn(ws, send):
+    """Handle WebSocket connection."""
+    users[str(id(ws))] = send
 
-    This function sends a prompt to the chat model to generate a brief response
-    when the todo list is "poked." It serves as a placeholder for quick (non-streaming)
-    information display in the chat interface.
+
+def on_disconn(ws):
+    """Handle WebSocket disconnection."""
+    users.pop(str(id(ws)), None)
+
+
+async def chatq(message: str):
+    """Queue a message for the chat stream.
+
+    This function creates an asyncio task to send a message to the chat interface.
+
+    Args:
+        message (str): The message to be queued for the chat stream.
 
     Returns:
-        Div: An HTML Div element containing the response from the chat model,
-        formatted for display in the message list.
+        None
+    """
+    # Create a task for streaming the chat response without blocking
+    asyncio.create_task(stream_chat(message))
+
+
+async def stream_chat(prompt: str, quick: bool = False):
+    """Generate and stream an AI response to users.
+
+    If quick is True, send the entire response at once. Otherwise, stream the response word by word.
+
+    Args:
+        prompt (str): The input message to generate a response for.
+        quick (bool, optional): If True, sends the entire response at once. Defaults to False.
+
+    Returns:
+        None
     """
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
-        [
-            {
-                "role": "system",
-                "content": "You are a sassy Todo List. Respond briefly to being poked.",
-            },
-            {
-                "role": "user",
-                "content": "You've been poked.",
-            },
-        ],
-    )
-    return Div(f"{APP_NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
-
-
-@rt('/profile/{profile_type}')
-async def profile_menu(profile_type: str):
-    """Handle profile menu selection."""
-    profile_id = "profile-summary"
-    selected_profile = profile_type.replace('_', ' ').title()
-
-    # Generate the style dynamically using the current PROFILE_MENU_WIDTH
-    summary_content = Summary(
-        selected_profile,
-        style=generate_menu_style(PROFILE_MENU_WIDTH),  # Use the common style function dynamically
-        id=profile_id,
+        [{"role": "user", "content": prompt}],
     )
 
-    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
-    await chatq(prompt)
-    return summary_content
+    if quick:
+        # Send the entire response at once
+        for u in users.values():
+            await u(
+                Div(
+                    f"{APP_NAME}{response}",
+                    id='msg-list',
+                    cls='fade-in',
+                    style=MATRIX_STYLE,
+                )
+            )
+    else:
+        # Stream the response word by word
+        words = response.split()
+        for i in range(len(words)):
+            partial_response = " ".join(words[: i + 1])
+            for u in users.values():
+                await u(
+                    Div(
+                        f"{APP_NAME}{partial_response}",
+                        id='msg-list',
+                        cls='fade-in',
+                        style=MATRIX_STYLE,
+                        _=f"this.scrollIntoView({{behavior: 'smooth'}});",
+                    )
+                )
+            await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
 
-@rt('/action/{action_id}')
-async def perform_action(action_id: str):
-    """Handle action menu selection."""
-    action_summary_id = "action-summary"
-    selected_action = f"Action {action_id}"  # Get the selected action name
-
-    # Update the summary content to reflect the selected action
-    summary_content = Summary(
-        selected_action,  # Use the selected action name here
-        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use the common style function
-        id=action_summary_id,
-    )
-
-    # Optionally, you can also send a prompt or response to the chat
-    prompt = (
-        f"You selected '{selected_action}'. "
-        "Respond cleverly, mentioning '{selected_action}' in your reply. "
-        "Be brief and sassy."
-    )
-    await chatq(prompt)
-
-    return summary_content  # Return the updated summary content
-
-
-@rt('/search', methods=['POST'])
-async def search(nav_input: str):
-    """Handle search input."""
-    prompt = (
-        f"The user searched for: '{nav_input}'. "
-        "Respond briefly acknowledging the search."
-    )
-    await chatq(prompt)
-    return ''
-
-
-# *******************************
-# Streaming WebSocket Functions
-# *******************************
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
 async def ws(msg: str):
     """Handle WebSocket messages."""
     if msg:
         # Disable the input group
-        disable_input_group = mk_input_group(disabled=True, value=msg, autofocus=False)
+        disable_input_group = mk_chat_input_group(disabled=True, value=msg, autofocus=False)
         disable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
             await u(disable_input_group)
@@ -779,7 +780,7 @@ async def ws(msg: str):
             await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
         # Re-enable the input group
-        enable_input_group = mk_input_group(disabled=False, value='', autofocus=True)
+        enable_input_group = mk_chat_input_group(disabled=False, value='', autofocus=True)
         enable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
             await u(enable_input_group)
