@@ -497,14 +497,35 @@ async def create_menu_item(title: str, style_width: str, item_id: str) -> Summar
     )
 
 
+async def handle_menu_selection(title: str, style_width: str, item_id: str, prompt_template: str) -> Summary:
+    """Handle menu selection and generate summary content.
+
+    Args:
+        title (str): The title to be displayed in the summary.
+        style_width (str): The width for the menu style.
+        item_id (str): The ID for the summary element.
+        prompt_template (str): The template for the prompt message.
+
+    Returns:
+        Summary: The generated summary content.
+    """
+    summary_content = await create_menu_item(title, style_width, item_id)
+    prompt = prompt_template.format(title=title)
+    await chatq(prompt)
+    return summary_content
+
+
 @rt('/profile/{profile_id}')
 async def profile_menu(profile_id: str):
     """Handle profile menu selection."""
-    selected_profile = "profile-summary".replace('_', ' ').title()
-    summary_content = await create_menu_item(selected_profile, PROFILE_MENU_WIDTH, "profile-summary")
-
-    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
-    await chatq(prompt)
+    # Format the profile_id to a user-friendly title
+    selected_profile = profile_id.replace('_', ' ').title()  # Use the actual profile_id
+    summary_content = await handle_menu_selection(
+        selected_profile,
+        PROFILE_MENU_WIDTH,
+        "profile-summary",
+        "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
+    )
     return summary_content
 
 
@@ -512,17 +533,12 @@ async def profile_menu(profile_id: str):
 async def perform_action(action_id: str):
     """Handle action menu selection."""
     selected_action = f"Action {action_id}"
-    summary_content = await create_menu_item(selected_action, ACTION_MENU_WIDTH, "action-summary")
-
-    # Optionally, you can also send a prompt or response to the chat
-    prompt = (
-        f"You selected '{selected_action}'. "
-        "Respond cleverly, mentioning '{selected_action}' in your reply. "
-        "Be brief and sassy."
+    return await handle_menu_selection(
+        selected_action,
+        ACTION_MENU_WIDTH,
+        "action-summary",
+        "You selected '{title}'. Respond cleverly, mentioning '{title}' in your reply. Be brief and sassy."
     )
-    await chatq(prompt)
-
-    return summary_content
 
 
 @rt('/search', methods=['POST'])
