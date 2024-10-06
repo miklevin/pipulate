@@ -2,33 +2,33 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
-from typing import Awaitable, Callable, List, Dict, Optional, Any, Union
+from typing import Awaitable, Callable
 
 import requests
 from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
 
 # Configuration and Constants
-MAX_LLM_RESPONSE_WORDS: int = 30
-NAV_FILLER_WIDTH: str = "30%"
-SEARCH_WIDTH: str = "20%"
-PROFILE_MENU_WIDTH: str = "200px"  # Width for the chat interface
-ACTION_MENU_WIDTH: str = "150px"      # Width for the action menu
-APP_NAME: str = ""
-TYPING_DELAY: float = 0.05  # Delay for simulating typing effect
+MAX_LLM_RESPONSE_WORDS = 30
+NAV_FILLER_WIDTH = "30%"
+SEARCH_WIDTH = "20%"
+PROFILE_MENU_WIDTH = "200px"  # Width for the chat interface
+ACTION_MENU_WIDTH = "150px"      # Width for the action menu
+APP_NAME = ""
+TYPING_DELAY = 0.05  # Delay for simulating typing effect
 
 # Styles
-MATRIX_STYLE: str = (
+MATRIX_STYLE = (
     "color: #00ff00; text-shadow: 0 0 5px #00ff00; "
     "font-family: 'Courier New', monospace;"
 )
-USER_STYLE: str = (
+USER_STYLE = (
     "color: #ffff00; text-shadow: 0 0 5px #ffff00; "
     "font-family: 'Courier New', monospace;"
 )
 
 # Initialize conversation
-conversation: List[Dict[str, str]] = [
+conversation = [
     {
         "role": "system",
         "content": f"You are a Todo App with attitude. Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, and without leading and trailing quotes.",
@@ -36,7 +36,7 @@ conversation: List[Dict[str, str]] = [
 ]
 
 # Active users connected via WebSocket
-users: Dict[str, Callable[[str], Awaitable[None]]] = {}
+users = {}
 
 
 @dataclass
@@ -47,27 +47,66 @@ class Chatter:
 
 
 def limit_llm_response(response: str) -> str:
-    """Limit the LLM response to a maximum number of words."""
-    words: List[str] = response.split()
+    """Limit the LLM response to a maximum number of words.
+
+    This function takes a response string and truncates it to a specified maximum number of words.
+
+    Args:
+        response (str): The response string from the LLM to be limited.
+
+    Returns:
+        str: The truncated response containing at most MAX_LLM_RESPONSE_WORDS words.
+    """
+    words = response.split()
     return ' '.join(words[:MAX_LLM_RESPONSE_WORDS])
 
 
-def get_best_llama_model(models: List[str]) -> Optional[str]:
-    """Select the best available LLaMA model from the list of models."""
-    llama_models: List[str] = [model for model in models if model.lower().startswith('llama')]
+def get_best_llama_model(models):
+    """Select the best available LLaMA model from the list of models.
+
+    This function filters the provided list of models to find those that start with 'llama'
+    and selects the best one based on versioning.
+
+    Args:
+        models (list): A list of model names to evaluate.
+
+    Returns:
+        str or None: The name of the best LLaMA model, or None if no LLaMA models are found.
+    """
+    llama_models = [model for model in models if model.lower().startswith('llama')]
     if not llama_models:
         return None
 
-    def parse_version(version_string: str) -> List[Optional[Union[int, str]]]:
-        """Parse a version string into a list of integers and strings for comparison."""
+    def parse_version(version_string):
+        """Parse a version string into a list of integers and strings for comparison.
+
+        This helper function converts a version string into a format suitable for comparison.
+
+        Args:
+            version_string (str): The version string to parse.
+
+        Returns:
+            list: A list containing integers and strings extracted from the version string.
+        """
         return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
 
-    def key_func(model: str) -> tuple:
-        """Generate a sorting key for a LLaMA model based on its version."""
-        parts: List[str] = model.split(':')
-        base_name: str = parts[0]
-        version: str = parts[1] if len(parts) > 1 else ''
-        base_version: str = re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower()).group(1) if re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower()) else '0'
+    def key_func(model):
+        """Generate a sorting key for a LLaMA model based on its version.
+
+        This helper function extracts the base version and any additional version information
+        from the model name to create a tuple for comparison.
+
+        Args:
+            model (str): The model name to extract version information from.
+
+        Returns:
+            tuple: A tuple containing the parsed base version, a flag for 'latest', and the parsed version.
+        """
+        parts = model.split(':')
+        base_name = parts[0]
+        version = parts[1] if len(parts) > 1 else ''
+        base_version = re.search(r'llama(\d+(?:\.\d+)*)', base_name.lower())
+        base_version = base_version.group(1) if base_version else '0'
         return (
             parse_version(base_version),
             1 if version == 'latest' else 0,
@@ -77,8 +116,14 @@ def get_best_llama_model(models: List[str]) -> Optional[str]:
     return max(llama_models, key=key_func)
 
 
-def get_available_models() -> List[str]:
-    """Retrieve the list of available models from the Ollama API."""
+def get_available_models():
+    """Retrieve the list of available models from the Ollama API.
+
+    This function makes a network request to the Ollama API to fetch the available model names.
+
+    Returns:
+        list: A list of available model names, or an empty list if an error occurs during the request.
+    """
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=10)
         response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
@@ -94,14 +139,29 @@ def get_available_models() -> List[str]:
     return []  # Return an empty list if an error occurs
 
 
-def get_best_model() -> str:
-    """Get the best available model or default to 'llama2'."""
+def get_best_model():
+    """Get the best available model or default to 'llama2'.
+
+    This function retrieves the available models and selects the best one based on the LLaMA model criteria.
+    If no suitable model is found, it defaults to 'llama2'.
+
+    Returns:
+        str: The name of the best available model, or 'llama2' if no models are available.
+    """
     available_models = get_available_models()
     return get_best_llama_model(available_models) or (available_models[0] if available_models else "llama2")
 
 
 def chat_with_ollama(model: str, messages: list) -> str:
-    """Interact with the Ollama model to generate a response."""
+    """Interact with the Ollama model to generate a response.
+
+    Args:
+        model (str): The model to use for generating the response.
+        messages (list): A list of messages to send to the model.
+
+    Returns:
+        str: The generated response from the model, or an error message if the request fails.
+    """
     url = "http://localhost:11434/api/chat"
     payload = {
         "model": model,
@@ -125,7 +185,17 @@ def chat_with_ollama(model: str, messages: list) -> str:
 
 
 def render(todo):
-    """Render a todo item as an HTML list item."""
+    """Render a todo item as an HTML list item.
+
+    This function creates an HTML representation of a todo item, including a checkbox for its status,
+    a delete button, and the todo title.
+
+    Args:
+        todo (Todo): The todo item to be rendered.
+
+    Returns:
+        Li: An HTML list item containing the rendered todo item.
+    """
     tid = f'todo-{todo.id}'
     checkbox = Input(
         type="checkbox",
@@ -153,7 +223,13 @@ def render(todo):
 
 # from todo_app import todos, Todo, mk_input as todo_mk_input
 def todo_mk_input():
-    """Create an input field for adding a new todo item."""
+    """Create an input field for adding a new todo item.
+
+    This function generates an HTML input element that allows users to enter a new todo item.
+
+    Returns:
+        Input: An HTML input element configured for adding a new todo.
+    """
     return Input(
         placeholder='Add a new item',
         id='title',
@@ -164,7 +240,19 @@ def todo_mk_input():
 
 # Define a function to create the input group
 def mk_input_group(disabled=False, value='', autofocus=True):
-    """Create a chat input group with a message input and a send button."""
+    """Create a chat input group with a message input and a send button.
+
+    This function generates a group of HTML elements for user input in the chat interface,
+    including an input field for messages and a button to send the message.
+
+    Args:
+        disabled (bool, optional): Whether the input group should be disabled. Defaults to False.
+        value (str, optional): The initial value for the message input. Defaults to an empty string.
+        autofocus (bool, optional): Whether to autofocus the message input. Defaults to True.
+
+    Returns:
+        Group: An HTML group containing the message input and send button.
+    """
     return Group(
         Input(
             id='msg',
@@ -186,7 +274,17 @@ def mk_input_group(disabled=False, value='', autofocus=True):
 
 
 async def stream_chat(prompt: str, quick: bool = False):
-    """Generate and stream an AI response to users."""
+    """Generate and stream an AI response to users.
+
+    If quick is True, send the entire response at once. Otherwise, stream the response word by word.
+
+    Args:
+        prompt (str): The input message to generate a response for.
+        quick (bool, optional): If True, sends the entire response at once. Defaults to False.
+
+    Returns:
+        None
+    """
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
@@ -373,7 +471,16 @@ def on_disconn(ws):
 
 
 async def chatq(message: str):
-    """Queue a message for the chat stream."""
+    """Queue a message for the chat stream.
+
+    This function creates an asyncio task to send a message to the chat interface.
+
+    Args:
+        message (str): The message to be queued for the chat stream.
+
+    Returns:
+        None
+    """
     # Create a task for streaming the chat response without blocking
     asyncio.create_task(stream_chat(message))
 
@@ -381,7 +488,16 @@ async def chatq(message: str):
 # Route Handlers
 @rt('/')
 def get():
-    """Handle the main page GET request for the Pipulate Todo App."""
+    """Handle the main page GET request for the Pipulate Todo App.
+
+    This function generates the HTML content for the main page of the application,
+    including the navigation menu, todo list, and chat interface. It constructs
+    the layout using various HTML components and returns the complete page structure.
+
+    Returns:
+        Titled: A Titled component containing the main page content, including
+        the navigation menu, todo list, chat interface, and a button to poke the todo list.
+    """
     nav = create_nav_menu()
 
     nav_group = Group(
@@ -444,7 +560,20 @@ def get():
 
 @rt('/todo')
 async def post_todo(todo: Todo):
-    """Create a new todo item."""
+    """Create a new todo item.
+
+    This endpoint handles the addition of a new todo item to the list. 
+    If the provided title is empty, it responds with a sassy comment 
+    about the attempt to add an empty todo. Otherwise, it inserts the 
+    new todo into the database and generates a brief, sassy comment 
+    about the new todo item.
+
+    Args:
+        todo (Todo): The todo item to be added.
+
+    Returns:
+        str: The rendered HTML for the inserted todo item and the input field for a new todo.
+    """
     if not todo.title.strip():
         # Empty todo case
         await chatq(
@@ -464,7 +593,17 @@ async def post_todo(todo: Todo):
 
 @rt('/{tid}')
 async def delete(tid: int):
-    """Delete a todo item."""
+    """Delete a todo item.
+
+    This endpoint handles the removal of a specific todo item identified
+    by its unique ID (tid). A message is generated upon deletion.
+
+    Args:
+        tid (int): The unique ID of the todo item to be deleted.
+
+    Returns:
+        str: An empty string to remove the item from the DOM.
+    """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
     await chatq(f"Todo '{todo.title}' deleted. Brief, sassy reaction.")
@@ -473,7 +612,18 @@ async def delete(tid: int):
 
 @rt('/toggle/{tid}')
 async def toggle(tid: int):
-    """Update the status of a todo item."""
+    """Update the status of a todo item.
+
+    This endpoint handles toggling the 'done' status of a specific todo
+    item identified by its unique ID (tid). A message is generated
+    reflecting the change in status.
+
+    Args:
+        tid (int): The unique ID of the todo item to be toggled.
+
+    Returns:
+        Input: An HTML input element representing the updated status of the todo item.
+    """
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
@@ -496,7 +646,16 @@ async def toggle(tid: int):
 
 @rt('/poke')
 async def poke():
-    """Handle poking the todo list for a response."""
+    """Handle poking the todo list for a response.
+
+    This function sends a prompt to the chat model to generate a brief response
+    when the todo list is "poked." It serves as a placeholder for quick (non-streaming)
+    information display in the chat interface.
+
+    Returns:
+        Div: An HTML Div element containing the response from the chat model,
+        formatted for display in the message list.
+    """
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
