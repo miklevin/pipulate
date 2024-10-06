@@ -47,23 +47,61 @@ class Chatter:
 
 
 def limit_llm_response(response: str) -> str:
-    """Limit the LLM response to a maximum number of words."""
+    """Limit the LLM response to a maximum number of words.
+
+    This function takes a response string and truncates it to a specified maximum number of words.
+
+    Args:
+        response (str): The response string from the LLM to be limited.
+
+    Returns:
+        str: The truncated response containing at most MAX_LLM_RESPONSE_WORDS words.
+    """
     words = response.split()
     return ' '.join(words[:MAX_LLM_RESPONSE_WORDS])
 
 
-def parse_version(version_string):
-    """Parse a version string into a list of integers and strings for comparison."""
-    return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
-
-
 def get_best_llama_model(models):
-    """Select the best available LLaMA model from the list of models."""
+    """Select the best available LLaMA model from the list of models.
+
+    This function filters the provided list of models to find those that start with 'llama'
+    and selects the best one based on versioning.
+
+    Args:
+        models (list): A list of model names to evaluate.
+
+    Returns:
+        str or None: The name of the best LLaMA model, or None if no LLaMA models are found.
+    """
     llama_models = [model for model in models if model.lower().startswith('llama')]
     if not llama_models:
         return None
 
+    def parse_version(version_string):
+        """Parse a version string into a list of integers and strings for comparison.
+
+        This helper function converts a version string into a format suitable for comparison.
+
+        Args:
+            version_string (str): The version string to parse.
+
+        Returns:
+            list: A list containing integers and strings extracted from the version string.
+        """
+        return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
+
     def key_func(model):
+        """Generate a sorting key for a LLaMA model based on its version.
+
+        This helper function extracts the base version and any additional version information
+        from the model name to create a tuple for comparison.
+
+        Args:
+            model (str): The model name to extract version information from.
+
+        Returns:
+            tuple: A tuple containing the parsed base version, a flag for 'latest', and the parsed version.
+        """
         parts = model.split(':')
         base_name = parts[0]
         version = parts[1] if len(parts) > 1 else ''
@@ -81,8 +119,10 @@ def get_best_llama_model(models):
 def get_available_models():
     """Retrieve the list of available models from the Ollama API.
 
+    This function makes a network request to the Ollama API to fetch the available model names.
+
     Returns:
-        list: A list of available model names, or an empty list if an error occurs.
+        list: A list of available model names, or an empty list if an error occurs during the request.
     """
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=10)
@@ -100,7 +140,14 @@ def get_available_models():
 
 
 def get_best_model():
-    """Get the best available model or default to 'llama2'."""
+    """Get the best available model or default to 'llama2'.
+
+    This function retrieves the available models and selects the best one based on the LLaMA model criteria.
+    If no suitable model is found, it defaults to 'llama2'.
+
+    Returns:
+        str: The name of the best available model, or 'llama2' if no models are available.
+    """
     available_models = get_available_models()
     return get_best_llama_model(available_models) or (available_models[0] if available_models else "llama2")
 
@@ -138,7 +185,17 @@ def chat_with_ollama(model: str, messages: list) -> str:
 
 
 def render(todo):
-    """Render a todo item."""
+    """Render a todo item as an HTML list item.
+
+    This function creates an HTML representation of a todo item, including a checkbox for its status,
+    a delete button, and the todo title.
+
+    Args:
+        todo (Todo): The todo item to be rendered.
+
+    Returns:
+        Li: An HTML list item containing the rendered todo item.
+    """
     tid = f'todo-{todo.id}'
     checkbox = Input(
         type="checkbox",
@@ -166,15 +223,36 @@ def render(todo):
 
 # from todo_app import todos, Todo, mk_input as todo_mk_input
 def todo_mk_input():
-    return Input(placeholder='Add a new item',
-                 id='title',
-                 hx_swap_oob='true',
-                 autofocus=True)  # Add this line
+    """Create an input field for adding a new todo item.
+
+    This function generates an HTML input element that allows users to enter a new todo item.
+
+    Returns:
+        Input: An HTML input element configured for adding a new todo.
+    """
+    return Input(
+        placeholder='Add a new item',
+        id='title',
+        hx_swap_oob='true',
+        autofocus=True  # Add this line
+    )
 
 
 # Define a function to create the input group
 def mk_input_group(disabled=False, value='', autofocus=True):
-    """Create the chat input group."""
+    """Create a chat input group with a message input and a send button.
+
+    This function generates a group of HTML elements for user input in the chat interface,
+    including an input field for messages and a button to send the message.
+
+    Args:
+        disabled (bool, optional): Whether the input group should be disabled. Defaults to False.
+        value (str, optional): The initial value for the message input. Defaults to an empty string.
+        autofocus (bool, optional): Whether to autofocus the message input. Defaults to True.
+
+    Returns:
+        Group: An HTML group containing the message input and send button.
+    """
     return Group(
         Input(
             id='msg',
@@ -264,7 +342,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
             )
         )
 
-    chat_summary_id = "chat-summary"
+    profile_summary_id = "profile-summary"
     action_summary_id = "action-summary"
 
     # Filler Item: Non-interactive, occupies significant space
@@ -284,13 +362,13 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
-            id=chat_summary_id,
+            id=profile_summary_id,
         ),
         Ul(
-            create_menu_item("Default Profile", "/profile/default_profile", chat_summary_id),
-            create_menu_item("Future Profile 2", "/profile/future_profile_1", chat_summary_id),
-            create_menu_item("Future Profile 3", "/profile/future_profile_2", chat_summary_id),
-            create_menu_item("Future Profile 4", "/profile/future_profile_3", chat_summary_id),
+            create_menu_item("Default Profile", "/profile/default_profile", profile_summary_id),
+            create_menu_item("Future Profile 1", "/profile/future_profile_1", profile_summary_id),
+            create_menu_item("Future Profile 2", "/profile/future_profile_2", profile_summary_id),
+            create_menu_item("Future Profile 3", "/profile/future_profile_3", profile_summary_id),
             dir="rtl",
             id="chat-menu-list",
         ),
@@ -409,7 +487,16 @@ async def chatq(message: str):
 # Route Handlers
 @rt('/')
 def get():
-    """Handle the main page GET request."""
+    """Handle the main page GET request for the Pipulate Todo App.
+
+    This function generates the HTML content for the main page of the application,
+    including the navigation menu, todo list, and chat interface. It constructs
+    the layout using various HTML components and returns the complete page structure.
+
+    Returns:
+        Titled: A Titled component containing the main page content, including
+        the navigation menu, todo list, chat interface, and a button to poke the todo list.
+    """
     nav = create_nav_menu()
 
     nav_group = Group(
@@ -558,7 +645,16 @@ async def toggle(tid: int):
 
 @rt('/poke')
 async def poke():
-    """Handle poking the todo list for a response."""
+    """Handle poking the todo list for a response.
+
+    This function sends a prompt to the chat model to generate a brief response
+    when the todo list is "poked." It serves as a placeholder for quick (non-streaming)
+    information display in the chat interface.
+
+    Returns:
+        Div: An HTML Div element containing the response from the chat model,
+        formatted for display in the message list.
+    """
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
@@ -577,10 +673,10 @@ async def poke():
 
 
 @rt('/profile/{profile_type}')
-async def chat_interface(profile_type: str):
-    """Handle chat menu selection."""
-    # Update the summary element with the selected chat type
-    chat_summary_id = "chat-summary"
+async def profile_menu(profile_type: str):
+    """Handle profile menu selection."""
+    # Update the summary element with the selected profile type
+    profile_summary_id = "profile-summary"
     selected_profile = profile_type.replace('_', ' ').title()
     summary_content = Summary(
         selected_profile,
@@ -591,9 +687,9 @@ async def chat_interface(profile_type: str):
             f"width: {PROFILE_MENU_WIDTH}; background-color: var(--pico-background-color); "
             "border: 1px solid var(--pico-muted-border-color);"
         ),
-        id=chat_summary_id,
+        id=profile_summary_id,
     )
-    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeing it brief, under 20 words."
+    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
     await chatq(prompt)
     return summary_content
 
