@@ -17,6 +17,7 @@ SEARCH_WIDTH = "20%"
 PROFILE_MENU_WIDTH = "200px"  # Width for the chat interface
 ACTION_MENU_WIDTH = "150px"      # Width for the action menu
 APP_NAME = ""
+TYPING_DELAY = 0.05  # Delay for simulating typing effect
 
 # Styles
 MATRIX_STYLE = (
@@ -194,7 +195,7 @@ async def stream_chat(prompt: str):
                     _=f"this.scrollIntoView({{behavior: 'smooth'}});",
                 )
             )
-        await asyncio.sleep(0.05)  # Reduced delay for faster typing
+        await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
 
 async def quick_message(chatter: SimpleChatter, prompt: str):
@@ -204,11 +205,10 @@ async def quick_message(chatter: SimpleChatter, prompt: str):
         model,
         [{"role": "user", "content": prompt}],
     )
-    words = response.split()
-    for i in range(len(words)):
-        partial_response = " ".join(words[: i + 1])
-        await chatter.send(f"{APP_NAME}{partial_response}")
-        await asyncio.sleep(0.05)  # Adjust this delay as needed
+    
+    # Directly send the complete response without splitting
+    await chatter.send(f"{APP_NAME}{response}")
+    await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
 
 def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
@@ -361,6 +361,11 @@ def on_disconn(ws):
     users.pop(str(id(ws)), None)
 
 
+async def chatq(message: str):
+    """Queue a message for the chat stream."""
+    await asyncio.create_task(stream_chat(message))
+
+
 # Route Handlers
 @rt('/')
 def get():
@@ -427,23 +432,23 @@ def get():
 
 @rt('/todo')
 async def post_todo(todo: Todo):
-    """Handle adding a new todo item."""
+    """Create a new todo item.
+
+    This endpoint handles the addition of a new todo item to the list.
+    A message is generated based on the outcome of the operation.
+    """
     if not todo.title.strip():
         # Empty todo case
-        asyncio.create_task(
-            stream_chat(
-                "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
-            )
+        await chatq(
+            "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
         )
         return ''  # Return empty string to prevent insertion
     
     # Non-empty todo case
     inserted_todo = todos.insert(todo)
 
-    asyncio.create_task(
-        stream_chat(
-            f"New todo: '{todo.title}'. Brief, sassy comment or advice."
-        )
+    await chatq(
+        f"New todo: '{todo.title}'. Brief, sassy comment or advice."
     )
 
     return render(inserted_todo), todo_mk_input()
@@ -451,15 +456,16 @@ async def post_todo(todo: Todo):
 
 @rt('/{tid}')
 async def delete(tid: int):
-    """Handle deleting a todo item."""
+    """Delete a todo item.
+
+    This endpoint handles the removal of a specific todo item identified
+    by its unique ID (tid). A message is generated upon deletion.
+    """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
 
-    # Adjusted prompt for brevity
-    asyncio.create_task(
-        stream_chat(
-            f"Todo '{todo.title}' deleted. Brief, sassy reaction."
-        )
+    await chatq(
+        f"Todo '{todo.title}' deleted. Brief, sassy reaction."
     )
 
     return ''  # Return an empty string to remove the item from the DOM
@@ -467,19 +473,21 @@ async def delete(tid: int):
 
 @rt('/toggle/{tid}')
 async def toggle(tid: int):
-    """Handle toggling a todo item's done status."""
+    """Update the status of a todo item.
+
+    This endpoint handles toggling the 'done' status of a specific todo
+    item identified by its unique ID (tid). A message is generated
+    reflecting the change in status.
+    """
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
     new_status = "Done" if todo.done else "Not Done"
     updated_todo = todos.update(todo)
 
-    # Adjusted prompt to include the todo title
-    asyncio.create_task(
-        stream_chat(
-            f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
-            f"Brief, sassy comment mentioning '{todo.title}'."
-        )
+    await chatq(
+        f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
+        f"Brief, sassy comment mentioning '{todo.title}'."
     )
 
     return Input(
@@ -653,7 +661,7 @@ async def ws(msg: str):
                         _=f"this.scrollIntoView({{behavior: 'smooth'}});",
                     )
                 )
-            await asyncio.sleep(0.05)  # Reduced delay for faster typing
+            await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
         # Re-enable the input group
         enable_input_group = mk_input_group(disabled=False, value='', autofocus=True)
