@@ -198,29 +198,27 @@ def render(todo):
 # *******************************
 
 # Unpack the returned tuple from fast_app
-app, rt, (todos, Todo), (profiles, Profile) = fast_app(  # Unpack the tables directly
+app, rt, (keys, Key), (todos, Todo) = fast_app(  # Unpack the tables directly
     "data/pipulate.db",
     ws_hdr=True,
     live=True,
     render=render,
+    persistence={
+        "key": str,
+        "value": str,
+        "pk": ['key', 'value']
+    },
     todos={
         "id": int,
         "title": str,
         "done": bool,
         "pk": "id"
     },
-    profiles={ 
-        "profile_id": str,  # Set profile_id as the primary key
-        "organization": str,  # New field
-        "project": str,  # New field
-        "analysis": str,  # New field
-        "pk": "profile_id"  # Set profile_id as the primary key
-    },
 )
 
 # Now you can use todos and sessions directly
 print("Type of todos:", type(todos))  # Should be <class 'sqlite_minutils.db.Table'>
-print("Type of profiles:", type(profiles))  # Should be <class 'sqlite_minutils.db.Table'>
+print("Type of keys:", type(keys))  # Should be <class 'sqlite_minutils.db.Table'>
 
 # Example of fetching all todos
 try:
