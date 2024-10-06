@@ -353,6 +353,21 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         id="action-menu",
     )
 
+    button_style = (
+        generate_menu_style("16px") +  # Use the height for the button
+        "background: none; "
+        "border-radius: 50%; "
+        "border: none; "
+        "color: var(--pico-muted-color); "
+        "cursor: pointer; "
+        "opacity: 0.5; "
+        "position: absolute; "
+        "right: 6px; "
+        "top: 50%; "
+        "transform: translateY(-50%); "
+        "width: 16px; "
+    )
+
     search_group = Group(
         Input(
             placeholder="Search",
@@ -363,35 +378,23 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             hx_target="#msg-list",
             hx_swap="innerHTML",
             style=(
-                f"{action_menu_style} width: {SEARCH_WIDTH}; padding-right: 25px; "
-                "border: 1px solid var(--pico-muted-border-color);"
+                f"{action_menu_style} "
+                f"width: {SEARCH_WIDTH}; "
+                "padding-right: 25px; "
+                "border: 1px solid var(--pico-muted-border-color); "
             ),
         ),
         Button(
             "×",
             type="button",
             onclick="document.getElementById('nav-input').value = ''; this.blur();",
-            style=(
-                "align-items: center; "
-                "background: none; "
-                "border-radius: 50%;"
-                "border: none; "
-                "color: var(--pico-muted-color); "
-                "cursor: pointer; "
-                "display: flex; "
-                "font-size: 0.8rem; "
-                "height: 16px; "
-                "justify-content: center; "  # Center the button
-                "opacity: 0.5; "
-                "padding: 0; "
-                "position: absolute; "
-                "right: 6px; "
-                "top: 50%; "
-                "transform: translateY(-50%); "
-                "width: 16px; "
-            ),
+            style=button_style,
         ),
-        style="display: flex; align-items: center; position: relative;",
+        style=(
+            "align-items: center; "
+            "display: flex; "
+            "position: relative; "
+        ),
     )
 
     nav = Div(
@@ -400,8 +403,10 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         action_menu,
         search_group,
         style=(
-            "display: flex; align-items: center; gap: 8px; "
-            "width: 100%;"  # Ensure the nav takes full width
+            "align-items: center; "
+            "display: flex; "
+            "gap: 8px; "
+            "width: 100%; "  # Ensure the nav takes full width
         ),
     )
 
@@ -467,9 +472,15 @@ def get():
     """
     nav = create_nav_menu()
 
+    nav_group_style = (
+        "display: flex; "
+        "align-items: center; "
+        "position: relative;"
+    )
+
     nav_group = Group(
         nav,
-        style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;",
+        style=nav_group_style,
     )
 
     return Titled(
@@ -506,7 +517,11 @@ def get():
                     ),
                 ),
                 cls="grid",
-                style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;",
+                style=(
+                    "display: grid; "
+                    "gap: 20px; "
+                    "grid-template-columns: 2fr 1fr; "
+                ),
             ),
             Div(
                 A(
@@ -516,7 +531,12 @@ def get():
                     hx_swap="innerHTML",
                     cls="button",
                 ),
-                style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;",
+                style=(
+                    "bottom: 20px; "
+                    "position: fixed; "
+                    "right: 20px; "
+                    "z-index: 1000; "
+                ),
             ),
         ),
         hx_ext='ws',
