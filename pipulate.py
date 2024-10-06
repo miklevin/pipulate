@@ -20,8 +20,9 @@ DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
 # Styles
 MATRIX_STYLE = (
-    "color: #00ff00; text-shadow: 0 0 5px #00ff00; "
+    "color: #00ff00; "
     "font-family: 'Courier New', monospace;"
+    "text-shadow: 0 0 5px #00ff00; "
 )
 USER_STYLE = (
     "color: #ffff00; text-shadow: 0 0 5px #ffff00; "
@@ -267,9 +268,15 @@ async def stream_chat(prompt: str, quick: bool = False):
 def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     common_style = (
-        "font-size: 1rem; height: 32px; line-height: 32px; "
-        "display: inline-flex; align-items: center; justify-content: center; "
-        "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem;"
+        "font-size: 1rem; "
+        "height: 32px; "
+        "line-height: 32px; "
+        "display: inline-flex; "
+        "align-items: center; "
+        "justify-content: center; "
+        "margin: 0 2px; "
+        "border-radius: 16px; "
+        "padding: 0 0.6rem;"
     )
 
     def create_menu_item(title, hx_get, summary_id):
@@ -300,14 +307,25 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
         ),
     )
 
+    profile_menu_style = (
+        f"font-size: 1rem; "
+        "height: 32px; "
+        "line-height: 32px; "
+        "display: inline-flex; "
+        "align-items: center; "
+        "justify-content: center; "
+        "margin: 0 2px; "
+        "border-radius: 16px; "
+        "padding: 0 0.6rem; "
+        f"width: {PROFILE_MENU_WIDTH}; "
+        "background-color: var(--pico-background-color); "
+        "border: 1px solid var(--pico-muted-border-color);"
+    )
+
     profile_menu = Details(
         Summary(
             selected_chat,
-            style=(
-                f"{common_style} width: {PROFILE_MENU_WIDTH}; "  # Use constant for chat interface width
-                "background-color: var(--pico-background-color); "
-                "border: 1px solid var(--pico-muted-border-color);"
-            ),
+            style=profile_menu_style,
             id=profile_id,
         ),
         Ul(
@@ -363,11 +381,23 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
             type="button",
             onclick="document.getElementById('nav-input').value = ''; this.blur();",
             style=(
-                "position: absolute; right: 6px; top: 50%; transform: translateY(-50%); "
-                "width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); "
-                "opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; "
-                "display: flex; align-items: center; justify-content: center; "  # Center the button
+                "align-items: center; "
+                "background: none; "
                 "border-radius: 50%;"
+                "border: none; "
+                "color: var(--pico-muted-color); "
+                "cursor: pointer; "
+                "display: flex; "
+                "font-size: 0.8rem; "
+                "height: 16px; "
+                "justify-content: center; "  # Center the button
+                "opacity: 0.5; "
+                "padding: 0; "
+                "position: absolute; "
+                "right: 6px; "
+                "top: 50%; "
+                "transform: translateY(-50%); "
+                "width: 16px; "
             ),
         ),
         style="display: flex; align-items: center; position: relative;",
@@ -628,11 +658,18 @@ async def profile_menu(profile_type: str):
     summary_content = Summary(
         selected_profile,
         style=(
-            f"font-size: 1rem; height: 32px; line-height: 32px; "
-            "display: inline-flex; align-items: center; justify-content: center; "
-            "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; "
-            f"width: {PROFILE_MENU_WIDTH}; background-color: var(--pico-background-color); "
+            "align-items: center; "
+            "background-color: var(--pico-background-color); "
+            "border-radius: 16px; "
             "border: 1px solid var(--pico-muted-border-color);"
+            "display: inline-flex; "
+            "font-size: 1rem; "
+            "height: 32px; "
+            "justify-content: center; "
+            "line-height: 32px; "
+            "margin: 0 2px; "
+            "padding: 0 0.6rem; "
+            f"width: {PROFILE_MENU_WIDTH}; "
         ),
         id=profile_id,
     )
@@ -649,12 +686,19 @@ async def perform_action(action_id: str):
     selected_action = f"Action {action_id}"
     summary_content = Summary(
         selected_action,
-        style=(
-            f"font-size: 1rem; height: 32px; line-height: 32px; "
-            "display: inline-flex; align-items: center; justify-content: center; "
-            "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; "
-            f"width: {ACTION_MENU_WIDTH}; background-color: var(--pico-background-color); "
+        style = (
+            "align-items: center; "
+            "background-color: var(--pico-background-color); "
+            "border-radius: 16px; "
             "border: 1px solid var(--pico-muted-border-color);"
+            "display: inline-flex; "
+            "font-size: 1rem; "
+            "height: 32px; "
+            "justify-content: center; "
+            "line-height: 32px; "
+            "margin: 0 2px; "
+            "padding: 0 0.6rem; "
+            f"width: {ACTION_MENU_WIDTH}; "
         ),
         id=action_summary_id,
     )
