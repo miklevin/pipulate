@@ -339,7 +339,8 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
                 hx_trigger="click",
                 hx_push_url="false",  # Prevent URL changes
                 cls="menu-item",
-            )
+            ),
+            style="text-align: center;"  # Add the class for text alignment to the Li element
         )
 
     profile_summary_id = "profile-summary"
@@ -350,11 +351,12 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
         Span(" "),  # Empty span as a filler
         style=(
             f"flex-grow: 1; min-width: {NAV_FILLER_WIDTH}; "  # Allows it to grow and ensures a minimum width
-            "list-style-type: none;"  # Removes the bullet point
+            "list-style-type: none; "  # Removes the bullet point
+            "display: flex; justify-content: center;"  # Center the items
         ),
     )
 
-    chat_menu = Details(
+    profile_menu = Details(
         Summary(
             selected_chat,
             style=(
@@ -420,7 +422,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
                 "position: absolute; right: 6px; top: 50%; transform: translateY(-50%); "
                 "width: 16px; height: 16px; font-size: 0.8rem; color: var(--pico-muted-color); "
                 "opacity: 0.5; background: none; border: none; cursor: pointer; padding: 0; "
-                "display: flex; align-items: center; justify-content: center; "
+                "display: flex; align-items: center; justify-content: center; "  # Center the button
                 "border-radius: 50%;"
             ),
         ),
@@ -429,7 +431,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
 
     nav = Div(
         filler_item,  # Add the filler item first
-        chat_menu,
+        profile_menu,
         action_menu,
         search_group,
         style=(
