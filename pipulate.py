@@ -238,9 +238,11 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     filler_item = Li(
         Span(" "),  # Empty span as a filler
         style=(
-            f"flex-grow: 1; min-width: {NAV_FILLER_WIDTH}; "  # Allows it to grow and ensures a minimum width
+            "flex-grow: 1; "  # Allows it to grow
+            f"min-width: {NAV_FILLER_WIDTH}; "  # Ensures a minimum width
             "list-style-type: none; "  # Removes the bullet point
-            "display: flex; justify-content: center;"  # Center the items
+            "display: flex; "  # Center the items
+            "justify-content: center; "  # Center the items
         ),
     )
 
@@ -272,10 +274,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             create_menu_item("Organizations", "/explore/organizations", explore_id),
             create_menu_item("Projects", "/explore/projects", explore_id),
             dir="rtl",
-            id="explore-menu-list",
         ),
         cls="dropdown",
-        id="explore-menu",
     )
 
     # Define the profile menu
@@ -291,10 +291,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             create_menu_item("Profile 3", "/profile/Profile_3", profile_id),
             create_menu_item("Profile 4", "/profile/Profile_4", profile_id),
             dir="rtl",
-            id="chat-menu-list",
         ),
         cls="dropdown",
-        id="chat-menu",
     )
 
     # Define the action menu
@@ -310,10 +308,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             create_menu_item("Action 3", "/action/3", action_id),
             create_menu_item("Action 4", "/action/4", action_id),
             dir="rtl",
-            id="action-menu-list",
         ),
         cls="dropdown",
-        id="action-menu",
     )
 
     search_button_style = (
@@ -367,6 +363,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             "display: flex; "
             "gap: 8px; "  # Add gap between items
             "width: 100%; "  # Ensure the nav takes full width
+            "justify-content: flex-end; "
         ),
     )
 
