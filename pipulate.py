@@ -283,19 +283,11 @@ def generate_menu_style(width: str) -> str:
     )
 
 
-def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
+def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
-    common_style = (
-        "align-items: center; "
-        "border-radius: 16px; "
-        "display: inline-flex; "
-        "font-size: 1rem; "
-        "height: 32px; "
-        "justify-content: center; "
-        "line-height: 32px; "
-        "margin: 0 2px; "
-        "padding: 0 0.6rem;"
-    )
+    # Use generate_menu_style for the common style
+    profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
+    action_menu_style = generate_menu_style(ACTION_MENU_WIDTH)
 
     def create_menu_item(title, hx_get, summary_id):
         """Create a menu item."""
@@ -327,8 +319,8 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
 
     profile_menu = Details(
         Summary(
-            selected_chat,
-            style=generate_menu_style(PROFILE_MENU_WIDTH),
+            selected_profile,
+            style=profile_menu_style,
             id=profile_id,
         ),
         Ul(
@@ -346,11 +338,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
     action_menu = Details(
         Summary(
             selected_action,
-            style=(
-                f"{common_style} width: {ACTION_MENU_WIDTH}; "  # Use constant for action menu width
-                "background-color: var(--pico-background-color); "
-                "border: 1px solid var(--pico-muted-border-color);"
-            ),
+            style=action_menu_style,
             id=action_id,
         ),
         Ul(
@@ -375,7 +363,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
             hx_target="#msg-list",
             hx_swap="innerHTML",
             style=(
-                f"{common_style} width: {SEARCH_WIDTH}; padding-right: 25px; "
+                f"{action_menu_style} width: {SEARCH_WIDTH}; padding-right: 25px; "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
         ),
@@ -673,16 +661,21 @@ async def profile_menu(profile_type: str):
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
-    action_id = "action-summary"
-    selected_action = f"Action {action_id}"
+    action_summary_id = "action-summary"
+    selected_action = f"Action {action_id}"  # Get the selected action name
+
+    # Update the summary content to reflect the selected action
     summary_content = Summary(
-        selected_action,
-        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use common style function
-        id=action_id,
+        selected_action,  # Use the selected action name here
+        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use the common style function
+        id=action_summary_id,
     )
+
+    # Optionally, you can also send a prompt or response to the chat
     prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
     await chatq(prompt)
-    return summary_content
+
+    return summary_content  # Return the updated summary content
 
 
 @rt('/search', methods=['POST'])
