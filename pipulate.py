@@ -175,40 +175,51 @@ def mk_input_group(disabled=False, value='', autofocus=True):
     )
 
 
-async def stream_chat(prompt: str):
-    """Generate and stream AI response to users."""
+async def stream_chat(prompt: str, quick: bool = False):
+    """Generate and stream an AI response to users.
+
+    If quick is True, send the entire response at once. Otherwise, stream the response word by word.
+
+    Args:
+        prompt (str): The input message to generate a response for.
+        quick (bool, optional): If True, sends the entire response at once. Defaults to False.
+
+    Returns:
+        None
+    """
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
         [{"role": "user", "content": prompt}],
     )
-    words = response.split()
-    for i in range(len(words)):
-        partial_response = " ".join(words[: i + 1])
+
+    if quick:
+        # Send the entire response at once
         for u in users.values():
             await u(
                 Div(
-                    f"{APP_NAME}{partial_response}",
+                    f"{APP_NAME}{response}",
                     id='msg-list',
                     cls='fade-in',
                     style=MATRIX_STYLE,
-                    _=f"this.scrollIntoView({{behavior: 'smooth'}});",
                 )
             )
-        await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
-
-
-async def quick_message(chatter: SimpleChatter, prompt: str):
-    """Send a quick message to the chat interface."""
-    response = await run_in_threadpool(
-        chat_with_ollama,
-        model,
-        [{"role": "user", "content": prompt}],
-    )
-    
-    # Directly send the complete response without splitting
-    await chatter.send(f"{APP_NAME}{response}")
-    await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
+    else:
+        # Stream the response word by word
+        words = response.split()
+        for i in range(len(words)):
+            partial_response = " ".join(words[: i + 1])
+            for u in users.values():
+                await u(
+                    Div(
+                        f"{APP_NAME}{partial_response}",
+                        id='msg-list',
+                        cls='fade-in',
+                        style=MATRIX_STYLE,
+                        _=f"this.scrollIntoView({{behavior: 'smooth'}});",
+                    )
+                )
+            await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
 
 def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
@@ -362,7 +373,16 @@ def on_disconn(ws):
 
 
 async def chatq(message: str):
-    """Queue a message for the chat stream."""
+    """Queue a message for the chat stream.
+
+    This function creates an asyncio task to send a message to the chat interface.
+
+    Args:
+        message (str): The message to be queued for the chat stream.
+
+    Returns:
+        None
+    """
     await asyncio.create_task(stream_chat(message))
 
 
@@ -434,15 +454,32 @@ def get():
 async def post_todo(todo: Todo):
     """Create a new todo item.
 
-    This endpoint handles the addition of a new todo item to the list.
-    A message is generated based on the outcome of the operation.
+    This endpoint handles the addition of a new todo item to the list. 
+    If the provided title is empty, it responds with a sassy comment 
+    about the attempt to add an empty todo. Otherwise, it inserts the 
+    new todo into the database and generates a brief, sassy comment 
+    about the new todo item.
+
+    Args:
+        todo (Todo): The todo item to be added.
+
+    Returns:
+        str: The rendered HTML for the inserted todo item and the input field for a new todo.
     """
     if not todo.title.strip():
         # Empty todo case
-        await chatq("User tried to add an empty todo. Respond with a brief, sassy comment about their attempt.")
+        await chatq(
+            "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
+        )
         return ''  # Return empty string to prevent insertion
+    
+    # Non-empty todo case
     inserted_todo = todos.insert(todo)
-    await chatq(f"New todo: '{todo.title}'. Brief, sassy comment or advice.")
+
+    await chatq(
+        f"New todo: '{todo.title}'. Brief, sassy comment or advice."
+    )
+    
     return render(inserted_todo), todo_mk_input()
 
 
@@ -452,10 +489,20 @@ async def delete(tid: int):
 
     This endpoint handles the removal of a specific todo item identified
     by its unique ID (tid). A message is generated upon deletion.
+
+    Args:
+        tid (int): The unique ID of the todo item to be deleted.
+
+    Returns:
+        str: An empty string to remove the item from the DOM.
     """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
-    await chatq(f"Todo '{todo.title}' deleted. Brief, sassy reaction.")
+
+    await chatq(
+        f"Todo '{todo.title}' deleted. Brief, sassy reaction."
+    )
+
     return ''  # Return an empty string to remove the item from the DOM
 
 
@@ -466,6 +513,12 @@ async def toggle(tid: int):
     This endpoint handles toggling the 'done' status of a specific todo
     item identified by its unique ID (tid). A message is generated
     reflecting the change in status.
+
+    Args:
+        tid (int): The unique ID of the todo item to be toggled.
+
+    Returns:
+        Input: An HTML input element representing the updated status of the todo item.
     """
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
