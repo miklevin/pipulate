@@ -198,7 +198,7 @@ def render(todo):
 # *******************************
 
 # Unpack the returned tuple from fast_app
-app, rt, (todos, Todo), (sessions, Session) = fast_app(  # Unpack the tables directly
+app, rt, (todos, Todo), (profiles, Profile) = fast_app(  # Unpack the tables directly
     "data/pipulate.db",
     ws_hdr=True,
     live=True,
@@ -209,7 +209,7 @@ app, rt, (todos, Todo), (sessions, Session) = fast_app(  # Unpack the tables dir
         "done": bool,
         "pk": "id"
     },
-    sessions={  # Change from employees to sessions
+    profiles={ 
         "profile_id": str,  # Set profile_id as the primary key
         "organization": str,  # New field
         "project": str,  # New field
