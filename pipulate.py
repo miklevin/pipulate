@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, List, Optional
 
 import requests
 from fasthtml.common import *
@@ -16,6 +16,7 @@ PROFILE_MENU_WIDTH = "200px"  # Width for the chat interface
 ACTION_MENU_WIDTH = "150px"      # Width for the action menu
 APP_NAME = ""
 TYPING_DELAY = 0.05  # Delay for simulating typing effect
+DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
 # Styles
 MATRIX_STYLE = (
@@ -47,61 +48,40 @@ class Chatter:
 
 
 def limit_llm_response(response: str) -> str:
-    """Limit the LLM response to a maximum number of words.
-
-    This function takes a response string and truncates it to a specified maximum number of words.
-
-    Args:
-        response (str): The response string from the LLM to be limited.
-
-    Returns:
-        str: The truncated response containing at most MAX_LLM_RESPONSE_WORDS words.
-    """
-    words = response.split()
-    return ' '.join(words[:MAX_LLM_RESPONSE_WORDS])
+    """Truncate the response to a maximum number of words."""
+    return ' '.join(response.split()[:MAX_LLM_RESPONSE_WORDS])
 
 
-def get_best_llama_model(models):
-    """Select the best available LLaMA model from the list of models.
+def get_best_model() -> str:
+    """Retrieve the best available LLaMA model or default to 'llama3.2'.
 
-    This function filters the provided list of models to find those that start with 'llama'
-    and selects the best one based on versioning.
-
-    Args:
-        models (list): A list of model names to evaluate.
+    This function fetches the list of available models from the Ollama API, filters for models
+    that start with 'llama', and selects the best one based on versioning. If no suitable model
+    is found or if an error occurs during the request, it defaults to 'llama3.2'.
 
     Returns:
-        str or None: The name of the best LLaMA model, or None if no LLaMA models are found.
+        str: The name of the best available LLaMA model, or 'llama3.2' if no models are available
+             or an error occurs.
     """
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=10)
+        response.raise_for_status()
+        models = [model['name'] for model in response.json().get('models', [])]
+    except requests.RequestException as e:
+        print(f"Error fetching models: {e}")
+        return DEFAULT_LLM_MODEL  # Default if there's an error
+
+    # Filter for LLaMA models and determine the best one
     llama_models = [model for model in models if model.lower().startswith('llama')]
     if not llama_models:
-        return None
+        return DEFAULT_LLM_MODEL  # Default if no LLaMA models are found
 
-    def parse_version(version_string):
-        """Parse a version string into a list of integers and strings for comparison.
-
-        This helper function converts a version string into a format suitable for comparison.
-
-        Args:
-            version_string (str): The version string to parse.
-
-        Returns:
-            list: A list containing integers and strings extracted from the version string.
-        """
+    def parse_version(version_string: str) -> List[Optional[int]]:
+        """Parse a version string into a list of integers and strings for comparison."""
         return [int(x) if x.isdigit() else x for x in re.findall(r'\d+|\D+', version_string)]
 
-    def key_func(model):
-        """Generate a sorting key for a LLaMA model based on its version.
-
-        This helper function extracts the base version and any additional version information
-        from the model name to create a tuple for comparison.
-
-        Args:
-            model (str): The model name to extract version information from.
-
-        Returns:
-            tuple: A tuple containing the parsed base version, a flag for 'latest', and the parsed version.
-        """
+    def key_func(model: str) -> tuple:
+        """Generate a sorting key for a LLaMA model based on its version."""
         parts = model.split(':')
         base_name = parts[0]
         version = parts[1] if len(parts) > 1 else ''
@@ -114,42 +94,6 @@ def get_best_llama_model(models):
         )
 
     return max(llama_models, key=key_func)
-
-
-def get_available_models():
-    """Retrieve the list of available models from the Ollama API.
-
-    This function makes a network request to the Ollama API to fetch the available model names.
-
-    Returns:
-        list: A list of available model names, or an empty list if an error occurs during the request.
-    """
-    try:
-        response = requests.get("http://localhost:11434/api/tags", timeout=10)
-        response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
-        return [model['name'] for model in response.json()['models']]
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")  # Log the HTTP error
-    except requests.exceptions.ConnectionError as conn_err:
-        print(f"Connection error occurred: {conn_err}")  # Log connection errors
-    except requests.exceptions.Timeout as timeout_err:
-        print(f"Timeout error occurred: {timeout_err}")  # Log timeout errors
-    except requests.exceptions.RequestException as req_err:
-        print(f"An error occurred: {req_err}")  # Log any other request-related errors
-    return []  # Return an empty list if an error occurs
-
-
-def get_best_model():
-    """Get the best available model or default to 'llama2'.
-
-    This function retrieves the available models and selects the best one based on the LLaMA model criteria.
-    If no suitable model is found, it defaults to 'llama2'.
-
-    Returns:
-        str: The name of the best available model, or 'llama2' if no models are available.
-    """
-    available_models = get_available_models()
-    return get_best_llama_model(available_models) or (available_models[0] if available_models else "llama2")
 
 
 def chat_with_ollama(model: str, messages: list) -> str:
@@ -343,7 +287,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
             style="text-align: center;"  # Add the class for text alignment to the Li element
         )
 
-    profile_summary_id = "profile-summary"
+    profile_id = "profile-summary"
     action_summary_id = "action-summary"
 
     # Filler Item: Non-interactive, occupies significant space
@@ -364,13 +308,13 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
-            id=profile_summary_id,
+            id=profile_id,
         ),
         Ul(
-            create_menu_item("Default Profile", "/profile/default_profile", profile_summary_id),
-            create_menu_item("Future Profile 1", "/profile/future_profile_1", profile_summary_id),
-            create_menu_item("Future Profile 2", "/profile/future_profile_2", profile_summary_id),
-            create_menu_item("Future Profile 3", "/profile/future_profile_3", profile_summary_id),
+            create_menu_item("Default", "/profile/Defaut", profile_id),
+            create_menu_item("Profile 2", "/profile/Profile_2", profile_id),
+            create_menu_item("Profile 3", "/profile/Profile_3", profile_id),
+            create_menu_item("Profile 4", "/profile/Profile_4", profile_id),
             dir="rtl",
             id="chat-menu-list",
         ),
@@ -679,7 +623,7 @@ async def poke():
 async def profile_menu(profile_type: str):
     """Handle profile menu selection."""
     # Update the summary element with the selected profile type
-    profile_summary_id = "profile-summary"
+    profile_id = "profile-summary"
     selected_profile = profile_type.replace('_', ' ').title()
     summary_content = Summary(
         selected_profile,
@@ -690,7 +634,7 @@ async def profile_menu(profile_type: str):
             f"width: {PROFILE_MENU_WIDTH}; background-color: var(--pico-background-color); "
             "border: 1px solid var(--pico-muted-border-color);"
         ),
-        id=profile_summary_id,
+        id=profile_id,
     )
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
     await chatq(prompt)
@@ -769,7 +713,5 @@ async def ws(msg: str):
             await u(enable_input_group)
 
 
-serve()
-
-# Cleaned with autopep8
+serve()# Cleaned with autopep8
 # autopep8 --ignore E501,F405,F403,F541 --in-place pipulate.py
