@@ -479,18 +479,29 @@ def get():
     )
 
 
+async def create_menu_item(title: str, style_width: str, item_id: str) -> Summary:
+    """Create a menu item summary for menu selections.
+
+    Args:
+        title (str): The title to be displayed in the summary.
+        style_width (str): The width for the menu style.
+        item_id (str): The ID for the summary element.
+
+    Returns:
+        Summary: The generated summary content.
+    """
+    return Summary(
+        title,
+        style=generate_menu_style(style_width),
+        id=item_id,
+    )
+
+
 @rt('/profile/{profile_id}')
 async def profile_menu(profile_id: str):
     """Handle profile menu selection."""
-    profile_id = "profile-summary"
-    selected_profile = profile_id.replace('_', ' ').title()
-
-    # Generate the style dynamically using the current PROFILE_MENU_WIDTH
-    summary_content = Summary(
-        selected_profile,
-        style=generate_menu_style(PROFILE_MENU_WIDTH),  # Use the common style function dynamically
-        id=profile_id,
-    )
+    selected_profile = "profile-summary".replace('_', ' ').title()
+    summary_content = await create_menu_item(selected_profile, PROFILE_MENU_WIDTH, "profile-summary")
 
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
     await chatq(prompt)
@@ -500,15 +511,8 @@ async def profile_menu(profile_id: str):
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
-    action_summary_id = "action-summary"
-    selected_action = f"Action {action_id}"  # Get the selected action name
-
-    # Update the summary content to reflect the selected action
-    summary_content = Summary(
-        selected_action,  # Use the selected action name here
-        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use the common style function
-        id=action_summary_id,
-    )
+    selected_action = f"Action {action_id}"
+    summary_content = await create_menu_item(selected_action, ACTION_MENU_WIDTH, "action-summary")
 
     # Optionally, you can also send a prompt or response to the chat
     prompt = (
@@ -518,7 +522,7 @@ async def perform_action(action_id: str):
     )
     await chatq(prompt)
 
-    return summary_content  # Return the updated summary content
+    return summary_content
 
 
 @rt('/search', methods=['POST'])
