@@ -539,22 +539,9 @@ async def chat_interface(profile_type: str):
 
     # Generate AI response
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeing it brief, under 20 words."
-    chatter = SimpleChatter(
-        send=lambda msg: asyncio.gather(
-            *[
-                u(
-                    Div(
-                        msg,
-                        id='msg-list',
-                        cls='fade-in',
-                        style=MATRIX_STYLE,
-                    )
-                )
-                for u in users.values()
-            ]
-        )
-    )
-    asyncio.create_task(quick_message(chatter, prompt))
+    
+    # Replace quick_message with chatq
+    await chatq(prompt)
 
     return summary_content
 
@@ -579,22 +566,7 @@ async def perform_action(action_id: str):
 
     # Generate AI response
     prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
-    chatter = SimpleChatter(
-        send=lambda msg: asyncio.gather(
-            *[
-                u(
-                    Div(
-                        msg,
-                        id='msg-list',
-                        cls='fade-in',
-                        style=MATRIX_STYLE,
-                    )
-                )
-                for u in users.values()
-            ]
-        )
-    )
-    asyncio.create_task(quick_message(chatter, prompt))
+    await chatq(prompt)
 
     return summary_content
 
@@ -603,22 +575,9 @@ async def perform_action(action_id: str):
 async def search(nav_input: str):
     """Handle search input."""
     prompt = f"The user searched for: '{nav_input}'. Respond briefly acknowledging the search."
-    chatter = SimpleChatter(
-        send=lambda msg: asyncio.gather(
-            *[
-                u(
-                    Div(
-                        msg,
-                        id='msg-list',
-                        cls='fade-in',
-                        style=MATRIX_STYLE,
-                    )
-                )
-                for u in users.values()
-            ]
-        )
-    )
-    asyncio.create_task(quick_message(chatter, prompt))
+    
+    # Replace the chatter instantiation and quick_message call with chatq
+    await chatq(prompt)
     return ''
 
 
