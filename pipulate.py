@@ -209,6 +209,7 @@ app, rt, todos, Todo = fast_app(
 # Site Navigation
 # *******************************
 
+
 def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     # Use generate_menu_style for the common style
@@ -683,6 +684,7 @@ async def toggle(tid: int):
 
 # WebSocket users
 users = {}
+
 
 def on_conn(ws, send):
     """Handle WebSocket connection."""
