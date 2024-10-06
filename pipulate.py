@@ -197,16 +197,44 @@ def render(todo):
 # Application Setup
 # *******************************
 
-app, rt, todos, Todo = fast_app(
-    "data/todo.db",
+# Unpack the returned tuple from fast_app
+app, rt, (todos, Todo), (sessions, Session) = fast_app(  # Unpack the tables directly
+    "data/pipulate.db",
     ws_hdr=True,
     live=True,
     render=render,
-    id=int,
-    pk="id",
-    title=str,
-    done=bool,
+    todos={
+        "id": int,
+        "title": str,
+        "done": bool,
+        "pk": "id"
+    },
+    sessions={  # Change from employees to sessions
+        "profile_id": str,  # Set profile_id as the primary key
+        "organization": str,  # New field
+        "project": str,  # New field
+        "analysis": str,  # New field
+        "pk": "profile_id"  # Set profile_id as the primary key
+    },
 )
+
+# Now you can use todos and sessions directly
+print("Type of todos:", type(todos))  # Should be <class 'sqlite_minutils.db.Table'>
+print("Type of sessions:", type(sessions))  # Should be <class 'sqlite_minutils.db.Table'>
+
+# Example of fetching all todos
+try:
+    all_todos = list(todos.rows())  # Convert the generator to a list
+    print("All todos:", all_todos)  # Print the fetched todos
+except Exception as e:
+    print("Error fetching todos:", e)  # Handle any errors
+
+# Example of fetching all sessions
+try:
+    all_sessions = list(sessions.rows())  # Convert the generator to a list
+    print("All sessions:", all_sessions)  # Print the fetched sessions
+except Exception as e:
+    print("Error fetching sessions:", e)  # Handle any errors
 
 # *******************************
 # Site Navigation
