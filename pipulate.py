@@ -86,13 +86,24 @@ def get_best_llama_model(models):
 
 
 def get_available_models():
-    """Retrieve the list of available models from the Ollama API."""
+    """Retrieve the list of available models from the Ollama API.
+
+    Returns:
+        list: A list of available model names, or an empty list if an error occurs.
+    """
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=10)
-        response.raise_for_status()
+        response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
         return [model['name'] for model in response.json()['models']]
-    except requests.exceptions.RequestException:
-        return []
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")  # Log the HTTP error
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"Connection error occurred: {conn_err}")  # Log connection errors
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"Timeout error occurred: {timeout_err}")  # Log timeout errors
+    except requests.exceptions.RequestException as req_err:
+        print(f"An error occurred: {req_err}")  # Log any other request-related errors
+    return []  # Return an empty list if an error occurs
 
 
 def get_best_model():
@@ -102,7 +113,15 @@ def get_best_model():
 
 
 def chat_with_ollama(model: str, messages: list) -> str:
-    """Interact with the Ollama model to generate a response."""
+    """Interact with the Ollama model to generate a response.
+
+    Args:
+        model (str): The model to use for generating the response.
+        messages (list): A list of messages to send to the model.
+
+    Returns:
+        str: The generated response from the model, or an error message if the request fails.
+    """
     url = "http://localhost:11434/api/chat"
     payload = {
         "model": model,
@@ -110,11 +129,19 @@ def chat_with_ollama(model: str, messages: list) -> str:
         "stream": False,
     }
     headers = {"Content-Type": "application/json"}
-    response = requests.post(url, data=json.dumps(payload), headers=headers)
-    if response.status_code == 200:
+    
+    try:
+        response = requests.post(url, data=json.dumps(payload), headers=headers)
+        response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
         return response.json()['message']['content']
-    else:
-        return f"Error: {response.status_code}, {response.text}"
+    except requests.exceptions.HTTPError as http_err:
+        return f"HTTP error occurred: {http_err}"  # Return an error message
+    except requests.exceptions.ConnectionError as conn_err:
+        return f"Connection error occurred: {conn_err}"  # Return an error message
+    except requests.exceptions.Timeout as timeout_err:
+        return f"Timeout error occurred: {timeout_err}"  # Return an error message
+    except requests.exceptions.RequestException as req_err:
+        return f"An error occurred: {req_err}"  # Return an error message
 
 
 def render(todo):
@@ -498,11 +525,7 @@ async def delete(tid: int):
     """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
-
-    await chatq(
-        f"Todo '{todo.title}' deleted. Brief, sassy reaction."
-    )
-
+    await chatq(f"Todo '{todo.title}' deleted. Brief, sassy reaction.")
     return ''  # Return an empty string to remove the item from the DOM
 
 
