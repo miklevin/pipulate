@@ -286,14 +286,14 @@ def generate_menu_style(width: str) -> str:
 def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     common_style = (
+        "align-items: center; "
+        "border-radius: 16px; "
+        "display: inline-flex; "
         "font-size: 1rem; "
         "height: 32px; "
-        "line-height: 32px; "
-        "display: inline-flex; "
-        "align-items: center; "
         "justify-content: center; "
+        "line-height: 32px; "
         "margin: 0 2px; "
-        "border-radius: 16px; "
         "padding: 0 0.6rem;"
     )
 
@@ -313,7 +313,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
         )
 
     profile_id = "profile-summary"
-    action_summary_id = "action-summary"
+    action_id = "action-summary"
 
     # Filler Item: Non-interactive, occupies significant space
     filler_item = Li(
@@ -351,13 +351,13 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
-            id=action_summary_id,
+            id=action_id,
         ),
         Ul(
-            create_menu_item("Action 1", "/action/1", action_summary_id),
-            create_menu_item("Action 2", "/action/2", action_summary_id),
-            create_menu_item("Action 3", "/action/3", action_summary_id),
-            create_menu_item("Action 4", "/action/4", action_summary_id),
+            create_menu_item("Action 1", "/action/1", action_id),
+            create_menu_item("Action 2", "/action/2", action_id),
+            create_menu_item("Action 3", "/action/3", action_id),
+            create_menu_item("Action 4", "/action/4", action_id),
             dir="rtl",
             id="action-menu-list",
         ),
@@ -673,12 +673,12 @@ async def profile_menu(profile_type: str):
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
-    action_summary_id = "action-summary"
+    action_id = "action-summary"
     selected_action = f"Action {action_id}"
     summary_content = Summary(
         selected_action,
         style=generate_menu_style(ACTION_MENU_WIDTH),  # Use common style function
-        id=action_summary_id,
+        id=action_id,
     )
     prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
     await chatq(prompt)
