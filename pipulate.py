@@ -481,7 +481,8 @@ async def chatq(message: str):
     Returns:
         None
     """
-    await asyncio.create_task(stream_chat(message))
+    # Create a task for streaming the chat response without blocking
+    asyncio.create_task(stream_chat(message))
 
 
 # Route Handlers
