@@ -2,13 +2,11 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable
 
 import requests
-from starlette.concurrency import run_in_threadpool
-
 from fasthtml.common import *
-
+from starlette.concurrency import run_in_threadpool
 
 # Configuration and Constants
 MAX_LLM_RESPONSE_WORDS = 30
@@ -129,7 +127,7 @@ def chat_with_ollama(model: str, messages: list) -> str:
         "stream": False,
     }
     headers = {"Content-Type": "application/json"}
-    
+
     try:
         response = requests.post(url, data=json.dumps(payload), headers=headers)
         response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
@@ -172,9 +170,9 @@ def render(todo):
 
 
 # from todo_app import todos, Todo, mk_input as todo_mk_input
-def todo_mk_input(): 
-    return Input(placeholder='Add a new item', 
-                 id='title', 
+def todo_mk_input():
+    return Input(placeholder='Add a new item',
+                 id='title',
                  hx_swap_oob='true',
                  autofocus=True)  # Add this line
 
@@ -499,14 +497,14 @@ async def post_todo(todo: Todo):
             "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
         )
         return ''  # Return empty string to prevent insertion
-    
+
     # Non-empty todo case
     inserted_todo = todos.insert(todo)
 
     await chatq(
         f"New todo: '{todo.title}'. Brief, sassy comment or advice."
     )
-    
+
     return render(inserted_todo), todo_mk_input()
 
 
@@ -678,3 +676,6 @@ async def ws(msg: str):
 
 
 serve()
+
+# Cleaned with autopep8
+# autopep8 --ignore E501,F405,F403,F541 --in-place pipulate.py
