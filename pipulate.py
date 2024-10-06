@@ -21,9 +21,12 @@ TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
 # Function to generate menu styles
+
+
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
+
 
 # Styles
 MATRIX_STYLE = (
