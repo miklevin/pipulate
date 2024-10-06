@@ -79,7 +79,7 @@
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
           # Note: This makes the environment less deterministic
-          echo "- Installing pip packages..."
+          echo "- Pipulating pip packages..."
           if pip install --upgrade pip --quiet && \
             pip install -r requirements.txt --quiet; then
               package_count=$(pip list --format=freeze | wc -l)
