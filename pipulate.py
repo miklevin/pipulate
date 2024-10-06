@@ -12,12 +12,17 @@ from starlette.concurrency import run_in_threadpool
 # *******************************
 APP_NAME = ""                   # Controls a response "Name: " in the chat
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
-NAV_FILLER_WIDTH = "30%"        # Width for the filler in the navigation
-SEARCH_WIDTH = "20%"            # Width for the search input
-PROFILE_MENU_WIDTH = "200px"    # Width for the profile menu
-ACTION_MENU_WIDTH = "150px"     # Width for the action menu
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
+
+
+# Define the width for the menus
+bw = "150px"
+NAV_FILLER_WIDTH =    "20%"    # Width for the filler in the navigation
+PROFILE_MENU_WIDTH =  f"{bw}"  # Width for the profile menu
+ACTION_MENU_WIDTH =   f"{bw}"  # Width for the action menu
+EXPLORE_MENU_WIDTH =  f"{bw}"  # Width for the explore menu
+SEARCH_WIDTH =        f"{bw}"  # Width for the search input
 
 # Initialize conversation
 conversation = [
@@ -244,6 +249,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     # 1. Create a new MenuItem instance with the title, endpoint, and corresponding ID.
     # 2. Ensure the endpoint corresponds to a defined route in the application (e.g., /profile/{profile_name} or /action/{action_id}).
     # 3. Initialize a new ID for the menu if adding a new menu type (e.g., profile_id = "new-profile-id").
+    # 4. If adding new constants (like widths), ensure they are declared as global variables if they need to be accessed outside this scope.
     # Example for Profile Menu:
     # new_profile_item = MenuItem("New Profile", "/profile/New_Profile", "profile-id")
     # profile_menu_items.append(new_profile_item)
@@ -251,8 +257,27 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     # new_action_item = MenuItem("New Action", "/action/New_Action", "action-id")
     # action_menu_items.append(new_action_item)
 
+    # Initialize IDs for menus
     profile_id = "profile-id"  # Initialize the ID for the profile menu
     action_id = "action-id"     # Initialize the ID for the action menu
+    explore_id = "explore-id"   # Initialize the ID for the explore menu
+
+    # Define the explore menu
+    explore_menu = Details(
+        Summary(
+            "Explore",
+            style=generate_menu_style(EXPLORE_MENU_WIDTH),
+            id=explore_id,
+        ),
+        Ul(
+            create_menu_item("Organizations", "/explore/organizations", explore_id),
+            create_menu_item("Projects", "/explore/projects", explore_id),
+            dir="rtl",
+            id="explore-menu-list",
+        ),
+        cls="dropdown",
+        id="explore-menu",
+    )
 
     # Define the profile menu
     profile_menu = Details(
@@ -334,6 +359,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
 
     nav = Div(
         filler_item,  # Add the filler item first
+        explore_menu,
         profile_menu,
         action_menu,
         search_group,
