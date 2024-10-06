@@ -9,14 +9,14 @@ from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
 
 # Configuration and Constants
-APP_NAME = ""                # Controls a response "Name: " in the chat
-MAX_LLM_RESPONSE_WORDS = 30                # Maximum number of words in LLM response
-NAV_FILLER_WIDTH = "30%"             # Width for the filler in the navigation
-SEARCH_WIDTH = "20%"             # Width for the search input
-PROFILE_MENU_WIDTH = "200px"           # Width for the profile menu
-ACTION_MENU_WIDTH = "150px"           # Width for the action menu
-TYPING_DELAY = 0.05              # Delay for simulating typing effect
-DEFAULT_LLM_MODEL = "llama3.2"        # Set the default LLaMA model
+APP_NAME = ""                   # Controls a response "Name: " in the chat
+MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
+NAV_FILLER_WIDTH = "30%"        # Width for the filler in the navigation
+SEARCH_WIDTH = "20%"            # Width for the search input
+PROFILE_MENU_WIDTH = "200px"    # Width for the profile menu
+ACTION_MENU_WIDTH = "150px"     # Width for the action menu
+TYPING_DELAY = 0.05             # Delay for simulating typing effect
+DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
 # Styles
 MATRIX_STYLE = (
@@ -44,8 +44,6 @@ COMMON_MENU_STYLE = (
     "line-height: 32px; "
     "margin: 0 2px; "
 )
-
-# Function to generate menu styles
 
 
 def generate_menu_style(width: str) -> str:
@@ -415,7 +413,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         style=(
             "align-items: center; "
             "display: flex; "
-            "gap: 8px; "
+            "gap: 8px; "  # Add gap between items
             "width: 100%; "  # Ensure the nav takes full width
         ),
     )
@@ -581,9 +579,11 @@ async def post_todo(todo: Todo):
     # Non-empty todo case
     inserted_todo = todos.insert(todo)
 
-    await chatq(
-        f"New todo: '{todo.title}'. Brief, sassy comment or advice."
+    prompt = (
+        f"New todo: '{todo.title}'. "
+        "Brief, sassy comment or advice."
     )
+    await chatq(prompt)
 
     return render(inserted_todo), todo_mk_input()
 
@@ -603,7 +603,11 @@ async def delete(tid: int):
     """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
-    await chatq(f"Todo '{todo.title}' deleted. Brief, sassy reaction.")
+    prompt = (
+        f"Todo '{todo.title}' deleted. "
+        "Brief, sassy reaction."
+    )
+    await chatq(prompt)
     return ''  # Return an empty string to remove the item from the DOM
 
 
@@ -627,10 +631,11 @@ async def toggle(tid: int):
     new_status = "Done" if todo.done else "Not Done"
     updated_todo = todos.update(todo)
 
-    await chatq(
+    prompt = (
         f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
         f"Brief, sassy comment mentioning '{todo.title}'."
     )
+    await chatq(prompt)
 
     return Input(
         type="checkbox",
@@ -702,7 +707,11 @@ async def perform_action(action_id: str):
     )
 
     # Optionally, you can also send a prompt or response to the chat
-    prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
+    prompt = (
+        f"You selected '{selected_action}'. "
+        "Respond cleverly, mentioning '{selected_action}' in your reply. "
+        "Be brief and sassy."
+    )
     await chatq(prompt)
 
     return summary_content  # Return the updated summary content
@@ -711,7 +720,10 @@ async def perform_action(action_id: str):
 @rt('/search', methods=['POST'])
 async def search(nav_input: str):
     """Handle search input."""
-    prompt = f"The user searched for: '{nav_input}'. Respond briefly acknowledging the search."
+    prompt = (
+        f"The user searched for: '{nav_input}'. "
+        "Respond briefly acknowledging the search."
+    )
     await chatq(prompt)
     return ''
 
