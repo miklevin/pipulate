@@ -220,7 +220,7 @@ app, rt, (todos, Todo), (profiles, Profile) = fast_app(  # Unpack the tables dir
 
 # Now you can use todos and sessions directly
 print("Type of todos:", type(todos))  # Should be <class 'sqlite_minutils.db.Table'>
-print("Type of sessions:", type(sessions))  # Should be <class 'sqlite_minutils.db.Table'>
+print("Type of profiles:", type(profiles))  # Should be <class 'sqlite_minutils.db.Table'>
 
 # Example of fetching all todos
 try:
@@ -299,6 +299,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             id=explore_id,
         ),
         Ul(
+            create_menu_item("Profiles", "/explore/profiles", explore_id),
+            create_menu_item("Todo Lists", "/explore/todo", explore_id),
             create_menu_item("Organizations", "/explore/organizations", explore_id),
             create_menu_item("Projects", "/explore/projects", explore_id),
             dir="rtl",
