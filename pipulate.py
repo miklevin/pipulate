@@ -46,11 +46,6 @@ class Chatter:
     finish: Callable[[], Awaitable[None]]
 
 
-@dataclass
-class SimpleChatter:
-    send: Callable[[str], Awaitable[None]]
-
-
 def limit_llm_response(response: str) -> str:
     """Limit the LLM response to a maximum number of words."""
     words = response.split()
