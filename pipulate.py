@@ -14,7 +14,7 @@ from fasthtml.common import *
 MAX_LLM_RESPONSE_WORDS = 30
 NAV_FILLER_WIDTH = "30%"
 SEARCH_WIDTH = "20%"
-CHAT_INTERFACE_WIDTH = "200px"  # Width for the chat interface
+PROFILE_MENU_WIDTH = "200px"  # Width for the chat interface
 ACTION_MENU_WIDTH = "150px"      # Width for the action menu
 APP_NAME = ""
 
@@ -249,7 +249,7 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
         Summary(
             selected_chat,
             style=(
-                f"{common_style} width: {CHAT_INTERFACE_WIDTH}; "  # Use constant for chat interface width
+                f"{common_style} width: {PROFILE_MENU_WIDTH}; "  # Use constant for chat interface width
                 "background-color: var(--pico-background-color); "
                 "border: 1px solid var(--pico-muted-border-color);"
             ),
@@ -523,7 +523,7 @@ async def chat_interface(chat_type: str):
             f"font-size: 1rem; height: 32px; line-height: 32px; "
             "display: inline-flex; align-items: center; justify-content: center; "
             "margin: 0 2px; border-radius: 16px; padding: 0 0.6rem; "
-            f"width: {CHAT_INTERFACE_WIDTH}; background-color: var(--pico-background-color); "
+            f"width: {PROFILE_MENU_WIDTH}; background-color: var(--pico-background-color); "
             "border: 1px solid var(--pico-muted-border-color);"
         ),
         id=chat_summary_id,
