@@ -174,7 +174,7 @@ def mk_input_group(disabled=False, value='', autofocus=True):
     )
 
 
-async def generate_and_stream_ai_response(prompt: str):
+async def stream_chat(prompt: str):
     """Generate and stream AI response to users."""
     response = await run_in_threadpool(
         chat_with_ollama,
@@ -431,7 +431,7 @@ async def post_todo(todo: Todo):
     if not todo.title.strip():
         # Empty todo case
         asyncio.create_task(
-            generate_and_stream_ai_response(
+            stream_chat(
                 "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
             )
         )
@@ -441,7 +441,7 @@ async def post_todo(todo: Todo):
     inserted_todo = todos.insert(todo)
 
     asyncio.create_task(
-        generate_and_stream_ai_response(
+        stream_chat(
             f"New todo: '{todo.title}'. Brief, sassy comment or advice."
         )
     )
@@ -457,7 +457,7 @@ async def delete(tid: int):
 
     # Adjusted prompt for brevity
     asyncio.create_task(
-        generate_and_stream_ai_response(
+        stream_chat(
             f"Todo '{todo.title}' deleted. Brief, sassy reaction."
         )
     )
@@ -476,7 +476,7 @@ async def toggle(tid: int):
 
     # Adjusted prompt to include the todo title
     asyncio.create_task(
-        generate_and_stream_ai_response(
+        stream_chat(
             f"Todo '{todo.title}' toggled from {old_status} to {new_status}. "
             f"Brief, sassy comment mentioning '{todo.title}'."
         )
