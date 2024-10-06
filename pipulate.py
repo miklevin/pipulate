@@ -9,31 +9,59 @@ from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
 
 # Configuration and Constants
-APP_NAME                = ""          # Controls a response "Name: " in the chat
-MAX_LLM_RESPONSE_WORDS  = 30          # Maximum number of words in LLM response
-NAV_FILLER_WIDTH        = "30%"       # Width for the filler in the navigation
-SEARCH_WIDTH            = "20%"       # Width for the search input
-PROFILE_MENU_WIDTH      = "200px"     # Width for the profile menu
-ACTION_MENU_WIDTH       = "150px"     # Width for the action menu
-TYPING_DELAY            = 0.05        # Delay for simulating typing effect
-DEFAULT_LLM_MODEL       = "llama3.2"  # Set the default LLaMA model
+APP_NAME = ""                # Controls a response "Name: " in the chat
+MAX_LLM_RESPONSE_WORDS = 30                # Maximum number of words in LLM response
+NAV_FILLER_WIDTH = "30%"             # Width for the filler in the navigation
+SEARCH_WIDTH = "20%"             # Width for the search input
+PROFILE_MENU_WIDTH = "200px"           # Width for the profile menu
+ACTION_MENU_WIDTH = "150px"           # Width for the action menu
+TYPING_DELAY = 0.05              # Delay for simulating typing effect
+DEFAULT_LLM_MODEL = "llama3.2"        # Set the default LLaMA model
 
 # Styles
 MATRIX_STYLE = (
     "color: #00ff00; "
-    "font-family: 'Courier New', monospace;"
+    "font-family: 'Courier New', monospace; "
     "text-shadow: 0 0 5px #00ff00; "
 )
+
 USER_STYLE = (
-    "color: #ffff00; text-shadow: 0 0 5px #ffff00; "
-    "font-family: 'Courier New', monospace;"
+    "color: #ffff00; "
+    "font-family: 'Courier New', monospace; "
+    "text-shadow: 0 0 5px #ffff00; "
 )
+
+# Additional Styles
+COMMON_MENU_STYLE = (
+    "align-items: center; "
+    "background-color: var(--pico-background-color); "
+    "border-radius: 16px; "
+    "border: 1px solid var(--pico-muted-border-color); "
+    "display: inline-flex; "
+    "font-size: 1rem; "
+    "height: 32px; "
+    "justify-content: center; "
+    "line-height: 32px; "
+    "margin: 0 2px; "
+)
+
+# Function to generate menu styles
+
+
+def generate_menu_style(width: str) -> str:
+    """Generate a common style for menu elements with a specified width."""
+    return COMMON_MENU_STYLE + f"width: {width}; "
+
 
 # Initialize conversation
 conversation = [
     {
         "role": "system",
-        "content": f"You are a Todo App with attitude. Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, and without leading and trailing quotes.",
+        "content": (
+            f"You are a Todo App with attitude. "
+            f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, "
+            "and without leading and trailing quotes."
+        ),
     },
 ]
 
@@ -263,24 +291,6 @@ async def stream_chat(prompt: str, quick: bool = False):
                     )
                 )
             await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
-
-
-def generate_menu_style(width: str) -> str:
-    """Generate a common style for menu elements with a specified width."""
-    return (
-        "align-items: center; "
-        "background-color: var(--pico-background-color); "
-        "border-radius: 16px; "
-        "border: 1px solid var(--pico-muted-border-color); "
-        "display: inline-flex; "
-        "font-size: 1rem; "
-        "height: 32px; "
-        "justify-content: center; "
-        "line-height: 32px; "
-        "margin: 0 2px; "
-        "padding: 0 0.6rem; "
-        f"width: {width}; "
-    )
 
 
 def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
@@ -665,14 +675,14 @@ async def profile_menu(profile_type: str):
     """Handle profile menu selection."""
     profile_id = "profile-summary"
     selected_profile = profile_type.replace('_', ' ').title()
-    
+
     # Generate the style dynamically using the current PROFILE_MENU_WIDTH
     summary_content = Summary(
         selected_profile,
         style=generate_menu_style(PROFILE_MENU_WIDTH),  # Use the common style function dynamically
         id=profile_id,
     )
-    
+
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
     await chatq(prompt)
     return summary_content
@@ -748,5 +758,5 @@ async def ws(msg: str):
             await u(enable_input_group)
 
 
-serve()# Cleaned with autopep8
+serve()  # Cleaned with autopep8
 # autopep8 --ignore E501,F405,F403,F541 --in-place pipulate.py
