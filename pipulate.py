@@ -439,18 +439,10 @@ async def post_todo(todo: Todo):
     """
     if not todo.title.strip():
         # Empty todo case
-        await chatq(
-            "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
-        )
+        await chatq("User tried to add an empty todo. Respond with a brief, sassy comment about their attempt.")
         return ''  # Return empty string to prevent insertion
-    
-    # Non-empty todo case
     inserted_todo = todos.insert(todo)
-
-    await chatq(
-        f"New todo: '{todo.title}'. Brief, sassy comment or advice."
-    )
-
+    await chatq(f"New todo: '{todo.title}'. Brief, sassy comment or advice.")
     return render(inserted_todo), todo_mk_input()
 
 
@@ -463,11 +455,7 @@ async def delete(tid: int):
     """
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
-
-    await chatq(
-        f"Todo '{todo.title}' deleted. Brief, sassy reaction."
-    )
-
+    await chatq(f"Todo '{todo.title}' deleted. Brief, sassy reaction.")
     return ''  # Return an empty string to remove the item from the DOM
 
 
@@ -536,13 +524,8 @@ async def chat_interface(profile_type: str):
         ),
         id=chat_summary_id,
     )
-
-    # Generate AI response
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeing it brief, under 20 words."
-    
-    # Replace quick_message with chatq
     await chatq(prompt)
-
     return summary_content
 
 
@@ -563,11 +546,8 @@ async def perform_action(action_id: str):
         ),
         id=action_summary_id,
     )
-
-    # Generate AI response
     prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
     await chatq(prompt)
-
     return summary_content
 
 
@@ -575,16 +555,8 @@ async def perform_action(action_id: str):
 async def search(nav_input: str):
     """Handle search input."""
     prompt = f"The user searched for: '{nav_input}'. Respond briefly acknowledging the search."
-    
-    # Replace the chatter instantiation and quick_message call with chatq
     await chatq(prompt)
     return ''
-
-
-@rt('/toggle-theme', methods=['POST'])
-def toggle_theme():
-    """Handle theme toggle."""
-    return ''  # Theme change is handled client-side
 
 
 # WebSocket Handler Modification
