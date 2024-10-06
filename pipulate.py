@@ -225,9 +225,6 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             style="text-align: center;"  # Add the class for text alignment to the Li element
         )
 
-    profile_id = "profile-summary"
-    action_id = "action-summary"
-
     # Filler Item: Non-interactive, occupies significant space
     filler_item = Li(
         Span(" "),  # Empty span as a filler
@@ -238,6 +235,26 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         ),
     )
 
+    # *******************************
+    # Menu Configuration
+    # *******************************
+
+    # Instructions for Adding Menu Items:
+    # To add a new menu item (for both profile and action menus):
+    # 1. Create a new MenuItem instance with the title, endpoint, and corresponding ID.
+    # 2. Ensure the endpoint corresponds to a defined route in the application (e.g., /profile/{profile_name} or /action/{action_id}).
+    # 3. Initialize a new ID for the menu if adding a new menu type (e.g., profile_id = "new-profile-id").
+    # Example for Profile Menu:
+    # new_profile_item = MenuItem("New Profile", "/profile/New_Profile", "profile-id")
+    # profile_menu_items.append(new_profile_item)
+    # Example for Action Menu:
+    # new_action_item = MenuItem("New Action", "/action/New_Action", "action-id")
+    # action_menu_items.append(new_action_item)
+
+    profile_id = "profile-id"  # Initialize the ID for the profile menu
+    action_id = "action-id"     # Initialize the ID for the action menu
+
+    # Define the profile menu
     profile_menu = Details(
         Summary(
             selected_profile,
@@ -245,7 +262,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             id=profile_id,
         ),
         Ul(
-            create_menu_item("Default", "/profile/Defaut", profile_id),
+            create_menu_item("Default", "/profile/Default", profile_id),
             create_menu_item("Profile 2", "/profile/Profile_2", profile_id),
             create_menu_item("Profile 3", "/profile/Profile_3", profile_id),
             create_menu_item("Profile 4", "/profile/Profile_4", profile_id),
@@ -256,6 +273,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         id="chat-menu",
     )
 
+    # Define the action menu
     action_menu = Details(
         Summary(
             selected_action,
@@ -274,7 +292,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
         id="action-menu",
     )
 
-    button_style = (
+    search_button_style = (
         generate_menu_style(SEARCH_WIDTH) +  # Use the height for the button
         "background: none; "
         "color: var(--pico-muted-color); "
@@ -305,7 +323,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
             "×",
             type="button",
             onclick="document.getElementById('nav-input').value = ''; this.blur();",
-            style=button_style,
+            style=search_button_style,
         ),
         style=(
             "align-items: center; "
@@ -518,7 +536,7 @@ async def profile_menu(profile_id: str):
     summary_content = await handle_menu_selection(
         selected_profile,
         PROFILE_MENU_WIDTH,
-        "profile-summary",
+        "profile-id",
         "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
     )
     return summary_content
@@ -531,7 +549,7 @@ async def perform_action(action_id: str):
     return await handle_menu_selection(
         selected_action,
         ACTION_MENU_WIDTH,
-        "action-summary",
+        "action-id",
         "You selected '{title}'. Respond cleverly, mentioning '{title}' in your reply. Be brief and sassy."
     )
 
