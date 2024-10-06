@@ -9,14 +9,14 @@ from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
 
 # Configuration and Constants
-MAX_LLM_RESPONSE_WORDS = 30
-NAV_FILLER_WIDTH = "30%"
-SEARCH_WIDTH = "20%"
-PROFILE_MENU_WIDTH = "200px"  # Width for the chat interface
-ACTION_MENU_WIDTH = "150px"      # Width for the action menu
-APP_NAME = ""
-TYPING_DELAY = 0.05  # Delay for simulating typing effect
-DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
+APP_NAME                = ""          # Controls a response "Name: " in the chat
+MAX_LLM_RESPONSE_WORDS  = 30          # Maximum number of words in LLM response
+NAV_FILLER_WIDTH        = "30%"       # Width for the filler in the navigation
+SEARCH_WIDTH            = "20%"       # Width for the search input
+PROFILE_MENU_WIDTH      = "200px"     # Width for the profile menu
+ACTION_MENU_WIDTH       = "150px"     # Width for the action menu
+TYPING_DELAY            = 0.05        # Delay for simulating typing effect
+DEFAULT_LLM_MODEL       = "llama3.2"  # Set the default LLaMA model
 
 # Styles
 MATRIX_STYLE = (
