@@ -15,14 +15,18 @@ MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
-
 # Define the width for the menus
 bw = "150px"
-NAV_FILLER_WIDTH =    "20%"    # Width for the filler in the navigation
-PROFILE_MENU_WIDTH =  f"{bw}"  # Width for the profile menu
-ACTION_MENU_WIDTH =   f"{bw}"  # Width for the action menu
-EXPLORE_MENU_WIDTH =  f"{bw}"  # Width for the explore menu
-SEARCH_WIDTH =        f"{bw}"  # Width for the search input
+NAV_FILLER_WIDTH = "20%"        # Width for the filler in the navigation
+PROFILE_MENU_WIDTH = f"{bw}"    # Width for the profile menu
+ACTION_MENU_WIDTH = f"{bw}"     # Width for the action menu
+EXPLORE_MENU_WIDTH = f"{bw}"    # Width for the explore menu
+SEARCH_WIDTH = f"{bw}"          # Width for the search input
+
+# Initialize IDs for menus
+profile_id = "profile-id"       # Initialize the ID for the profile menu
+action_id = "action-id"         # Initialize the ID for the action menu
+explore_id = "explore-id"       # Initialize the ID for the explore menu
 
 # Initialize conversation
 conversation = [
@@ -257,11 +261,6 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     # new_action_item = MenuItem("New Action", "/action/New_Action", "action-id")
     # action_menu_items.append(new_action_item)
 
-    # Initialize IDs for menus
-    profile_id = "profile-id"  # Initialize the ID for the profile menu
-    action_id = "action-id"     # Initialize the ID for the action menu
-    explore_id = "explore-id"   # Initialize the ID for the explore menu
-
     # Define the explore menu
     explore_menu = Details(
         Summary(
@@ -283,7 +282,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     profile_menu = Details(
         Summary(
             selected_profile,
-            style=profile_menu_style,
+            style=generate_menu_style(PROFILE_MENU_WIDTH),  # Directly use the function here
             id=profile_id,
         ),
         Ul(
@@ -302,7 +301,7 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     action_menu = Details(
         Summary(
             selected_action,
-            style=action_menu_style,
+            style=generate_menu_style(ACTION_MENU_WIDTH),  # Directly use the function here
             id=action_id,
         ),
         Ul(
@@ -554,26 +553,36 @@ async def handle_menu_selection(title: str, style_width: str, item_id: str, prom
     return summary_content
 
 
+@rt('/explore/{explore_id}')
+async def profile_menu(explore_id: str):
+    """Handle explore menu selection."""
+    selected_item = explore_id.replace('_', ' ').title()  # Use the actual profile_id
+    return await handle_menu_selection(
+        selected_item,
+        EXPLORE_MENU_WIDTH,
+        "explore-id",
+        "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
+    )
+
+
 @rt('/profile/{profile_id}')
 async def profile_menu(profile_id: str):
     """Handle profile menu selection."""
-    # Format the profile_id to a user-friendly title
-    selected_profile = profile_id.replace('_', ' ').title()  # Use the actual profile_id
-    summary_content = await handle_menu_selection(
-        selected_profile,
+    selected_item = profile_id.replace('_', ' ').title()  # Use the actual profile_id
+    return await handle_menu_selection(
+        selected_item,
         PROFILE_MENU_WIDTH,
         "profile-id",
         "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
     )
-    return summary_content
 
 
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
-    selected_action = f"Action {action_id}"
+    selected_item = f"Action {action_id}"
     return await handle_menu_selection(
-        selected_action,
+        selected_item,
         ACTION_MENU_WIDTH,
         "action-id",
         "You selected '{title}'. Respond cleverly, mentioning '{title}' in your reply. Be brief and sassy."
