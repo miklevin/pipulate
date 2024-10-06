@@ -265,6 +265,24 @@ async def stream_chat(prompt: str, quick: bool = False):
             await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
 
 
+def generate_menu_style(width: str) -> str:
+    """Generate a common style for menu elements with a specified width."""
+    return (
+        "align-items: center; "
+        "background-color: var(--pico-background-color); "
+        "border-radius: 16px; "
+        "border: 1px solid var(--pico-muted-border-color); "
+        "display: inline-flex; "
+        "font-size: 1rem; "
+        "height: 32px; "
+        "justify-content: center; "
+        "line-height: 32px; "
+        "margin: 0 2px; "
+        "padding: 0 0.6rem; "
+        f"width: {width}; "
+    )
+
+
 def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
     common_style = (
@@ -307,25 +325,10 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
         ),
     )
 
-    profile_menu_style = (
-        f"font-size: 1rem; "
-        "height: 32px; "
-        "line-height: 32px; "
-        "display: inline-flex; "
-        "align-items: center; "
-        "justify-content: center; "
-        "margin: 0 2px; "
-        "border-radius: 16px; "
-        "padding: 0 0.6rem; "
-        f"width: {PROFILE_MENU_WIDTH}; "
-        "background-color: var(--pico-background-color); "
-        "border: 1px solid var(--pico-muted-border-color);"
-    )
-
     profile_menu = Details(
         Summary(
             selected_chat,
-            style=profile_menu_style,
+            style=generate_menu_style(PROFILE_MENU_WIDTH),
             id=profile_id,
         ),
         Ul(
@@ -652,27 +655,16 @@ async def poke():
 @rt('/profile/{profile_type}')
 async def profile_menu(profile_type: str):
     """Handle profile menu selection."""
-    # Update the summary element with the selected profile type
     profile_id = "profile-summary"
     selected_profile = profile_type.replace('_', ' ').title()
+    
+    # Generate the style dynamically using the current PROFILE_MENU_WIDTH
     summary_content = Summary(
         selected_profile,
-        style=(
-            "align-items: center; "
-            "background-color: var(--pico-background-color); "
-            "border-radius: 16px; "
-            "border: 1px solid var(--pico-muted-border-color);"
-            "display: inline-flex; "
-            "font-size: 1rem; "
-            "height: 32px; "
-            "justify-content: center; "
-            "line-height: 32px; "
-            "margin: 0 2px; "
-            "padding: 0 0.6rem; "
-            f"width: {PROFILE_MENU_WIDTH}; "
-        ),
+        style=generate_menu_style(PROFILE_MENU_WIDTH),  # Use the common style function dynamically
         id=profile_id,
     )
+    
     prompt = f"Respond mentioning '{selected_profile}' in your reply, keeping it brief, under 20 words."
     await chatq(prompt)
     return summary_content
@@ -681,25 +673,11 @@ async def profile_menu(profile_type: str):
 @rt('/action/{action_id}')
 async def perform_action(action_id: str):
     """Handle action menu selection."""
-    # Update the summary element with the selected action
     action_summary_id = "action-summary"
     selected_action = f"Action {action_id}"
     summary_content = Summary(
         selected_action,
-        style = (
-            "align-items: center; "
-            "background-color: var(--pico-background-color); "
-            "border-radius: 16px; "
-            "border: 1px solid var(--pico-muted-border-color);"
-            "display: inline-flex; "
-            "font-size: 1rem; "
-            "height: 32px; "
-            "justify-content: center; "
-            "line-height: 32px; "
-            "margin: 0 2px; "
-            "padding: 0 0.6rem; "
-            f"width: {ACTION_MENU_WIDTH}; "
-        ),
+        style=generate_menu_style(ACTION_MENU_WIDTH),  # Use common style function
         id=action_summary_id,
     )
     prompt = f"You selected '{selected_action}'. Respond cleverly, mentioning '{selected_action}' in your reply. Be brief and sassy."
