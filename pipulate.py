@@ -256,10 +256,10 @@ def create_nav_menu(selected_chat="Profiles", selected_action="Actions"):
             id=chat_summary_id,
         ),
         Ul(
-            create_menu_item("Todo Chat", "/chat/todo_chat", chat_summary_id),
-            create_menu_item("Future Chat 1", "/chat/future_chat_1", chat_summary_id),
-            create_menu_item("Future Chat 2", "/chat/future_chat_2", chat_summary_id),
-            create_menu_item("Future Chat 3", "/chat/future_chat_3", chat_summary_id),
+            create_menu_item("Default Profile", "/profile/default_profile", chat_summary_id),
+            create_menu_item("Future Profile 2", "/profile/future_profile_1", chat_summary_id),
+            create_menu_item("Future Profile 3", "/profile/future_profile_2", chat_summary_id),
+            create_menu_item("Future Profile 4", "/profile/future_profile_3", chat_summary_id),
             dir="rtl",
             id="chat-menu-list",
         ),
@@ -511,14 +511,14 @@ async def poke():
     return Div(f"{APP_NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
 
-@rt('/chat/{chat_type}')
-async def chat_interface(chat_type: str):
+@rt('/profile/{profile_type}')
+async def chat_interface(profile_type: str):
     """Handle chat menu selection."""
     # Update the summary element with the selected chat type
     chat_summary_id = "chat-summary"
-    selected_chat = chat_type.replace('_', ' ').title()
+    selected_profile = profile_type.replace('_', ' ').title()
     summary_content = Summary(
-        selected_chat,
+        selected_profile,
         style=(
             f"font-size: 1rem; height: 32px; line-height: 32px; "
             "display: inline-flex; align-items: center; justify-content: center; "
@@ -530,7 +530,7 @@ async def chat_interface(chat_type: str):
     )
 
     # Generate AI response
-    prompt = f"Respond mentioning '{selected_chat}' in your reply, keeing it brief, under 20 words."
+    prompt = f"Respond mentioning '{selected_profile}' in your reply, keeing it brief, under 20 words."
     chatter = SimpleChatter(
         send=lambda msg: asyncio.gather(
             *[
