@@ -52,12 +52,6 @@ MATRIX_STYLE = (
     "text-shadow: 0 0 5px #00ff00; "
 )
 
-USER_STYLE = (
-    "color: #ffff00; "
-    "font-family: 'Courier New', monospace; "
-    "text-shadow: 0 0 5px #ffff00; "
-)
-
 
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
