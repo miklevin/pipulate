@@ -203,9 +203,9 @@ app, rt, todos, Todo = fast_app(
     live=True,
     render=render,
     id=int,
+    pk="id",
     title=str,
     done=bool,
-    pk="id",
 )
 
 # *******************************
