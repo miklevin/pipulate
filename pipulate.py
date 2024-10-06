@@ -8,7 +8,9 @@ import requests
 from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
 
-# Configuration and Constants
+# *******************************
+# Styles and Configuration
+# *******************************
 APP_NAME = ""                   # Controls a response "Name: " in the chat
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 NAV_FILLER_WIDTH = "30%"        # Width for the filler in the navigation
@@ -17,6 +19,11 @@ PROFILE_MENU_WIDTH = "200px"    # Width for the profile menu
 ACTION_MENU_WIDTH = "150px"     # Width for the action menu
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
+
+# Function to generate menu styles
+def generate_menu_style(width: str) -> str:
+    """Generate a common style for menu elements with a specified width."""
+    return COMMON_MENU_STYLE + f"width: {width}; "
 
 # Styles
 MATRIX_STYLE = (
@@ -46,11 +53,9 @@ COMMON_MENU_STYLE = (
 )
 
 
-def generate_menu_style(width: str) -> str:
-    """Generate a common style for menu elements with a specified width."""
-    return COMMON_MENU_STYLE + f"width: {width}; "
-
-
+# *******************************
+# Ollama LLM Configuration
+# *******************************
 # Initialize conversation
 conversation = [
     {
@@ -62,9 +67,6 @@ conversation = [
         ),
     },
 ]
-
-# Active users connected via WebSocket
-users = {}
 
 
 @dataclass
@@ -421,6 +423,9 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     return nav
 
 
+# *******************************
+# Framework Site Navigation
+# *******************************
 # Application Setup
 app, rt, todos, Todo = fast_app(
     "data/todo.db",
@@ -450,6 +455,9 @@ def on_disconn(ws):
     users.pop(str(id(ws)), None)
 
 
+# *******************************
+# Todo App Functions
+# *******************************
 async def chatq(message: str):
     """Queue a message for the chat stream.
 
@@ -465,7 +473,9 @@ async def chatq(message: str):
     asyncio.create_task(stream_chat(message))
 
 
-# Route Handlers
+# *******************************
+# Left-over Endpoint Functions
+# *******************************
 @rt('/')
 def get():
     """Handle the main page GET request for the Pipulate Todo App.
@@ -728,7 +738,9 @@ async def search(nav_input: str):
     return ''
 
 
-# WebSocket Handler Modification
+# *******************************
+# Streaming WebSocket Functions
+# *******************************
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
 async def ws(msg: str):
     """Handle WebSocket messages."""
@@ -770,5 +782,7 @@ async def ws(msg: str):
             await u(enable_input_group)
 
 
-serve()  # Cleaned with autopep8
-# autopep8 --ignore E501,F405,F403,F541 --in-place pipulate.py
+# *******************************
+# Activate the Application
+# *******************************
+serve()
