@@ -1,7 +1,6 @@
 import asyncio
 import json
 import re
-from dataclasses import dataclass
 from typing import Awaitable, Callable, List, Optional
 
 import requests
@@ -33,18 +32,7 @@ conversation = [
 ]
 
 
-@dataclass
-class Chatter:
-    send: Callable[[str], Awaitable[None]]
-    update: Callable[[str], Awaitable[None]]
-    finish: Callable[[], Awaitable[None]]
-
-
-# WebSocket users
-users = {}
-
-
-# Additional Styles
+# Styles
 COMMON_MENU_STYLE = (
     "align-items: center; "
     "background-color: var(--pico-background-color); "
@@ -58,7 +46,6 @@ COMMON_MENU_STYLE = (
     "margin: 0 2px; "
 )
 
-# Styles
 MATRIX_STYLE = (
     "color: #00ff00; "
     "font-family: 'Courier New', monospace; "
@@ -72,14 +59,13 @@ USER_STYLE = (
 )
 
 
-# Function to generate menu styles
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
 
 
 # *******************************
-# Ollama LLM Configuration
+# Ollama LLM Functions
 # *******************************
 def limit_llm_response(response: str) -> str:
     """Truncate the response to a maximum number of words."""
@@ -162,9 +148,6 @@ def chat_with_ollama(model: str, messages: list) -> str:
         return f"An error occurred: {req_err}"  # Return an error message
 
 
-# Choose the best available model
-model = get_best_model()
-
 # *******************************
 # Todo Render Function (Must come before Application Setup)
 # *******************************
@@ -210,6 +193,7 @@ def render(todo):
 # *******************************
 # Application Setup
 # *******************************
+
 app, rt, todos, Todo = fast_app(
     "data/todo.db",
     ws_hdr=True,
@@ -224,7 +208,6 @@ app, rt, todos, Todo = fast_app(
 # *******************************
 # Site Navigation
 # *******************************
-
 
 def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
@@ -297,15 +280,11 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     )
 
     button_style = (
-        generate_menu_style("16px") +  # Use the height for the button
+        generate_menu_style(SEARCH_WIDTH) +  # Use the height for the button
         "background: none; "
-        "border-radius: 50%; "
-        "border: none; "
         "color: var(--pico-muted-color); "
-        "cursor: pointer; "
-        "opacity: 0.5; "
         "position: absolute; "
-        "right: 6px; "
+        "right: 1px; "
         "top: 50%; "
         "transform: translateY(-50%); "
         "width: 16px; "
@@ -393,6 +372,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 # *******************************
 # Todo Common Support Functions
 # *******************************
+# Feels out of place, but necessary here for reuse by main endpoints
 def todo_mk_input():
     """Create an input field for adding a new todo item.
 
@@ -499,11 +479,11 @@ def get():
     )
 
 
-@rt('/profile/{profile_type}')
-async def profile_menu(profile_type: str):
+@rt('/profile/{profile_id}')
+async def profile_menu(profile_id: str):
     """Handle profile menu selection."""
     profile_id = "profile-summary"
-    selected_profile = profile_type.replace('_', ' ').title()
+    selected_profile = profile_id.replace('_', ' ').title()
 
     # Generate the style dynamically using the current PROFILE_MENU_WIDTH
     summary_content = Summary(
@@ -680,6 +660,10 @@ async def toggle(tid: int):
 # *******************************
 # Streaming WebSocket Functions
 # *******************************
+
+# WebSocket users
+users = {}
+
 def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
@@ -796,4 +780,8 @@ async def ws(msg: str):
 # *******************************
 # Activate the Application
 # *******************************
+
+# Choose the best available model
+model = get_best_model()
+
 serve()
