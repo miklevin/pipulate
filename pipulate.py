@@ -37,7 +37,7 @@ conversation = [
     {
         "role": "system",
         "content": (
-            f"You are a Todo App with attitude. "
+            f"You are a Pipulate free and open source AI SEO software with attitude. "
             f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, "
             "and without leading and trailing quotes."
         ),
@@ -612,7 +612,7 @@ def create_main_content(show_content=False):
             ),
             Div(
                 Card(
-                    H2("Chatinter Face"),  # Header for the chat section
+                    H2("Pipulate Chatbot"),  # Header for the chat section
                     Div(
                         id='msg-list',  # ID for the message list
                         cls='overflow-auto',  # Class for overflow handling
