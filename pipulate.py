@@ -72,8 +72,61 @@ SHOW_SEARCH = True         # Toggle for showing the search input
 # *******************************
 # How to Plug in New Apps
 # *******************************
-# Instructions for adding new applications to the system
-# ...
+# To add a new app similar to Todo:
+# 1. Create a new route in the main routing section (e.g., @rt('/newapp'))
+# 2. Add a new menu item in the create_nav_menu function under the Explore menu
+# 3. Create a render function for your app's items if needed
+# 4. Add your app's main content creation logic in the create_main_content function
+# 5. If your app needs a database table, add it to the fast_app call in the Application Setup section
+#
+# Example for adding a new "Notes" app:
+# 1. Add route: 
+#    @rt('/notes')
+#    def notes_route(request):
+#        return create_main_content(show_content=True)
+#
+# 2. In create_nav_menu function, add:
+#    create_menu_item("Notes", "/notes", explore_id, is_traditional_link=True)
+#
+# 3. Create render function if needed:
+#    def render_note(note):
+#        return Li(
+#            note.content,
+#            id=f'note-{note.id}',
+#            style="list-style-type: none;"
+#        )
+#
+# 4. In create_main_content function, add:
+#    Card(
+#        H2("Notes"),
+#        Ul(*[render_note(note) for note in notes()], id='notes-list'),
+#        header=Form(
+#            Group(
+#                Input(placeholder="New note...", name="content"),
+#                Button("Add Note", type="submit"),
+#            ),
+#            hx_post="/notes",
+#            hx_swap="beforeend",
+#            hx_target="#notes-list",
+#        ),
+#    ) if selected_explore == "Notes" else "",
+#
+# 5. In fast_app call, add:
+#    notes={
+#        "id": int,
+#        "content": str,
+#        "created_at": str,
+#        "pk": "id"
+#    }
+#
+# Additional considerations:
+# - Ensure any new dependencies are imported at the top of the file
+# - If your new app requires additional JavaScript, add it to the HTML template
+# - For more complex apps, consider creating a separate file and importing the necessary components
+# - Remember to handle any new routes in the main routing section of the application
+# - If your app requires new API endpoints, add them using the appropriate HTTP methods (GET, POST, etc.)
+# - For database operations, use the provided database abstraction layer (e.g., notes.insert, notes.update)
+# - If your app needs real-time updates, consider using WebSocket connections similar to the chat interface
 
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
