@@ -333,8 +333,8 @@ def create_nav_menu():
             Ul(
                 create_menu_item("Profiles", "/profiles", explore_id, is_traditional_link=True),
                 create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
-                create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
-                create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
+                # create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
+                # create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
                 dir="rtl",
             ),
             cls="dropdown",
