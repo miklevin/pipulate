@@ -229,9 +229,9 @@ def render(todo):
         f"{todo.title} 😊",  # Title with smiley emoji
         href="#",  # Prevent default link behavior
         cls="todo-title",  # Class for styling
-        hx_delete=f'/{todo.id}',  # Endpoint to delete the todo
+        hx_get=f'/edit/{todo.id}',  # Call the edit endpoint
         hx_target=f"#{tid}",  # Target the specific todo item
-        hx_swap='outerHTML',  # Update the todo item in the DOM
+        hx_swap='outerHTML',  # Replace the outer HTML of the todo item
     )
     
     return Li(
@@ -827,6 +827,19 @@ async def toggle(tid: int):
         hx_post=f"/toggle/{updated_todo.id}",  # Endpoint to toggle the todo status
         hx_swap="outerHTML",  # Update the checkbox in the DOM
     )
+
+@rt('/edit/{todo_id}', methods=['GET'])
+async def edit_todo(todo_id: str):
+    """Return an input field for editing the todo item."""
+    input_field = Input(
+        type="text",
+        name="todo_title",
+        placeholder="Edit your todo...",
+        hx_post=f"/update/{todo_id}",  # Endpoint to handle the update
+        hx_target=f"#todo-{todo_id}",  # Target the specific todo item
+        hx_swap="outerHTML"  # Replace the outer HTML of the target
+    )
+    return Div(input_field)  # Return the input field wrapped in a div
 
 # *******************************
 # Streaming WebSocket Functions
