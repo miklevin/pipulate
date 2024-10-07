@@ -439,7 +439,7 @@ def todo_mk_input():
 # *******************************
 # Site Navigation Main Endpoints
 # *******************************
-def create_main_content():
+def create_main_content(show_todo=False):
     """Create the main content for both '/' and '/todo' routes."""
     nav = create_nav_menu()
     nav_group_style = (
@@ -474,7 +474,8 @@ def create_main_content():
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ),
+                ) if show_todo else "",
+                id="todo-container",
             ),
             Div(
                 Card(
@@ -515,14 +516,14 @@ def create_main_content():
 
 @rt('/')
 @rt('/todo')
-def get():
+def get(request):
     """Handle both the main page and todo page GET requests."""
-    # Update the persistent store to set "Todo Lists" as the selected explore choice
-    db["last_explore_choice"] = "Todo Lists"
+    show_todo = request.url.path == '/todo'
+    db["last_explore_choice"] = "Todo Lists" if show_todo else "Explore"
     
     return Titled(
         "Pipulate Todo App",
-        create_main_content(),
+        create_main_content(show_todo),
         hx_ext='ws',
         ws_connect='/ws',
         data_theme="dark",
