@@ -273,7 +273,14 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False):
         )
 
 def create_nav_menu():
-    """Create the navigation menu with a filler item, chat, and action dropdowns."""
+    """
+    Create the navigation menu with explore, profile, and action dropdowns.
+    
+    Note: The menu items in the explore dropdown intentionally use regular links 
+    (without any HTMX attributes) to ensure a full page reload when navigating 
+    between major sections of the application. This is consistent with the 
+    behavior implemented in the main route handler.
+    """
     # Fetch the last selected items from the db
     selected_profile = db.get("last_profile_choice", "Profiles")
     selected_explore = db.get("last_explore_choice", "Explore")
@@ -303,10 +310,10 @@ def create_nav_menu():
             id=explore_id,
         ),
         Ul(
-            create_menu_item("Profiles", "/explore/Profiles", explore_id),
+            create_menu_item("Profiles", "/profiles", explore_id, is_traditional_link=True),
             create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
-            create_menu_item("Organizations", "/explore/Organizations", explore_id),
-            create_menu_item("Projects", "/explore/Projects", explore_id),
+            create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
+            create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
             dir="rtl",
         ),
         cls="dropdown",
@@ -439,8 +446,52 @@ def todo_mk_input():
 # *******************************
 # Site Navigation Main Endpoints
 # *******************************
-def create_main_content(show_todo=False):
-    """Create the main content for both '/' and '/todo' routes."""
+@rt('/')
+@rt('/todo')
+@rt('/profiles')
+@rt('/organizations')
+@rt('/projects')
+def get(request):
+    """
+    Handle main page and specific page GET requests.
+    
+    This route handler is designed to trigger a full page reload when accessed.
+    It's crucial to maintain this behavior for several reasons:
+    
+    1. State Reset: A full page reload ensures that the application state is 
+       completely reset, preventing any stale data from persisting.
+    
+    2. Consistent User Experience: By reloading the entire page, we ensure that 
+       all components are in sync with the current route, avoiding partial updates 
+       that could lead to inconsistencies.
+    
+    3. Simplicity: Full page reloads simplify the mental model of the application, 
+       making it easier to reason about the state at any given time.
+    
+    4. Avoiding HTMX Conflicts: While HTMX is used for dynamic updates within a page, 
+       navigating between major sections of the app (like switching to the todo list) 
+       is intentionally done with a full reload to avoid potential conflicts or 
+       unexpected behaviors that could arise from partial page updates.
+
+    By using this approach, we ensure that each main section of the application 
+    starts with a clean slate, which is especially important for the todo list 
+    and other major features.
+    """
+    path = request.url.path.strip('/')
+    show_content = path in ['todo', 'profiles', 'organizations', 'projects']
+    selected_explore = path.capitalize() if show_content else "Explore"
+    db["last_explore_choice"] = selected_explore
+    
+    return Titled(
+        f"Pipulate - {selected_explore}",
+        create_main_content(show_content),
+        hx_ext='ws',
+        ws_connect='/ws',
+        data_theme="dark",
+    )
+
+def create_main_content(show_content=False):
+    """Create the main content for all routes."""
     nav = create_nav_menu()
     nav_group_style = (
         "display: flex; "
@@ -463,19 +514,19 @@ def create_main_content(show_todo=False):
         Grid(
             Div(
                 Card(
-                    H2("Todo List"),
+                    H2(f"{selected_explore}"),
                     Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),
                     header=Form(
                         Group(
                             todo_mk_input(),
                             Button("Add", type="submit"),
                         ),
-                        hx_post="/todo",
+                        hx_post=f"/{selected_explore.lower()}",
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ) if show_todo else "",
-                id="todo-container",
+                ) if show_content else "",
+                id="content-container",
             ),
             Div(
                 Card(
@@ -512,21 +563,6 @@ def create_main_content(show_todo=False):
                 "z-index: 1000; "
             ),
         ),
-    )
-
-@rt('/')
-@rt('/todo')
-def get(request):
-    """Handle both the main page and todo page GET requests."""
-    show_todo = request.url.path == '/todo'
-    db["last_explore_choice"] = "Todo Lists" if show_todo else "Explore"
-    
-    return Titled(
-        "Pipulate Todo App",
-        create_main_content(show_todo),
-        hx_ext='ws',
-        ws_connect='/ws',
-        data_theme="dark",
     )
 
 async def create_menu_item_summary(title: str, style_width: str, item_id: str) -> Summary:
