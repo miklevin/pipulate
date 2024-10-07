@@ -68,6 +68,23 @@ SHOW_EXPLORE_MENU = True
 SHOW_ACTION_MENU = False
 SHOW_SEARCH = False
 
+# *******************************
+# How to Plug in New Apps
+# *******************************
+# To add a new app similar to Todo:
+# 1. Create a new route in the main routing section (e.g., @rt('/newapp'))
+# 2. Add a new menu item in the create_nav_menu function under the Explore menu
+# 3. Create a render function for your app's items if needed
+# 4. Add your app's main content creation logic in the create_main_content function
+# 5. If your app needs a database table, add it to the fast_app call in the Application Setup section
+#
+# Example for adding a new "Notes" app:
+# 1. Add route: @rt('/notes')
+# 2. In create_nav_menu: create_menu_item("Notes", "/notes", explore_id, is_traditional_link=True)
+# 3. Create render_note function if needed
+# 4. In create_main_content: Add logic for Notes app
+# 5. In fast_app call: Add 'notes' table definition
+
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
@@ -333,8 +350,8 @@ def create_nav_menu():
             Ul(
                 create_menu_item("Profiles", "/profiles", explore_id, is_traditional_link=True),
                 create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
-                # create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
-                # create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
+                # Add new apps here, following the pattern above
+                # Example: create_menu_item("Notes", "/notes", explore_id, is_traditional_link=True),
                 dir="rtl",
             ),
             cls="dropdown",
