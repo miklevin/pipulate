@@ -62,6 +62,12 @@ MATRIX_STYLE = (
     "text-shadow: 0 0 5px #00ff00; "
 )
 
+# Menu visibility configuration
+SHOW_PROFILE_MENU = False
+SHOW_EXPLORE_MENU = True
+SHOW_ACTION_MENU = False
+SHOW_SEARCH = False
+
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
@@ -273,14 +279,7 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False):
         )
 
 def create_nav_menu():
-    """
-    Create the navigation menu with explore, profile, and action dropdowns.
-    
-    Note: The menu items in the explore dropdown intentionally use regular links 
-    (without any HTMX attributes) to ensure a full page reload when navigating 
-    between major sections of the application. This is consistent with the 
-    behavior implemented in the main route handler.
-    """
+    """Create the navigation menu with explore, profile, and action dropdowns."""
     # Fetch the last selected items from the db
     selected_profile = db.get("last_profile_choice", "Profiles")
     selected_explore = db.get("last_explore_choice", "Explore")
@@ -302,108 +301,114 @@ def create_nav_menu():
         ),
     )
 
-    # Define the explore menu
-    explore_menu = Details(
-        Summary(
-            selected_explore,
-            style=generate_menu_style(EXPLORE_MENU_WIDTH),
-            id=explore_id,
-        ),
-        Ul(
-            create_menu_item("Profiles", "/profiles", explore_id, is_traditional_link=True),
-            create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
-            create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
-            create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
-            dir="rtl",
-        ),
-        cls="dropdown",
-    )
+    nav_items = [filler_item]
 
-    # Define the profile menu
-    profile_menu = Details(
-        Summary(
-            selected_profile,
-            style=generate_menu_style(PROFILE_MENU_WIDTH),
-            id=profile_id,
-        ),
-        Ul(
-            create_menu_item("Default", "/profile/Default", profile_id),
-            create_menu_item("Profile 2", "/profile/Profile_2", profile_id),
-            create_menu_item("Profile 3", "/profile/Profile_3", profile_id),
-            create_menu_item("Profile 4", "/profile/Profile_4", profile_id),
-            dir="rtl",
-        ),
-        cls="dropdown",
-    )
-
-    # Define the action menu
-    action_menu = Details(
-        Summary(
-            selected_action,
-            style=generate_menu_style(ACTION_MENU_WIDTH),
-            id=action_id,
-        ),
-        Ul(
-            create_menu_item("Action 1", "/action/Action_1", action_id),
-            create_menu_item("Action 2", "/action/Action_2", action_id),
-            create_menu_item("Action 3", "/action/Action_3", action_id),
-            create_menu_item("Action 4", "/action/Action_4", action_id),
-            dir="rtl",
-        ),
-        cls="dropdown",
-    )
-
-    search_button_style = (
-        generate_menu_style(SEARCH_WIDTH) +  # Use the height for the button
-        "background: none; "
-        "color: var(--pico-muted-color); "
-        "position: absolute; "
-        "right: 1px; "
-        "top: 50%; "
-        "transform: translateY(-50%); "
-        "width: 16px; "
-    )
-
-    search_group = Group(
-        Input(
-            placeholder="Search",
-            name="nav_input",
-            id="nav-input",
-            hx_post="/search",
-            hx_trigger="keyup[keyCode==13]",
-            hx_target="#msg-list",
-            hx_swap="innerHTML",
-            style=(
-                f"{action_menu_style} "
-                f"width: {SEARCH_WIDTH}; "
-                "padding-right: 25px; "
-                "border: 1px solid var(--pico-muted-border-color); "
+    if SHOW_PROFILE_MENU:
+        # Define the profile menu
+        profile_menu = Details(
+            Summary(
+                selected_profile,
+                style=generate_menu_style(PROFILE_MENU_WIDTH),
+                id=profile_id,
             ),
-        ),
-        Button(
-            "×",
-            type="button",
-            onclick="document.getElementById('nav-input').value = ''; this.blur();",
-            style=search_button_style,
-        ),
-        style=(
-            "align-items: center; "
-            "display: flex; "
-            "position: relative; "
-        ),
-    )
+            Ul(
+                create_menu_item("Default", "/profile/Default", profile_id),
+                create_menu_item("Profile 2", "/profile/Profile_2", profile_id),
+                create_menu_item("Profile 3", "/profile/Profile_3", profile_id),
+                create_menu_item("Profile 4", "/profile/Profile_4", profile_id),
+                dir="rtl",
+            ),
+            cls="dropdown",
+        )
+        nav_items.append(profile_menu)
+
+    if SHOW_EXPLORE_MENU:
+        # Define the explore menu
+        explore_menu = Details(
+            Summary(
+                selected_explore,
+                style=generate_menu_style(EXPLORE_MENU_WIDTH),
+                id=explore_id,
+            ),
+            Ul(
+                create_menu_item("Profiles", "/profiles", explore_id, is_traditional_link=True),
+                create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
+                create_menu_item("Organizations", "/organizations", explore_id, is_traditional_link=True),
+                create_menu_item("Projects", "/projects", explore_id, is_traditional_link=True),
+                dir="rtl",
+            ),
+            cls="dropdown",
+        )
+        nav_items.append(explore_menu)
+
+    if SHOW_ACTION_MENU:
+        # Define the action menu
+        action_menu = Details(
+            Summary(
+                selected_action,
+                style=generate_menu_style(ACTION_MENU_WIDTH),
+                id=action_id,
+            ),
+            Ul(
+                create_menu_item("Action 1", "/action/Action_1", action_id),
+                create_menu_item("Action 2", "/action/Action_2", action_id),
+                create_menu_item("Action 3", "/action/Action_3", action_id),
+                create_menu_item("Action 4", "/action/Action_4", action_id),
+                dir="rtl",
+            ),
+            cls="dropdown",
+        )
+        nav_items.append(action_menu)
+
+    if SHOW_SEARCH:
+        search_button_style = (
+            generate_menu_style(SEARCH_WIDTH) +  # Use the height for the button
+            "background: none; "
+            "color: var(--pico-muted-color); "
+            "position: absolute; "
+            "right: 1px; "
+            "top: 50%; "
+            "transform: translateY(-50%); "
+            "width: 16px; "
+        )
+
+        search_group = Group(
+            Input(
+                placeholder="Search",
+                name="nav_input",
+                id="nav-input",
+                hx_post="/search",
+                hx_trigger="keyup[keyCode==13]",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                style=(
+                    f"{action_menu_style} "
+                    f"width: {SEARCH_WIDTH}; "
+                    "padding-right: 25px; "
+                    "border: 1px solid var(--pico-muted-border-color); "
+                ),
+            ),
+            Button(
+                "×",
+                type="button",
+                onclick="document.getElementById('nav-input').value = ''; this.blur();",
+                style=search_button_style,
+            ),
+            style=(
+                "align-items: center; "
+                "display: flex; "
+                "position: relative; "
+            ),
+        )
+        nav_items.append(search_group)
 
     nav = Div(
-        filler_item,  # Add the filler item first
-        profile_menu,
-        explore_menu,
-        action_menu,
-        search_group,
+        *nav_items,
         style=(
             "align-items: center; "
             "display: flex; "
-            "gap: 8px; "  # Add gap between items
-            "width: 100%; "  # Ensure the nav takes full width
+            "gap: 8px; "
+            "width: 100%; "
             "justify-content: flex-end; "
         ),
     )
