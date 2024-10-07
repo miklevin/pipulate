@@ -229,7 +229,7 @@ def render(todo):
         delete,
         '\u00A0\u00A0',  # Non-breaking spaces between checkbox and wastebasket
         checkbox,
-        todo.title,  # Display the title of the todo
+        A(f"{todo.title} 😊", href=f"/todo/{todo.id}", cls="todo-title"),  # Made title into anchor text
         id=tid,  # Set the ID for the list item
         cls='done' if todo.done else '',  # Add class if the todo is done
         style="list-style-type: none;"
