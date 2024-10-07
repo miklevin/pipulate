@@ -501,86 +501,89 @@ def todo_mk_input():
 # *******************************
 # Site Navigation Main Endpoints
 # *******************************
-@rt('/')
-def get():
-    """Handle the main page GET request for the Pipulate Todo App."""
+def create_main_content():
+    """Create the main content for both '/' and '/todo' routes."""
     nav = create_nav_menu()
-
     nav_group_style = (
         "display: flex; "
         "align-items: center; "
         "position: relative;"
     )
-
     nav_group = Group(
         nav,
         style=nav_group_style,
     )
-
-    # Get the last selected explore choice
+    traditional_link = A("Todo (Traditional Link)", href="/todo", style="margin-left: 20px;")
     selected_explore = db.get("last_explore_choice", "Explore")
 
-    return Titled(
-        "Pipulate Todo App",
-        Container(
-            nav_group,
+    return Container(
+        nav_group,
+        traditional_link,
+        Div(
+            H3(f"Selected: {selected_explore}"),
+            id="selected-menu-indicator",
+            style="margin-bottom: 20px; color: #888;"
+        ),
+        Grid(
             Div(
-                H3(f"Selected: {selected_explore}"),
-                id="selected-menu-indicator",
-                style="margin-bottom: 20px; color: #888;"
-            ),
-            Grid(
-                Div(
-                    Card(
-                        H2("Todo List"),
-                        Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),
-                        header=Form(
-                            Group(
-                                todo_mk_input(),
-                                Button("Add", type="submit"),
-                            ),
-                            hx_post="/todo",
-                            hx_swap="beforeend",
-                            hx_target="#todo-list",
+                Card(
+                    H2("Todo List"),
+                    Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),
+                    header=Form(
+                        Group(
+                            todo_mk_input(),
+                            Button("Add", type="submit"),
                         ),
+                        hx_post="/todo",
+                        hx_swap="beforeend",
+                        hx_target="#todo-list",
                     ),
-                ),
-                Div(
-                    Card(
-                        H2("Chat Interface"),
-                        Div(
-                            id='msg-list',
-                            cls='overflow-auto',
-                            style='height: 40vh;',
-                        ),
-                        footer=Form(
-                            mk_chat_input_group(),
-                        ),
-                    ),
-                ),
-                cls="grid",
-                style=(
-                    "display: grid; "
-                    "gap: 20px; "
-                    f"grid-template-columns: {GRID_LAYOUT}; "
                 ),
             ),
             Div(
-                A(
-                    "Poke Todo List",
-                    hx_post="/poke",
-                    hx_target="#msg-list",
-                    hx_swap="innerHTML",
-                    cls="button",
+                Card(
+                    H2("Chat Interface"),
+                    Div(
+                        id='msg-list',
+                        cls='overflow-auto',
+                        style='height: 40vh;',
+                    ),
+                    footer=Form(
+                        mk_chat_input_group(),
+                    ),
                 ),
-                style=(
-                    "bottom: 20px; "
-                    "position: fixed; "
-                    "right: 20px; "
-                    "z-index: 1000; "
-                ),
+            ),
+            cls="grid",
+            style=(
+                "display: grid; "
+                "gap: 20px; "
+                f"grid-template-columns: {GRID_LAYOUT}; "
             ),
         ),
+        Div(
+            A(
+                "Poke Todo List",
+                hx_post="/poke",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                cls="button",
+            ),
+            style=(
+                "bottom: 20px; "
+                "position: fixed; "
+                "right: 20px; "
+                "z-index: 1000; "
+            ),
+        ),
+    )
+
+@rt('/')
+@rt('/todo')
+def get():
+    """Handle both the main page and todo page GET requests."""
+    return Titled(
+        "Pipulate Todo App",
+        create_main_content(),
         hx_ext='ws',
         ws_connect='/ws',
         data_theme="dark",
