@@ -830,18 +830,64 @@ async def toggle(tid: int):
 
 @rt('/edit/{todo_id}', methods=['GET'])
 async def edit_todo(todo_id: str):
-    """Return an input field for editing the todo item."""
+    """Return a form for editing the todo item."""
     todo_item = todos[todo_id]
+    if not todo_item:
+        return "Todo item not found", 404
+
     input_field = Input(
         type="text",
         value=todo_item.title,
         name="todo_title",
         placeholder="Edit your todo...",
-        hx_post=f"/update/{todo_id}",  # Endpoint to handle the update
-        hx_target=f"#todo-{todo_id}",  # Target the specific todo item
-        hx_swap="outerHTML"  # Replace the outer HTML of the target
+        style="flex: 1; padding-right: 10px;"
     )
-    return Div(input_field)  # Return the input field wrapped in a div
+
+    hidden_pk_input = Input(
+        type="hidden",
+        name="todo_id",
+        value=todo_id
+    )
+
+    submit_button = Button("Update", type="submit", style="align-self: center;")
+
+    form_group = Group(
+        input_field,
+        submit_button,
+        style="display: flex; align-items: center;"
+    )
+
+    form = Form(
+        form_group,
+        hidden_pk_input,
+        hx_post=f"/update/{todo_id}",
+        hx_target=f"#todo-{todo_id}",
+        hx_swap="outerHTML"
+    )
+
+    return Div(form)
+
+@rt('/update/{todo_id}', methods=['POST'])
+async def update_todo(todo_id: int):
+    """Update the todo item with the given ID."""
+    # Get the data from the request
+    form_data = await request.form()  # Get the form data
+    title = form_data.get('todo_title')  # Get the title from the form data
+
+    if not title:
+        return "Title cannot be empty", 400  # Handle empty title case
+
+    # Logic to update the todo item in the database
+    todo_item = db.get(todo_id)  # Retrieve the existing todo item
+    if not todo_item:
+        return "Todo item not found", 404  # Handle case where todo item does not exist
+
+    # Update the title of the todo item
+    todo_item.title = title
+    db.update(todo_item)  # Save the updated todo item back to the database
+
+    # Return the updated title wrapped in an anchor tag
+    return A(todo_item.title, href="#", hx_get=f"/edit/{todo_id}", hx_target=f"#todo-{todo_id}", hx_swap="outerHTML")
 
 # *******************************
 # Streaming WebSocket Functions
