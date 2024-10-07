@@ -517,6 +517,9 @@ def create_main_content():
 @rt('/todo')
 def get():
     """Handle both the main page and todo page GET requests."""
+    # Update the persistent store to set "Todo Lists" as the selected explore choice
+    db["last_explore_choice"] = "Todo Lists"
+    
     return Titled(
         "Pipulate Todo App",
         create_main_content(),
