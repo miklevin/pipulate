@@ -198,12 +198,12 @@ def render(todo):
 # *******************************
 
 # Unpack the returned tuple from fast_app
-app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
+app, rt, (db, DB), (todos, Todo) = fast_app(  # Unpack the tables directly
     "data/pipulate.db",
     ws_hdr=True,
     live=True,
     render=render,
-    store={
+    db={
         "key": str,
         "value": str,
         "pk": "key"
