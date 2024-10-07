@@ -525,7 +525,7 @@ def create_main_content(show_content=False):
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ) if show_content else "",
+                ) if selected_explore == "Todo" else "",
                 id="content-container",
             ),
             Div(
