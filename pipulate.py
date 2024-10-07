@@ -517,10 +517,18 @@ def get():
         style=nav_group_style,
     )
 
+    # Get the last selected explore choice
+    selected_explore = db.get("last_explore_choice", "Explore")
+
     return Titled(
         "Pipulate Todo App",
         Container(
             nav_group,
+            Div(
+                H3(f"Selected: {selected_explore}"),
+                id="selected-menu-indicator",
+                style="margin-bottom: 20px; color: #888;"
+            ),
             Grid(
                 Div(
                     Card(
@@ -623,12 +631,21 @@ async def explore_menu(explore_id: str):
     # Record the explore choice in the db
     db["last_explore_choice"] = selected_item
 
-    return await handle_menu_selection(
-        selected_item,
-        EXPLORE_MENU_WIDTH,
-        "explore-id",
-        "Respond about '{title}', keeping it brief, under 20 words."
-    )
+    summary_content = await create_menu_item(selected_item, EXPLORE_MENU_WIDTH, "explore-id")
+    
+    prompt = "Respond about '{title}', keeping it brief, under 20 words."
+    await chatq(prompt.format(title=selected_item))
+
+    # Update the selected menu indicator
+    return [
+        summary_content,
+        Div(
+            H3(f"Selected: {selected_item}"),
+            id="selected-menu-indicator",
+            style="margin-bottom: 20px; color: #888;",
+            hx_swap_oob="true"
+        )
+    ]
 
 
 @rt('/profile/{profile_id}')
