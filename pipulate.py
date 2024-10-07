@@ -835,31 +835,23 @@ async def edit_todo(todo_id: str):
     if not todo_item:
         return "Todo item not found", 404
 
-    input_field = Input(
-        type="text",
-        value=todo_item.title,
-        name="todo_title",
-        placeholder="Edit your todo...",
-        style="flex: 1; padding-right: 10px;"
-    )
-
-    hidden_pk_input = Input(
-        type="hidden",
-        name="todo_id",
-        value=todo_id
-    )
-
-    submit_button = Button("Update", type="submit", style="align-self: center;")
-
-    form_group = Group(
-        input_field,
-        submit_button,
-        style="display: flex; align-items: center;"
-    )
-
     form = Form(
-        form_group,
-        hidden_pk_input,
+        Group(
+            Input(
+                type="text",
+                value=todo_item.title,
+                name="todo_title",
+                placeholder="Edit your todo...",
+                style="flex: 1; padding-right: 10px;"
+            ),
+            Input(
+                type="hidden",
+                name="todo_id",
+                value=todo_id
+            ),
+            Button("Update", type="submit", style="align-self: center;"),
+            style="display: flex; align-items: center;"
+        ),
         hx_post=f"/update/{todo_id}",
         hx_target=f"#todo-{todo_id}",
         hx_swap="outerHTML"
