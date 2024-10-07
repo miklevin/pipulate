@@ -15,6 +15,9 @@ MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 
+# Grid layout constants
+GRID_LAYOUT = "70% 30%"
+
 # Define the width for the menus
 bw = "150px"
 NAV_FILLER_WIDTH = "20%"        # Width for the filler in the navigation
@@ -512,9 +515,6 @@ def get():
         style=nav_group_style,
     )
 
-    # Test DB Interface
-    test_results = test_db_interface()
-
     return Titled(
         "Pipulate Todo App",
         Container(
@@ -548,17 +548,11 @@ def get():
                         ),
                     ),
                 ),
-                Div(
-                    Card(
-                        H2("DB Interface Test Results"),
-                        Pre(test_results),
-                    ),
-                ),
                 cls="grid",
                 style=(
                     "display: grid; "
                     "gap: 20px; "
-                    "grid-template-columns: 2fr 1fr 1fr; "
+                    f"grid-template-columns: {GRID_LAYOUT}; "
                 ),
             ),
             Div(
@@ -920,53 +914,3 @@ async def ws(msg: str):
 # Add this line to set the model
 model = get_best_model()
 serve()
-
-def test_db_interface():
-    """Test the DB interface and return results as a string."""
-    results = []
-    
-    def log(message):
-        results.append(message)
-
-    # Test setting a new value
-    db["test_key"] = "test_value"
-    log("Set 'test_key': 'test_value'")
-
-    # Test getting a value
-    value = db["test_key"]
-    log(f"Got 'test_key': {value}")
-
-    # Test updating an existing value
-    db["test_key"] = "updated_value"
-    log("Updated 'test_key' to 'updated_value'")
-
-    # Test getting the updated value
-    value = db["test_key"]
-    log(f"Got updated 'test_key': {value}")
-
-    # Test checking if a key exists
-    log(f"'test_key' exists: {'test_key' in db}")
-    log(f"'non_existent_key' exists: {'non_existent_key' in db}")
-
-    # Test getting a non-existent key with a default value
-    value = db.get("non_existent_key", "default_value")
-    log(f"Got non-existent key with default: {value}")
-
-    # Test iterating over keys
-    log("Keys in db:")
-    for key in db:
-        log(f"- {key}")
-
-    # Test getting all items
-    log("All items in db:")
-    for key, value in db.items():
-        log(f"- {key}: {value}")
-
-    # Test deleting a key
-    del db["test_key"]
-    log("Deleted 'test_key'")
-
-    # Verify the key was deleted
-    log(f"'test_key' exists after deletion: {'test_key' in db}")
-
-    return "\n".join(results)
