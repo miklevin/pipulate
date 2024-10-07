@@ -206,7 +206,7 @@ app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
     store={
         "key": str,
         "value": str,
-        "pk": ['key', 'value']
+        "pk": "key"
     },
     todos={
         "id": int,
