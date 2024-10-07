@@ -188,13 +188,21 @@ def chat_with_ollama(model: str, messages: list) -> str:
         response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
         return response.json()['message']['content']
     except requests.exceptions.HTTPError as http_err:
-        return f"HTTP error occurred: {http_err}"  # Return an error message
+        # Log the error (you can replace print with your logging mechanism)
+        print(f"HTTP error occurred: {http_err}")
+        return "I'm having trouble processing that request right now."  # User-friendly message
     except requests.exceptions.ConnectionError as conn_err:
-        return f"Connection error occurred: {conn_err}"  # Return an error message
+        # Log the error
+        print(f"Connection error occurred: {conn_err}")
+        return "I'm having trouble processing that request right now."  # User-friendly message
     except requests.exceptions.Timeout as timeout_err:
-        return f"Timeout error occurred: {timeout_err}"  # Return an error message
+        # Log the error
+        print(f"Timeout error occurred: {timeout_err}")
+        return "I'm having trouble processing that request right now."  # User-friendly message
     except requests.exceptions.RequestException as req_err:
-        return f"An error occurred: {req_err}"  # Return an error message
+        # Log the error
+        print(f"An error occurred: {req_err}")
+        return "I'm having trouble processing that request right now."  # User-friendly message
 
 # *******************************
 # Todo Render Function (Must come before Application Setup)
@@ -589,7 +597,7 @@ def create_main_content(show_content=False):
             ),
             Div(
                 Card(
-                    H2("Chat Interface"),
+                    H2("Chatter Face"),
                     Div(
                         id='msg-list',
                         cls='overflow-auto',
