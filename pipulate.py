@@ -210,7 +210,7 @@ def chat_with_ollama(model: str, messages: list) -> str:
 # *******************************
 
 def render(todo):
-    """Render a todo item as an HTML list item."""
+    """Render a todo item as an HTML list item with an update form."""
     tid = f'todo-{todo.id}'  # Unique ID for the todo item
     checkbox = Input(
         type="checkbox",
@@ -233,12 +233,36 @@ def render(todo):
         hx_target=f"#{tid}",  # Target the specific todo item
         hx_swap='outerHTML',  # Replace the outer HTML of the todo item
     )
-    
+
+    # Create the update form
+    update_form = Form(
+        Input(
+            type="text",
+            id=f"todo-title-{todo.id}",  # Unique ID for the input field
+            value=todo.title,
+            name="todo_title",  # Ensure this has a name attribute
+            placeholder="Edit your todo...",
+            style="flex: 1; padding-right: 10px;",
+            hx_trigger="keyup[keyCode==13]"  # Trigger submission on Enter key
+        ),
+        Input(
+            type="hidden",
+            name="todo_id",  # Ensure this has a name attribute
+            value=todo.id
+        ),
+        Button("Update", type="submit", style="align-self: center;"),
+        style="display: flex; align-items: center;",
+        hx_post=f"/update/{todo.id}",  # Ensure this matches the update route
+        hx_target=f"#{tid}",  # Ensure this matches the ID of the todo item
+        hx_swap="outerHTML"
+    )
+
     return Li(
         delete,
         '\u00A0\u00A0',  # Non-breaking spaces between checkbox and wastebasket
         checkbox,
         title_link,  # Use the updated title link
+        update_form,  # Include the update form
         id=tid,  # Set the ID for the list item
         cls='done' if todo.done else '',  # Add class if the todo is done
         style="list-style-type: none;"
