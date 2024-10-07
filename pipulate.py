@@ -225,11 +225,20 @@ def render(todo):
         hx_swap='outerHTML',  # Update the todo item in the DOM
         hx_target=f"#{tid}",  # Target the specific todo item
     )
+    title_link = A(
+        f"{todo.title} 😊",  # Title with smiley emoji
+        href="#",  # Prevent default link behavior
+        cls="todo-title",  # Class for styling
+        hx_delete=f'/{todo.id}',  # Endpoint to delete the todo
+        hx_target=f"#{tid}",  # Target the specific todo item
+        hx_swap='outerHTML',  # Update the todo item in the DOM
+    )
+    
     return Li(
         delete,
         '\u00A0\u00A0',  # Non-breaking spaces between checkbox and wastebasket
         checkbox,
-        A(f"{todo.title} 😊", href=f"/todo/{todo.id}", cls="todo-title"),  # Made title into anchor text
+        title_link,  # Use the updated title link
         id=tid,  # Set the ID for the list item
         cls='done' if todo.done else '',  # Add class if the todo is done
         style="list-style-type: none;"
