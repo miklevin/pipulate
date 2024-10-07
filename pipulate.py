@@ -277,8 +277,11 @@ db = DictLikeDB(store, Store)
 # *******************************
 
 
-def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
+def create_nav_menu(selected_action="Actions"):
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
+    # Fetch the last selected profile from the db
+    selected_profile = db.get("last_profile_choice", "Profiles")
+
     # Use generate_menu_style for the common style
     profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
     action_menu_style = generate_menu_style(ACTION_MENU_WIDTH)
@@ -347,8 +350,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
     # Define the profile menu
     profile_menu = Details(
         Summary(
-            selected_profile,
-            style=generate_menu_style(PROFILE_MENU_WIDTH),  # Directly use the function here
+            selected_profile,  # This now uses the value from db
+            style=generate_menu_style(PROFILE_MENU_WIDTH),
             id=profile_id,
         ),
         Ul(
@@ -420,8 +423,8 @@ def create_nav_menu(selected_profile="Profiles", selected_action="Actions"):
 
     nav = Div(
         filler_item,  # Add the filler item first
-        explore_menu,
         profile_menu,
+        explore_menu,
         action_menu,
         search_group,
         style=(
@@ -495,16 +498,7 @@ def todo_mk_input():
 # *******************************
 @rt('/')
 def get():
-    """Handle the main page GET request for the Pipulate Todo App.
-
-    This function generates the HTML content for the main page of the application,
-    including the navigation menu, todo list, and chat interface. It constructs
-    the layout using various HTML components and returns the complete page structure.
-
-    Returns:
-        Titled: A Titled component containing the main page content, including
-        the navigation menu, todo list, chat interface, and a button to poke the todo list.
-    """
+    """Handle the main page GET request for the Pipulate Todo App."""
     nav = create_nav_menu()
 
     nav_group_style = (
@@ -518,6 +512,9 @@ def get():
         style=nav_group_style,
     )
 
+    # Test DB Interface
+    test_results = test_db_interface()
+
     return Titled(
         "Pipulate Todo App",
         Container(
@@ -526,7 +523,7 @@ def get():
                 Div(
                     Card(
                         H2("Todo List"),
-                        Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),  # Add style here
+                        Ul(*[render(todo) for todo in todos()], id='todo-list', style="padding-left: 0;"),
                         header=Form(
                             Group(
                                 todo_mk_input(),
@@ -551,11 +548,17 @@ def get():
                         ),
                     ),
                 ),
+                Div(
+                    Card(
+                        H2("DB Interface Test Results"),
+                        Pre(test_results),
+                    ),
+                ),
                 cls="grid",
                 style=(
                     "display: grid; "
                     "gap: 20px; "
-                    "grid-template-columns: 2fr 1fr; "
+                    "grid-template-columns: 2fr 1fr 1fr; "
                 ),
             ),
             Div(
@@ -630,8 +633,9 @@ async def profile_menu(explore_id: str):
 
 @rt('/profile/{profile_id}')
 async def profile_menu(profile_id: str):
-    """Handle profile menu selection."""
+    """Handle profile menu selection and record the choice."""
     selected_item = profile_id.replace('_', ' ').title()  # Use the actual profile_id
+    db["last_profile_choice"] = selected_item
     return await handle_menu_selection(
         selected_item,
         PROFILE_MENU_WIDTH,
@@ -916,3 +920,53 @@ async def ws(msg: str):
 # Add this line to set the model
 model = get_best_model()
 serve()
+
+def test_db_interface():
+    """Test the DB interface and return results as a string."""
+    results = []
+    
+    def log(message):
+        results.append(message)
+
+    # Test setting a new value
+    db["test_key"] = "test_value"
+    log("Set 'test_key': 'test_value'")
+
+    # Test getting a value
+    value = db["test_key"]
+    log(f"Got 'test_key': {value}")
+
+    # Test updating an existing value
+    db["test_key"] = "updated_value"
+    log("Updated 'test_key' to 'updated_value'")
+
+    # Test getting the updated value
+    value = db["test_key"]
+    log(f"Got updated 'test_key': {value}")
+
+    # Test checking if a key exists
+    log(f"'test_key' exists: {'test_key' in db}")
+    log(f"'non_existent_key' exists: {'non_existent_key' in db}")
+
+    # Test getting a non-existent key with a default value
+    value = db.get("non_existent_key", "default_value")
+    log(f"Got non-existent key with default: {value}")
+
+    # Test iterating over keys
+    log("Keys in db:")
+    for key in db:
+        log(f"- {key}")
+
+    # Test getting all items
+    log("All items in db:")
+    for key, value in db.items():
+        log(f"- {key}: {value}")
+
+    # Test deleting a key
+    del db["test_key"]
+    log("Deleted 'test_key'")
+
+    # Verify the key was deleted
+    log(f"'test_key' exists after deletion: {'test_key' in db}")
+
+    return "\n".join(results)
