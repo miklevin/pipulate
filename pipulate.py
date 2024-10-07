@@ -831,8 +831,10 @@ async def toggle(tid: int):
 @rt('/edit/{todo_id}', methods=['GET'])
 async def edit_todo(todo_id: str):
     """Return an input field for editing the todo item."""
+    todo_item = todos[todo_id]
     input_field = Input(
         type="text",
+        value=todo_item.title,
         name="todo_title",
         placeholder="Edit your todo...",
         hx_post=f"/update/{todo_id}",  # Endpoint to handle the update
