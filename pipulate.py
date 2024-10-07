@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from typing import Awaitable, Callable, List, Optional
+from typing import List, Optional
 
 import requests
 from fasthtml.common import *
@@ -43,7 +43,6 @@ conversation = [
     },
 ]
 
-
 # Styles
 COMMON_MENU_STYLE = (
     "align-items: center; "
@@ -57,18 +56,15 @@ COMMON_MENU_STYLE = (
     "line-height: 32px; "
     "margin: 0 2px; "
 )
-
 MATRIX_STYLE = (
     "color: #00ff00; "
     "font-family: 'Courier New', monospace; "
     "text-shadow: 0 0 5px #00ff00; "
 )
 
-
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
-
 
 # *******************************
 # Ollama LLM Functions
@@ -78,18 +74,8 @@ def limit_llm_response(response: str) -> str:
     """Truncate the response to a maximum number of words."""
     return ' '.join(response.split()[:MAX_LLM_RESPONSE_WORDS])
 
-
 def get_best_model() -> str:
-    """Retrieve the best available LLaMA model or default to 'llama3.2'.
-
-    This function fetches the list of available models from the Ollama API, filters for models
-    that start with 'llama', and selects the best one based on versioning. If no suitable model
-    is found or if an error occurs during the request, it defaults to 'llama3.2'.
-
-    Returns:
-        str: The name of the best available LLaMA model, or 'llama3.2' if no models are available
-             or an error occurs.
-    """
+    """Retrieve the best available LLaMA model or default to 'llama3.2'."""
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=10)
         response.raise_for_status()
@@ -122,17 +108,8 @@ def get_best_model() -> str:
 
     return max(llama_models, key=key_func)
 
-
 def chat_with_ollama(model: str, messages: list) -> str:
-    """Interact with the Ollama model to generate a response.
-
-    Args:
-        model (str): The model to use for generating the response.
-        messages (list): A list of messages to send to the model.
-
-    Returns:
-        str: The generated response from the model, or an error message if the request fails.
-    """
+    """Interact with the Ollama model to generate a response."""
     url = "http://localhost:11434/api/chat"
     payload = {
         "model": model,
@@ -154,24 +131,12 @@ def chat_with_ollama(model: str, messages: list) -> str:
     except requests.exceptions.RequestException as req_err:
         return f"An error occurred: {req_err}"  # Return an error message
 
-
 # *******************************
 # Todo Render Function (Must come before Application Setup)
 # *******************************
 
-
 def render(todo):
-    """Render a todo item as an HTML list item.
-
-    This function creates an HTML representation of a todo item, including a checkbox for its status,
-    a delete button, and the todo title.
-
-    Args:
-        todo (Todo): The todo item to be rendered.
-
-    Returns:
-        Li: An HTML list item containing the rendered todo item.
-    """
+    """Render a todo item as an HTML list item."""
     tid = f'todo-{todo.id}'
     checkbox = Input(
         type="checkbox",
@@ -193,9 +158,8 @@ def render(todo):
         todo.title,
         id=tid,
         cls='done' if todo.done else '',
-        style="list-style-type: none;"  # Add this line
+        style="list-style-type: none;"
     )
-
 
 # *******************************
 # Application Setup
@@ -279,6 +243,34 @@ db = DictLikeDB(store, Store)
 # Site Navigation
 # *******************************
 
+def generate_menu_style(width: str) -> str:
+    """Generate a common style for menu elements with a specified width."""
+    return COMMON_MENU_STYLE + f"width: {width}; "
+
+def create_menu_item(title, link, summary_id, is_traditional_link=False):
+    """Create a menu item."""
+    if is_traditional_link:
+        return Li(
+            A(
+                title,
+                href=link,
+                cls="menu-item",
+            ),
+            style="text-align: center;"
+        )
+    else:
+        return Li(
+            A(
+                title,
+                hx_get=link,
+                hx_target=f"#{summary_id}",
+                hx_swap="outerHTML",
+                hx_trigger="click",
+                hx_push_url="false",
+                cls="menu-item",
+            ),
+            style="text-align: center;"
+        )
 
 def create_nav_menu():
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
@@ -290,21 +282,6 @@ def create_nav_menu():
     # Use generate_menu_style for the common style
     profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
     action_menu_style = generate_menu_style(ACTION_MENU_WIDTH)
-
-    def create_menu_item(title, hx_get, summary_id):
-        """Create a menu item."""
-        return Li(
-            A(
-                title,
-                hx_get=hx_get,
-                hx_target=f"#{summary_id}",
-                hx_swap="outerHTML",
-                hx_trigger="click",
-                hx_push_url="false",
-                cls="menu-item",
-            ),
-            style="text-align: center;"
-        )
 
     # Filler Item: Non-interactive, occupies significant space
     filler_item = Li(
@@ -318,23 +295,6 @@ def create_nav_menu():
         ),
     )
 
-    # *******************************
-    # Menu Configuration
-    # *******************************
-
-    # Instructions for Adding Menu Items:
-    # To add a new menu item (for both profile and action menus):
-    # 1. Create a new MenuItem instance with the title, endpoint, and corresponding ID.
-    # 2. Ensure the endpoint corresponds to a defined route in the application (e.g., /profile/{profile_name} or /action/{action_id}).
-    # 3. Initialize a new ID for the menu if adding a new menu type (e.g., profile_id = "new-profile-id").
-    # 4. If adding new constants (like widths), ensure they are declared as global variables if they need to be accessed outside this scope.
-    # Example for Profile Menu:
-    # new_profile_item = MenuItem("New Profile", "/profile/New_Profile", "profile-id")
-    # profile_menu_items.append(new_profile_item)
-    # Example for Action Menu:
-    # new_action_item = MenuItem("New Action", "/action/New_Action", "action-id")
-    # action_menu_items.append(new_action_item)
-
     # Define the explore menu
     explore_menu = Details(
         Summary(
@@ -344,7 +304,7 @@ def create_nav_menu():
         ),
         Ul(
             create_menu_item("Profiles", "/explore/Profiles", explore_id),
-            create_menu_item("Todo Lists", "/explore/Todo_Lists", explore_id),
+            create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
             create_menu_item("Organizations", "/explore/Organizations", explore_id),
             create_menu_item("Projects", "/explore/Projects", explore_id),
             dir="rtl",
@@ -443,21 +403,8 @@ def create_nav_menu():
 
     return nav
 
-
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
-    """Create a chat input group with a message input and a send button.
-
-    This function generates a group of HTML elements for user input in the chat interface,
-    including an input field for messages and a button to send the message.
-
-    Args:
-        disabled (bool, optional): Whether the input group should be disabled. Defaults to False.
-        value (str, optional): The initial value for the message input. Defaults to an empty string.
-        autofocus (bool, optional): Whether to autofocus the message input. Defaults to True.
-
-    Returns:
-        Group: An HTML group containing the message input and send button.
-    """
+    """Create a chat input group with a message input and a send button."""
     return Group(
         Input(
             id='msg',
@@ -477,26 +424,17 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         id='input-group',
     )
 
-
 # *******************************
 # Todo Common Support Functions
 # *******************************
-# Feels out of place, but necessary here for reuse by main endpoints
 def todo_mk_input():
-    """Create an input field for adding a new todo item.
-
-    This function generates an HTML input element that allows users to enter a new todo item.
-
-    Returns:
-        Input: An HTML input element configured for adding a new todo.
-    """
+    """Create an input field for adding a new todo item."""
     return Input(
         placeholder='Add a new item',
         id='title',
         hx_swap_oob='true',
-        autofocus=True  # Add this line
+        autofocus=True
     )
-
 
 # *******************************
 # Site Navigation Main Endpoints
@@ -513,12 +451,10 @@ def create_main_content():
         nav,
         style=nav_group_style,
     )
-    traditional_link = A("Todo (Traditional Link)", href="/todo", style="margin-left: 20px;")
     selected_explore = db.get("last_explore_choice", "Explore")
 
     return Container(
         nav_group,
-        traditional_link,
         Div(
             H3(f"Selected: {selected_explore}"),
             id="selected-menu-indicator",
@@ -589,42 +525,20 @@ def get():
         data_theme="dark",
     )
 
-
-async def create_menu_item(title: str, style_width: str, item_id: str) -> Summary:
-    """Create a menu item summary for menu selections.
-
-    Args:
-        title (str): The title to be displayed in the summary.
-        style_width (str): The width for the menu style.
-        item_id (str): The ID for the summary element.
-
-    Returns:
-        Summary: The generated summary content.
-    """
+async def create_menu_item_summary(title: str, style_width: str, item_id: str) -> Summary:
+    """Create a menu item summary for menu selections."""
     return Summary(
         title,
         style=generate_menu_style(style_width),
         id=item_id,
     )
 
-
 async def handle_menu_selection(title: str, style_width: str, item_id: str, prompt_template: str) -> Summary:
-    """Handle menu selection and generate summary content.
-
-    Args:
-        title (str): The title to be displayed in the summary.
-        style_width (str): The width for the menu style.
-        item_id (str): The ID for the summary element.
-        prompt_template (str): The template for the prompt message.
-
-    Returns:
-        Summary: The generated summary content.
-    """
-    summary_content = await create_menu_item(title, style_width, item_id)
+    """Handle menu selection and generate summary content."""
+    summary_content = await create_menu_item_summary(title, style_width, item_id)
     prompt = prompt_template.format(title=title)
     await chatq(prompt)
     return summary_content
-
 
 @rt('/explore/{explore_id}')
 async def explore_menu(explore_id: str):
@@ -634,7 +548,7 @@ async def explore_menu(explore_id: str):
     # Record the explore choice in the db
     db["last_explore_choice"] = selected_item
 
-    summary_content = await create_menu_item(selected_item, EXPLORE_MENU_WIDTH, "explore-id")
+    summary_content = await create_menu_item_summary(selected_item, EXPLORE_MENU_WIDTH, "explore-id")
     
     prompt = "Respond about '{title}', keeping it brief, under 20 words."
     await chatq(prompt.format(title=selected_item))
@@ -650,7 +564,6 @@ async def explore_menu(explore_id: str):
         )
     ]
 
-
 @rt('/profile/{profile_id}')
 async def profile_menu(profile_id: str):
     """Handle profile menu selection and record the choice."""
@@ -662,7 +575,6 @@ async def profile_menu(profile_id: str):
         "profile-id",
         "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
     )
-
 
 @rt('/action/{action_id}')
 async def action_menu(action_id: str):
@@ -679,7 +591,6 @@ async def action_menu(action_id: str):
         "Perform '{title}' and respond briefly, under 20 words."
     )
 
-
 @rt('/search', methods=['POST'])
 async def search(nav_input: str):
     """Handle search input."""
@@ -690,19 +601,9 @@ async def search(nav_input: str):
     await chatq(prompt)
     return ''
 
-
 @rt('/poke')
 async def poke():
-    """Handle poking the todo list for a response.
-
-    This function sends a prompt to the chat model to generate a brief response
-    when the todo list is "poked." It serves as a placeholder for quick (non-streaming)
-    information display in the chat interface.
-
-    Returns:
-        Div: An HTML Div element containing the response from the chat model,
-        formatted for display in the message list.
-    """
+    """Handle poking the todo list for a response."""
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
@@ -719,26 +620,12 @@ async def poke():
     )
     return Div(f"{APP_NAME}{response}", id='msg-list', cls='fade-in', style=MATRIX_STYLE)
 
-
 # *******************************
 # Todo App Endpoints
 # *******************************
 @rt('/todo')
 async def post_todo(todo: Todo):
-    """Create a new todo item.
-
-    This endpoint handles the addition of a new todo item to the list. 
-    If the provided title is empty, it responds with a sassy comment 
-    about the attempt to add an empty todo. Otherwise, it inserts the 
-    new todo into the database and generates a brief, sassy comment 
-    about the new todo item.
-
-    Args:
-        todo (Todo): The todo item to be added.
-
-    Returns:
-        str: The rendered HTML for the inserted todo item and the input field for a new todo.
-    """
+    """Create a new todo item."""
     if not todo.title.strip():
         # Empty todo case
         await chatq(
@@ -757,20 +644,9 @@ async def post_todo(todo: Todo):
 
     return render(inserted_todo), todo_mk_input()
 
-
 @rt('/{tid}')
 async def delete(tid: int):
-    """Delete a todo item.
-
-    This endpoint handles the removal of a specific todo item identified
-    by its unique ID (tid). A message is generated upon deletion.
-
-    Args:
-        tid (int): The unique ID of the todo item to be deleted.
-
-    Returns:
-        str: An empty string to remove the item from the DOM.
-    """
+    """Delete a todo item."""
     todo = todos[tid]  # Get the todo item before deleting it
     todos.delete(tid)
     prompt = (
@@ -780,21 +656,9 @@ async def delete(tid: int):
     await chatq(prompt)
     return ''  # Return an empty string to remove the item from the DOM
 
-
 @rt('/toggle/{tid}')
 async def toggle(tid: int):
-    """Update the status of a todo item.
-
-    This endpoint handles toggling the 'done' status of a specific todo
-    item identified by its unique ID (tid). A message is generated
-    reflecting the change in status.
-
-    Args:
-        tid (int): The unique ID of the todo item to be toggled.
-
-    Returns:
-        Input: An HTML input element representing the updated status of the todo item.
-    """
+    """Update the status of a todo item."""
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
@@ -815,7 +679,6 @@ async def toggle(tid: int):
         hx_swap="outerHTML",
     )
 
-
 # *******************************
 # Streaming WebSocket Functions
 # *******************************
@@ -823,44 +686,21 @@ async def toggle(tid: int):
 # WebSocket users
 users = {}
 
-
 def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
-
 
 def on_disconn(ws):
     """Handle WebSocket disconnection."""
     users.pop(str(id(ws)), None)
 
-
 async def chatq(message: str):
-    """Queue a message for the chat stream.
-
-    This function creates an asyncio task to send a message to the chat interface.
-
-    Args:
-        message (str): The message to be queued for the chat stream.
-
-    Returns:
-        None
-    """
+    """Queue a message for the chat stream."""
     # Create a task for streaming the chat response without blocking
     asyncio.create_task(stream_chat(message))
 
-
 async def stream_chat(prompt: str, quick: bool = False):
-    """Generate and stream an AI response to users.
-
-    If quick is True, send the entire response at once. Otherwise, stream the response word by word.
-
-    Args:
-        prompt (str): The input message to generate a response for.
-        quick (bool, optional): If True, sends the entire response at once. Defaults to False.
-
-    Returns:
-        None
-    """
+    """Generate and stream an AI response to users."""
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
@@ -894,7 +734,6 @@ async def stream_chat(prompt: str, quick: bool = False):
                     )
                 )
             await asyncio.sleep(TYPING_DELAY)  # Use the constant for delay
-
 
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
 async def ws(msg: str):
@@ -935,7 +774,6 @@ async def ws(msg: str):
         enable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
             await u(enable_input_group)
-
 
 # *******************************
 # Activate the Application
