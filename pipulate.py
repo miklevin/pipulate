@@ -506,11 +506,6 @@ def create_main_content(show_content=False):
 
     return Container(
         nav_group,
-        Div(
-            H3(f"Selected: {selected_explore}"),
-            id="selected-menu-indicator",
-            style="margin-bottom: 20px; color: #888;"
-        ),
         Grid(
             Div(
                 Card(
@@ -595,13 +590,7 @@ async def explore_menu(explore_id: str):
 
     # Update the selected menu indicator
     return [
-        summary_content,
-        Div(
-            H3(f"Selected: {selected_item}"),
-            id="selected-menu-indicator",
-            style="margin-bottom: 20px; color: #888;",
-            hx_swap_oob="true"
-        )
+        summary_content
     ]
 
 @rt('/profile/{profile_id}')
