@@ -280,10 +280,12 @@ db = DictLikeDB(store, Store)
 # *******************************
 
 
-def create_nav_menu(selected_action="Actions"):
+def create_nav_menu():
     """Create the navigation menu with a filler item, chat, and action dropdowns."""
-    # Fetch the last selected profile from the db
+    # Fetch the last selected items from the db
     selected_profile = db.get("last_profile_choice", "Profiles")
+    selected_explore = db.get("last_explore_choice", "Explore")
+    selected_action = db.get("last_action_choice", "Actions")
 
     # Use generate_menu_style for the common style
     profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
@@ -294,14 +296,14 @@ def create_nav_menu(selected_action="Actions"):
         return Li(
             A(
                 title,
-                hx_get=hx_get,  # Keep the original hx_get
+                hx_get=hx_get,
                 hx_target=f"#{summary_id}",
                 hx_swap="outerHTML",
                 hx_trigger="click",
-                hx_push_url="false",  # Prevent URL changes
+                hx_push_url="false",
                 cls="menu-item",
             ),
-            style="text-align: center;"  # Add the class for text alignment to the Li element
+            style="text-align: center;"
         )
 
     # Filler Item: Non-interactive, occupies significant space
@@ -336,15 +338,15 @@ def create_nav_menu(selected_action="Actions"):
     # Define the explore menu
     explore_menu = Details(
         Summary(
-            "Explore",
+            selected_explore,
             style=generate_menu_style(EXPLORE_MENU_WIDTH),
             id=explore_id,
         ),
         Ul(
-            create_menu_item("Profiles", "/explore/profiles", explore_id),
-            create_menu_item("Todo Lists", "/explore/todo", explore_id),
-            create_menu_item("Organizations", "/explore/organizations", explore_id),
-            create_menu_item("Projects", "/explore/projects", explore_id),
+            create_menu_item("Profiles", "/explore/Profiles", explore_id),
+            create_menu_item("Todo Lists", "/explore/Todo_Lists", explore_id),
+            create_menu_item("Organizations", "/explore/Organizations", explore_id),
+            create_menu_item("Projects", "/explore/Projects", explore_id),
             dir="rtl",
         ),
         cls="dropdown",
@@ -353,7 +355,7 @@ def create_nav_menu(selected_action="Actions"):
     # Define the profile menu
     profile_menu = Details(
         Summary(
-            selected_profile,  # This now uses the value from db
+            selected_profile,
             style=generate_menu_style(PROFILE_MENU_WIDTH),
             id=profile_id,
         ),
@@ -371,14 +373,14 @@ def create_nav_menu(selected_action="Actions"):
     action_menu = Details(
         Summary(
             selected_action,
-            style=generate_menu_style(ACTION_MENU_WIDTH),  # Directly use the function here
+            style=generate_menu_style(ACTION_MENU_WIDTH),
             id=action_id,
         ),
         Ul(
-            create_menu_item("Action 1", "/action/1", action_id),
-            create_menu_item("Action 2", "/action/2", action_id),
-            create_menu_item("Action 3", "/action/3", action_id),
-            create_menu_item("Action 4", "/action/4", action_id),
+            create_menu_item("Action 1", "/action/Action_1", action_id),
+            create_menu_item("Action 2", "/action/Action_2", action_id),
+            create_menu_item("Action 3", "/action/Action_3", action_id),
+            create_menu_item("Action 4", "/action/Action_4", action_id),
             dir="rtl",
         ),
         cls="dropdown",
@@ -614,14 +616,18 @@ async def handle_menu_selection(title: str, style_width: str, item_id: str, prom
 
 
 @rt('/explore/{explore_id}')
-async def profile_menu(explore_id: str):
-    """Handle explore menu selection."""
-    selected_item = explore_id.replace('_', ' ').title()  # Use the actual profile_id
+async def explore_menu(explore_id: str):
+    """Handle explore menu selection and record the choice."""
+    selected_item = explore_id.replace('_', ' ')
+    
+    # Record the explore choice in the db
+    db["last_explore_choice"] = selected_item
+
     return await handle_menu_selection(
         selected_item,
         EXPLORE_MENU_WIDTH,
         "explore-id",
-        "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
+        "Respond about '{title}', keeping it brief, under 20 words."
     )
 
 
@@ -639,14 +645,18 @@ async def profile_menu(profile_id: str):
 
 
 @rt('/action/{action_id}')
-async def perform_action(action_id: str):
-    """Handle action menu selection."""
-    selected_item = f"Action {action_id}"
+async def action_menu(action_id: str):
+    """Handle action menu selection and record the choice."""
+    selected_item = action_id.replace('_', ' ')
+    
+    # Record the action choice in the db
+    db["last_action_choice"] = selected_item
+
     return await handle_menu_selection(
         selected_item,
         ACTION_MENU_WIDTH,
         "action-id",
-        "You selected '{title}'. Respond cleverly, mentioning '{title}' in your reply. Be brief and sassy."
+        "Perform '{title}' and respond briefly, under 20 words."
     )
 
 
