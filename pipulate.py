@@ -504,12 +504,6 @@ def create_main_content(show_content=False):
     )
     selected_explore = db.get("last_explore_choice", "Explore")
 
-    # Generate a welcome message
-    welcome_message = chat_with_ollama(
-        model,
-        [{"role": "user", "content": "Say 'Welcome' and add a brief, friendly greeting. Keep it under 20 words."}]
-    )
-
     return Container(
         nav_group,
         Div(
@@ -538,8 +532,6 @@ def create_main_content(show_content=False):
                 Card(
                     H2("Chat Interface"),
                     Div(
-                        # Include the welcome message here
-                        Div(f"{APP_NAME}{welcome_message}", cls='fade-in', style=MATRIX_STYLE),
                         id='msg-list',
                         cls='overflow-auto',
                         style='height: 40vh;',
@@ -734,9 +726,11 @@ async def toggle(tid: int):
 # WebSocket users
 users = {}
 
-def on_conn(ws, send):
+async def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
+    # Queue the welcome message when a new connection is established
+    await chatq("Say 'Welcome' and add a brief, friendly greeting. Keep it under 20 words.")
 
 def on_disconn(ws):
     """Handle WebSocket disconnection."""
