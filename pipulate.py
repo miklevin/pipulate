@@ -729,8 +729,14 @@ users = {}
 async def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
+    # Get the last explore choice from the db
+    selected_explore = db.get("last_explore_choice", "Explore")
+
+    # Create a personalized welcome message
+    welcome_prompt = f"Say 'Welcome to {selected_explore}' and add a brief, friendly greeting related to this area. Keep it under 25 words."
+
     # Queue the welcome message when a new connection is established
-    await chatq("Say 'Welcome' and add a brief, friendly greeting. Keep it under 20 words.")
+    await chatq(welcome_prompt)
 
 def on_disconn(ws):
     """Handle WebSocket disconnection."""
