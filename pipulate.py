@@ -70,6 +70,7 @@ def generate_menu_style(width: str) -> str:
 # *******************************
 # Ollama LLM Functions
 # *******************************
+
 def limit_llm_response(response: str) -> str:
     """Truncate the response to a maximum number of words."""
     return ' '.join(response.split()[:MAX_LLM_RESPONSE_WORDS])
@@ -198,12 +199,12 @@ def render(todo):
 # *******************************
 
 # Unpack the returned tuple from fast_app
-app, rt, (db, DB), (todos, Todo) = fast_app(  # Unpack the tables directly
+app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
     "data/pipulate.db",
     ws_hdr=True,
     live=True,
     render=render,
-    db={
+    store={
         "key": str,
         "value": str,
         "pk": "key"
@@ -216,6 +217,60 @@ app, rt, (db, DB), (todos, Todo) = fast_app(  # Unpack the tables directly
     },
 )
 
+# *******************************
+# DictLikeDB Persistence Convenience Wrapper
+# *******************************
+class DictLikeDB:
+    def __init__(self, store, Store):
+        self.store = store
+        self.Store = Store
+
+    def __getitem__(self, key):
+        try:
+            return self.store[key].value
+        except NotFoundError:
+            raise KeyError(key)
+
+    def __setitem__(self, key, value):
+        try:
+            # Try to update existing item
+            self.store.update({"key": key, "value": value})
+        except NotFoundError:
+            # If it doesn't exist, insert a new item
+            self.store.insert({"key": key, "value": value})
+
+    def __delitem__(self, key):
+        try:
+            self.store.delete(key)
+        except NotFoundError:
+            raise KeyError(key)
+
+    def __contains__(self, key):
+        return key in self.store
+
+    def __iter__(self):
+        for item in self.store():
+            yield item.key
+
+    def items(self):
+        for item in self.store():
+            yield item.key, item.value
+
+    def keys(self):
+        return list(self)
+
+    def values(self):
+        for item in self.store():
+            yield item.value
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+# Create the wrapper
+db = DictLikeDB(store, Store)
 
 # *******************************
 # Site Navigation
@@ -858,7 +913,6 @@ async def ws(msg: str):
 # Activate the Application
 # *******************************
 
-# Choose the best available model
+# Add this line to set the model
 model = get_best_model()
-
 serve()
