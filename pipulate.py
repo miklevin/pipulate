@@ -198,12 +198,12 @@ def render(todo):
 # *******************************
 
 # Unpack the returned tuple from fast_app
-app, rt, (keys, Key), (todos, Todo) = fast_app(  # Unpack the tables directly
+app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
     "data/pipulate.db",
     ws_hdr=True,
     live=True,
     render=render,
-    persistence={
+    store={
         "key": str,
         "value": str,
         "pk": ['key', 'value']
@@ -216,23 +216,6 @@ app, rt, (keys, Key), (todos, Todo) = fast_app(  # Unpack the tables directly
     },
 )
 
-# Now you can use todos and sessions directly
-print("Type of todos:", type(todos))  # Should be <class 'sqlite_minutils.db.Table'>
-print("Type of keys:", type(keys))  # Should be <class 'sqlite_minutils.db.Table'>
-
-# Example of fetching all todos
-try:
-    all_todos = list(todos.rows())  # Convert the generator to a list
-    print("All todos:", all_todos)  # Print the fetched todos
-except Exception as e:
-    print("Error fetching todos:", e)  # Handle any errors
-
-# Example of fetching all sessions
-try:
-    all_sessions = list(sessions.rows())  # Convert the generator to a list
-    print("All sessions:", all_sessions)  # Print the fetched sessions
-except Exception as e:
-    print("Error fetching sessions:", e)  # Handle any errors
 
 # *******************************
 # Site Navigation
