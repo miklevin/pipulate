@@ -569,7 +569,12 @@ def get(request):
     show_content = path in ['todo', 'profiles', 'organizations', 'projects']  # Check if content should be shown
     selected_explore = path.capitalize() if show_content else "Explore"  # Set the selected explore item
     db["last_explore_choice"] = selected_explore  # Store the last explore choice in the database
-    
+    db["last_visited_url"] = request.url.path  # Update the last visited URL
+
+    # Apply the profile filter if necessary
+    current_profile_id = db.get("last_profile_choice", "default_profile")  # Get the current profile_id
+    todos.xtra(profile_id=current_profile_id)  # Set the profile_id for the todos API
+
     return Titled(
         f"Pipulate - {selected_explore}",  # Title for the page
         create_main_content(show_content),  # Create the main content based on the path
@@ -689,16 +694,16 @@ async def explore_menu(explore_id: str):
     ]
 
 @rt('/profile/{profile_id}')
-async def profile_menu_handler(profile_id: str):  # Renamed function
+def profile_menu_handler(request, profile_id: str):
     """Handle profile menu selection and record the choice."""
-    selected_item = profile_id.replace('_', ' ').title()  # Use the actual profile_id
+    selected_item = profile_id.replace('_', ' ').title()  # Format the selected profile_id
     db["last_profile_choice"] = selected_item  # Store the last profile choice
-    return await handle_menu_selection(
-        selected_item,
-        PROFILE_MENU_WIDTH,
-        "profile-id",
-        "Respond mentioning '{title}' in your reply, keeping it brief, under 20 words."
-    )
+
+    # Retrieve the last visited URL from the database
+    last_visited_url = db.get("last_visited_url", "/")  # Default to home if not set
+
+    # Return a redirect response to the last visited URL
+    return Redirect(last_visited_url)  # Use a redirect to the last visited URL
 
 @rt('/action/{action_id}')
 async def action_menu(action_id: str):
