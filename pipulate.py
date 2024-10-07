@@ -658,7 +658,7 @@ async def explore_menu(explore_id: str):
     ]
 
 @rt('/profile/{profile_id}')
-async def profile_menu(profile_id: str):
+async def profile_menu_handler(profile_id: str):  # Renamed function
     """Handle profile menu selection and record the choice."""
     selected_item = profile_id.replace('_', ' ').title()  # Use the actual profile_id
     db["last_profile_choice"] = selected_item
