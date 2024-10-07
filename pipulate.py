@@ -612,7 +612,7 @@ def create_main_content(show_content=False):
             ),
             Div(
                 Card(
-                    H2("Chatter Face"),  # Header for the chat section
+                    H2("Chatinter Face"),  # Header for the chat section
                     Div(
                         id='msg-list',  # ID for the message list
                         cls='overflow-auto',  # Class for overflow handling
