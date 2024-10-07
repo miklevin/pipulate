@@ -232,7 +232,7 @@ def render(todo):
         todo.title,  # Display the title of the todo
         id=tid,  # Set the ID for the list item
         cls='done' if todo.done else '',  # Add class if the todo is done
-        style="list-style-type: none;"  # Remove bullet points
+        style="list-style-type: none;"
     )
 
 # *******************************
@@ -254,6 +254,7 @@ app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
         "id": int,
         "title": str,
         "done": bool,
+        "profile_id": str,  # Added profile_id to todos
         "pk": "id"  # Primary key for todos
     },
 )
@@ -589,6 +590,13 @@ def create_main_content(show_content=False):
         nav,  # Add the navigation menu to the group
         style=nav_group_style,  # Apply styles to the group
     )
+    
+    # Retrieve the current profile_id from the database, or use a default if none is set
+    current_profile_id = db.get("last_profile_choice", "default_profile")  # Replace "default_profile" with your actual default value
+
+    # Set the profile_id in the todos API to filter results
+    todos.xtra(profile_id=current_profile_id)  # Filter todos by the current profile_id
+
     selected_explore = db.get("last_explore_choice", "Explore")  # Get the last explore choice
 
     return Container(
@@ -750,6 +758,17 @@ async def post_todo(todo: Todo):
         return ''  # Return empty string to prevent insertion
 
     # Non-empty todo case
+    # Retrieve the current profile_id from the database, or use a default if none is set
+    current_profile_id = db.get("last_profile_choice", "default_profile")  # Replace "default_profile" with your actual default value
+
+    # Set the profile_id in the todos API to filter results
+    todos.xtra(profile_id=current_profile_id)  # Filter todos by the current profile_id
+
+    # Now, when you retrieve todos, it will only show items for the current profile
+    todo_items = todos()  # Fetch the filtered todo items
+
+    # Create a new todo item with the profile_id included
+    todo.profile_id = current_profile_id  # Set the profile_id for the new todo
     inserted_todo = todos.insert(todo)  # Insert the new todo
 
     prompt = (
