@@ -6,6 +6,11 @@ from typing import List, Optional
 import requests
 from fasthtml.common import *
 from starlette.concurrency import run_in_threadpool
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)  # Set the logging level
+logger = logging.getLogger(__name__)  # Create a logger object
 
 # *******************************
 # Styles and Configuration
@@ -30,7 +35,7 @@ SEARCH_WIDTH = f"{bw}"          # Width for the search input
 # Initialize IDs for menus
 profile_id = "profile-id"       # Initialize the ID for the profile menu
 action_id = "action-id"         # Initialize the ID for the action menu
-explore_id = "explore-id"       # Initialize the ID for the explore menu
+explore_id = "explore-id"        # Initialize the ID for the explore menu
 
 # Initialize conversation with a system message
 conversation = [
@@ -242,8 +247,7 @@ def render(todo):
             value=todo.title,
             name="todo_title",  # Ensure this has a name attribute
             placeholder="Edit your todo...",
-            style="flex: 1; padding-right: 10px;",
-            hx_trigger="keyup[keyCode==13]"  # Trigger submission on Enter key
+            style="flex: 1; padding-right: 10px;"
         ),
         Input(
             type="hidden",
@@ -251,10 +255,7 @@ def render(todo):
             value=todo.id
         ),
         Button("Update", type="submit", style="align-self: center;"),
-        style="display: flex; align-items: center;",
-        hx_post=f"/update/{todo.id}",  # Ensure this matches the update route
-        hx_target=f"#{tid}",  # Ensure this matches the ID of the todo item
-        hx_swap="outerHTML"
+        style="display: flex; flex-direction: column; align-items: flex-start;"  # Stack vertically
     )
 
     return Li(
@@ -884,26 +885,40 @@ async def edit_todo(todo_id: str):
     return Div(form)
 
 @rt('/update/{todo_id}', methods=['POST'])
-async def update_todo(todo_id: int):
-    """Update the todo item with the given ID."""
+async def update_todo(request, todo_id: int):
+    logger.debug(f"Received request to update todo item with ID: {todo_id}")
+
     # Get the data from the request
     form_data = await request.form()  # Get the form data
+    logger.debug(f"Form data received: {form_data}")  # Log the form data
+
     title = form_data.get('todo_title')  # Get the title from the form data
+    logger.debug(f"Title received for update: {title}")  # Log the title
 
     if not title:
+        logger.warning("Attempted to update todo item with an empty title.")
         return "Title cannot be empty", 400  # Handle empty title case
+
+    # Log available todo items for debugging
+    available_todos = db.get_all_todos()  # Assuming you have a method to get all todos
+    logger.debug(f"Available todo items: {available_todos}")
 
     # Logic to update the todo item in the database
     todo_item = db.get(todo_id)  # Retrieve the existing todo item
     if not todo_item:
+        logger.error(f"Todo item with ID {todo_id} not found.")
         return "Todo item not found", 404  # Handle case where todo item does not exist
 
     # Update the title of the todo item
     todo_item.title = title
     db.update(todo_item)  # Save the updated todo item back to the database
+    logger.info(f"Todo item with ID {todo_id} updated successfully to: {title}")
 
-    # Return the updated title wrapped in an anchor tag
-    return A(todo_item.title, href="#", hx_get=f"/edit/{todo_id}", hx_target=f"#todo-{todo_id}", hx_swap="outerHTML")
+    # Create a flash message
+    flash_message = f"<script>alert('Update request received!');</script>"
+
+    # Return the updated title wrapped in an anchor tag and the flash message
+    return flash_message + f" {A(todo_item.title, href='#', hx_get=f'/edit/{todo_id}', hx_target=f'#todo-{todo_id}', hx_swap='outerHTML')}"
 
 # *******************************
 # Streaming WebSocket Functions
