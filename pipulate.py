@@ -231,7 +231,8 @@ def render(todo):
         hx_delete=f'/{todo.id}',  # Endpoint to delete the todo
         hx_swap='outerHTML',  # Update the todo item in the DOM
         hx_target=f"#{tid}",  # Target the specific todo item
-        style="cursor: pointer;"  # Change cursor to pointer for delete action
+        style="cursor: pointer; display: inline;" ,  # Change cursor to pointer for delete action
+        cls="delete-icon"  # Add a class for easy selection
     )
     
     # Create the title link with no text decoration
@@ -242,16 +243,22 @@ def render(todo):
         style="text-decoration: none; color: inherit;",  # Remove text decoration and inherit color
         onclick=(
             "let updateForm = this.nextElementSibling; "  # Get the next sibling (the update form)
+            "let checkbox = this.parentNode.querySelector('input[type=checkbox]'); "  # Get the checkbox
+            "let deleteIcon = this.parentNode.querySelector('.delete-icon'); "  # Get the delete icon
             "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
             "    updateForm.style.visibility = 'visible'; "
             "    updateForm.style.height = 'auto'; "
-            "    this.style.visibility = 'hidden'; "  # Hide the anchor text
+            "    checkbox.style.display = 'none'; "  # Hide the checkbox
+            "    deleteIcon.style.display = 'none'; "  # Hide the delete icon
+            "    this.remove(); "  # Remove the anchor text from the DOM
             "    const inputField = document.getElementById('todo_title_" + str(todo.id) + "'); "  # Reference the input field
             "    inputField.focus(); "  # Focus on the input field
             "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "  # Set cursor at the end
             "} else { "
             "    updateForm.style.visibility = 'hidden'; "
             "    updateForm.style.height = '0'; "
+            "    checkbox.style.display = 'inline'; "  # Show the checkbox
+            "    deleteIcon.style.display = 'inline'; "  # Show the delete icon
             "    this.style.visibility = 'visible'; "  # Show the anchor text
             "}"
         )  # Toggle visibility
@@ -265,7 +272,7 @@ def render(todo):
                 id=f"todo_title_{todo.id}",  # Unique ID for the input field
                 value=todo.title,
                 name="todo_title",  # Ensure this has a name attribute
-                style="flex: 1; padding-right: 10px;"
+                style="flex: 1; padding-right: 10px; margin-bottom: 0px;"  # Allow the input to grow
             ),
             style="display: flex; align-items: center;"  # Flexbox to align items in a row
         ),
@@ -282,7 +289,6 @@ def render(todo):
 
     return Li(
         delete,
-        '\u00A0\u00A0',  # Non-breaking spaces between checkbox and wastebasket
         checkbox,
         title_link,  # Use the updated title link
         update_form,  # Include the update form
@@ -605,7 +611,7 @@ def get(request):
     1. State Reset: A full page reload ensures that the application state is 
        completely reset, preventing any stale data from persisting.
     
-    2. Consistent User Experience: By reloading the entire page, we ensure that 
+    2. Consistent User Experience: By reloading the entire page, 
        all components are in sync with the current route, avoiding partial updates 
        that could lead to inconsistencies.
     
