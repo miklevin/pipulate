@@ -246,6 +246,9 @@ def render(todo):
             "    updateForm.style.visibility = 'visible'; "
             "    updateForm.style.height = 'auto'; "
             "    this.style.visibility = 'hidden'; "  # Hide the anchor text
+            "    const inputField = document.getElementById('todo_title_" + str(todo.id) + "'); "  # Reference the input field
+            "    inputField.focus(); "  # Focus on the input field
+            "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "  # Set cursor at the end
             "} else { "
             "    updateForm.style.visibility = 'hidden'; "
             "    updateForm.style.height = '0'; "
