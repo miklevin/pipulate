@@ -316,6 +316,7 @@ app, rt, (store, Store), (todos, Todo) = fast_app(  # Unpack the tables directly
         "id": int,
         "title": str,
         "done": bool,
+        "priority": int,
         "profile_id": str,  # Added profile_id to todos
         "pk": "id"  # Primary key for todos
     },
