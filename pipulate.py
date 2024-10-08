@@ -1043,3 +1043,4 @@ async def ws(msg: str):
 # Add this line to set the model
 model = get_best_model()  # Retrieve the best model
 serve()  # Start the application
+
