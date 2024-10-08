@@ -256,20 +256,22 @@ def render(todo):
 
     # Create the update form
     update_form = Form(
-        Input(
-            type="text",
-            id=f"todo_title_{todo.id}",  # Unique ID for the input field
-            value=todo.title,
-            name="todo_title",  # Ensure this has a name attribute
-            style="flex: 1; padding-right: 10px;"
+        Div(
+            Input(
+                type="text",
+                id=f"todo_title_{todo.id}",  # Unique ID for the input field
+                value=todo.title,
+                name="todo_title",  # Ensure this has a name attribute
+                style="flex: 1; padding-right: 10px;"
+            ),
+            style="display: flex; align-items: center;"  # Flexbox to align items in a row
         ),
         Input(
             type="hidden",
             name="todo_id",  # Ensure this has a name attribute
             value=todo.id
         ),
-        Button("Update", type="submit", style="align-self: center;"),
-        style="display: flex; flex-direction: column; align-items: flex-start; visibility: hidden; height: 0; overflow: hidden;",  # Initially hidden
+        style="visibility: hidden; height: 0; overflow: hidden;",  # Initially hidden
         hx_post=f"/update/{todo.id}",  # Specify the endpoint for the form submission
         hx_target=f"#{tid}",  # Target the specific todo item for the response
         hx_swap="outerHTML",  # Replace the outer HTML of the target element
