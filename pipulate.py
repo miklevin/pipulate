@@ -230,22 +230,30 @@ def render(todo):
         hx_swap='outerHTML',  # Update the todo item in the DOM
         hx_target=f"#{tid}",  # Target the specific todo item
     )
+    
+    # Create the title link with an inline onclick event to toggle the update form
     title_link = A(
         f"{todo.title} 😊",  # Title with smiley emoji
         href="#",  # Prevent default link behavior
         cls="todo-title",  # Class for styling
-        hx_get=f'/edit/{todo.id}',  # Call the edit endpoint
-        hx_target=f"#{tid}",  # Target the specific todo item
-        hx_swap='outerHTML',  # Replace the outer HTML of the todo item
-        hx_trigger="click",  # Trigger on click
-        hx_on="click: this.nextElementSibling.style.visibility = this.nextElementSibling.style.visibility === 'hidden' ? 'visible' : 'hidden'; this.nextElementSibling.style.height = this.nextElementSibling.style.visibility === 'hidden' ? '0' : 'auto';"  # Toggle visibility
+        onclick=(
+            "alert('Toggling update form!'); "  # Debugging alert
+            "let updateForm = this.nextElementSibling; "  # Get the next sibling (the update form)
+            "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
+            "    updateForm.style.visibility = 'visible'; "
+            "    updateForm.style.height = 'auto'; "
+            "} else { "
+            "    updateForm.style.visibility = 'hidden'; "
+            "    updateForm.style.height = '0'; "
+            "}"
+        )  # Toggle visibility
     )
 
     # Create the update form
     update_form = Form(
         Input(
             type="text",
-            id=f"{todo.id}",  # Unique ID for the input field
+            id=f"todo_title_{todo.id}",  # Unique ID for the input field
             value=todo.title,
             name="todo_title",  # Ensure this has a name attribute
             style="flex: 1; padding-right: 10px;"
