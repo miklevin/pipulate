@@ -231,20 +231,21 @@ def render(todo):
         hx_target=f"#{tid}",  # Target the specific todo item
     )
     
-    # Create the title link with an inline onclick event to toggle the update form
+    # Create the title link
     title_link = A(
         f"{todo.title} 😊",  # Title with smiley emoji
         href="#",  # Prevent default link behavior
         cls="todo-title",  # Class for styling
         onclick=(
-            "alert('Toggling update form!'); "  # Debugging alert
             "let updateForm = this.nextElementSibling; "  # Get the next sibling (the update form)
             "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
             "    updateForm.style.visibility = 'visible'; "
             "    updateForm.style.height = 'auto'; "
+            "    this.style.visibility = 'hidden'; "  # Hide the anchor text
             "} else { "
             "    updateForm.style.visibility = 'hidden'; "
             "    updateForm.style.height = '0'; "
+            "    this.style.visibility = 'visible'; "  # Show the anchor text
             "}"
         )  # Toggle visibility
     )
@@ -266,8 +267,8 @@ def render(todo):
         Button("Update", type="submit", style="align-self: center;"),
         style="display: flex; flex-direction: column; align-items: flex-start; visibility: hidden; height: 0; overflow: hidden;",  # Initially hidden
         hx_post=f"/update/{todo.id}",  # Specify the endpoint for the form submission
-        hx_target=f"#todo-{todo.id}",  # Target the specific todo item for the response
-        hx_swap="outerHTML"  # Replace the outer HTML of the target element
+        hx_target=f"#{tid}",  # Target the specific todo item for the response
+        hx_swap="outerHTML",  # Replace the outer HTML of the target element
     )
 
     return Li(
@@ -896,28 +897,25 @@ async def edit_todo(todo_id: str):
 
     return Div(form)
 
-@rt('/update/{todo_id}', methods=['POST'])
-async def update_todo(request, todo_id: int):
+@app.post("/update/{todo_id}")
+def update_todo(todo_id: int, todo_title: str):
+    # Fetch the existing Todo item
+    todo = todos[todo_id]  # Get the Todo item by its primary key
+
+    if not todo:
+        return "Todo not found", 404
+
+    # Update the Todo item's title
+    todo.title = todo_title
+
+    # Use the MiniDataAPI update method to save the changes
     try:
-        form_data = await request.form()
-        title = form_data.get('todo_title')
-        status = form_data.get('todo_status')  # Ensure this matches your field names
-
-        # Retrieve the existing todo item
-        todo_item = todos[todo_id]  # This will raise NotFoundError if not found
-
-        # Update fields
-        todo_item.title = title
-        todo_item.status = status
-
-        # Update the todo item in the database
-        todos.update(todo_item)
-
-        return {"message": "Todo updated successfully"}
+        todos.update(todo)  # Update the record in the database
     except NotFoundError:
-        return {"error": "Todo item not found"}, 404
-    except Exception as e:
-        return {"error": str(e)}, 500
+        return "Todo not found for update", 404
+
+    # Return the updated Todo item using the render function
+    return render(todo)  # Call the render function to return the updated HTML
 
 # *******************************
 # Streaming WebSocket Functions
