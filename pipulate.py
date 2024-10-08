@@ -237,6 +237,8 @@ def render(todo):
         hx_get=f'/edit/{todo.id}',  # Call the edit endpoint
         hx_target=f"#{tid}",  # Target the specific todo item
         hx_swap='outerHTML',  # Replace the outer HTML of the todo item
+        hx_trigger="click",  # Trigger on click
+        hx_on="click: this.nextElementSibling.style.visibility = this.nextElementSibling.style.visibility === 'hidden' ? 'visible' : 'hidden'; this.nextElementSibling.style.height = this.nextElementSibling.style.visibility === 'hidden' ? '0' : 'auto';"  # Toggle visibility
     )
 
     # Create the update form
@@ -254,7 +256,7 @@ def render(todo):
             value=todo.id
         ),
         Button("Update", type="submit", style="align-self: center;"),
-        style="display: flex; flex-direction: column; align-items: flex-start;",  # Stack vertically
+        style="display: flex; flex-direction: column; align-items: flex-start; visibility: hidden; height: 0; overflow: hidden;",  # Initially hidden
         hx_post=f"/update/{todo.id}",  # Specify the endpoint for the form submission
         hx_target=f"#todo-{todo.id}",  # Target the specific todo item for the response
         hx_swap="outerHTML"  # Replace the outer HTML of the target element
