@@ -224,18 +224,22 @@ def render(todo):
         hx_post=f"/toggle/{todo.id}",  # Endpoint to toggle the todo status
         hx_swap="outerHTML",  # Update the checkbox in the DOM
     )
+    
+    # Create the delete button (trash can)
     delete = A(
-        '🗑',  # Changed to use the wastebasket emoji
+        '🗑',  # Trash can emoji
         hx_delete=f'/{todo.id}',  # Endpoint to delete the todo
         hx_swap='outerHTML',  # Update the todo item in the DOM
         hx_target=f"#{tid}",  # Target the specific todo item
+        style="cursor: pointer;"  # Change cursor to pointer for delete action
     )
     
-    # Create the title link
+    # Create the title link with no text decoration
     title_link = A(
-        f"{todo.title} 😊",  # Title with smiley emoji
+        todo.title,  # Title text
         href="#",  # Prevent default link behavior
         cls="todo-title",  # Class for styling
+        style="text-decoration: none; color: inherit;",  # Remove text decoration and inherit color
         onclick=(
             "let updateForm = this.nextElementSibling; "  # Get the next sibling (the update form)
             "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
