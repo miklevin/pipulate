@@ -617,7 +617,7 @@ def create_nav_menu():
                     "×",
                     type="button",
                     onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                    style=search_button_style,
+                    style=search_button_style + "margin-right: 0px;",
                 ),
                 style=(
                     "align-items: center; "
