@@ -477,35 +477,41 @@ def create_nav_menu():
             "width: 16px; "
         )
 
-        # Create the search input group
-        search_group = Group(
-            Input(
-                placeholder="Search",  # Placeholder for the search input
-                name="nav_input",  # Name for the input
-                id="nav-input",  # ID for the input
-                hx_post="/search",  # Endpoint for search
-                hx_trigger="keyup[keyCode==13]",  # Trigger on Enter key
-                hx_target="#msg-list",  # Target for the response
-                hx_swap="innerHTML",  # Update the inner HTML
+        # Create the search input group wrapped in a form
+        search_group = Form(
+            Group(
+                Input(
+                    placeholder="Search",  # Placeholder for the search input
+                    name="nav_input",  # Name for the input
+                    id="nav-input",  # ID for the input
+                    hx_post="/search",  # Endpoint for search
+                    hx_trigger="keyup[keyCode==13]",  # Trigger on Enter key
+                    hx_target="#msg-list",  # Target for the response
+                    hx_swap="innerHTML",  # Update the inner HTML
+                    style=(
+                        f"{action_menu_style} "
+                        f"width: {SEARCH_WIDTH}; "
+                        "padding-right: 25px; "
+                        "border: 1px solid var(--pico-muted-border-color); "
+                    ),
+                ),
+                Button(
+                    "×",  # Clear button
+                    type="button",
+                    onclick="document.getElementById('nav-input').value = ''; this.blur();",  # Clear input on click
+                    style=search_button_style,
+                ),
                 style=(
-                    f"{action_menu_style} "
-                    f"width: {SEARCH_WIDTH}; "
-                    "padding-right: 25px; "
-                    "border: 1px solid var(--pico-muted-border-color); "
+                    "align-items: center; "
+                    "display: flex; "
+                    "position: relative; "
                 ),
             ),
-            Button(
-                "×",  # Clear button
-                type="button",
-                onclick="document.getElementById('nav-input').value = ''; this.blur();",  # Clear input on click
-                style=search_button_style,
-            ),
-            style=(
-                "align-items: center; "
-                "display: flex; "
-                "position: relative; "
-            ),
+            hx_post="/search",  # Ensure the form submits to the search endpoint
+            hx_target="#msg-list",  # Target for the response
+            hx_swap="innerHTML",  # Update the inner HTML
         )
+        
         nav_items.append(search_group)  # Add search group to nav items
 
     # Create the navigation container
@@ -1111,11 +1117,14 @@ async def search(request):
     """
     Handle search queries to inform the user that the search feature is not implemented yet.
     """
-    # Inform the user that the search feature is not implemented
-    await chatq("The search feature is not implemented yet. Please check back later!")
-    
+    # Get the search term from the request
+    search_term = request.get('nav_input', '')  # Ensure this matches how the request is structured
+
+    # Inform the user that the search feature is not implemented with a joke
+    await chatq(f"Searching for '{search_term}'? Sorry, that feature is still in beta! Keep looking, or try a magic 8-ball!")
+
     # Respond with a simple message
-    return "Search feature is not implemented yet. Check the chat for a response!"
+    return f"Search feature is not implemented yet for '{search_term}'. Check the chat for a response!"
 
 # *******************************
 # Poke Endpoint
