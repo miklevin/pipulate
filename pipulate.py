@@ -271,12 +271,53 @@ def render(todo):
         update_form,
         id=tid,
         cls='done' if todo.done else '',
-        style="list-style-type: none;"
+        style="list-style-type: none;",
+        data_id=todo.id,
+        data_priority=todo.priority
     )
 
 # *******************************
 # Application Setup
 # *******************************
+
+def SortableJSWithUpdate(
+    sel='.sortable',
+    ghost_class='blue-background-class',
+    update_url='/update_todo_order'
+):
+    src = f"""
+import {{Sortable}} from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm';
+
+document.addEventListener('DOMContentLoaded', (event) => {{
+    console.log('SortableJSWithUpdate script is running!');
+    const el = document.querySelector('{sel}');
+    if (el) {{
+        new Sortable(el, {{
+            animation: 150,
+            ghostClass: '{ghost_class}',
+            onEnd: function (evt) {{
+                console.log('Drag ended!', evt);
+                let items = Array.from(el.children).map((item, index) => ({{
+                    id: item.dataset.id,
+                    priority: index
+                }}));
+                console.log('New order:', items);
+
+                htmx.ajax('POST', '{update_url}', {{
+                    target: '{sel}',
+                    swap: 'none',
+                    values: {{
+                        items: JSON.stringify(items)
+                    }}
+                }});
+            }}
+        }});
+    }} else {{
+        console.error('Sortable element not found:', '{sel}');
+    }}
+}});
+"""
+    return Script(src, type='module')
 
 # Unpack the returned tuple from fast_app
 app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
@@ -284,6 +325,10 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
     ws_hdr=True,
     live=True,
     render=render,
+    hdrs=(
+        SortableJSWithUpdate('.sortable', update_url='/update_todo_order'),
+        Script(type='module')
+    ),
     store={
         "key": str,
         "value": str,
@@ -697,8 +742,8 @@ def create_main_content(show_content=False):
 
     selected_explore = db.get("last_explore_choice", "App")
 
-    # Fetch the filtered todo items
-    todo_items = todos()
+    # Fetch the filtered todo items and sort them by priority
+    todo_items = sorted(todos(), key=lambda x: x.priority)
     logger.info(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
 
     return Container(
@@ -707,7 +752,10 @@ def create_main_content(show_content=False):
             Div(
                 Card(
                     H2(f"{selected_explore}"),
-                    Ul(*[render(todo) for todo in todo_items], id='todo-list', style="padding-left: 0;"),
+                    Ul(*[render(todo) for todo in todo_items], 
+                       id='todo-list', 
+                       cls='sortable',
+                       style="padding-left: 0;"),
                     header=Form(
                         Group(
                             todo_mk_input(),
@@ -929,6 +977,26 @@ async def update_todo(todo_id: int, todo_title: str):
     # Return the updated Todo item using the render function
     return render(updated_todo)
 
+@rt('/update_todo_order', methods=['POST'])
+async def update_todo_order(values: dict):
+    logger.debug(f"Received values: {values}")
+    try:
+        items = json.loads(values.get('items', '[]'))
+        logger.debug(f"Parsed items: {items}")
+        for item in items:
+            logger.debug(f"Updating item: {item}")
+            todos.update(id=int(item['id']), priority=int(item['priority']))
+        logger.info("Todo order updated successfully")
+
+        # After successful update, queue a message for the chat
+        prompt = "The todo list was reordered. Make a brief, witty remark about sorting or prioritizing tasks. Keep it under 20 words."
+        await chatq(prompt)
+
+        return ''
+    except Exception as e:
+        logger.error(f"Error updating todo order: {str(e)}")
+        return str(e), 500  # Return the error message and a 500 status code
+
 # *******************************
 # Profiles App Endpoints
 # *******************************
@@ -1014,11 +1082,24 @@ def render_profile(profile):
         )
     )
 
+    # Create the contact info span, only if email or phone is present
+    contact_info = []
+    if profile.email:
+        contact_info.append(profile.email)
+    if profile.phone:
+        contact_info.append(profile.phone)
+    
+    contact_info_span = (
+        Span(f" ({', '.join(contact_info)})", style="margin-left: 10px;")
+        if contact_info else
+        Span()  # Empty span if no contact info
+    )
+
     return Li(
         Div(
             active_checkbox,
             title_link,
-            Span(f" ({profile.email}, {profile.phone})", style="margin-left: 10px;"),
+            contact_info_span,
             delete_icon,
             update_form,
             style="display: flex; align-items: center;"
