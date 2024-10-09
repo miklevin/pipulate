@@ -9,14 +9,31 @@ from starlette.concurrency import run_in_threadpool
 import logging
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)  # Set the logging level
 logger = logging.getLogger(__name__)  # Create a logger object
+logger.setLevel(logging.DEBUG)  # Set the logging level
+
+# Create file handler
+file_handler = logging.FileHandler('botifython.log')
+file_handler.setLevel(logging.DEBUG)  # Log level for file
+
+# Create console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)  # Log level for console
+
+# Create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Add the handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
 
 # *******************************
 # Styles and Configuration
 # *******************************
 # Application name and configuration settings
-APP_NAME = "Botifython"         # Controls a response "Name: " in the chat
+APP_NAME = "Pipulate"         # Controls a response "Name: " in the chat
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
@@ -286,6 +303,7 @@ class DictLikeDB:
         try:
             return self.store[key].value  # Return the value associated with the key
         except NotFoundError:
+            logger.error(f"Key not found: {key}")  # Log error if key is not found
             raise KeyError(key)  # Raise KeyError if not found
 
     def __setitem__(self, key, value):
@@ -293,15 +311,19 @@ class DictLikeDB:
         try:
             # Try to update existing item
             self.store.update({"key": key, "value": value})
+            logger.info(f"Updated persistence store: {key} = {value}")  # Log the update
         except NotFoundError:
             # If it doesn't exist, insert a new item
             self.store.insert({"key": key, "value": value})
+            logger.info(f"Inserted new item in persistence store: {key} = {value}")  # Log the insertion
 
     def __delitem__(self, key):
         """Delete an item from the store by key."""
         try:
             self.store.delete(key)  # Delete the item
+            logger.info(f"Deleted key from persistence store: {key}")  # Log the deletion
         except NotFoundError:
+            logger.error(f"Attempted to delete non-existent key: {key}")  # Log error if key is not found
             raise KeyError(key)  # Raise KeyError if not found
 
     def __contains__(self, key):
@@ -400,7 +422,7 @@ def create_nav_menu():
             profile_items.append(
                 create_menu_item(
                     profile.name,
-                    f"/profile/{profile.id}",  # Use profile ID in the URL
+                    f"/profiles/{profile.id}",  # Ensure this points to the correct profile URL
                     profile_id,
                     is_traditional_link=False  # Use HTMX for dynamic updates
                 )
@@ -425,7 +447,7 @@ def create_nav_menu():
         # Define the apps menu
         explore_menu = Details(
             Summary(
-                "Apps",  # Change to "Apps"
+                selected_explore,  # Use the selected explore from the persistent db
                 style=generate_menu_style(EXPLORE_MENU_WIDTH),
                 id=explore_id,
             ),
@@ -654,7 +676,7 @@ def create_main_content(show_content=False):
 # *******************************
 @rt('/')
 @rt('/todo')
-@rt('/profiles')
+@rt('/profiles')  # Ensure this is the correct endpoint
 @rt('/organizations')
 @rt('/projects')
 def get(request):
@@ -662,28 +684,37 @@ def get(request):
     Handle main page and specific page GET requests.
     """
     path = request.url.path.strip('/')  # Get the path from the request
+    logger.debug(f"Received request for path: {path}")  # Log the requested path
+
     show_content = path in ['todo', 'profiles', 'organizations', 'projects']  # Check if content should be shown
     selected_explore = path.capitalize() if show_content else "App"  # Set the selected app item
+
+    logger.info(f"Selected explore item: {selected_explore}")  # Log the selected item
     db["last_explore_choice"] = selected_explore  # Store the last app choice in the database
     db["last_visited_url"] = request.url.path  # Update the last visited URL
 
     # Apply the profile filter if necessary
     current_profile_id = db.get("last_profile_id")  # Get the current profile ID
     if current_profile_id:
+        logger.debug(f"Current profile ID: {current_profile_id}")  # Log the current profile ID
         todos.xtra(profile_id=current_profile_id)  # Filter todos by the current profile ID
     else:
-        # If no profile is selected, you might want to handle it accordingly
+        logger.warning("No current profile ID found. Using default filtering.")  # Log if no profile ID is found
         todos.xtra(profile_id=None)  # No filtering or set a default profile ID
 
+    response = create_main_content(show_content)  # Create the main content based on the path
+    logger.debug("Returning response for main GET request.")  # Log before returning the response
+    logger.debug(f"Response content: {response}")  # Log the response content
+    last_profile_name = db.get("last_profile_name", "Default Profile")
     return Titled(
-        f"{APP_NAME} / {selected_explore}",  # Title for the page
-        create_main_content(show_content),  # Create the main content based on the path
+        f"{APP_NAME} / {last_profile_name} / {selected_explore} ",  # Title for the page
+        response,
         hx_ext='ws',  # Enable WebSocket extensions
         ws_connect='/ws',  # WebSocket connection endpoint
         data_theme="dark",  # Set the theme for the page
     )
 
-@rt('/profile/{profile_id}')
+@rt('/profiles/{profile_id}')  # Ensure this is the correct endpoint
 def profile_menu_handler(request, profile_id: int):
     """Handle profile menu selection and record the choice."""
     # Fetch the selected profile from the database using the profile ID
@@ -691,7 +722,7 @@ def profile_menu_handler(request, profile_id: int):
 
     if not selected_profile:
         # If the profile doesn't exist, redirect to a default or error page
-        return Redirect('/profile')
+        return Redirect('/profiles')
 
     # Store the selected profile ID and name in the database
     db["last_profile_id"] = selected_profile.id
@@ -788,6 +819,29 @@ async def update_todo(todo_id: int, todo_title: str):
 
     # Return the updated Todo item using the render function
     return render(updated_todo)  # Call the render function to return the updated HTML
+
+@rt('/profile/update/{profile_id}', methods=['POST'])
+async def update_profile(profile_id: int, name: str, email: str, phone: str):
+    """Update a profile item."""
+    # Fetch the existing profile item
+    profile = profiles[profile_id]  # Assuming profiles is a data structure holding profile data
+
+    if not profile:
+        return "Profile not found", 404
+
+    # Update the profile item's fields
+    profile.name = name
+    profile.email = email
+    profile.phone = phone
+
+    # Use the MiniDataAPI update method to save the changes
+    try:
+        updated_profile = profiles.update(profile)  # Update the record in the database
+    except NotFoundError:
+        return "Profile not found for update", 404
+
+    # Return the updated profile item using the render function
+    return render_profile(updated_profile)  # Call the render function to return the updated HTML
 
 # *******************************
 # Streaming WebSocket Functions
@@ -897,6 +951,43 @@ async def ws(msg: str):
 # Profiles App Endpoints
 # *******************************
 
+@rt('/profiles', methods=['GET'])
+def get_profiles():
+    print("Entering get_profiles() function.")
+    logger.debug("Entering get_profiles() function.")
+    
+    # Fetch profiles
+    all_profiles = profiles()
+    print(f"Number of profiles fetched: {len(all_profiles)}")
+    logger.debug(f"Number of profiles fetched: {len(all_profiles)}")
+    
+    # Render profiles
+    profile_list = [render_profile(profile) for profile in all_profiles]
+    
+    container = Container(
+        H1("Profiles"),
+        Ul(*profile_list, id='profile-list', style="padding-left: 0;"),
+        Form(
+            Group(
+                Input(type="text", name="name", placeholder="Name"),
+                Input(type="email", name="email", placeholder="Email"),
+                Input(type="tel", name="phone", placeholder="Phone"),
+                Button("Add", type="submit"),
+            ),
+            hx_post="/add_profile",
+            hx_target="#profile-list",
+            hx_swap="beforeend",
+        )
+    )
+    
+    print(f"Returning Container object: {type(container)}")
+    logger.debug(f"Returning Container object: {type(container)}")
+    
+    print("Exiting get_profiles() function.")
+    logger.debug("Exiting get_profiles() function.")
+    
+    return container
+
 def render_profile(profile):
     """Render a profile item as an HTML list item."""
     # Create the delete button (trash can)
@@ -920,12 +1011,273 @@ def render_profile(profile):
         style="margin-right: 5px;"  # Add some margin
     )
 
+    # Create the update form
+    update_form = Form(
+        Group(
+            Input(type="text", name="name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"),  # Input for name
+            Input(type="email", name="email", value=profile.email, placeholder="Email", id=f"email-{profile.id}"),  # Input for email
+            Input(type="tel", name="phone", value=profile.phone, placeholder="Phone", id=f"phone-{profile.id}"),  # Input for phone
+            Button("Update", type="submit"),  # Update button
+        ),
+        hx_post=f"/profile/update/{profile.id}",  # Endpoint for updating the profile
+        hx_target=f'#profile-{profile.id}',  # Target the profile item to update
+        hx_swap='outerHTML',  # Replace the entire profile item
+        style="display: none;",  # Initially hidden
+        id=f'update-form-{profile.id}'  # Unique ID for the update form
+    )
+
+    # Create the title link with an onclick event to toggle the update form
+    title_link = A(
+        profile.name,  # Display the profile name as a clickable anchor
+        href="#",  # Prevent default link behavior
+        hx_trigger="click",  # Trigger on click
+        onclick=(
+            "let li = this.closest('li'); "  # Get the closest <li> element
+            "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "  # Get the update form
+            "if (updateForm.style.display === 'none' || updateForm.style.display === '') { "
+            "    updateForm.style.display = 'block'; "  # Show the update form
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); "  # Hide checkbox, delete icon, email/phone, and title link
+            "} else { "
+            "    updateForm.style.display = 'none'; "  # Hide the update form
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); "  # Show checkbox, delete icon, email/phone, and title link
+            "}"
+        )  # Toggle visibility
+    )
+
     return Li(
         Div(
             active_checkbox,  # Include the active checkbox
-            profile.name,  # Display the profile name
+            title_link,  # Use the updated title link
             Span(f" ({profile.email}, {profile.phone})", style="margin-left: 10px;"),  # Display email and phone
             delete_icon,  # Include the delete icon
+            update_form,  # Include the hidden update form
+            style="display: flex; align-items: center;"  # Flexbox for alignment
+        ),
+        id=f'profile-{profile.id}',  # Unique ID for the profile item
+        style="list-style-type: none;"  # Style for the list item
+    )
+
+@rt('/add_profile', methods=['POST'])
+async def add_profile(profile_name: str, profile_email: str, profile_phone: str):
+    """Create a new profile."""
+    logger.debug(f"Attempting to add profile: {profile_name}, {profile_email}, {profile_phone}")
+    
+    if not profile_name.strip():  # Check for empty profile name
+        logger.warning("User tried to add an empty profile name.")
+        await chatq(
+            "User tried to add an empty profile name. Respond with a brief, sassy comment about their attempt."
+        )
+        return ''  # Return empty string to prevent insertion
+
+    new_profile = {
+        "name": profile_name,
+        "email": profile_email,
+        "phone": profile_phone,
+        "active": True,  # Default to active
+    }
+
+    inserted_profile = profiles.insert(new_profile)
+    logger.info(f"Profile added: {inserted_profile}")
+
+    prompt = (
+        f"New profile added: '{profile_name}'. "
+        "Brief, sassy comment or advice."
+    )
+    await chatq(prompt)  # Send prompt to chat queue
+
+    return render_profile(inserted_profile)
+
+@rt('/toggle_active/{profile_id}', methods=['POST'])
+async def toggle_active(profile_id: int):
+    """Toggle the active status of a profile item."""
+    profile = profiles[profile_id]  # Get the profile item
+    profile.active = not profile.active  # Toggle the active status
+    updated_profile = profiles.update(profile)  # Update the profile item
+
+    return render_profile(updated_profile)  # Return the updated profile rendering
+
+@rt('/profile/delete/{profile_id}', methods=['POST'])
+async def delete_profile(profile_id: int):
+    """Delete a profile item."""
+    profile = profiles[profile_id]  # Get the profile item
+    profiles.delete(profile_id)  # Delete the profile item
+    return ''  # Return an empty string to remove the item from the DOM
+
+# *******************************
+# Search Endpoint
+# *******************************
+@rt('/search', methods=['POST'])
+async def search(request):
+    """
+    Handle search queries to inform the user that the search feature is not implemented yet.
+    """
+    # Inform the user that the search feature is not implemented
+    await chatq("The search feature is not implemented yet. Please check back later!")
+    
+    # Respond with a simple message
+    return "Search feature is not implemented yet. Check the chat for a response!"
+
+# *******************************
+# Poke Endpoint
+# *******************************
+@rt('/poke', methods=['POST'])
+async def poke_chatbot():
+    """
+    Handle the poke interaction with the chatbot.
+    """
+    # Define a poke message for the chatbot
+    poke_message = f"You poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked."
+
+    # Queue the message for streaming to the chat interface
+    await chatq(poke_message)
+    
+    # Respond with an empty string or a relevant message
+    return "Poke received. Check the chat for a response!"
+
+# *******************************
+# Debug Profiles Endpoint
+# *******************************
+@rt('/debug_profiles', methods=['GET'])
+def debug_profiles():
+    """Debug endpoint to retrieve and display profile information."""
+    print("Entering debug_profiles() function.")
+    logger.debug("Entering debug_profiles() function.")
+    
+    all_profiles = profiles()
+    print(f"Number of profiles fetched: {len(all_profiles)}")
+    logger.debug(f"Number of profiles fetched: {len(all_profiles)}")
+    
+    profile_info = [f"Profile {p.id}: {p.name}" for p in all_profiles]
+    print(f"Profile information: {profile_info}")
+    logger.debug(f"Profile information: {profile_info}")
+    
+    return f"Debug Profiles: {profile_info}"
+
+# *******************************
+# Debug Endpoint
+# *******************************
+@rt('/debug', methods=['GET'])
+def debug_route():
+    print("Debug route accessed")
+    logger.debug("Debug route accessed")
+    return "Debug route is working. Check the logs for more information."
+
+# *******************************
+# Activate the Application
+# *******************************
+
+# Add this line to set the model
+model = get_best_model()  # Retrieve the best model
+serve()  # Start the application
+
+def read_log_file():
+    """Read and print the contents of the log file."""
+    try:
+        with open('botifython.log', 'r') as log_file:
+            log_contents = log_file.read()
+            print("Log File Contents:")
+            print(log_contents)
+    except FileNotFoundError:
+        print("Log file not found.")
+
+print("Botifython version 1.0 - Debug mode")
+
+
+def count_records_with_xtra(table_handle, xtra_field, xtra_value):
+    """
+    Returns the number of records in the specified table that match the given .xtra field constraint.
+
+    Parameters:
+    table_handle: A handle to the table object following the MiniDataAPI specification.
+    xtra_field (str): The field name in the table to constrain by using the .xtra function.
+    xtra_value: The value to constrain by for the specified xtra_field.
+
+    Returns:
+    int: The number of records in the specified table matching the .xtra constraint.
+    """
+    # Set the xtra constraint on the table
+    table_handle.xtra(**{xtra_field: xtra_value})
+    
+    # Return the number of records in the table after applying the constraint
+    return len(table_handle())
+
+# Example usage:
+# Assuming you have a table handle object called `todos_handle`
+# num_records = count_records_with_xtra(todos_handle, 'name', 'Charlie')
+# print(f"Number of records in the table for 'Charlie': {num_records}")
+
+
+
+
+def render_profile(profile):
+    # Count the number of todo items for this profile
+    todo_count = count_records_with_xtra(todos, 'profile_id', profile.id)  # Assuming todos_handle is defined
+
+    # Set the visibility of the delete icon based on the todo count
+    delete_icon_visibility = 'inline' if todo_count == 0 else 'none'
+
+    """Render a profile item as an HTML list item."""
+    # Create the delete button (trash can)
+    delete_icon = A(
+        '🗑',  # Trash can emoji
+        hx_post=f"/profile/delete/{profile.id}",  # Change to POST for deletion
+        hx_target=f'#profile-{profile.id}',  # Target the profile item to remove
+        hx_swap='outerHTML',  # Update the profile list in the DOM
+        style=f"cursor: pointer; display: {delete_icon_visibility};",  # Change cursor to pointer for delete action
+        cls="delete-icon"  # Add a class for easy selection
+    )
+
+    # Create the active checkbox
+    active_checkbox = Input(
+        type="checkbox",
+        name="active" if profile.active else None,  # Checkbox name based on active status
+        checked=profile.active,  # Set checkbox state based on profile status
+        hx_post=f"/toggle_active/{profile.id}",  # Endpoint to toggle the active status
+        hx_target=f'#profile-{profile.id}',  # Target the profile item to update
+        hx_swap='outerHTML',  # Update the checkbox in the DOM
+        style="margin-right: 5px;"  # Add some margin
+    )
+
+    # Create the update form
+    update_form = Form(
+        Group(
+            Input(type="text", name="name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"),  # Input for name
+            Input(type="email", name="email", value=profile.email, placeholder="Email", id=f"email-{profile.id}"),  # Input for email
+            Input(type="tel", name="phone", value=profile.phone, placeholder="Phone", id=f"phone-{profile.id}"),  # Input for phone
+            Button("Update", type="submit"),  # Update button
+        ),
+        hx_post=f"/profile/update/{profile.id}",  # Endpoint for updating the profile
+        hx_target=f'#profile-{profile.id}',  # Target the profile item to update
+        hx_swap='outerHTML',  # Replace the entire profile item
+        style="display: none;",  # Initially hidden
+        id=f'update-form-{profile.id}'  # Unique ID for the update form
+    )
+
+    # Create the title link with an onclick event to toggle the update form
+    title_link = A(
+        f"{profile.name} ({todo_count} Todo{'' if todo_count == 1 else 's'})",  # Display the profile name and todo count
+        href="#",  # Prevent default link behavior
+        hx_trigger="click",  # Trigger on click
+        onclick=(
+            "let li = this.closest('li'); "  # Get the closest <li> element
+            "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "  # Get the update form
+            "if (updateForm.style.display === 'none' || updateForm.style.display === '') { "
+            "    updateForm.style.display = 'block'; "  # Show the update form
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); "  # Hide checkbox, delete icon, email/phone, and title link
+            "} else { "
+            "    updateForm.style.display = 'none'; "  # Hide the update form
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); "  # Show checkbox, delete icon, email/phone, and title link
+            "}"
+        )  # Toggle visibility
+    )
+
+    return Li(
+        Div(
+            active_checkbox,  # Include the active checkbox
+            title_link,  # Use the updated title link
+            Span(f" ({profile.email}, {profile.phone})", style="margin-left: 10px;"),  # Display email and phone
+            delete_icon,  # Include the delete icon
+            update_form,  # Include the hidden update form
             style="display: flex; align-items: center;"  # Flexbox for alignment
         ),
         id=f'profile-{profile.id}',  # Unique ID for the profile item
@@ -937,16 +1289,36 @@ def profile_app(request):
     """
     Handle the profile app GET request.
     """
+    print("Entering profile_app function")
+    logger.debug("Entering profile_app function")
+
+    # Set the last_explore_choice to "Profiles"
+    db["last_explore_choice"] = "Profiles"
+    print("Set last_explore_choice to 'Profiles'")
+    logger.info("Set last_explore_choice to 'Profiles'")
+
+    # Set the last_visited_url to the current URL
+    db["last_visited_url"] = request.url.path
+    print(f"Set last_visited_url to '{request.url.path}'")
+    logger.info(f"Set last_visited_url to '{request.url.path}'")
+
     # Retrieve the current profile name from the database
     current_profile_name = db.get("last_profile_name", "Profiles")  # Default to "Profiles" if not set
+    print(f"Current profile name: {current_profile_name}")
+    logger.debug(f"Current profile name: {current_profile_name}")
 
-    return Titled(
+    response = Titled(
         f"{APP_NAME} / {current_profile_name} / Profiles",  # Title for the page including profile name
         get_profiles(),  # Call the function to retrieve and display profiles
         hx_ext='ws',  # Enable WebSocket extensions
         ws_connect='/ws',  # WebSocket connection endpoint
         data_theme="dark",  # Set the theme for the page
     )
+
+    print("Exiting profile_app function")
+    logger.debug("Exiting profile_app function")
+
+    return response
 
 def get_profiles():
     """Retrieve and display the list of profiles."""
@@ -965,7 +1337,7 @@ def get_profiles():
                             Input(placeholder="New Profile Name", name="profile_name"),
                             Input(placeholder="Email", name="profile_email"),
                             Input(placeholder="Phone", name="profile_phone"),
-                            Button("Add Profile", type="submit"),
+                            Button("Add", type="submit"),
                         ),
                         hx_post="/add_profile",
                         hx_target="#profile-list",
@@ -1039,42 +1411,3 @@ async def delete_profile(profile_id: int):
     profile = profiles[profile_id]  # Get the profile item
     profiles.delete(profile_id)  # Delete the profile item
     return ''  # Return an empty string to remove the item from the DOM
-
-# *******************************
-# Search Endpoint
-# *******************************
-@rt('/search', methods=['POST'])
-async def search(request):
-    """
-    Handle search queries to inform the user that the search feature is not implemented yet.
-    """
-    # Inform the user that the search feature is not implemented
-    await chatq("The search feature is not implemented yet. Please check back later!")
-    
-    # Respond with a simple message
-    return "Search feature is not implemented yet. Check the chat for a response!"
-
-# *******************************
-# Poke Endpoint
-# *******************************
-@rt('/poke', methods=['POST'])
-async def poke_chatbot():
-    """
-    Handle the poke interaction with the chatbot.
-    """
-    # Define a poke message for the chatbot
-    poke_message = f"You poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked."
-
-    # Queue the message for streaming to the chat interface
-    await chatq(poke_message)
-    
-    # Respond with an empty string or a relevant message
-    return "Poke received. Check the chat for a response!"
-
-# *******************************
-# Activate the Application
-# *******************************
-
-# Add this line to set the model
-model = get_best_model()  # Retrieve the best model
-serve()  # Start the application
