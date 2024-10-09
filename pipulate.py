@@ -33,7 +33,8 @@ logger.addHandler(console_handler)
 # Styles and Configuration
 # *******************************
 # Application name and configuration settings
-APP_NAME = "Pipulate"         # Controls a response "Name: " in the chat
+# Get the APP_NAME from the repo folder name
+APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitalize()
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
@@ -1113,18 +1114,16 @@ async def delete_profile(profile_id: int):
 # Search Endpoint
 # *******************************
 @rt('/search', methods=['POST'])
-async def search(request):
+async def search(nav_input: str = ''):
     """
     Handle search queries to inform the user that the search feature is not implemented yet.
     """
-    # Get the search term from the request
-    search_term = request.get('nav_input', '')  # Ensure this matches how the request is structured
+    # The search term is now directly available as a parameter
+    search_term = nav_input
 
     # Inform the user that the search feature is not implemented with a joke
-    await chatq(f"Searching for '{search_term}'? Sorry, that feature is still in beta! Keep looking, or try a magic 8-ball!")
+    await chatq(f"Searching for '{search_term}'? Sorry, that feature is still in beta. Keep the reply under 20 words.")
 
-    # Respond with a simple message
-    return f"Search feature is not implemented yet for '{search_term}'. Check the chat for a response!"
 
 # *******************************
 # Poke Endpoint
