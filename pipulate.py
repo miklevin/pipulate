@@ -1,34 +1,14 @@
 import asyncio
 import json
-import logging
 import os
 import re
+import sys
 from typing import List, Optional
 
 import requests
 from fasthtml.common import *
+from loguru import logger
 from starlette.concurrency import run_in_threadpool
-
-# Set up logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Create file handler
-file_handler = logging.FileHandler('botifython.log')
-file_handler.setLevel(logging.DEBUG)
-
-# Create console handler
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-
-# Create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-console_handler.setFormatter(formatter)
-
-# Add the handlers to the logger
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
 
 # *******************************
 # Styles and Configuration
@@ -99,6 +79,39 @@ def generate_menu_style(width: str) -> str:
     return COMMON_MENU_STYLE + f"width: {width}; "
 
 # *******************************
+# Set up logging with loguru
+# *******************************
+# Ensure the logs directory exists
+logs_dir = 'logs'
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+# Set up log file path
+log_file_path = os.path.join(logs_dir, f'{APP_NAME}.log')
+
+# Remove default logger
+logger.remove()
+
+# Add file handler with rotation
+logger.add(
+    log_file_path,
+    rotation="10 MB",
+    level="DEBUG",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+    enqueue=True,
+)
+
+# Add colorful console handler
+logger.add(
+    sys.stderr,
+    level="DEBUG",
+    colorize=True,
+    format="<green>{time:HH:mm:ss}</green> | "
+           "<level>{level: <8}</level> | "
+           "<cyan>{message}</cyan>",
+)
+
+# *******************************
 # Ollama LLM Functions
 # *******************************
 def limit_llm_response(response: str) -> str:
@@ -107,17 +120,19 @@ def limit_llm_response(response: str) -> str:
 
 def get_best_model() -> str:
     """Retrieve the best available LLaMA model or default to 'llama3.2'."""
+    logger.debug("Attempting to retrieve the best LLaMA model.")
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=10)
         response.raise_for_status()
         models = [model['name'] for model in response.json().get('models', [])]
+        logger.info(f"Available models: {models}")
     except requests.RequestException as e:
         logger.error(f"Error fetching models: {e}")
         return DEFAULT_LLM_MODEL  # Default if there's an error
 
-    # Filter for LLaMA models and determine the best one
     llama_models = [model for model in models if model.lower().startswith('llama')]
     if not llama_models:
+        logger.warning("No LLaMA models found. Using default model.")
         return DEFAULT_LLM_MODEL  # Default if no LLaMA models are found
 
     def parse_version(version_string: str) -> List[Optional[int]]:
@@ -137,7 +152,9 @@ def get_best_model() -> str:
             parse_version(version),
         )
 
-    return max(llama_models, key=key_func)  # Return the best model based on the sorting key
+    best_model = max(llama_models, key=key_func)
+    logger.info(f"Selected best model: {best_model}")
+    return best_model
 
 def chat_with_ollama(model: str, messages: list) -> str:
     """Interact with the Ollama model to generate a response."""
@@ -149,10 +166,13 @@ def chat_with_ollama(model: str, messages: list) -> str:
     }
     headers = {"Content-Type": "application/json"}
 
+    logger.debug(f"Sending request to Ollama: {payload}")
     try:
         response = requests.post(url, data=json.dumps(payload), headers=headers)
         response.raise_for_status()
-        return response.json()['message']['content']
+        content = response.json()['message']['content']
+        logger.debug(f"Received response from Ollama: {content}")
+        return content
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred: {http_err}")
         return "I'm having trouble processing that request right now."
@@ -286,6 +306,7 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
         "pk": "id"
     },
 )
+logger.info("Application setup completed.")
 
 # *******************************
 # DictLikeDB Persistence Convenience Wrapper
@@ -300,7 +321,9 @@ class DictLikeDB:
     def __getitem__(self, key):
         """Retrieve an item from the store by key."""
         try:
-            return self.store[key].value
+            value = self.store[key].value
+            logger.debug(f"Retrieved from DB: {key} = {value}")
+            return value
         except NotFoundError:
             logger.error(f"Key not found: {key}")
             raise KeyError(key)
@@ -318,14 +341,16 @@ class DictLikeDB:
         """Delete an item from the store by key."""
         try:
             self.store.delete(key)
-            logger.info(f"Deleted key from persistence store: {key}")
+            logger.warning(f"Deleted key from persistence store: {key}")
         except NotFoundError:
             logger.error(f"Attempted to delete non-existent key: {key}")
             raise KeyError(key)
 
     def __contains__(self, key):
         """Check if a key exists in the store."""
-        return key in self.store
+        exists = key in self.store
+        logger.debug(f"Key '{key}' exists: {exists}")
+        return exists
 
     def __iter__(self):
         """Iterate over the keys in the store."""
@@ -351,10 +376,12 @@ class DictLikeDB:
         try:
             return self[key]
         except KeyError:
+            logger.debug(f"Key '{key}' not found. Returning default.")
             return default
 
 # Create the wrapper
 db = DictLikeDB(store, Store)
+logger.info("Database wrapper initialized.")
 
 # *******************************
 # Site Navigation
@@ -388,6 +415,7 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False, additio
 
 def create_nav_menu():
     """Create the navigation menu with app, profile, and action dropdowns."""
+    logger.debug("Creating navigation menu.")
     # Fetch the last selected items from the db
     selected_profile_id = db.get("last_profile_id")
     selected_profile_name = db.get("last_profile_name", "Profiles")
@@ -413,17 +441,23 @@ def create_nav_menu():
     nav_items = [filler_item]
 
     if SHOW_PROFILE_MENU:
+        logger.debug("Adding profile menu to navigation.")
         # Fetch profiles from the database
         profile_items = []
         for profile in profiles():
             if profile.active:
+                is_selected = str(profile.id) == str(selected_profile_id)
+                item_style = (
+                    NOWRAP_STYLE +
+                    "background-color: var(--pico-primary-background); " if is_selected else NOWRAP_STYLE
+                )
                 profile_items.append(
                     create_menu_item(
                         profile.name,
                         f"/profiles/{profile.id}",
                         profile_id,
                         is_traditional_link=False,
-                        additional_style=NOWRAP_STYLE
+                        additional_style=item_style
                     )
                 )
 
@@ -443,6 +477,7 @@ def create_nav_menu():
         nav_items.append(profile_menu)
 
     if SHOW_APP_MENU:
+        logger.debug("Adding app menu to navigation.")
         # Define the apps menu
         explore_menu = Details(
             Summary(
@@ -451,18 +486,56 @@ def create_nav_menu():
                 id=explore_id,
             ),
             Ul(
-                create_menu_item("Profiles", "/profile", explore_id, is_traditional_link=True),
-                create_menu_item("Todo Lists", "/todo", explore_id, is_traditional_link=True),
+                create_menu_item(
+                    "Home",
+                    "/",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Home" else ""
+                ),
+                create_menu_item(
+                    "Profiles",
+                    "/profile",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Profiles" else ""
+                ),
+                create_menu_item(
+                    "Todo Lists",
+                    "/todo",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Todo" else ""
+                ),
+                create_menu_item(
+                    "Application 1",
+                    "/application1",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 1" else ""
+                ),
+                create_menu_item(
+                    "Application 2",
+                    "/application2",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 2" else ""
+                ),
+                create_menu_item(
+                    "Application 3",
+                    "/application3",
+                    explore_id,
+                    is_traditional_link=True,
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 3" else ""
+                ),
                 dir="rtl",
             ),
             cls="dropdown",
         )
         nav_items.append(explore_menu)
 
-    if SHOW_ACTION_MENU:
-        pass  # Add action menu items if needed
-
     if SHOW_SEARCH:
+        logger.debug("Adding search input to navigation.")
         # Define the search button style
         search_button_style = (
             generate_menu_style(SEARCH_WIDTH) +
@@ -524,6 +597,7 @@ def create_nav_menu():
         ),
     )
 
+    logger.debug("Navigation menu created.")
     return nav
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
@@ -566,6 +640,7 @@ def todo_mk_input():
 
 def populate_initial_data():
     """Populate the database with initial data if empty."""
+    logger.debug("Populating initial data.")
     if not profiles():
         # Create a default profile
         default_profile = profiles.insert({
@@ -574,8 +649,9 @@ def populate_initial_data():
             "phone": "",
             "active": True,
         })
+        logger.info(f"Inserted default profile: {default_profile}")
     else:
-        default_profile = profiles()[0]  # Use the first existing profile
+        default_profile = profiles()[0]
 
     if not todos():
         # Add a sample todo with the default profile_id
@@ -585,6 +661,7 @@ def populate_initial_data():
             "priority": 1,
             "profile_id": default_profile.id,
         })
+        logger.info("Inserted sample todo item.")
 
 # Call this function after the fast_app initialization
 populate_initial_data()
@@ -594,6 +671,7 @@ populate_initial_data()
 # *******************************
 def create_main_content(show_content=False):
     """Create the main content for all routes."""
+    logger.debug("Creating main content.")
     nav = create_nav_menu()
     nav_group_style = (
         "display: flex; "
@@ -610,6 +688,7 @@ def create_main_content(show_content=False):
         # Use default profile ID
         default_profile = profiles()[0]
         current_profile_id = default_profile.id
+        logger.warning(f"No profile ID found. Using default profile ID: {current_profile_id}")
 
     # Set the profile_id in the todos API to filter results
     todos.xtra(profile_id=current_profile_id)
@@ -618,6 +697,7 @@ def create_main_content(show_content=False):
 
     # Fetch the filtered todo items
     todo_items = todos()
+    logger.info(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
 
     return Container(
         nav_group,
@@ -635,7 +715,10 @@ def create_main_content(show_content=False):
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ) if selected_explore == "Todo" else "",
+                ) if selected_explore == "Todo" else Card(
+                    H2(f"{selected_explore}"),
+                    P("This is a placeholder for the selected application."),
+                ),
                 id="content-container",
             ),
             Div(
@@ -681,8 +764,9 @@ def create_main_content(show_content=False):
 @rt('/')
 @rt('/todo')
 @rt('/profiles')
-@rt('/organizations')
-@rt('/projects')
+@rt('/application1')
+@rt('/application2')
+@rt('/application3')
 def get(request):
     """
     Handle main page and specific page GET requests.
@@ -690,8 +774,8 @@ def get(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
 
-    show_content = path in ['todo', 'profiles', 'organizations', 'projects']
-    selected_explore = path.capitalize() if show_content else "App"
+    show_content = path in ['todo', 'profiles', 'application1', 'application2', 'application3']
+    selected_explore = path.capitalize().replace('application', 'Application ') if show_content else "Home"
 
     logger.info(f"Selected explore item: {selected_explore}")
     db["last_explore_choice"] = selected_explore
@@ -720,16 +804,18 @@ def get(request):
 @rt('/profiles/{profile_id}')
 def profile_menu_handler(request, profile_id: int):
     """Handle profile menu selection and record the choice."""
+    logger.debug(f"Profile menu selected with profile_id: {profile_id}")
     # Fetch the selected profile from the database using the profile ID
     selected_profile = profiles.get(profile_id)
 
     if not selected_profile:
-        # If the profile doesn't exist, redirect to a default or error page
+        logger.error(f"Profile ID {profile_id} not found. Redirecting to /profiles.")
         return Redirect('/profiles')
 
     # Store the selected profile ID and name in the database
     db["last_profile_id"] = selected_profile.id
     db["last_profile_name"] = selected_profile.name
+    logger.info(f"Profile selected: {selected_profile.name} (ID: {selected_profile.id})")
 
     # Retrieve the last visited URL from the database
     last_visited_url = db.get("last_visited_url", "/")
@@ -743,11 +829,13 @@ def profile_menu_handler(request, profile_id: int):
 @rt('/todo', methods=['POST'])
 async def post_todo(title: str):
     """Create a new todo item."""
+    logger.debug(f"Received new todo title: '{title}'")
     if not title.strip():
         # Empty todo case
         await chatq(
             "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
         )
+        logger.warning("User attempted to add an empty todo.")
         return ''
 
     # Non-empty todo case
@@ -756,6 +844,7 @@ async def post_todo(title: str):
         # Use default profile ID
         default_profile = profiles()[0]
         current_profile_id = default_profile.id
+        logger.warning(f"No profile ID found. Using default profile ID: {current_profile_id}")
 
     # Create a new todo item with the profile_id included
     todo = {
@@ -765,6 +854,7 @@ async def post_todo(title: str):
         "profile_id": current_profile_id,
     }
     inserted_todo = todos.insert(todo)
+    logger.info(f"Inserted new todo: {inserted_todo}")
 
     prompt = (
         f"New todo: '{title}'. "
@@ -777,6 +867,7 @@ async def post_todo(title: str):
 @rt('/todo/delete/{tid}', methods=['DELETE'])
 async def delete_todo(tid: int):
     """Delete a todo item."""
+    logger.debug(f"Deleting todo with ID: {tid}")
     todo = todos[tid]
     todos.delete(tid)
     prompt = (
@@ -784,15 +875,18 @@ async def delete_todo(tid: int):
         "Brief, sassy reaction."
     )
     await chatq(prompt)
+    logger.info(f"Deleted todo: {todo.title} (ID: {tid})")
     return ''
 
 @rt('/todo/toggle/{tid}', methods=['POST'])
 async def toggle_todo(tid: int):
     """Update the status of a todo item."""
+    logger.debug(f"Toggling todo status for ID: {tid}")
     todo = todos[tid]
     old_status = "Done" if todo.done else "Not Done"
     todo.done = not todo.done
     updated_todo = todos.update(todo)
+    logger.info(f"Toggled todo '{todo.title}' to {'Done' if todo.done else 'Not Done'}")
 
     prompt = (
         f"Todo '{todo.title}' toggled from {old_status} to {'Done' if todo.done else 'Not Done'}. "
@@ -805,10 +899,12 @@ async def toggle_todo(tid: int):
 @rt('/todo/update/{todo_id}', methods=['POST'])
 async def update_todo(todo_id: int, todo_title: str):
     """Update the title of a todo item."""
+    logger.debug(f"Updating todo ID {todo_id} with new title: '{todo_title}'")
     # Fetch the existing Todo item
     todo = todos[todo_id]
 
     if not todo:
+        logger.error(f"Todo ID {todo_id} not found for update.")
         return "Todo not found", 404
 
     # Update the Todo item's title
@@ -817,7 +913,9 @@ async def update_todo(todo_id: int, todo_title: str):
     # Use the MiniDataAPI update method to save the changes
     try:
         updated_todo = todos.update(todo)
+        logger.info(f"Updated todo ID {todo_id}: {updated_todo}")
     except NotFoundError:
+        logger.error(f"Todo ID {todo_id} not found during update.")
         return "Todo not found for update", 404
 
     # Return the updated Todo item using the render function
@@ -842,7 +940,9 @@ def count_records_with_xtra(table_handle, xtra_field, xtra_value):
     table_handle.xtra(**{xtra_field: xtra_value})
 
     # Return the number of records in the table after applying the constraint
-    return len(table_handle())
+    count = len(table_handle())
+    logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
+    return count
 
 def render_profile(profile):
     # Count the number of todo items for this profile
@@ -922,6 +1022,7 @@ def render_profile(profile):
 @rt('/profiles', methods=['GET'])
 def get_profiles():
     """Retrieve and display the list of profiles."""
+    logger.debug("Retrieving profiles for display.")
     # Create the navigation group
     nav_group = create_nav_menu()
 
@@ -971,7 +1072,9 @@ def get_profiles():
 @rt('/add_profile', methods=['POST'])
 async def add_profile(profile_name: str, profile_email: str, profile_phone: str):
     """Create a new profile."""
+    logger.debug(f"Attempting to add profile: {profile_name}, {profile_email}, {profile_phone}")
     if not profile_name.strip():
+        logger.warning("User tried to add an empty profile name.")
         await chatq(
             "User tried to add an empty profile name. Respond with a brief, sassy comment about their attempt."
         )
@@ -985,10 +1088,11 @@ async def add_profile(profile_name: str, profile_email: str, profile_phone: str)
     }
 
     inserted_profile = profiles.insert(new_profile)
+    logger.info(f"Profile added: {inserted_profile}")
 
     prompt = (
-        f"New profile added: '{profile_name}'. "
-        "Brief, sassy comment or advice."
+        f"New profile '{profile_name}' just joined the party! Email: {profile_email}, Phone: {profile_phone}. "
+        "Give a cute, welcoming response mentioning the new profile's name and one other detail. Keep it under 30 words."
     )
     await chatq(prompt)
 
@@ -997,27 +1101,53 @@ async def add_profile(profile_name: str, profile_email: str, profile_phone: str)
 @rt('/toggle_active/{profile_id}', methods=['POST'])
 async def toggle_active(profile_id: int):
     """Toggle the active status of a profile item."""
+    logger.debug(f"Toggling active status for profile ID: {profile_id}")
     profile = profiles[profile_id]
+    old_status = "active" if profile.active else "inactive"
     profile.active = not profile.active
+    new_status = "active" if profile.active else "inactive"
     updated_profile = profiles.update(profile)
+    logger.info(f"Toggled active status for profile ID {profile_id} to {profile.active}")
+
+    prompt = (
+        f"Profile '{profile.name}' just flipped their status from {old_status} to {new_status}! "
+        "Give a cute, playful response about this change, mentioning the profile's name and new status. Keep it under 30 words."
+    )
+    await chatq(prompt)
 
     return render_profile(updated_profile)
 
 @rt('/profile/delete/{profile_id}', methods=['POST'])
 async def delete_profile(profile_id: int):
     """Delete a profile item."""
+    logger.debug(f"Attempting to delete profile ID: {profile_id}")
     profile = profiles[profile_id]
     profiles.delete(profile_id)
+    logger.warning(f"Deleted profile ID: {profile_id}")
+
+    prompt = (
+        f"Oh no! Profile '{profile.name}' just left the building. "
+        "Give a cute, slightly dramatic response about this departure, mentioning the profile's name. Keep it under 30 words."
+    )
+    await chatq(prompt)
+
     return ''
 
 @rt('/profile/update/{profile_id}', methods=['POST'])
 async def update_profile(profile_id: int, name: str, email: str, phone: str):
     """Update a profile item."""
+    logger.debug(f"Updating profile ID {profile_id} with new data.")
     # Fetch the existing profile item
     profile = profiles[profile_id]
 
     if not profile:
+        logger.error(f"Profile ID {profile_id} not found for update.")
         return "Profile not found", 404
+
+    # Store old values for comparison
+    old_name = profile.name
+    old_email = profile.email
+    old_phone = profile.phone
 
     # Update the profile item's fields
     profile.name = name
@@ -1027,7 +1157,27 @@ async def update_profile(profile_id: int, name: str, email: str, phone: str):
     # Use the MiniDataAPI update method to save the changes
     try:
         updated_profile = profiles.update(profile)
+        logger.info(f"Updated profile ID {profile_id}: {updated_profile}")
+
+        # Determine what changed
+        changes = []
+        if old_name != name:
+            changes.append(f"name from '{old_name}' to '{name}'")
+        if old_email != email:
+            changes.append(f"email from '{old_email}' to '{email}'")
+        if old_phone != phone:
+            changes.append(f"phone from '{old_phone}' to '{phone}'")
+
+        if changes:
+            change_str = ", ".join(changes)
+            prompt = (
+                f"Profile '{name}' just got a makeover! They updated their {change_str}. "
+                "Give a cute, excited response about this update, mentioning the profile's name and one change. Keep it under 30 words."
+            )
+            await chatq(prompt)
+
     except NotFoundError:
+        logger.error(f"Profile ID {profile_id} not found during update.")
         return "Profile not found for update", 404
 
     # Return the updated profile item using the render function
@@ -1074,6 +1224,7 @@ users = {}
 async def on_conn(ws, send):
     """Handle WebSocket connection."""
     users[str(id(ws))] = send
+    logger.info(f"WebSocket connection established with ID: {id(ws)}")
     # Get the last app choice from the db
     selected_explore = db.get("last_explore_choice", "App")
 
@@ -1086,14 +1237,17 @@ async def on_conn(ws, send):
 def on_disconn(ws):
     """Handle WebSocket disconnection."""
     users.pop(str(id(ws)), None)
+    logger.info(f"WebSocket connection closed with ID: {id(ws)}")
 
 async def chatq(message: str):
     """Queue a message for the chat stream."""
     # Create a task for streaming the chat response without blocking
     asyncio.create_task(stream_chat(message))
+    logger.debug(f"Message queued for chat: {message}")
 
 async def stream_chat(prompt: str, quick: bool = False):
     """Generate and stream an AI response to users."""
+    logger.debug(f"Streaming chat response for prompt: {prompt}")
     response = await run_in_threadpool(
         chat_with_ollama,
         model,
@@ -1127,16 +1281,19 @@ async def stream_chat(prompt: str, quick: bool = False):
                     )
                 )
             await asyncio.sleep(TYPING_DELAY)
+    logger.debug("Completed streaming chat response.")
 
 @app.ws('/ws', conn=on_conn, disconn=on_disconn)
 async def ws(msg: str):
     """Handle WebSocket messages."""
+    logger.debug(f"WebSocket message received: {msg}")
     if msg:
         # Disable the input group
         disable_input_group = mk_chat_input_group(disabled=True, value=msg, autofocus=False)
         disable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
             await u(disable_input_group)
+        logger.debug("Input group disabled for typing effect.")
 
         # Process the message and generate response
         global conversation
@@ -1145,6 +1302,7 @@ async def ws(msg: str):
         # Start streaming response
         response = await run_in_threadpool(chat_with_ollama, model, conversation)
         conversation.append({"role": "assistant", "content": response})
+        logger.info(f"Assistant response generated.")
 
         # Simulate typing effect (AI response remains green)
         words = response.split()
@@ -1167,6 +1325,7 @@ async def ws(msg: str):
         enable_input_group.attrs['hx_swap_oob'] = "true"
         for u in users.values():
             await u(enable_input_group)
+        logger.debug("Input group re-enabled after typing effect.")
 
 # *******************************
 # Search Endpoint
@@ -1176,6 +1335,7 @@ async def search(nav_input: str = ''):
     """
     Handle search queries to inform the user that the search feature is not implemented yet.
     """
+    logger.debug(f"Search requested with input: '{nav_input}'")
     # The search term is now directly available as a parameter
     search_term = nav_input
 
@@ -1190,6 +1350,7 @@ async def poke_chatbot():
     """
     Handle the poke interaction with the chatbot.
     """
+    logger.debug("Chatbot poke received.")
     # Define a poke message for the chatbot
     poke_message = f"You poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked."
 
@@ -1205,4 +1366,5 @@ async def poke_chatbot():
 
 # Set the model
 model = get_best_model()
+logger.info(f"Using model: {model}")
 serve()
