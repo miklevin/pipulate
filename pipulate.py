@@ -1041,6 +1041,37 @@ async def delete_profile(profile_id: int):
     return ''  # Return an empty string to remove the item from the DOM
 
 # *******************************
+# Search Endpoint
+# *******************************
+@rt('/search', methods=['POST'])
+async def search(request):
+    """
+    Handle search queries to inform the user that the search feature is not implemented yet.
+    """
+    # Inform the user that the search feature is not implemented
+    await chatq("The search feature is not implemented yet. Please check back later!")
+    
+    # Respond with a simple message
+    return "Search feature is not implemented yet. Check the chat for a response!"
+
+# *******************************
+# Poke Endpoint
+# *******************************
+@rt('/poke', methods=['POST'])
+async def poke_chatbot():
+    """
+    Handle the poke interaction with the chatbot.
+    """
+    # Define a poke message for the chatbot
+    poke_message = f"You poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked."
+
+    # Queue the message for streaming to the chat interface
+    await chatq(poke_message)
+    
+    # Respond with an empty string or a relevant message
+    return "Poke received. Check the chat for a response!"
+
+# *******************************
 # Activate the Application
 # *******************************
 
