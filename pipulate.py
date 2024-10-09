@@ -92,6 +92,8 @@ SHOW_APP_MENU = True      # Toggle for showing the app menu
 SHOW_ACTION_MENU = False  # Toggle for showing the action menu
 SHOW_SEARCH = True        # Toggle for showing the search input
 
+NOWRAP_STYLE = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+
 def generate_menu_style(width: str) -> str:
     """Generate a common style for menu elements with a specified width."""
     return COMMON_MENU_STYLE + f"width: {width}; "
@@ -364,16 +366,17 @@ db = DictLikeDB(store, Store)
 # Site Navigation
 # *******************************
 
-def create_menu_item(title, link, summary_id, is_traditional_link=False):
+def create_menu_item(title, link, summary_id, is_traditional_link=False, additional_style=""):
     """Create a menu item for the navigation."""
+    item_style = f"text-align: center; {additional_style}"  # Add additional_style here
     if is_traditional_link:
         return Li(
             A(
                 title,
                 href=link,  # Traditional link
                 cls="menu-item",
-            ),
-            style="text-align: center;"  # Center the item
+                style=item_style,  # Apply the style here
+            )
         )
     else:
         return Li(
@@ -385,8 +388,8 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False):
                 hx_trigger="click",  # Trigger on click
                 hx_push_url="false",  # Do not push URL to history
                 cls="menu-item",
-            ),
-            style="text-align: center;"  # Center the item
+                style=item_style,  # Apply the style here
+            )
         )
 
 def create_nav_menu():
@@ -423,9 +426,10 @@ def create_nav_menu():
                 profile_items.append(
                     create_menu_item(
                         profile.name,
-                        f"/profiles/{profile.id}",  # Ensure this points to the correct profile URL
+                        f"/profiles/{profile.id}",
                         profile_id,
-                        is_traditional_link=False  # Use HTMX for dynamic updates
+                        is_traditional_link=False,
+                        additional_style=NOWRAP_STYLE  # Add this line
                     )
                 )
 
@@ -433,7 +437,7 @@ def create_nav_menu():
         profile_menu = Details(
             Summary(
                 selected_profile_name,  # Display the selected profile name
-                style=generate_menu_style(PROFILE_MENU_WIDTH),
+                style=generate_menu_style(PROFILE_MENU_WIDTH) + NOWRAP_STYLE,  # Add NOWRAP_STYLE here
                 id=profile_id,
             ),
             Ul(
