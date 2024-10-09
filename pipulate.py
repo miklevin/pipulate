@@ -419,15 +419,15 @@ def create_nav_menu():
         # Fetch profiles from the database
         profile_items = []
         for profile in profiles():
-            # Use profile.id and profile.name for the menu item
-            profile_items.append(
-                create_menu_item(
-                    profile.name,
-                    f"/profiles/{profile.id}",  # Ensure this points to the correct profile URL
-                    profile_id,
-                    is_traditional_link=False  # Use HTMX for dynamic updates
+            if profile.active:  # Only add active profiles to the menu
+                profile_items.append(
+                    create_menu_item(
+                        profile.name,
+                        f"/profiles/{profile.id}",  # Ensure this points to the correct profile URL
+                        profile_id,
+                        is_traditional_link=False  # Use HTMX for dynamic updates
+                    )
                 )
-            )
 
         # Define the profile menu
         profile_menu = Details(
