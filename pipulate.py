@@ -422,6 +422,8 @@ def create_nav_menu():
     selected_explore = db.get("last_explore_choice", "App")
     selected_action = db.get("last_action_choice", "Actions")
 
+    logger.debug(f"Selected explore item in create_nav_menu: {selected_explore}")
+
     # Use generate_menu_style for the common style
     profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
     action_menu_style = generate_menu_style(ACTION_MENU_WIDTH)
@@ -775,7 +777,13 @@ def get(request):
     logger.debug(f"Received request for path: {path}")
 
     show_content = path in ['todo', 'profiles', 'application1', 'application2', 'application3']
-    selected_explore = path.capitalize().replace('application', 'Application ') if show_content else "Home"
+    
+    if path.startswith('application'):
+        selected_explore = f"Application {path[-1]}"
+    elif show_content:
+        selected_explore = path.capitalize()
+    else:
+        selected_explore = "Home"
 
     logger.info(f"Selected explore item: {selected_explore}")
     db["last_explore_choice"] = selected_explore
