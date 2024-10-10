@@ -1086,7 +1086,7 @@ def render_profile(profile):
 
     # Create the title link with an onclick event to toggle the update form
     title_link = A(
-        f"{profile.name} ({todo_count} {TODO_NAME.lower() if todo_count == 1 else TODO_NAME.lower() + 's'})",
+        f"{profile.name} ({todo_count} {TODO_NAME})",
         href="#",
         hx_trigger="click",
         onclick=(
