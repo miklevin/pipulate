@@ -21,8 +21,8 @@ APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitali
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
-TODO_NAME = "Competitors"         # Configurable name for the Todo app
-USER_NAME = "Clients"             # Configurable name for the Profiles app
+TODO_NAME = "Competitor"         # Configurable name for the Todo app
+USER_NAME = "Client"             # Configurable name for the Profiles app
 
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
@@ -115,6 +115,84 @@ logger.add(
            "<level>{level: <8}</level> | "
            "<cyan>{message}</cyan>",
 )
+
+import re
+
+def pluralize(word, count=2):
+    """
+    Return the plural or singular form of a word based on the count.
+    
+    Args:
+    word (str): The word to pluralize or singularize.
+    count (int): The count to determine plurality. Default is 2 (plural).
+    
+    Returns:
+    str: The word in its appropriate form (singular or plural).
+    """
+    if count == 1:
+        return word
+
+    # Irregular plurals
+    irregulars = {
+        'child': 'children',
+        'goose': 'geese',
+        'man': 'men',
+        'woman': 'women',
+        'tooth': 'teeth',
+        'foot': 'feet',
+        'mouse': 'mice',
+        'person': 'people'
+    }
+    
+    # Check for irregular plurals
+    lower_word = word.lower()
+    if lower_word in irregulars:
+        return irregulars[lower_word]
+
+    # Words ending in 'y'
+    if word.endswith('y'):
+        if word[-2] in 'aeiou':
+            return word + 's'
+        else:
+            return word[:-1] + 'ies'
+
+    # Words ending in 'o'
+    if word.endswith('o'):
+        if word[-2] in 'aeiou':
+            return word + 's'
+        else:
+            return word + 'es'
+
+    # Words ending in 'is'
+    if word.endswith('is'):
+        return word[:-2] + 'es'
+
+    # Words ending in 'us'
+    if word.endswith('us'):
+        return word[:-2] + 'i'
+
+    # Words ending in 'on'
+    if word.endswith('on'):
+        return word[:-2] + 'a'
+
+    # Words ending in 'f' or 'fe'
+    if word.endswith('f'):
+        return word[:-1] + 'ves'
+    if word.endswith('fe'):
+        return word[:-2] + 'ves'
+
+    # Words ending in 's', 'ss', 'sh', 'ch', 'x', 'z'
+    if word.endswith(('s', 'ss', 'sh', 'ch', 'x', 'z')):
+        return word + 'es'
+
+    # Default: just add 's'
+    return word + 's'
+
+# Example usage:
+# print(pluralize("cat"))  # Output: cats
+# print(pluralize("child"))  # Output: children
+# print(pluralize("sheep", 1))  # Output: sheep
+# print(pluralize("sheep", 2))  # Output: sheep
 
 # *******************************
 # Ollama LLM Functions
@@ -494,9 +572,9 @@ def create_nav_menu():
 
     if SHOW_PROFILE_MENU:
         logger.debug(f"Adding {USER_NAME.lower()} menu to navigation.")
-        # Fetch profiles from the database
+        # Fetch profiles from the database and sort them by priority
         profile_items = []
-        
+
         # Add "Manage Users" option at the top (unchanged)
         profile_items.append(
             create_menu_item(
@@ -507,31 +585,36 @@ def create_nav_menu():
                 additional_style="font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color);"
             )
         )
-        
-        for profile in profiles():
-            if profile.active:
-                is_selected = str(profile.id) == str(selected_profile_id)
-                item_style = (
-                    "background-color: var(--pico-primary-background); " if is_selected else ""
-                )
-                profile_items.append(
-                    Li(
-                        Label(
-                            Input(
-                                type="radio",
-                                name="profile",
-                                value=str(profile.id),
-                                checked=is_selected,
-                                hx_get=f"/profiles/{profile.id}",
-                                hx_target=f"#{profile_id}",
-                                hx_swap="outerHTML",
-                            ),
-                            profile.name,
-                            style="display: flex; align-items: center;"
+
+        # Fetch and sort active profiles by priority
+        active_profiles = sorted(
+            [p for p in profiles() if p.active],
+            key=lambda p: p.priority
+        )
+
+        for profile in active_profiles:
+            is_selected = str(profile.id) == str(selected_profile_id)
+            item_style = (
+                "background-color: var(--pico-primary-background); " if is_selected else ""
+            )
+            profile_items.append(
+                Li(
+                    Label(
+                        Input(
+                            type="radio",
+                            name="profile",
+                            value=str(profile.id),
+                            checked=is_selected,
+                            hx_get=f"/profiles/{profile.id}",
+                            hx_target=f"#{profile_id}",
+                            hx_swap="outerHTML",
                         ),
-                        style=f"text-align: left; {item_style}"
-                    )
+                        profile.name,
+                        style="display: flex; align-items: center;"
+                    ),
+                    style=f"text-align: left; {item_style}"
                 )
+            )
 
         # Define the profile menu
         profile_menu = Details(
@@ -559,18 +642,11 @@ def create_nav_menu():
             ),
             Ul(
                 create_menu_item(
-                    "Home",
-                    "/",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Home" else ""
-                ),
-                create_menu_item(
-                    TODO_NAME,
+                    pluralize(TODO_NAME),
                     "/todo",
                     explore_id,
                     is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == TODO_NAME else ""
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == pluralize(TODO_NAME) else ""
                 ),
                 create_menu_item(
                     "Application 1",
@@ -709,7 +785,7 @@ def populate_initial_data():
     if not profiles():
         # Create a default profile
         default_profile = profiles.insert({
-            "name": "Default Profile",
+            "name": f"Default {USER_NAME}",  # Updated to use USER_NAME
             "email": "",
             "phone": "",
             "active": True,
@@ -721,12 +797,15 @@ def populate_initial_data():
     if not todos():
         # Add a sample todo with the default profile_id
         todos.insert({
-            "title": "Sample Todo",
+            "title": f"Sample {TODO_NAME}",
             "done": False,
             "priority": 1,
             "profile_id": default_profile.id,
         })
-        logger.info("Inserted sample todo item.")
+        logger.info(f"Inserted sample {TODO_NAME} item.")
+
+# Call this function after the fast_app initialization
+populate_initial_data()
 
 # Call this function after the fast_app initialization
 populate_initial_data()
@@ -1086,7 +1165,7 @@ def render_profile(profile):
 
     # Create the title link with an onclick event to toggle the update form
     title_link = A(
-        f"{profile.name} ({todo_count} {TODO_NAME})",
+        f"{profile.name} ({todo_count} {pluralize(TODO_NAME, todo_count)})",
         href="#",
         hx_trigger="click",
         onclick=(
@@ -1164,7 +1243,7 @@ def get_profiles():
                        style="padding-left: 0;"),
                     footer=Form(
                         Group(
-                            Input(placeholder=f"New {USER_NAME[:-1]} Name", name="profile_name"),
+                            Input(placeholder=f"New {USER_NAME}", name="profile_name"),
                             Input(placeholder="Email", name="profile_email"),
                             Input(placeholder="Phone", name="profile_phone"),
                             Button("Add", type="submit"),
@@ -1201,11 +1280,11 @@ def get_profiles():
 @rt('/add_profile', methods=['POST'])
 async def add_profile(profile_name: str, profile_email: str, profile_phone: str):
     """Create a new profile."""
-    logger.debug(f"Attempting to add {USER_NAME[:-1].lower()}: {profile_name}, {profile_email}, {profile_phone}")
+    logger.debug(f"Attempting to add {USER_NAME}: {profile_name}, {profile_email}, {profile_phone}")
     if not profile_name.strip():
-        logger.warning(f"User tried to add an empty {USER_NAME[:-1].lower()} name.")
+        logger.warning(f"User tried to add an empty {USER_NAME} name.")
         await chatq(
-            f"User tried to add an empty {USER_NAME[:-1].lower()} name. Respond with a brief, sassy comment about their attempt."
+            f"User tried to add an empty {USER_NAME} name. Respond with a brief, sassy comment about their attempt."
         )
         return ''
 
@@ -1323,9 +1402,9 @@ def profile_app(request):
     """
     logger.debug("Entering profile_app function")
 
-    # Set the last_explore_choice to USER_NAME
-    db["last_explore_choice"] = USER_NAME
-    logger.info(f"Set last_explore_choice to '{USER_NAME}'")
+    # Set the last_explore_choice to pluralize(USER_NAME)
+    db["last_explore_choice"] = pluralize(USER_NAME)
+    logger.info(f"Set last_explore_choice to '{pluralize(USER_NAME)}'")
 
     # Set the last_visited_url to the current URL
     db["last_visited_url"] = request.url.path
@@ -1333,10 +1412,10 @@ def profile_app(request):
 
     # Retrieve the current profile name from the database
     current_profile_name = db.get("last_profile_name", USER_NAME)
-    logger.debug(f"Current {USER_NAME[:-1].lower()} name: {current_profile_name}")
+    logger.debug(f"Current {USER_NAME} name: {current_profile_name}")
 
     response = Titled(
-        f"{APP_NAME} / {current_profile_name} / {USER_NAME}",
+        f"{APP_NAME} / {current_profile_name} / {pluralize(USER_NAME)}",
         get_profiles(),
         hx_ext='ws',
         ws_connect='/ws',
@@ -1372,7 +1451,7 @@ async def update_profile_order(values: dict):
             logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
 
         # After update attempt, queue a message for the chat
-        prompt = f"The {USER_NAME} list was reordered. Make a brief, witty remark about organizing people. Keep it under 20 words."
+        prompt = f"The {pluralize(USER_NAME)} list was reordered. Make a brief, witty remark about organizing people. Keep it under 20 words."
         await chatq(prompt)
 
         # Fetch and return the updated list of profiles
