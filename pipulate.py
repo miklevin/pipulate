@@ -21,8 +21,10 @@ APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitali
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
-TODO_NAME = "Competitor"         # Configurable name for the Todo app
-USER_NAME = "Client"             # Configurable name for the Profiles app
+TODO_NAME = "Todo"              # Configurable name for the Todo app
+USER_NAME = "User"              # Configurable name for the Profiles app
+EMAIL_NAME = "email"
+PHONE_NAME = "phone"
 
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
@@ -116,49 +118,55 @@ logger.add(
            "<cyan>{message}</cyan>",
 )
 
-import re
 
-def pluralize(word, count=2):
+def pluralize(word, count=2, singular=False):
     """
     Return the plural or singular form of a word based on the count.
+    Replace underscores with spaces and proper case the words.
     
     Args:
     word (str): The word to pluralize or singularize.
     count (int): The count to determine plurality. Default is 2 (plural).
+    singular (bool): If True, always return the singular form. Default is False.
     
     Returns:
-    str: The word in its appropriate form (singular or plural).
+    str: The word in its appropriate form (singular or plural), with spaces and proper casing.
     """
-    if count == 1:
+    def proper_case(s):
+        return ' '.join(word.capitalize() for word in s.split())
+
+    # Replace underscores with spaces and proper case
+    word = proper_case(word.replace('_', ' '))
+
+    if singular or count == 1:
         return word
 
     # Irregular plurals
     irregulars = {
-        'child': 'children',
-        'goose': 'geese',
-        'man': 'men',
-        'woman': 'women',
-        'tooth': 'teeth',
-        'foot': 'feet',
-        'mouse': 'mice',
-        'person': 'people'
+        'Child': 'Children',
+        'Goose': 'Geese',
+        'Man': 'Men',
+        'Woman': 'Women',
+        'Tooth': 'Teeth',
+        'Foot': 'Feet',
+        'Mouse': 'Mice',
+        'Person': 'People'
     }
     
     # Check for irregular plurals
-    lower_word = word.lower()
-    if lower_word in irregulars:
-        return irregulars[lower_word]
+    if word in irregulars:
+        return irregulars[word]
 
     # Words ending in 'y'
     if word.endswith('y'):
-        if word[-2] in 'aeiou':
+        if word[-2].lower() in 'aeiou':
             return word + 's'
         else:
             return word[:-1] + 'ies'
 
     # Words ending in 'o'
     if word.endswith('o'):
-        if word[-2] in 'aeiou':
+        if word[-2].lower() in 'aeiou':
             return word + 's'
         else:
             return word + 'es'
@@ -187,12 +195,6 @@ def pluralize(word, count=2):
 
     # Default: just add 's'
     return word + 's'
-
-# Example usage:
-# print(pluralize("cat"))  # Output: cats
-# print(pluralize("child"))  # Output: children
-# print(pluralize("sheep", 1))  # Output: sheep
-# print(pluralize("sheep", 2))  # Output: sheep
 
 # *******************************
 # Ollama LLM Functions
@@ -636,7 +638,7 @@ def create_nav_menu():
         # Define the apps menu
         explore_menu = Details(
             Summary(
-                selected_explore,
+                pluralize(selected_explore, singular=True),
                 style=generate_menu_style(EXPLORE_MENU_WIDTH),
                 id=explore_id,
             ),
@@ -649,25 +651,18 @@ def create_nav_menu():
                     additional_style="background-color: var(--pico-primary-background); " if selected_explore == pluralize(TODO_NAME) else ""
                 ),
                 create_menu_item(
-                    "Application 1",
-                    "/application1",
+                    "App 1",
+                    "/app1",
                     explore_id,
                     is_traditional_link=True,
                     additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 1" else ""
                 ),
                 create_menu_item(
-                    "Application 2",
-                    "/application2",
+                    "App 2",
+                    "/app2",
                     explore_id,
                     is_traditional_link=True,
                     additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 2" else ""
-                ),
-                create_menu_item(
-                    "Application 3",
-                    "/application3",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Application 3" else ""
                 ),
                 dir="rtl",
             ),
@@ -807,9 +802,6 @@ def populate_initial_data():
 # Call this function after the fast_app initialization
 populate_initial_data()
 
-# Call this function after the fast_app initialization
-populate_initial_data()
-
 # *******************************
 # Create Main Content
 # *******************************
@@ -839,6 +831,10 @@ def create_main_content(show_content=False):
 
     selected_explore = db.get("last_explore_choice", "App")
 
+    # Check if selected_explore matches either singular or plural form of TODO_NAME
+    is_todo_view = (selected_explore == pluralize(TODO_NAME) or 
+                    selected_explore == pluralize(TODO_NAME, singular=True))
+
     # Fetch the filtered todo items and sort them by priority
     todo_items = sorted(todos(), key=lambda x: x.priority)
     logger.info(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
@@ -848,7 +844,7 @@ def create_main_content(show_content=False):
         Grid(
             Div(
                 Card(
-                    H2(f"{selected_explore}"),
+                    H2(f"{pluralize(selected_explore, singular=True)}"),
                     Ul(*[render(todo) for todo in todo_items], 
                        id='todo-list', 
                        cls='sortable',
@@ -862,8 +858,8 @@ def create_main_content(show_content=False):
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ) if selected_explore == TODO_NAME else Card(
-                    H2(f"{selected_explore}"),
+                ) if is_todo_view else Card(
+                    H2(f"{pluralize(selected_explore, singular=True)}"),
                     P("This is a placeholder for the selected application."),
                 ),
                 id="content-container",
@@ -911,9 +907,8 @@ def create_main_content(show_content=False):
 @rt('/')
 @rt('/todo')
 @rt('/profiles')
-@rt('/application1')
-@rt('/application2')
-@rt('/application3')
+@rt('/app1')
+@rt('/app2')
 def get(request):
     """
     Handle main page and specific page GET requests.
@@ -921,14 +916,14 @@ def get(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
 
-    show_content = path in ['todo', 'profiles', 'application1', 'application2', 'application3']
+    show_content = path in ['todo', 'profiles', 'app1', 'app2']
     
     if path.startswith('application'):
         selected_explore = f"Application {path[-1]}"
     elif path == 'todo':
         selected_explore = TODO_NAME
     elif show_content:
-        selected_explore = path.capitalize()
+        selected_explore = pluralize(path, singular=True)
     else:
         selected_explore = "Home"
 
@@ -949,7 +944,7 @@ def get(request):
     logger.debug("Returning response for main GET request.")
     last_profile_name = db.get("last_profile_name", "Default Profile")
     return Titled(
-        f"{APP_NAME} / {last_profile_name} / {selected_explore} ",
+        f"{APP_NAME} / {pluralize(USER_NAME, singular=True)} / {pluralize(selected_explore, singular=True)}",
         response,
         hx_ext='ws',
         ws_connect='/ws',
@@ -1012,7 +1007,7 @@ async def post_todo(title: str):
     logger.info(f"Inserted new todo: {inserted_todo}")
 
     prompt = (
-        f"New todo: '{title}'. "
+        f"New {TODO_NAME}: '{title}'. "
         "Brief, sassy comment or advice."
     )
     await chatq(prompt)
@@ -1152,8 +1147,8 @@ def render_profile(profile):
     update_form = Form(
         Group(
             Input(type="text", name="name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"),
-            Input(type="email", name="email", value=profile.email, placeholder="Email", id=f"email-{profile.id}"),
-            Input(type="tel", name="phone", value=profile.phone, placeholder="Phone", id=f"phone-{profile.id}"),
+            Input(type="text", name="email", value=profile.email, placeholder=EMAIL_NAME, id=f"email-{profile.id}"),
+            Input(type="text", name="phone", value=profile.phone, placeholder=PHONE_NAME, id=f"phone-{profile.id}"),
             Button("Update", type="submit"),
         ),
         hx_post=f"/profile/update/{profile.id}",
@@ -1243,9 +1238,9 @@ def get_profiles():
                        style="padding-left: 0;"),
                     footer=Form(
                         Group(
-                            Input(placeholder=f"New {USER_NAME}", name="profile_name"),
-                            Input(placeholder="Email", name="profile_email"),
-                            Input(placeholder="Phone", name="profile_phone"),
+                            Input(placeholder=f"{USER_NAME} Name", name="profile_name"),
+                            Input(placeholder=EMAIL_NAME, name="profile_email"),
+                            Input(placeholder=PHONE_NAME, name="profile_phone"),
                             Button("Add", type="submit"),
                         ),
                         hx_post="/add_profile",
@@ -1303,7 +1298,7 @@ async def add_profile(profile_name: str, profile_email: str, profile_phone: str)
     logger.info(f"Profile added: {inserted_profile}")
 
     prompt = (
-        f"New profile '{profile_name}' just joined the party! Email: {profile_email}, Phone: {profile_phone}. "
+        f"New profile '{profile_name}' just joined the party! {EMAIL_NAME}: {profile_email}, Phone: {profile_phone}. "
         "Give a cute, welcoming response mentioning the new profile's name and one other detail. Keep it under 30 words."
     )
     await chatq(prompt)
@@ -1376,7 +1371,7 @@ async def update_profile(profile_id: int, name: str, email: str, phone: str):
         if old_name != name:
             changes.append(f"name from '{old_name}' to '{name}'")
         if old_email != email:
-            changes.append(f"email from '{old_email}' to '{email}'")
+            changes.append(f"{EMAIL_NAME} from '{old_email}' to '{email}'")
         if old_phone != phone:
             changes.append(f"phone from '{old_phone}' to '{phone}'")
 
@@ -1415,7 +1410,7 @@ def profile_app(request):
     logger.debug(f"Current {USER_NAME} name: {current_profile_name}")
 
     response = Titled(
-        f"{APP_NAME} / {current_profile_name} / {pluralize(USER_NAME)}",
+        f"{APP_NAME} / {pluralize(USER_NAME, singular=True)} / {pluralize(USER_NAME)}",
         get_profiles(),
         hx_ext='ws',
         ws_connect='/ws',
@@ -1479,7 +1474,7 @@ async def on_conn(ws, send):
     selected_explore = db.get("last_explore_choice", "App")
 
     # Create a personalized welcome message
-    welcome_prompt = f"Say 'Welcome to {selected_explore}' and add a brief, friendly greeting related to this area. Keep it under 25 words."
+    welcome_prompt = f"Say 'Welcome to {pluralize(selected_explore, singular=True)}' and add a brief, friendly greeting related to this area. Keep it under 25 words."
 
     # Queue the welcome message when a new connection is established
     await chatq(welcome_prompt)
@@ -1610,20 +1605,6 @@ async def poke_chatbot():
     # Respond with an empty string or a relevant message
     return "Poke received. Let's see what the chatbot says..."
 
-# *******************************
-# Custom Uvicorn Config
-# *******************************
-class CustomUvicornConfig(Config):
-    def should_reload(self):
-        for dir_path, dirs, files in os.walk(self.app_dir):
-            if 'data' in dirs:
-                dirs.remove('data')
-            if 'logs' in dirs:
-                dirs.remove('logs')
-            for file in files:
-                if self.should_reload_file(os.path.join(dir_path, file)):
-                    return True
-        return False
 
 # *******************************
 # Activate the Application
@@ -1639,15 +1620,6 @@ def print_app_name_figlet():
 model = get_best_model()
 logger.info(f"Using model: {model}")
 
-# Replace the serve() function with this custom version
-def custom_serve():
-    config = CustomUvicornConfig("botifython:app", host="0.0.0.0", port=5001, reload=True)
-    server = Server(config=config)
-    server.run()
+print_app_name_figlet()
 
-if __name__ == "__main__":
-    # Print the Figlet
-    print_app_name_figlet()
-    
-    # Use the custom serve function instead of the default one
-    custom_serve()
+serve()
