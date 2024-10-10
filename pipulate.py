@@ -10,6 +10,8 @@ from fasthtml.common import *
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 from pyfiglet import Figlet
+from uvicorn.config import Config
+from uvicorn.main import Server
 
 # *******************************
 # Styles and Configuration
@@ -19,8 +21,8 @@ APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitali
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
-TODO_NAME = "Task List"         # Configurable name for the Todo app
-USER_NAME = "Users"             # Configurable name for the Profiles app
+TODO_NAME = "Competitors"         # Configurable name for the Todo app
+USER_NAME = "Clients"             # Configurable name for the Profiles app
 
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
@@ -1530,6 +1532,21 @@ async def poke_chatbot():
     return "Poke received. Let's see what the chatbot says..."
 
 # *******************************
+# Custom Uvicorn Config
+# *******************************
+class CustomUvicornConfig(Config):
+    def should_reload(self):
+        for dir_path, dirs, files in os.walk(self.app_dir):
+            if 'data' in dirs:
+                dirs.remove('data')
+            if 'logs' in dirs:
+                dirs.remove('logs')
+            for file in files:
+                if self.should_reload_file(os.path.join(dir_path, file)):
+                    return True
+        return False
+
+# *******************************
 # Activate the Application
 # *******************************
 
@@ -1543,7 +1560,15 @@ def print_app_name_figlet():
 model = get_best_model()
 logger.info(f"Using model: {model}")
 
-# Print the Figlet
-print_app_name_figlet()
+# Replace the serve() function with this custom version
+def custom_serve():
+    config = CustomUvicornConfig("botifython:app", host="0.0.0.0", port=5001, reload=True)
+    server = Server(config=config)
+    server.run()
 
-serve()
+if __name__ == "__main__":
+    # Print the Figlet
+    print_app_name_figlet()
+    
+    # Use the custom serve function instead of the default one
+    custom_serve()
