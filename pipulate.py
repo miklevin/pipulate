@@ -9,6 +9,7 @@ import requests
 from fasthtml.common import *
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
+from pyfiglet import Figlet
 
 # *******************************
 # Styles and Configuration
@@ -18,6 +19,8 @@ APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitali
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
+TODO_NAME = "Task List"         # Configurable name for the Todo app
+USER_NAME = "Users"             # Configurable name for the Profiles app
 
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
@@ -294,7 +297,7 @@ document.addEventListener('DOMContentLoaded', (event) => {{
     if (el) {{
         new Sortable(el, {{
             animation: 150,
-            ghostClass: '{ghost_class}',
+            ghost_class: '{ghost_class}',
             onEnd: function (evt) {{
                 console.log('Drag ended!', evt);
                 let items = Array.from(el.children).map((item, index) => ({{
@@ -303,8 +306,9 @@ document.addEventListener('DOMContentLoaded', (event) => {{
                 }}));
                 console.log('New order:', items);
 
-                htmx.ajax('POST', '{update_url}', {{
-                    target: '{sel}',
+                let updateUrl = el.id === 'profile-list' ? '/update_profile_order' : '{update_url}';
+                htmx.ajax('POST', updateUrl, {{
+                    target: el,  // Use the element directly instead of a selector
                     swap: 'none',
                     values: {{
                         items: JSON.stringify(items)
@@ -348,6 +352,7 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
         "email": str,
         "phone": str,
         "active": bool,
+        "priority": int,  # Make sure this line is present
         "pk": "id"
     },
 )
@@ -463,11 +468,9 @@ def create_nav_menu():
     logger.debug("Creating navigation menu.")
     # Fetch the last selected items from the db
     selected_profile_id = db.get("last_profile_id")
-    selected_profile_name = db.get("last_profile_name", "Profiles")
+    selected_profile_name = db.get("last_profile_name", USER_NAME)
     selected_explore = db.get("last_explore_choice", "App")
     selected_action = db.get("last_action_choice", "Actions")
-
-    logger.debug(f"Selected explore item in create_nav_menu: {selected_explore}")
 
     # Use generate_menu_style for the common style
     profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
@@ -488,23 +491,43 @@ def create_nav_menu():
     nav_items = [filler_item]
 
     if SHOW_PROFILE_MENU:
-        logger.debug("Adding profile menu to navigation.")
+        logger.debug(f"Adding {USER_NAME.lower()} menu to navigation.")
         # Fetch profiles from the database
         profile_items = []
+        
+        # Add "Manage Users" option at the top (unchanged)
+        profile_items.append(
+            create_menu_item(
+                f"Manage {USER_NAME}",
+                "/profile",
+                profile_id,
+                is_traditional_link=True,
+                additional_style="font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color);"
+            )
+        )
+        
         for profile in profiles():
             if profile.active:
                 is_selected = str(profile.id) == str(selected_profile_id)
                 item_style = (
-                    NOWRAP_STYLE +
-                    "background-color: var(--pico-primary-background); " if is_selected else NOWRAP_STYLE
+                    "background-color: var(--pico-primary-background); " if is_selected else ""
                 )
                 profile_items.append(
-                    create_menu_item(
-                        profile.name,
-                        f"/profiles/{profile.id}",
-                        profile_id,
-                        is_traditional_link=False,
-                        additional_style=item_style
+                    Li(
+                        Label(
+                            Input(
+                                type="radio",
+                                name="profile",
+                                value=str(profile.id),
+                                checked=is_selected,
+                                hx_get=f"/profiles/{profile.id}",
+                                hx_target=f"#{profile_id}",
+                                hx_swap="outerHTML",
+                            ),
+                            profile.name,
+                            style="display: flex; align-items: center;"
+                        ),
+                        style=f"text-align: left; {item_style}"
                     )
                 )
 
@@ -517,7 +540,7 @@ def create_nav_menu():
             ),
             Ul(
                 *profile_items,
-                dir="rtl",
+                style="padding-left: 0;",
             ),
             cls="dropdown",
         )
@@ -541,18 +564,11 @@ def create_nav_menu():
                     additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Home" else ""
                 ),
                 create_menu_item(
-                    "Profiles",
-                    "/profile",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Profiles" else ""
-                ),
-                create_menu_item(
-                    "Todo Lists",
+                    TODO_NAME,
                     "/todo",
                     explore_id,
                     is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "Todo" else ""
+                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == TODO_NAME else ""
                 ),
                 create_menu_item(
                     "Application 1",
@@ -761,11 +777,11 @@ def create_main_content(show_content=False):
                             todo_mk_input(),
                             Button("Add", type="submit"),
                         ),
-                        hx_post=f"/{selected_explore.lower()}",
+                        hx_post="/todo",
                         hx_swap="beforeend",
                         hx_target="#todo-list",
                     ),
-                ) if selected_explore == "Todo" else Card(
+                ) if selected_explore == TODO_NAME else Card(
                     H2(f"{selected_explore}"),
                     P("This is a placeholder for the selected application."),
                 ),
@@ -828,6 +844,8 @@ def get(request):
     
     if path.startswith('application'):
         selected_explore = f"Application {path[-1]}"
+    elif path == 'todo':
+        selected_explore = TODO_NAME
     elif show_content:
         selected_explore = path.capitalize()
     else:
@@ -1066,7 +1084,7 @@ def render_profile(profile):
 
     # Create the title link with an onclick event to toggle the update form
     title_link = A(
-        f"{profile.name} ({todo_count} Todo{'' if todo_count == 1 else 's'})",
+        f"{profile.name} ({todo_count} {TODO_NAME.lower() if todo_count == 1 else TODO_NAME.lower() + 's'})",
         href="#",
         hx_trigger="click",
         onclick=(
@@ -1105,26 +1123,46 @@ def render_profile(profile):
             style="display: flex; align-items: center;"
         ),
         id=f'profile-{profile.id}',
-        style="list-style-type: none;"
+        style="list-style-type: none;",
+        data_id=profile.id,  # Add this line
+        data_priority=profile.priority  # Add this line
     )
 
 @rt('/profiles', methods=['GET'])
 def get_profiles():
     """Retrieve and display the list of profiles."""
-    logger.debug("Retrieving profiles for display.")
+    logger.debug(f"Retrieving {USER_NAME.lower()} for display.")
     # Create the navigation group
     nav_group = create_nav_menu()
+
+    # Fetch all profiles
+    all_profiles = profiles()
+    
+    # Log the initial state of profiles
+    logger.debug("Initial profile state:")
+    for profile in all_profiles:
+        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+
+    # Sort profiles by priority, handling None values
+    ordered_profiles = sorted(all_profiles, key=lambda p: p.priority if p.priority is not None else float('inf'))
+    
+    logger.debug("Ordered profile list:")
+    for profile in ordered_profiles:
+        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
 
     return Container(
         nav_group,
         Grid(
             Div(
                 Card(
-                    H2("Profiles"),
-                    Ul(*[render_profile(profile) for profile in profiles()], id='profile-list', style="padding-left: 0;"),
+                    H2(USER_NAME),
+                    Ul(*[render_profile(profile) for profile in ordered_profiles], 
+                       id='profile-list', 
+                       cls='sortable',
+                       style="padding-left: 0;"),
                     footer=Form(
                         Group(
-                            Input(placeholder="New Profile Name", name="profile_name"),
+                            Input(placeholder=f"New {USER_NAME[:-1]} Name", name="profile_name"),
                             Input(placeholder="Email", name="profile_email"),
                             Input(placeholder="Phone", name="profile_phone"),
                             Button("Add", type="submit"),
@@ -1161,19 +1199,23 @@ def get_profiles():
 @rt('/add_profile', methods=['POST'])
 async def add_profile(profile_name: str, profile_email: str, profile_phone: str):
     """Create a new profile."""
-    logger.debug(f"Attempting to add profile: {profile_name}, {profile_email}, {profile_phone}")
+    logger.debug(f"Attempting to add {USER_NAME[:-1].lower()}: {profile_name}, {profile_email}, {profile_phone}")
     if not profile_name.strip():
-        logger.warning("User tried to add an empty profile name.")
+        logger.warning(f"User tried to add an empty {USER_NAME[:-1].lower()} name.")
         await chatq(
-            "User tried to add an empty profile name. Respond with a brief, sassy comment about their attempt."
+            f"User tried to add an empty {USER_NAME[:-1].lower()} name. Respond with a brief, sassy comment about their attempt."
         )
         return ''
+
+    # Get the maximum priority and add 1, or use 0 if no profiles exist
+    max_priority = max((p.priority or 0 for p in profiles()), default=-1) + 1
 
     new_profile = {
         "name": profile_name,
         "email": profile_email,
         "phone": profile_phone,
         "active": True,
+        "priority": max_priority,
     }
 
     inserted_profile = profiles.insert(new_profile)
@@ -1279,20 +1321,20 @@ def profile_app(request):
     """
     logger.debug("Entering profile_app function")
 
-    # Set the last_explore_choice to "Profiles"
-    db["last_explore_choice"] = "Profiles"
-    logger.info("Set last_explore_choice to 'Profiles'")
+    # Set the last_explore_choice to USER_NAME
+    db["last_explore_choice"] = USER_NAME
+    logger.info(f"Set last_explore_choice to '{USER_NAME}'")
 
     # Set the last_visited_url to the current URL
     db["last_visited_url"] = request.url.path
     logger.info(f"Set last_visited_url to '{request.url.path}'")
 
     # Retrieve the current profile name from the database
-    current_profile_name = db.get("last_profile_name", "Profiles")
-    logger.debug(f"Current profile name: {current_profile_name}")
+    current_profile_name = db.get("last_profile_name", USER_NAME)
+    logger.debug(f"Current {USER_NAME[:-1].lower()} name: {current_profile_name}")
 
     response = Titled(
-        f"{APP_NAME} / {current_profile_name} / Profiles",
+        f"{APP_NAME} / {current_profile_name} / {USER_NAME}",
         get_profiles(),
         hx_ext='ws',
         ws_connect='/ws',
@@ -1302,6 +1344,44 @@ def profile_app(request):
     logger.debug("Exiting profile_app function")
 
     return response
+
+@rt('/update_profile_order', methods=['POST'])
+async def update_profile_order(values: dict):
+    logger.debug(f"Received values for profile reordering: {values}")
+    try:
+        items = json.loads(values.get('items', '[]'))
+        logger.debug(f"Parsed items: {items}")
+        for item in items:
+            logger.debug(f"Updating profile: {item}")
+            try:
+                profile = profiles[int(item['id'])]
+                old_priority = profile.priority
+                profile.priority = int(item['priority'])
+                updated_profile = profiles.update(profile)
+                logger.debug(f"Updated profile {profile.id}: old priority = {old_priority}, new priority = {updated_profile.priority}")
+            except Exception as e:
+                logger.error(f"Error updating profile {item['id']}: {str(e)}")
+        logger.info("Profile order update attempt completed")
+
+        # Verify the update by fetching all profiles and logging their priorities
+        all_profiles = profiles()
+        logger.debug("Current profile priorities after update:")
+        for profile in all_profiles:
+            logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+
+        # After update attempt, queue a message for the chat
+        prompt = f"The {USER_NAME} list was reordered. Make a brief, witty remark about organizing people. Keep it under 20 words."
+        await chatq(prompt)
+
+        # Fetch and return the updated list of profiles
+        updated_profiles = sorted(all_profiles, key=lambda p: p.priority if p.priority is not None else float('inf'))
+        return Ul(*[render_profile(profile) for profile in updated_profiles], 
+                  id='profile-list', 
+                  cls='sortable',
+                  style="padding-left: 0;")
+    except Exception as e:
+        logger.error(f"Error in update_profile_order: {str(e)}")
+        return str(e), 500  # Return the error message and a 500 status code
 
 # *******************************
 # Streaming WebSocket Functions
@@ -1447,13 +1527,23 @@ async def poke_chatbot():
     await chatq(poke_message)
 
     # Respond with an empty string or a relevant message
-    return "Poke received. Check the chat for a response!"
+    return "Poke received. Let's see what the chatbot says..."
 
 # *******************************
 # Activate the Application
 # *******************************
 
+def print_app_name_figlet():
+    """Print a Figlet of APP_NAME."""
+    f = Figlet(font='slant')
+    figlet_text = f.renderText(APP_NAME)
+    print(figlet_text)
+
 # Set the model
 model = get_best_model()
 logger.info(f"Using model: {model}")
+
+# Print the Figlet
+print_app_name_figlet()
+
 serve()
