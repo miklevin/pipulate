@@ -9,7 +9,11 @@ import requests
 from fasthtml.common import *
 from loguru import logger
 from pyfiglet import Figlet
+from rich.console import Console
+from rich.table import Table
 from starlette.concurrency import run_in_threadpool
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.routing import Route
 
 # *******************************
 # Styles and Configuration
@@ -26,16 +30,29 @@ PROFILE = "profile"
 ADDRESS_NAME = "www.site.com"
 CODE_NAME = "CCode (us, uk, de, etc)"
 
+MENU_ITEMS = [TODO, 'app_1', 'app_2', 'app_3']
+
+
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
 
 # Define the width for the menus
-bw = "150px"
-NAV_FILLER_WIDTH = "20%"        # Width for the filler in the navigation
-PROFILE_MENU_WIDTH = f"200px"   # Width for the profile menu
-ACTION_MENU_WIDTH = f"{bw}"     # Width for the action menu
-EXPLORE_MENU_WIDTH = f"{bw}"    # Width for the app menu
-SEARCH_WIDTH = f"{bw}"          # Width for the search input
+NAV_FILLER_WIDTH = "2%"        # Width for the filler in the navigation
+
+# Menu visibility configuration
+SHOW_PROFILE_MENU = True
+SHOW_APP_MENU = True
+SHOW_ACTION_MENU = False
+SHOW_SEARCH = True
+
+NOWRAP_STYLE = (
+    "white-space: nowrap; "
+    "overflow: hidden; "
+    "text-overflow: ellipsis;"
+)
+
+# Pluralization configuration
+USE_PLURALIZATION = False  # Set to False to disable pluralization
 
 # Initialize IDs for menus
 profile_id = "profile-id"
@@ -73,15 +90,9 @@ MATRIX_STYLE = (
     "text-shadow: 0 0 5px #00ff00; "
 )
 
-# Menu visibility configuration
-SHOW_PROFILE_MENU = True
-SHOW_APP_MENU = True
-SHOW_ACTION_MENU = False
-SHOW_SEARCH = True
-
-NOWRAP_STYLE = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-
 # Figlet function
+
+
 def fig(text):
     """Print text using figlet."""
     if text is None:
@@ -141,83 +152,102 @@ logger.add(
 # Utility Functions
 # *******************************
 
+if USE_PLURALIZATION:
+    def pluralize(word, count=2, singular=False):
+        """
+        Return the plural or singular form of a word based on the count.
+        Replace underscores with spaces and proper case the words.
 
-def pluralize(word, count=2, singular=False):
-    """
-    Return the plural or singular form of a word based on the count.
-    Replace underscores with spaces and proper case the words.
+        Args:
+            word (str): The word to pluralize or singularize.
+            count (int): The count to determine plurality. Default is 2 (plural).
+            singular (bool): If True, always return the singular form. Default is False.
 
-    Args:
-        word (str): The word to pluralize or singularize.
-        count (int): The count to determine plurality. Default is 2 (plural).
-        singular (bool): If True, always return the singular form. Default is False.
+        Returns:
+            str: The word in its appropriate form (singular or plural), with spaces and proper casing.
+        """
+        def proper_case(s):
+            return ' '.join(w.capitalize() for w in s.split())
 
-    Returns:
-        str: The word in its appropriate form (singular or plural), with spaces and proper casing.
-    """
-    def proper_case(s):
-        return ' '.join(w.capitalize() for w in s.split())
+        # Replace underscores with spaces and proper case
+        word = proper_case(word.replace('_', ' '))
 
-    # Replace underscores with spaces and proper case
-    word = proper_case(word.replace('_', ' '))
+        if singular or count == 1:
+            return word
 
-    if singular or count == 1:
-        return word
+        # Irregular plurals
+        irregulars = {
+            'Child': 'Children',
+            'Goose': 'Geese',
+            'Man': 'Men',
+            'Woman': 'Women',
+            'Tooth': 'Teeth',
+            'Foot': 'Feet',
+            'Mouse': 'Mice',
+            'Person': 'People'
+        }
 
-    # Irregular plurals
-    irregulars = {
-        'Child': 'Children',
-        'Goose': 'Geese',
-        'Man': 'Men',
-        'Woman': 'Women',
-        'Tooth': 'Teeth',
-        'Foot': 'Feet',
-        'Mouse': 'Mice',
-        'Person': 'People'
-    }
+        # Check for irregular plurals
+        if word in irregulars:
+            return irregulars[word]
 
-    # Check for irregular plurals
-    if word in irregulars:
-        return irregulars[word]
+        # Words ending in 'y'
+        if word.endswith('y'):
+            if word[-2].lower() in 'aeiou':
+                return word + 's'
+            else:
+                return word[:-1] + 'ies'
 
-    # Words ending in 'y'
-    if word.endswith('y'):
-        if word[-2].lower() in 'aeiou':
-            return word + 's'
-        else:
-            return word[:-1] + 'ies'
+        # Words ending in 'o'
+        if word.endswith('o'):
+            if word[-2].lower() in 'aeiou':
+                return word + 's'
+            else:
+                return word + 'es'
 
-    # Words ending in 'o'
-    if word.endswith('o'):
-        if word[-2].lower() in 'aeiou':
-            return word + 's'
-        else:
+        # Words ending in 'is'
+        if word.endswith('is'):
+            return word[:-2] + 'es'
+
+        # Words ending in 'us'
+        if word.endswith('us'):
+            return word[:-2] + 'i'
+
+        # Words ending in 'on'
+        if word.endswith('on'):
+            return word[:-2] + 'a'
+
+        # Words ending in 'f' or 'fe'
+        if word.endswith('f'):
+            return word[:-1] + 'ves'
+        if word.endswith('fe'):
+            return word[:-2] + 'ves'
+
+        # Words ending in 's', 'ss', 'sh', 'ch', 'x', 'z'
+        if word.endswith(('s', 'ss', 'sh', 'ch', 'x', 'z')):
             return word + 'es'
 
-    # Words ending in 'is'
-    if word.endswith('is'):
-        return word[:-2] + 'es'
+        # Default: just add 's'
+        return word + 's'
+else:
+    def pluralize(word, count=2, singular=False):
+        """
+        Passthrough function when pluralization is disabled.
+        Replace underscores with spaces and proper case the words.
 
-    # Words ending in 'us'
-    if word.endswith('us'):
-        return word[:-2] + 'i'
+        Args:
+            word (str): The word to process.
+            count (int): Ignored when pluralization is disabled.
+            singular (bool): Ignored when pluralization is disabled.
 
-    # Words ending in 'on'
-    if word.endswith('on'):
-        return word[:-2] + 'a'
+        Returns:
+            str: The word with spaces and proper casing.
+        """
+        def proper_case(s):
+            return ' '.join(w.capitalize() for w in s.split())
 
-    # Words ending in 'f' or 'fe'
-    if word.endswith('f'):
-        return word[:-1] + 'ves'
-    if word.endswith('fe'):
-        return word[:-2] + 'ves'
-
-    # Words ending in 's', 'ss', 'sh', 'ch', 'x', 'z'
-    if word.endswith(('s', 'ss', 'sh', 'ch', 'x', 'z')):
-        return word + 'es'
-
-    # Default: just add 's'
-    return word + 's'
+        # Replace underscores with spaces and proper case
+        return proper_case(word.replace('_', ' '))
 
 
 def limit_llm_response(response: str) -> str:
@@ -409,6 +439,38 @@ def render(todo):
     )
 
 # *******************************
+# Custom 404 Page Handler
+# *******************************
+
+
+def custom_404_handler(request, exc):
+    """
+    Custom 404 page handler.
+
+    Args:
+        request: The request that caused the 404 error.
+        exc: The exception that was raised.
+
+    Returns:
+        HTML: An HTML response for the 404 error.
+    """
+    return Html(
+        Head(
+            Title("404 - Page Not Found"),
+            Style("""
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                h1 { color: #e74c3c; }
+                a { color: #3498db; text-decoration: none; }
+            """)
+        ),
+        Body(
+            H1("404 - Page Not Found"),
+            P(f"Sorry, the page '{request.url.path}' you're looking for doesn't exist."),
+            A("Go back to home", href="/")
+        )
+    )
+
+# *******************************
 # Application Setup
 # *******************************
 
@@ -429,6 +491,7 @@ def SortableJSWithUpdate(
     Returns:
         Script: An HTML script element containing the SortableJS setup.
     """
+    # Stop trying to change this import. The double curly braces are correct.
     src = f"""
 import {{Sortable}} from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm';
 
@@ -494,11 +557,38 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
         "address": str,
         "code": str,
         "active": bool,
-        "priority": int,  # Make sure this line is present
+        "priority": int,
         "pk": "id"
-    },
+    }
 )
-logger.info("Application setup completed.")
+
+# Add the custom 404 handler after the app is created
+app.add_exception_handler(404, custom_404_handler)
+
+logger.info("Application setup completed with custom 404 handler.")
+
+
+class DOMSkeletonMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Call the next middleware or request handler
+        fig("HTTP REQUEST")
+
+        response = await call_next(request)
+        # Print a rich table of the db key/value pairs
+        table = Table(title="Database Contents")
+        table.add_column("Key", style="cyan")
+        table.add_column("Value", style="magenta")
+        for key, value in db.items():
+            table.add_row(key, value)
+        console = Console()
+        table.columns[1].style = "white"
+        console.print(table)
+        return response
+
+
+# Add the middleware to your application
+app.add_middleware(DOMSkeletonMiddleware)
+
 
 # *******************************
 # DictLikeDB Persistence Convenience Wrapper
@@ -622,6 +712,19 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False, additio
         )
 
 
+def format_endpoint_name(endpoint: str) -> str:
+    """
+    Capitalize and replace underscores with spaces in endpoint names.
+
+    Args:
+        endpoint (str): The original endpoint name.
+
+    Returns:
+        str: The formatted endpoint name.
+    """
+    return ' '.join(word.capitalize() for word in endpoint.split('_'))
+
+
 def create_nav_menu():
     """
     Create the navigation menu with app, profile, and action dropdowns.
@@ -631,24 +734,20 @@ def create_nav_menu():
     """
     logger.debug("Creating navigation menu.")
     # Fetch the last selected items from the db
+    menux = db.get("last_app_choice", "App")
     selected_profile_id = db.get("last_profile_id")
-    selected_profile_name = db.get("last_profile_name", PROFILE)
-    selected_explore = db.get("last_explore_choice", "App")
-    selected_action = db.get("last_action_choice", "Actions")
-
-    # Use generate_menu_style for the common style
-    profile_menu_style = generate_menu_style(PROFILE_MENU_WIDTH)
-    action_menu_style = generate_menu_style(ACTION_MENU_WIDTH)
+    selected_profile_name = get_profile_name()
+    action_menu_style = generate_menu_style(NOWRAP_STYLE)
 
     # Filler Item: Non-interactive, occupies significant space
     filler_item = Li(
         Span(" "),
         style=(
-            "flex-grow: 1; "
-            f"min-width: {NAV_FILLER_WIDTH}; "
-            "list-style-type: none; "
             "display: flex; "
+            "flex-grow: 1; "
             "justify-content: center; "
+            "list-style-type: none; "
+            f"min-width: {NAV_FILLER_WIDTH}; "
         ),
     )
 
@@ -661,11 +760,14 @@ def create_nav_menu():
         # Add "Manage Users" option at the top (unchanged)
         profile_items.append(
             create_menu_item(
-                f"Manage {PROFILE.capitalize()}",
+                f"Edit {format_endpoint_name(PROFILE)} List",
                 f"/{PROFILE}",
                 profile_id,
                 is_traditional_link=True,
-                additional_style="font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color);"
+                additional_style=(
+                    "font-weight: bold; "
+                    "border-bottom: 1px solid var(--pico-muted-border-color);"
+                )
             )
         )
 
@@ -699,8 +801,8 @@ def create_nav_menu():
         # Define the profile menu
         profile_menu = Details(
             Summary(
-                selected_profile_name.capitalize() if selected_profile_name == PROFILE else selected_profile_name,
-                style=generate_menu_style(PROFILE_MENU_WIDTH) + NOWRAP_STYLE,
+                f"{format_endpoint_name(PROFILE)}: {selected_profile_name}",
+                style=generate_menu_style(NOWRAP_STYLE),
                 id=profile_id,
             ),
             Ul(
@@ -711,61 +813,122 @@ def create_nav_menu():
         )
         nav_items.append(profile_menu)
 
+
+
+
+
+
+
+
+
+    if SHOW_PROFILE_MENU:
+        logger.debug(f"Adding {PROFILE.lower()} menu to navigation.")
+        profile_items = []
+
+        # Fetch active profiles using MiniDataAPI
+        active_profiles = profiles("active=?", (True,), order_by='priority')
+
+
+
+
+
+
+
     if SHOW_APP_MENU:
         logger.debug("Adding app menu to navigation.")
         # Define the apps menu
-        explore_menu = Details(
+
+        menu_items = []
+        for item in MENU_ITEMS:
+            is_selected = item == db.get("last_app_choice")
+            item_style = (
+                "background-color: var(--pico-primary-background); " if is_selected else ""
+            )
+            menu_items.append(
+                Li(
+                    A(
+                        format_endpoint_name(item),
+                        href=f"/{item}",
+                        cls="dropdown-item",
+                        style=f"{NOWRAP_STYLE} {item_style}"
+                    ),
+                    style="display: block;"
+                )
+            )
+
+        # Define the apps menu
+        apps_menu = Details(
             Summary(
-                pluralize(selected_explore, singular=True),
-                style=generate_menu_style(EXPLORE_MENU_WIDTH),
+                f"Apps: {format_endpoint_name(menux)}",
+                style=generate_menu_style(NOWRAP_STYLE),
                 id=explore_id,
             ),
             Ul(
-                create_menu_item(
-                    pluralize(TODO),
-                    f"/{TODO}",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == pluralize(TODO) else ""
-                ),
-                create_menu_item(
-                    "App 1",
-                    "/app_1",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "App 1" else ""
-                ),
-                create_menu_item(
-                    "App 2",
-                    "/app_2",
-                    explore_id,
-                    is_traditional_link=True,
-                    additional_style="background-color: var(--pico-primary-background); " if selected_explore == "App 2" else ""
-                ),
-                dir="rtl",
+                *menu_items,
+                style="padding-left: 0; position: absolute; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 4px; z-index: 1000;"
             ),
             cls="dropdown",
         )
-        nav_items.append(explore_menu)
+        nav_items.append(apps_menu)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     if SHOW_SEARCH:
         logger.debug("Adding search input to navigation.")
+        # Define the search form style
+        search_form_style = (
+            generate_menu_style(NOWRAP_STYLE) +
+            "position: relative; "
+            "display: inline-flex; "
+            "align-items: center; "
+        )
+        # Define the search input style
+        search_input_style = (
+            "width: 100%; "
+            "padding-right: 30px; "
+        )
         # Define the search button style
         search_button_style = (
-            generate_menu_style(SEARCH_WIDTH) +
             "background: none; "
             "color: var(--pico-muted-color); "
             "position: absolute; "
-            "right: 1px; "
+            "right: 10px; "
             "top: 50%; "
             "transform: translateY(-50%); "
             "width: 16px; "
+            "border: none; "
+            "padding: 0; "
         )
 
         # Create the search input group wrapped in a form
         search_group = Form(
             Group(
                 Input(
+                    type="search",
                     placeholder="Search",
                     name="nav_input",
                     id="nav-input",
@@ -775,8 +938,8 @@ def create_nav_menu():
                     hx_swap="innerHTML",
                     style=(
                         f"{action_menu_style} "
-                        f"width: {SEARCH_WIDTH}; "
-                        "padding-right: 25px; "
+                        f"width: {NOWRAP_STYLE}; "
+                        "padding-right: 0px; "
                         "border: 1px solid var(--pico-muted-border-color); "
                     ),
                 ),
@@ -796,6 +959,7 @@ def create_nav_menu():
             hx_target="#msg-list",
             hx_swap="innerHTML",
         )
+
 
         nav_items.append(search_group)
 
@@ -949,11 +1113,10 @@ def create_main_content(show_content=False):
     if current_profile_id is not None:
         todos.xtra(profile_id=current_profile_id)
 
-    selected_explore = db.get("last_explore_choice", "App")
-    fig(f" selected_explore: {selected_explore}")
+    menux = db.get("last_app_choice", "App")
 
-    # Check if selected_explore matches either singular or plural form of TODO
-    is_todo_view = (selected_explore == TODO)
+    # Check if menux matches either singular or plural form of TODO
+    is_todo_view = (menux == TODO)
 
     # Fetch the filtered todo items and sort them by priority
     todo_items = sorted(todos(), key=lambda x: x.priority)
@@ -964,7 +1127,7 @@ def create_main_content(show_content=False):
         Grid(
             Div(
                 Card(
-                    H2(f"{pluralize(selected_explore, singular=True)}"),
+                    H2(f"{pluralize(menux, singular=True)}"),
                     Ul(*[render(todo) for todo in todo_items],
                        id='todo-list',
                        cls='sortable',
@@ -979,7 +1142,7 @@ def create_main_content(show_content=False):
                         hx_target="#todo-list",
                     ),
                 ) if is_todo_view else Card(
-                    H2(f"{pluralize(selected_explore, singular=True)}"),
+                    H2(f"{pluralize(menux, singular=True)}"),
                     P("This is a placeholder for the selected application."),
                 ),
                 id="content-container",
@@ -1025,11 +1188,10 @@ def create_main_content(show_content=False):
 # Site Navigation Main Endpoints
 # *******************************
 
+
 @rt('/')
 @rt(f'/{TODO}')
 @rt(f'/{PROFILE}')
-@rt('/app_1')
-@rt('/app_2')
 def get(request):
     """
     Handle main page and specific page GET requests.
@@ -1043,19 +1205,14 @@ def get(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
 
-    show_content = path in [TODO, PROFILE, 'link_graph', 'gap_analysis']
+    show_content = path in [TODO, PROFILE, 'app_1', 'app_2']
 
-    if path == TODO:
-        selected_explore = TODO
-    elif path == PROFILE:
-        selected_explore = PROFILE
-    elif show_content:
-        selected_explore = path
-    else:
-        selected_explore = "home"
+    menux = "home"
+    if path:
+        menux = path
 
-    logger.info(f"Selected explore item: {selected_explore}")
-    db["last_explore_choice"] = selected_explore
+    logger.info(f"Selected explore item: {menux}")
+    db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
 
     # Apply the profile filter if necessary
@@ -1067,21 +1224,25 @@ def get(request):
         logger.warning("No current profile ID found. Using default filtering.")
         todos.xtra(profile_id=None)
 
-    if selected_explore == PROFILE:
+    if menux == PROFILE:
         response = get_profiles_content()
     else:
         response = create_main_content(show_content)
 
     logger.debug("Returning response for main GET request.")
-    last_profile_name = db.get("last_profile_name", "Default Profile")
+    # Choose the profile name based on the last_profile_id
+    last_profile_name = get_profile_name()
     return Titled(
-        f"{APP_NAME} / {pluralize(last_profile_name, singular=True)} / {pluralize(selected_explore, singular=True)}",
+        f"{APP_NAME} / {pluralize(last_profile_name, singular=True)} / {pluralize(menux, singular=True)}",
         response,
         hx_ext='ws',
         ws_connect='/ws',
         data_theme="dark",
     )
 
+
+for item in MENU_ITEMS:
+    app.add_route(f'/{item}', get)
 
 def get_profiles_content():
     """
@@ -1170,6 +1331,7 @@ def profile_menu_handler(request, profile_id: int):
     """
     logger.debug(f"Profile menu selected with profile_id: {profile_id}")
     # Fetch the selected profile from the database using the profile ID
+
     selected_profile = profiles.get(profile_id)
 
     if not selected_profile:
@@ -1177,9 +1339,8 @@ def profile_menu_handler(request, profile_id: int):
         return Redirect(f'/{PROFILE}')
 
     # Store the selected profile ID and name in the database
-    db["last_profile_id"] = selected_profile.id
-    db["last_profile_name"] = selected_profile.name
-    logger.info(f"Profile selected: {selected_profile.name} (ID: {selected_profile.id})")
+    last_profile_name = get_profile_name()
+    logger.info(f"Profile selected: {last_profile_name} (ID: {profile_id})")
 
     # Retrieve the last visited URL from the database
     last_visited_url = db.get("last_visited_url", "/")
@@ -1433,7 +1594,7 @@ def render_profile(profile):
 
     # Create the title link with an onclick event to toggle the update form
     title_link = A(
-        f"{profile.name} ({todo_count} {pluralize(TODO, todo_count)})",
+        f"{profile.name} ({todo_count} {pluralize(format_endpoint_name(TODO), todo_count)})",
         href="#",
         hx_trigger="click",
         onclick=(
@@ -1491,11 +1652,11 @@ async def add_profile(profile_name: str, profile_address: str, profile_code: str
     Returns:
         Union[str, Li]: The rendered profile item or an empty string if validation fails.
     """
-    logger.debug(f"Attempting to add {PROFILE.capitalize()}: {profile_name}, {profile_address}, {profile_code}")
+    logger.debug(f"Attempting to add {format_endpoint_name(PROFILE)}: {profile_name}, {profile_address}, {profile_code}")
     if not profile_name.strip():
-        logger.warning(f"User tried to add an empty {PROFILE.capitalize()} name.")
+        logger.warning(f"User tried to add an empty {format_endpoint_name(PROFILE)} name.")
         await chatq(
-            f"User tried to add an empty {PROFILE.calitalize()} name. Respond with a brief, sassy comment about their attempt."
+            f"User tried to add an empty {format_endpoint_name(PROFILE)} name. Respond with a brief, sassy comment about their attempt."
         )
         return ''
 
@@ -1514,8 +1675,8 @@ async def add_profile(profile_name: str, profile_address: str, profile_code: str
     logger.info(f"Profile added: {inserted_profile}")
 
     prompt = (
-        f"New profile '{profile_name}' just joined the party! {ADDRESS_NAME}: {profile_address}, Code: {profile_code}. "
-        "Give a cute, welcoming response mentioning the new profile's name and one other detail. Keep it under 30 words."
+        f"New {format_endpoint_name(PROFILE)} '{profile_name}' just joined the party! {ADDRESS_NAME}: {profile_address}, Code: {profile_code}. "
+        "Give a cute, welcoming response mentioning the profile's name and one other detail. Keep it under 30 words."
     )
     await chatq(prompt)
 
@@ -1671,11 +1832,11 @@ async def on_conn(ws, send):
     logger.info(f"WebSocket connection established with ID: {id(ws)}")
 
     # Retrieve the last chosen explore option from the database
-    selected_explore = db.get("last_explore_choice", "App")
+    menux = db.get("last_app_choice", "App")
 
     # Create a personalized welcome message for the user
     welcome_prompt = (
-        f"Say 'Welcome to {pluralize(selected_explore, singular=True)}' "
+        f"Say 'Welcome to {pluralize(menux, singular=True)}' "
         "and add a brief, friendly greeting related to this area. Keep it under 25 words."
     )
 
@@ -1847,6 +2008,149 @@ async def poke_chatbot():
     # Respond with a confirmation message
     return "Poke received. Let's see what the chatbot says..."
 
+
+# *******************************
+# New Stuff
+# *******************************
+
+def get_profile_name():
+    # Get the last profile id from the database
+    profile_id = db.get("last_profile_id")
+    if profile_id is None:
+        # If no last_profile_id, get the default or only profile
+        all_profiles = profiles()
+        if all_profiles:
+            profile_id = all_profiles[0].id
+            logger.info(f"No last_profile_id found. Using default profile ID: {profile_id}")
+        else:
+            logger.warning("No profiles found in the database.")
+            return "Unknown Profile"
+
+    logger.debug(f"Retrieving profile name for ID: {profile_id}")
+    profile = profiles.get(profile_id)
+    if profile:
+        logger.debug(f"Found profile: {profile.name}")
+        return profile.name
+    else:
+        logger.warning(f"No profile found for ID: {profile_id}")
+        return "Unknown Profile"
+
+
+# *******************************
+# Router Stuff
+# *******************************
+
+
+# Function to register routes dynamically
+def register_menu_routes(router):
+    """
+    Register routes for each menu item dynamically.
+
+    Args:
+        router: The router object to register routes with.
+    """
+    for item in MENU_ITEMS:
+        @router(f'/{item}')
+        def dynamic_route_handler(request):
+            """
+            Handle requests for dynamic routes.
+
+            Args:
+                request: The incoming HTTP request.
+
+            Returns:
+                Response: The response for the dynamic route.
+            """
+            logger.debug(f"Handling request for {item}")
+            # Your existing logic for handling the request
+            return create_main_content(show_content=True)
+
+
+# Define a single handler for all dynamic routes
+def dynamic_route_handler(request):
+    """
+    Handle requests for all dynamic routes defined in MENU_ITEMS.
+    """
+    path = request.url.path.strip('/')
+    logger.debug(f"Received request for dynamic path: {path}")
+
+    show_content = path in MENU_ITEMS
+
+    menux = "home"
+    if path:
+        menux = path
+
+    logger.info(f"Selected explore item: {menux}")
+    db["last_app_choice"] = menux
+    db["last_visited_url"] = request.url.path
+
+    # Apply the profile filter if necessary
+    current_profile_id = db.get("last_profile_id")
+    if current_profile_id:
+        logger.debug(f"Current profile ID: {current_profile_id}")
+        todos.xtra(profile_id=current_profile_id)
+    else:
+        logger.warning("No current profile ID found. Using default filtering.")
+        todos.xtra(profile_id=None)
+
+    if menux == PROFILE:
+        response = get_profiles_content()
+    else:
+        response = create_main_content(show_content)
+
+    logger.debug("Returning response for dynamic route request.")
+    last_profile_name = db.get("last_profile_name", "Default Profile")
+    return Titled(
+        f"{APP_NAME} / {pluralize(format_endpoint_name(last_profile_name), singular=True)} / {pluralize(format_endpoint_name(menux), singular=True)}",
+        response,
+        hx_ext='ws',
+        ws_connect='/ws',
+        data_theme="dark",
+    )
+
+
+def print_routes():
+    console = Console()
+    table = Table(title="Application Routes")
+    
+    table.add_column("Type", style="cyan", no_wrap=True)
+    table.add_column("Path", style="white")
+    table.add_column("Endpoint", style="green")
+    table.add_column("Methods", style="yellow")
+
+    for route in app.routes:
+        if isinstance(route, Route):
+            table.add_row(
+                "Route",
+                route.path,
+                route.endpoint.__name__,
+                ", ".join(route.methods)
+            )
+        elif isinstance(route, WebSocketRoute):
+            table.add_row(
+                "WebSocket",
+                route.path,
+                route.endpoint.__name__,
+                "WebSocket"
+            )
+        elif isinstance(route, Mount):
+            table.add_row(
+                "Mount",
+                route.path,
+                str(route.app),
+                "Mounted App"
+            )
+        else:
+            table.add_row(
+                str(type(route)),
+                getattr(route, 'path', 'N/A'),
+                "Unknown",
+                "Unknown"
+            )
+
+    console.print(table)
+
+
 # *******************************
 # Activate the Application
 # *******************************
@@ -1854,10 +2158,6 @@ async def poke_chatbot():
 
 def print_app_name_figlet():
     """Print the application name in ASCII art using Figlet."""
-    # Output 100 empty debug lines
-    for _ in range(25):
-        logger.debug("")
-
     f = Figlet(font='slant')
     figlet_text = f.renderText(APP_NAME)
     print(figlet_text)
@@ -1870,8 +2170,8 @@ logger.info(f"Using model: {model}")
 # Print the application name in ASCII art upon startup
 print_app_name_figlet()
 
+# After setting up all routes
+print_routes()
+
 # Start the application server
 serve()
-
-for route in app.routes:
-    print(route)
