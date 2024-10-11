@@ -1,5 +1,8 @@
+jupyterlab
+loguru
 numpy
 pandas
-requests
-jupyterlab
+pyfiglet
 python-fasthtml
+requests
+rich
