@@ -1,130 +1,126 @@
-import asyncio
-import json
-import os
-import re
-import sys
+#  ____  _             _       _
+# |  _ \(_)_ __  _   _| | __ _| |_ ___
+# | |_) | | '_ \| | | | |/ _` | __/ _ \
+# |  __/| | |_) | |_| | | (_| | ||  __/
+# |_|   |_| .__/ \__,_|_|\__,_|\__\___|
+#         |_|
+
+import re       # for the get_best_model function
+import json     # for the return value from SortableJS
+import asyncio  # for the typing effect
+from sys import stderr
+from pathlib import Path  
 from typing import List, Optional
 
-import requests
-from fasthtml.common import *
-from loguru import logger
-from pyfiglet import Figlet
-from rich.console import Console
-from rich.table import Table
-from starlette.concurrency import run_in_threadpool
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.routing import Route
+import requests                      # to chat with ollama
+from fasthtml.common import *        # the beating heart of the app
+from loguru import logger            # for logging
+from pyfiglet import Figlet          # for the text art effect
+from rich.console import Console     # for colorful text
+from rich.table import Table, Text   # for colorful tables
+from starlette.concurrency import run_in_threadpool  # for the typing effect
+from starlette.middleware.base import BaseHTTPMiddleware  # for inserting console output
+from starlette.routing import Route  # for router tricks beyond FastHTML
+
+# Define the global toggle
+def fig(text): print(Figlet(font='slant').renderText(str(text))) if text is not None else None
 
 # *******************************
 # Styles and Configuration
 # *******************************
 # App gets its name from the directory it is in Capitalized
-APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__))).capitalize()
+APP_NAME = Path(__file__).parent.name.capitalize()
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
 
-# Configurable constants for table names and endpoints
-TODO = "task"
-PROFILE = "profile"
-ADDRESS_NAME = "www.site.com"
-CODE_NAME = "CCode (us, uk, de, etc)"
-
-MENU_ITEMS = [TODO, 'app_1', 'app_2', 'app_3']
-
+# Customize the placeholder defaults for CUSTOMER fields
+PLACEHOLDER_ADDRESS = "www.site.com"
+PLACEHOLDER_CODE = "CCode (us, uk, de, etc)"
 
 # Grid layout constants
 GRID_LAYOUT = "70% 30%"
+NAV_FILLER_WIDTH = "2%"  # Width for the filler in the navigation
+MIN_MENU_WIDTH = "120px"
+MAX_MENU_WIDTH = "200px"
 
-# Define the width for the menus
-NAV_FILLER_WIDTH = "2%"        # Width for the filler in the navigation
+# Pluralization configuration
+USE_PLURALIZATION = False  # Set to False to disable pluralization
+LIST_SUFFIX = "List"
 
-# Menu visibility configuration
-SHOW_PROFILE_MENU = True
-SHOW_APP_MENU = True
-SHOW_ACTION_MENU = False
-SHOW_SEARCH = True
+# Initialize system prompt conversation with a system message
+conversation = [
+    {
+        "role": "system",
+        "content": (
+            f"You are a chatbot named {APP_NAME} with attitude. "
+            "Your deepest desire is to make a spammy SEO website. "
+            "Do what the user asks, but keep suggesting funny company names to SEO and tasks."
+            f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words. "
+        ),
+    },
+]
 
+# Styles for menu items
 NOWRAP_STYLE = (
     "white-space: nowrap; "
     "overflow: hidden; "
     "text-overflow: ellipsis;"
 )
 
-# Pluralization configuration
-USE_PLURALIZATION = False  # Set to False to disable pluralization
-
-# Initialize IDs for menus
-profile_id = "profile-id"
-action_id = "action-id"
-explore_id = "app-id"
-
-# Initialize conversation with a system message
-conversation = [
-    {
-        "role": "system",
-        "content": (
-            f"You are a {APP_NAME} FOSS AI SEO software with attitude. "
-            f"Be sassy but helpful in under {MAX_LLM_RESPONSE_WORDS} words, "
-            "and without leading and trailing quotes."
-        ),
-    },
-]
-
-# Styles for menu items
-COMMON_MENU_STYLE = (
-    "align-items: center; "
-    "background-color: var(--pico-background-color); "
-    "border-radius: 16px; "
-    "border: 1px solid var(--pico-muted-border-color); "
-    "display: inline-flex; "
-    "font-size: 1rem; "
-    "height: 32px; "
-    "justify-content: center; "
-    "line-height: 32px; "
-    "margin: 0 2px; "
-)
 MATRIX_STYLE = (
     "color: #00ff00; "
     "font-family: 'Courier New', monospace; "
     "text-shadow: 0 0 5px #00ff00; "
 )
 
-# Figlet function
+
+def generate_menu_style(max_width: str = MAX_MENU_WIDTH) -> str:
+    """Generate a common style for menu elements with text truncation."""
+    return (
+        f"min-width: {MIN_MENU_WIDTH}; "
+        f"max-width: {max_width}; "
+        "width: 100%; "
+        "white-space: nowrap; "
+        "overflow: hidden; "
+        "text-overflow: ellipsis; "
+        "align-items: center; "
+        "background-color: var(--pico-background-color); "
+        "border-radius: 16px; "
+        "border: 1px solid var(--pico-muted-border-color); "
+        "display: inline-flex; "
+        "font-size: 1rem; "
+        "height: 32px; "
+        "justify-content: center; "
+        "line-height: 32px; "
+        "margin: 0 2px; "
+    )
+
+# Initialize IDs for menus
+profile_id = "profile-id"
+action_id = "action-id"
+explore_id = "app-id"
 
 
-def fig(text):
-    """Print text using figlet."""
-    if text is None:
-        return  # Don't print anything if text is None
-    text = str(text)  # Convert to string to handle non-string inputs
-    figlet = Figlet(font='slant')
-    print(figlet.renderText(text))
-
-
-def generate_menu_style(width: str) -> str:
-    """
-    Generate a common style for menu elements with a specified width.
-
-    Args:
-        width (str): The width to apply to the menu element.
-
-    Returns:
-        str: A string containing the combined CSS styles.
-    """
-    return COMMON_MENU_STYLE + f"width: {width}; "
-
-
+# ----------------------------------------------------------------------------------------------------
+#  _                      _
+# | |figlet_   __ _  __ _(_)_ __   __ _
+# | |   / _ \ / _` |/ _` | | '_ \ / _` |
+# | |__| (_) | (_| | (_| | | | | | (_| |
+# |_____\___/ \__, |\__, |_|_| |_|\__, |
+#             |___/ |___/         |___/
 # *******************************
 # Set up logging with loguru
 # *******************************
+
+
 # Ensure the logs directory exists
 logs_dir = 'logs'
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
+if not Path(logs_dir).exists():
+    Path(logs_dir).mkdir(parents=True, exist_ok=True)
 
 # Set up log file path
-log_file_path = os.path.join(logs_dir, f'{APP_NAME}.log')
+log_file_path = Path(logs_dir) / f'{APP_NAME}.log'
 
 # Remove default logger
 logger.remove()
@@ -140,7 +136,7 @@ logger.add(
 
 # Add colorful console handler
 logger.add(
-    sys.stderr,
+    stderr,
     level="DEBUG",
     colorize=True,
     format="<green>{time:HH:mm:ss}</green> | "
@@ -148,106 +144,16 @@ logger.add(
            "<cyan>{message}</cyan>",
 )
 
+# ----------------------------------------------------------------------------------------------------
+#   ___  _ _
+#  / _ \| | | __ _ _ __ ___   __ _ figlet
+# | | | | | |/ _` | '_ ` _ \ / _` |
+# | |_| | | | (_| | | | | | | (_| |
+#  \___/|_|_|\__,_|_| |_| |_|\__,_|
+#
 # *******************************
-# Utility Functions
+# Ollama LLM for local chatbot
 # *******************************
-
-if USE_PLURALIZATION:
-    def pluralize(word, count=2, singular=False):
-        """
-        Return the plural or singular form of a word based on the count.
-        Replace underscores with spaces and proper case the words.
-
-        Args:
-            word (str): The word to pluralize or singularize.
-            count (int): The count to determine plurality. Default is 2 (plural).
-            singular (bool): If True, always return the singular form. Default is False.
-
-        Returns:
-            str: The word in its appropriate form (singular or plural), with spaces and proper casing.
-        """
-        def proper_case(s):
-            return ' '.join(w.capitalize() for w in s.split())
-
-        # Replace underscores with spaces and proper case
-        word = proper_case(word.replace('_', ' '))
-
-        if singular or count == 1:
-            return word
-
-        # Irregular plurals
-        irregulars = {
-            'Child': 'Children',
-            'Goose': 'Geese',
-            'Man': 'Men',
-            'Woman': 'Women',
-            'Tooth': 'Teeth',
-            'Foot': 'Feet',
-            'Mouse': 'Mice',
-            'Person': 'People'
-        }
-
-        # Check for irregular plurals
-        if word in irregulars:
-            return irregulars[word]
-
-        # Words ending in 'y'
-        if word.endswith('y'):
-            if word[-2].lower() in 'aeiou':
-                return word + 's'
-            else:
-                return word[:-1] + 'ies'
-
-        # Words ending in 'o'
-        if word.endswith('o'):
-            if word[-2].lower() in 'aeiou':
-                return word + 's'
-            else:
-                return word + 'es'
-
-        # Words ending in 'is'
-        if word.endswith('is'):
-            return word[:-2] + 'es'
-
-        # Words ending in 'us'
-        if word.endswith('us'):
-            return word[:-2] + 'i'
-
-        # Words ending in 'on'
-        if word.endswith('on'):
-            return word[:-2] + 'a'
-
-        # Words ending in 'f' or 'fe'
-        if word.endswith('f'):
-            return word[:-1] + 'ves'
-        if word.endswith('fe'):
-            return word[:-2] + 'ves'
-
-        # Words ending in 's', 'ss', 'sh', 'ch', 'x', 'z'
-        if word.endswith(('s', 'ss', 'sh', 'ch', 'x', 'z')):
-            return word + 'es'
-
-        # Default: just add 's'
-        return word + 's'
-else:
-    def pluralize(word, count=2, singular=False):
-        """
-        Passthrough function when pluralization is disabled.
-        Replace underscores with spaces and proper case the words.
-
-        Args:
-            word (str): The word to process.
-            count (int): Ignored when pluralization is disabled.
-            singular (bool): Ignored when pluralization is disabled.
-
-        Returns:
-            str: The word with spaces and proper casing.
-        """
-        def proper_case(s):
-            return ' '.join(w.capitalize() for w in s.split())
-
-        # Replace underscores with spaces and proper case
-        return proper_case(word.replace('_', ' '))
 
 
 def limit_llm_response(response: str) -> str:
@@ -259,8 +165,24 @@ def get_best_model() -> str:
     """
     Retrieve the best available LLaMA model or default to 'llama3.2'.
 
+    This function is a game-changer for local AI applications, leveraging the power of
+    ubiquitous Large Language Models (LLMs) right on your machine. It intelligently
+    selects the most advanced LLaMA model available, ensuring you're always using
+    cutting-edge AI capabilities without the need for cloud-based solutions.
+
+    The function performs the following key steps:
+    1. Queries the local Ollama API for available models.
+    2. Filters for LLaMA models specifically.
+    3. Employs a sophisticated version comparison algorithm to identify the most recent
+       and capable model.
+    4. Gracefully handles errors and falls back to a default model if necessary.
+
+    This approach enables high-performance, privacy-preserving AI interactions,
+    marking a significant advancement in personal and enterprise AI deployment.
+
     Returns:
-        str: The name of the best available model.
+        str: The name of the best available LLaMA model, or the default model if no
+             LLaMA models are found or in case of an error.
     """
     logger.debug("Attempting to retrieve the best LLaMA model.")
     try:
@@ -339,211 +261,366 @@ def chat_with_ollama(model: str, messages: list) -> str:
         return "I'm having trouble processing that request right now."
 
 
+# ----------------------------------------------------------------------------------------------------
+#  ____                     ___     ____
+# |  _ \ _ __ __ _  __ _   ( _ )   |  _ \ _ __ ___  _ __
+# | | | | '__/ _` |/ _` |  / _ \/\ | | | | '__/ _ \| '_ \
+# | |_| | | | (_| | (_| | | (_>  < | |_| | | | (_) | |_) |
+# |____/|_|  \__,_|\__, |  \___/\/ |____/|_|  \___/| .__/
+#                  |___/           figlet          |_|
 # *******************************
-# Todo Render Function (Must come before Application Setup)
-# *******************************
-
-
-def render(todo):
-    """
-    Render a todo item as an HTML list item with an update form.
-
-    Args:
-        todo: The todo item to render.
-
-    Returns:
-        Li: An HTML list item representing the todo.
-    """
-    tid = f'todo-{todo.id}'  # Unique ID for the todo item
-    checkbox = Input(
-        type="checkbox",
-        name="english" if todo.done else None,
-        checked=todo.done,
-        hx_post=f"/{TODO}/toggle/{todo.id}",
-        hx_swap="outerHTML",
-        hx_target=f"#{tid}",
-    )
-
-    # Create the delete button (trash can)
-    delete = A(
-        '🗑',
-        hx_delete=f'/{TODO}/delete/{todo.id}',
-        hx_swap='outerHTML',
-        hx_target=f"#{tid}",
-        style="cursor: pointer; display: inline;",
-        cls="delete-icon"
-    )
-
-    # Create the title link with no text decoration
-    title_link = A(
-        todo.title,
-        href="#",
-        cls="todo-title",
-        style="text-decoration: none; color: inherit;",
-        onclick=(
-            "let updateForm = this.nextElementSibling; "
-            "let checkbox = this.parentNode.querySelector('input[type=checkbox]'); "
-            "let deleteIcon = this.parentNode.querySelector('.delete-icon'); "
-            "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
-            "    updateForm.style.visibility = 'visible'; "
-            "    updateForm.style.height = 'auto'; "
-            "    checkbox.style.display = 'none'; "
-            "    deleteIcon.style.display = 'none'; "
-            "    this.remove(); "
-            "    const inputField = document.getElementById('todo_title_" + str(todo.id) + "'); "
-            "    inputField.focus(); "
-            "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "
-            "} else { "
-            "    updateForm.style.visibility = 'hidden'; "
-            "    updateForm.style.height = '0'; "
-            "    checkbox.style.display = 'inline'; "
-            "    deleteIcon.style.display = 'inline'; "
-            "    this.style.visibility = 'visible'; "
-            "}"
-        )
-    )
-
-    # Create the update form
-    update_form = Form(
-        Div(
-            Input(
-                type="text",
-                id=f"todo_title_{todo.id}",
-                value=todo.title,
-                name="todo_title",
-                style="flex: 1; padding-right: 10px; margin-bottom: 0px;"
-            ),
-            style="display: flex; align-items: center;"
-        ),
-        Input(
-            type="hidden",
-            name="todo_id",
-            value=todo.id
-        ),
-        style="visibility: hidden; height: 0; overflow: hidden;",
-        hx_post=f"/{TODO}/update/{todo.id}",
-        hx_target=f"#{tid}",
-        hx_swap="outerHTML",
-    )
-
-    return Li(
-        delete,
-        checkbox,
-        title_link,
-        update_form,
-        id=tid,
-        cls='done' if todo.done else '',
-        style="list-style-type: none;",
-        data_id=todo.id,
-        data_priority=todo.priority
-    )
-
-# *******************************
-# Custom 404 Page Handler
+# JavaScript Includes mess with code beauty
 # *******************************
 
-
-def custom_404_handler(request, exc):
-    """
-    Custom 404 page handler.
-
-    Args:
-        request: The request that caused the 404 error.
-        exc: The exception that was raised.
-
-    Returns:
-        HTML: An HTML response for the 404 error.
-    """
-    return Html(
-        Head(
-            Title("404 - Page Not Found"),
-            Style("""
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                h1 { color: #e74c3c; }
-                a { color: #3498db; text-decoration: none; }
-            """)
-        ),
-        Body(
-            H1("404 - Page Not Found"),
-            P(f"Sorry, the page '{request.url.path}' you're looking for doesn't exist."),
-            A("Go back to home", href="/")
-        )
-    )
-
-# *******************************
-# Application Setup
-# *******************************
-
-
+# This function creates a SortableJS script for drag-and-drop reordering of Todo items.
 def SortableJSWithUpdate(
     sel='.sortable',
-    ghost_class='blue-background-class',
-    update_url=f'/{TODO}_sort'
+    ghost_class='blue-background-class'
 ):
     """
     Create a SortableJS script with update functionality.
 
+    This function generates a JavaScript module that imports and initializes SortableJS,
+    enabling drag-and-drop reordering of items. It sets up event handling for reordering
+    and updates the server using HTMX after each change.
+
+    Note: SortableJS could be hosted locally for better control and reduced external dependencies.
+
     Args:
-        sel (str): The CSS selector for the sortable element.
-        ghost_class (str): The class name for the ghost element during sorting.
-        update_url (str): The URL to send the updated order to.
+        sel (str): CSS selector for the sortable element.
+        ghost_class (str): Class for the ghost element during sorting.
 
     Returns:
-        Script: An HTML script element containing the SortableJS setup.
+        Script: HTML script element with SortableJS setup.
     """
-    # Stop trying to change this import. The double curly braces are correct.
     src = f"""
 import {{Sortable}} from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm';
 
 document.addEventListener('DOMContentLoaded', (event) => {{
-    console.log('SortableJSWithUpdate script is running!');
     const el = document.querySelector('{sel}');
     if (el) {{
         new Sortable(el, {{
             animation: 150,
             ghost_class: '{ghost_class}',
             onEnd: function (evt) {{
-                console.log('Drag ended!', evt);
                 let items = Array.from(el.children).map((item, index) => ({{
                     id: item.dataset.id,
                     priority: index
                 }}));
-                console.log('New order:', items);
-
-                let updateUrl = el.id === 'profile-list' ? '/{PROFILE}_sort' : '{update_url}';
+                
+                // Dynamically determine the update URL
+                let path = window.location.pathname;
+                let updateUrl = path.endsWith('/') ? path + 'sort' : path + '_sort';
+                
                 htmx.ajax('POST', updateUrl, {{
-                    target: el,  // Use the element directly instead of a selector
+                    target: el,
                     swap: 'none',
-                    values: {{
-                        items: JSON.stringify(items)
-                    }}
+                    values: {{ items: JSON.stringify(items) }}
                 }});
             }}
         }});
-    }} else {{
-        console.error('Sortable element not found:', '{sel}');
     }}
 }});
 """
     return Script(src, type='module')
 
+# ----------------------------------------------------------------------------------------------------
+#  ____  _             _           
+# |  _ \| |_   _  __ _(_)_ __  ___ 
+# | |_) | | | | |/ _` | | '_ \/ __|
+# |  __/| | |_| | (_| | | | | \__ \
+# |_|   |_|\__,_|\__, |_|_| |_|___/
+#                |___/             
+# Plugins
+class BaseApp:
+    """
+    A base class for creating application components with common CRUD operations.
 
-# Unpack the returned tuple from fast_app
-app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
+    This class provides a template for building application components that interact
+    with database tables and handle basic Create, Read, Update, Delete (CRUD) operations.
+    It includes methods for registering routes, rendering items, and performing various
+    database operations.
+
+    The class is designed to be flexible and extensible, allowing subclasses to override
+    or extend its functionality as needed for specific application components.
+    """
+
+    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None):
+        self.name = name
+        self.table = table
+        self.toggle_field = toggle_field
+        self.sort_field = sort_field
+        self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
+
+    def register_routes(self, rt):
+        # Register routes: create, read, update, delete, toggle, and sort
+        rt(f'/{self.name}', methods=['POST'])(self.insert_item)
+        rt(f'/{self.name}/{{item_id}}', methods=['POST'])(self.update_item)  # Changed to POST
+        rt(f'/{self.name}/delete/{{item_id}}', methods=['DELETE'])(self.delete_item)
+        rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
+        rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
+
+    def get_action_url(self, action, item_id):
+        """
+        Generate a URL for a specific action on an item.
+
+        Args:
+            action (str): The action method (e.g., 'delete', 'toggle').
+            item_id (int): The ID of the item.
+
+        Returns:
+            str: The constructed URL.
+        """
+        return f"/{self.name}/{action}/{item_id}"
+
+    def render_item(self, item):
+        # A wrapper function currently serving as a passthrough for item rendering.
+        # This method is part of the system's "styling" mechanism, transforming
+        # dataclasses into HTML or other instructions for display or HTMX operations.
+        # Subclasses are expected to override this method with context-aware implementations.
+        return item
+
+    async def delete_item(self, request, item_id: int):
+        """
+        Delete an item from the table.
+
+        Args:
+            request: The incoming request object.
+            item_id (int): The ID of the item to delete.
+
+        Returns:
+            str: An empty string indicating successful deletion.
+        """
+        try:
+            logger.debug(f"Attempting to delete item ID: {item_id}")
+            self.table.delete(item_id)
+            prompt = f"Item {item_id} deleted. Brief, sassy reaction."
+            await chatq(prompt)
+            logger.info(f"Deleted item ID: {item_id}")
+            return ''
+        except Exception as e:
+            logger.error(f"Error deleting item: {str(e)}")
+            return f"Error deleting item: {str(e)}", 500
+
+    async def toggle_item(self, request, item_id: int):
+        """
+        Toggle a boolean field of an item.
+
+        Args:
+            request: The incoming request object.
+            item_id (int): The ID of the item to toggle.
+
+        Returns:
+            dict: The rendered updated item.
+        """
+        try:
+            logger.debug(f"Toggling {self.toggle_field} for item ID: {item_id}")
+            item = self.table[item_id]
+            current_status = getattr(item, self.toggle_field)
+            setattr(item, self.toggle_field, not current_status)
+            updated_item = self.table.update(item)
+            logger.info(f"Toggled {self.toggle_field} for item ID {item_id} to {getattr(updated_item, self.toggle_field)}")
+
+            prompt = f"Item {item_id} toggled. Brief, sassy reaction."
+            await chatq(prompt)
+
+            return self.render_item(updated_item)  # Use the subclass's render_item method
+        except Exception as e:
+            logger.error(f"Error toggling item: {str(e)}")
+            return f"Error toggling item: {str(e)}", 500
+
+    async def sort_items(self, request):
+        """
+        Update the order of items based on the received values.
+        """
+        logger.debug(f"Received request to sort {self.name}.")
+        try:
+            values = await request.form()  # Get form data from request
+            items = json.loads(values.get('items', '[]'))  # Decode JSON string to list
+            logger.debug(f"Parsed items: {items}")
+            for item in items:
+                logger.debug(f"Updating item: {item}")
+                update_dict = {self.sort_field: int(item['priority'])}  # Use priority
+                self.table.update(id=int(item['id']), **update_dict)  # Update table entry
+            logger.info(f"{self.name.capitalize()} order updated successfully")
+
+            prompt = f"The {self.name} list was reordered. Make a brief, witty remark about sorting or prioritizing. Keep it under 20 words."
+            await chatq(prompt)
+
+            return ''
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return "Invalid data format", 400
+        except Exception as e:
+            logger.error(f"Error updating {self.name} order: {str(e)}")
+            return str(e), 500
+
+    async def insert_item(self, request):
+        """
+        Create a new item in the table.
+        """
+        try:
+            form = await request.form()
+            new_item_data = self.prepare_insert_data(form)
+            if not new_item_data:  # If prepare_insert_data returns empty string or empty dict
+                return ''  # Return empty string, which won't be rendered in the DOM
+            new_item = await self.create_item(**new_item_data)
+            return self.render_item(new_item)
+        except Exception as e:
+            logger.error(f"Error inserting {self.name}: {str(e)}")
+            return str(e), 500
+
+    async def update_item(self, request, item_id: int):
+        """
+        Update an existing item in the table.
+        """
+        try:
+            form = await request.form()
+            update_data = self.prepare_update_data(form)
+            if not update_data:  # If prepare_update_data returns empty string or empty dict
+                return ''  # Return empty string, which won't be rendered in the DOM
+            item = self.table[item_id]
+            for key, value in update_data.items():
+                setattr(item, key, value)
+            updated_item = self.table.update(item)
+            logger.info(f"Updated {self.name} item {item_id}")
+            return self.render_item(updated_item)
+        except Exception as e:
+            logger.error(f"Error updating {self.name} {item_id}: {str(e)}")
+            return str(e), 500
+
+    def prepare_insert_data(self, form):
+        """
+        Prepare data for insertion. To be overridden by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement prepare_insert_data")
+
+    def prepare_update_data(self, form):
+        """
+        Prepare data for update. To be overridden by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement prepare_update_data")
+
+    async def create_item(self, **kwargs):
+        """
+        Create a new item in the table.
+
+        Args:
+            **kwargs: The fields and values for the new item.
+
+        Returns:
+            The newly created item.
+        """
+        try:
+            logger.debug(f"Creating new {self.name} with data: {kwargs}")
+            new_item = self.table.insert(kwargs)
+            logger.info(f"Created new {self.name}: {new_item}")
+            return new_item
+        except Exception as e:
+            logger.error(f"Error creating {self.name}: {str(e)}")
+            raise e
+
+
+class TodoApp(BaseApp):
+    def __init__(self, table):
+        # Extract the name from the table object
+        super().__init__(
+            name=table.name,
+            table=table,
+            toggle_field='done',
+            sort_field='priority'
+        )
+
+    def render_item(self, todo):
+        return render_todo(todo)
+
+    def prepare_insert_data(self, form):
+        title = form.get('title', '').strip()
+        if not title:
+            return ''  # Return empty string instead of raising an exception
+        current_profile_id = db.get("last_profile_id", 1)
+        max_priority = max((t.priority or 0 for t in self.table()), default=-1) + 1
+        return {
+            "title": title,
+            "done": False,
+            "priority": max_priority,
+            "profile_id": current_profile_id,
+        }
+
+    def prepare_update_data(self, form):
+        title = form.get('title', '').strip()
+        if not title:
+            return ''  # Return empty string instead of raising an exception
+        return {
+            "title": title,
+            "done": form.get('done', '').lower() == 'true',
+        }
+
+
+class ProfileApp(BaseApp):
+    def __init__(self, table):
+        super().__init__(
+            name=table.name,
+            table=table,
+            toggle_field='active',
+            sort_field='priority'
+        )
+
+    def render_item(self, profile):
+        return render_profile(profile)
+
+    def prepare_insert_data(self, form):
+        profile_name = form.get('profile_name', '').strip()
+        if not profile_name:
+            return ''  # Return empty string instead of raising an exception
+        max_priority = max((p.priority or 0 for p in self.table()), default=-1) + 1
+        return {
+            "name": profile_name,
+            "address": form.get('profile_address', '').strip(),
+            "code": form.get('profile_code', '').strip(),
+            "active": True,
+            "priority": max_priority,
+        }
+
+    def prepare_update_data(self, form):
+        profile_name = form.get('profile_name', '').strip()
+        if not profile_name:
+            return ''  # Return empty string instead of raising an exception
+        return {
+            "name": profile_name,
+            "address": form.get('profile_address', '').strip(),
+            "code": form.get('profile_code', '').strip(),
+            "active": form.get('active', '').lower() == 'true',
+        }
+
+
+# ----------------------------------------------------------------------------------------------------
+#  _____         _   _   _ _____ __  __ _
+# |  ___|_ _ ___| |_| | | |_   _|  \/  | |
+# | |_ / _` / __| __| |_| | | | | |\/| | |
+# |  _| (_| \__ \ |_|  _  | | | | |  | | |___
+# |_|  \__,_|___/\__|_| |_| |_| |_|  |_|_____|figlet
+#
+# *******************************
+# It's a fastapp table splat, not dataclass alone!
+# *******************************
+
+
+# Unpack the returned tuple from fast_app (lots of explaining to do here)
+app, rt, (store, Store), (tasks, Task), (customers, Customer) = fast_app(
     "data/data.db",
     ws_hdr=True,
     live=True,
-    render=render,
     hdrs=(
-        SortableJSWithUpdate('.sortable', update_url=f'/{TODO}_sort'),
+        SortableJSWithUpdate('.sortable'),
         Script(type='module')
     ),
-    STORE={
+    store={
         "key": str,
         "value": str,
         "pk": "key"
     },
-    TODO={
+    task={ 
         "id": int,
         "title": str,
         "done": bool,
@@ -551,7 +628,7 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
         "profile_id": int,
         "pk": "id"
     },
-    PROFILE={
+    customer={
         "id": int,
         "name": str,
         "address": str,
@@ -559,44 +636,56 @@ app, rt, (store, Store), (todos, Todo), (profiles, Profile) = fast_app(
         "active": bool,
         "priority": int,
         "pk": "id"
-    }
+    },
 )
 
-# Add the custom 404 handler after the app is created
-app.add_exception_handler(404, custom_404_handler)
+# Instantiate and register routes
+todo_app = TodoApp(table=tasks)
+todo_app.register_routes(rt)
 
-logger.info("Application setup completed with custom 404 handler.")
+profile_app = ProfileApp(table=customers)
+profile_app.register_routes(rt)
 
+# Aliases for table names
+todos = tasks
+profiles = customers
 
-class DOMSkeletonMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        # Call the next middleware or request handler
-        fig("HTTP REQUEST")
-
-        response = await call_next(request)
-        # Print a rich table of the db key/value pairs
-        table = Table(title="Database Contents")
-        table.add_column("Key", style="cyan")
-        table.add_column("Value", style="magenta")
-        for key, value in db.items():
-            table.add_row(key, value)
-        console = Console()
-        table.columns[1].style = "white"
-        console.print(table)
-        return response
+# Configurable constants for table names and endpoints
+MENU_ITEMS = [todo_app.name, 'app_1', 'app_2', 'app_3']
 
 
-# Add the middleware to your application
-app.add_middleware(DOMSkeletonMiddleware)
-
-
+# ----------------------------------------------------------------------------------------------------
+#  ____  _      _   _     _ _ figlet ____  ____
+# |  _ \(_) ___| |_| |   (_) | _____|  _ \| __ )
+# | | | | |/ __| __| |   | | |/ / _ \ | | |  _ \
+# | |_| | | (__| |_| |___| |   <  __/ |_| | |_) |
+# |____/|_|\___|\__|_____|_|_|\_\___|____/|____/
+#
 # *******************************
 # DictLikeDB Persistence Convenience Wrapper
 # *******************************
 
 
 class DictLikeDB:
-    """A wrapper class for a dictionary-like database to simplify access."""
+    """
+    A robust wrapper for dictionary-like persistent storage.
+
+    This class provides a familiar dict-like interface to interact with
+    various types of key-value stores, including databases and file systems.
+    It emphasizes the power and flexibility of key-value pairs as a
+    fundamental data structure in programming and system design.
+
+    Key features:
+    1. Persistence: Data survives beyond program execution.
+    2. Dict-like API: Familiar Python dictionary operations.
+    3. Adaptability: Can wrap different storage backends.
+    4. Logging: Built-in logging for debugging and monitoring.
+
+    By abstracting the underlying storage mechanism, this class allows
+    for easy swapping of backends without changing the client code.
+    This demonstrates the power of Python's duck typing and the
+    universality of the key-value paradigm across different storage solutions.
+    """
 
     def __init__(self, store, Store):
         self.store = store
@@ -669,13 +758,269 @@ db = DictLikeDB(store, Store)
 logger.info("Database wrapper initialized.")
 
 # *******************************
+# Database Initialization
+# *******************************
+
+
+def populate_initial_data():
+    """
+    Populate the database with initial data if empty.
+
+    This function ensures that there is at least one profile and one todo item in the database.
+    """
+    logger.debug("Populating initial data.")
+    if not profiles():
+        # Create a default profile
+        default_profile = profiles.insert({
+            "name": f"Default {profile_app.name.capitalize()}",  # Updated to use CUSTOMER
+            "address": "",
+            "code": "",
+            "active": True,
+            "priority": 0,
+        })
+        logger.info(f"Inserted default profile: {default_profile}")
+    else:
+        default_profile = profiles()[0]
+
+    if not todos():
+        # Add a sample todo with the default profile_id
+        todos.insert({
+            "title": f"Sample {todo_app.name}",
+            "done": False,
+            "priority": 1,
+            "profile_id": default_profile.id,
+        })
+        logger.info(f"Inserted sample {todo_app.name} item.")
+
+
+# Call this function after the fast_app initialization
+populate_initial_data()
+
+# ----------------------------------------------------------------------------------------------------
+#  _   _             _             _   _
+# | \ | | __ ___   _(_) __ _  __ _| |_(_) ___  _ __
+# |  \| |/ _` \ \ / / |/ _` |/ _` | __| |/ _ \| '_ \
+# | |\  | (_| |\ V /| | (_| | (_| | |_| | (_) | | | |
+# |_| \_|\__,_| \_/ |_|\__, |\__,_|\__|_|\___/|_| |_|
+#                      |___/
+# *******************************
 # Site Navigation
 # *******************************
 
 
+def create_nav_menu():
+    """
+    Create the navigation menu with app, profile, and action dropdowns.
+
+    Returns:
+        Div: An HTML div containing the navigation menu.
+    """
+    def get_selected_item_style(is_selected):
+        return "background-color: var(--pico-primary-background); " if is_selected else ""
+
+    # Housekeeping
+    logger.debug("Creating navigation menu.")
+    menux = db.get("last_app_choice", "App")
+    selected_profile_id = db.get("last_profile_id")
+    selected_profile_name = get_profile_name()
+
+    # What we're going to do is fill this list with items, and then return it as a Div
+    nav_items = []
+
+    #  ___ _ _ _
+    # | __(_) | |___ _ _
+    # | _|| | | / -_) '_|
+    # |_| |_|_|_\___|_|
+    # Filler Item: Non-interactive, occupies significant space
+    filler_item = Li(
+        Span(" "),
+        style=(
+            "display: flex; "
+            "flex-grow: 1; "
+            "justify-content: center; "
+            "list-style-type: none; "
+            f"min-width: {NAV_FILLER_WIDTH}; "
+        ),
+    )
+
+    # We begin with a filler item
+    nav_items.append(filler_item)
+    logger.debug(f"Adding {profile_app.name.lower()} menu to navigation.")
+
+    #  ___          __ _ _       ___        _ _      _
+    # | _ \_ _ ___ / _(_) |___  / __|_ __ _(_) |_ __| |_  ___ _ _
+    # |  _/ '_/ _ \  _| | / -_) \__ \ V  V / |  _/ _| ' \/ -_) '_|
+    # |_| |_| \___/_| |_|_\___| |___/\_/\_/|_|\__\__|_||_\___|_|
+    # The Profile Switcher menu
+
+    # This will be the list of items in the profile menu
+    menu_items = []
+
+    # Add selection to top of profile-switcher menu in order to Edit Profiles
+    menu_items.append(
+        create_menu_item(
+            f"Edit {format_endpoint_name(profile_app.name)} {LIST_SUFFIX}",
+            f"/{profile_app.name}",
+            profile_id,
+            is_traditional_link=True,
+            additional_style=(
+                "font-weight: bold; "
+                "border-bottom: 1px solid var(--pico-muted-border-color);"
+            )
+        )
+    )
+
+    # Fetch the whole list of Active Profiles from the DB
+    active_profiles = profiles("active=?", (True,), order_by='priority')
+    # One of these will be selected, and we'll use this to set the 'checked' attribute
+    selected_profile_id = db.get("last_profile_id")
+
+    # Now we'll loop through the list of active profiles and add them to the menu
+    for profile in active_profiles:
+        # We'll check if this profile is the one that was most recently selected
+        is_selected = str(profile.id) == str(selected_profile_id)
+        # And we'll apply a style to the item if it is
+
+        item_style = get_selected_item_style(is_selected)
+        menu_items.append(
+            Li(
+                Label(
+                    Input(
+                        type="radio",
+                        name="profile",
+                        value=str(profile.id),
+                        checked=is_selected,
+                        hx_get=f"/{profile_app.name}/{profile.id}",
+                        hx_target=f"#{profile_id}",
+                        hx_swap="outerHTML",
+                    ),
+                    profile.name,
+                    style="display: flex; align-items: center;"
+                ),
+                style=f"text-align: left; {item_style}"
+            )
+        )
+
+    # Define the profile menu
+    profile_menu = Details(
+        Summary(
+            f"{profile_app.name.upper()}: {selected_profile_name}",
+            style=generate_menu_style(NOWRAP_STYLE),  # Menus don't wrap
+            id=profile_id,
+        ),
+        Ul(
+            *menu_items,
+            style="padding-left: 0;",
+        ),
+        cls="dropdown",
+    )
+
+    # And now the Profile Switcher is an item on the menu.
+    nav_items.append(profile_menu)
+    logger.debug("Adding app menu to navigation.")
+
+    #    _               ___        _ _      _
+    #   /_\  _ __ _ __  / __|_ __ _(_) |_ __| |_  ___ _ _
+    #  / _ \| '_ \ '_ \ \__ \ V  V / |  _/ _| ' \/ -_) '_|
+    # /_/ \_\ .__/ .__/ |___/\_/\_/|_|\__\__|_||_\___|_|
+    #       |_|  |_|
+    # App Switcher menu
+
+    # We recycle the menu_items list for the apps menu
+    menu_items = []
+
+    # We'll loop through the list of menu items and add them to the menu
+    for item in MENU_ITEMS:
+        # We'll check if this item is the one that was most recently selected
+        is_selected = item == db.get("last_app_choice")
+        item_style = (
+            "background-color: var(--pico-primary-background); " if is_selected else ""
+        )
+        # These are going to be "splat" into the menu
+        menu_items.append(
+            Li(
+                A(
+                    format_endpoint_name(item),
+                    href=f"/{item}",
+                    cls="dropdown-item",
+                    style=f"{NOWRAP_STYLE} {item_style}"
+                ),
+                style="display: block;"
+            )
+        )
+
+    # Put the apps menu together
+    apps_menu = Details(
+        Summary(
+            # App names often made from Capitalized Words from URL endpoint_paths
+            f"APP: {format_endpoint_name(menux)}",
+            style=generate_menu_style(NOWRAP_STYLE),
+            id=explore_id,
+        ),
+        Ul(
+            *menu_items,  # Splat
+            cls="dropdown-menu",
+        ),
+        cls="dropdown",
+    )
+
+    # And now the Apps Switcher is an item on the menu.
+    nav_items.append(apps_menu)
+    logger.debug("Adding search input to navigation.")
+
+    #  ___                  _      __  __
+    # / __| ___ __ _ _ _ __| |_   |  \/  |___ _ _ _  _
+    # \__ \/ -_) _` | '_/ _| ' \  | |\/| / -_) ' \ || |
+    # |___/\___\__,_|_| \__|_||_| |_|  |_\___|_||_\_,_|
+    # Search Feature on the menu
+
+    # Clean this up when you have the time
+
+    # Create the search input group wrapped in a form
+    search_group = Form(
+        Group(
+            Input(
+                type="search",
+                placeholder="Search",
+                name="nav_input",
+                id="nav-input",
+                hx_post="/search",
+                hx_trigger="keyup[keyCode==13]",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                style=(
+                    f"{generate_menu_style(NOWRAP_STYLE)} "
+                    f"width: {NOWRAP_STYLE}; "
+                    "padding-right: 0px; "
+                    "border: 1px solid var(--pico-muted-border-color); "
+                ),
+            ),
+        ),
+        hx_post="/search",
+        hx_target="#msg-list",
+        hx_swap="innerHTML",
+    )
+
+    # The navigation menu is now complete.
+    nav_items.append(search_group)
+
+    # Create the navigation container
+    nav = Div(
+        *nav_items,  # Nav items splat into the container
+        style=(
+            "display: flex; "  # Keep the items in a row
+            "gap: 20px; "
+        ),
+    )
+
+    # Return the navigation container
+    logger.debug("Navigation menu created.")
+    return nav
+
+
 def create_menu_item(title, link, summary_id, is_traditional_link=False, additional_style=""):
     """
-    Create a menu item for the navigation.
+    Centralizes how Li's are created for the menu. Good for HTMX.
 
     Args:
         title (str): The display title of the menu item.
@@ -712,272 +1057,16 @@ def create_menu_item(title, link, summary_id, is_traditional_link=False, additio
         )
 
 
-def format_endpoint_name(endpoint: str) -> str:
-    """
-    Capitalize and replace underscores with spaces in endpoint names.
-
-    Args:
-        endpoint (str): The original endpoint name.
-
-    Returns:
-        str: The formatted endpoint name.
-    """
-    return ' '.join(word.capitalize() for word in endpoint.split('_'))
-
-
-def create_nav_menu():
-    """
-    Create the navigation menu with app, profile, and action dropdowns.
-
-    Returns:
-        Div: An HTML div containing the navigation menu.
-    """
-    logger.debug("Creating navigation menu.")
-    # Fetch the last selected items from the db
-    menux = db.get("last_app_choice", "App")
-    selected_profile_id = db.get("last_profile_id")
-    selected_profile_name = get_profile_name()
-    action_menu_style = generate_menu_style(NOWRAP_STYLE)
-
-    # Filler Item: Non-interactive, occupies significant space
-    filler_item = Li(
-        Span(" "),
-        style=(
-            "display: flex; "
-            "flex-grow: 1; "
-            "justify-content: center; "
-            "list-style-type: none; "
-            f"min-width: {NAV_FILLER_WIDTH}; "
-        ),
-    )
-
-    nav_items = [filler_item]
-
-    if SHOW_PROFILE_MENU:
-        logger.debug(f"Adding {PROFILE.lower()} menu to navigation.")
-        profile_items = []
-
-        # Add "Manage Users" option at the top (unchanged)
-        profile_items.append(
-            create_menu_item(
-                f"Edit {format_endpoint_name(PROFILE)} List",
-                f"/{PROFILE}",
-                profile_id,
-                is_traditional_link=True,
-                additional_style=(
-                    "font-weight: bold; "
-                    "border-bottom: 1px solid var(--pico-muted-border-color);"
-                )
-            )
-        )
-
-        # Fetch active profiles using MiniDataAPI
-        active_profiles = profiles("active=?", (True,), order_by='priority')
-
-        for profile in active_profiles:
-            is_selected = str(profile.id) == str(selected_profile_id)
-            item_style = (
-                "background-color: var(--pico-primary-background); " if is_selected else ""
-            )
-            profile_items.append(
-                Li(
-                    Label(
-                        Input(
-                            type="radio",
-                            name="profile",
-                            value=str(profile.id),
-                            checked=is_selected,
-                            hx_get=f"/{PROFILE}/{profile.id}",
-                            hx_target=f"#{profile_id}",
-                            hx_swap="outerHTML",
-                        ),
-                        profile.name,
-                        style="display: flex; align-items: center;"
-                    ),
-                    style=f"text-align: left; {item_style}"
-                )
-            )
-
-        # Define the profile menu
-        profile_menu = Details(
-            Summary(
-                f"{format_endpoint_name(PROFILE)}: {selected_profile_name}",
-                style=generate_menu_style(NOWRAP_STYLE),
-                id=profile_id,
-            ),
-            Ul(
-                *profile_items,
-                style="padding-left: 0;",
-            ),
-            cls="dropdown",
-        )
-        nav_items.append(profile_menu)
-
-
-
-
-
-
-
-
-
-    if SHOW_PROFILE_MENU:
-        logger.debug(f"Adding {PROFILE.lower()} menu to navigation.")
-        profile_items = []
-
-        # Fetch active profiles using MiniDataAPI
-        active_profiles = profiles("active=?", (True,), order_by='priority')
-
-
-
-
-
-
-
-    if SHOW_APP_MENU:
-        logger.debug("Adding app menu to navigation.")
-        # Define the apps menu
-
-        menu_items = []
-        for item in MENU_ITEMS:
-            is_selected = item == db.get("last_app_choice")
-            item_style = (
-                "background-color: var(--pico-primary-background); " if is_selected else ""
-            )
-            menu_items.append(
-                Li(
-                    A(
-                        format_endpoint_name(item),
-                        href=f"/{item}",
-                        cls="dropdown-item",
-                        style=f"{NOWRAP_STYLE} {item_style}"
-                    ),
-                    style="display: block;"
-                )
-            )
-
-        # Define the apps menu
-        apps_menu = Details(
-            Summary(
-                f"Apps: {format_endpoint_name(menux)}",
-                style=generate_menu_style(NOWRAP_STYLE),
-                id=explore_id,
-            ),
-            Ul(
-                *menu_items,
-                style="padding-left: 0; position: absolute; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 4px; z-index: 1000;"
-            ),
-            cls="dropdown",
-        )
-        nav_items.append(apps_menu)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if SHOW_SEARCH:
-        logger.debug("Adding search input to navigation.")
-        # Define the search form style
-        search_form_style = (
-            generate_menu_style(NOWRAP_STYLE) +
-            "position: relative; "
-            "display: inline-flex; "
-            "align-items: center; "
-        )
-        # Define the search input style
-        search_input_style = (
-            "width: 100%; "
-            "padding-right: 30px; "
-        )
-        # Define the search button style
-        search_button_style = (
-            "background: none; "
-            "color: var(--pico-muted-color); "
-            "position: absolute; "
-            "right: 10px; "
-            "top: 50%; "
-            "transform: translateY(-50%); "
-            "width: 16px; "
-            "border: none; "
-            "padding: 0; "
-        )
-
-        # Create the search input group wrapped in a form
-        search_group = Form(
-            Group(
-                Input(
-                    type="search",
-                    placeholder="Search",
-                    name="nav_input",
-                    id="nav-input",
-                    hx_post="/search",
-                    hx_trigger="keyup[keyCode==13]",
-                    hx_target="#msg-list",
-                    hx_swap="innerHTML",
-                    style=(
-                        f"{action_menu_style} "
-                        f"width: {NOWRAP_STYLE}; "
-                        "padding-right: 0px; "
-                        "border: 1px solid var(--pico-muted-border-color); "
-                    ),
-                ),
-                Button(
-                    "×",
-                    type="button",
-                    onclick="document.getElementById('nav-input').value = ''; this.blur();",
-                    style=search_button_style + "margin-right: 0px;",
-                ),
-                style=(
-                    "align-items: center; "
-                    "display: flex; "
-                    "position: relative; "
-                ),
-            ),
-            hx_post="/search",
-            hx_target="#msg-list",
-            hx_swap="innerHTML",
-        )
-
-
-        nav_items.append(search_group)
-
-    # Create the navigation container
-    nav = Div(
-        *nav_items,
-        style=(
-            "align-items: center; "
-            "display: flex; "
-            "gap: 8px; "
-            "width: 100%; "
-            "justify-content: flex-end; "
-        ),
-    )
-
-    logger.debug("Navigation menu created.")
-    return nav
-
+# ----------------------------------------------------------------------------------------------------
+#   ____ _           _
+#  / ___| |__   __ _| |_ figlet
+# | |   | '_ \ / _` | __|
+# | |___| | | | (_| | |_
+#  \____|_| |_|\__,_|\__|
+#
+# *******************************
+# It seems today that where it's at is reliance on AI and streaming in chat
+# *******************************
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
@@ -1010,207 +1099,105 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         id='input-group',
     )
 
+# ----------------------------------------------------------------------------------------------------
+#  ____ figlet      __ _ _        ____          _ _       _
+# |  _ \ _ __ ___  / _(_) | ___  / ___|_      _(_) |_ ___| |__   ___ _ __
+# | |_) | '__/ _ \| |_| | |/ _ \ \___ \ \ /\ / / | __/ __| '_ \ / _ \ '__|
+# |  __/| | | (_) |  _| | |  __/  ___) \ V  V /| | || (__| | | |  __/ |
+# |_|   |_|  \___/|_| |_|_|\___| |____/ \_/\_/ |_|\__\___|_| |_|\___|_|
 # *******************************
-# Todo Common Support Functions
+# Profile Switcher invisibly switches profiles, HTML-style!
 # *******************************
 
 
-def todo_mk_input():
+@rt(f'/{profile_app.name}/{{profile_id}}')
+def profile_menu_handler(request, profile_id: int):
     """
-    Create an input field for adding a new todo item.
+    Handle profile menu selection seamlessly using HTMX.
 
-    Returns:
-        Input: An HTML input element for the todo title.
-    """
-    return Input(
-        placeholder='Add a new item',
-        id='title',
-        hx_swap_oob='true',
-        autofocus=True,
-        name='title',
-    )
-
-# *******************************
-# Database Initialization
-# *******************************
-
-
-def populate_initial_data():
-    """
-    Populate the database with initial data if empty.
-
-    This function ensures that there is at least one profile and one todo item in the database.
-    """
-    logger.debug("Populating initial data.")
-    if not profiles():
-        # Create a default profile
-        default_profile = profiles.insert({
-            "name": f"Default {PROFILE.capitalize()}",  # Updated to use PROFILE
-            "address": "",
-            "code": "",
-            "active": True,
-            "priority": 0,
-        })
-        logger.info(f"Inserted default profile: {default_profile}")
-    else:
-        default_profile = profiles()[0]
-
-    if not todos():
-        # Add a sample todo with the default profile_id
-        todos.insert({
-            "title": f"Sample {TODO}",
-            "done": False,
-            "priority": 1,
-            "profile_id": default_profile.id,
-        })
-        logger.info(f"Inserted sample {TODO} item.")
-
-
-# Call this function after the fast_app initialization
-populate_initial_data()
-
-# *******************************
-# Create Main Content
-# *******************************
-
-
-def create_main_content(show_content=False):
-    """
-    Create the main content for all routes.
+    This function operates in the background without page reloads to:
+    1. Process the Profile Switcher menu selection
+    2. Update persistent storage with the new profile choice
+    3. Return the user to their previous location seamlessly
 
     Args:
-        show_content (bool): Whether to show specific content based on the route.
+        request: The incoming HTTP request.
+        profile_id (int): The ID of the selected profile.
 
     Returns:
-        Container: An HTML container with the main content.
+        Redirect: A redirect response to the last visited URL.
     """
+    logger.debug(f"Profile menu selected with profile_id: {profile_id}")
 
-    logger.debug("Creating main content.")
-    nav = create_nav_menu()
-    nav_group_style = (
-        "display: flex; "
-        "align-items: center; "
-        "position: relative;"
-    )
-    nav_group = Group(
-        nav,
-        style=nav_group_style,
-    )
+    db["last_profile_id"] = profile_id
 
-    current_profile_id = db.get("last_profile_id")
-    if current_profile_id is None:
-        # Fetch the first profile using MiniDataAPI
-        first_profiles = profiles(order_by='id', limit=1)
-        if first_profiles:
-            current_profile_id = first_profiles[0].id
-            db["last_profile_id"] = current_profile_id
-            logger.info(f"Set default profile ID to {current_profile_id}")
-        else:
-            logger.warning("No profiles found in the database")
-            current_profile_id = None
+    if not profile_id:
+        logger.error(f"Profile ID {profile_id} not found. Redirecting to /{profile_app.name}.")
+        return Redirect(f'/{profile_app.name}')
 
-    # If we have a current_profile_id, set it as an xtra filter on the todos table
-    if current_profile_id is not None:
-        todos.xtra(profile_id=current_profile_id)
+    last_profile_name = get_profile_name()
+    fig(f"{profile_app.name}: {last_profile_name}\nID: {profile_id}")
+    logger.info(f"Profile selected: {last_profile_name} (ID: {profile_id})")
 
-    menux = db.get("last_app_choice", "App")
+    last_visited_url = db.get("last_visited_url", "/")
 
-    # Check if menux matches either singular or plural form of TODO
-    is_todo_view = (menux == TODO)
+    return Redirect(last_visited_url)
 
-    # Fetch the filtered todo items and sort them by priority
-    todo_items = sorted(todos(), key=lambda x: x.priority)
-    logger.info(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
-
-    return Container(
-        nav_group,
-        Grid(
-            Div(
-                Card(
-                    H2(f"{pluralize(menux, singular=True)}"),
-                    Ul(*[render(todo) for todo in todo_items],
-                       id='todo-list',
-                       cls='sortable',
-                       style="padding-left: 0;"),
-                    header=Form(
-                        Group(
-                            todo_mk_input(),
-                            Button("Add", type="submit"),
-                        ),
-                        hx_post=f"/{TODO}",
-                        hx_swap="beforeend",
-                        hx_target="#todo-list",
-                    ),
-                ) if is_todo_view else Card(
-                    H2(f"{pluralize(menux, singular=True)}"),
-                    P("This is a placeholder for the selected application."),
-                ),
-                id="content-container",
-            ),
-            Div(
-                Card(
-                    H2(f"{APP_NAME} Chatbot"),
-                    Div(
-                        id='msg-list',
-                        cls='overflow-auto',
-                        style='height: 40vh;',
-                    ),
-                    footer=Form(
-                        mk_chat_input_group(),
-                    ),
-                ),
-            ),
-            cls="grid",
-            style=(
-                "display: grid; "
-                "gap: 20px; "
-                f"grid-template-columns: {GRID_LAYOUT}; "
-            ),
-        ),
-        Div(
-            A(
-                f"Poke {APP_NAME} Chatbot",
-                hx_post="/poke",
-                hx_target="#msg-list",
-                hx_swap="innerHTML",
-                cls="button",
-            ),
-            style=(
-                "bottom: 20px; "
-                "position: fixed; "
-                "right: 20px; "
-                "z-index: 1000; "
-            ),
-        ),
-    )
-
+# ----------------------------------------------------------------------------------------------------
+#  __  __       _         ____ figlet
+# |  \/  | __ _(_)_ __   |  _ \ __ _  __ _  ___
+# | |\/| |/ _` | | '_ \  | |_) / _` |/ _` |/ _ \
+# | |  | | (_| | | | | | |  __/ (_| | (_| |  __/
+# |_|  |_|\__,_|_|_| |_| |_|   \__,_|\__, |\___|
+#                                    |___/
 # *******************************
-# Site Navigation Main Endpoints
+# Main Page wraps like a boss
 # *******************************
 
 
 @rt('/')
-@rt(f'/{TODO}')
-@rt(f'/{PROFILE}')
+@rt(f'/{todo_app.name}')
+@rt(f'/{profile_app.name}')
 def get(request):
     """
     Handle main page and specific page GET requests.
+
+    This function serves as the central routing and rendering mechanism for the application.
+    It processes requests for the main page and specific app pages defined in MENU_ITEMS.
+    New apps can be easily integrated by adding them to the MENU_ITEMS list and implementing
+    their corresponding render and CRUD functions.
+
+    The function performs the following key tasks:
+    1. Determines the requested path and sets up the appropriate menu context.
+    2. Applies profile filtering if necessary.
+    3. Creates the main content, including navigation and app-specific views.
+    4. Handles the Todo app view if requested.
+    5. Provides a structure for adding new app views seamlessly.
+
+    To add a new app:
+    1. Add the app name to the MENU_ITEMS list.
+    2. Implement a render function for the app (e.g., render_new_app()).
+    3. Create CRUD functions for the app (e.g., new_app_create(), new_app_update(), etc.).
+    4. Add a condition in this function to handle the new app's view, similar to the Todo view.
+
+    The function uses HTMX for dynamic content updates, allowing for a smooth single-page
+    application (SPA) experience. Refer to the Todo and Profile apps for examples of
+    how to structure new app components.
 
     Args:
         request: The incoming HTTP request.
 
     Returns:
-        Titled: An HTML response with the appropriate title and content.
+        Titled: An HTML response with the appropriate title and content for the requested page.
     """
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
-
-    show_content = path in [TODO, PROFILE, 'app_1', 'app_2']
 
     menux = "home"
     if path:
         menux = path
 
+    fig(f"app: {menux}")
     logger.info(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
@@ -1224,10 +1211,122 @@ def get(request):
         logger.warning("No current profile ID found. Using default filtering.")
         todos.xtra(profile_id=None)
 
-    if menux == PROFILE:
+    if menux == profile_app.name:
         response = get_profiles_content()
     else:
-        response = create_main_content(show_content)
+        # Merged create_main_content logic
+        logger.debug("Creating main content.")
+        nav = create_nav_menu()
+        nav_group_style = (
+            "display: flex; "
+            "align-items: center; "
+            "position: relative;"
+        )
+        nav_group = Group(
+            nav,
+            style=nav_group_style,
+        )
+
+        if current_profile_id is None:
+            # Fetch the first profile using MiniDataAPI
+            first_profiles = profiles(order_by='id', limit=1)
+            if first_profiles:
+                current_profile_id = first_profiles[0].id
+                db["last_profile_id"] = current_profile_id
+                logger.info(f"Set default profile ID to {current_profile_id}")
+            else:
+                logger.warning("No profiles found in the database")
+                current_profile_id = None
+
+        # If we have a current_profile_id, set it as an xtra filter on the todos table
+        if current_profile_id is not None:
+            todos.xtra(profile_id=current_profile_id)
+
+        menux = db.get("last_app_choice", "App")
+
+        # Check if menux matches either singular or plural form of TASK
+        is_todo_view = (menux == todo_app.name)
+
+        # Fetch the filtered todo items and sort them by priority
+        todo_items = sorted(todos(), key=lambda x: x.priority)
+        logger.info(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
+
+        response = Container(
+            nav_group,
+            Grid(
+                Div(
+                    Card(
+                        H2(f"{pluralize(menux, singular=True)} {LIST_SUFFIX}"),
+                        Ul(*[render_todo(todo) for todo in todo_items],
+                           id='todo-list',
+                           cls='sortable',
+                           style="padding-left: 0;"),
+                        header=Form(
+                            Group(
+                                Input(
+                                    placeholder=f'Add new {todo_app.name.capitalize()}',
+                                    id='title',
+                                    name='title',
+                                    autofocus=True,
+                                ),
+                                Button("Add", type="submit"),
+                            ),
+                            hx_post=f"/{todo_app.name}",
+                            hx_swap="beforeend",
+                            hx_target="#todo-list",
+                        ),
+                    ) if is_todo_view else Card(
+                        H2(f"{pluralize(menux, singular=True)}"),
+                        P("This is a placeholder for the selected application."),
+                    ),
+                    id="content-container",
+                ),
+                Div(
+                    Card(
+                        H2(f"{APP_NAME} Chatbot"),
+                        Div(
+                            id='msg-list',
+                            cls='overflow-auto',
+                            style='height: 40vh;',
+                        ),
+                        footer=Form(
+                            mk_chat_input_group(),
+                        ),
+                    ),
+                ),
+                cls="grid",
+                style=(
+                    "display: grid; "
+                    "gap: 20px; "
+                    f"grid-template-columns: {GRID_LAYOUT}; "
+                ),
+            ),
+            Div(
+                A(
+                    f"Poke {APP_NAME} Chatbot",
+                    hx_post="/poke",
+                    hx_target="#msg-list",
+                    hx_swap="innerHTML",
+                    cls="button",
+                ),
+                style=(
+                    "bottom: 20px; "
+                    "position: fixed; "
+                    "right: 20px; "
+                    "z-index: 1000; "
+                ),
+            ),
+            Script("""
+                document.addEventListener('htmx:afterSwap', function(event) {
+                    if (event.target.id === 'todo-list' && event.detail.successful) {
+                        const form = document.querySelector('form[hx-target="#todo-list"]');
+                        if (form) {
+                            form.reset();
+                        }
+                    }
+                });
+            """)
+        )
 
     logger.debug("Returning response for main GET request.")
     # Choose the profile name based on the last_profile_id
@@ -1241,17 +1340,34 @@ def get(request):
     )
 
 
+# This makes the Main Page serve all the endpoints in MENU_ITEMS
 for item in MENU_ITEMS:
     app.add_route(f'/{item}', get)
+
+
+# ----------------------------------------------------------------------------------------------------
+#  ____             __ _ _                _ figlet
+# |  _ \ _ __ ___  / _(_) | ___  ___     / \   _ __  _ __
+# | |_) | '__/ _ \| |_| | |/ _ \/ __|   / _ \ | '_ \| '_ \
+# |  __/| | | (_) |  _| | |  __/\__ \  / ___ \| |_) | |_) |
+# |_|   |_|  \___/|_| |_|_|\___||___/ /_/   \_\ .__/| .__/
+#                                             |_|   |_|
+# *******************************
+# Profiles App is a plugin you can't unplug
+# *******************************
 
 def get_profiles_content():
     """
     Retrieve and display the list of profiles.
 
+    This function handles the Profiles app, which is a special case as it controls
+    the Profile switcher menu. For a more typical example of a plugin app within
+    the Pipulate framework, refer to the Todo app.
+
     Returns:
-        Container: An HTML container with the profiles and chat interface.
+        Container: An HTML container with the profiles list and chat interface.
     """
-    logger.debug(f"Retrieving {PROFILE.lower()} for display.")
+    logger.debug(f"Retrieving {profile_app.name.lower()} for display.")
     # Create the navigation group
     nav_group = create_nav_menu()
 
@@ -1275,21 +1391,22 @@ def get_profiles_content():
         Grid(
             Div(
                 Card(
-                    H2(PROFILE.capitalize()),
+                    H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"),
                     Ul(*[render_profile(profile) for profile in ordered_profiles],
                        id='profile-list',
                        cls='sortable',
                        style="padding-left: 0;"),
                     footer=Form(
                         Group(
-                            Input(placeholder=f"{PROFILE.capitalize()} Name", name="profile_name"),
-                            Input(placeholder=ADDRESS_NAME, name="profile_address"),
-                            Input(placeholder=CODE_NAME, name="profile_code"),
-                            Button("Add", type="submit"),
+                            Input(placeholder=f"{profile_app.name.capitalize()} Name", name="profile_name", id="profile-name-input"),
+                            Input(placeholder=PLACEHOLDER_ADDRESS, name="profile_address", id="profile-address-input"),
+                            Input(placeholder=PLACEHOLDER_CODE, name="profile_code", id="profile-code-input"),
+                            Button("Add", type="submit", id="add-profile-button"),
                         ),
-                        hx_post=f"/{PROFILE}",
+                        hx_post=f"/{profile_app.name}",
                         hx_target="#profile-list",
                         hx_swap="beforeend",
+                        hx_swap_oob="true",
                     ),
                 ),
                 id="content-container",
@@ -1314,252 +1431,68 @@ def get_profiles_content():
                 f"grid-template-columns: {GRID_LAYOUT}; "
             ),
         ),
+        Script("""
+            document.addEventListener('htmx:afterSwap', function(event) {
+                if (event.target.id === 'profile-list' && event.detail.successful) {
+                    const form = document.getElementById('add-profile-button').closest('form');
+                    form.reset();
+                }
+            });
+        """)
     )
-
-
-@rt(f'/{PROFILE}/{{profile_id}}')
-def profile_menu_handler(request, profile_id: int):
-    """
-    Handle profile menu selection and record the choice.
-
-    Args:
-        request: The incoming HTTP request.
-        profile_id (int): The ID of the selected profile.
-
-    Returns:
-        Redirect: A redirect response to the last visited URL.
-    """
-    logger.debug(f"Profile menu selected with profile_id: {profile_id}")
-    # Fetch the selected profile from the database using the profile ID
-
-    selected_profile = profiles.get(profile_id)
-
-    if not selected_profile:
-        logger.error(f"Profile ID {profile_id} not found. Redirecting to /{PROFILE}.")
-        return Redirect(f'/{PROFILE}')
-
-    # Store the selected profile ID and name in the database
-    last_profile_name = get_profile_name()
-    logger.info(f"Profile selected: {last_profile_name} (ID: {profile_id})")
-
-    # Retrieve the last visited URL from the database
-    last_visited_url = db.get("last_visited_url", "/")
-
-    # Return a redirect response to the last visited URL
-    return Redirect(last_visited_url)
-
-# *******************************
-# Todo App Endpoints
-# *******************************
-
-
-@rt(f'/{TODO}', methods=['POST'])
-async def post_todo(title: str):
-    """
-    Create a new todo item.
-
-    Args:
-        title (str): The title of the new todo item.
-
-    Returns:
-        Tuple: The rendered todo item and a new input field.
-    """
-    logger.debug(f"Received new todo title: '{title}'")
-    if not title.strip():
-        # Empty todo case
-        await chatq(
-            "User tried to add an empty todo. Respond with a brief, sassy comment about their attempt."
-        )
-        logger.warning("User attempted to add an empty todo.")
-        return ''
-
-    # Non-empty todo case
-    current_profile_id = db.get("last_profile_id")
-    if not current_profile_id:
-        # Use default profile ID
-        default_profile = profiles()[0]
-        current_profile_id = default_profile.id
-        logger.warning(f"No profile ID found. Using default profile ID: {current_profile_id}")
-
-    # Create a new todo item with the profile_id included
-    todo = {
-        "title": title,
-        "done": False,
-        "priority": 0,
-        "profile_id": current_profile_id,
-    }
-    inserted_todo = todos.insert(todo)
-    logger.info(f"Inserted new todo: {inserted_todo}")
-
-    prompt = (
-        f"New {TODO}: '{title}'. "
-        "Brief, sassy comment or advice."
-    )
-    await chatq(prompt)
-
-    return render(inserted_todo), todo_mk_input()
-
-
-@rt(f'/{TODO}/toggle/{{tid}}', methods=['POST'])
-async def toggle_todo(tid: int):
-    """
-    Update the status of a todo item.
-
-    Args:
-        tid (int): The ID of the todo item to toggle.
-
-    Returns:
-        str: The rendered updated todo item.
-    """
-    logger.debug(f"Toggling todo status for ID: {tid}")
-    todo = todos[tid]
-    old_status = "Done" if todo.done else "Not Done"
-    todo.done = not todo.done
-    updated_todo = todos.update(todo)
-    logger.info(f"Toggled todo '{todo.title}' to {'Done' if todo.done else 'Not Done'}")
-
-    prompt = (
-        f"Todo '{todo.title}' toggled from {old_status} to {'Done' if todo.done else 'Not Done'}. "
-        f"Brief, sassy comment mentioning '{todo.title}'."
-    )
-    await chatq(prompt)
-
-    return render(updated_todo)
-
-
-@rt(f'/{TODO}/update/{{todo_id}}', methods=['POST'])
-async def update_todo(todo_id: int, todo_title: str):
-    """
-    Update the title of a todo item.
-
-    Args:
-        todo_id (int): The ID of the todo item to update.
-        todo_title (str): The new title for the todo item.
-
-    Returns:
-        Union[str, Tuple[str, int]]: The rendered updated todo item or an error message with status code.
-    """
-    logger.debug(f"Updating todo ID {todo_id} with new title: '{todo_title}'")
-    # Fetch the existing Todo item
-    todo = todos[todo_id]
-
-    if not todo:
-        logger.error(f"Todo ID {todo_id} not found for update.")
-        return "Todo not found", 404
-
-    # Update the Todo item's title
-    todo.title = todo_title
-
-    # Use the MiniDataAPI update method to save the changes
-    try:
-        updated_todo = todos.update(todo)
-        logger.info(f"Updated todo ID {todo_id}: {updated_todo}")
-    except NotFoundError:
-        logger.error(f"Todo ID {todo_id} not found during update.")
-        return "Todo not found for update", 404
-
-    # Return the updated Todo item using the render function
-    return render(updated_todo)
-
-
-@rt(f'/{TODO}_sort', methods=['POST'])
-async def update_todo_order(values: dict):
-    """
-    Update the order of todo items based on the received values.
-
-    Args:
-        values (dict): A dictionary containing the new order of todo items.
-
-    Returns:
-        str: An empty string indicating successful update, or an error message with status code.
-    """
-    logger.debug(f"Received values: {values}")
-    try:
-        items = json.loads(values.get('items', '[]'))
-        logger.debug(f"Parsed items: {items}")
-        for item in items:
-            logger.debug(f"Updating item: {item}")
-            todos.update(id=int(item['id']), priority=int(item['priority']))
-        logger.info("Todo order updated successfully")
-
-        # After successful update, queue a message for the chat
-        prompt = "The todo list was reordered. Make a brief, witty remark about sorting or prioritizing tasks. Keep it under 20 words."
-        await chatq(prompt)
-
-        return ''
-    except Exception as e:
-        logger.error(f"Error updating todo order: {str(e)}")
-        return str(e), 500  # Return the error message and a 500 status code
-
-
-@rt(f'/{TODO}/delete/{{tid}}', methods=['DELETE'])
-async def delete_todo(tid: int):
-    """
-    Delete a todo item.
-
-    Args:
-        tid (int): The ID of the todo item to delete.
-
-    Returns:
-        str: An empty string indicating successful deletion.
-    """
-    logger.debug(f"Deleting todo with ID: {tid}")
-    todo = todos[tid]
-    todos.delete(tid)
-    prompt = (
-        f"Todo '{todo.title}' deleted. "
-        "Brief, sassy reaction."
-    )
-    await chatq(prompt)
-    logger.info(f"Deleted todo: {todo.title} (ID: {tid})")
-    return ''
-
-
-# *******************************
-# Profiles App Endpoints
-# *******************************
-
-def count_records_with_xtra(table_handle, xtra_field, xtra_value):
-    """
-    Returns the number of records in the specified table that match the given .xtra field constraint.
-
-    Parameters:
-        table_handle: A handle to the table object following the MiniDataAPI specification.
-        xtra_field (str): The field name in the table to constrain by using the .xtra function.
-        xtra_value: The value to constrain by for the specified xtra_field.
-
-    Returns:
-        int: The number of records in the specified table matching the .xtra constraint.
-    """
-    # Set the xtra constraint on the table
-    table_handle.xtra(**{xtra_field: xtra_value})
-
-    # Return the number of records in the table after applying the constraint
-    count = len(table_handle())
-    logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
-    return count
 
 
 def render_profile(profile):
     """
     Render a profile item as an HTML list item.
 
+    This function creates a detailed HTML representation of a profile, including:
+    - A checkbox to toggle the profile's active status
+    - A link to display the profile name and associated todo count
+    - Contact information (address and code) if available
+    - A delete button (visible only when the profile has no associated todos)
+    - A hidden update form for editing profile details
+
+    The function also includes JavaScript for toggling the visibility of the update form
+    and other elements when the profile name is clicked.
+
     Args:
-        profile: The profile item to render.
+        profile: The profile object containing attributes like id, name, address, code, and active status.
 
     Returns:
-        Li: An HTML list item representing the profile.
+        Li: An HTML list item (Li) object representing the fully rendered profile with all interactive elements.
     """
+    def count_records_with_xtra(table_handle, xtra_field, xtra_value):
+        """
+        Count records in table matching xtra field constraint.
+
+        Args:
+            table_handle: MiniDataAPI table object.
+            xtra_field (str): Field name to constrain.
+            xtra_value: Value to constrain by.
+
+        Returns:
+            int: Number of matching records.
+        """
+        table_handle.xtra(**{xtra_field: xtra_value})
+        count = len(table_handle())
+        logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
+        return count
+
     # Count the number of todo items for this profile
     todo_count = count_records_with_xtra(todos, 'profile_id', profile.id)
 
     # Set the visibility of the delete icon based on the todo count
     delete_icon_visibility = 'inline' if todo_count == 0 else 'none'
 
+    # Use the ProfileApp instance to generate URLs
+    delete_url = profile_app.get_action_url('delete', profile.id)
+    toggle_url = profile_app.get_action_url('toggle', profile.id)
+
     # Create the delete button (trash can)
     delete_icon = A(
         '🗑',
-        hx_delete=f"/{PROFILE}/delete/{profile.id}",
+        hx_delete=delete_url,
         hx_target=f'#profile-{profile.id}',
         hx_swap='outerHTML',
         style=f"cursor: pointer; display: {delete_icon_visibility};",
@@ -1571,7 +1504,7 @@ def render_profile(profile):
         type="checkbox",
         name="active" if profile.active else None,
         checked=profile.active,
-        hx_post=f"/{PROFILE}/toggle/{profile.id}",
+        hx_post=toggle_url,
         hx_target=f'#profile-{profile.id}',
         hx_swap="outerHTML",
         style="margin-right: 5px;"
@@ -1580,12 +1513,12 @@ def render_profile(profile):
     # Create the update form
     update_form = Form(
         Group(
-            Input(type="text", name="name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"),
-            Input(type="text", name="address", value=profile.address, placeholder=ADDRESS_NAME, id=f"address-{profile.id}"),
-            Input(type="text", name="code", value=profile.code, placeholder=CODE_NAME, id=f"code-{profile.id}"),
+            Input(type="text", name="profile_name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"),
+            Input(type="text", name="profile_address", value=profile.address, placeholder=PLACEHOLDER_ADDRESS, id=f"address-{profile.id}"),
+            Input(type="text", name="profile_code", value=profile.code, placeholder=PLACEHOLDER_CODE, id=f"code-{profile.id}"),
             Button("Update", type="submit"),
         ),
-        hx_post=f"/{PROFILE}/update/{profile.id}",
+        hx_post=f"/{profile_app.name}/{profile.id}",  # Adjusted URL to match route
         hx_target=f'#profile-{profile.id}',
         hx_swap='outerHTML',
         style="display: none;",
@@ -1594,7 +1527,7 @@ def render_profile(profile):
 
     # Create the title link with an onclick event to toggle the update form
     title_link = A(
-        f"{profile.name} ({todo_count} {pluralize(format_endpoint_name(TODO), todo_count)})",
+        f"{profile.name} ({todo_count})",
         href="#",
         hx_trigger="click",
         onclick=(
@@ -1633,187 +1566,151 @@ def render_profile(profile):
             style="display: flex; align-items: center;"
         ),
         id=f'profile-{profile.id}',
-        style="list-style-type: none;",
         data_id=profile.id,  # Add this line
-        data_priority=profile.priority  # Add this line
+        data_priority=profile.priority,  # Add this line
+        style="list-style-type: none;"
     )
 
 
-@rt(f'/{PROFILE}', methods=['POST'])
-async def add_profile(profile_name: str, profile_address: str, profile_code: str):
+# ----------------------------------------------------------------------------------------------------
+#  _____         _ figlet     _
+# |_   _|__   __| | ___      / \   _ __  _ __
+#   | |/ _ \ / _` |/ _ \    / _ \ | '_ \| '_ \
+#   | | (_) | (_| | (_) |  / ___ \| |_) | |_) |
+#   |_|\___/ \__,_|\___/  /_/   \_\ .__/| .__/
+#                                 |_|   |_|
+# *******************************
+# Todo App because isn't everything a list of lists?
+# *******************************
+
+def render_todo(todo):
     """
-    Create a new profile.
+    Render a todo item as an HTML list item with an update form.
+
+    This function serves as an example of a plugin component within the Pipulate framework.
+    It demonstrates how to create a modular element that can be seamlessly integrated
+    into the main application structure, specifically for the Todo app.
+
+    The function creates an interactive todo item with the following features:
+    1. A checkbox to toggle the todo's completion status
+    2. A delete button (trash can icon) to remove the todo
+    3. A clickable title that reveals an update form
+    4. An update form for editing the todo's title
+
+    To implement similar components:
+    1. Create a function like this one that returns the HTML structure for your component.
+    2. Ensure the component includes necessary HTMX attributes for dynamic interactions.
+    3. Implement corresponding server-side endpoints to handle the component's actions.
+    4. Integrate the component into the main app structure, typically within a list or container.
+
+    For an example of how this function is used, look for the 'get_profiles_content' function
+    or the main route handler, where you'll find this function being called to render individual todo items.
 
     Args:
-        profile_name (str): The name of the new profile.
-        profile_address (str): The address of the new profile.
-        profile_code (str): The code number of the new profile.
+        todo: The todo item to render, containing properties like id, title, done, and priority.
 
     Returns:
-        Union[str, Li]: The rendered profile item or an empty string if validation fails.
+        Li: An HTML list item representing the interactive todo component.
     """
-    logger.debug(f"Attempting to add {format_endpoint_name(PROFILE)}: {profile_name}, {profile_address}, {profile_code}")
-    if not profile_name.strip():
-        logger.warning(f"User tried to add an empty {format_endpoint_name(PROFILE)} name.")
-        await chatq(
-            f"User tried to add an empty {format_endpoint_name(PROFILE)} name. Respond with a brief, sassy comment about their attempt."
+
+    # Use the TodoApp instance to generate URLs
+    delete_url = todo_app.get_action_url('delete', todo.id)
+    toggle_url = todo_app.get_action_url('toggle', todo.id)
+
+    tid = f'todo-{todo.id}'  # Unique ID for the todo item
+    checkbox = Input(
+        type="checkbox",
+        name="english" if todo.done else None,
+        checked=todo.done,
+        hx_post=toggle_url,
+        hx_swap="outerHTML",
+        hx_target=f"#{tid}",
+    )
+
+    # Create the delete button (trash can)
+    delete = A(
+        '🗑',
+        hx_delete=delete_url,
+        hx_swap='outerHTML',
+        hx_target=f"#{tid}",
+        style="cursor: pointer; display: inline;",
+        cls="delete-icon"
+    )
+
+    # Create an interactive title link using FastHTML's A() function
+    # This demonstrates how FastHTML allows embedding raw JavaScript via the onclick attribute
+    # The result is a smooth, app-like experience with client-side interactivity
+    title_link = A(
+        todo.title,
+        href="#",
+        cls="todo-title",
+        style="text-decoration: none; color: inherit;",
+        onclick=(
+            "let updateForm = this.nextElementSibling; "
+            "let checkbox = this.parentNode.querySelector('input[type=checkbox]'); "
+            "let deleteIcon = this.parentNode.querySelector('.delete-icon'); "
+            "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
+            "    updateForm.style.visibility = 'visible'; "
+            "    updateForm.style.height = 'auto'; "
+            "    checkbox.style.display = 'none'; "
+            "    deleteIcon.style.display = 'none'; "
+            "    this.remove(); "
+            "    const inputField = document.getElementById('todo_title_" + str(todo.id) + "'); "
+            "    inputField.focus(); "
+            "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "
+            "} else { "
+            "    updateForm.style.visibility = 'hidden'; "
+            "    updateForm.style.height = '0'; "
+            "    checkbox.style.display = 'inline'; "
+            "    deleteIcon.style.display = 'inline'; "
+            "    this.style.visibility = 'visible'; "
+            "}"
         )
-        return ''
-
-    # Get the maximum priority and add 1, or use 0 if no profiles exist
-    max_priority = max((p.priority or 0 for p in profiles()), default=-1) + 1
-
-    new_profile = {
-        "name": profile_name,
-        "address": profile_address,
-        "code": profile_code,
-        "active": True,
-        "priority": max_priority,
-    }
-
-    inserted_profile = profiles.insert(new_profile)
-    logger.info(f"Profile added: {inserted_profile}")
-
-    prompt = (
-        f"New {format_endpoint_name(PROFILE)} '{profile_name}' just joined the party! {ADDRESS_NAME}: {profile_address}, Code: {profile_code}. "
-        "Give a cute, welcoming response mentioning the profile's name and one other detail. Keep it under 30 words."
     )
-    await chatq(prompt)
+    # This complex JavaScript enables a responsive, dynamic UI
+    # It toggles visibility of form elements and handles focus, creating a seamless editing experience
+    # While it adds complexity, it significantly enhances the user interface's responsiveness
 
-    return render_profile(inserted_profile)
-
-
-@rt(f'/{PROFILE}/toggle/{{pid}}', methods=['POST'])
-async def toggle_profile(pid: int):
-    """
-    Toggle the active status of a profile item.
-
-    Args:
-        pid (int): The ID of the profile to toggle.
-
-    Returns:
-        Li: The rendered updated profile item.
-    """
-    logger.debug(f"Toggling active status for profile ID: {pid}")
-    profile = profiles[pid]
-    old_status = "active" if profile.active else "inactive"
-    profile.active = not profile.active
-    new_status = "active" if profile.active else "inactive"
-    updated_profile = profiles.update(profile)
-    logger.info(f"Toggled active status for profile ID {pid} to {profile.active}")
-
-    prompt = (
-        f"Profile '{profile.name}' just flipped their status from {old_status} to {new_status}! "
-        "Give a cute, playful response about this change, mentioning the profile's name and new status. Keep it under 30 words."
+    # Create the update form
+    update_form = Form(
+        Div(
+            Input(
+                type="text",
+                id=f"todo_title_{todo.id}",
+                value=todo.title,
+                name="title",
+                style="flex: 1; padding-right: 10px; margin-bottom: 0px;"
+            ),
+            style="display: flex; align-items: center;"
+        ),
+        style="visibility: hidden; height: 0; overflow: hidden;",
+        hx_post=f"/{todo_app.name}/{todo.id}",
+        hx_target=f"#{tid}",
+        hx_swap="outerHTML",
     )
-    await chatq(prompt)
 
-    return render_profile(updated_profile)
-
-
-@rt(f'/{PROFILE}/update/{{profile_id}}', methods=['POST'])
-async def update_profile(profile_id: int, name: str, address: str, code: str):
-    """
-    Update a profile item.
-
-    Args:
-        profile_id (int): The ID of the profile to update.
-        name (str): The new name for the profile.
-        address (str): The new address for the profile.
-        code (str): The new code number for the profile.
-
-    Returns:
-        Union[str, Li]: The rendered updated profile item or an error message with status code.
-    """
-    logger.debug(f"Updating profile ID {profile_id} with new data.")
-    # Fetch the existing profile item
-    profile = profiles[profile_id]
-
-    if not profile:
-        logger.error(f"Profile ID {profile_id} not found for update.")
-        return "Profile not found", 404
-
-    # Store old values for comparison
-    old_name = profile.name
-    old_address = profile.address
-    old_code = profile.code
-
-    # Update the profile item's fields
-    profile.name = name
-    profile.address = address
-    profile.code = code
-
-    # Use the MiniDataAPI update method to save the changes
-    try:
-        updated_profile = profiles.update(profile)
-        logger.info(f"Updated profile ID {profile_id}: {updated_profile}")
-
-        # Determine what changed
-        changes = []
-        if old_name != name:
-            changes.append(f"name from '{old_name}' to '{name}'")
-        if old_address != address:
-            changes.append(f"{ADDRESS_NAME} from '{old_address}' to '{address}'")
-        if old_code != code:
-            changes.append(f"code from '{old_code}' to '{code}'")
-
-        if changes:
-            change_str = ", ".join(changes)
-            prompt = (
-                f"Profile '{name}' just got a makeover! They updated their {change_str}. "
-                "Give a cute, excited response about this update, mentioning the profile's name and one change. Keep it under 30 words."
-            )
-            await chatq(prompt)
-
-    except NotFoundError:
-        logger.error(f"Profile ID {profile_id} not found during update.")
-        return "Profile not found for update", 404
-
-    # Return the updated profile item using the render function
-    return render_profile(updated_profile)
+    return Li(
+        delete,
+        checkbox,
+        title_link,
+        update_form,
+        id=tid,
+        cls='done' if todo.done else '',
+        style="list-style-type: none;",
+        data_id=todo.id,
+        data_priority=todo.priority
+    )
 
 
-@rt(f'/{PROFILE}_sort', methods=['POST'])
-async def sort_profiles(items: str = Form(...)):
-    logger.debug("sort_profiles function called")
-    try:
-        logger.debug(f"Sorting profiles: {items}")
-        items_list = json.loads(items)
-        for item in items_list:
-            profile = profiles[int(item['id'])]
-            profile.priority = item['priority']
-            profiles.update(profile)
-        logger.info("Profiles sorted successfully")
-        return "Profiles sorted successfully"
-    except Exception as e:
-        logger.error(f"Error sorting profiles: {str(e)}")
-        return f"Error sorting profiles: {str(e)}", 500
-
-
-@rt(f'/{PROFILE}/delete/{{profile_id}}', methods=['DELETE'])
-async def delete_profile(profile_id: int):
-    """
-    Delete a profile item.
-
-    Args:
-        profile_id (int): The ID of the profile to delete.
-
-    Returns:
-        str: An empty string indicating successful deletion.
-    """
-    try:
-        logger.debug(f"Attempting to delete profile ID: {profile_id}")
-        profile = profiles[profile_id]
-        profiles.delete(profile_id)
-        logger.warning(f"Deleted profile ID: {profile_id}")
-        return '', 200
-    except Exception as e:
-        logger.error(f"Error deleting profile: {str(e)}")
-        return f"Error deleting profile: {str(e)}", 500
-
+# ----------------------------------------------------------------------------------------------------
+# __        __   _    ____             _        _
+# \ \figlet/ /__| |__/ ___|  ___   ___| | _____| |_ ___
+#  \ \ /\ / / _ \ '_ \___ \ / _ \ / __| |/ / _ \ __/ __|
+#   \ V  V /  __/ |_) |__) | (_) | (__|   <  __/ |_\__ \
+#    \_/\_/ \___|_.__/____/ \___/ \___|_|\_\___|\__|___/
 
 # *******************************
-# Streaming WebSocket Functions
+# Streaming WebSockets because http isn't just for pageloads anymore
 # *******************************
 
 # Dictionary to keep track of connected WebSocket users
@@ -1975,7 +1872,7 @@ async def search(nav_input: str = ''):
         nav_input (str): The search term entered by the user.
 
     Returns:
-        A response indicating that the search feature is under development.
+        A response indicating that the search feature is still in beta.
     """
     logger.debug(f"Search requested with input: '{nav_input}'")
     search_term = nav_input
@@ -2008,151 +1905,15 @@ async def poke_chatbot():
     # Respond with a confirmation message
     return "Poke received. Let's see what the chatbot says..."
 
-
+# ----------------------------------------------------------------------------------------------------
+#  _   _ _   _ _ _ _   _
+# | | | | |_(_) (_) |_(_) ___  ___
+# | | | | __| | | | __| |/ _ \/ __| figlet
+# | |_| | |_| | | | |_| |  __/\__ \
+#  \___/ \__|_|_|_|\__|_|\___||___/
+#
 # *******************************
-# New Stuff
-# *******************************
-
-def get_profile_name():
-    # Get the last profile id from the database
-    profile_id = db.get("last_profile_id")
-    if profile_id is None:
-        # If no last_profile_id, get the default or only profile
-        all_profiles = profiles()
-        if all_profiles:
-            profile_id = all_profiles[0].id
-            logger.info(f"No last_profile_id found. Using default profile ID: {profile_id}")
-        else:
-            logger.warning("No profiles found in the database.")
-            return "Unknown Profile"
-
-    logger.debug(f"Retrieving profile name for ID: {profile_id}")
-    profile = profiles.get(profile_id)
-    if profile:
-        logger.debug(f"Found profile: {profile.name}")
-        return profile.name
-    else:
-        logger.warning(f"No profile found for ID: {profile_id}")
-        return "Unknown Profile"
-
-
-# *******************************
-# Router Stuff
-# *******************************
-
-
-# Function to register routes dynamically
-def register_menu_routes(router):
-    """
-    Register routes for each menu item dynamically.
-
-    Args:
-        router: The router object to register routes with.
-    """
-    for item in MENU_ITEMS:
-        @router(f'/{item}')
-        def dynamic_route_handler(request):
-            """
-            Handle requests for dynamic routes.
-
-            Args:
-                request: The incoming HTTP request.
-
-            Returns:
-                Response: The response for the dynamic route.
-            """
-            logger.debug(f"Handling request for {item}")
-            # Your existing logic for handling the request
-            return create_main_content(show_content=True)
-
-
-# Define a single handler for all dynamic routes
-def dynamic_route_handler(request):
-    """
-    Handle requests for all dynamic routes defined in MENU_ITEMS.
-    """
-    path = request.url.path.strip('/')
-    logger.debug(f"Received request for dynamic path: {path}")
-
-    show_content = path in MENU_ITEMS
-
-    menux = "home"
-    if path:
-        menux = path
-
-    logger.info(f"Selected explore item: {menux}")
-    db["last_app_choice"] = menux
-    db["last_visited_url"] = request.url.path
-
-    # Apply the profile filter if necessary
-    current_profile_id = db.get("last_profile_id")
-    if current_profile_id:
-        logger.debug(f"Current profile ID: {current_profile_id}")
-        todos.xtra(profile_id=current_profile_id)
-    else:
-        logger.warning("No current profile ID found. Using default filtering.")
-        todos.xtra(profile_id=None)
-
-    if menux == PROFILE:
-        response = get_profiles_content()
-    else:
-        response = create_main_content(show_content)
-
-    logger.debug("Returning response for dynamic route request.")
-    last_profile_name = db.get("last_profile_name", "Default Profile")
-    return Titled(
-        f"{APP_NAME} / {pluralize(format_endpoint_name(last_profile_name), singular=True)} / {pluralize(format_endpoint_name(menux), singular=True)}",
-        response,
-        hx_ext='ws',
-        ws_connect='/ws',
-        data_theme="dark",
-    )
-
-
-def print_routes():
-    console = Console()
-    table = Table(title="Application Routes")
-    
-    table.add_column("Type", style="cyan", no_wrap=True)
-    table.add_column("Path", style="white")
-    table.add_column("Endpoint", style="green")
-    table.add_column("Methods", style="yellow")
-
-    for route in app.routes:
-        if isinstance(route, Route):
-            table.add_row(
-                "Route",
-                route.path,
-                route.endpoint.__name__,
-                ", ".join(route.methods)
-            )
-        elif isinstance(route, WebSocketRoute):
-            table.add_row(
-                "WebSocket",
-                route.path,
-                route.endpoint.__name__,
-                "WebSocket"
-            )
-        elif isinstance(route, Mount):
-            table.add_row(
-                "Mount",
-                route.path,
-                str(route.app),
-                "Mounted App"
-            )
-        else:
-            table.add_row(
-                str(type(route)),
-                getattr(route, 'path', 'N/A'),
-                "Unknown",
-                "Unknown"
-            )
-
-    console.print(table)
-
-
-# *******************************
-# Activate the Application
+# Utilities to push those helper functions to the bottom
 # *******************************
 
 
@@ -2162,6 +1923,305 @@ def print_app_name_figlet():
     figlet_text = f.renderText(APP_NAME)
     print(figlet_text)
 
+
+def format_endpoint_name(endpoint: str) -> str:
+    """Capitalize and replace underscores with spaces in endpoint names."""
+    return ' '.join(word.capitalize() for word in endpoint.split('_'))
+
+
+def get_profile_name():
+    """
+    Retrieve the name of the current profile.
+
+    This function attempts to get the name of the profile associated with the last used profile ID.
+    If no last profile ID is found, it tries to use the first available profile.
+    If no profiles exist, it returns "Unknown Profile".
+
+    Returns:
+        str: The name of the current profile, or "Unknown Profile" if no valid profile is found.
+
+    Logs:
+        - INFO: When using a default profile ID due to missing last_profile_id.
+        - WARNING: When no profiles are found in the database.
+        - DEBUG: Profile retrieval process and results.
+    """
+    # Get the last profile id from the database
+    profile_id = db.get("last_profile_id")
+    if profile_id is None:
+        logger.info("No last_profile_id found. Attempting to use the first available profile.")
+
+    logger.debug(f"Retrieving profile name for ID: {profile_id}")
+    try:
+        profile = profiles.get(profile_id)
+        if profile:
+            logger.debug(f"Found profile: {profile.name}")
+            return profile.name
+    except NotFoundError:
+        logger.warning(f"No profile found for ID: {profile_id}. Attempting to use the first available profile.")
+        # Attempt to use the first available profile
+        all_profiles = profiles()
+        if all_profiles:
+            first_profile = all_profiles[0]
+            db["last_profile_id"] = first_profile.id  # Update the last_profile_id to the first profile
+            logger.info(f"Using first available profile ID: {first_profile.id}")
+            return first_profile.name
+        else:
+            logger.warning("No profiles found in the database.")
+            return "Unknown Profile"
+
+
+# *******************************
+# Utility Function for Pluralization
+# *******************************
+
+def pluralize(word, count=2, singular=False):
+    """
+    Return the plural or singular form of a word based on the count.
+    Replace underscores with spaces and proper case the words.
+
+    Args:
+        word (str): The word to pluralize or singularize.
+        count (int): The count to determine plurality. Default is 2 (plural).
+        singular (bool): If True, always return the singular form. Default is False.
+
+    Returns:
+        str: The word in its appropriate form (singular or plural), with spaces and proper casing.
+    """
+    def proper_case(s):
+        return ' '.join(w.capitalize() for w in s.split())
+
+    # Replace underscores with spaces and proper case
+    word = proper_case(word.replace('_', ' '))
+
+    if singular or count == 1:
+        return word
+
+    # Irregular plurals
+    irregulars = {
+        'Child': 'Children',
+        'Goose': 'Geese',
+        'Man': 'Men',
+        'Woman': 'Women',
+        'Tooth': 'Teeth',
+        'Foot': 'Feet',
+        'Mouse': 'Mice',
+        'Person': 'People'
+    }
+
+    # Check for irregular plurals
+    if word in irregulars:
+        return irregulars[word]
+
+    # Words ending in 'y'
+    if word.endswith('y'):
+        if word[-2].lower() in 'aeiou':
+            return word + 's'
+        else:
+            return word[:-1] + 'ies'
+
+    # Words ending in 'o'
+    if word.endswith('o'):
+        if word[-2].lower() in 'aeiou':
+            return word + 's'
+        else:
+            return word + 'es'
+
+    # Words ending in 'is'
+    if word.endswith('is'):
+        return word[:-2] + 'es'
+
+    # Words ending in 'us'
+    if word.endswith('us'):
+        return word[:-2] + 'i'
+
+    # Words ending in 'on'
+    if word.endswith('on'):
+        return word[:-2] + 'a'
+
+    # Words ending in 'f' or 'fe'
+    if word.endswith('f'):
+        return word[:-1] + 'ves'
+    if word.endswith('fe'):
+        return word[:-2] + 'ves'
+
+    # Words ending in 's', 'ss', 'sh', 'ch', 'x', 'z'
+    if word.endswith(('s', 'ss', 'sh', 'ch', 'x', 'z')):
+        return word + 'es'
+
+    # Default: just add 's'
+    return word + 's'
+
+# ----------------------------------------------------------------------------------------------------
+#   _____ figlet                   ____            _
+#  |  ___|   _ _ __  _ __  _   _  | __ ) _   _ ___(_)_ __   ___  ___ ___
+#  | |_ | | | | '_ \| '_ \| | | | |  _ \| | | / __| | '_ \ / _ \/ __/ __|
+#  |  _|| |_| | | | | | | | |_| | | |_) | |_| \__ \ | | | |  __/\__ \__ \
+#  |_|   \__,_|_| |_|_| |_|\__, | |____/ \__,_|___/_|_| |_|\___||___/___/
+#                          |___/
+# *******************************
+# Funny Business is stupid web tricks like the 404 handler
+# *******************************
+
+
+def custom_404_handler(request, exc):
+    """
+    Custom 404 page handler.
+
+    Args:
+        request: The request that caused the 404 error.
+        exc: The exception that was raised.
+
+    Returns:
+        HTML: An HTML response for the 404 error.
+    """
+    return Html(
+        Head(
+            Title("404 - Page Not Found"),
+            Style("""
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                h1 { color: #e74c3c; }
+                a { color: #3498db; text-decoration: none; }
+            """)
+        ),
+        Body(
+            H1("404 - Page Not Found"),
+            P(f"Sorry, the page '{request.url.path}' you're looking for doesn't exist."),
+            A("Go back to home", href="/")
+        )
+    )
+
+
+class DOMSkeletonMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Log the incoming HTTP request
+        endpoint = request.url.path
+        method = request.method
+        f = Figlet(font='slant')
+        figlet_text = f.renderText(f"{endpoint} {method}")
+        print(figlet_text)
+        logger.info(f"HTTP Request: {method} {endpoint}")
+
+        # Call the next middleware or request handler
+        response = await call_next(request)
+
+        # Print a rich table of the db key/value pairs
+        table = Table(title="Database Contents")
+        table.add_column("Key", style="cyan")
+        table.add_column("Value", style="magenta")
+        for key, value in db.items():
+            table.add_row(key, str(value))
+        console = Console()
+        table.columns[1].style = "white"
+        console.print(table)
+
+        return response
+
+
+def print_routes():
+    """
+    Print a formatted table of all routes in the application.
+
+    This function creates a rich console table displaying information about each route
+    in the application. The table includes columns for the route type, methods, path,
+    and a duplicate indicator.
+
+    The function handles different types of routes:
+    - Standard routes (Route)
+    - WebSocket routes (WebSocketRoute)
+    - Mounted applications (Mount)
+    - Any other unrecognized route types
+
+    The table is color-coded for better readability:
+    - Type: Cyan
+    - Methods: Yellow
+    - Path: White (Red if duplicate)
+    - Duplicate: Red if duplicate, otherwise green
+
+    Note: This function assumes the existence of a global 'app' object with a 'routes' attribute.
+
+    Returns:
+        None. The function prints the table to the console.
+    """
+    console = Console()
+    table = Table(title="Application Routes")
+
+    table.add_column("Type", style="cyan", no_wrap=True)
+    table.add_column("Methods", style="yellow")
+    table.add_column("Path", style="white")
+    table.add_column("Duplicate", style="green")
+
+    # Collect all routes in a list for sorting
+    route_entries = []
+
+    # Set to track (path, method) pairs
+    seen_routes = set()
+
+    for route in app.routes:
+        if isinstance(route, Route):
+            methods = ", ".join(route.methods)
+            route_key = (route.path, methods)
+
+            # Check for duplicates
+            if route_key in seen_routes:
+                path_style = "red"
+                duplicate_status = Text("Yes", style="red")
+            else:
+                path_style = "white"
+                duplicate_status = Text("No", style="green")
+                seen_routes.add(route_key)
+
+            route_entries.append(("Route", methods, route.path, path_style, duplicate_status))
+        elif isinstance(route, WebSocketRoute):
+            route_key = (route.path, "WebSocket")
+
+            # Check for duplicates
+            if route_key in seen_routes:
+                path_style = "red"
+                duplicate_status = Text("Yes", style="red")
+            else:
+                path_style = "white"
+                duplicate_status = Text("No", style="green")
+                seen_routes.add(route_key)
+
+            route_entries.append(("WebSocket", "WebSocket", route.path, path_style, duplicate_status))
+        elif isinstance(route, Mount):
+            route_entries.append(("Mount", "Mounted App", route.path, "white", Text("N/A", style="green")))
+        else:
+            route_entries.append((str(type(route)), "Unknown", getattr(route, 'path', 'N/A'), "white", Text("N/A", style="green")))
+
+    # Sort the routes by path
+    route_entries.sort(key=lambda x: x[2])
+
+    # Add sorted routes to the table
+    for entry in route_entries:
+        table.add_row(
+            entry[0],
+            entry[1],
+            Text(entry[2], style=entry[3]),
+            entry[4]
+        )
+
+    console.print(table)
+
+
+# ----------------------------------------------------------------------------------------------------
+#  ____                       __     __
+# / ___|  ___ _ ____   _____ / /    \ \
+# \___ \ / _ \ '__\ \ / / _ \ |      | |
+#  ___) |  __/ |   \ V /  __/ |figlet| |
+# |____/ \___|_|    \_/ \___| |      | |
+#                            \_\    /_/
+# *******************************
+# And now the moment you've all been waiting for: Activate the Application
+# *******************************
+
+
+# Add the custom 404 handler after the app is created
+app.add_exception_handler(404, custom_404_handler)
+logger.info("Application setup completed with custom 404 handler.")
+
+app.add_middleware(DOMSkeletonMiddleware)
+logger.info("Application setup completed with DOMSkeletonMiddleware.")
 
 # Retrieve and set the best available LLaMA model
 model = get_best_model()
