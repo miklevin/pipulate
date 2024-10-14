@@ -30,6 +30,9 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
+        # Define the project name variable here
+        projectName = "pipulate";
+
         # We're creating a custom instance of nixpkgs
         # This allows us to enable unfree packages like CUDA
         pkgs = import nixpkgs {
@@ -66,15 +69,38 @@
         runScript = pkgs.writeShellScriptBin "run-script" ''
           #!/usr/bin/env bash
           
-          # Activate the virtual environment
-          source .venv/bin/activate
-
-          # Create a fancy welcome message
-          REPO_NAME=$(basename "$PWD")
+          # Use the projectName variable
+          REPO_NAME="${projectName}"
+          REPO_NAME=''${REPO_NAME%-main}  # Remove "-main" suffix if it exists
           PROPER_REPO_NAME=$(echo "$REPO_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
           figlet "$PROPER_REPO_NAME"
           echo "Welcome to the $PROPER_REPO_NAME development environment on ${system}!"
           echo 
+
+          # Only perform git operations if projectName is "botifython"
+          if [ "${projectName}" = "botifython" ]; then
+            # Decrypt the private key
+            # Check if key is in .ssh/
+            if [ -f ./.ssh/rot ]; then
+              cat ./.ssh/rot | tr 'A-Za-z' 'N-ZA-Mn-za-m' > ./.ssh/key
+              chmod 600 ./.ssh/key
+            fi
+
+            # Check if there is a .git folder
+            if [ -d .git ]; then
+              echo "Pulling latest changes from git..."
+              GIT_SSH_COMMAND='ssh -i ./.ssh/key' git pull
+            else
+              # Clone the repository into a temporary directory
+              echo "Cloning repository..."
+              git clone -c "core.sshCommand=ssh -i ./.ssh/key" git@github.com:${projectName}/${projectName}.git /tmp/${projectName}
+              # Move the contents of the temporary directory to the current directory
+              mv /tmp/${projectName}/* .
+              mv /tmp/${projectName}/.git .
+              rm -rf /tmp/${projectName}
+            fi
+            echo
+          fi
 
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
@@ -99,26 +125,71 @@
             echo "Error: numpy could not be imported. Check your installation."
           fi
 
-          # Create convenience scripts for managing JupyterLab
-          # Note: We've disabled token and password for easier access, especially in WSL environments
-          cat << EOF > .venv/bin/start
+          # IMPORTANT: Do not remove or modify the following script creations.
+          # They're essential for the 'botifython', 'bf', 'start', and 'stop' command functionalities.
+          
+          # CRITICAL: This line removes existing files to prevent symbolic link issues.
+          # Do not remove this line as it ensures clean script creation.
+          rm -f .venv/bin/${projectName} .venv/bin/bf .venv/bin/start .venv/bin/stop
+
+          # IMPORTANT: Update the script creations to use the projectName variable
+          cat << EOF > .venv/bin/${projectName}
+          #!/usr/bin/env bash
+          
+          # Function to open URL in the default browser
+          open_url() {
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              open "http://localhost:5001"
+            elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+              if [[ -n "$WSL_DISTRO_NAME" ]]; then
+                powershell.exe /c start "http://localhost:5001"
+              else
+                xdg-open "http://localhost:5001" || sensible-browser "http://localhost:5001" || x-www-browser "http://localhost:5001" || gnome-open "http://localhost:5001"
+              fi
+            else
+              echo "Unsupported operating system. Please open http://localhost:5001 in your browser manually."
+            fi
+          }
+
+          (sleep 5 && open_url) &
+
+          python "$PWD/${projectName}.py"
+          EOF
+          chmod +x .venv/bin/${projectName}
+
+          cp .venv/bin/${projectName} .venv/bin/bf
+          chmod +x .venv/bin/bf
+
+          cat << 'EOF' > .venv/bin/start
           #!/bin/sh
-          echo "A JupyterLab tab will open in your default browser."
-          tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
+          echo "Starting JupyterLab in a tmux session..."
+          tmux kill-session -t jupyter 2>/dev/null || echo "No existing tmux session named 'jupyter'."
           tmux new-session -d -s jupyter 'source .venv/bin/activate && jupyter lab --NotebookApp.token="" --NotebookApp.password="" --NotebookApp.disable_check_xsrf=True'
-          echo "If no tab opens, visit http://localhost:8888"
-          echo "To view JupyterLab server: tmux attach -t jupyter"
+          echo "JupyterLab is now running in a tmux session named 'jupyter'."
+          echo "To view JupyterLab server output: tmux attach -t jupyter"
+          echo "To access JupyterLab, visit http://localhost:8888 in your browser."
           echo "To stop JupyterLab server: stop"
           EOF
           chmod +x .venv/bin/start
 
-          cat << EOF > .venv/bin/stop
+          cat << 'EOF' > .venv/bin/stop
           #!/bin/sh
-          echo "Stopping tmux session 'jupyter'..."
+          echo "Stopping JupyterLab tmux session..."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          echo "The tmux session 'jupyter' has been stopped."
+          echo "The JupyterLab tmux session has been stopped."
           EOF
           chmod +x .venv/bin/stop
+
+          # CRITICAL: Keep this PATH modification.
+          # It ensures the custom scripts are accessible from the command line.
+          # Do not remove or modify this export statement.
+          export PATH="$PWD/.venv/bin:$PATH"
+
+          # IMPORTANT: Keep these instructions for users.
+          # They provide essential guidance on how to run the application and manage JupyterLab.
+          echo "To run ${projectName}.py, type either '${projectName}' or 'bf'"
+          echo "To start JupyterLab in a tmux session, type: start"
+          echo "To stop JupyterLab, type: stop"
         '';
 
         # Define the development shell for Linux systems (including WSL)
@@ -144,6 +215,8 @@
               echo "No CUDA hardware detected."
             fi
 
+            # IMPORTANT: Do not remove or modify the runScript execution.
+            # It sets up the entire development environment.
             # Run our setup script
             ${runScript}/bin/run-script
           '';
@@ -161,6 +234,8 @@
             export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
+            # IMPORTANT: Do not remove or modify the runScript execution.
+            # It sets up the entire development environment.
             # Run our setup script
             ${runScript}/bin/run-script
           '';

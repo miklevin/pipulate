@@ -29,7 +29,11 @@ def fig(text): print(Figlet(font='slant').renderText(str(text))) if text is not 
 # Styles and Configuration
 # *******************************
 # App gets its name from the directory it is in Capitalized
-APP_NAME = Path(__file__).parent.name.capitalize()
+def get_app_name():
+    name = Path(__file__).parent.name
+    return name[:-5].capitalize() if name.endswith('-main') else name.capitalize()
+
+APP_NAME = get_app_name()
 DEFAULT_LLM_MODEL = "llama3.2"  # Set the default LLaMA model
 MAX_LLM_RESPONSE_WORDS = 30     # Maximum number of words in LLM response
 TYPING_DELAY = 0.05             # Delay for simulating typing effect
@@ -2235,3 +2239,4 @@ print_routes()
 
 # Start the application server
 serve()
+
