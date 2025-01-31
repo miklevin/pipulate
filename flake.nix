@@ -49,9 +49,9 @@
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
-          python311                  # Python 3.11 interpreter
-          python311.pkgs.pip         # Package installer for Python
-          python311.pkgs.virtualenv  # Tool to create isolated Python environments
+          python313Full              # Python 3.11 interpreter
+          # python311.pkgs.pip         # Package installer for Python
+          # python311.pkgs.virtualenv  # Tool to create isolated Python environments
           figlet                     # For creating ASCII art welcome messages
           tmux                       # Terminal multiplexer for managing sessions
           zlib                       # Compression library for data compression
@@ -76,6 +76,31 @@
           figlet "$PROPER_REPO_NAME"
           echo "Welcome to the $PROPER_REPO_NAME development environment on ${system}!"
           echo 
+
+          # Function to setup virtual environment
+          setup_venv() {
+            test -d .venv || ${pkgs.python313Full}/bin/python -m venv .venv
+            source .venv/bin/activate
+            echo "- Checking pip packages..."
+            if pip install --upgrade pip --quiet && \
+              pip install -r requirements.txt --quiet; then
+                package_count=$(pip list --format=freeze | wc -l)
+                echo "- Done. $package_count pip packages installed."
+            else
+                echo "Warning: An error occurred during pip setup."
+            fi
+          }
+
+          # Try initial setup
+          setup_venv
+
+          # If numpy fails, rebuild venv from scratch
+          if ! python -c "import numpy" 2>/dev/null; then
+            echo "numpy import failed - rebuilding virtual environment..."
+            deactivate 2>/dev/null || true
+            rm -rf .venv
+            setup_venv
+          fi
 
           # Only perform git operations if projectName is "botifython"
           if [ "${projectName}" = "botifython" ]; then
@@ -102,18 +127,6 @@
             echo
           fi
 
-          # Install Python packages from requirements.txt
-          # This allows flexibility to use the latest PyPI packages
-          # Note: This makes the environment less deterministic
-          echo "- Pipulating pip packages..."
-          if pip install --upgrade pip --quiet && \
-            pip install -r requirements.txt --quiet; then
-              package_count=$(pip list --format=freeze | wc -l)
-              echo "- Done. $package_count pip packages installed."
-          else
-              echo "Warning: An error occurred during pip setup."
-          fi
-
           # Check if numpy is properly installed
           if python -c "import numpy" 2>/dev/null; then
             echo "- numpy is importable (good to go!)"
@@ -135,7 +148,7 @@
           # IMPORTANT: Update the script creations to use the projectName variable
           cat << EOF > .venv/bin/${projectName}
           #!/usr/bin/env bash
-          
+
           # Function to open URL in the default browser
           open_url() {
             if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -151,13 +164,17 @@
             fi
           }
 
-          (sleep 5 && open_url) &
+          (sleep 10 && open_url) &
 
           python "$PWD/${projectName}.py"
           EOF
           chmod +x .venv/bin/${projectName}
 
-          cp .venv/bin/${projectName} .venv/bin/bf
+          cat << EOF > .venv/bin/bf
+          #!/usr/bin/env bash
+
+          python "$PWD/${projectName}.py"
+          EOF
           chmod +x .venv/bin/bf
 
           cat << 'EOF' > .venv/bin/start
@@ -188,8 +205,6 @@
           # IMPORTANT: Keep these instructions for users.
           # They provide essential guidance on how to run the application and manage JupyterLab.
           echo "To run ${projectName}.py, type either '${projectName}' or 'bf'"
-          echo "To start JupyterLab in a tmux session, type: start"
-          echo "To stop JupyterLab, type: stop"
         '';
 
         # Define the development shell for Linux systems (including WSL)
@@ -198,7 +213,7 @@
           buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
           shellHook = ''
             # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python311}/bin/python -m venv .venv
+            test -d .venv || ${pkgs.python313Full}/bin/python -m venv .venv
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
@@ -227,7 +242,7 @@
           buildInputs = commonPackages;
           shellHook = ''
             # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python311}/bin/python -m venv .venv
+            test -d .venv || ${pkgs.python313Full}/bin/python -m venv .venv
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
