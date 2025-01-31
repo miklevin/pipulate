@@ -4249,12 +4249,6 @@ async def home(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
 
-    # Check for temp_message first
-    temp_message = None
-    if "temp_message" in db:
-        temp_message = db["temp_message"]
-        del db["temp_message"]
-
     menux = path if path else "home"
 
     # fig(f"app: {menux}", font='ogre')
@@ -4283,7 +4277,7 @@ async def home(request):
         todos.xtra(profile_id=current_profile_id)
 
     menux = db.get("last_app_choice", "App")
-    response = await create_outer_container(current_profile_id, menux, temp_message)
+    response = await create_outer_container(current_profile_id, menux)
 
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
@@ -4545,7 +4539,7 @@ def create_search_input():
     )
 
 
-async def create_outer_container(current_profile_id, menux, temp_message=None):
+async def create_outer_container(current_profile_id, menux):
     """
     Create the outer container for the application, including navigation and main content.
 
@@ -4585,7 +4579,7 @@ async def create_outer_container(current_profile_id, menux, temp_message=None):
     if menux == "mobile_chat":
         return Container(
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            create_chat_interface(temp_message, autofocus=True, mobile=True),  # Add mobile flag
+            create_chat_interface(autofocus=True, mobile=True),  # Add mobile flag
             style=(
                 "width: 100vw; "
                 "height: 100vh; "
@@ -4623,7 +4617,7 @@ async def create_outer_container(current_profile_id, menux, temp_message=None):
         nav_group,
         Grid(
             await create_grid_left(menux, todo_items),
-            create_chat_interface(temp_message) if not is_chat_view else None,
+            create_chat_interface() if not is_chat_view else None,
             cls="grid",
             style=(
                 "display: grid; "
@@ -4692,7 +4686,7 @@ async def create_grid_left(menux, render_items=None):
         return await introduction.introduction_render()
 
 
-def create_chat_interface(temp_message=None, autofocus=False, mobile=False):
+def create_chat_interface(autofocus=False, mobile=False):
     """
     Create the chat interface for the right column of the layout.
 
@@ -4720,6 +4714,13 @@ def create_chat_interface(temp_message=None, autofocus=False, mobile=False):
     """
     # Don't change the 75vh value, it's the height of the chat interface in mobile mode
     msg_list_height = 'height: 75vh;' if mobile else 'height: calc(70vh - 200px);'
+
+    # Check for temp_message first
+    temp_message = None
+    if "temp_message" in db:
+        temp_message = db["temp_message"]
+        del db["temp_message"]
+
 
     return Div(
         Card(
