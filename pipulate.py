@@ -5180,7 +5180,7 @@ async def extract_json_objects(text):
 
 
 async def post_ollama_stream_json_detection(text, todo_app):
-    fig("Begin Ollama JSON Detection", font="big")
+    logger.debug("Begin Ollama JSON Detection")
     detected_patterns = []
     json_objects = await extract_json_objects(text)
 
@@ -5210,7 +5210,7 @@ async def post_ollama_stream_json_detection(text, todo_app):
             logger.error(error_message)
             detected_patterns.append((json_obj, error_message, []))
 
-    fig("End Ollama JSON Detection", font="big")
+    logger.debug("End Ollama JSON Detection")
 
     return detected_patterns
 
@@ -6089,13 +6089,8 @@ class Chat:
 
                 # Silently reinforce system instructions
                 system_message = generate_system_message()
-                append_to_conversation(system_message, role="system", quiet=True)
-
-                # Optionally, if you need to ensure Ollama processes it:
-                messages = list(global_conversation_history)
-                async for _ in chat_with_llm(DEFAULT_LLM_MODEL, messages, base_app=self):
-                    pass  # Silently process the system message
-
+                await chatq(system_message, role="system", base_app=self)  # Output doesn't matter
+                
                 return
 
             # Regular message handling
