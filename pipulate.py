@@ -878,18 +878,24 @@ llm_speedbump_dict["JSON_STATE_MANTRA"] = """
                 self.current_step = next_step
 
     DO THIS INSTEAD:
-        state = pipulate.pipe(url, {
-            'step': 'card2',
-            'data': cleaned_data
-        })
+        state = {
+            "step_01": {"name": "John"},     # Each step owns its data
+            "step_02": {"email": "j@j.com"}, # Present steps = completed
+            "created": "2024-01-31T...",     # First creation timestamp
+            "updated": "2024-01-31T..."      # Last state change
+        }
 
     Why? Because:
-    1. Server controls the flow
-    2. State is always server-side 
-    3. HTMX handles the updates
-    4. URLs reflect workflow state
-    5. Each card is self-contained
+    1. Steps are self-contained data buckets
+    2. Progress tracked by step presence
+    3. No explicit current_step needed
+    4. Forward-only flow (submit clears forward)
+    5. Finalization pattern for locking
+    6. Single source of truth in database
+    7. HTMX handles UI state/updates
+    8. URLs reflect workflow position
 """
+
 
 PERMITTED_LLM_ACTIONS = {"insert", "read", "update", "delete", "toggle", "sort", "list"}
 
@@ -1149,7 +1155,7 @@ async def chat_with_llm(model: str, messages: list, base_app=None) -> AsyncGener
                             table.add_row(final_response, style="green")
                             console.print(table)
                             await display_conversation_statistics()
-                            await post_ollama_stream_json_detection(final_response, base_app)
+                            await post_llm_stream_json_detection(final_response, base_app)
                             break
 
                         if content := chunk.get("message", {}).get("content", ""):
@@ -2333,23 +2339,36 @@ llm_speedbump_dict["database"] = """
             email = Column(String)
     
     DO THIS INSTEAD:
-        app, rt, (users, User) = fast_app(
-            "app.db",
-            users={
+        app, rt, (tasks, Task), (profiles, Profile) = fast_app(
+            "data/data.db",
+            task={
+                "id": int,          # Auto-increment primary key
+                "name": str,        # Regular field
+                "done": bool,       # Boolean flag
+                "priority": int,    # Sortable field
+                "profile_id": int,  # Simple foreign key for .xtra() filtering
+                "pk": "id"         # Primary key definition
+            },
+            profile={
+                "id": int,
                 "name": str,
-                "email": str,
-                "pk": "id"  # Auto-increment primary key
+                "active": bool,
+                "pk": "id"
             }
         )
     
     Why? Because:
-    1. No ORM complexity - just Python types
-    2. No session management
-    3. No migration system needed
-    4. Automatic dataclass creation
-    5. Built-in FastHTML rendering with __ft__()
+    1. Schema is just Python types in a dict
+    2. Returns (table, Dataclass) pairs for each schema
+    3. Primary keys defined explicitly with "pk"
+    4. Simple filtering with table.xtra(field=value)
+    5. No ORM complexity or session management
+    6. Built-in FastHTML rendering with __ft__()
+    7. Automatic dataclass creation for type safety
+    8. Single-tenant, server-side state management
+    9. Lean into SQLite's strengths (auto-increment, etc)
+    10. Use .xtra() filters instead of joins
 """
-
 
 # To add a new plugin, follow these steps:
 # 1. Create a new plugin class (e.g., NewPlugin) that inherits from BaseApp
@@ -2683,8 +2702,8 @@ def priority_key(item):
 
 
 llm_speedbump_dict["pipulate"] = """
-    Create Unix-like pipelines with MiniDataAPI's state tracking
-    
+    Create interruption-safe workflows with step-based state tracking
+
     DON'T DO THIS (Celery style):
         @celery.task
         def process_data(data):
@@ -2693,24 +2712,41 @@ llm_speedbump_dict["pipulate"] = """
             return step3.delay(result)
     
     DO THIS INSTEAD:
-        pipeline={
-            "url": str,      # Primary key for workflow
-            "data": str,     # JSON blob for entire workflow state
-            "created": str,  # First insert timestamp
-            "updated": str,  # Last update timestamp
-            "pk": "url"      # URL as primary key for resumability
+        # Define steps with clear data ownership
+        steps = [
+            Step(id='step_01', done='name', show='Your Name', refill=True),
+            Step(id='step_02', done='email', show='Your Email', refill=True),
+            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+        ]
+
+        # State JSON shows completion via step presence
+        state = {
+            "step_01": {"name": "John"},          # Each step owns its data
+            "step_02": {"email": "j@j.com"},      # Present = completed
+            "created": "2024-01-31T...",          # First creation
+            "updated": "2024-01-31T...",          # Last update
+            "_revert_target": "step_01",          # Optional revert state
+            "finalize": {"finalized": True}       # Optional lock state
         }
     
     Why? Because:
-    1. Single record tracks entire workflow
-    2. Resumable from any point
-    3. No message queue needed
-    4. URL-based state tracking
-    5. FastHTML-friendly paths
+    1. Steps own their data explicitly
+    2. Progress tracked by step presence
+    3. Interruption-safe at any point
+    4. Forward-only state flow
+    5. Built-in revert capability
+    6. Finalization pattern for locking
+    7. HTMX chain reactions for UI
+    8. URL-based state resumption
+    9. Refillable fields support
+    10. Single source of truth in DB
 
-    And then use it like this:
-        pipulate = Pipulate(pipeline)  # Initialize with table (global scope)
-        pipulate.pipe(url, data)       # Process pipeline state for URL (in class methods)
+    Core Patterns:
+    - Submit clears forward, Display shows past
+    - Each step is self-contained
+    - State flows forward only
+    - Revert jumps backward
+    - Finalize locks all steps
 """
 
 
@@ -4182,7 +4218,7 @@ def get_profile_name():
 
 
 llm_speedbump_dict["xtra"] = """
-    Filter table results using xtra() - simpler than SQL WHERE clauses
+    Filter table results using xtra() - the core of MiniDataAPI filtering
 
     DON'T DO THIS (SQLAlchemy style):
         session.query(User).filter(
@@ -4191,14 +4227,33 @@ llm_speedbump_dict["xtra"] = """
         ).all()
 
     DO THIS INSTEAD:
-        users.xtra(active=True, role='admin')
-        results = users()  # Get filtered results
+        # Filter todos by profile
+        todos.xtra(profile_id=current_profile_id)
+        todo_items = todos()
+
+        # Filter pipeline by app
+        pipeline.xtra(app_name=self.app_name)
+        existing_ids = [record.url for record in pipeline()]
+
+        # Filter and count related records
+        todos.xtra(profile_id=profile.id)
+        todo_count = len(todos())
 
     Why? Because:
-    1. Chainable filters without query builder complexity
-    2. Automatic parameter binding
-    3. Works with any MiniDataAPI backend
-    4. Filters persist until changed
+    1. Filters persist until explicitly changed
+    2. Works with any table operation: table(), table[pk], etc
+    3. Perfect for parent-child relationships
+    4. No joins or complex queries needed
+    5. Stateful filtering matches server-side state pattern
+    6. Clean separation of filter and fetch
+    7. Chainable for multiple conditions
+    8. Core part of single-tenant pattern
+
+    Key Patterns:
+    - Use for parent-child filtering (todos by profile)
+    - Use for app-specific queries (pipeline by app_name)
+    - Use for counting related records
+    - Clear filters when scope changes
 """
 
 
@@ -4938,30 +4993,47 @@ def create_poke_button():
 
 
 llm_speedbump_dict["render_table"] = """
-    Render table rows with FastHTML's __ft__() - no templates needed!
+    Build UIs with FastHTML components - no templates needed!
     
     DON'T DO THIS (Jinja style):
-        @app.route("/users")
-        def users():
+        @app.route("/profiles")
+        def profiles():
             return render_template(
-                "users.html",
-                users=User.query.all()
+                "profiles.html",
+                profiles=Profile.query.all()
             )
     
     DO THIS INSTEAD:
-        @rt("/users")
-        def users():
-            return [
-                H1("Users"),
-                Ul([user.__ft__() for user in users()])
-            ]
+        async def profile_render():
+            return Container(
+                Card(
+                    H2(f"{profile_app.name.capitalize()} List"),
+                    Ul(*[render_profile(profile) for profile in ordered_profiles],
+                       id='profile-list',
+                       cls='sortable'),
+                    footer=Form(
+                        Group(
+                            Input(placeholder="Name", name="profile_name"),
+                            Button("Add", type="submit"),
+                        ),
+                        hx_post="/profile",
+                        hx_target="#profile-list",
+                        hx_swap="beforeend"
+                    )
+                )
+            )
     
     Why? Because:
-    1. Python functions as templates
-    2. Type checking for UI components
-    3. No string-based templates
-    4. Direct HTMX integration
-    5. Automatic live updates
+    1. Components are just Python functions
+    2. HTMX attributes for interactivity
+    3. Type-safe UI construction
+    4. Composable render functions
+    5. Built-in form handling
+    6. Automatic list rendering
+    7. Clean separation of concerns
+    8. No string templates or partials
+    9. Direct integration with Sortable.js
+    10. Server-side state management
 """
 
 
@@ -5179,7 +5251,7 @@ async def extract_json_objects(text):
     return json_objects
 
 
-async def post_ollama_stream_json_detection(text, todo_app):
+async def post_llm_stream_json_detection(text, todo_app):
     logger.debug("Begin Ollama JSON Detection")
     detected_patterns = []
     json_objects = await extract_json_objects(text)
@@ -5847,30 +5919,67 @@ async def select_profile(request):
 # WebSocket (was ChatPlayground)
 # *******************************
 
+
 llm_speedbump_dict["websocket_handler"] = """
-    Handle WebSockets the FastHTML way
+    Handle WebSockets with FastHTML's Chat class pattern
     
     DON'T DO THIS (raw WebSocket style):
         async def websocket_endpoint(websocket):
-            async for message in websocket:
-                data = json.loads(message)
-                # Complex state management
-                await process_message(data)
-    
+            await websocket.accept()
+            try:
+                async for message in websocket:
+                    await process_message(message)
+            except WebSocketDisconnect:
+                pass
+
     DO THIS INSTEAD:
-        @app.ws('/ws/chat')
-        async def chat(ws, data=None):
-            return [
-                P(data['message'], cls='chat-msg'),
-                Script("scrollToBottom()")
-            ]
+        class Chat:
+            def __init__(self, app, id_suffix="", base_app=None):
+                self.active_websockets = set()
+                self.app.websocket_route("/ws")(self.handle_websocket)
+            
+            async def handle_websocket(self, websocket):
+                await websocket.accept()
+                self.active_websockets.add(websocket)
+                try:
+                    while True:
+                        message = await websocket.receive_text()
+                        if message.startswith('!'):
+                            await self.handle_command(websocket, message)
+                        else:
+                            await self.handle_chat_message(websocket, message)
+                finally:
+                    self.active_websockets.discard(websocket)
+
+            async def broadcast(self, message):
+                # Handle both text and HTMX updates
+                if isinstance(message, dict) and message.get("type") == "htmx":
+                    content = to_xml(message['content'])
+                    html = f'<div hx-swap-oob="beforeend:#todo-list">{content}</div>'
+                else:
+                    html = message.replace('\\n', '<br>')
+                
+                for ws in self.active_websockets:
+                    await ws.send_text(html)
     
     Why? Because:
-    1. Automatic JSON handling
-    2. FastHTML component rendering
-    3. Built-in client tracking
-    4. Simplified message processing
-    5. Direct UI updates
+    1. Clean separation of concerns:
+       - Connection management
+       - Message handling
+       - Command processing
+       - Broadcast capabilities
+    
+    2. Integration patterns:
+       - HTMX out-of-band swaps
+       - LLM streaming responses
+       - Dynamic UI updates
+       - Command system (!test, !egg, etc)
+    
+    3. State management:
+       - Active connections tracking
+       - Base app reference for context
+       - Error handling and recovery
+       - Clean disconnection handling
 """
 
 
@@ -6097,11 +6206,8 @@ class Chat:
             conversation_history = []
             conversation_history = append_to_conversation(message, "user", conversation_history)
 
-            # Generate assistant's response
-            raw_response = ""
-            async for chunk in chat_with_llm(model, conversation_history, self.base_app):
-                await websocket.send_text(chunk)
-                raw_response += chunk
+            # Generate assistant's response using chatq
+            raw_response = await chatq(message, base_app=self.base_app)
 
             # Try to parse the response as JSON
             try:
