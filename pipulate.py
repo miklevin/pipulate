@@ -593,6 +593,7 @@ console = DebugConsole(theme=custom_theme)
 
 
 def fig(text, font='slant', color='cyan'):
+    font = 'standard'
     figlet = Figlet(font=font)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f"{color} on default")
@@ -2388,6 +2389,7 @@ MENU_ITEMS = [  # Search for "menuxxx" to jump here for frequent menu tweaking
     'pipe_flow',
     'starter_flow',
     'stream_simulator',
+    'mobile_chat',
 ]
 
 friendly_names = {
@@ -4255,7 +4257,7 @@ async def home(request):
 
     menux = path if path else "home"
 
-    fig(f"app: {menux}", font='ogre')
+    # fig(f"app: {menux}", font='ogre')
     logger.debug(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
@@ -6268,7 +6270,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             json_value = JSON.from_data(value, indent=2)
             cookie_table.add_row(key, json_value)
         cookie_table.columns[1].style = "white"
-        fig('cookie', font='crawford')
+        # fig('cookie', font='crawford')
         console.print(cookie_table)
 
         # Print a rich table of the pipeline states
@@ -6293,7 +6295,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 logger.error(f"Error parsing pipeline state for {record.url}: {e}")
                 pipeline_table.add_row(record.url, "ERROR", "Invalid State")
 
-        fig('pipeline', font='banner3')
+        # fig('pipeline', font='banner3')
         console.print(pipeline_table)
 
         return response
