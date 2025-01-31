@@ -2387,7 +2387,6 @@ MENU_ITEMS = [  # Search for "menuxxx" to jump here for frequent menu tweaking
     todo_app.name,
     'pipe_flow',
     'starter_flow',
-    'mobile_chat',
     'stream_simulator',
 ]
 
@@ -3150,7 +3149,7 @@ class Pipulate:
             next_step = steps[i]
             messages[step.id] = {
                 "input": f"Step {i}: Enter {step.show}",
-                "complete": f"{step.id} complete. You entered &lt;{{}}&gt;. Continue to {next_step.id}."
+                "complete": f"{format_step_name(step.id)} complete. You entered &lt;{{}}&gt;. Continue to {next_step.id}."
             }
 
         # Finalize step gets special ID-based state handling
@@ -3799,23 +3798,21 @@ class StarterFlow(BaseFlow):
             logger.error(f"Error in render_step_completion: {e}", exc_info=True)
             return P(f"Error rendering step completion: {str(e)}", style="color:red;")
 
-    # ---------------------------------------------------------------------
-    # finalizition function wrappers
-    # ---------------------------------------------------------------------
+    # Finalization handlers
     async def finalize(self, request):
-        return await self.handle_finalize(self.steps, self.app_name)
+        return await self.handle_finalize(self.STEPS, self.app_name)
 
     async def finalize_submit(self, request):
-        return await self.handle_finalize_submit(self.steps, self.app_name, self.step_messages)
+        return await self.handle_finalize_submit(self.STEPS, self.app_name, self.STEP_MESSAGES)
 
     async def unfinalize(self, request):
-        return await self.handle_unfinalize(self.steps, self.app_name, self.step_messages)
+        return await self.handle_unfinalize(self.STEPS, self.app_name, self.STEP_MESSAGES)
 
     async def jump_to_step(self, request):
         form = await request.form()
         step_id = form.get("step_id")
         db["step_id"] = step_id
-        return self.pipulate.rebuild(self.app_name, self.steps)
+        return self.pipulate.rebuild(self.app_name, self.STEPS)
 
 
 class PipeFlow(BaseFlow):
