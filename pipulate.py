@@ -5605,81 +5605,86 @@ class StreamSimulator:
         """Renders the complete interface with both channels configured"""
         fig("Rendering Stream Simulator", font="cybermedium")
         self.logger.debug("Rendering stream simulator interface")
+
+        js_template = r"""
+            class StreamUI {
+                constructor(idSuffix) {
+                    this.idSuffix = idSuffix;
+                    this.progressBar = document.getElementById('stream-progress' + idSuffix);
+                    this.streamContent = document.getElementById('stream-content' + idSuffix);
+                    this.button = document.getElementById('stream_sim_button' + idSuffix);
+                }
+
+                setButtonState(isRunning) {
+                    this.button.disabled = isRunning;
+                    this.button.setAttribute('aria-busy', isRunning);
+                    this.button.textContent = isRunning ? 'Streaming...' : 'Start Stream Simulation';
+                }
+
+                updateProgress(current, total) {
+                    const percentage = (current / total) * 100;
+                    this.progressBar.style.transition = 'width 0.3s ease-out';
+                    this.progressBar.style.width = percentage + '%';
+                }
+
+                resetProgress() {
+                    // Smooth transition back to 0
+                    this.progressBar.style.transition = 'width 0.5s ease-out';
+                    this.progressBar.style.width = '0%';
+                }
+
+                appendMessage(message) {
+                    if (this.streamContent) {  // Only append if element exists
+                        this.streamContent.innerHTML += message + '<br>';
+                        this.streamContent.scrollTop = this.streamContent.scrollHeight;
+                    }
+                }
+
+                handleJobComplete() {
+                    this.resetProgress();
+                    this.setButtonState(false);
+                }
+            }
+
+            const streamUI_ID_SUFFIX = new StreamUI('ID_SUFFIX');
+
+            function startSimulation_ID_SUFFIX() {
+                streamUI_ID_SUFFIX.setButtonState(true);
+                
+                const eventSource = new EventSource('ROUTE_PREFIX/stream');
+                
+                eventSource.onmessage = function(event) {
+                    const message = event.data;
+                    streamUI_ID_SUFFIX.appendMessage(message);
+                    
+                    if (message.includes('Simulation complete')) {
+                        eventSource.close();
+                        streamUI_ID_SUFFIX.handleJobComplete();
+                        return;
+                    }
+                    
+                    const match = message.match(/(\d+)\/(\d+)/);
+                    if (match) {
+                        const [current, total] = match.slice(1).map(Number);
+                        streamUI_ID_SUFFIX.updateProgress(current, total);
+                    }
+                };
+
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    streamUI_ID_SUFFIX.handleJobComplete();
+                };
+            }
+        """
+
+        js_code = (js_template
+            .replace('ID_SUFFIX', self.id_suffix)
+            .replace('ROUTE_PREFIX', self.route_prefix))
+
         return Div(
             self.create_progress_card(),
             self.create_simulator_button(),
-            Script(r"""
-                class StreamUI {
-                    constructor(idSuffix) {
-                        this.idSuffix = idSuffix;
-                        this.progressBar = document.getElementById('stream-progress' + idSuffix);
-                        this.streamContent = document.getElementById('stream-content' + idSuffix);
-                        this.button = document.getElementById('stream_sim_button' + idSuffix);
-                    }
-
-                    setButtonState(isRunning) {
-                        this.button.disabled = isRunning;
-                        this.button.setAttribute('aria-busy', isRunning);
-                        this.button.textContent = isRunning ? 'Streaming...' : 'Start Stream Simulation';
-                    }
-
-                    updateProgress(current, total) {
-                        const percentage = (current / total) * 100;
-                        this.progressBar.style.transition = 'width 0.3s ease-out';
-                        this.progressBar.style.width = percentage + '%';
-                    }
-
-                    resetProgress() {
-                        // Smooth transition back to 0
-                        this.progressBar.style.transition = 'width 0.5s ease-out';
-                        this.progressBar.style.width = '0%';
-                    }
-
-                    appendMessage(message) {
-                        if (this.streamContent) {  // Only append if element exists
-                            this.streamContent.innerHTML += message + '<br>';
-                            this.streamContent.scrollTop = this.streamContent.scrollHeight;
-                        }
-                    }
-
-                    handleJobComplete() {
-                        this.resetProgress();
-                        this.setButtonState(false);
-                    }
-                }
-
-                // Initialize UI controller
-                const streamUI_{self.id_suffix} = new StreamUI('{self.id_suffix}');
-
-                // Event handler for starting simulation
-                function startSimulation_{self.id_suffix}() {
-                    streamUI_{self.id_suffix}.setButtonState(true);
-                    
-                    const eventSource = new EventSource('{self.route_prefix}/stream');
-                    
-                    eventSource.onmessage = function(event) {
-                        const message = event.data;
-                        streamUI_{self.id_suffix}.appendMessage(message);
-                        
-                        if (message.includes('Simulation complete')) {
-                            eventSource.close();
-                            streamUI_{self.id_suffix}.handleJobComplete();
-                            return;
-                        }
-                        
-                        const match = message.match(/(\\d+)\\/(\\d+)/);
-                        if (match) {
-                            const [current, total] = match.slice(1).map(Number);
-                            streamUI_{self.id_suffix}.updateProgress(current, total);
-                        }
-                    };
-
-                    eventSource.onerror = function() {
-                        eventSource.close();
-                        streamUI_{self.id_suffix}.handleJobComplete();
-                    };
-                }
-            """),
+            Script(js_code),
             Style("""
                 .spinner {
                     display: inline-block;
