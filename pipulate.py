@@ -4570,7 +4570,6 @@ async def create_outer_container(current_profile_id, menux):
     Args:
         current_profile_id (int): The ID of the current profile.
         menux (str): The current menu selection.
-        temp_message (str, optional): A temporary message to display. Defaults to None.
 
     Returns:
         Container: The outer container with all page elements.
@@ -4705,7 +4704,6 @@ def create_chat_interface(autofocus=False, mobile=False):
     +-------------------------------------------+
 
     Args:
-        temp_message (str, optional): A temporary message to be processed on page load.
         autofocus (bool): Whether the chat input should autofocus.
         mobile (bool): Whether to use mobile-specific styling.
 
@@ -5154,20 +5152,24 @@ async def extract_json_objects(text):
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON: {e}")
             logger.error(f"Problematic JSON string: {json_str}")
-            # show in a rich JSON Table
+            
+            # Log the error for debugging
             table = Table(title="JSON Error")
             table.add_column("JSON String")
             table.add_row(json_str, style="green")
             console.print(table)
 
-            # Silently reinforce system instructions
-            system_message = generate_system_message()
-            append_to_conversation(system_message, role="system", quiet=True)
-
-            # Process the system message through Ollama
-            messages = list(global_conversation_history)
-            async for _ in chat_with_llm(DEFAULT_LLM_MODEL, messages):
-                pass  # Silently process the system message
+            # Clear old system messages to prevent buildup
+            clear_system_messages_from_history()
+            
+            # Add fresh system message emphasizing JSON format
+            system_message = generate_json_format_reminder()
+            append_to_conversation(system_message, role="system")
+            
+            # Log for monitoring
+            logger.info("Reinforced JSON formatting rules in conversation history")
+            
+            return []
 
     if not json_objects:
         logger.info("No JSON objects detected in the text.")
