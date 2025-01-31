@@ -5136,7 +5136,7 @@ async def profile_render():
 # *******************************
 
 
-async def chatq(message: str, action_data: str = None, role: str = "user", base_app=None):
+async def chatq(message: str, role: str = "user", base_app=None):
     try:
         # Initialize or get conversation history
         conversation_history = append_to_conversation(message, role)
