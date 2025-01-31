@@ -905,12 +905,12 @@ CRUD_PROMPT_PREFIXES = {
 CRUD_PROMT_SUFFIX = " DO NOT REPEAT THE JSON!! IT WILL ATTEMPT TO DO THE INSERT AGAIN.\n"
 
 # figlet ---------------------------------------------------------------------------------------------
-#   ____                                    _   _               _   _ _     _
-#  / ___|___  _ ____   _____ _ __ ___  __ _| |_(_) ___  _ __   | | | (_)___| |_ ___  _ __ _   _
+#   ____                                    _   _               _   _ _     _                   
+#  / ___|___  _ ____   _____ _ __ ___  __ _| |_(_) ___  _ __   | | | (_)___| |_ ___  _ __ _   _ 
 # | |   / _ \| '_ \ \ / / _ \ '__/ __|/ _` | __| |/ _ \| '_ \  | |_| | / __| __/ _ \| '__| | | |
 # | |__| (_) | | | \ V /  __/ |  \__ \ (_| | |_| | (_) | | | | |  _  | \__ \ || (_) | |  | |_| |
 #  \____\___/|_| |_|\_/ \___|_|  |___/\__,_|\__|_|\___/|_| |_| |_| |_|_|___/\__\___/|_|   \__, |
-# 
+#                                                                                         |___/ 
 # *******************************
 # Create a conversation history
 # *******************************
@@ -934,7 +934,7 @@ def append_to_conversation(message=None, role="user", quiet=False):
     Returns:
         list: The current conversation history.
     """
-    fig("Entering Append to Conversation", font="mini")
+    logger.debug("Entering append_to_conversation function")
     if not quiet:
         # Only try to slice if message is a string
         preview = message[:50] + "..." if isinstance(message, str) else str(message)
@@ -952,7 +952,7 @@ def append_to_conversation(message=None, role="user", quiet=False):
         if not quiet:
             logger.debug(f"Message appended. New conversation history length: {len(global_conversation_history)}")
 
-    fig("Exiting Append to Conversation", font="mini")
+    logger.debug("Exiting Append to Conversation")
     return list(global_conversation_history)
 
 
@@ -5749,10 +5749,9 @@ async def chat_endpoint(request, message: str):  # Get message from request para
 def redirect_handler(request):
     path = request.path_params['path']
     logger.debug(f"Redirecting to: {path}")
-    # Temporarily silence endpoint messages
-    # messages = build_endpoint_messages()
-    # message = messages.get(path, f"Welcome to the {path} area!")
-    # db["temp_message"] = message
+    messages = build_endpoint_messages()
+    message = messages.get(path, f"Welcome to the {path} area!")
+    db["temp_message"] = message
     return Redirect(f"/{path}")
 
 
@@ -6216,12 +6215,12 @@ class Chat:
 chat = Chat(app, id_suffix="", base_app=todo_app)
 
 # figlet ---------------------------------------------------------------------------------------------
-#   _____ 
-#  |  ___|   _ _ __  _ __  _   _  | __ ) _   _ ___(_)_ __   ___  ___ ___
-#  | |_ | | | | '_ \| '_ \| | | | |  _ \| | | / __| | '_ \ / _ \/ __/ __|
-#  |  _|| |_| | | | | | | | |_| | | |_) | |_| \__ \ | | | |  __/\__ \__ \
-#  |_|   \__,_|_| |_|_| |_|\__, | |____/ \__,_|___/_|_| |_|\___||___/___/
-#                          |___/
+#  _____                          ____            _                     
+# |  ___|   _ _ __  _ __  _   _  | __ ) _   _ ___(_)_ __   ___  ___ ___ 
+# | |_ | | | | '_ \| '_ \| | | | |  _ \| | | / __| | '_ \ / _ \/ __/ __|
+# |  _|| |_| | | | | | | | |_| | | |_) | |_| \__ \ | | | |  __/\__ \__ \
+# |_|   \__,_|_| |_|_| |_|\__, | |____/ \__,_|___/_|_| |_|\___||___/___/
+#                         |___/                                         
 # *******************************
 # Funny Business is stupid web tricks like the 404 handler & middleware
 # *******************************
