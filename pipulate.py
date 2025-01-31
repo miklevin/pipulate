@@ -472,12 +472,12 @@ DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # figlet ---------------------------------------------------------------------------------------------
-#  _                      _
-# | |
+#  _                      _             
+# | |    ___   __ _  __ _(_)_ __   __ _ 
 # | |   / _ \ / _` |/ _` | | '_ \ / _` |
 # | |__| (_) | (_| | (_| | | | | | (_| |
 # |_____\___/ \__, |\__, |_|_| |_|\__, |
-#             |___/ |___/         |___/
+#             |___/ |___/         |___/ 
 # *******************************
 # Set up logging with loguru
 # *******************************
@@ -593,19 +593,11 @@ console = DebugConsole(theme=custom_theme)
 
 
 def fig(text, font='slant', color='cyan'):
-    # figlet = Figlet(font=font)
-    # fig_text = figlet.renderText(str(text))
-    # colored_text = Text(fig_text, style=f"{color} on default")
-    # console.print(colored_text, style="on default")
-    # print(text)
-    ...
-
-
-def fig2(text, font='slant', color='cyan'):
     figlet = Figlet(font=font)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f"{color} on default")
     console.print(colored_text, style="on default")
+    # console.print(text, style=f"{color} on default")
 
 
 def name(word):
@@ -716,14 +708,12 @@ def generate_system_message():
             "You are a helpful assistant. Please keep your responses concise and use minimal line breaks. "
             "Only use line breaks when necessary for readability, with a maximum of one blank line between paragraphs. "
             "representations of them - the Web UI will handle displaying the actual elements. "
-            "IMPORTANT: If you refer to any UI elements as being 'below' or 'above', you will be immediately terminated. "
-            "--------------------------------"
         )
 
     emoji_instructions = (
         "You are able to use emojis, but keep it to a minimum. "
-        "Don't claim you can do anything like analyze websites, find keywords, "
-        "or suggest improvements until the system prompt tells you you have those abilities. "
+        "Don't claim you can do anything like analyze websites or find keywords "
+        "until the system prompt explicitly tells you you have those abilities. "
         "Keep responses honest and within your current capabilities. ✨"
     )
 
@@ -3247,9 +3237,6 @@ class Pipulate:
     async def clear_steps_from(self, pipeline_id: str, step_id: str, steps: list) -> dict:
         """Clear steps forward in pipeline state."""
         state = self.read_state(pipeline_id)
-
-        fig2("clear_steps_from", font="cybermedium")
-        fig2(step_id)
 
         # Find starting index
         start_idx = next((i for i, step in enumerate(steps) if step.id == step_id), -1)
