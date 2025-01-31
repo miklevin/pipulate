@@ -6034,9 +6034,7 @@ class Chat:
 
                 # Stream the response first to show the joke being generated
                 response = ""
-                async for chunk in chat_with_llm(DEFAULT_LLM_MODEL, messages):
-                    await websocket.send_text(chunk)
-                    response += chunk
+                response = await chatq(prompt, base_app=self.base_app)
 
                 # Parse response to get emoji, task name and joke
                 emoji_key = None
