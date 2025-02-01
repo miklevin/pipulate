@@ -4587,8 +4587,8 @@ def create_chat_interface(autofocus=False, mobile=False):
                 window.addEventListener('DOMContentLoaded', () => {
                     const tempMessage = """ + json.dumps(temp_message) + r""";
                     if (tempMessage) {
-                        console.log('Processing temp message:', tempMessage);
-                        setTimeout(() => sidebarWs.send(tempMessage, false), 1000);
+                        console.log('Sidebar sending verbatim:', tempMessage);
+                        setTimeout(() => sidebarWs.send(`${tempMessage}|verbatim`), 1000);
                     }
                 });
                 
@@ -5935,8 +5935,13 @@ class Chat:
             conversation_history = []
             conversation_history = append_to_conversation(message, "user", conversation_history)
 
-            # Generate assistant's response using chatq
-            raw_response = await chatq(message, base_app=self.base_app)
+            # Split message to get verbatim flag if present
+            parts = message.split('|')
+            msg = parts[0]
+            verbatim = len(parts) > 1 and parts[1] == 'verbatim'
+            
+            # Generate assistant's response using chatq with verbatim parameter
+            raw_response = await chatq(msg, verbatim=verbatim, base_app=self.base_app)
 
             # Try to parse the response as JSON
             try:
