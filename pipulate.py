@@ -1172,7 +1172,6 @@ async def chat_with_llm(model: str, messages: list, base_app=None) -> AsyncGener
 
 
 def create_chat_scripts(
-    temp_message=None,
     sortable_selector='.sortable',
     ghost_class='blue-background-class'
 ):
