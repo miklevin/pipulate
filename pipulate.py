@@ -3787,10 +3787,6 @@ class StarterFlow(BaseFlow):
             Step(id='step_02', done='email', show='Your Email', refill=True),
             Step(id='step_03', done='phone', show='Your Phone', refill=True),
             Step(id='step_04', done='website', show='Your Website', refill=True),
-            Step(id='step_05', done='website1', show='Your Website', refill=True),
-            Step(id='step_06', done='website2', show='Your Website', refill=True),
-            Step(id='step_07', done='website3', show='Your Website', refill=True),
-            Step(id='step_08', done='website4', show='Your Website', refill=True),
             Step(id='finalize', done='finalized', show='Finalize', refill=False)
         ]
 
@@ -3807,34 +3803,14 @@ class StarterFlow(BaseFlow):
         asyncio.create_task(self.delayed_greeting())
         return base_landing
 
-    def render_step_completion(self, step_id: str, step: Step, user_val: str, next_step_id: str, revert_label: str = None) -> Div:
-        """Renders the standard step completion view with revert control and chain reaction."""
+    def format_completion_message(self, step_id: str, step: Step, user_val: str) -> P:
+        """Format the completion message for a step. Override for custom formatting."""
         try:
-            logger.debug(f"Rendering completion for step_id={step_id}, user_val={user_val}, next={next_step_id}")
-
-            # Format message with fallback
-            try:
-                step_name = format_step_name(step_id)
-            except Exception as e:
-                logger.error(f"Error formatting step name: {e}")
-                step_name = step_id
-
-            message = P(f"{step_name} ({step.show}): <{user_val}>")
-
-            return Div(
-                self.pipulate.revert_control(
-                    step_id=step_id,
-                    app_name=self.app_name,
-                    steps=self.STEPS,
-                    message=message,
-                    target_id=f"{self.app_name}-container",
-                    revert_label=revert_label
-                ),
-                self.pipulate.chain_reaction(self.STEPS, self.app_name)
-            )
+            step_name = format_step_name(step_id)
         except Exception as e:
-            logger.error(f"Error in render_step_completion: {e}", exc_info=True)
-            return P(f"Error rendering step completion: {str(e)}", style="color:red;")
+            logger.error(f"Error formatting step name: {e}")
+            step_name = step_id
+        return P(f"{step_name} ({step.show}): <{user_val}>")
 
     # Finalization handlers
     async def finalize(self, request):
@@ -3851,6 +3827,7 @@ class StarterFlow(BaseFlow):
         step_id = form.get("step_id")
         db["step_id"] = step_id
         return self.pipulate.rebuild(self.app_name, self.STEPS)
+
 
 
 class PipeFlow(BaseFlow):
