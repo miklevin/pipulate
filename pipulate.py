@@ -4588,7 +4588,7 @@ def create_chat_interface(autofocus=False, mobile=False):
                     const tempMessage = """ + json.dumps(temp_message) + r""";
                     if (tempMessage) {
                         console.log('Processing temp message:', tempMessage);
-                        setTimeout(() => sidebarWs.send(tempMessage), 1000);
+                        setTimeout(() => sidebarWs.send(tempMessage, false), 1000);
                     }
                 });
                 
@@ -4895,24 +4895,28 @@ async def simulated_stream(text: str, delay: float = 0.05):
     asyncio.create_task(stream_task())
 
 
-async def chatq(message: str, role: str = "user", base_app=None):
+async def chatq(message: str, verbatim: bool = False, role: str = "user", base_app=None):
+    """Queue a chat message for processing and streaming."""
     try:
-        # Initialize or get conversation history
         conversation_history = append_to_conversation(message, role)
-
-        # Stream response from LLM
-        response_text = ""
-        if base_app:
-            async for chunk in chat_with_llm(model, conversation_history, base_app):
-                await chat.broadcast(chunk)
-                response_text += chunk
+        
+        if verbatim:
+            await simulated_stream(message)
+            response_text = message
         else:
-            async for chunk in chat_with_llm(model, conversation_history):
-                await chat.broadcast(chunk)
-                response_text += chunk
+            # Stream response from LLM
+            response_text = ""
+            if base_app:
+                async for chunk in chat_with_llm(model, conversation_history, base_app):
+                    await chat.broadcast(chunk)
+                    response_text += chunk
+            else:
+                async for chunk in chat_with_llm(model, conversation_history):
+                    await chat.broadcast(chunk)
+                    response_text += chunk
 
-        # Add assistant's response to history
-        conversation_history = append_to_conversation(response_text, "assistant")
+            # Add assistant's response to history
+            conversation_history = append_to_conversation(response_text, "assistant")
 
         logger.debug(f"Message streamed: {response_text}")
         return message
