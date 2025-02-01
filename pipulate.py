@@ -3254,7 +3254,11 @@ class Pipulate:
         The quiet=True on append prevents LLM chat noise while maintaining context.
         This follows the DEBUG Pattern from .cursorrules: "Just log it!"
         """
-        logger.debug(f"State: {state_desc}, Message: {message}")
+        # Escape angle brackets for logging
+        safe_state = state_desc.replace("<", "\\<").replace(">", "\\>")
+        safe_message = message.replace("<", "\\<").replace(">", "\\>")
+        
+        logger.debug(f"State: {safe_state}, Message: {safe_message}")
         append_to_conversation(message, role="system", quiet=True)
         return message
 
@@ -3298,6 +3302,8 @@ pipulate = Pipulate(pipeline)
 
 class BaseFlow:
     """Base class for multi-step flows with finalization."""
+
+    PRESERVE_REFILL = True
 
     def __init__(self, app, pipulate, app_name, steps):
         self.app = app
@@ -3508,7 +3514,7 @@ class BaseFlow:
 
         # Get value to show in input - either from refill or suggestion
         display_value = ""
-        if step.refill and user_val:
+        if step.refill and user_val and self.PRESERVE_REFILL:
             display_value = user_val  # Use existing value if refilling
         else:
             suggested = await self.get_suggestion(step_id, state)
@@ -3831,265 +3837,29 @@ class StarterFlow(BaseFlow):
 
 
 class PipeFlow(BaseFlow):
-    # Override to always clear forward
     PRESERVE_REFILL = False
 
     def __init__(self, app, pipulate, app_name="madlibs"):
         steps = [
             Step(id='step_01', done='data', show='Basic Word', refill=False),
-            Step(id='step_02', done='data', show='Make it Plural', refill=False),
+            Step(id='step_02', done='data', show='Make it Plural', refill=False), 
             Step(id='step_03', done='data', show='Add Adjective', refill=False),
             Step(id='step_04', done='data', show='Add Action', refill=False),
             Step(id='finalize', done='finalized', show='Finalize', refill=False)
         ]
         super().__init__(app, pipulate, app_name, steps)
-        self.STEP_MESSAGES = self.pipulate.generate_step_messages(self.STEPS)
 
     async def get_suggestion(self, step_id, state):
         """Dynamic suggestions based on previous card outputs"""
-        if step_id == "step_02":
-            prev_word = self.pipulate.get_step_data(db["pipeline_id"], "step_01", {}).get("data", "")
-            return f"{prev_word}s" if prev_word else ""
-        elif step_id == "step_03":
-            prev_word = self.pipulate.get_step_data(db["pipeline_id"], "step_02", {}).get("data", "")
-            return f"happy {prev_word}" if prev_word else ""
-        elif step_id == "step_04":
-            prev_word = self.pipulate.get_step_data(db["pipeline_id"], "step_03", {}).get("data", "")
-            return f"{prev_word} sleep" if prev_word else ""
-        return ""
-
-    async def step_01(self, request):
-        """First step: Enter a basic noun"""
-        pipeline_id = db.get("pipeline_id", "unknown")
-        step1_data = self.pipulate.get_step_data(pipeline_id, "step_01", {})
-
-        if step1_data.get("data"):
-            return self.render_step_completion("step_01", self.STEPS[0], step1_data["data"], "step_02")
-
-        return Div(
-            Card(
-                H3("Enter a Word"),
-                P("Start with a simple noun (like 'cat' or 'dog')"),
-                Form(
-                    self.pipulate.wrap_with_inline_button(
-                        Input(
-                            type="text",
-                            name="data",
-                            placeholder="Enter a noun",
-                            autofocus=True,
-                            required=True
-                        )
-                    ),
-                    hx_post=f"/{self.app_name}/step_01_submit",
-                    hx_target="#step_01"
-                )
-            ),
-            Div(id="step_02"),
-            id="step_01"
-        )
-
-    async def step_01_submit(self, request):
-        """Handle submission of first word"""
-        pipeline_id = db.get("pipeline_id", "untitled")
-        form = await request.form()
-        user_data = form.get("data", "")
-
-        # ALWAYS clear forward first
-        self.pipulate.clear_steps_from(pipeline_id, "step_01", self.STEPS)
-        # THEN save new data
-        self.pipulate.write_step_data(pipeline_id, "step_01", {"data": user_data})
-
-        return Div(
-            self.pipulate.revert_control(
-                step_id="step_01",
-                app_name=self.app_name,
-                message=f"Word: {user_data}",
-                steps=self.STEPS
-            ),
-            Div(id="step_02",
-                hx_get=f"/{self.app_name}/step_02",
-                hx_trigger="load",
-                hx_swap="outerHTML"
-                )
-        )
-
-    async def step_02(self, request):
-        """Second step: Make it plural"""
-        pipeline_id = db.get("pipeline_id", "unknown")
-        step1_data = self.pipulate.get_step_data(pipeline_id, "step_01", {})
-        step2_data = self.pipulate.get_step_data(pipeline_id, "step_02", {})
-        prev_word = step1_data.get("data", "")
-
-        if step2_data.get("data"):
-            return self.render_step_completion("step_02", self.STEPS[1], step2_data["data"], "step_03")
-
-        # Direct manipulation: add 's' to previous word
-        suggested = f"{prev_word}s"
-
-        return Div(
-            Card(
-                H3("Make it Plural"),
-                P(f"Current word: {prev_word}"),
-                Form(
-                    self.pipulate.wrap_with_inline_button(
-                        Input(
-                            type="text",
-                            name="data",
-                            value=suggested,  # Pre-filled with pluralized version
-                            autofocus=True,
-                            required=True
-                        )
-                    ),
-                    hx_post=f"/{self.app_name}/step_02_submit",
-                    hx_target="#step_02"
-                )
-            ),
-            Div(id="step_03"),
-            id="step_02"
-        )
-
-    async def step_02_submit(self, request):
-        pipeline_id = db.get("pipeline_id", "untitled")
-        form = await request.form()
-        user_data = form.get("data", "")
-
-        # ALWAYS clear forward first
-        self.pipulate.clear_steps_from(pipeline_id, "step_02", self.STEPS)
-        # THEN save new data
-        self.pipulate.write_step_data(pipeline_id, "step_02", {"data": user_data})
-
-        return Div(
-            self.pipulate.revert_control(
-                step_id="step_02",
-                app_name=self.app_name,
-                message=f"Plural: {user_data}",
-                steps=self.STEPS
-            ),
-            Div(
-                id="step_03",
-                hx_get=f"/{self.app_name}/step_03",
-                hx_trigger="load",
-                hx_swap="outerHTML"
-            )
-        )
-
-    async def step_03(self, request):
-        """Third step: Add adjective"""
-        pipeline_id = db.get("pipeline_id", "unknown")
-        step2_data = self.pipulate.get_step_data(pipeline_id, "step_02", {})
-        step3_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
-        prev_phrase = step2_data.get("data", "")
-
-        if step3_data.get("data"):
-            return self.render_step_completion("step_03", self.STEPS[2], step3_data["data"], "step_04")
-
-        # Direct manipulation: add 'happy' before previous phrase
-        suggested = f"happy {prev_phrase}"
-
-        return Div(
-            Card(
-                H3("Add Adjective"),
-                P(f"Current phrase: {prev_phrase}"),
-                Form(
-                    self.pipulate.wrap_with_inline_button(
-                        Input(
-                            type="text",
-                            name="data",
-                            value="word",
-                            autofocus=True,
-                            required=True
-                        )
-                    ),
-                    hx_post=f"/{self.app_name}/step_03_submit",
-                    hx_target="#step_03"
-                )
-            ),
-            Div(id="step_04"),
-            id="step_03"
-        )
-
-    async def step_03_submit(self, request):
-        pipeline_id = db.get("pipeline_id", "untitled")
-        form = await request.form()
-        user_data = form.get("data", "")
-
-        # ALWAYS clear forward first
-        self.pipulate.clear_steps_from(pipeline_id, "step_03", self.STEPS)
-        # THEN save new data
-        self.pipulate.write_step_data(pipeline_id, "step_03", {"data": user_data})
-
-        return Div(
-            self.pipulate.revert_control(
-                step_id="step_03",
-                app_name=self.app_name,
-                message=f"With adjective: {user_data}",
-                steps=self.STEPS
-            ),
-            Div(id="step_04",
-                hx_get=f"/{self.app_name}/step_04",
-                hx_trigger="load",
-                hx_swap="outerHTML"
-                )
-        )
-
-    async def step_04(self, request):
-        """Fourth step: Add verb"""
-        pipeline_id = db.get("pipeline_id", "unknown")
-        step3_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
-        step4_data = self.pipulate.get_step_data(pipeline_id, "step_04", {})
-        prev_phrase = step3_data.get("data", "")
-
-        if step4_data.get("data"):
-            return self.render_step_completion("step_04", self.STEPS[3], step4_data["data"], "finalize")
-
-        # Direct manipulation: add 'sleep' after previous phrase
-        suggested = f"{prev_phrase} sleep"
-
-        return Div(
-            Card(
-                H3("Add Action"),
-                P(f"Current phrase: {prev_phrase}"),
-                Form(
-                    self.pipulate.wrap_with_inline_button(
-                        Input(
-                            type="text",
-                            name="data",
-                            value=suggested,
-                            autofocus=True,
-                            required=True
-                        )
-                    ),
-                    hx_post=f"/{self.app_name}/step_04_submit",
-                    hx_target="#step_04"
-                )
-            ),
-            Div(id="finalize"),
-            id="step_04"
-        )
-
-    async def step_04_submit(self, request):
-        pipeline_id = db.get("pipeline_id", "untitled")
-        form = await request.form()
-        user_data = form.get("data", "")
-
-        # ALWAYS clear forward first
-        self.pipulate.clear_steps_from(pipeline_id, "step_04", self.STEPS)
-        # THEN save new data
-        self.pipulate.write_step_data(pipeline_id, "step_04", {"data": user_data})
-
-        return Div(
-            self.pipulate.revert_control(
-                step_id="step_04",
-                app_name=self.app_name,
-                message=f"Final phrase: {user_data}",
-                steps=self.STEPS
-            ),
-            Div(id="finalize",
-                hx_get=f"/{self.app_name}/finalize",
-                hx_trigger="load",
-                hx_swap="outerHTML"
-                )
-        )
+        prev_data = self.pipulate.get_step_data(db["pipeline_id"], f"step_0{int(step_id[-1])-1}", {})
+        prev_word = prev_data.get("data", "")
+        
+        suggestions = {
+            "step_02": lambda w: f"{w}s",
+            "step_03": lambda w: f"happy {w}",
+            "step_04": lambda w: f"{w} sleep"
+        }
+        return suggestions.get(step_id, lambda w: "")(prev_word) if prev_word else ""
 
     # Finalization handlers
     async def finalize(self, request):
@@ -4117,7 +3887,7 @@ async def clear_db(request):
     """Debug endpoint to clear all entries from both DictLikeDB and pipeline table
 
     DEBUGGING SAFETY:
-    - Only for development/testing
+    - Only for development/testing 
     - Clears all server-side state (both cookie and pipeline)
     - Forces full page refresh to reset UI state
     - Should be disabled in production
