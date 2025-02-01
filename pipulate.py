@@ -374,7 +374,7 @@ REMEMBER:
 THIS_FILE = Path(__file__)
 
 # Define step with clear intent
-Step = namedtuple('Step', ['id', 'done', 'show', 'refill'])
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))  # default transform to None
 
 
 def get_app_name():
@@ -3841,25 +3841,47 @@ class PipeFlow(BaseFlow):
 
     def __init__(self, app, pipulate, app_name="madlibs"):
         steps = [
-            Step(id='step_01', done='data', show='Basic Word', refill=False),
-            Step(id='step_02', done='data', show='Make it Plural', refill=False), 
-            Step(id='step_03', done='data', show='Add Adjective', refill=False),
-            Step(id='step_04', done='data', show='Add Action', refill=False),
-            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+            Step(id='step_01', 
+                done='data', 
+                show='Basic Word', 
+                refill=False,
+                transform=None),  # No transform for first step
+            Step(id='step_02', 
+                done='data', 
+                show='Make it Plural', 
+                refill=False,
+                transform=lambda w: f"{w}s"), 
+            Step(id='step_03', 
+                done='data', 
+                show='Add Adjective', 
+                refill=False,
+                transform=lambda w: f"happy {w}"),
+            Step(id='step_04', 
+                done='data', 
+                show='Add Action', 
+                refill=False,
+                transform=lambda w: f"{w} sleep"),
+            Step(id='finalize', 
+                done='finalized', 
+                show='Finalize', 
+                refill=False,
+                transform=None)  # No transform for final step
         ]
         super().__init__(app, pipulate, app_name, steps)
 
     async def get_suggestion(self, step_id, state):
-        """Dynamic suggestions based on previous card outputs"""
-        prev_data = self.pipulate.get_step_data(db["pipeline_id"], f"step_0{int(step_id[-1])-1}", {})
+        """Get transformed value from previous step's data"""
+        step = next((s for s in self.STEPS if s.id == step_id), None)
+        if not step or not step.transform:
+            return ""
+            
+        prev_data = self.pipulate.get_step_data(
+            db["pipeline_id"], 
+            f"step_0{int(step_id[-1])-1}", 
+            {}
+        )
         prev_word = prev_data.get("data", "")
-        
-        suggestions = {
-            "step_02": lambda w: f"{w}s",
-            "step_03": lambda w: f"happy {w}",
-            "step_04": lambda w: f"{w} sleep"
-        }
-        return suggestions.get(step_id, lambda w: "")(prev_word) if prev_word else ""
+        return step.transform(prev_word) if prev_word else ""
 
     # Finalization handlers
     async def finalize(self, request):
