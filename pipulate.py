@@ -3354,7 +3354,7 @@ class BaseFlow:
 
         # Get state-aware message
         message = await self.pipulate.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
-        await chat.simulated_stream(message)
+        await simulated_stream(message)
 
         # Return same container structure as init()
         placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
@@ -3489,7 +3489,7 @@ class BaseFlow:
             suggested = await self.get_suggestion(step_id, state)
             display_value = suggested  # Use suggestion if no refill value
 
-        await chat.simulated_stream(self.STEP_MESSAGES[step_id]["input"])
+        await simulated_stream(self.STEP_MESSAGES[step_id]["input"])
 
         # Show input form
         return Div(
@@ -3535,7 +3535,7 @@ class BaseFlow:
 
             # Get state-aware message
             message = await self.pipulate.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
-            await chat.simulated_stream(message)
+            await simulated_stream(message)
 
             # Return same container structure as init()
             placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
@@ -3566,7 +3566,7 @@ class BaseFlow:
 
         # Get state-aware message
         message = await self.pipulate.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
-        await chat.simulated_stream(message)
+        await simulated_stream(message)
 
         # Chain to next step
         return Div(
@@ -3637,7 +3637,7 @@ class BaseFlow:
         breaking pace with the LLM-provided chat that has inherent latency.
         """
         await asyncio.sleep(2)
-        await chat.simulated_stream("Enter an ID to begin.")
+        await simulated_stream("Enter an ID to begin.")
 
     async def explain(self, message=None):
         asyncio.create_task(chatq(message, role="system"))
@@ -4861,6 +4861,40 @@ async def profile_render():
 # Streaming the LLM response
 # *******************************
 
+async def simulated_stream(text: str, delay: float = 0.05):
+    """
+    Non-blocking simulated text streaming.
+    Automatically creates a background task for the streaming.
+    """
+    async def stream_task():
+        import re
+
+        # Split preserving whitespace
+        words = re.split(r'(\s+)', text)
+        # Filter out empty strings but keep whitespace
+        words = [w for w in words if w]
+
+        current_chunk = []
+
+        for word in words[:-1]:  # Process all but last word
+            current_chunk.append(word)
+
+            # Send chunk on punctuation or accumulated length
+            if (any(p in word for p in '.!?:') or
+                    ''.join(current_chunk).strip().__len__() >= 30):
+                await chat.broadcast(''.join(current_chunk))
+                current_chunk = []
+                await asyncio.sleep(delay)
+
+        # Handle the last word and any remaining text with <br>\n
+        if words:
+            current_chunk.append(words[-1])
+        if current_chunk:
+            await chat.broadcast(''.join(current_chunk) + '<br>\n')
+
+    # Create non-blocking task
+    asyncio.create_task(stream_task())
+
 
 async def chatq(message: str, role: str = "user", base_app=None):
     try:
@@ -5724,39 +5758,6 @@ class Chat:
         """Clear the chat messages div and return empty content"""
         return Div(id="chat-messages")  # Empty div with same ID for HTMX swap
 
-    async def simulated_stream(self, text: str, delay: float = 0.05):
-        """
-        Non-blocking simulated text streaming.
-        Automatically creates a background task for the streaming.
-        """
-        async def stream_task():
-            import re
-
-            # Split preserving whitespace
-            words = re.split(r'(\s+)', text)
-            # Filter out empty strings but keep whitespace
-            words = [w for w in words if w]
-
-            current_chunk = []
-
-            for word in words[:-1]:  # Process all but last word
-                current_chunk.append(word)
-
-                # Send chunk on punctuation or accumulated length
-                if (any(p in word for p in '.!?:') or
-                        ''.join(current_chunk).strip().__len__() >= 30):
-                    await self.broadcast(''.join(current_chunk))
-                    current_chunk = []
-                    await asyncio.sleep(delay)
-
-            # Handle the last word and any remaining text with <br>\n
-            if words:
-                current_chunk.append(words[-1])
-            if current_chunk:
-                await self.broadcast(''.join(current_chunk) + '<br>\n')
-
-        # Create non-blocking task
-        asyncio.create_task(stream_task())
 
     # Or if you prefer to keep it as a generator, rename it and add a stream method:
     async def _stream_generator(self, text: str, delay: float = 0.05):
