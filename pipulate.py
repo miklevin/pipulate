@@ -1,44 +1,37 @@
 # ----------------------------------------------------------------------------------------------------
-# Single Tenant Web App Framework built on FastHTML and Local LLM https://mikelev.in/
-# This is localhost software. Embrace server-side state.
-# Your entire app is DIVs updated by HTMX, your data is simple tables, and that's all it takes.
-# Don't fight it - this isn't FastAPI, and that's the point.
+# Single Tenant Desktop App Framework built on Nix Flakes, FastHTML and Local LLM https://mikelev.in/
+# This is localhost software with reproducible environments through Nix.
+# Your entire app is DIVs updated by HTMX, your data is simple tables, and your environment is pure.
+# Don't fight it - this isn't Electron, FastAPI, or multi-tenant SaaS, and that's the point.
 # ----------------------------------------------------------------------------------------------------
 
-# The thing I think that you need most is
-# Understanding localhost is
-# Where you multiply your forces
-# Using overlooked resources
-# Starting with your VPN
-# Plus Puppeteer so that you can
-# Use profiles from your Chrome
-# And utilize broadband from home
-# Off a LAN spun from nix flake
-# Embedding LLM to make
-# Tasks Colab would not keep running
-# Thereby banking wins most stunning
-# Running systems you are booting
-# In local self-sovereign computing!
+'''
+ARCHITECTURAL PATTERNS:
+1. Single-Tenant: One user, one instance, one database - keeping it simple
+2. Nix-First: Reproducible development environments via Nix Flakes
+3. Server-Side State: All state managed through DictLikeDB
+4. Pipeline Pattern: Card-to-card flow with clear forward on submit
+5. LLM Integration: Bounded conversation history with streaming
+6. Plugin Architecture: BaseApp foundation for all CRUD operations
+
+See .cursorrules for detailed pattern documentation.
+'''
 
 import ast
 import asyncio
 import functools
-import gzip
 import json
 import os
 import random
-import shutil
 import sys
 import time
 import traceback
 from collections import Counter, deque, namedtuple
-from datetime import datetime, timedelta
-from io import BytesIO
+from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, List, Optional
 
 import aiohttp  # For making asynchronous HTTP requests
-import pandas as pd  # For data analysis
 import requests  # for making HTTP requests (mostly to Ollama)
 import uvicorn  # for running the FastHTML server
 from fasthtml.common import *  # the beating heart of the app
@@ -52,8 +45,6 @@ from rich.theme import Theme  # for black backgrounds
 from starlette.middleware.base import \
     BaseHTTPMiddleware  # for inserting console output
 from starlette.middleware.cors import CORSMiddleware  # for handling CORS
-from starlette.responses import FileResponse  # for handling responses
-from starlette.responses import PlainTextResponse
 from starlette.routing import Route  # for router tricks beyond FastHTML
 from starlette.websockets import (  # for handling WebSocket disconnections
     WebSocket, WebSocketDisconnect)
@@ -472,12 +463,12 @@ DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # figlet ---------------------------------------------------------------------------------------------
-#  _                      _             
-# | |    ___   __ _  __ _(_)_ __   __ _ 
+#  _                      _
+# | |    ___   __ _  __ _(_)_ __   __ _
 # | |   / _ \ / _` |/ _` | | '_ \ / _` |
 # | |__| (_) | (_| | (_| | | | | | (_| |
 # |_____\___/ \__, |\__, |_|_| |_|\__, |
-#             |___/ |___/         |___/ 
+#             |___/ |___/         |___/
 # *******************************
 # Set up logging with loguru
 # *******************************
@@ -538,28 +529,6 @@ def setup_logging():
 # Use the setup_logging function to configure the logger
 logger = setup_logging()
 
-
-class StateLogger:
-    def __init__(self, name):
-        self.name = name
-        self._previous_state = None
-
-    def log_state(self, new_state):
-        """Only log state when it changes meaningfully"""
-        state_str = json.dumps(new_state, indent=2)
-        if state_str != self._previous_state:
-            # Skip logging if only timestamps changed
-            old_state = json.loads(self._previous_state) if self._previous_state else {}
-            new_state_copy = new_state.copy()
-
-            # Remove timestamps for comparison
-            for s in [old_state, new_state_copy]:
-                s.pop('updated', None)
-                s.pop('created', None)
-
-            if json.dumps(old_state) != json.dumps(new_state_copy):
-                logger.info(f"[{self.name}] State changed: {state_str}")
-                self._previous_state = state_str
 
 
 def get_component_logger(name):
@@ -694,11 +663,11 @@ broadcaster = SSEBroadcaster()
 def generate_system_message():
     # check for file named system_instructions.txt if path provided
     if SYSTEM_PROMPT_FILE:
-        fig(f"Checking for {SYSTEM_PROMPT_FILE}", font="cybermedium")
+        logger.debug(f"Checking for {SYSTEM_PROMPT_FILE}")
         if Path(SYSTEM_PROMPT_FILE).exists():
             logger.debug(f"Using system instructions from {SYSTEM_PROMPT_FILE}")
             # replace the message with the contents of the file
-            fig(f"Using system instructions from {SYSTEM_PROMPT_FILE}", font="small")
+            logger.debug(f"Using system instructions from {SYSTEM_PROMPT_FILE}")
             intro = Path(SYSTEM_PROMPT_FILE).read_text()
         else:
             intro = f"Your name is {APP_NAME} and you are built into locally running SEO software. "
@@ -720,9 +689,9 @@ def generate_system_message():
 
     message = intro + "\n\n" + emoji_instructions
 
-    fig("Begin System Prompt", font="small")
+    logger.debug("Begin System Prompt")
     console.print(message, style="on default")
-    fig("End System Prompt", font="small")
+    logger.debug("End System Prompt")
 
     return message
 
@@ -911,12 +880,12 @@ CRUD_PROMPT_PREFIXES = {
 CRUD_PROMT_SUFFIX = " DO NOT REPEAT THE JSON!! IT WILL ATTEMPT TO DO THE INSERT AGAIN.\n"
 
 # figlet ---------------------------------------------------------------------------------------------
-#   ____                                    _   _               _   _ _     _                   
-#  / ___|___  _ ____   _____ _ __ ___  __ _| |_(_) ___  _ __   | | | (_)___| |_ ___  _ __ _   _ 
+#   ____                                    _   _               _   _ _     _
+#  / ___|___  _ ____   _____ _ __ ___  __ _| |_(_) ___  _ __   | | | (_)___| |_ ___  _ __ _   _
 # | |   / _ \| '_ \ \ / / _ \ '__/ __|/ _` | __| |/ _ \| '_ \  | |_| | / __| __/ _ \| '__| | | |
 # | |__| (_) | | | \ V /  __/ |  \__ \ (_| | |_| | (_) | | | | |  _  | \__ \ || (_) | |  | |_| |
 #  \____\___/|_| |_|\_/ \___|_|  |___/\__,_|\__|_|\___/|_| |_| |_| |_|_|___/\__\___/|_|   \__, |
-#                                                                                         |___/ 
+#                                                                                         |___/
 # *******************************
 # Create a conversation history
 # *******************************
@@ -2396,7 +2365,7 @@ todo_app = TodoApp(table=tasks)  # Instantiate with the appropriate table
 todo_app.register_routes(rt)  # Register the routes
 
 # Other plugins don't need these aliases. The first instances of todos and profiles are special in how they initialize the web framework.
-#profiles = clients  # Wires arbitrary endpoint-controlling table name (clients) to hardwired ONLY profile app instance
+# profiles = clients  # Wires arbitrary endpoint-controlling table name (clients) to hardwired ONLY profile app instance
 todos = tasks  # Wires arbitrary endpoint-controlling table name (tasks) to hardwired first todo app instance
 # variable names proifles and todos must never change. Their values (table names) can be whatever you want.
 
@@ -3257,7 +3226,7 @@ class Pipulate:
         # Escape angle brackets for logging
         safe_state = state_desc.replace("<", "\\<").replace(">", "\\>")
         safe_message = message.replace("<", "\\<").replace(">", "\\>")
-        
+
         logger.debug(f"State: {safe_state}, Message: {safe_message}")
         append_to_conversation(message, role="system", quiet=True)
         return message
@@ -3826,37 +3795,36 @@ class StarterFlow(BaseFlow):
         return self.pipulate.rebuild(self.app_name, self.STEPS)
 
 
-
 class PipeFlow(BaseFlow):
     PRESERVE_REFILL = False
 
     def __init__(self, app, pipulate, app_name="madlibs"):
         steps = [
-            Step(id='step_01', 
-                done='data', 
-                show='Basic Word', 
-                refill=False,
-                transform=None),  # No transform for first step
-            Step(id='step_02', 
-                done='data', 
-                show='Make it Plural', 
-                refill=False,
-                transform=lambda w: f"{w}s"), 
-            Step(id='step_03', 
-                done='data', 
-                show='Add Adjective', 
-                refill=False,
-                transform=lambda w: f"happy {w}"),
-            Step(id='step_04', 
-                done='data', 
-                show='Add Action', 
-                refill=False,
-                transform=lambda w: f"{w} sleep"),
-            Step(id='finalize', 
-                done='finalized', 
-                show='Finalize', 
-                refill=False,
-                transform=None)  # No transform for final step
+            Step(id='step_01',
+                 done='data',
+                 show='Basic Word',
+                 refill=False,
+                 transform=None),  # No transform for first step
+            Step(id='step_02',
+                 done='data',
+                 show='Make it Plural',
+                 refill=False,
+                 transform=lambda w: f"{w}s"),
+            Step(id='step_03',
+                 done='data',
+                 show='Add Adjective',
+                 refill=False,
+                 transform=lambda w: f"happy {w}"),
+            Step(id='step_04',
+                 done='data',
+                 show='Add Action',
+                 refill=False,
+                 transform=lambda w: f"{w} sleep"),
+            Step(id='finalize',
+                 done='finalized',
+                 show='Finalize',
+                 refill=False,
+                 transform=None)  # No transform for final step
         ]
         super().__init__(app, pipulate, app_name, steps)
 
@@ -3865,10 +3833,10 @@ class PipeFlow(BaseFlow):
         step = next((s for s in self.STEPS if s.id == step_id), None)
         if not step or not step.transform:
             return ""
-            
+
         prev_data = self.pipulate.get_step_data(
-            db["pipeline_id"], 
-            f"step_0{int(step_id[-1])-1}", 
+            db["pipeline_id"],
+            f"step_0{int(step_id[-1]) - 1}",
             {}
         )
         prev_word = prev_data.get("data", "")
@@ -4066,7 +4034,6 @@ async def home(request):
 
     menux = path if path else "home"
 
-    # fig(f"app: {menux}", font='ogre')
     logger.debug(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
@@ -4534,7 +4501,6 @@ def create_chat_interface(autofocus=False, mobile=False):
         temp_message = db["temp_message"]
         del db["temp_message"]
 
-
     return Div(
         Card(
             None if mobile else H3(f"{APP_NAME} Chatbot"),
@@ -4962,7 +4928,7 @@ def get_filtered_table(current_profile_id, todo_app_instance):
 
 async def extract_json_objects(text):
 
-    fig("Begin Extract JSON", font="cybermedium")
+    logger.debug("Begin Extract JSON")
     json_objects = []
     # CRITICAL: DO NOT MODIFY THIS PATTERN
     # This regex pattern is carefully crafted to handle nested JSON objects of arbitrary depth
@@ -4984,7 +4950,7 @@ async def extract_json_objects(text):
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON: {e}")
             logger.error(f"Problematic JSON string: {json_str}")
-            
+
             # Log the error for debugging
             table = Table(title="JSON Error")
             table.add_column("JSON String")
@@ -4993,20 +4959,20 @@ async def extract_json_objects(text):
 
             # Clear old system messages to prevent buildup
             clear_system_messages_from_history()
-            
+
             # Add fresh system message emphasizing JSON format
             system_message = generate_json_format_reminder()
             append_to_conversation(system_message, role="system")
-            
+
             # Log for monitoring
             logger.info("Reinforced JSON formatting rules in conversation history")
-            
+
             return []
 
     if not json_objects:
         logger.info("No JSON objects detected in the text.")
 
-    fig("End Extract JSON", font="cybermedium")
+    logger.debug("End Extract JSON")
 
     return json_objects
 
@@ -5360,7 +5326,7 @@ class StreamSimulator:
     async def generate_chunks(self, total_chunks=100, delay_range=(0.1, 0.5)):
         """Async generator demonstrating non-blocking chunk generation"""
         try:
-            fig("Generating Chunks", font="cybermedium")
+            logger.debug("Generating Chunks")
             self.logger.debug(f"Generating chunks: total={total_chunks}, delay={delay_range}")
 
             # Create chat tasks but don't await them yet
@@ -5438,8 +5404,7 @@ class StreamSimulator:
 
     async def stream_render(self):
         """Renders the complete interface with both channels configured"""
-        fig("Rendering Stream Simulator", font="cybermedium")
-        self.logger.debug("Rendering stream simulator interface")
+        logger.debug("Rendering Stream Simulator")
 
         js_template = r"""
             class StreamUI {
@@ -5513,8 +5478,8 @@ class StreamSimulator:
         """
 
         js_code = (js_template
-            .replace('ID_SUFFIX', self.id_suffix)
-            .replace('ROUTE_PREFIX', self.route_prefix))
+                   .replace('ID_SUFFIX', self.id_suffix)
+                   .replace('ROUTE_PREFIX', self.route_prefix))
 
         return Div(
             self.create_progress_card(),
@@ -5959,7 +5924,7 @@ class Chat:
                 # Silently reinforce system instructions
                 system_message = generate_system_message()
                 await chatq(system_message, role="system", base_app=self)  # Output doesn't matter
-                
+
                 return
 
             # Regular message handling
@@ -6077,12 +6042,12 @@ class Chat:
 chat = Chat(app, id_suffix="", base_app=todo_app)
 
 # figlet ---------------------------------------------------------------------------------------------
-#  _____                          ____            _                     
-# |  ___|   _ _ __  _ __  _   _  | __ ) _   _ ___(_)_ __   ___  ___ ___ 
+#  _____                          ____            _
+# |  ___|   _ _ __  _ __  _   _  | __ ) _   _ ___(_)_ __   ___  ___ ___
 # | |_ | | | | '_ \| '_ \| | | | |  _ \| | | / __| | '_ \ / _ \/ __/ __|
 # |  _|| |_| | | | | | | | |_| | | |_) | |_| \__ \ | | | |  __/\__ \__ \
 # |_|   \__,_|_| |_|_| |_|\__, | |____/ \__,_|___/_|_| |_|\___||___/___/
-#                         |___/                                         
+#                         |___/
 # *******************************
 # Funny Business is stupid web tricks like the 404 handler & middleware
 # *******************************
@@ -6192,7 +6157,7 @@ def print_routes():
     Returns:
         None. The function prints the table to the console.
     """
-    fig('Route Table', font='cybermedium')
+    logger.debug('Route Table')
     table = Table(title="Application Routes")
 
     table.add_column("Type", style="cyan", no_wrap=True)
@@ -6390,25 +6355,3 @@ if __name__ == "__main__":
 # isort pipulate.py
 # vulture pipulate.py
 # pylint --disable=all --enable=redefined-outer-name pipulate.py
-
-# The thing I think that you need most is
-# Understanding localhost is
-# Where you multiply your forces
-# Using overlooked resources
-# Starting with your VPN
-# Plus Puppeteer so that you can
-# Use profiles from your Chrome
-# And utilize broadband from home
-# Off a LAN spun from nix flake
-# Embedding LLM to make
-# Tasks Colab would not keep running
-# Thereby banking wins most stunning
-# Running systems you are booting
-# In local self-sovereign computing!
-
-# ----------------------------------------------------------------------------------------------------
-# Single Tenant Web App Framework built on FastHTML and Local LLM https://mikelev.in/
-# This is localhost software. Embrace server-side state.
-# Your entire app is DIVs updated by HTMX, your data is simple tables, and that's all it takes.
-# Don't fight it - this isn't FastAPI, and that's the point.
-# ----------------------------------------------------------------------------------------------------
