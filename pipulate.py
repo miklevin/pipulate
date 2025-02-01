@@ -3809,15 +3809,6 @@ class StarterFlow(BaseFlow):
         asyncio.create_task(self.delayed_greeting())
         return base_landing
 
-    def format_completion_message(self, step_id: str, step: Step, user_val: str) -> P:
-        """Format the completion message for a step. Override for custom formatting."""
-        try:
-            step_name = format_step_name(step_id)
-        except Exception as e:
-            logger.error(f"Error formatting step name: {e}")
-            step_name = step_id
-        return P(f"{step_name} ({step.show}): <{user_val}>")
-
     # Finalization handlers
     async def finalize(self, request):
         return await self.handle_finalize(self.STEPS, self.app_name)
