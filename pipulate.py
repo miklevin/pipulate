@@ -1516,12 +1516,7 @@ class BaseApp:
             logger.debug(f"Deleted item ID: {item_id}")
             action_details = f"the {self.name} item '{item_name}' was removed."
             prompt = f"{CRUD_PROMPT_PREFIXES['delete']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "delete",
-                "target": self.name,
-                "args": {"id": item_id}
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
             return ''
         except Exception as e:
             error_msg = f"Error deleting item: {str(e)}"
@@ -1542,16 +1537,7 @@ class BaseApp:
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"the {self.name} item '{item_name}' is now {status_text}."
             prompt = f"{CRUD_PROMPT_PREFIXES['toggle']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "toggle",
-                "target": self.name,
-                "args": {
-                    "id": item_id,
-                    "field": self.toggle_field,
-                    "new_value": new_status
-                }
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
             return self.render_item(updated_item)
         except Exception as e:
             error_msg = f"Error toggling item: {str(e)}"
@@ -1579,12 +1565,7 @@ class BaseApp:
             changes_str = '; '.join(changes)
             action_details = f"the {self.name} items were reordered: {changes_str}"
             prompt = f"{CRUD_PROMPT_PREFIXES['sort']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "sort",
-                "target": self.name,
-                "args": {"items": [{"id": k, "priority": v} for k, v in sort_dict.items()]}
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
             logger.debug(f"{self.name.capitalize()} order updated successfully")
             return ''
         except json.JSONDecodeError as e:
@@ -1617,12 +1598,7 @@ class BaseApp:
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"a new {self.name} item '{item_name}' was added."
             prompt = f"{CRUD_PROMPT_PREFIXES['insert']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "insert",
-                "target": self.name,
-                "args": new_item_data
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
 
             rendered = self.render_item(new_item)
             logger.debug(f"[RENDER DEBUG] Rendered item type: {type(rendered)}")
@@ -1632,7 +1608,7 @@ class BaseApp:
             error_msg = f"Error inserting {self.name}: {str(e)}"
             logger.error(error_msg)
             action_details = f"an error occurred while adding a new {self.name}: {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
+            prompt = f"{CRUD_PROMPT_PREFIXES['insert']}{action_details}{CRUD_PROMT_SUFFIX}"
             await chatq(prompt)
             return str(e), 500
 
@@ -1660,12 +1636,7 @@ class BaseApp:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             action_details = f"the {self.name} item '{item_name}' was updated. Changes: {changes_str}"
             prompt = f"{CRUD_PROMPT_PREFIXES['update']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "update",
-                "target": self.name,
-                "args": {"id": item_id, **update_data}
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
             logger.debug(f"Updated {self.name} item {item_id}")
             return self.render_item(updated_item)
         except Exception as e:
@@ -1682,12 +1653,7 @@ class BaseApp:
             item_dict = item.__dict__
             action_details = f"Read {self.name} item with ID {item_id}."
             prompt = f"{CRUD_PROMPT_PREFIXES['read']}{action_details}{CRUD_PROMT_SUFFIX}"
-            action_data = json.dumps({
-                "action": "read",
-                "target": self.name,
-                "args": {"id": item_id}
-            }, ensure_ascii=False)
-            asyncio.create_task(chatq(prompt, action_data))
+            asyncio.create_task(chatq(prompt))
             return json.dumps(item_dict, indent=2, ensure_ascii=False, default=str)
         except Exception as e:
             error_msg = f"Error reading {self.name} {item_id}: {str(e)}"
@@ -1750,12 +1716,7 @@ class BaseApp:
             Redirect: A Redirect object to the appropriate page.
         """
         prompt = f"{CRUD_PROMPT_PREFIXES[action]}{action_details}{CRUD_PROMT_SUFFIX}"
-        action_data = json.dumps({
-            "action": action,
-            "target": self.name,
-            "args": {}  # You might want to add more details here depending on the action
-        }, ensure_ascii=False)
-        asyncio.create_task(chatq(prompt, action_data))
+        asyncio.create_task(chatq(prompt))
 
         # Store the message in the database for retrieval after redirect
         db["temp_message"] = prompt
@@ -2391,13 +2352,19 @@ def build_endpoint_messages(endpoint):
 
     endpoint_messages = {
         "": f"Welcome to {APP_NAME}.",
-        "profile": "Profile List app is where you manage your clients.",
+        "profile": (
+            "Profile List app is where you manage your clients.\n"
+            "This is where you add, edit, and delete clients. "
+            "The Nickname field is hidden on the menu so client names are never exposed unless in client (profile) list app."
+        )
+        ,
         "task": "Task List app is where you manage your tasks.",
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
         "pipe_flow": "Workflow app is where you manage your workflows.",
         "starter_flow": "Starter Flow app is the template for new workflows.",
     }
     return endpoint_messages.get(endpoint, None)
+
 
 def build_endpoint_training(endpoint):
     """Build a real-time prompt injection system for menu-driven LLM context training.
@@ -5609,14 +5576,8 @@ async def poke_chatbot():
         "Respond with a brief, funny comment about being poked."
     )
 
-    # Create action data for the poke
-    action_data = json.dumps({
-        "action": "poke",
-        "target": f"{APP_NAME} Chatbot"
-    }, ensure_ascii=False)
-
-    # Queue the poke message for streaming to the chat interface, including action data
-    asyncio.create_task(chatq(poke_message, action_data))
+    # Queue the poke message for streaming to the chat interface
+    asyncio.create_task(chatq(poke_message))
 
     # Respond with a confirmation message
     return "Poke received. Countdown to local LLM model..."
