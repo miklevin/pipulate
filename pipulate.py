@@ -3838,6 +3838,8 @@ async def clear_db(request):
         pipulate.table.delete(record.url)  # Delete by primary key
     logger.debug("Pipeline table cleared")
 
+    db["temp_message"] = "Database cleared."
+
     logger.debug("DictLikeDB cleared for debugging")
     return HTMLResponse(
         "Database cleared.",
