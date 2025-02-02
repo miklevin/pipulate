@@ -2403,7 +2403,26 @@ def build_endpoint_messages():
     # Dictionary mapping menu endpoints to LLM prompts that guide the user experience
     # These prompts are sent to the LLM when the user switches between menu options,
     # creating a delayed-reaction guidance system for each feature
+
     endpoint_messages = {
+        "profile": "foo",
+        "task": "bar",
+        "stream_simulator": "baz",
+        "pipe_flow": "qux",
+        "starter_flow": "quux",
+    }
+    return endpoint_messages
+
+def build_endpoint_training():
+    """Build a real-time prompt injection system for menu-driven LLM context training.
+
+    This implements a novel "hot prompt injection" methodology, distinct from traditional 
+    prompt engineering or model fine-tuning. Like Neo downloading Kung Fu in The Matrix,
+    this system injects context-specific training into the LLM at the exact moment of 
+    UI interaction, creating a just-in-time knowledge transfer system.
+    """
+
+    endpoint_training = {
         "profile": (
             "Tell the user the Nickname field will show on the menu "
             "and that this is done as a precaution so you won't show client names by accident. "
@@ -2427,11 +2446,10 @@ def build_endpoint_messages():
         "starter_flow": "",
     }
     # Rich print the endpoint messages into the console
-    console.print(f"[bold cyan]Endpoint messages:[/bold cyan]")
-    for endpoint, message in endpoint_messages.items():
+    console.print(f"[bold cyan]Endpoint training:[/bold cyan]")
+    for endpoint, message in endpoint_training.items():
         console.print(f"  [bold green]{endpoint}[/bold green]: {message}")
-    return endpoint_messages
-
+    return endpoint_training
 
 # figlet ---------------------------------------------------------------------------------------------
 #  ____  _      _   _     _ _        ____  ____
@@ -5587,7 +5605,7 @@ def redirect_handler(request):
     path = request.path_params['path']
     logger.debug(f"Redirecting to: {path}")
     messages = build_endpoint_messages()
-    message = messages.get(path, f"Welcome to the {path} area!")
+    message = messages.get(path, None)
     db["temp_message"] = message
     return Redirect(f"/{path}")
 
