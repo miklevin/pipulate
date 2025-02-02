@@ -2386,23 +2386,8 @@ friendly_names = {
 }
 
 
-def build_endpoint_messages():
-    """Build a real-time prompt injection system for menu-driven LLM context training.
-
-    This implements a novel "hot prompt injection" methodology, distinct from traditional 
-    prompt engineering or model fine-tuning. Like Neo downloading Kung Fu in The Matrix,
-    this system injects context-specific training into the LLM at the exact moment of 
-    UI interaction, creating a just-in-time knowledge transfer system.
-
-    When users switch between menu options, the corresponding prompt is dynamically 
-    injected into the LLM's context window, allowing it to instantly adapt its behavior
-    and knowledge to the current interface context - a groundbreaking approach to 
-    real-time AI behavioral modification.
-
-    """
-    # Dictionary mapping menu endpoints to LLM prompts that guide the user experience
-    # These prompts are sent to the LLM when the user switches between menu options,
-    # creating a delayed-reaction guidance system for each feature
+def build_endpoint_messages(endpoint):
+    """Build a dictionary mapping menu endpoints to LLM prompts that guide the user experience."""
 
     endpoint_messages = {
         "": f"Welcome to {APP_NAME}.",
@@ -2412,9 +2397,9 @@ def build_endpoint_messages():
         "pipe_flow": "Workflow app is where you manage your workflows.",
         "starter_flow": "Starter Flow app is the template for new workflows.",
     }
-    return endpoint_messages
+    return endpoint_messages.get(endpoint, None)
 
-def build_endpoint_training():
+def build_endpoint_training(endpoint):
     """Build a real-time prompt injection system for menu-driven LLM context training.
 
     This implements a novel "hot prompt injection" methodology, distinct from traditional 
@@ -2424,33 +2409,15 @@ def build_endpoint_training():
     """
 
     endpoint_training = {
-        "profile": (
-            "Tell the user the Nickname field will show on the menu "
-            "and that this is done as a precaution so you won't show client names by accident. "
-            "This data will be used in other apps to make menu selections."
-        ),
-        "task": (
-            todo_list_training() +
-            f'Tell the user {limiter} this is where they add tasks for "{get_profile_name()}". '
-            "But if they're here for practice, try adding Apples, lions, tigers and bears. "
-            "Don't add items with your JSON until the user asks you to. "
-            "The target value in JSON is ***ALWAYS*** task. "
-        ),
-        "stream_simulator": (
-            f"Tell the user {limiter} this is a simulation of a long-running server-side "
-            "process designed to test the Server-Sent Events (SSE) communication system. "
-            "Explain that SSE keeps users informed of progress during extended operations. "
-            "Invite them to click the button to the left to start the simulation. "
-            "Never say the word 'below' - always say 'to the left'. Don't use JSON here."
-        ),
-        "pipe_flow": "",
-        "starter_flow": "",
+        "profile": "Profile List app is where you manage your clients.",
+        "task": todo_list_training(),
+        "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
+        "pipe_flow": "Workflow app is where you manage your workflows.",
+        "starter_flow": "Starter Flow app is the template for new workflows.",
     }
-    # Rich print the endpoint messages into the console
-    console.print(f"[bold cyan]Endpoint training:[/bold cyan]")
-    for endpoint, message in endpoint_training.items():
-        console.print(f"  [bold green]{endpoint}[/bold green]: {message}")
-    return endpoint_training
+    # Add the endpoint training to the conversation history
+    conversation_history = append_to_conversation(endpoint_training[endpoint], "system")
+    return
 
 # figlet ---------------------------------------------------------------------------------------------
 #  ____  _      _   _     _ _        ____  ____
@@ -5605,8 +5572,8 @@ async def chat_endpoint(request, message: str):  # Get message from request para
 def redirect_handler(request):
     path = request.path_params['path']
     logger.debug(f"Redirecting to: {path}")
-    messages = build_endpoint_messages()
-    message = messages.get(path, None)
+    message = build_endpoint_messages(path)
+    build_endpoint_training(path)
     db["temp_message"] = message
     return Redirect(f"/{path}")
 
