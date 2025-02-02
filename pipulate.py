@@ -2405,11 +2405,12 @@ def build_endpoint_messages():
     # creating a delayed-reaction guidance system for each feature
 
     endpoint_messages = {
-        "profile": "foo",
-        "task": "bar",
-        "stream_simulator": "baz",
-        "pipe_flow": "qux",
-        "starter_flow": "quux",
+        "": f"Welcome to {APP_NAME}.",
+        "profile": "Profile List app is where you manage your clients.",
+        "task": "Task List app is where you manage your tasks.",
+        "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
+        "pipe_flow": "Workflow app is where you manage your workflows.",
+        "starter_flow": "Starter Flow app is the template for new workflows.",
     }
     return endpoint_messages
 
@@ -3815,7 +3816,7 @@ class StarterFlow(BaseFlow):
 class PipeFlow(BaseFlow):
     PRESERVE_REFILL = False
 
-    def __init__(self, app, pipulate, app_name="madlibs"):
+    def __init__(self, app, pipulate, app_name="pipeflow"):
         steps = [
             Step(id='step_01',
                  done='data',
