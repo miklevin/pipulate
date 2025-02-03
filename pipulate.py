@@ -2355,9 +2355,11 @@ def build_endpoint_messages(endpoint):
         "profile": (
             "This is where you add, edit, and delete clients. "
             "The Nickname field is hidden on the menu so client names are never exposed unless in client (profile) list app."
-        )
-        ,
-        "task": "This is where you manage your tasks.",
+        ),
+        "task": (
+            "This is where you manage your tasks. "
+            "For a little fun, ask me to add an apple to the task list."
+        ),
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
         "pipe_flow": "Workflow app is where you manage your workflows.",
         "starter_flow": "Starter Flow app is the template for new workflows.",
@@ -5189,48 +5191,28 @@ class Introduction:
         self.logger = logger.bind(name="Introduction")
 
     async def start_chat(self, request):
-        """Initiate welcome conversation using the chat queue."""
-        self.logger.debug("Starting welcome chat via chatq")
+        """Initiate welcome conversation using training file and starting chat."""
+        self.logger.debug("Starting welcome chat")
 
         try:
-            # Use the existing chatq infrastructure
+            # First load the training into conversation history
+            training = read_training_file("introduction.md")
+            conversation_history = append_to_conversation(training, "system")
+            
+            # Then prompt the LLM to start talking
             await chatq(
-                message=f"""Tell the user {limiter} that you are the LLM ghost in the machine. 
-                Explain that every time a menu item is selected, you instantly become an expert in that topic - 
-                just like Neo downloading Kung Fu in the Matrix. You're excited to share your expertise. 
-                So pick a menu and make me (you, the LLM ghost in the machine) an expert in that topic.""",
-                role="system",
+                f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help.",
                 base_app=self.app
             )
 
-            return "Chat initiated"  # Simple response as chatq handles the actual messaging
+            return "Chat initiated"
 
         except Exception as e:
             self.logger.error(f"Error starting chat: {str(e)}")
             return "I'm having trouble connecting right now. Please try again in a moment."
 
     async def introduction_render(self):
-        """Render the introduction content.
-
-        Key HTMX Learning:
-        When you need to perform JavaScript actions after an HTMX request completes,
-        use the `hx-trigger` attribute with multiple triggers:
-        - First trigger: the initiating event (e.g., "click")
-        - Second trigger: "htmx:afterRequest[...]" with the JavaScript to execute
-
-        Example:
-            hx_trigger="click, htmx:afterRequest[document.getElementById('msg').focus()]"
-
-        This is preferable to:
-        1. Using onclick with fetch() - breaks HTMX's declarative pattern
-        2. Using hx-swap-oob - meant for HTML content swaps, not JS execution
-        3. Using hx-on events - more complex than necessary
-        4. Using separate endpoints with custom events - overengineered
-
-        The `hx-swap="none"` is important when you don't want content updates,
-        just post-request actions.
-        """
-
+        """Render the introduction content."""
         self.logger.debug("Rendering introduction content")
 
         # Register the start_chat route
