@@ -2366,6 +2366,16 @@ def build_endpoint_messages(endpoint):
     return endpoint_messages.get(endpoint, None)
 
 
+def read_training_file(endpoint):
+    """Read training content from a markdown file in the training directory."""
+    try:
+        with open(f"training/{endpoint}", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.warning(f"No training file found for {endpoint}")
+        return f"Default training for {endpoint}"
+
+
 def build_endpoint_training(endpoint):
     """Build a real-time prompt injection system for menu-driven LLM context training.
 
@@ -2376,7 +2386,8 @@ def build_endpoint_training(endpoint):
     """
 
     endpoint_training = {
-        "profile": "Profile List app is where you manage your clients.",
+        "": "The user just navigated to the home page. This is where their education about this system begins.",
+        "profile": read_training_file("menu_profile.md"),
         "task": todo_list_training(),
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
         "pipe_flow": "Workflow app is where you manage your workflows.",
@@ -4143,7 +4154,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     menu_items.append(
         Li(
             A(
-                f"Edit {format_endpoint_name(profile_app.name)} {LIST_SUFFIX}",
+                f"Edit {format_endpoint_name(profile_app.name)}",
                 href=f"/redirect/{profile_app.name}",  # Changed to use redirect endpoint
                 cls="dropdown-item",
                 style=(
