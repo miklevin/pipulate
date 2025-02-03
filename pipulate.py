@@ -1514,16 +1514,17 @@ class BaseApp:
             item_name = getattr(item, self.item_name_field, 'Item')
             self.table.delete(item_id)
             logger.debug(f"Deleted item ID: {item_id}")
-            action_details = f"the {self.name} item '{item_name}' was removed."
-            prompt = f"{CRUD_PROMPT_PREFIXES['delete']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"The {self.name} item '{item_name}' was removed."
+            # prompt = f"{CRUD_PROMPT_PREFIXES['delete']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             return ''
         except Exception as e:
             error_msg = f"Error deleting item: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            await chatq(prompt)
+            action_details = f"An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
             return str(e), 500
 
     async def toggle_item(self, request, item_id: int):
@@ -1535,9 +1536,10 @@ class BaseApp:
             updated_item = self.table.update(item)
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
-            action_details = f"the {self.name} item '{item_name}' is now {status_text}."
-            prompt = f"{CRUD_PROMPT_PREFIXES['toggle']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"The {self.name} item '{item_name}' is now {status_text}."
+            # prompt = f"{CRUD_PROMPT_PREFIXES['toggle']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             return self.render_item(updated_item)
         except Exception as e:
             error_msg = f"Error toggling item: {str(e)}"
@@ -1563,24 +1565,25 @@ class BaseApp:
                 sort_dict[item_id] = priority
                 changes.append(f"'{item_name}' moved to position {priority}")
             changes_str = '; '.join(changes)
-            action_details = f"the {self.name} items were reordered: {changes_str}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['sort']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"The {self.name} items were reordered: {changes_str}"
+            # prompt = f"{CRUD_PROMPT_PREFIXES['sort']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             logger.debug(f"{self.name.capitalize()} order updated successfully")
             return ''
         except json.JSONDecodeError as e:
             error_msg = f"Invalid data format: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while sorting {self.name} items: {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            await chatq(prompt)
+            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
             return "Invalid data format", 400
         except Exception as e:
             error_msg = f"Error updating {self.name} order: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while sorting {self.name} items: {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             return str(e), 500
 
     async def insert_item(self, request):
@@ -1596,9 +1599,10 @@ class BaseApp:
             logger.debug(f"[RENDER DEBUG] Created new item: {new_item}")
 
             item_name = getattr(new_item, self.item_name_field, 'Item')
-            action_details = f"a new {self.name} item '{item_name}' was added."
-            prompt = f"{CRUD_PROMPT_PREFIXES['insert']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"A new {self.name} item '{item_name}' was added."
+            # prompt = f"{CRUD_PROMPT_PREFIXES['insert']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
 
             rendered = self.render_item(new_item)
             logger.debug(f"[RENDER DEBUG] Rendered item type: {type(rendered)}")
@@ -1607,9 +1611,9 @@ class BaseApp:
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while adding a new {self.name}: {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['insert']}{action_details}{CRUD_PROMT_SUFFIX}"
-            await chatq(prompt)
+            action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
             return str(e), 500
 
     async def update_item(self, request, item_id: int):
@@ -1634,17 +1638,18 @@ class BaseApp:
                        for key in update_data.keys() if before_state.get(key) != after_state.get(key)]
             changes_str = '; '.join(changes)
             item_name = getattr(updated_item, self.item_name_field, 'Item')
-            action_details = f"the {self.name} item '{item_name}' was updated. Changes: {changes_str}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['update']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {changes_str}"
+            # prompt = f"{CRUD_PROMPT_PREFIXES['update']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             logger.debug(f"Updated {self.name} item {item_id}")
             return self.render_item(updated_item)
         except Exception as e:
             error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            await chatq(prompt)
+            action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
             return str(e), 500
 
     async def read_item(self, request, item_id: int):
@@ -1652,15 +1657,16 @@ class BaseApp:
             item = self.table[item_id]
             item_dict = item.__dict__
             action_details = f"Read {self.name} item with ID {item_id}."
-            prompt = f"{CRUD_PROMPT_PREFIXES['read']}{action_details}{CRUD_PROMT_SUFFIX}"
-            asyncio.create_task(chatq(prompt))
+            # prompt = f"{CRUD_PROMPT_PREFIXES['read']}{action_details}{CRUD_PROMT_SUFFIX}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             return json.dumps(item_dict, indent=2, ensure_ascii=False, default=str)
         except Exception as e:
             error_msg = f"Error reading {self.name} {item_id}: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while reading {self.name} (ID: {item_id}): {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            await chatq(prompt)
+            action_details = f"An error occurred while reading {self.name} (ID: {item_id}): {error_msg}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
             return str(e), 500
 
     async def create_item(self, **kwargs):
