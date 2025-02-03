@@ -2353,15 +2353,15 @@ def build_endpoint_messages(endpoint):
     endpoint_messages = {
         "": f"Welcome to {APP_NAME}.",
         "profile": (
-            "Profile List app is where you manage your clients.\n"
             "This is where you add, edit, and delete clients. "
             "The Nickname field is hidden on the menu so client names are never exposed unless in client (profile) list app."
         )
         ,
-        "task": "Task List app is where you manage your tasks.",
+        "task": "This is where you manage your tasks.",
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
         "pipe_flow": "Workflow app is where you manage your workflows.",
         "starter_flow": "Starter Flow app is the template for new workflows.",
+        "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
     }
     return endpoint_messages.get(endpoint, None)
 
@@ -2386,12 +2386,13 @@ def build_endpoint_training(endpoint):
     """
 
     endpoint_training = {
-        "": "The user just navigated to the home page. This is where their education about this system begins.",
+        "": read_training_file("menu_home.md"),
         "profile": read_training_file("menu_profile.md"),
         "task": todo_list_training(),
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process.",
         "pipe_flow": "Workflow app is where you manage your workflows.",
         "starter_flow": "Starter Flow app is the template for new workflows.",
+        "mobile_chat": ""
     }
     # Add the endpoint training to the conversation history
     conversation_history = append_to_conversation(endpoint_training[endpoint], "system")
