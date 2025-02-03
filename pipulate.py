@@ -4096,8 +4096,8 @@ def create_nav_menu():
     nav_items = [
         create_filler_item(),
         create_profile_menu(selected_profile_id, selected_profile_name),
-        create_app_menu(menux),
-        create_search_input()
+        create_app_menu(menux)
+        # create_search_input()
     ]
 
     nav = Div(
