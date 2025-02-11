@@ -5609,7 +5609,8 @@ async def select_profile(request):
         logger.debug(f"Profile name: {profile_name}")
 
         # Prepare action details for logging
-        prompt = f"Tell me {limiter} that I switched to the '{profile_name}' profile."
+        # prompt = f"Tell me {limiter} that I switched to the '{profile_name}' profile."
+        prompt = f"You have switched to the '{profile_name}' profile."
         # Store the message in the db
         db["temp_message"] = prompt
         logger.debug(f"Stored temp_message in db: {db['temp_message']}")
