@@ -217,7 +217,7 @@
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
-            export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
             # Set up CUDA if available
@@ -246,7 +246,7 @@
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
-            export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
             # IMPORTANT: Do not remove or modify the runScript execution.
