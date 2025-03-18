@@ -358,6 +358,10 @@ Used for real-time, server-to-client updates:
 
 These communication channels ensure that your local LLM is continuously aware of user actions and application state, enabling a dynamic and interactive experience.
 
+For workflow users, it's like using Python Notebooks but without having to look at the Python code.
+
+For workflow developers, it's a rapid no-build environment that's fully observable (easy to debug) and reproducible (not tied to Mac, Linux, or Windows). It will also help you future-proof your skills by learning HTMX and local-AI.
+
 ## Key Design Guidelines & Speedbumps
 
 The documentation below outlines critical do’s and don’ts—speedbumps embedded throughout the app. They serve as reminders to keep the code simple and the state management robust.
