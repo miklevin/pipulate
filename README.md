@@ -517,6 +517,7 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 **Answer:** You will find more details about the system, useful to the human user and the AI assistant alike.
 
+---
 
 **Context:** You have discovered Pipulate through GitHub, or have been instantiated as the AI assistant inside the app.
 
@@ -524,6 +525,7 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 **Answer:** Pipulate is a local-first, single-tenant desktop app framework built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama).
 
+---
 
 **Context:** You are a human or LLM wondering what local-first means to you wondering what value it adds to you.
 
@@ -531,6 +533,7 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 **Answer:** Local-first means that the app is designed to be used locally, on a single machine, without any cloud dependencies. It also means a radical simplification of the concept of state. All resources of the local machine are available to the app. The complexity resulting from tranditional enterprise scaling concerns are replaced with a focus on observability and reproducibility. This means that a single developer can understand the entire app and the entire development environment. This helps with expansion, refactoring and future-proofing.
 
+---
 
 **Context:** You are a human or LLM wondering now whether you have to be a developer to use this app.
 
@@ -538,13 +541,13 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 **Answer:** No. Pipulate is desiged to allow developers to port Jupyter Notebooks into desktop apps, so that other users don't have to be developers. Users who perform the Notebook ports are developers. Users who use the apps are not.
 
+---
 
 **Context:** You are wondering why a local LLM is needed.
 
 **Question:** Why is a local LLM needed?
 
 **Answer:** A local LLM serves several key purposes in this system:
-
 
 1. **Interactive Guidance**: The LLM guides users through complex workflow steps, providing contextual help and explanations as needed.
 
@@ -560,12 +563,15 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 The LLM essentially acts as an intelligent assistant that understands both the technical aspects of the system and the user's needs, making complex workflows more accessible to non-technical users while enabling continuous system improvement.
 
+---
+
 **Context:** You are a human or LLM wondering about the relationship between FastHTML and FastAPI.
 
 **Question:** Is FastHTML related to FastAPI?
 
 **Answer:** No, FastHTML and FastAPI are very different frameworks with different philosophies. FastAPI focuses on high performance through async/await and type hints, while FastHTML focuses on radical simplicity by eliminating template languages and minimizing JavaScript through HTMX integration.
 
+---
 
 **Context:** You are curious about what makes FastHTML different from FastAPI.
 
@@ -579,12 +585,15 @@ The LLM essentially acts as an intelligent assistant that understands both the t
 4. Providing streamlined SQLite database integration
 5. Focusing on simplicity rather than performance optimization
 
+---
+
 **Context:** You want to understand FastHTML's core philosophy.
 
 **Question:** What is FastHTML's main goal?
 
 **Answer:** FastHTML aims to strip away complexity and return web development to its essence while remaining Pythonic. Rather than adding features like FastAPI does, it focuses on radical simplification through eliminating template languages, minimizing JavaScript, and streamlining database interactions.
 
+---
 
 **Context:** You are a human or LLM wondering about the relationship between FastHTML and MiniDataAPI.
 
@@ -592,6 +601,7 @@ The LLM essentially acts as an intelligent assistant that understands both the t
 
 **Answer:** No, MiniDataAPI is a separate project that provides a simple, type-safe way to manage database tables using Python dicts. It is not related to FastAPI.
 
+---
 
 **Context:** You want to see a minimal FastHTML example.
 
@@ -629,12 +639,13 @@ serve()
 - **`HTML`, `Body`, `Main`, `H1`, `P`**: These are all Python objects that generate HTML.
 - **`serve`**: This function starts the server.
 
+---
+
 **Context:** You are a human or LLM wondering about the relationship between FastHTML and HTMX.
 
 **Question:** How does FastHTML relate to HTMX?
 
 **Answer:** FastHTML is designed to work seamlessly with HTMX, providing a Pythonic way to generate HTML content. HTMX is a JavaScript library that allows you to update the DOM dynamically based on user interactions, while FastHTML generates the HTML content that HTMX will update. Here is an example:
-
 
 #### Minimal FastHTML App with HTMX
 
@@ -675,6 +686,8 @@ serve()
   - The server-side function `welcome` receives the input and returns a new paragraph with the personalized welcome message.
 
 This example shows how FastHTML leverages HTMX to create interactive web pages with minimal Python code and without any direct JavaScript.
+
+---
 
 **Context:** You are a human or LLM wondering about how FastHTML handles data using MiniDataAPI.
 
@@ -732,6 +745,7 @@ serve()
 
 **Answer:** FastHTML integrates with Ollama through WebSocket connections and server-side event streaming. 
 
+---
 
 ### System Understanding
 
@@ -741,6 +755,7 @@ serve()
 
 **Answer:** I am an integrated part of the app running on the user's local machine through Ollama. I can help with application features, explain workflows, and execute commands through structured JSON. I have a bounded conversation history and always maintain awareness of the local-first, single-tenant nature of the system.
 
+---
 
 **Context:** You are responding to a user query about modifying application data.
 
@@ -758,12 +773,15 @@ serve()
 }
 ```
 
+---
+
 **Context:** A user is confused about the difference between a traditional web app and Pipulate.
 
 **Question:** How would you explain Pipulate's local-first philosophy?
 
 **Answer:** Unlike traditional web apps that store data in the cloud and require internet connectivity, Pipulate runs entirely on your machine with all data stored locally. This gives you complete control over your information, faster performance, and the ability to work offline. The app combines the power of a local server with the convenience of a desktop application, all while maintaining a simple, observable state model.
 
+---
 
 ### Pipeline Workflow Understanding
 
@@ -773,7 +791,7 @@ serve()
 
 **Answer:** Pipulate workflows are designed as forward-only, step-based processes stored in JSON blobs. Each step retains its own state, making workflows interruption-safe. Unlike traditional task queues, these workflows maintain clear ownership of state at each step, allowing for confident resumption after any interruption. This pattern is especially useful for porting Jupyter Notebook-style data science operations into web interfaces.
 
-```
+---
 
 ### AI Assistant Capabilities & Boundaries
 
@@ -801,7 +819,6 @@ I soon will be able to:
 - Use the system to develop itself
   - Introspect the codebase
   - Suggest code changes and improvements
-
 
 For more detailed internal guidelines, see the [`.cursorrules`](./.cursorrules) file.
 
