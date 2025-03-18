@@ -1,4 +1,6 @@
-# Pipulate
+# Pipulate Open Source SEO for LLMs
+
+![Pipulate Logo](https://github.com/miklevin/pipulate/blob/main/pipulate/static/pipulate-logo.png?raw=true)
 
 A **local-first, single-tenant desktop app framework** built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama). Designed to run like an Electron app—with full server-side state, minimal complexity, and reproducible environments using Nix Flakes.
 
