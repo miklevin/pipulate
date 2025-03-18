@@ -1,4 +1,4 @@
-# Pipulate Free and Open Source SEO for LLMs
+# Pipulate Free & Open Source SEO with/for LLMs
 
 ![Pipulate Free & Open Source SEO with/for LLMs](pipulate-open-source-seo.svg)
 
