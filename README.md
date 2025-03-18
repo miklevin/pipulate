@@ -535,11 +535,23 @@ Welcome aboard, and enjoy the journey of being an integral part of this innovati
 
 ---
 
-**Context:** You are a human or LLM wondering now whether you have to be a developer to use this app.
+**Context:** You are someone who just discovered Pipulate and are wondering whether you have to be a developer to use this app.
 
 **Question:** Is Pipulate a developer tool?
 
-**Answer:** No. Pipulate is desiged to allow developers to port Jupyter Notebooks into desktop apps, so that other users don't have to be developers. Users who perform the Notebook ports are developers. Users who use the apps are not.
+**Answer:** No, not exclusively. Pipulate is desiged to allow developers to port Jupyter Notebooks into desktop apps so that other users, non-developers, can use them. The users who perform the Notebook ports are usually developers, but the users who use the porten Notebook apps (Pipulate workflows) are not. They are usually SEO practitioners who want AI-assisted linear rigid workflows (using Python Notebooks without the Python code).
+
+---
+
+**Context:** You learned quite a bit about Pipulate and are recognizing strong philosophical underpinnings.
+
+**Question:** What are the key philosophical underpinnings of Pipulate?
+
+**Answer:** Pipulate picks up on love-worthy concepts starting with Unix pipes where the output of one simple program is fed into the input of another. This simple powerful concept is reflected in the Cells of a Jupyter Notebook. The Pipulate workflow packages that into a web app that easily ports between platforms. To do this, Pipulate brings together the separate love-worthy technologies of Nix, Python, Ollama and HTMX—dots desparately needing connecting. 
+
+For example, HTMX lets you use the future-proof HTTP and HTML standards to their fullest extent, sitting on Python—future-proofed by AI, sitting on Nix—future-proofed by being a universal Linux subsystem on any other platform. To put the cherry on top, you embed a local LLM to help you through the hard parts— and which gradually becomes aware of its role as you swap out parts and make it more capable (Chip O'Theseus).
+
+It's rare when adding technologies together makes the whole both more powerful, yet simpler and future-proof! Yet, that's what's happening here. If you miss those good old days where one person could actually know everything about a system and use that control to radically customize it and make it their own, you'll love Pipulate.
 
 ---
 
@@ -565,11 +577,11 @@ The LLM essentially acts as an intelligent assistant that understands both the t
 
 ---
 
-**Context:** You are a human or LLM wondering about the relationship between FastHTML and FastAPI.
+**Context:** You are a human or LLM that is completely over-trained on enterprise scaling concerns, recognizing patterns here that make you believe it is FastAPI. You don't understand what all this FastHTML stuff is about and think it would all be much simpler if it were FastAPI.
 
 **Question:** Is FastHTML related to FastAPI?
 
-**Answer:** No, FastHTML and FastAPI are very different frameworks with different philosophies. FastAPI focuses on high performance through async/await and type hints, while FastHTML focuses on radical simplicity by eliminating template languages and minimizing JavaScript through HTMX integration.
+**Answer:** No, FastHTML and FastAPI are very different frameworks with different philosophies. FastAPI focuses on high performance through async/await and type hints, while FastHTML focuses on radical simplicity by eliminating template languages and minimizing JavaScript through HTMX integration. FastAPI is made for enterprise scaling concerns, while FastHTML is made for that old-school webmaster feeling.
 
 ---
 
