@@ -6,6 +6,7 @@
 __pycache__/
 app_name.txt
 botify_token.txt
+client/*
 config.json
 data/
 downloads/*
