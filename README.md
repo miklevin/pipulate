@@ -41,17 +41,17 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
 ## Key Features
 
 - **Local-First & Single-Tenant:**
-  One user, one instance, with all state managed server-side using a simple DictLikeDB and JSON blobs. Full access to the local hardware for free scraping and processing - only the cost of bandwidth and electricity. Dramatic simplification from Enterprise scaling, multi-tenant complexity.
+  One user, one instance, with all state managed server-side using a simple DictLikeDB and JSON blobs. Full access to the local hardware for free scraping and processing—have AI workflows running 24/7 for only the cost of electricity and the home bandwidth you already pay for anyway. Dramatic simplification from Enterprise scaling, multi-tenant complexity. True secret weapon for those who can grok it.
 
-          ┌───────────────────────────────┐
+          ┌───────────────────────────────┐ # What's so special about this?
           │          Web Browser          │
           │                               │ - No mysterious state
           │    ┌────────────────────┐     │ - No full-stack framework churn
           │    │   Server Console   │     │ - No complex ORM or SQL
           │    │     & Web Logs     │     │ - No message queues
           │    └─────────┬──────────┘     │ - No build step
-          │              ▼                │
-          │    ┌─────────────────────┐    │
+          │              ▼                │ - That old-school webmaster feeling
+          │    ┌─────────────────────┐    │   but with a new future-proof tool stack.
           │    │  Server-Side State  │    │ 
           │    │  DictLikeDB + JSON  │ ◄─── server-side cookies!
           │    └─────────────────────┘    │ - Watch state change (fully observable)
