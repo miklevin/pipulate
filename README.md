@@ -72,13 +72,13 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
 
 - **Pipeline Workflows:**  
   Multi-step workflows stored as JSON blobs that follow a clear, forward-only state flow with built-in reversion.
-
-    ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable
-    │ Step 01 │─piped─►│ Step 02 │─piped─►│ Step 03 │   - Fully resumable
-    └─────────┘        └─────────┘        └─────────┘   - Ports well from Notebooks
-         │                  │                  │        - One record per workflow
-         ▼                  ▼                  ▼        - Produces good training data
-      Recorded           Recorded           Finalize
+  
+      ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable
+      │ Step 01 │─piped─►│ Step 02 │─piped─►│ Step 03 │   - Fully resumable
+      └─────────┘        └─────────┘        └─────────┘   - Ports well from Notebooks
+           │                  │                  │        - One record per workflow
+           ▼                  ▼                  ▼        - Produces good training data
+        Recorded           Recorded           Finalize
 
 - **LLM Integration:**
   Integrated with a local Ollama server for free, streaming LLM support with bounded conversation history.
