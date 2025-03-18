@@ -43,15 +43,15 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
 - **Server-Rendered UI:**  
   Entire interface built from DIVs updated via HTMX, with SSE and WebSockets for real-time interactions.
 
-                      HTMX+Python makes Python world-class
-                     front-end Web Development environment.
-                           ┌─────────────────────┐
-                           │    Navigation Bar   │  - No template language (like Jinja2)
-                           ├─────────┬───────────┤  - HTML elements are Python functions
-    Simple Python back-end │  Main   │   Chat    │  - No JavaScript programming
-    HTMX "paints" into DOM │  Area   │ Interface │  - No Redux, JSX, virtual DOM
-    with no page-reload─────►        │           │  - No bloated frameworks
-                           └─────────┴───────────┘
+                        HTMX+Python makes Python world-class
+                       front-end Web Development environment.
+                             ┌─────────────────────┐
+                             │    Navigation Bar   │  - No template language (like Jinja2)
+                             ├─────────┬───────────┤  - HTML elements are Python functions
+      Simple Python back-end │  Main   │   Chat    │  - No JavaScript programming
+      HTMX "paints" into DOM │  Area   │ Interface │  - No Redux, JSX, virtual DOM
+      with no page-reload─────►        │           │  - No bloated frameworks
+                             └─────────┴───────────┘
 
 - **Pipeline Workflows:**  
   Multi-step workflows stored as JSON blobs that follow a clear, forward-only state flow with built-in reversion.
@@ -106,19 +106,19 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
 - **Integrated Data Science Environment:**  
   Jupyter Notebooks and FastHTML server run side-by-side for seamless development workflow.
 
-    ┌──────────────────┐    ┌──────────────────┐
-    │   Jupyter Lab    │    │    FastHTML      │
-    │   Notebooks      │    │     Server       │
-    │ ┌──────────┐     │    │  ┌──────────┐    │
-    │ │ Cell 1   │     │    │  │ Step 1   │    │
-    │ │          │     │--->│  │          │    │
-    │ └──────────┘     │    │  └──────────┘    │
-    │ ┌──────────┐     │    │  ┌──────────┐    │
-    │ │ Cell 2   │     │    │  │ Step 2   │    │
-    │ │          │     │--->│  │          │    │
-    │ └──────────┘     │    │  └──────────┘    │
-    │  localhost:8888  │    │  localhost:5001  │
-    └──────────────────┘    └──────────────────┘
+      ┌──────────────────┐    ┌──────────────────┐
+      │   Jupyter Lab    │    │    FastHTML      │
+      │   Notebooks      │    │     Server       │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 1   │     │    │  │ Step 1   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 2   │     │    │  │ Step 2   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │  localhost:8888  │    │  localhost:5001  │
+      └──────────────────┘    └──────────────────┘
 
 ---
 
@@ -337,7 +337,6 @@ Used for real-time, server-to-client updates:
       ▲                           │
       └───────────────────────────┘
 
-```
 
 These communication channels ensure that your local LLM is continuously aware of user actions and application state, enabling a dynamic and interactive experience.
 
