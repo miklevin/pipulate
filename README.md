@@ -761,7 +761,7 @@ You can see that the unconventional pattern of unpacking multiple objects from t
 - `users` is the database table object allowing you to insert, update, and delete data.
 - `User` is the dataclass, also very similar to a namedtuple, or the template for a single database row or record. This helps you with type safety, form validation, and more.
 
-To help wrap your mind around this, here is the full `fast_app` call currently in the `server.py` file:
+To help wrap your mind around FastHTML database objects, here is the full `fast_app` call currently in the `server.py` file:
 
 ```python
 app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
@@ -814,7 +814,13 @@ app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline
 )
 ```
 
-This adds new meaning to the expression ***there's so much to unpack here***. What gets returned on the `fast_app` call is literally a list of objects, which by being set to individual "receiving variables" on the left side of the assignment, we are using the feature of Python called ***tuple unpacking***. It's a case of multiple assignment. And if you're like me, trying to truly understand and take advantage of this, you would be well served by examining the [`fast_app` signature](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py)) directly.
+This adds new meaning to the expression ***there's so much to unpack here***. What gets returned on the `fast_app` call is literally a list of objects, which by being set to individual "receiving variables" on the left side of the assignment, we are using the feature of Python called ***tuple unpacking***. It's a case of multiple assignment.
+
+This alone is a bit hard to grok, but the fact that [FastHTML database objects are returned in pairs](https://mikelev.in/futureproof/unpacking-fasthtml-databases/) in an order and with a naming convention related to how their database table schemas are defined on a parameter call is a bit mind-blowing. But once understood, little details like this can make all the difference.
+
+And if you're like me, trying to truly understand and take advantage of this, you would be well served by examining the [`fast_app` signature](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py)) directly.
+
+
 
 ---
 
