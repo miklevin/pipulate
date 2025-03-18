@@ -288,11 +288,33 @@ The app’s UI is divided into clear, distinct regions:
 
 The hierarchical structure is built as follows:
 
-- **Home:** Bootstraps the outer container.
-  - **Navigation Group:** Sets up the navigation menu with filler items, profile, app and workflow menus.
-  - **Grid Left:** Contains the notebook interface that renders multiple notebook cells.
-  - **Chat Interface:** Provides a chat input group for LLM conversation.
-  - **Poke Button:** Triggers specific actions.
+    home
+    |
+    +-- create_outer_container
+        |
+        +-- create_nav_group
+        |   |
+        |   +-- create_nav_menu
+        |       |
+        |       +-- create_profile_menu
+        |       +-- create_app_menu
+        |
+        +-- create_grid_left
+            |
+            +-- create_notebook_interface
+                |
+                +-- render_notebook_cells()
+                    |
+                    +-- render_notebook_cell(step_01)
+                    +-- render_notebook_cell(step_02)
+                    +-- render_notebook_cell(step_03)
+                    +-- ...
+        |
+        +-- create_chat_interface
+            |
+            +-- mk_chat_input_group
+        |
+        +-- create_poke_button
 
 ### Communication Channels
 
@@ -302,10 +324,9 @@ The app relies on two primary communication methods to synchronize the front end
 Used for real-time, bidirectional streaming:
 
     ┌─────────┐   ws://     ┌──────────┐
-    │ Browser │ ═══════════ │ FastHTML │  
-    │         │             │          │  - Streams 2-way communication for LLM Chat  
-    │         │             │          │  - Monitors JSON instructions from LLM  
-    └─────────┘             └──────────┘
+    │ Browser │ ═══════════ │ FastHTML │ - Streams 2-way communication for LLM Chat
+    │         │ ═══════════ │          │ - Monitored for JSON instructions from LLM
+    └─────────┘  bi-direct  └──────────┘
 
 #### Server-Sent Events (SSE)
 Used for real-time, server-to-client updates:
