@@ -186,7 +186,7 @@ Once Nix is installed, getting started with Pipulate is simple:
 
    Your default browser will open at [http://localhost:5001](http://localhost:5001).
 
-4. **Launch Jupyter Notebook:**
+4. **Optional: Launch Jupyter Notebook:**
 
    To work with the integrated data science environment, use:
 
@@ -201,6 +201,8 @@ Once Nix is installed, getting started with Pipulate is simple:
 ---
 
 ## Architecture Overview
+
+Pipulate is not your typical web app. This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability.
 
              ┌────────────────────────────────────────────────────┐
              │                    Web Browser                     │
@@ -231,21 +233,18 @@ Once Nix is installed, getting started with Pipulate is simple:
 
 ### File Structure
 
-Not all the files are present yet. This serves as a roadmap.
+Designed to be ultimately simple. No directory-diving! Most things remain static in this app, except for the workflows where you can copy/paste `starter_flow.py` into a new file and start building out your own workflows (often porting Jupyter Notebooks into web apps). It's a dynamically adapting plugin architecture.
 
 ```plaintext
     .
     ├── apps
     │   ├── profiles_app.py
-    │   ├── todo_app.py
-    │   └── template_app.py
+    │   └── todo_app.py
     ├── data
     │   └── data.db
-    ├── favicon.ico
-    ├── flake.nix
-    ├── flake.lock
+    ├── flake.nix  # Makes app work on macOS, Linux, and Windows via WSL
     ├── logs
-    │   └── server.log
+    │   └── server.log  # Can be fed to an LLM to debug issues
     ├── README.md
     ├── requirements.txt
     ├── server.py
@@ -258,14 +257,11 @@ Not all the files are present yet. This serves as a roadmap.
     │   ├── surreal.js
     │   └── ws.js
     ├── training
-    │   ├── todo_app.md
-    │   ├── introduction_page.md
-    │   └── linkgraph_flow.md
+    │   ├── introduction.md
+    │   ├── starter_flow.md
+    │   └── system_prompt.md
     └── workflows
-        ├── bridge_flow.py
-        ├── crawler_flow.py
-        ├── linkgraph_flow.py
-        ├── madlibs_flow.py
+        ├── pipe_flow.py
         └── starter_flow.py
 ```
 
