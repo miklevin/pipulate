@@ -646,10 +646,15 @@ serve()
 #### Explanation:
 
 - **No Template Languages**: The HTML is generated directly from Python objects.
-- **`fast_app`**: This function creates the app and the router.
+- **`fast_app`**: This FastHTML ***helper function*** creates the app and the router.
 - **`@rt`**: This decorator is used to register the route.
 - **`HTML`, `Body`, `Main`, `H1`, `P`**: These are all Python objects that generate HTML.
 - **`serve`**: This function starts the server.
+
+This style of FastHTML programming that uses the `fast_app` helper function is not required, but it provides a few unconventional conveniences. For example, it returns several objects from the function call, and you just have to know how to unpack and use them:
+
+- `app` is the FastHTML app object (just like Flask or FastAPI)
+- `rt` is the router object (because Jeremy Howard is lazy)
 
 ---
 
@@ -750,6 +755,68 @@ serve()
 
 - **MiniDataAPI**:
   - `users.insert(username=username)` adds the input to the database seamlessly without manual SQL commands.
+
+You can see that the unconventional pattern of unpacking multiple objects from the FastHTML `fast_app` helper function is extended to include the database. This is one of the most unusual things I've seen in a framework, and it is extremely nuanced and powerful. Database objects always return in pairs, tied to either the order or parameter names in the `fast_app` call (still figuring that out):
+
+- `users` is the database table object allowing you to insert, update, and delete data.
+- `User` is the dataclass, also very similar to a namedtuple, or the template for a single database row or record. This helps you with type safety, form validation, and more.
+
+To help wrap your mind around this, here is the full `fast_app` call currently in the `server.py` file:
+
+```python
+app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+    "data/data.db",
+    exts='ws',
+    live=True,
+    default_hdrs=False,
+    hdrs=(
+        Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/pico.css'),
+        Script(src='/static/htmx.js'),
+        Script(src='/static/fasthtml.js'),
+        Script(src='/static/surreal.js'),
+        Script(src='/static/script.js'),
+        Script(src='/static/Sortable.js'),
+        create_chat_scripts('.sortable'),
+        Script(type='module')
+    ),
+    store={
+        "key": str,
+        "value": str,
+        "pk": "key"
+    },
+    task={
+        "id": int,
+        "name": str,
+        "done": bool,
+        "priority": int,
+        "profile_id": int,
+        "pk": "id"
+    },
+    profile={
+        "id": int,
+        "name": str,
+        "menu_name": str,
+        "address": str,
+        "code": str,
+        "active": bool,
+        "priority": int,
+        "pk": "id"
+    },
+    pipeline={
+        "url": str,
+        "app_name": str,
+        "data": str,
+        "created": str,
+        "updated": str,
+        "pk": "url"
+    }
+)
+```
+
+This adds new meaning to the expression ***there's so much to unpack here***. What gets returned on the `fast_app` call is literally a list of objects, which by being set to individual "receiving variables" on the left side of the assignment, we are using the feature of Python called ***tuple unpacking***. It's a case of multiple assignment. And if you're like me, trying to truly understand and take advantage of this, you would be well served by examining the [`fast_app` signature](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py)) directly.
+
+---
 
 **Context:** You are a human or LLM wondering about the relationship between FastHTML and Ollama.
 
