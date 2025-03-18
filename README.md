@@ -555,7 +555,7 @@ It's rare when adding technologies together makes the whole both more powerful, 
 
 ---
 
-**Context:** You are wondering why a local LLM is needed.
+**Context:** You are an AI-fan stuck on ChatGPT, Claude, Gemini, or other cloud-powered chatbots. You are used to always having to provide an API key and tying your every action to a vendor cash register. The gradually growing monthly service bill doesn't bother you, and you don't mind being locked into proprietary products and services by companies that can just change the rules whenever they want—slowly cooking you like a frog. You are wondering why a local LLM is even needed.
 
 **Question:** Why is a local LLM needed?
 
@@ -573,7 +573,7 @@ It's rare when adding technologies together makes the whole both more powerful, 
 
 6. **System Evolution**: As local models improve, the LLM can assist in system development by suggesting code changes and improvements, while maintaining deep understanding of its own codebase. This enables a gradual evolution of the system alongside hardware and model upgrades.
 
-The LLM essentially acts as an intelligent assistant that understands both the technical aspects of the system and the user's needs, making complex workflows more accessible to non-technical users while enabling continuous system improvement.
+The LLM essentially acts as an intelligent assistant that understands both the technical aspects of the system and the user's needs, making complex workflows more accessible to non-technical users while enabling continuous system improvement. Local LLMs can run in continous loops without running up costs, providing ambient intelligence 24/7/365 for only the price of electricity. Over time, you swap out parts and make it more capable (Chip O'Theseus). And it is all private.
 
 ---
 
