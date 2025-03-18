@@ -1,0 +1,66 @@
+# .cursorrules – Local-First Minimalist FastHTML/MiniDataAPI Guidelines
+
+## Core Philosophy
+1. **Local-First, Single-Tenant Only:**  
+   This code is a stripped-down, single-user, local app—more like an Electron app than an enterprise system. All state is observable server-side through DictLikeDB and JSON blobs.
+
+2. **Server-Side State Only:**  
+   No client-side state management (React, Redux) or ORM complexity. Everything lives server-side in a simple, observable data store.
+
+3. **Everything is a DIV:**  
+   UI is built entirely from DIVs with HTMX for dynamic updates. No templating engines, component libraries, or client-heavy frameworks.
+
+4. **Pipeline Workflow Pattern:**  
+   Workflows are linear JSON blobs with self-contained steps. State flows forward only, with each step's output feeding the next. Perfect for porting from Jupyter Notebooks.
+
+5. **Local LLM Integration:**  
+   Integrated with Ollama for local, streaming LLM support. Bounded conversation history (128k tokens) with real-time response parsing and tool calling.
+
+## What to Avoid
+- **Enterprise/Multi-Tenant Architectures:**  
+  No multi-tenancy, ORMs, or heavy abstractions that break the local-first simplicity.
+  
+- **Over-Engineering:**  
+  Avoid unnecessary abstractions that undermine intentional minimalism.
+  
+- **Client-Side Frameworks:**  
+  No React, Angular, or similar. UI remains server-generated with HTMX updates.
+
+## Specific Patterns
+1. **State Management:**  
+   - *Do:* Use DictLikeDB + JSON for transparent, observable state
+   - *Don't:* Add session management or distributed state
+
+2. **UI Construction:**  
+   - *Do:* Server-side HTML generation with HTMX updates
+   - *Don't:* Add build steps or client-side frameworks
+
+3. **Workflow Pipelines:**  
+   - *Do:* Linear, forward-only state flow in JSON blobs
+   - *Don't:* Add virtual state or backtracking
+
+4. **LLM Integration:**  
+   - *Do:* Local Ollama with bounded history and streaming
+   - *Don't:* Add distributed chat or complex memory systems
+
+5. **Development Environment:**  
+   - *Do:* Use Nix Flakes for reproducible builds
+   - *Don't:* Add environment-specific dependencies
+
+## AI Assistant Integration
+- Ollama provides local, streaming LLM support
+- JSON command structures for AI operations
+- Bounded conversation history (128k tokens)
+- Real-time response parsing and tool calling
+- Training data generated from workflow pipelines
+
+## SSE & WebSocket Patterns
+- Server-Sent Events for real-time updates
+- WebSockets for bi-directional communication
+- No build step development workflow
+- HTMX handles all DOM updates
+
+## Final Reminder
+Every design choice prioritizes local control, observability, and radical simplicity. The power comes from combining local LLMs, server-side state, and modern UI patterns into a cohesive, reproducible development environment.
+
+---

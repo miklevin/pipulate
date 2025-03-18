@@ -46,20 +46,19 @@
         # Common packages that we want available in our environment
         # regardless of the operating system
         commonPackages = with pkgs; [
-          python311                  # Python 3.11 interpreter
-          python311.pkgs.pip         # Package installer for Python
-          python311.pkgs.virtualenv  # Tool to create isolated Python environments
-          figlet                     # For creating ASCII art welcome messages
-          tmux                       # Terminal multiplexer for managing sessions
-          zlib                       # Compression library for data compression
-          git                        # Version control system for tracking changes
-          curl                       # Command-line tool for transferring data with URLs
-          wget                       # Utility for non-interactive download of files from the web
-          cmake                      # Cross-platform build system generator
-          htop                       # Interactive process viewer for Unix systems
+          python3Full                  # Python 3.x interpreter (highest stable?)
+          figlet                       # For creating ASCII art welcome messages
+          tmux                         # Terminal multiplexer for managing sessions
+          zlib                         # Compression library for data compression
+          git                          # Version control system for tracking changes
+          curl                         # Command-line tool for transferring data with URLs
+          wget                         # Utility for non-interactive download of files from the web
+          cmake                        # Cross-platform build system generator
+          htop                         # Interactive process viewer for Unix systems
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
-          gcc                        # GNU Compiler Collection for compiling C/C++ code
-          stdenv.cc.cc.lib           # Standard C library for Linux systems
+          virtualenv
+          gcc                          # GNU Compiler Collection for compiling C/C++ code
+          stdenv.cc.cc.lib             # Standard C library for Linux systems
         ]);
 
         # This script sets up our Python environment and project
@@ -70,20 +69,29 @@
           source .venv/bin/activate
 
           # Create a fancy welcome message
-          REPO_NAME=$(basename "$PWD")
-          PROPER_REPO_NAME=$(echo "$REPO_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
-          figlet "$PROPER_REPO_NAME"
-          echo "Welcome to the $PROPER_REPO_NAME development environment on ${system}!"
+          if [ ! -f app_name.txt ]; then
+            APP_NAME=$(basename "$PWD")
+            if [[ "$APP_NAME" == *"botify"* ]]; then
+              APP_NAME="$APP_NAME"
+            else
+              APP_NAME="Pipulate"
+            fi
+            echo "$APP_NAME" > app_name.txt
+          fi
+          APP_NAME=$(cat app_name.txt)
+          PROPER_APP_NAME=$(echo "$APP_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+          figlet "$PROPER_APP_NAME"
+          echo "Welcome to the $PROPER_APP_NAME development environment on ${system}!"
           echo 
 
           # Install Python packages from requirements.txt
           # This allows flexibility to use the latest PyPI packages
           # Note: This makes the environment less deterministic
-          echo "- Pipulating pip packages..."
+          echo "- Confirming pip packages..."
           if pip install --upgrade pip --quiet && \
             pip install -r requirements.txt --quiet; then
               package_count=$(pip list --format=freeze | wc -l)
-              echo "- Done. $package_count pip packages installed."
+              echo "- Done. $package_count pip packages present."
           else
               echo "Warning: An error occurred during pip setup."
           fi
@@ -95,6 +103,7 @@
             echo "To start JupyterLab, type: start"
             echo "To stop JupyterLab, type: stop"
             echo
+            echo "To start the $APP_NAME server, type: python server.py"
           else
             echo "Error: numpy could not be imported. Check your installation."
           fi
@@ -127,11 +136,11 @@
           buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
           shellHook = ''
             # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python311}/bin/python -m venv .venv
+            test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
-            export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
             # Set up CUDA if available
@@ -154,11 +163,11 @@
           buildInputs = commonPackages;
           shellHook = ''
             # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python311}/bin/python -m venv .venv
+            test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
             export VIRTUAL_ENV="$(pwd)/.venv"
             export PATH="$VIRTUAL_ENV/bin:$PATH"
             # Customize the prompt to show we're in a Nix environment
-            export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
+            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
             # Run our setup script

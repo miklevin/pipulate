@@ -1,0 +1,19 @@
+[tool.vulture]
+ignore_decorators = ["@rt", "@app.post"]
+ignore_names = [
+    "Pipeline", 
+    "Profile", 
+    "Task", 
+    "finalize", 
+    "finalize_submit",
+    "home_route",
+    "on_modified",
+    "dispatch",
+    "initialize_if_missing",
+    "format_step_name",
+    "fmt",
+    "revert_control",
+    "wrap_with_inline_button",
+    "get_state_message",
+    "clear_steps_from",
+    ]
