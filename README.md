@@ -21,6 +21,23 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
     │    └───────────┘     └────────────┘   │
     └───────────────────────────────────────┘
 
+- **Integrated Data Science Environment:**  
+  Jupyter Notebooks and FastHTML server run side-by-side for seamless development workflow. Develop workflows in the notebook and port it over to the FastHTML server so your users don't have to see the Python code. Flexible `pip install` (or `uv`) for Data Science ad hoc dependencies. `.venv` shared between notebook and server. Also works well with AI code editors like Cursor, Windsurf and Cline.
+
+      ┌──────────────────┐    ┌──────────────────┐
+      │   Jupyter Lab    │    │    FastHTML      │
+      │   Notebooks      │    │     Server       │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 1   │     │    │  │ Step 1   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 2   │     │    │  │ Step 2   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │  localhost:8888  │    │  localhost:5001  │
+      └──────────────────┘    └──────────────────┘
+
 ## Key Features
 
 - **Local-First & Single-Tenant:**
@@ -102,23 +119,6 @@ A **local-first, single-tenant desktop app framework** built with FastHTML, Mini
                    │   CUDA Support   │ - Auto-detects GPU
                    │   (if present)   │ - Falls back gracefully
                    └──────────────────┘
-
-- **Integrated Data Science Environment:**  
-  Jupyter Notebooks and FastHTML server run side-by-side for seamless development workflow.
-
-      ┌──────────────────┐    ┌──────────────────┐
-      │   Jupyter Lab    │    │    FastHTML      │
-      │   Notebooks      │    │     Server       │
-      │ ┌──────────┐     │    │  ┌──────────┐    │
-      │ │ Cell 1   │     │    │  │ Step 1   │    │
-      │ │          │     │--->│  │          │    │
-      │ └──────────┘     │    │  └──────────┘    │
-      │ ┌──────────┐     │    │  ┌──────────┐    │
-      │ │ Cell 2   │     │    │  │ Step 2   │    │
-      │ │          │     │--->│  │          │    │
-      │ └──────────┘     │    │  └──────────┘    │
-      │  localhost:8888  │    │  localhost:5001  │
-      └──────────────────┘    └──────────────────┘
 
 ---
 
@@ -237,7 +237,8 @@ Designed to be ultimately simple. No directory-diving! Most things remain static
 
 ```plaintext
     .
-    ├── apps
+    ├── .venv
+    ├── apps  # Rails-like CRUD apps (not broken out yet)
     │   ├── profiles_app.py
     │   └── todo_app.py
     ├── data
@@ -247,7 +248,7 @@ Designed to be ultimately simple. No directory-diving! Most things remain static
     │   └── server.log  # Can be fed to an LLM to debug issues
     ├── README.md
     ├── requirements.txt
-    ├── server.py
+    ├── server.py  # The main server file
     ├── static
     │   ├── fasthtml.js
     │   ├── htmx.js
@@ -257,12 +258,12 @@ Designed to be ultimately simple. No directory-diving! Most things remain static
     │   ├── surreal.js
     │   └── ws.js
     ├── training
-    │   ├── introduction.md
+    │   ├── introduction.md  # Learn about just-in-time training
     │   ├── starter_flow.md
     │   └── system_prompt.md
     └── workflows
         ├── pipe_flow.py
-        └── starter_flow.py
+        └── starter_flow.py  # The copy/paste template for new workflows
 ```
 
 ### Layout & User Interface
