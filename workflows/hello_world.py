@@ -70,7 +70,7 @@ class HelloFlow:
 
     # --- Core Workflow Methods (the cells) ---
 
-    async def validate_step(self, step_id: str, value: str) -> tuple:
+    def validate_step(self, step_id: str, value: str) -> tuple[bool, str]:
         # Default validation: always valid.
         return True, ""
 
@@ -117,7 +117,7 @@ class HelloFlow:
                 Form(
                     self.pipulate.wrap_with_inline_button(
                         Input(type="text", name="pipeline_id", placeholder="🗝 Old or existing ID here", required=True, autofocus=True, list="pipeline-ids"),
-                        button_label=f"Start {self.app_name.title()} 🔑",
+                        button_label=f"Start {self.DISPLAY_NAME} 🔑",
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
@@ -221,11 +221,7 @@ class HelloFlow:
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
-            # Special case for step 1: always repopulate with the previously submitted value if it exists.
-            if step_id == 'step_01':
-                display_value = user_val if user_val else ""
-            else:
-                display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
                 
             await self.pipulate.simulated_stream(self.STEP_MESSAGES[step_id]["input"])
             return Div(
@@ -248,7 +244,6 @@ class HelloFlow:
         step_index = self.steps[step_id]
         step = self.STEPS[step_index]
         pipeline_id = self.db.get("pipeline_id", "unknown")
-        
         if step.done == 'finalized':
             state = self.pipulate.read_state(pipeline_id)
             state[step_id] = {step.done: True}
@@ -260,7 +255,7 @@ class HelloFlow:
         
         form = await request.form()
         user_val = form.get(step.done, "")
-        is_valid, error_msg = await self.validate_step(step_id, user_val)
+        is_valid, error_msg = self.validate_step(step_id, user_val)
         if not is_valid:
             return P(error_msg, style="color: red;")
         
@@ -294,19 +289,43 @@ class HelloFlow:
             placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
         return placeholders
 
+    async def delayed_greeting(self):
+        await asyncio.sleep(2)
+        await self.pipulate.simulated_stream("Enter an ID to begin.")
+
+    # --- Finalization & Unfinalization ---
     async def finalize(self, request):
         pipeline_id = self.db.get("pipeline_id", "unknown")
-        
-        # Check if all steps are complete
-        state = self.pipulate.read_state(pipeline_id)
-        non_finalize_steps = self.STEPS[:-1]
-        all_steps_complete = all(
-            self.pipulate.get_step_data(pipeline_id, step.id, {}).get(step.done)
-            for step in non_finalize_steps
-        )
-        logger.debug(f"All steps complete: {all_steps_complete}")
+        finalize_step = self.STEPS[-1]
+        finalize_data = self.pipulate.get_step_data(pipeline_id, finalize_step.id, {})
+        logger.debug(f"Pipeline ID: {pipeline_id}")
+        logger.debug(f"Finalize step: {finalize_step}")
+        logger.debug(f"Finalize data: {finalize_data}")
         
         if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                logger.debug("Pipeline is already finalized")
+                return Card(
+                    H3("All Cards Complete"),
+                    P("Pipeline is finalized. Use Unfinalize to make changes."),
+                    Form(
+                        Button("Unfinalize", type="submit", style="background-color: #f66;"),
+                        hx_post=f"/{self.app_name}/unfinalize",
+                        hx_target=f"#{self.app_name}-container",
+                        hx_swap="outerHTML"
+                    ),
+                    style="color: green;",
+                    id=finalize_step.id
+                )
+            
+            # Check if all previous steps are complete
+            non_finalize_steps = self.STEPS[:-1]
+            all_steps_complete = all(
+                self.pipulate.get_step_data(pipeline_id, step.id, {}).get(step.done)
+                for step in non_finalize_steps
+            )
+            logger.debug(f"All steps complete: {all_steps_complete}")
+            
             if all_steps_complete:
                 return Card(
                     H3("Ready to finalize?"),
@@ -317,10 +336,10 @@ class HelloFlow:
                         hx_target=f"#{self.app_name}-container",
                         hx_swap="outerHTML"
                     ),
-                    id="finalize"
+                    id=finalize_step.id
                 )
             else:
-                return Div(P("Nothing to finalize yet."), id="finalize")
+                return Div(P("Nothing to finalize yet."), id=finalize_step.id)
         else:
             # This is the POST request when they press the Finalize button
             state = self.pipulate.read_state(pipeline_id)

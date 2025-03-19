@@ -106,7 +106,7 @@ class StarterFlow:
                 Form(
                     self.pipulate.wrap_with_inline_button(
                         Input(type="text", name="pipeline_id", placeholder="🗝 Old or existing ID here", required=True, autofocus=True, list="pipeline-ids"),
-                        button_label=f"Start {self.app_name.title()} 🔑",
+                        button_label=f"Start {self.DISPLAY_NAME} 🔑",
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
