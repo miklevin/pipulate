@@ -7,11 +7,11 @@ from loguru import logger
 # Each step represents one cell in our linear workflow.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
-class HelloWorldFlow:
-    APP_NAME = "hello_world"
+class HelloFlow:
+    APP_NAME = "hello"
     DISPLAY_NAME = "Hello World"
-    ENDPOINT_MESSAGE = "This workflow template guides you through a step-by-step process to collect and save your information. Enter an ID, which will let you pull up this workflow again. Then complete each field and finalize when done."
-    TRAINING_PROMPT = "This is a simple workflow that takes the user's name as input and says hello to them."
+    ENDPOINT_MESSAGE = "This simple workflow demonstrates a basic Hello World example. Enter an ID to start or resume your workflow."
+    TRAINING_PROMPT = "Simple Hello World workflow."
     PRESERVE_REFILL = True
     
     def get_display_name(self):
@@ -31,9 +31,6 @@ class HelloWorldFlow:
         self.db = db
         steps = [
             Step(id='step_01',  done='name',      show='Your Name',    refill=True),
-            Step(id='step_02',  done='email',     show='Your Email',   refill=True),
-            Step(id='step_03',  done='phone',     show='Your Phone',   refill=True),
-            Step(id='step_04',  done='website',   show='Your Website', refill=True),
             Step(id='finalize', done='finalized', show='Finalize',     refill=False)
         ]
         self.STEPS = steps
