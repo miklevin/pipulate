@@ -1,6 +1,6 @@
-# Pipulate Free & Open Source SEO with and for LLMs
+# Pipulate Free & Open Source SEO with/for LLMs
 
-![Pipulate Free & Open Source SEO with and for LLMs](pipulate-ai-seo.svg)
+![Pipulate Free & Open Source SEO with/for LLMs](pipulate-ai-seo.svg)
 
 A **local-first, single-tenant desktop app framework** built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama). Designed to run like an Electron app—with full server-side state, minimal complexity, and reproducible environments using Nix Flakes. by [Mike Levin](https://mikelev.in/)
 

@@ -4,6 +4,21 @@ from datetime import datetime
 import asyncio
 from loguru import logger
 
+"""
+Workflow Template
+
+This file demonstrates the basic pattern for Pipulate workflows:
+1. Define steps with optional transformations
+2. Each step collects or processes data
+3. Data flows from one step to the next
+4. Steps can be reverted and the workflow can be finalized
+
+To create your own workflow:
+1. Copy this file and rename the class
+2. Define your own steps
+3. Implement custom validation and processing as needed
+"""
+
 # Each step represents one cell in our linear workflow.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
