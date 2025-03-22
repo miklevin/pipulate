@@ -72,13 +72,15 @@ class HelloFlow:
             (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
-            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"])
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            # Individual step routes
+            (f"/{app_name}/step_01", self.handle_step),
+            (f"/{app_name}/step_01_submit", self.handle_step_submit, ["POST"]),
+            (f"/{app_name}/step_02", self.handle_step),
+            (f"/{app_name}/step_02_submit", self.handle_step_submit, ["POST"]),
+            (f"/{app_name}/finalize", self.handle_step),
+            (f"/{app_name}/finalize_submit", self.handle_step_submit, ["POST"])
         ]
-        for step in self.STEPS:
-            routes.extend([
-                (f"/{app_name}/{step.id}", self.handle_step),
-                (f"/{app_name}/{step.id}_submit", self.handle_step_submit, ["POST"])
-            ])
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
