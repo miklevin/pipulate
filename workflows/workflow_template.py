@@ -111,7 +111,7 @@ class HelloFlow:
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
@@ -123,13 +123,13 @@ class HelloFlow:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await pip.simulated_stream(message)
-        placeholders = self.generate_step_placeholders(steps, self.app_name)
-        return Div(*placeholders, id=f"{self.app_name}-container")
+        placeholders = self.generate_step_placeholders(steps, app_name)
+        return Div(*placeholders, id=f"{app_name}-container")
 
     async def landing(self):
-        pip, pipeline, steps = self.pipulate, self.pipeline, self.steps
-        title = f"{self.DISPLAY_NAME or self.app_name.title()}: {len(steps) - 1} Steps + Finalize"
-        pipeline.xtra(app_name=self.app_name)
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
+        pipeline.xtra(app_name=app_name)
         existing_ids = [record.url for record in pipeline()]
         return Container(
             Card(
@@ -149,19 +149,19 @@ class HelloFlow:
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
-                    hx_post=f"/{self.app_name}/init",
-                    hx_target=f"#{self.app_name}-container"
+                    hx_post=f"/{app_name}/init",
+                    hx_target=f"#{app_name}-container"
                 )
             ),
-            Div(id=f"{self.app_name}-container")
+            Div(id=f"{app_name}-container")
         )
 
     async def init(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         pipeline_id = form.get("pipeline_id", "untitled")
         db["pipeline_id"] = pipeline_id
-        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": self.app_name})
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
             
@@ -196,11 +196,11 @@ class HelloFlow:
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
         
-        placeholders = self.generate_step_placeholders(steps, self.app_name)
-        return Div(*placeholders, id=f"{self.app_name}-container")
+        placeholders = self.generate_step_placeholders(steps, app_name)
+        return Div(*placeholders, id=f"{app_name}-container")
 
     async def handle_step(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = request.url.path.split('/')[-1]
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -218,8 +218,8 @@ class HelloFlow:
                     P("All steps are locked."),
                     Form(
                         Button("Unfinalize", type="submit", style="background-color: #f66;"),
-                        hx_post=f"/{self.app_name}/unfinalize",
-                            hx_target=f"#{self.app_name}-container",
+                        hx_post=f"/{app_name}/unfinalize",
+                        hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
                     )
                 )
@@ -230,8 +230,8 @@ class HelloFlow:
                         P("You can finalize this pipeline or go back to fix something."),
                         Form(
                             Button("Finalize All Steps", type="submit"),
-                            hx_post=f"/{self.app_name}/finalize",
-                            hx_target=f"#{self.app_name}-container",
+                            hx_post=f"/{app_name}/finalize",
+                            hx_target=f"#{app_name}-container",
                             hx_swap="outerHTML"
                         )
                     ),
@@ -247,8 +247,8 @@ class HelloFlow:
             
         if user_val and state.get("_revert_target") != step_id:
             return Div(
-                pip.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {user_val}", steps=self.steps),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
@@ -261,7 +261,7 @@ class HelloFlow:
                         pip.wrap_with_inline_button(
                             Input(type="text", name=step.done, value=display_value, placeholder=f"Enter {step.show}", required=True, autofocus=True)
                         ),
-                        hx_post=f"/{self.app_name}/{step.id}_submit",
+                        hx_post=f"/{app_name}/{step.id}_submit",
                         hx_target=f"#{step.id}"
                     )
                 ),
@@ -270,7 +270,7 @@ class HelloFlow:
             )
 
     async def handle_step_submit(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = request.url.path.split('/')[-1].replace('_submit', '')
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
@@ -281,8 +281,8 @@ class HelloFlow:
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
             await pip.simulated_stream(message)
-            placeholders = self.generate_step_placeholders(steps, self.app_name)
-            return Div(*placeholders, id=f"{self.app_name}-container")
+            placeholders = self.generate_step_placeholders(steps, app_name)
+            return Div(*placeholders, id=f"{app_name}-container")
         
         form = await request.form()
         user_val = form.get(step.done, "")
@@ -309,8 +309,8 @@ class HelloFlow:
             await pip.simulated_stream("All steps complete! Please press the Finalize button below to save your data.")
         
         return Div(
-            pip.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {processed_val}", steps=self.steps),
-            Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
         )
 
     async def step_01(self, request):
@@ -338,7 +338,7 @@ class HelloFlow:
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
@@ -354,8 +354,8 @@ class HelloFlow:
                     P("Pipeline is finalized. Use Unfinalize to make changes."),
                     Form(
                         Button("Unfinalize", type="submit", style="background-color: #f66;"),
-                        hx_post=f"/{self.app_name}/unfinalize",
-                        hx_target=f"#{self.app_name}-container",
+                        hx_post=f"/{app_name}/unfinalize",
+                        hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
                     ),
                     style="color: green;",
@@ -376,8 +376,8 @@ class HelloFlow:
                     P("All data is saved. Lock it in?"),
                     Form(
                         Button("Finalize", type="submit"),
-                        hx_post=f"/{self.app_name}/finalize",
-                        hx_target=f"#{self.app_name}-container",
+                        hx_post=f"/{app_name}/finalize",
+                        hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
                     ),
                     id=finalize_step.id
@@ -395,10 +395,10 @@ class HelloFlow:
             await pip.simulated_stream("Workflow successfully finalized! Your data has been saved and locked.")
             
             # Return the updated UI
-            return Div(*self.generate_step_placeholders(steps, self.app_name), id=f"{self.app_name}-container")
+            return Div(*self.generate_step_placeholders(steps, app_name), id=f"{app_name}-container")
 
     async def unfinalize(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         if "finalize" in state:
@@ -408,12 +408,12 @@ class HelloFlow:
         # Send a message informing them they can revert to any step
         await pip.simulated_stream("Workflow unfinalized! You can now revert to any step and make changes.")
         
-        placeholders = self.generate_step_placeholders(steps, self.app_name)
-        return Div(*placeholders, id=f"{self.app_name}-container")
+        placeholders = self.generate_step_placeholders(steps, app_name)
+        return Div(*placeholders, id=f"{app_name}-container")
 
     async def jump_to_step(self, request):
-        pip, db, steps = self.pipulate, self.db, self.steps
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
         db["step_id"] = step_id
-        return pip.rebuild(self.app_name, steps)
+        return pip.rebuild(app_name, steps)
