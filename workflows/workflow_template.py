@@ -78,7 +78,6 @@ class HelloFlow:
             (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
             (f"/{app_name}/step_02", self.step_02),
             (f"/{app_name}/step_02_submit", self.step_02_submit, ["POST"]),
-            (f"/{app_name}/finalize", self.finalize_explicit),
             (f"/{app_name}/finalize_submit", self.handle_step_submit, ["POST"])
         ]
         for path, handler, *methods in routes:
@@ -315,19 +314,12 @@ class HelloFlow:
         request.scope["path"] = f"/{self.app_name}/step_02_submit"
         return await self.handle_step_submit(request)
 
-    async def finalize_explicit(self, request):
-        return await self.finalize(request)
-
     def generate_step_placeholders(self, steps, app_name):
         placeholders = []
         for i, step in enumerate(steps):
             trigger = "load" if i == 0 else f"stepComplete-{steps[i-1].id} from:{steps[i-1].id}"
             placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
         return placeholders
-
-    async def delayed_greeting(self):
-        await asyncio.sleep(2)
-        await self.pipulate.simulated_stream("Enter an ID to begin.")
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
