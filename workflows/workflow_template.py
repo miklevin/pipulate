@@ -73,12 +73,12 @@ class HelloFlow:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
-            # Individual step routes
-            (f"/{app_name}/step_01", self.handle_step),
-            (f"/{app_name}/step_01_submit", self.handle_step_submit, ["POST"]),
-            (f"/{app_name}/step_02", self.handle_step),
-            (f"/{app_name}/step_02_submit", self.handle_step_submit, ["POST"]),
-            (f"/{app_name}/finalize", self.handle_step),
+            # Individual step routes using new specific handlers
+            (f"/{app_name}/step_01", self.step_01),
+            (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
+            (f"/{app_name}/step_02", self.step_02),
+            (f"/{app_name}/step_02_submit", self.step_02_submit, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize_explicit),
             (f"/{app_name}/finalize_submit", self.handle_step_submit, ["POST"])
         ]
         for path, handler, *methods in routes:
@@ -186,6 +186,25 @@ class HelloFlow:
         
         placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
         return Div(*placeholders, id=f"{self.app_name}-container")
+
+    async def step_01(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_01"
+        return await self.handle_step(request)
+
+    async def step_01_submit(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_01_submit"
+        return await self.handle_step_submit(request)
+
+    async def step_02(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_02"
+        return await self.handle_step(request)
+
+    async def step_02_submit(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_02_submit"
+        return await self.handle_step_submit(request)
+
+    async def finalize_explicit(self, request):
+        return await self.finalize(request)
 
     async def handle_step(self, request):
         step_id = request.url.path.split('/')[-1]
