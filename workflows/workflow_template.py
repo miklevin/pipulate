@@ -51,7 +51,7 @@ class HelloFlow:
             Step(id='finalize', done='finalized', show='Finalize', refill=False)
         ]
         self.STEPS = steps
-        self.steps = {step.id: i for i, step in enumerate(self.STEPS)}
+        self.steps_indices = {step.id: i for i, step in enumerate(self.STEPS)}
         self.STEP_MESSAGES = {
             "new": "Enter an ID to begin.",
             "finalize": {
@@ -101,7 +101,7 @@ class HelloFlow:
         step = next((s for s in self.STEPS if s.id == step_id), None)
         if not step or not step.transform:
             return ""
-        prev_index = self.steps[step_id] - 1
+        prev_index = self.steps_indices[step_id] - 1
         if prev_index < 0:
             return ""
         prev_step_id = self.STEPS[prev_index].id
@@ -201,7 +201,7 @@ class HelloFlow:
     async def handle_step(self, request):
         pip, db = self.pipulate, self.db
         step_id = request.url.path.split('/')[-1]
-        step_index = self.steps[step_id]
+        step_index = self.steps_indices[step_id]
         step = self.STEPS[step_index]
         next_step_id = self.STEPS[step_index + 1].id if step_index < len(self.STEPS) - 1 else None
         pipeline_id = db.get("pipeline_id", "unknown")
@@ -271,7 +271,7 @@ class HelloFlow:
     async def handle_step_submit(self, request):
         pip, db = self.pipulate, self.db
         step_id = request.url.path.split('/')[-1].replace('_submit', '')
-        step_index = self.steps[step_id]
+        step_index = self.steps_indices[step_id]
         step = self.STEPS[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
         if step.done == 'finalized':
