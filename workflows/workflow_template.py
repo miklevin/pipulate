@@ -52,7 +52,7 @@ class HelloFlow:
         ]
         self.workflow_steps = workflow_steps
         self.steps_indices = {step.id: i for i, step in enumerate(workflow_steps)}
-        self.STEP_MESSAGES = {
+        self.step_messages = {
             "new": "Enter an ID to begin.",
             "finalize": {
                 "ready": "All steps complete. Ready to finalize workflow.",
@@ -62,7 +62,7 @@ class HelloFlow:
         # For each non-finalize step, set an input and completion message that reflects the cell order.
         for step in workflow_steps:
             if step.done != 'finalized':
-                self.STEP_MESSAGES[step.id] = {
+                self.step_messages[step.id] = {
                     "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                     "complete": f"{step.show} complete. Continue to next step."
                 }
@@ -120,7 +120,7 @@ class HelloFlow:
         state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
         pip.write_state(pipeline_id, state)
-        message = await pip.get_state_message(pipeline_id, workflow_steps, self.STEP_MESSAGES)
+        message = await pip.get_state_message(pipeline_id, workflow_steps, self.step_messages)
         await pip.simulated_stream(message)
         placeholders = self.generate_step_placeholders(workflow_steps, self.app_name)
         return Div(*placeholders, id=f"{self.app_name}-container")
@@ -252,7 +252,7 @@ class HelloFlow:
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
                 
-            await pip.simulated_stream(self.STEP_MESSAGES[step_id]["input"])
+            await pip.simulated_stream(self.step_messages[step_id]["input"])
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -278,7 +278,7 @@ class HelloFlow:
             state = pip.read_state(pipeline_id)
             state[step_id] = {step.done: True}
             pip.write_state(pipeline_id, state)
-            message = await pip.get_state_message(pipeline_id, workflow_steps, self.STEP_MESSAGES)
+            message = await pip.get_state_message(pipeline_id, workflow_steps, self.step_messages)
             await pip.simulated_stream(message)
             placeholders = self.generate_step_placeholders(workflow_steps, self.app_name)
             return Div(*placeholders, id=f"{self.app_name}-container")
