@@ -126,17 +126,24 @@ class HelloFlow:
         return Div(*placeholders, id=f"{self.app_name}-container")
 
     async def landing(self):
-        pip = self.pipulate
+        pip, pipeline = self.pipulate, self.pipeline
         title = f"{self.DISPLAY_NAME or self.app_name.title()}: {len(self.STEPS) - 1} Steps + Finalize"
-        self.pipeline.xtra(app_name=self.app_name)
-        existing_ids = [record.url for record in self.pipeline()]
+        pipeline.xtra(app_name=self.app_name)
+        existing_ids = [record.url for record in pipeline()]
         return Container(
             Card(
                 H2(title),
                 P("Enter or resume a Pipeline ID:"),
                 Form(
                     pip.wrap_with_inline_button(
-                        Input(type="text", name="pipeline_id", placeholder="🗝 Old or existing ID here", required=True, autofocus=True, list="pipeline-ids"),
+                        Input(
+                            placeholder="🗝 Old or existing ID here",
+                            name="pipeline_id", 
+                            list="pipeline-ids",
+                            type="text",
+                            required=True,
+                            autofocus=True,
+                        ),
                         button_label=f"Start {self.DISPLAY_NAME} 🔑",
                         button_class="secondary"
                     ),
