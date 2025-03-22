@@ -96,7 +96,7 @@ class HelloFlow:
         return value
 
     async def get_suggestion(self, step_id, state):
-        pip = self.pipulate
+        pip, db = self.pipulate, self.db
         # For HelloFlow, if a transform function exists, use the previous step's output.
         step = next((s for s in self.STEPS if s.id == step_id), None)
         if not step or not step.transform:
@@ -105,15 +105,15 @@ class HelloFlow:
         if prev_index < 0:
             return ""
         prev_step_id = self.STEPS[prev_index].id
-        prev_data = pip.get_step_data(self.db["pipeline_id"], prev_step_id, {})
+        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
         prev_word = prev_data.get("name", "")  # Use "name" for step_01
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
-        pip = self.pipulate
+        pip, db = self.pipulate, self.db
         form = await request.form()
         step_id = form.get("step_id")
-        pipeline_id = self.db.get("pipeline_id", "unknown")
+        pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
             return P("Error: No step specified", style="color: red;")
         await pip.clear_steps_from(pipeline_id, step_id, self.STEPS)
@@ -149,10 +149,10 @@ class HelloFlow:
         )
 
     async def init(self, request):
-        pip = self.pipulate
+        pip, db = self.pipulate, self.db
         form = await request.form()
         pipeline_id = form.get("pipeline_id", "untitled")
-        self.db["pipeline_id"] = pipeline_id
+        db["pipeline_id"] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": self.app_name})
         if error:
             return error
@@ -192,12 +192,12 @@ class HelloFlow:
         return Div(*placeholders, id=f"{self.app_name}-container")
 
     async def handle_step(self, request):
-        pip = self.pipulate
+        pip, db = self.pipulate, self.db
         step_id = request.url.path.split('/')[-1]
         step_index = self.steps[step_id]
         step = self.STEPS[step_index]
         next_step_id = self.STEPS[step_index + 1].id if step_index < len(self.STEPS) - 1 else None
-        pipeline_id = self.db.get("pipeline_id", "unknown")
+        pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
@@ -262,11 +262,11 @@ class HelloFlow:
             )
 
     async def handle_step_submit(self, request):
-        pip = self.pipulate
+        pip, db = self.pipulate, self.db
         step_id = request.url.path.split('/')[-1].replace('_submit', '')
         step_index = self.steps[step_id]
         step = self.STEPS[step_index]
-        pipeline_id = self.db.get("pipeline_id", "unknown")
+        pipeline_id = db.get("pipeline_id", "unknown")
         if step.done == 'finalized':
             state = pip.read_state(pipeline_id)
             state[step_id] = {step.done: True}
@@ -330,9 +330,10 @@ class HelloFlow:
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
-        pipeline_id = self.db.get("pipeline_id", "unknown")
+        pip, db = self.pipulate, self.db
+        pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = self.STEPS[-1]
-        finalize_data = self.pipulate.get_step_data(pipeline_id, finalize_step.id, {})
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         logger.debug(f"Pipeline ID: {pipeline_id}")
         logger.debug(f"Finalize step: {finalize_step}")
         logger.debug(f"Finalize data: {finalize_data}")
@@ -356,7 +357,7 @@ class HelloFlow:
             # Check if all previous steps are complete
             non_finalize_steps = self.STEPS[:-1]
             all_steps_complete = all(
-                self.pipulate.get_step_data(pipeline_id, step.id, {}).get(step.done)
+                pip.get_step_data(pipeline_id, step.id, {}).get(step.done)
                 for step in non_finalize_steps
             )
             logger.debug(f"All steps complete: {all_steps_complete}")
@@ -377,32 +378,34 @@ class HelloFlow:
                 return Div(P("Nothing to finalize yet."), id=finalize_step.id)
         else:
             # This is the POST request when they press the Finalize button
-            state = self.pipulate.read_state(pipeline_id)
+            state = pip.read_state(pipeline_id)
             state["finalize"] = {"finalized": True}
             state["updated"] = datetime.now().isoformat()
-            self.pipulate.write_state(pipeline_id, state)
+            pip.write_state(pipeline_id, state)
             
             # Send a confirmation message
-            await self.pipulate.simulated_stream("Workflow successfully finalized! Your data has been saved and locked.")
+            await pip.simulated_stream("Workflow successfully finalized! Your data has been saved and locked.")
             
             # Return the updated UI
             return Div(*self.generate_step_placeholders(self.STEPS, self.app_name), id=f"{self.app_name}-container")
 
     async def unfinalize(self, request):
-        pipeline_id = self.db.get("pipeline_id", "unknown")
-        state = self.pipulate.read_state(pipeline_id)
+        pip, db = self.pipulate, self.db
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
         if "finalize" in state:
             del state["finalize"]
-        self.pipulate.write_state(pipeline_id, state)
+        pip.write_state(pipeline_id, state)
         
         # Send a message informing them they can revert to any step
-        await self.pipulate.simulated_stream("Workflow unfinalized! You can now revert to any step and make changes.")
+        await pip.simulated_stream("Workflow unfinalized! You can now revert to any step and make changes.")
         
         placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
         return Div(*placeholders, id=f"{self.app_name}-container")
 
     async def jump_to_step(self, request):
+        pip, db = self.pipulate, self.db
         form = await request.form()
         step_id = form.get("step_id")
-        self.db["step_id"] = step_id
-        return self.pipulate.rebuild(self.app_name, self.STEPS)
+        db["step_id"] = step_id
+        return pip.rebuild(self.app_name, self.STEPS)
