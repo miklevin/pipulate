@@ -187,25 +187,6 @@ class HelloFlow:
         placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
         return Div(*placeholders, id=f"{self.app_name}-container")
 
-    async def step_01(self, request):
-        request.scope["path"] = f"/{self.app_name}/step_01"
-        return await self.handle_step(request)
-
-    async def step_01_submit(self, request):
-        request.scope["path"] = f"/{self.app_name}/step_01_submit"
-        return await self.handle_step_submit(request)
-
-    async def step_02(self, request):
-        request.scope["path"] = f"/{self.app_name}/step_02"
-        return await self.handle_step(request)
-
-    async def step_02_submit(self, request):
-        request.scope["path"] = f"/{self.app_name}/step_02_submit"
-        return await self.handle_step_submit(request)
-
-    async def finalize_explicit(self, request):
-        return await self.finalize(request)
-
     async def handle_step(self, request):
         step_id = request.url.path.split('/')[-1]
         step_index = self.steps[step_id]
@@ -317,6 +298,25 @@ class HelloFlow:
             self.pipulate.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {processed_val}", steps=self.STEPS),
             Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
         )
+
+    async def step_01(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_01"
+        return await self.handle_step(request)
+
+    async def step_01_submit(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_01_submit"
+        return await self.handle_step_submit(request)
+
+    async def step_02(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_02"
+        return await self.handle_step(request)
+
+    async def step_02_submit(self, request):
+        request.scope["path"] = f"/{self.app_name}/step_02_submit"
+        return await self.handle_step_submit(request)
+
+    async def finalize_explicit(self, request):
+        return await self.finalize(request)
 
     def generate_step_placeholders(self, steps, app_name):
         placeholders = []
