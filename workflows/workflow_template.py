@@ -44,6 +44,7 @@ class HelloFlow:
         self.app_name = app_name
         self.pipeline = pipeline
         self.db = db
+        pip = self.pipulate
         steps = [
             Step(id='step_01', done='name', show='Your Name', refill=True),
             Step(id='step_02', done='greeting', show='Hello Message', refill=False, transform=lambda name: f"Hello {name}"),
@@ -62,7 +63,7 @@ class HelloFlow:
         for step in self.STEPS:
             if step.done != 'finalized':
                 self.STEP_MESSAGES[step.id] = {
-                    "input": f"{self.pipulate.fmt(step.id)}: Please enter {step.show}.",
+                    "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                     "complete": f"{step.show} complete. Continue to next step."
                 }
         # Register routes for all workflow methods.
@@ -95,6 +96,7 @@ class HelloFlow:
         return value
 
     async def get_suggestion(self, step_id, state):
+        pip = self.pipulate
         # For HelloFlow, if a transform function exists, use the previous step's output.
         step = next((s for s in self.STEPS if s.id == step_id), None)
         if not step or not step.transform:
@@ -103,26 +105,28 @@ class HelloFlow:
         if prev_index < 0:
             return ""
         prev_step_id = self.STEPS[prev_index].id
-        prev_data = self.pipulate.get_step_data(self.db["pipeline_id"], prev_step_id, {})
+        prev_data = pip.get_step_data(self.db["pipeline_id"], prev_step_id, {})
         prev_word = prev_data.get("name", "")  # Use "name" for step_01
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
+        pip = self.pipulate
         form = await request.form()
         step_id = form.get("step_id")
         pipeline_id = self.db.get("pipeline_id", "unknown")
         if not step_id:
             return P("Error: No step specified", style="color: red;")
-        await self.pipulate.clear_steps_from(pipeline_id, step_id, self.STEPS)
-        state = self.pipulate.read_state(pipeline_id)
+        await pip.clear_steps_from(pipeline_id, step_id, self.STEPS)
+        state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
-        self.pipulate.write_state(pipeline_id, state)
-        message = await self.pipulate.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
-        await self.pipulate.simulated_stream(message)
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
+        await pip.simulated_stream(message)
         placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
         return Div(*placeholders, id=f"{self.app_name}-container")
 
     async def landing(self):
+        pip = self.pipulate
         title = f"{self.DISPLAY_NAME or self.app_name.title()}: {len(self.STEPS) - 1} Steps + Finalize"
         self.pipeline.xtra(app_name=self.app_name)
         existing_ids = [record.url for record in self.pipeline()]
@@ -131,7 +135,7 @@ class HelloFlow:
                 H2(title),
                 P("Enter or resume a Pipeline ID:"),
                 Form(
-                    self.pipulate.wrap_with_inline_button(
+                    pip.wrap_with_inline_button(
                         Input(type="text", name="pipeline_id", placeholder="🗝 Old or existing ID here", required=True, autofocus=True, list="pipeline-ids"),
                         button_label=f"Start {self.DISPLAY_NAME} 🔑",
                         button_class="secondary"
@@ -145,10 +149,11 @@ class HelloFlow:
         )
 
     async def init(self, request):
+        pip = self.pipulate
         form = await request.form()
         pipeline_id = form.get("pipeline_id", "untitled")
         self.db["pipeline_id"] = pipeline_id
-        state, error = self.pipulate.initialize_if_missing(pipeline_id, {"app_name": self.app_name})
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": self.app_name})
         if error:
             return error
             
@@ -164,7 +169,7 @@ class HelloFlow:
         
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}. You can use this ID to return to this workflow later."
-        await self.pipulate.simulated_stream(id_message)
+        await pip.simulated_stream(id_message)
         
         # Add a small delay to ensure messages appear in the correct order
         await asyncio.sleep(0.5)
@@ -172,13 +177,13 @@ class HelloFlow:
         # If all steps are complete, show an appropriate message
         if all_steps_complete:
             if is_finalized:
-                await self.pipulate.simulated_stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.")
+                await pip.simulated_stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.")
             else:
-                await self.pipulate.simulated_stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.")
+                await pip.simulated_stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.")
         else:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.STEPS):
-                await self.pipulate.simulated_stream("Please complete each step in sequence. Your progress will be saved automatically.")
+                await pip.simulated_stream("Please complete each step in sequence. Your progress will be saved automatically.")
         
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
@@ -187,17 +192,18 @@ class HelloFlow:
         return Div(*placeholders, id=f"{self.app_name}-container")
 
     async def handle_step(self, request):
+        pip = self.pipulate
         step_id = request.url.path.split('/')[-1]
         step_index = self.steps[step_id]
         step = self.STEPS[step_index]
         next_step_id = self.STEPS[step_index + 1].id if step_index < len(self.STEPS) - 1 else None
         pipeline_id = self.db.get("pipeline_id", "unknown")
-        state = self.pipulate.read_state(pipeline_id)
-        step_data = self.pipulate.get_step_data(pipeline_id, step_id, {})
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
         
         if step.done == 'finalized':
-            finalize_data = self.pipulate.get_step_data(pipeline_id, "finalize", {})
+            finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
             if "finalized" in finalize_data:
                 return Card(
                     H3("Pipeline Finalized"),
@@ -205,7 +211,7 @@ class HelloFlow:
                     Form(
                         Button("Unfinalize", type="submit", style="background-color: #f66;"),
                         hx_post=f"/{self.app_name}/unfinalize",
-                        hx_target=f"#{self.app_name}-container",
+                            hx_target=f"#{self.app_name}-container",
                         hx_swap="outerHTML"
                     )
                 )
@@ -224,7 +230,7 @@ class HelloFlow:
                     id=step_id
                 )
                 
-        finalize_data = self.pipulate.get_step_data(pipeline_id, "finalize", {})
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
                 Card(f"🔒 {step.show}: {user_val}"),
@@ -233,18 +239,18 @@ class HelloFlow:
             
         if user_val and state.get("_revert_target") != step_id:
             return Div(
-                self.pipulate.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {user_val}", steps=self.STEPS),
+                pip.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {user_val}", steps=self.STEPS),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
                 
-            await self.pipulate.simulated_stream(self.STEP_MESSAGES[step_id]["input"])
+            await pip.simulated_stream(self.STEP_MESSAGES[step_id]["input"])
             return Div(
                 Card(
-                    H3(f"{self.pipulate.fmt(step.id)}: Enter {step.show}"),
+                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
-                        self.pipulate.wrap_with_inline_button(
+                        pip.wrap_with_inline_button(
                             Input(type="text", name=step.done, value=display_value, placeholder=f"Enter {step.show}", required=True, autofocus=True)
                         ),
                         hx_post=f"/{self.app_name}/{step.id}_submit",
@@ -256,16 +262,17 @@ class HelloFlow:
             )
 
     async def handle_step_submit(self, request):
+        pip = self.pipulate
         step_id = request.url.path.split('/')[-1].replace('_submit', '')
         step_index = self.steps[step_id]
         step = self.STEPS[step_index]
         pipeline_id = self.db.get("pipeline_id", "unknown")
         if step.done == 'finalized':
-            state = self.pipulate.read_state(pipeline_id)
+            state = pip.read_state(pipeline_id)
             state[step_id] = {step.done: True}
-            self.pipulate.write_state(pipeline_id, state)
-            message = await self.pipulate.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
-            await self.pipulate.simulated_stream(message)
+            pip.write_state(pipeline_id, state)
+            message = await pip.get_state_message(pipeline_id, self.STEPS, self.STEP_MESSAGES)
+            await pip.simulated_stream(message)
             placeholders = self.generate_step_placeholders(self.STEPS, self.app_name)
             return Div(*placeholders, id=f"{self.app_name}-container")
         
@@ -277,24 +284,24 @@ class HelloFlow:
         
         processed_val = await self.process_step(step_id, user_val)
         next_step_id = self.STEPS[step_index + 1].id if step_index < len(self.STEPS) - 1 else None
-        await self.pipulate.clear_steps_from(pipeline_id, step_id, self.STEPS)
+        await pip.clear_steps_from(pipeline_id, step_id, self.STEPS)
         
-        state = self.pipulate.read_state(pipeline_id)
+        state = pip.read_state(pipeline_id)
         state[step_id] = {step.done: processed_val}
         if "_revert_target" in state:
             del state["_revert_target"]
-        self.pipulate.write_state(pipeline_id, state)
+        pip.write_state(pipeline_id, state)
         
         # Send the value confirmation
-        await self.pipulate.simulated_stream(f"{step.show}: {processed_val}")
+        await pip.simulated_stream(f"{step.show}: {processed_val}")
         
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
-            await self.pipulate.simulated_stream("All steps complete! Please press the Finalize button below to save your data.")
+            await pip.simulated_stream("All steps complete! Please press the Finalize button below to save your data.")
         
         return Div(
-            self.pipulate.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {processed_val}", steps=self.STEPS),
+            pip.revert_control(step_id=step_id, app_name=self.app_name, message=f"{step.show}: {processed_val}", steps=self.STEPS),
             Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
         )
 
