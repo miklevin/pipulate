@@ -924,9 +924,9 @@ def build_endpoint_training(endpoint):
     # Add training for all workflows in our registry
     for workflow_name, workflow_instance in workflow_instances.items():
         if workflow_name not in endpoint_training:
-            # First check for the new get_training_prompt method
-            if hasattr(workflow_instance, 'get_training_prompt') and callable(getattr(workflow_instance, 'get_training_prompt')):
-                prompt = workflow_instance.get_training_prompt()
+            # Check for TRAINING_PROMPT attribute
+            if hasattr(workflow_instance, 'TRAINING_PROMPT'):
+                prompt = workflow_instance.TRAINING_PROMPT
                 endpoint_training[workflow_name] = read_training(prompt)
             # Fall back to the existing get_training_text method for backward compatibility
             elif hasattr(workflow_instance, 'get_training_text') and callable(getattr(workflow_instance, 'get_training_text')):
@@ -1303,9 +1303,8 @@ endpoint_training = {}
 
 def get_display_name(workflow_name):
     instance = workflow_instances.get(workflow_name)
-    if instance and hasattr(instance, 'get_display_name') and callable(getattr(instance, 'get_display_name')):
-        display_name = instance.get_display_name()
-        return workflow_name.replace('_', ' ').title() if display_name is None else display_name
+    if instance and hasattr(instance, 'DISPLAY_NAME'):
+        return instance.DISPLAY_NAME
     return workflow_name.replace('_', ' ').title()  # Default display name
 
 

@@ -29,15 +29,6 @@ class HelloFlow:
     TRAINING_PROMPT = "Simple Hello World workflow."
     PRESERVE_REFILL = True
     
-    def get_display_name(self):
-        return self.DISPLAY_NAME
-
-    def get_endpoint_message(self):
-        return self.ENDPOINT_MESSAGE
-        
-    def get_training_prompt(self):
-        return self.TRAINING_PROMPT
-
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         self.app = app
         self.app_name = app_name
@@ -45,12 +36,14 @@ class HelloFlow:
         self.pipeline = pipeline
         self.db = db
         pip = self.pipulate
+
         steps = [
             # Define the ordered sequence of workflow steps
             Step(id='step_01', done='name', show='Your Name', refill=True),
             Step(id='step_02', done='greeting', show='Hello Message', refill=False, transform=lambda name: f"Hello {name}"),
             Step(id='finalize', done='finalized', show='Finalize', refill=False)
         ]
+
         self.steps = steps
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
         self.step_messages = {
@@ -60,6 +53,7 @@ class HelloFlow:
                 "complete": "Workflow finalized. Use Unfinalize to make changes."
             }
         }
+
         # For each non-finalize step, set an input and completion message that reflects the cell order.
         for step in steps:
             if step.done != 'finalized':
@@ -67,6 +61,7 @@ class HelloFlow:
                     "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                     "complete": f"{step.show} complete. Continue to next step."
                 }
+
         # Register routes for all workflow methods.
         routes = [
             (f"/{app_name}", self.landing),
