@@ -219,7 +219,14 @@ class HelloFlow:
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
-                            Input(type="text", name=step.done, value=display_value, placeholder=f"Enter {step.show}", required=True, autofocus=True)
+                            Input(
+                                type="text",
+                                name=step.done,
+                                value=display_value,
+                                placeholder=f"Enter {step.show}",
+                                required=True,
+                                autofocus=True
+                            )
                         ),
                         hx_post=f"/{app_name}/{step.id}_submit",
                         hx_target=f"#{step.id}"
@@ -345,7 +352,14 @@ class HelloFlow:
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
-                            Input(type="text", name=step.done, value=display_value, placeholder=f"Enter {step.show}", required=True, autofocus=True)
+                            Input(
+                                type="text",
+                                name=step.done,
+                                value=display_value,
+                                placeholder=f"Enter {step.show}",
+                                required=True,
+                                autofocus=True
+                            )
                         ),
                         hx_post=f"/{app_name}/{step.id}_submit",
                         hx_target=f"#{step.id}"
