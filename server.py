@@ -1086,8 +1086,26 @@ def pipeline_operation(func):
 class Pipulate:
     PRESERVE_REFILL = True
 
+    # Style constants
+    ERROR_STYLE = "color: red;"
+    SUCCESS_STYLE = "color: green;"
+    WARNING_BUTTON_STYLE = "background-color: #f66;"
+    PRIMARY_BUTTON_STYLE = "background-color: #4CAF50;"
+    SECONDARY_BUTTON_STYLE = "background-color: #008CBA;"
+    
     def __init__(self, table):
         self.table = table
+
+    def get_style(self, style_type):
+        """Get a predefined style by type"""
+        styles = {
+            "error": self.ERROR_STYLE,
+            "success": self.SUCCESS_STYLE,
+            "warning_button": self.WARNING_BUTTON_STYLE,
+            "primary_button": self.PRIMARY_BUTTON_STYLE,
+            "secondary_button": self.SECONDARY_BUTTON_STYLE
+        }
+        return styles.get(style_type, "")
 
     def fmt(self, endpoint: str) -> str:
         if endpoint in friendly_names:

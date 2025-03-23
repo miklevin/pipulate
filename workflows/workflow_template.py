@@ -100,7 +100,7 @@ class HelloFlow:
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
-            return P("Error: No step specified", style="color: red;")
+            return P("Error: No step specified", style=pip.get_style("error"))
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
@@ -202,7 +202,7 @@ class HelloFlow:
                     H3("Pipeline Finalized"),
                     P("All steps are locked."),
                     Form(
-                        Button("Unfinalize", type="submit", style="background-color: #f66;"),
+                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -281,7 +281,7 @@ class HelloFlow:
         #     error_msg = "Name cannot be empty"
         
         if not is_valid:
-            return P(error_msg, style="color: red;")
+            return P(error_msg, style=pip.get_style("error"))
         
         # PROCESSING: Add step-specific processing here
         processed_val = user_val
@@ -328,7 +328,7 @@ class HelloFlow:
                     H3("Pipeline Finalized"),
                     P("All steps are locked."),
                     Form(
-                        Button("Unfinalize", type="submit", style="background-color: #f66;"),
+                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -340,7 +340,7 @@ class HelloFlow:
                         H3("Finalize Pipeline"),
                         P("You can finalize this pipeline or go back to fix something."),
                         Form(
-                            Button("Finalize All Steps", type="submit"),
+                            Button("Finalize All Steps", type="submit", style=pip.get_style("primary_button")),
                             hx_post=f"/{app_name}/finalize",
                             hx_target=f"#{app_name}-container",
                             hx_swap="outerHTML"
@@ -407,7 +407,7 @@ class HelloFlow:
         #     error_msg = "Name cannot be empty"
         
         if not is_valid:
-            return P(error_msg, style="color: red;")
+            return P(error_msg, style=pip.get_style("error"))
         
         # PROCESSING: Add step-specific processing here
         processed_val = user_val
@@ -460,12 +460,11 @@ class HelloFlow:
                     H3("All Cards Complete"),
                     P("Pipeline is finalized. Use Unfinalize to make changes."),
                     Form(
-                        Button("Unfinalize", type="submit", style="background-color: #f66;"),
+                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
                     ),
-                    style="color: green;",
                     id=finalize_step.id
                 )
             
@@ -482,7 +481,7 @@ class HelloFlow:
                     H3("Ready to finalize?"),
                     P("All data is saved. Lock it in?"),
                     Form(
-                        Button("Finalize", type="submit"),
+                        Button("Finalize", type="submit", style=pip.get_style("primary_button")),
                         hx_post=f"/{app_name}/finalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
