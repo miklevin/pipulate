@@ -1,7 +1,8 @@
-from fasthtml.common import *
+import asyncio
 from collections import namedtuple
 from datetime import datetime
-import asyncio
+
+from fasthtml.common import *
 from loguru import logger
 
 """
@@ -23,13 +24,14 @@ To create your own workflow:
 # Each step represents one cell in our linear workflow.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class HelloFlow:
     APP_NAME = "hello"
     DISPLAY_NAME = "Hello World"
     ENDPOINT_MESSAGE = "This simple workflow demonstrates a basic Hello World example. Enter an ID to start or resume your workflow."
     TRAINING_PROMPT = "Simple Hello World workflow."  # Can refer to markdown in the training folder (no path needed)
     PRESERVE_REFILL = True
-    
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         self.app = app
         self.app_name = app_name
@@ -99,7 +101,7 @@ class HelloFlow:
                     pip.wrap_with_inline_button(
                         Input(
                             placeholder="🗝 Old or existing ID here",
-                            name="pipeline_id", 
+                            name="pipeline_id",
                             list="pipeline-ids",
                             type="text",
                             required=True,
@@ -124,24 +126,24 @@ class HelloFlow:
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
-            
+
         # After loading the state, check if all steps are complete
         all_steps_complete = True
         for step in steps[:-1]:  # Exclude finalize step
             if step.id not in state or step.done not in state[step.id]:
                 all_steps_complete = False
                 break
-                
+
         # Check if workflow is finalized
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
-        
+
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}. You can use this ID to return to this workflow later."
         await pip.stream(id_message)
-        
+
         # Add a small delay to ensure messages appear in the correct order
         await asyncio.sleep(0.5)
-        
+
         # If all steps are complete, show an appropriate message
         if all_steps_complete:
             if is_finalized:
@@ -152,10 +154,10 @@ class HelloFlow:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
                 await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.")
-        
+
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
-        
+
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
 
@@ -169,7 +171,7 @@ class HelloFlow:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
-        
+
         if step.done == 'finalized':
             finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
             if "finalized" in finalize_data:
@@ -197,14 +199,14 @@ class HelloFlow:
                     ),
                     id=step_id
                 )
-                
+
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
                 Card(f"🔒 {step.show}: {user_val}"),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
             )
-            
+
         if user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
@@ -212,7 +214,7 @@ class HelloFlow:
             )
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
-                
+
             await pip.stream(self.step_messages[step_id]["input"])
             return Div(
                 Card(
@@ -250,7 +252,7 @@ class HelloFlow:
             await pip.stream(message)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
-        
+
         form = await request.form()
         user_val = form.get(step.done, "")
 
@@ -261,10 +263,10 @@ class HelloFlow:
         # if not user_val.strip():
         #     is_valid = False
         #     error_msg = "Name cannot be empty"
-        
+
         if not is_valid:
             return P(error_msg, style=pip.get_style("error"))
-        
+
         # PROCESSING: Add step-specific processing here
         processed_val = user_val
         # Example processing: Capitalize name
@@ -272,21 +274,21 @@ class HelloFlow:
 
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
-        
+
         state = pip.read_state(pipeline_id)
         state[step_id] = {step.done: processed_val}
         if "_revert_target" in state:
             del state["_revert_target"]
         pip.write_state(pipeline_id, state)
-        
+
         # Send the value confirmation
         await pip.stream(f"{step.show}: {processed_val}")
-        
+
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
             await pip.stream("All steps complete! Please press the Finalize button below to save your data.")
-        
+
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -302,7 +304,7 @@ class HelloFlow:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
-        
+
         if step.done == 'finalized':
             finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
             if "finalized" in finalize_data:
@@ -330,14 +332,14 @@ class HelloFlow:
                     ),
                     id=step_id
                 )
-                
+
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
                 Card(f"🔒 {step.show}: {user_val}"),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
             )
-            
+
         if user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
@@ -345,7 +347,7 @@ class HelloFlow:
             )
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
-                
+
             await pip.stream(self.step_messages[step_id]["input"])
             return Div(
                 Card(
@@ -383,7 +385,7 @@ class HelloFlow:
             await pip.stream(message)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
-        
+
         form = await request.form()
         user_val = form.get(step.done, "")
 
@@ -394,10 +396,10 @@ class HelloFlow:
         # if not user_val.strip():
         #     is_valid = False
         #     error_msg = "Name cannot be empty"
-        
+
         if not is_valid:
             return P(error_msg, style=pip.get_style("error"))
-        
+
         # PROCESSING: Add step-specific processing here
         processed_val = user_val
         # Example processing: Capitalize name
@@ -405,21 +407,21 @@ class HelloFlow:
 
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
-        
+
         state = pip.read_state(pipeline_id)
         state[step_id] = {step.done: processed_val}
         if "_revert_target" in state:
             del state["_revert_target"]
         pip.write_state(pipeline_id, state)
-        
+
         # Send the value confirmation
         await pip.stream(f"{step.show}: {processed_val}")
-        
+
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
             await pip.stream("All steps complete! Please press the Finalize button below to save your data.")
-        
+
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -434,7 +436,7 @@ class HelloFlow:
         logger.debug(f"Pipeline ID: {pipeline_id}")
         logger.debug(f"Finalize step: {finalize_step}")
         logger.debug(f"Finalize data: {finalize_data}")
-        
+
         if request.method == "GET":
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
@@ -449,7 +451,7 @@ class HelloFlow:
                     ),
                     id=finalize_step.id
                 )
-            
+
             # Check if all previous steps are complete
             non_finalize_steps = steps[:-1]
             all_steps_complete = all(
@@ -457,7 +459,7 @@ class HelloFlow:
                 for step in non_finalize_steps
             )
             logger.debug(f"All steps complete: {all_steps_complete}")
-            
+
             if all_steps_complete:
                 return Card(
                     H3("Ready to finalize?"),
@@ -478,10 +480,10 @@ class HelloFlow:
             state["finalize"] = {"finalized": True}
             state["updated"] = datetime.now().isoformat()
             pip.write_state(pipeline_id, state)
-            
+
             # Send a confirmation message
             await pip.stream("Workflow successfully finalized! Your data has been saved and locked.")
-            
+
             # Return the updated UI
             return Div(*self.generate_step_placeholders(steps, app_name), id=f"{app_name}-container")
 
@@ -492,17 +494,17 @@ class HelloFlow:
         if "finalize" in state:
             del state["finalize"]
         pip.write_state(pipeline_id, state)
-        
+
         # Send a message informing them they can revert to any step
         await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.")
-        
+
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
 
     def generate_step_placeholders(self, steps, app_name):
         placeholders = []
         for i, step in enumerate(steps):
-            trigger = "load" if i == 0 else f"stepComplete-{steps[i-1].id} from:{steps[i-1].id}"
+            trigger = "load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}"
             placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
         return placeholders
 
