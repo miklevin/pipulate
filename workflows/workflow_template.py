@@ -40,11 +40,10 @@ class HelloFlow:
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         self.app = app
-        self.pipulate = pipulate
         self.app_name = app_name
+        self.pipulate = pipulate
         self.pipeline = pipeline
         self.db = db
-        pip = self.pipulate
         steps = [
             # Define the ordered sequence of workflow steps
             Step(id='step_01', done='name', show='Your Name', refill=True),
