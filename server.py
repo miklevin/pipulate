@@ -928,9 +928,6 @@ def build_endpoint_training(endpoint):
             if hasattr(workflow_instance, 'TRAINING_PROMPT'):
                 prompt = workflow_instance.TRAINING_PROMPT
                 endpoint_training[workflow_name] = read_training(prompt)
-            # Fall back to the existing get_training_text method for backward compatibility
-            elif hasattr(workflow_instance, 'get_training_text') and callable(getattr(workflow_instance, 'get_training_text')):
-                endpoint_training[workflow_name] = workflow_instance.get_training_text()
             else:
                 class_name = workflow_instance.__class__.__name__
                 endpoint_training[workflow_name] = f"{class_name} app is where you manage your workflows."
