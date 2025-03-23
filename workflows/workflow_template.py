@@ -80,7 +80,6 @@ class HelloFlow:
             (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
             (f"/{app_name}/step_02", self.step_02),
             (f"/{app_name}/step_02_submit", self.step_02_submit, ["POST"]),
-            (f"/{app_name}/finalize_submit", self.handle_step_submit, ["POST"])
         ]
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
