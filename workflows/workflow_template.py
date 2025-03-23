@@ -80,16 +80,6 @@ class HelloFlow:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
 
-    # --- Core Workflow Methods (the cells) ---
-
-    def validate_step(self, step_id: str, value: str) -> tuple[bool, str]:
-        # Default validation: always valid.
-        return True, ""
-
-    async def process_step(self, step_id: str, value: str) -> str:
-        # Default processing: return value unchanged.
-        return value
-
     async def get_suggestion(self, step_id, state):
         pip, db, steps = self.pipulate, self.db, self.steps
         # For HelloFlow, if a transform function exists, use the previous step's output.
@@ -281,11 +271,23 @@ class HelloFlow:
         
         form = await request.form()
         user_val = form.get(step.done, "")
-        is_valid, error_msg = self.validate_step(step_id, user_val)
+
+        # VALIDATION: Add step-specific validation here
+        is_valid = True
+        error_msg = ""
+        # Example validation: Check if name is not empty
+        # if not user_val.strip():
+        #     is_valid = False
+        #     error_msg = "Name cannot be empty"
+        
         if not is_valid:
             return P(error_msg, style="color: red;")
         
-        processed_val = await self.process_step(step_id, user_val)
+        # PROCESSING: Add step-specific processing here
+        processed_val = user_val
+        # Example processing: Capitalize name
+        # processed_val = user_val.capitalize()
+
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         
@@ -395,11 +397,23 @@ class HelloFlow:
         
         form = await request.form()
         user_val = form.get(step.done, "")
-        is_valid, error_msg = self.validate_step(step_id, user_val)
+
+        # VALIDATION: Add step-specific validation here
+        is_valid = True
+        error_msg = ""
+        # Example validation: Check if name is not empty
+        # if not user_val.strip():
+        #     is_valid = False
+        #     error_msg = "Name cannot be empty"
+        
         if not is_valid:
             return P(error_msg, style="color: red;")
         
-        processed_val = await self.process_step(step_id, user_val)
+        # PROCESSING: Add step-specific processing here
+        processed_val = user_val
+        # Example processing: Capitalize name
+        # processed_val = user_val.capitalize()
+
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
         
