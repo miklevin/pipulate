@@ -14,9 +14,10 @@ This file demonstrates the basic pattern for Pipulate workflows:
 4. Steps can be reverted and the workflow can be finalized
 
 To create your own workflow:
-1. Copy this file and rename the class
-2. Define your own steps
-3. Implement custom validation and processing as needed
+1. Copy this file and rename the class, APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE
+2. Create a training.md file in the training folder (no path needed) and set TRAINING_PROMPT to refer to it
+3. Define your own steps
+4. Implement custom validation and processing as needed
 """
 
 # Each step represents one cell in our linear workflow.
@@ -26,7 +27,7 @@ class HelloFlow:
     APP_NAME = "hello"
     DISPLAY_NAME = "Hello World"
     ENDPOINT_MESSAGE = "This simple workflow demonstrates a basic Hello World example. Enter an ID to start or resume your workflow."
-    TRAINING_PROMPT = "Simple Hello World workflow."
+    TRAINING_PROMPT = "Simple Hello World workflow."  # Can refer to markdown in the training folder (no path needed)
     PRESERVE_REFILL = True
     
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -46,6 +47,8 @@ class HelloFlow:
 
         self.steps = steps
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+        # Define messages for each step
         self.step_messages = {
             "new": "Enter an ID to begin.",
             "finalize": {
@@ -54,7 +57,7 @@ class HelloFlow:
             }
         }
 
-        # For each non-finalize step, set an input and completion message that reflects the cell order.
+        # For each non-finalize step, an input and completion message is automatically generated
         for step in steps:
             if step.done != 'finalized':
                 self.step_messages[step.id] = {
@@ -64,12 +67,14 @@ class HelloFlow:
 
         # Register routes for all workflow methods.
         routes = [
+            # These are the standard routes for all workflows
             (f"/{app_name}", self.landing),
             (f"/{app_name}/init", self.init, ["POST"]),
             (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+
             # Individual step routes using new specific handlers
             (f"/{app_name}/step_01", self.step_01),
             (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
