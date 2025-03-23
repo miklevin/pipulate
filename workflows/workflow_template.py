@@ -80,36 +80,6 @@ class HelloFlow:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
 
-    async def get_suggestion(self, step_id, state):
-        pip, db, steps = self.pipulate, self.db, self.steps
-        # For HelloFlow, if a transform function exists, use the previous step's output.
-        step = next((s for s in steps if s.id == step_id), None)
-        if not step or not step.transform:
-            return ""
-        prev_index = self.steps_indices[step_id] - 1
-        if prev_index < 0:
-            return ""
-        prev_step_id = steps[prev_index].id
-        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
-        prev_word = prev_data.get("name", "")  # Use "name" for step_01
-        return step.transform(prev_word) if prev_word else ""
-
-    async def handle_revert(self, request):
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        pipeline_id = db.get("pipeline_id", "unknown")
-        if not step_id:
-            return P("Error: No step specified", style=pip.get_style("error"))
-        await pip.clear_steps_from(pipeline_id, step_id, steps)
-        state = pip.read_state(pipeline_id)
-        state["_revert_target"] = step_id
-        pip.write_state(pipeline_id, state)
-        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-        await pip.simulated_stream(message)
-        placeholders = self.generate_step_placeholders(steps, app_name)
-        return Div(*placeholders, id=f"{app_name}-container")
-
     async def landing(self):
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
@@ -182,7 +152,6 @@ class HelloFlow:
         
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
-
 
     async def step_01(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -436,13 +405,6 @@ class HelloFlow:
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
         )
 
-    def generate_step_placeholders(self, steps, app_name):
-        placeholders = []
-        for i, step in enumerate(steps):
-            trigger = "load" if i == 0 else f"stepComplete-{steps[i-1].id} from:{steps[i-1].id}"
-            placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
-        return placeholders
-
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -517,9 +479,46 @@ class HelloFlow:
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
 
+    def generate_step_placeholders(self, steps, app_name):
+        placeholders = []
+        for i, step in enumerate(steps):
+            trigger = "load" if i == 0 else f"stepComplete-{steps[i-1].id} from:{steps[i-1].id}"
+            placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
+        return placeholders
+
     async def jump_to_step(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
         db["step_id"] = step_id
         return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        pip, db, steps = self.pipulate, self.db, self.steps
+        # If a transform function exists, use the previous step's output.
+        step = next((s for s in steps if s.id == step_id), None)
+        if not step or not step.transform:
+            return ""
+        prev_index = self.steps_indices[step_id] - 1
+        if prev_index < 0:
+            return ""
+        prev_step_id = steps[prev_index].id
+        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
+        prev_word = prev_data.get("name", "")
+        return step.transform(prev_word) if prev_word else ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id:
+            return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await pip.simulated_stream(message)
+        placeholders = self.generate_step_placeholders(steps, app_name)
+        return Div(*placeholders, id=f"{app_name}-container")
