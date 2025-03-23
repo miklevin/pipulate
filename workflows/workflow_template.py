@@ -65,7 +65,7 @@ class HelloFlow:
                     "complete": f"{step.show} complete. Continue to next step."
                 }
 
-        # Register routes for all workflow methods.
+        # Define routes for all workflow methods.
         routes = [
             # These are the standard routes for all workflows
             (f"/{app_name}", self.landing),
@@ -75,12 +75,13 @@ class HelloFlow:
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
 
-            # Individual step routes using new specific handlers
+            # Individual step_xx and step_xx_submit routes per step (except finalize)
             (f"/{app_name}/step_01", self.step_01),
             (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
             (f"/{app_name}/step_02", self.step_02),
             (f"/{app_name}/step_02_submit", self.step_02_submit, ["POST"]),
         ]
+        # Register the routes
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
@@ -136,7 +137,7 @@ class HelloFlow:
         
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}. You can use this ID to return to this workflow later."
-        await pip.simulated_stream(id_message)
+        await pip.stream(id_message)
         
         # Add a small delay to ensure messages appear in the correct order
         await asyncio.sleep(0.5)
@@ -144,13 +145,13 @@ class HelloFlow:
         # If all steps are complete, show an appropriate message
         if all_steps_complete:
             if is_finalized:
-                await pip.simulated_stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.")
+                await pip.stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.")
             else:
-                await pip.simulated_stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.")
+                await pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.")
         else:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
-                await pip.simulated_stream("Please complete each step in sequence. Your progress will be saved automatically.")
+                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.")
         
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
@@ -212,7 +213,7 @@ class HelloFlow:
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
                 
-            await pip.simulated_stream(self.step_messages[step_id]["input"])
+            await pip.stream(self.step_messages[step_id]["input"])
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -239,7 +240,7 @@ class HelloFlow:
             state[step_id] = {step.done: True}
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.simulated_stream(message)
+            await pip.stream(message)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
         
@@ -272,12 +273,12 @@ class HelloFlow:
         pip.write_state(pipeline_id, state)
         
         # Send the value confirmation
-        await pip.simulated_stream(f"{step.show}: {processed_val}")
+        await pip.stream(f"{step.show}: {processed_val}")
         
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.simulated_stream("All steps complete! Please press the Finalize button below to save your data.")
+            await pip.stream("All steps complete! Please press the Finalize button below to save your data.")
         
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
@@ -338,7 +339,7 @@ class HelloFlow:
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
                 
-            await pip.simulated_stream(self.step_messages[step_id]["input"])
+            await pip.stream(self.step_messages[step_id]["input"])
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -365,7 +366,7 @@ class HelloFlow:
             state[step_id] = {step.done: True}
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.simulated_stream(message)
+            await pip.stream(message)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
         
@@ -398,12 +399,12 @@ class HelloFlow:
         pip.write_state(pipeline_id, state)
         
         # Send the value confirmation
-        await pip.simulated_stream(f"{step.show}: {processed_val}")
+        await pip.stream(f"{step.show}: {processed_val}")
         
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.simulated_stream("All steps complete! Please press the Finalize button below to save your data.")
+            await pip.stream("All steps complete! Please press the Finalize button below to save your data.")
         
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
@@ -465,7 +466,7 @@ class HelloFlow:
             pip.write_state(pipeline_id, state)
             
             # Send a confirmation message
-            await pip.simulated_stream("Workflow successfully finalized! Your data has been saved and locked.")
+            await pip.stream("Workflow successfully finalized! Your data has been saved and locked.")
             
             # Return the updated UI
             return Div(*self.generate_step_placeholders(steps, app_name), id=f"{app_name}-container")
@@ -479,7 +480,7 @@ class HelloFlow:
         pip.write_state(pipeline_id, state)
         
         # Send a message informing them they can revert to any step
-        await pip.simulated_stream("Workflow unfinalized! You can now revert to any step and make changes.")
+        await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.")
         
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
@@ -524,6 +525,6 @@ class HelloFlow:
         state["_revert_target"] = step_id
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-        await pip.simulated_stream(message)
+        await pip.stream(message)
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")

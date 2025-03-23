@@ -1235,7 +1235,7 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
-    async def simulated_stream(self, thewords: str, delay: float = 0.05):
+    async def stream(self, thewords: str, delay: float = 0.05):
         async def stream_task():
             import re
             words = re.split(r'(\s+)', thewords)
@@ -1657,7 +1657,7 @@ async def chatq(message: str, verbatim: bool = False, role: str = "user", base_a
         if verbatim:
             if spaces_before:
                 await chat.broadcast("<br>" * spaces_before)
-            await pipulate.simulated_stream(message)
+            await pipulate.stream(message)
             if spaces_after:
                 await chat.broadcast("<br>" * spaces_after)
             response_text = message
