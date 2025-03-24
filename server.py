@@ -898,15 +898,22 @@ def build_endpoint_messages(endpoint):
     # Add messages for all workflows in our registry
     for workflow_name, workflow_instance in workflow_instances.items():
         if workflow_name not in endpoint_messages:
-            # Use duck typing to check for the get_endpoint_message method
-            if hasattr(workflow_instance, 'get_endpoint_message') and callable(getattr(workflow_instance, 'get_endpoint_message')):
+            # First check for ENDPOINT_MESSAGE attribute
+            if hasattr(workflow_instance, 'ENDPOINT_MESSAGE'):
+                endpoint_messages[workflow_name] = workflow_instance.ENDPOINT_MESSAGE
+            # Then check for get_endpoint_message method
+            elif hasattr(workflow_instance, 'get_endpoint_message') and callable(getattr(workflow_instance, 'get_endpoint_message')):
                 endpoint_messages[workflow_name] = workflow_instance.get_endpoint_message()
             else:
                 class_name = workflow_instance.__class__.__name__
                 endpoint_messages[workflow_name] = f"{class_name} app is where you manage your workflows."
 
-    logger.debug(f"Checking if {workflow_name} has get_endpoint_message: {hasattr(workflow_instance, 'get_endpoint_message')}")
-    logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(workflow_instance, 'get_endpoint_message', None))}")
+    # These debug logs should be outside the loop or use the endpoint parameter
+    if endpoint in workflow_instances:
+        workflow_instance = workflow_instances[endpoint]
+        logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(workflow_instance, 'get_endpoint_message')}")
+        logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(workflow_instance, 'get_endpoint_message', None))}")
+        logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(workflow_instance, 'ENDPOINT_MESSAGE')}")
 
     return endpoint_messages.get(endpoint, None)
 
