@@ -29,7 +29,7 @@ class HelloFlow:
     APP_NAME = "hello"
     DISPLAY_NAME = "Hello World"
     ENDPOINT_MESSAGE = "This simple workflow demonstrates a basic Hello World example. Enter an ID to start or resume your workflow."
-    TRAINING_PROMPT = "Simple Hello World workflow."  # Can refer to markdown in the training folder (no path needed)
+    TRAINING_PROMPT = "workflow_template.md"  # Can refer to markdown in the training folder (no path needed)
     PRESERVE_REFILL = True
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
