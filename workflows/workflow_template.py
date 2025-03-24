@@ -63,23 +63,6 @@ class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
 
         self.steps = steps
 
-        # Define messages for each step
-        self.step_messages = {
-            "new": "Enter an ID to begin.",
-            "finalize": {
-                "ready": "All steps complete. Ready to finalize workflow.",
-                "complete": "Workflow finalized. Use Unfinalize to make changes."
-            }
-        }
-
-        # For each non-finalize step, an input and completion message is automatically generated
-        for step in steps:
-            if step.done != 'finalized':
-                self.step_messages[step.id] = {
-                    "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
-                    "complete": f"{step.show} complete. Continue to next step."
-                }
-
         # Define routes for all workflow methods.
         routes = [
             # These are the standard routes for all workflows
@@ -100,6 +83,22 @@ class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
+
+        # Define messages for new and finalize
+        self.step_messages = {
+            "new": "Enter an ID to begin.",
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": "Workflow finalized. Use Unfinalize to make changes."
+            }
+        }
+
+        # Add a message for each step
+        for step in steps:
+            self.step_messages[step.id] = {
+                "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
+                "complete": f"{step.show} complete. Continue to next step."
+            }
 
         self.steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
