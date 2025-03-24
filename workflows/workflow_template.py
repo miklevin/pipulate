@@ -46,27 +46,23 @@ class HelloFlow:
         steps = [
             # Define the ordered sequence of workflow steps
             Step(
-                id='step_01',
-                done='name',
-                show='Your Name',
-                refill=True
+                id='step_01',      # Use the step_xx format
+                done='name',       # Step is done when this value is set
+                show='Your Name',  # What to show in the UI
+                refill=True,       # Whether to refill with last value on revert
+                # Step 1 never needs a transform
             ),
             Step(
                 id='step_02',
                 done='greeting',
                 show='Hello Message',
                 refill=False,
-                transform=lambda name: f"Hello {name}"
+                transform=lambda x: f"Hello {x}"  # Pipe from previous step
             ),
-            Step(
-                id='finalize',
-                done='finalized',
-                show='Finalize',
-                refill=False
-            )
         ]
 
         self.steps = steps
+        self.steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
         # Define messages for each step
