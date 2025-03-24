@@ -25,9 +25,9 @@ To create your own workflow:
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class HelloFlow:
-    APP_NAME = "hello"
-    DISPLAY_NAME = "Hello World"
+class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
+    APP_NAME = "hello"  # <-- CHANGE THIS to value for database
+    DISPLAY_NAME = "Hello World"  # <-- CHANGE THIS to value for User Interface
     ENDPOINT_MESSAGE = (
         "This simple workflow demonstrates a basic Hello World example. "
         "Enter an ID to start or resume your workflow."
