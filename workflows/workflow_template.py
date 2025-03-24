@@ -21,34 +21,39 @@ To create your own workflow:
 4. Implement custom validation and processing as needed
 """
 
-# Each step represents one cell in our linear workflow.
+# This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
-    APP_NAME = "hello"  # <-- CHANGE THIS to value for database
+class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
+    APP_NAME = "hello"  # <-- CHANGE THIS to something no other workflow is using
     DISPLAY_NAME = "Hello World"  # <-- CHANGE THIS to value for User Interface
-    ENDPOINT_MESSAGE = (
+    ENDPOINT_MESSAGE = (  # <-- Shows when user switches to workflow landing page
         "This simple workflow demonstrates a basic Hello World example. "
         "Enter an ID to start or resume your workflow."
     )
     TRAINING_PROMPT = "workflow_template.md"  # markdown file from /training or plain text
-    PRESERVE_REFILL = True
+    PRESERVE_REFILL = True  # <-- Whether to preserve refill values on revert
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """
+        Initialize the workflow.
+        """
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
         self.pipeline = pipeline
+        self.steps_indices = {}
         self.db = db
         pip = self.pipulate
 
+        # Customize the steps, it's like one step per cell in the Notebook
         steps = [
-            # Define the ordered sequence of workflow steps
+            # Define the ordered sequence of steps
             Step(
-                id='step_01',      # Use the step_xx format
-                done='name',       # Step is done when this value is set
-                show='Your Name',  # What to show in the UI
+                id='step_01',      # Please continue using the step_xx format
+                done='name',       # Step is done when this field is submitted
+                show='Your Name',  # What to show in the UI for done field
                 refill=True,       # Whether to refill with last value on revert
                 # Step 1 never needs a transform
             ),
@@ -57,72 +62,75 @@ class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
                 done='greeting',
                 show='Hello Message',
                 refill=False,
-                transform=lambda x: f"Hello {x}"  # Pipe from previous step
+                transform=lambda x: f"Hello {x}"  # Pipes done value from previous step
             ),
         ]
 
-        self.steps = steps
-
-        # Define routes for all workflow methods.
+        # Defines routes for standard workflow method (do not change)
         routes = [
-            # These are the standard routes for all workflows
             (f"/{app_name}", self.landing),
-            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/init", self.init, ["POST"]), 
             (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
-
-            # Individual step_xx and step_xx_submit routes per step (except finalize)
-            (f"/{app_name}/step_01", self.step_01),
-            (f"/{app_name}/step_01_submit", self.step_01_submit, ["POST"]),
-            (f"/{app_name}/step_02", self.step_02),
-            (f"/{app_name}/step_02_submit", self.step_02_submit, ["POST"]),
         ]
-        # Register the routes
+
+        # Defines routes for each custom step (do not change)
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+
+        # Register the routes (do not change)
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
-            self.app.route(path, methods=method_list)(handler)
+            app.route(path, methods=method_list)(handler)
 
-        # Define messages for new and finalize
+        # Define messages for finalize (you can change these)
         self.step_messages = {
-            "new": "Enter an ID to begin.",
             "finalize": {
                 "ready": "All steps complete. Ready to finalize workflow.",
                 "complete": "Workflow finalized. Use Unfinalize to make changes."
             }
         }
 
-        # Add a message for each step
+        # Creates a default message for each step (you can change these)
         for step in steps:
             self.step_messages[step.id] = {
                 "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                 "complete": f"{step.show} complete. Continue to next step."
             }
 
-        self.steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        # Add a finalize step to the workflow (do not change)
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self):
+        """
+        This is the landing page for the workflow. It asks for a unique identifier.
+        It is necessary for the workflow to function. Only change cosmetic elements.
+        """
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
         pipeline.xtra(app_name=app_name)
         existing_ids = [record.url for record in pipeline()]
-        return Container(
+        return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P("Enter or resume a Pipeline ID:"),
+                P("Enter or resume a Pipeline ID:"),  # You can change this message
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="🗝 Old or existing ID here",
+                            placeholder="🗝 Old or existing ID here",  # You can change this placeholder
                             name="pipeline_id",
                             list="pipeline-ids",
                             type="text",
                             required=True,
                             autofocus=True,
                         ),
-                        button_label=f"Start {self.DISPLAY_NAME} 🔑",
+                        button_label=f"Start {self.DISPLAY_NAME} 🔑",  # You can change this button label
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
