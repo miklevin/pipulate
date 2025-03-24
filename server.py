@@ -1124,6 +1124,7 @@ class Pipulate:
 
     @pipeline_operation
     def initialize_if_missing(self, url: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
+        # This needs to check for existing pipelines with the same URL for a different app_name
         try:
             state = self.read_state(url)
             if state:
