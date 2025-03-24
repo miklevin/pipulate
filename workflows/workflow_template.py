@@ -28,8 +28,11 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 class HelloFlow:
     APP_NAME = "hello"
     DISPLAY_NAME = "Hello World"
-    ENDPOINT_MESSAGE = "This simple workflow demonstrates a basic Hello World example. Enter an ID to start or resume your workflow."
-    TRAINING_PROMPT = "workflow_template.md"  # Can refer to markdown in the training folder (no path needed)
+    ENDPOINT_MESSAGE = (
+        "This simple workflow demonstrates a basic Hello World example. "
+        "Enter an ID to start or resume your workflow."
+    )
+    TRAINING_PROMPT = "workflow_template.md"  # markdown file from /training or plain text
     PRESERVE_REFILL = True
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -42,9 +45,25 @@ class HelloFlow:
 
         steps = [
             # Define the ordered sequence of workflow steps
-            Step(id='step_01', done='name', show='Your Name', refill=True),
-            Step(id='step_02', done='greeting', show='Hello Message', refill=False, transform=lambda name: f"Hello {name}"),
-            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+            Step(
+                id='step_01',
+                done='name',
+                show='Your Name',
+                refill=True
+            ),
+            Step(
+                id='step_02',
+                done='greeting',
+                show='Hello Message',
+                refill=False,
+                transform=lambda name: f"Hello {name}"
+            ),
+            Step(
+                id='finalize',
+                done='finalized',
+                show='Finalize',
+                refill=False
+            )
         ]
 
         self.steps = steps
@@ -259,18 +278,14 @@ class HelloFlow:
         # VALIDATION: Add step-specific validation here
         is_valid = True
         error_msg = ""
-        # Example validation: Check if name is not empty
-        # if not user_val.strip():
-        #     is_valid = False
-        #     error_msg = "Name cannot be empty"
+        if not user_val.strip():
+            is_valid = False
+            error_msg = f"{step.show} cannot be empty"
 
         if not is_valid:
             return P(error_msg, style=pip.get_style("error"))
 
-        # PROCESSING: Add step-specific processing here
-        processed_val = user_val
-        # Example processing: Capitalize name
-        # processed_val = user_val.capitalize()
+        processed_val = user_val  # Perform any processing here
 
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -392,18 +407,14 @@ class HelloFlow:
         # VALIDATION: Add step-specific validation here
         is_valid = True
         error_msg = ""
-        # Example validation: Check if name is not empty
-        # if not user_val.strip():
-        #     is_valid = False
-        #     error_msg = "Name cannot be empty"
+        if not user_val.strip():
+            is_valid = False
+            error_msg = f"{step.show} cannot be empty"
 
         if not is_valid:
             return P(error_msg, style=pip.get_style("error"))
 
-        # PROCESSING: Add step-specific processing here
-        processed_val = user_val
-        # Example processing: Capitalize name
-        # processed_val = user_val.capitalize()
+        processed_val = user_val  # Perform any processing here
 
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -525,8 +536,9 @@ class HelloFlow:
         if prev_index < 0:
             return ""
         prev_step_id = steps[prev_index].id
+        prev_step = steps[prev_index]
         prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
-        prev_word = prev_data.get("name", "")
+        prev_word = prev_data.get(prev_step.done, "")
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
