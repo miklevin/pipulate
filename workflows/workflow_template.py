@@ -62,8 +62,6 @@ class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
         ]
 
         self.steps = steps
-        self.steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
         # Define messages for each step
         self.step_messages = {
@@ -102,6 +100,9 @@ class HelloFlow:  # <-- CHANGE THIS to new WorkFlow name
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
             self.app.route(path, methods=method_list)(handler)
+
+        self.steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self):
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
