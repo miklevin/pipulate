@@ -1,0 +1,54 @@
+#msg-list, #msg-list {
+    display: flex;
+    flex-direction: column;
+}
+#msg-list {
+    padding-right: 10px;
+}
+.message {
+    margin-left: 0;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 100%;
+    white-space: pre-wrap;
+}
+.message.user {
+    background: var(--pico-primary-background);
+    margin-left: auto;
+}
+.message.assistant {
+    background: var(--pico-muted-background);
+    margin-right: auto;
+}
+
+/* Modern scrollbar styling */
+#msg-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#msg-list::-webkit-scrollbar-track {
+    background: var(--pico-background-color);
+    border-radius: 4px;
+}
+
+#msg-list::-webkit-scrollbar-thumb {
+    background: var(--pico-muted-border-color);
+    border-radius: 4px;
+}
+
+#msg-list::-webkit-scrollbar-thumb:hover {
+    background: var(--pico-form-element-border-color);
+}
+
+/* Firefox */
+#msg-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--pico-muted-border-color) var(--pico-background-color);
+}
+
+hr {
+    border-color: var(--pico-primary);
+    opacity: 0.3;
+}
