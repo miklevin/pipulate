@@ -170,21 +170,21 @@ console = DebugConsole(theme=custom_theme)
 
 
 def title_name(word):
-    return word.replace('_', ' ').replace('.', ' ').title()
+    return ' '.join(word.capitalize() for word in word.replace('.', ' ').split('_'))
 
 
-def format_endpoint_name(endpoint: str) -> str:
+def endpoint_name(endpoint: str) -> str:
     if endpoint in friendly_names:
         return friendly_names[endpoint]
-    return ' '.join(word.capitalize() for word in endpoint.split('_'))
+    return title_name(endpoint)
 
 
-def format_step_name(step: str, preserve: bool = False) -> str:
+def step_name(step: str, preserve: bool = False) -> str:
     _, number = step.split('_')
     return f"Step {number.lstrip('0')}"
 
 
-def format_step_button(step: str, preserve: bool = False, revert_label: str = None) -> str:
+def step_button(step: str, preserve: bool = False, revert_label: str = None) -> str:
     logger.debug(f"[format_step_button] Entry - step={step}, preserve={preserve}, revert_label={revert_label}")
     _, number = step.split('_')
     symbol = "⟲"if preserve else "↶"
@@ -242,13 +242,6 @@ def hot_prompt_injection(prompt_or_filename):
     prompt = read_training(prompt_or_filename)
     append_to_conversation(prompt, role="system", quiet=True)
     return prompt
-
-
-def generate_system_message():
-    message = read_training("system_prompt.md")
-    logger.debug("Begin System Prompt")
-    logger.debug("End System Prompt")
-    return message
 
 
 def todo_list_training():
@@ -363,7 +356,7 @@ if MAX_LLM_RESPONSE_WORDS:
 else:
     limiter = ""
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
-conversation = [{"role": "system", "content": generate_system_message()}]
+conversation = [{"role": "system", "content": read_training("system_prompt.md")}]
 
 
 def append_to_conversation(message=None, role="user", quiet=False):
@@ -1515,7 +1508,7 @@ class Pipulate:
                 value=step_id
             ),
             Button(
-                format_step_button(step_id, refill, revert_label),
+                step_button(step_id, refill, revert_label),
                 type="submit",
                 style=default_style
             ),
@@ -1802,7 +1795,7 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
-    return Titled(f"{APP_NAME} / {title_name(last_profile_name)} / {format_endpoint_name(menux)}", response, data_theme="dark", style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
+    return Titled(f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}", response, data_theme="dark", style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
 
 
 def create_nav_group():
@@ -1830,7 +1823,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     def get_selected_item_style(is_selected):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
-    menu_items.append(Li(A(f"Edit {format_endpoint_name(profile_app.name)}", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
+    menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
     active_profiles = profiles("active=?", (True,), order_by='priority')
     for profile in active_profiles:
         is_selected = str(profile.id) == str(selected_profile_id)
@@ -1844,8 +1837,8 @@ def create_app_menu(menux):
     for item in MENU_ITEMS:
         is_selected = item == menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
-        menu_items.append(Li(A(format_endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
-    return Details(Summary(f"APP: {format_endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
+        menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
+    return Details(Summary(f"APP: {endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
 
 
 async def create_outer_container(current_profile_id, menux):
@@ -2682,7 +2675,7 @@ class Chat:
                 help_text = """Available commands:
                 !help - Show this help message"""
                 await websocket.send_text(help_text)
-                system_message = generate_system_message()
+                system_message = read_training("system_prompt.md")
                 await chatq(system_message, role="system", base_app=self)
                 return
             append_to_conversation(message, "user")
