@@ -20,7 +20,6 @@ import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
-from pyfiglet import Figlet
 from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
@@ -154,14 +153,6 @@ class DebugConsole(Console):
 
 
 console = DebugConsole(theme=custom_theme)
-
-
-def fig(text, font='slant', color='cyan'):
-    font = 'standard'
-    figlet = Figlet(font=font)
-    fig_text = figlet.renderText(str(text))
-    colored_text = Text(fig_text, style=f"{color} on default")
-    console.print(colored_text, style="on default")
 
 
 def name(word):
@@ -2691,42 +2682,9 @@ class Chat:
 
     async def handle_chat_message(self, websocket: WebSocket, message: str):
         try:
-            if message.lower().startswith(('!egg', '!easter')):
-                easter_emojis = {'egg': '🥚', 'hatching': '🐣', 'rabbit': '🐰', 'sparkles': '✨', 'gift': '🎁', 'magic': '🪄', 'surprise': '🎉', 'treasure': '💎', 'key': '🔑', 'lock': '🔒'}
-                prompt = (f"Generate a response in the following format:\n"f"EMOJI: [one emoji name from this list: {', '.join(easter_emojis.keys())}]\n"f"TASK: [max 12 char task name]\n"f"JOKE: [unique 1-2 sentence joke about software Easter eggs]\n\n"f"Make the joke creative and unexpected. Vary your emoji and task name choices.\n"f"Important: Keep the exact format with EMOJI:, TASK:, and JOKE: labels.")
-                messages = [{"role": "user", "content": prompt}]
-                response = ""
-                response = await chatq(prompt, base_app=self.base_app)
-                emoji_key = None
-                task_name = None
-                joke = None
-                lines = response.strip().split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('EMOJI:'):
-                        emoji_key = line[6:].strip().lower()
-                    elif line.startswith('TASK:'):
-                        task_name = line[5:].strip()
-                    elif line.startswith('JOKE:'):
-                        joke = line[5:].strip()
-                if not emoji_key or emoji_key not in easter_emojis:
-                    emoji_key = random.choice(list(easter_emojis.keys()))
-                if not task_name:
-                    task_name = "EggHunt"
-                if not joke:
-                    joke = "Found a quirky Easter egg! 🎉"
-                chosen_emoji = easter_emojis[emoji_key]
-                new_item = todos.insert({"name": f"{chosen_emoji} {task_name}"})
-                todo_html = to_xml(render_todo(new_item))
-                todo_html = todo_html.replace('<li', f'<li data-id="{new_item.id}" id="todo-{new_item.id}"')
-                todo_html = todo_html.replace('<li', '<li hx-swap="beforeend" hx-target="#todo-list"')
-                todo_html += f'<script>htmx.process(document.getElementById("todo-{new_item.id}"))</script>'
-                await websocket.send_text(todo_html)
-                return
             if message.lower().startswith('!help'):
                 help_text = """Available commands:
                 !test - Run DOM manipulation test
-                !egg - Insert a test task
                 !help - Show this help message"""
                 await websocket.send_text(help_text)
                 system_message = generate_system_message()
@@ -2835,7 +2793,6 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         endpoint = request.url.path
         method = request.method
-        fig(font='slant', text=f"{method} {endpoint}")
         logger.debug(f"HTTP Request: {method} {endpoint}")
         response = await call_next(request)
         cookie_table = Table(title="Stored Cookie States")
@@ -2912,11 +2869,8 @@ for item in ALL_ROUTES:
         return await home(request)
 app.add_middleware(DOMSkeletonMiddleware)
 logger.debug("Application setup completed with DOMSkeletonMiddleware.")
-fig(font='slant', text=APP_NAME)
-fig(f'MODEL: {MODEL}', font='ogre')
 logger.debug(f"Using MODEL: {MODEL}")
 print_routes()
-fig('Server', font='big')
 
 
 def check_syntax(filename):
