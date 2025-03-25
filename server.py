@@ -1,4 +1,4 @@
-# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns.  import ast
+# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!
 
 import ast
 import asyncio
@@ -620,6 +620,9 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
 
 
 class BaseApp:
+    """
+    CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
+    """
     def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None):
         self.name = name
         self.table = table
@@ -820,21 +823,111 @@ def render_profile(profile):
         count = len(table_handle())
         logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
         return count
+
     todo_count = count_records_with_xtra(todos, 'profile_id', profile.id)
-    delete_icon_visibility = 'inline'if todo_count == 0 else 'none'
+    delete_icon_visibility = 'inline' if todo_count == 0 else 'none'
     delete_url = profile_app.get_action_url('delete', profile.id)
     toggle_url = profile_app.get_action_url('toggle', profile.id)
-    delete_icon = A('🗑', hx_delete=delete_url, hx_target=f'#profile-{profile.id}', hx_swap='outerHTML', style=f"cursor: pointer; display: {delete_icon_visibility};", cls="delete-icon")
-    active_checkbox = Input(type="checkbox", name="active"if profile.active else None, checked=profile.active, hx_post=toggle_url, hx_target=f'#profile-{profile.id}', hx_swap="outerHTML", style="margin-right: 5px;")
-    update_form = Form(Group(Input(type="text", name="profile_name", value=profile.name, placeholder="Name", id=f"name-{profile.id}"), Input(type="text", name="profile_menu_name", value=profile.menu_name, placeholder="Menu Name", id=f"menu_name-{profile.id}"), Input(type="text", name="profile_address", value=profile.address, placeholder=PLACEHOLDER_ADDRESS, id=f"address-{profile.id}"), Input(type="text", name="profile_code", value=profile.code, placeholder=PLACEHOLDER_CODE, id=f"code-{profile.id}"), Button("Update", type="submit"),), hx_post=f"/{profile_app.name}/{profile.id}", hx_target=f'#profile-{profile.id}', hx_swap='outerHTML', style="display: none;", id=f'update-form-{profile.id}')
-    title_link = A(f"{profile.name} ({todo_count})", href="#", hx_trigger="click", onclick=("let li = this.closest('li'); ""let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); ""if (updateForm.style.display === 'none' || updateForm.style.display === '') { ""    updateForm.style.display = 'block'; ""    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); ""} else { ""    updateForm.style.display = 'none'; ""    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); ""}"))
+
+    delete_icon = A(
+        '🗑',
+        hx_delete=delete_url,
+        hx_target=f'#profile-{profile.id}',
+        hx_swap='outerHTML',
+        style=f"cursor: pointer; display: {delete_icon_visibility};",
+        cls="delete-icon"
+    )
+
+    active_checkbox = Input(
+        type="checkbox",
+        name="active" if profile.active else None,
+        checked=profile.active,
+        hx_post=toggle_url,
+        hx_target=f'#profile-{profile.id}',
+        hx_swap="outerHTML",
+        style="margin-right: 5px;"
+    )
+
+    update_form = Form(
+        Group(
+            Input(
+                type="text",
+                name="profile_name",
+                value=profile.name,
+                placeholder="Name",
+                id=f"name-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_menu_name",
+                value=profile.menu_name,
+                placeholder="Menu Name",
+                id=f"menu_name-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_address",
+                value=profile.address,
+                placeholder=PLACEHOLDER_ADDRESS,
+                id=f"address-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_code",
+                value=profile.code,
+                placeholder=PLACEHOLDER_CODE,
+                id=f"code-{profile.id}"
+            ),
+            Button("Update", type="submit"),
+        ),
+        hx_post=f"/{profile_app.name}/{profile.id}",
+        hx_target=f'#profile-{profile.id}',
+        hx_swap='outerHTML',
+        style="display: none;",
+        id=f'update-form-{profile.id}'
+    )
+
+    title_link = A(
+        f"{profile.name} ({todo_count})",
+        href="#",
+        hx_trigger="click",
+        onclick=(
+            "let li = this.closest('li'); "
+            "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "
+            "if (updateForm.style.display === 'none' || updateForm.style.display === '') { "
+            "    updateForm.style.display = 'block'; "
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); "
+            "} else { "
+            "    updateForm.style.display = 'none'; "
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); "
+            "}"
+        )
+    )
+
     contact_info = []
     if profile.address:
         contact_info.append(profile.address)
     if profile.code:
         contact_info.append(profile.code)
-    contact_info_span = (Span(f" ({', '.join(contact_info)})", style="margin-left: 10px;")if contact_info else Span())
-    return Li(Div(active_checkbox, title_link, contact_info_span, delete_icon, update_form, style="display: flex; align-items: center;"), id=f'profile-{profile.id}', data_id=profile.id, data_priority=profile.priority, style="list-style-type: none;")
+    contact_info_span = (
+        Span(f" ({', '.join(contact_info)})", style="margin-left: 10px;")
+        if contact_info else Span()
+    )
+
+    return Li(
+        Div(
+            active_checkbox,
+            title_link,
+            contact_info_span,
+            delete_icon,
+            update_form,
+            style="display: flex; align-items: center;"
+        ),
+        id=f'profile-{profile.id}',
+        data_id=profile.id,
+        data_priority=profile.priority,
+        style="list-style-type: none;"
+    )
 
 
 class TodoApp(BaseApp):
@@ -868,14 +961,132 @@ def render_todo(todo):
     print(f"[DEBUG] render_todo called for ID {todo.id} with name '{todo.name}'")
     delete_url = todo_app.get_action_url('delete', todo.id)
     toggle_url = todo_app.get_action_url('toggle', todo.id)
-    checkbox = Input(type="checkbox", name="english"if todo.done else None, checked=todo.done, hx_post=toggle_url, hx_swap="outerHTML", hx_target=f"#{tid}",)
-    delete = A('🗑', hx_delete=delete_url, hx_swap='outerHTML', hx_target=f"#{tid}", style="cursor: pointer; display: inline;", cls="delete-icon")
-    name_link = A(todo.name, href="#", cls="todo-title", style="text-decoration: none; color: inherit;", onclick=("let updateForm = this.nextElementSibling; ""let checkbox = this.parentNode.querySelector('input[type=checkbox]'); ""let deleteIcon = this.parentNode.querySelector('.delete-icon'); ""if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { ""    updateForm.style.visibility = 'visible'; ""    updateForm.style.height = 'auto'; ""    checkbox.style.display = 'none'; ""    deleteIcon.style.display = 'none'; ""    this.remove(); ""    const inputField = document.getElementById('todo_name_" + str(todo.id) + "'); ""    inputField.focus(); ""    inputField.setSelectionRange(inputField.value.length, inputField.value.length); ""} else { ""    updateForm.style.visibility = 'hidden'; ""    updateForm.style.height = '0'; ""    checkbox.style.display = 'inline'; ""    deleteIcon.style.display = 'inline'; ""    this.style.visibility = 'visible'; ""}"))
-    update_form = Form(Div(Input(type="text", id=f"todo_name_{todo.id}", value=todo.name, name="name", style="flex: 1; padding-right: 10px; margin-bottom: 0px;"), style="display: flex; align-items: center;"), style="visibility: hidden; height: 0; overflow: hidden;", hx_post=f"/{todo_app.name}/{todo.id}", hx_target=f"#{tid}", hx_swap="outerHTML",)
-    return Li(delete, checkbox, name_link, update_form, id=tid, cls='done'if todo.done else '', style="list-style-type: none;", data_id=todo.id, data_priority=todo.priority)
+    
+    checkbox = Input(
+        type="checkbox",
+        name="english" if todo.done else None,
+        checked=todo.done,
+        hx_post=toggle_url,
+        hx_swap="outerHTML",
+        hx_target=f"#{tid}",
+    )
+    
+    delete = A(
+        '🗑',
+        hx_delete=delete_url,
+        hx_swap='outerHTML',
+        hx_target=f"#{tid}",
+        style="cursor: pointer; display: inline;",
+        cls="delete-icon"
+    )
+    
+    name_link = A(
+        todo.name,
+        href="#",
+        cls="todo-title",
+        style="text-decoration: none; color: inherit;",
+        onclick=(
+            "let updateForm = this.nextElementSibling; "
+            "let checkbox = this.parentNode.querySelector('input[type=checkbox]'); "
+            "let deleteIcon = this.parentNode.querySelector('.delete-icon'); "
+            "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
+            "    updateForm.style.visibility = 'visible'; "
+            "    updateForm.style.height = 'auto'; "
+            "    checkbox.style.display = 'none'; "
+            "    deleteIcon.style.display = 'none'; "
+            "    this.remove(); "
+            "    const inputField = document.getElementById('todo_name_" + str(todo.id) + "'); "
+            "    inputField.focus(); "
+            "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "
+            "} else { "
+            "    updateForm.style.visibility = 'hidden'; "
+            "    updateForm.style.height = '0'; "
+            "    checkbox.style.display = 'inline'; "
+            "    deleteIcon.style.display = 'inline'; "
+            "    this.style.visibility = 'visible'; "
+            "}"
+        )
+    )
+    
+    update_form = Form(
+        Div(
+            Input(
+                type="text",
+                id=f"todo_name_{todo.id}",
+                value=todo.name,
+                name="name",
+                style="flex: 1; padding-right: 10px; margin-bottom: 0px;"
+            ),
+            style="display: flex; align-items: center;"
+        ),
+        style="visibility: hidden; height: 0; overflow: hidden;",
+        hx_post=f"/{todo_app.name}/{todo.id}",
+        hx_target=f"#{tid}",
+        hx_swap="outerHTML",
+    )
+    
+    return Li(
+        delete,
+        checkbox,
+        name_link,
+        update_form,
+        id=tid,
+        cls='done' if todo.done else '',
+        style="list-style-type: none;",
+        data_id=todo.id,
+        data_priority=todo.priority
+    )
 
 
-app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app("data/data.db", exts='ws', live=True, default_hdrs=False, hdrs=(Meta(charset='utf-8'), Link(rel='stylesheet', href='/static/pico.css'), Script(src='/static/htmx.js'), Script(src='/static/fasthtml.js'), Script(src='/static/surreal.js'), Script(src='/static/script.js'), Script(src='/static/Sortable.js'), create_chat_scripts('.sortable'), Script(type='module')), store={"key": str, "value": str, "pk": "key"}, task={"id": int, "name": str, "done": bool, "priority": int, "profile_id": int, "pk": "id"}, profile={"id": int, "name": str, "menu_name": str, "address": str, "code": str, "active": bool, "priority": int, "pk": "id"}, pipeline={"url": str, "app_name": str, "data": str, "created": str, "updated": str, "pk": "url"})
+app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+    "data/data.db",
+    exts='ws',
+    live=True,
+    default_hdrs=False,
+    hdrs=(
+        Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/pico.css'),
+        Script(src='/static/htmx.js'),
+        Script(src='/static/fasthtml.js'),
+        Script(src='/static/surreal.js'),
+        Script(src='/static/script.js'),
+        Script(src='/static/Sortable.js'),
+        create_chat_scripts('.sortable'),
+        Script(type='module')
+    ),
+    store={
+        "key": str,
+        "value": str,
+        "pk": "key"
+    },
+    task={
+        "id": int,
+        "name": str,
+        "done": bool,
+        "priority": int,
+        "profile_id": int,
+        "pk": "id"
+    },
+    profile={
+        "id": int,
+        "name": str,
+        "menu_name": str,
+        "address": str,
+        "code": str,
+        "active": bool,
+        "priority": int,
+        "pk": "id"
+    },
+    pipeline={
+        "url": str,
+        "app_name": str,
+        "data": str,
+        "created": str,
+        "updated": str,
+        "pk": "url"
+    }
+)
+
 profile_app = ProfileApp(table=profiles)
 profile_app.register_routes(rt)
 todo_app = TodoApp(table=tasks)
@@ -1088,6 +1299,9 @@ def pipeline_operation(func):
 
 
 class Pipulate:
+    """
+    Helper class for all Workflows. The CRUD is DRY and the Workflows are WET!
+    """
     PRESERVE_REFILL = True
 
     # Style constants
@@ -2430,4 +2644,4 @@ def run_server_with_watchdog():
 if __name__ == "__main__":
     run_server_with_watchdog()
 
-# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns.
+# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!

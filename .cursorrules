@@ -11,9 +11,12 @@
    UI is built entirely from DIVs with HTMX for dynamic updates. No templating engines, component libraries, or client-heavy frameworks.
 
 4. **Pipeline Workflow Pattern:**  
-   Workflows are linear JSON blobs with self-contained steps. State flows forward only, with each step's output feeding the next. Perfect for porting from Jupyter Notebooks.
+   Workflows are linear JSON blobs with self-contained steps. State flows forward only, with each step's output feeding the next. Perfect for porting WET code from Jupyter Notebooks.
 
-5. **Local LLM Integration:**  
+5. **CRUD App Pattern:**  
+   Apps are CRUD apps that follow the FastHTML/MiniDataAPI pattern with a single table that inherit from BaseApp. The CRUD is DRY and the Workflows are WET!
+
+6. **Local LLM Integration:**  
    Integrated with Ollama for local, streaming LLM support. Bounded conversation history (128k tokens) with real-time response parsing and tool calling.
 
 ## What to Avoid

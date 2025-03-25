@@ -6,19 +6,25 @@ from fasthtml.common import *
 from loguru import logger
 
 """
-Workflow Template
+Pipulate Workflow Template
 
-This file demonstrates the basic pattern for Pipulate workflows:
+This file demonstrates the basic pattern for Pipulate Workflows:
 1. Define steps with optional transformations
 2. Each step collects or processes data
 3. Data flows from one step to the next
 4. Steps can be reverted and the workflow can be finalized
 
-To create your own workflow:
+To create your own Workflow:
 1. Copy this file and rename the class, APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE
 2. Create a training.md file in the training folder (no path needed) and set TRAINING_PROMPT to refer to it
 3. Define your own steps
 4. Implement custom validation and processing as needed
+
+There are two types of apps in Pipulate:
+1. Workflows - Linear, step-based apps. The part you're looking at. WET.
+2. Apps - CRUD apps with a single table that inherit from BaseApp. DRY.
+
+CRUD is DRY and Workflows are WET! Get ready to get WET!
 """
 
 # This is the model for a Notebook cell or step (do not change)
