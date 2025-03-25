@@ -244,113 +244,6 @@ def hot_prompt_injection(prompt_or_filename):
     return prompt
 
 
-def todo_list_training():
-    operations = [("List All Records", "list"), ("Insert (Create)", "insert"), ("Read (Retrieve)", "read"), ("Update", "update"), ("Delete", "delete"), ("Toggle Field (e.g., Status)", "toggle"), ("Sort Records", "sort"),]
-    operation_docs = {"list": """
-        # List all tasks
-        {
-            "action": "list",
-            "target": "task"
-        }""", "insert": """
-        # Create a new task
-        # Only 'name' is required - can include emoji (e.g. "🎯 Important Task")
-        # All other fields are optional and will be handled automatically
-        {
-            "action": "insert",
-            "target": "task",
-            "args": {
-                "name": "🎯 Sample Task"
-            }
-        }""", "read": """
-        # Retrieve a specific task by ID
-        {
-            "action": "read",
-            "target": "task",
-            "args": {
-                "id": "123"    # Must be a string
-            }
-        }""", "update": """
-        # Update an existing task
-        # All fields are optional except id
-        {
-            "action": "update",
-            "target": "task",
-            "args": {
-                "id": "123",           # Required: task ID as string
-                "name": "📝 New Name",  # Optional: new task name
-                "done": 1,             # Optional: 0=incomplete, 1=complete
-                "priority": 2          # Optional: new priority
-            }
-        }""", "delete": """
-        # Delete a task by ID
-        {
-            "action": "delete",
-            "target": "task",
-            "args": {
-                "id": "123"    # Must be a string
-            }
-        }""", "toggle": """
-        # Toggle a task's status (usually the 'done' field)
-        {
-            "action": "toggle",
-            "target": "task",
-            "args": {
-                "id": "123",        # Must be a string
-                "field": "done"     # Field to toggle
-            }
-        }""", "sort": """
-        # Reorder tasks by priority
-        # Lower priority number = higher in list
-        {
-            "action": "sort",
-            "target": "task",
-            "args": {
-                "items": [
-                    {"id": "123", "priority": 0},    # First item
-                    {"id": "456", "priority": 1},    # Second item
-                    {"id": "789", "priority": 2}     # Third item
-                ]
-            }
-        }"""}
-    emoji_instructions = (
-        "You are now the Tasks app and you add to the task list.\n\n"
-        "This is our JSON API contract. You must follow it to insert tasks.\n\n"
-        "Follow this whenever asked to add something to a list.\n\n"
-        "When inserting tasks, follow these rules:\n\n"
-        "1. Always use the actual emoji character with the text in the 'name' field\n"
-        "2. Example of minimal task insertion:\n\n"
-        "3. Always USE THIS EXACT FORMAT when asked to add or insert an apple:\n\n"
-        "```json\n"
-        "{\n"
-        '  "action": "insert",\n'
-        '  "target": "task",\n'
-        '  "args": {\n'
-        '    "name": "🍎 Red Apple"\n'
-        '  }\n'
-        "}\n"
-        "```\n\n"
-        "4. All string values must use double quotes\n"
-    )
-
-    syntax_instructions = (
-        "You can use the following JSON syntax to perform operations on the database.\n"
-        "Important notes:\n"
-        "1. All IDs should be strings (e.g. \"123\")\n"
-        "2. Task names can include emojis (e.g. \"🎯 Important Task\")\n"
-        "3. All operations use 'task' as the target\n"
-        "4. All string values must be properly quoted with double quotes\n\n"
-        "5. Do not pretend to add something to a list without also including the JSON.\n\n"
-    )
-    for i, (operation_name, operation_key) in enumerate(operations, 1):
-        doc = operation_docs.get(operation_key, "")
-        syntax_instructions += (f"{i}. {operation_name}\n\n"f"```json\n{doc}\n```\n\n")
-    message = emoji_instructions + "\n\n" + syntax_instructions
-    message += "Only use JSON when asked for an insert, update, delete, or toggle action. "
-    message += "All other times, RESPOND IN PLAIN ENGLISH! "
-    message += "You are a simple task list manager. \n\n"
-    return message
-
-
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f"in under {MAX_LLM_RESPONSE_WORDS} {TONE} words"
 else:
@@ -1210,7 +1103,7 @@ def build_endpoint_training(endpoint):
     endpoint_training = {
         "": ("You were just switched to the home page."),
         "profile": ("You were just switched to the profile app."),
-        "task": todo_list_training(),
+        "task": read_training("todo.md"),
         "stream_simulator": ("Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."),
         "mobile_chat": ("You were just switched to the mobile chat app."),
     }
