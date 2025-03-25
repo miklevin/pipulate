@@ -382,29 +382,6 @@ def append_to_conversation(message=None, role="user", quiet=False):
     return list(global_conversation_history)
 
 
-async def display_conversation_statistics():
-    logger.debug("Entering display_conversation_statistics")
-    role_counts = Counter(entry['role'] for entry in global_conversation_history)
-    logger.debug(f"Role counts: {dict(role_counts)}")
-    table = Table(title="Conversation History Statistics")
-    table.add_column("Role", style="cyan")
-    table.add_column("Count", style="magenta")
-    table.add_column("Percentage", style="green")
-    total_messages = sum(role_counts.values())
-    logger.debug(f"Total messages: {total_messages}")
-    for role in ['system', 'user', 'assistant']:
-        count = role_counts.get(role, 0)
-        percentage = (count / total_messages) * 100 if total_messages > 0 else 0
-        table.add_row(role.capitalize(), str(count), f"{percentage:.2f}%")
-        logger.debug(f"Added row for {role}: count={count}, percentage={percentage:.2f}%")
-    table.add_row("Total", str(total_messages), "100.00%", style="bold")
-    logger.debug("Added total row to table")
-    console = Console()
-    console.print(table)
-    logger.debug("Printed statistics table")
-    logger.debug("Exiting display_conversation_statistics")
-
-
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = "http://localhost:11434/api/chat"
     payload = {"MODEL": MODEL, "messages": messages, "stream": True}
@@ -442,7 +419,6 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             table.add_column("Accumulated Response")
                             table.add_row(final_response, style="green")
                             console.print(table)
-                            await display_conversation_statistics()
                             await post_llm_stream_json_detection(final_response, base_app)
                             break
                         if content := chunk.get("message", {}).get("content", ""):
