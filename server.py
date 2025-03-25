@@ -573,24 +573,6 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
                 }
             }
         });
-
-        window.triggerTestAppend = () => {
-            htmx.ajax('GET', '/test-append', {
-                target: '#todo-list',
-                swap: 'beforeend'
-            });
-        };
-
-        window.handleSearchSubmit = function(event) {
-            event.preventDefault();
-            const input = document.getElementById('nav-input');
-            if (input && input.value) {
-                if (window.sidebarWs) {
-                    window.sidebarWs.send(input.value);
-                }
-                input.value = '';
-            }
-        };
     }
     """
     combined_script = f"""
@@ -2684,7 +2666,6 @@ class Chat:
         try:
             if message.lower().startswith('!help'):
                 help_text = """Available commands:
-                !test - Run DOM manipulation test
                 !help - Show this help message"""
                 await websocket.send_text(help_text)
                 system_message = generate_system_message()
