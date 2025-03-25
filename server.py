@@ -73,10 +73,6 @@ def generate_menu_style():
     return (f"min-width: {MIN_MENU_WIDTH}; "f"max-width: {MAX_MENU_WIDTH}; ""width: 100%; ""white-space: nowrap; ""overflow: hidden; ""text-overflow: ellipsis; ""align-items: center; ""border-radius: 16px; ""display: inline-flex; ""justify-content: center; ""margin: 0 2px; ")
 
 
-DOWNLOAD_DIR = Path('downloads')
-DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-
 def setup_logging():
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
