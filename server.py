@@ -1840,15 +1840,88 @@ def create_chat_interface(autofocus=False, mobile=False):
 
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
-    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus'if autofocus else None,), Button("Send", type='submit', id='send-btn', disabled=disabled,), id='input-group')
+    return Group(
+        Input(
+            id='msg',
+            name='msg', 
+            placeholder='Chat...',
+            value=value,
+            disabled=disabled,
+            autofocus='autofocus' if autofocus else None,
+        ),
+        Button(
+            "Send",
+            type='submit',
+            id='send-btn',
+            disabled=disabled,
+        ),
+        id='input-group'
+    )
 
 
 def create_poke_button():
-    return Div(A("Clear Cookie", hx_post="/clear-db", hx_swap="none", cls="button", style="margin-right: 10px;"), A(f"Poke {APP_NAME} {MODEL}", hx_post="/poke", hx_target="#msg-list", hx_swap="innerHTML", cls="button", style="margin-right: 10px;"), A("Help", hx_ws_send="!help", cls="button", onclick="document.querySelector('#msg').value = '!help'; document.querySelector('#send-btn').click();", style="margin-right: 10px;"), style=("bottom: 20px; ""position: fixed; ""right: 20px; ""z-index: 1000; ""display: flex; ""align-items: center; "),)
+    return Div(
+        A(
+            "Clear Cookie",
+            hx_post="/clear-db",
+            hx_swap="none",
+            cls="button",
+            style="margin-right: 10px;"
+        ),
+        A(
+            f"Poke {APP_NAME} {MODEL}",
+            hx_post="/poke",
+            hx_target="#msg-list",
+            hx_swap="innerHTML",
+            cls="button",
+            style="margin-right: 10px;"
+        ),
+        A(
+            "Help",
+            hx_ws_send="!help",
+            cls="button",
+            onclick="document.querySelector('#msg').value = '!help'; document.querySelector('#send-btn').click();",
+            style="margin-right: 10px;"
+        ),
+        style=(
+            "bottom: 20px; "
+            "position: fixed; "
+            "right: 20px; "
+            "z-index: 1000; "
+            "display: flex; "
+            "align-items: center; "
+        )
+    )
 
 
 async def todo_render(menux, render_items=None):
-    return Div(Card(H2(f"{name(menux)} {LIST_SUFFIX}"), Ul(*[todo_app.render_item(item) for item in (render_items or [])], id='todo-list', cls='sortable', style="padding-left: 0;",), header=Form(Group(Input(placeholder=f'Add new {todo_app.name.capitalize()}', id='name', name='name', autofocus=True,), Button("Add", type="submit"),), hx_post=f"/{todo_app.name}", hx_swap="beforeend", hx_target="#todo-list",),), id="content-container", style="display: flex; flex-direction: column;")
+    return Div(
+        Card(
+            H2(f"{name(menux)} {LIST_SUFFIX}"),
+            Ul(
+                *[todo_app.render_item(item) for item in (render_items or [])],
+                id='todo-list',
+                cls='sortable',
+                style="padding-left: 0;"
+            ),
+            header=Form(
+                Group(
+                    Input(
+                        placeholder=f'Add new {todo_app.name.capitalize()}',
+                        id='name',
+                        name='name',
+                        autofocus=True
+                    ),
+                    Button("Add", type="submit")
+                ),
+                hx_post=f"/{todo_app.name}",
+                hx_swap="beforeend",
+                hx_target="#todo-list"
+            )
+        ),
+        id="content-container",
+        style="display: flex; flex-direction: column;"
+    )
 
 
 async def profile_render():
@@ -1856,18 +1929,73 @@ async def profile_render():
     logger.debug("Initial profile state:")
     for profile in all_profiles:
         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-    ordered_profiles = sorted(all_profiles, key=lambda p: p.priority if p.priority is not None else float('inf'))
+    
+    ordered_profiles = sorted(
+        all_profiles, 
+        key=lambda p: p.priority if p.priority is not None else float('inf')
+    )
+    
     logger.debug("Ordered profile list:")
     for profile in ordered_profiles:
         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-    return Container(Grid(Div(Card(H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"), Ul(*[render_profile(profile) for profile in ordered_profiles], id='profile-list', cls='sortable', style="padding-left: 0;"), footer=Form(Group(Input(placeholder="Nickname (menu)", name="profile_name", id="profile-name-input"), Input(placeholder=f"{name(profile_app.name)} Name", name="profile_menu_name", id="profile-menu-name-input"), Input(placeholder=PLACEHOLDER_ADDRESS, name="profile_address", id="profile-address-input"), Input(placeholder=PLACEHOLDER_CODE, name="profile_code", id="profile-code-input"), Button("Add", type="submit", id="add-profile-button"),), hx_post=f"/{profile_app.name}", hx_target="#profile-list", hx_swap="beforeend", hx_swap_oob="true",),), id="content-container",),), Script("""
+
+    return Container(
+        Grid(
+            Div(
+                Card(
+                    H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"),
+                    Ul(
+                        *[render_profile(profile) for profile in ordered_profiles],
+                        id='profile-list',
+                        cls='sortable',
+                        style="padding-left: 0;"
+                    ),
+                    footer=Form(
+                        Group(
+                            Input(
+                                placeholder="Nickname (menu)",
+                                name="profile_name",
+                                id="profile-name-input"
+                            ),
+                            Input(
+                                placeholder=f"{name(profile_app.name)} Name",
+                                name="profile_menu_name", 
+                                id="profile-menu-name-input"
+                            ),
+                            Input(
+                                placeholder=PLACEHOLDER_ADDRESS,
+                                name="profile_address",
+                                id="profile-address-input"
+                            ),
+                            Input(
+                                placeholder=PLACEHOLDER_CODE,
+                                name="profile_code",
+                                id="profile-code-input"
+                            ),
+                            Button(
+                                "Add",
+                                type="submit",
+                                id="add-profile-button"
+                            ),
+                        ),
+                        hx_post=f"/{profile_app.name}",
+                        hx_target="#profile-list",
+                        hx_swap="beforeend",
+                        hx_swap_oob="true",
+                    ),
+                ),
+                id="content-container",
+            ),
+        ),
+        Script("""
             document.addEventListener('htmx:afterSwap', function(event) {
                 if (event.target.id === 'profile-list' && event.detail.successful) {
                     const form = document.getElementById('add-profile-button').closest('form');
                     form.reset();
                 }
             });
-        """),)
+        """),
+    )
 
 
 async def chatq(message: str, verbatim: bool = False, role: str = "user", base_app=None, spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
