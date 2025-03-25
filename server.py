@@ -32,13 +32,8 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-TONE = "neutral"
-MODEL = "gemma3"
-MAX_LLM_RESPONSE_WORDS = 60
-THIS_FILE = Path(__file__)
-
-
 def get_app_name(force_app_name=None):
+    """Get the name of the app from the app_name.txt file, or the parent directory name."""
     name = force_app_name
     if not name:
         app_name_file = 'app_name.txt'
@@ -48,12 +43,15 @@ def get_app_name(force_app_name=None):
             except:
                 pass
         if not name:
-            name = THIS_FILE.parent.name
+            name = Path(__file__).parent.name
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
 
 APP_NAME = get_app_name()
+TONE = "neutral"
+MODEL = "gemma3"
+MAX_LLM_RESPONSE_WORDS = 60
 MAX_CONVERSATION_LENGTH = 10000
 PLACEHOLDER_ADDRESS = "www.site.com"
 PLACEHOLDER_CODE = "CCode (us, uk, de, etc)"
@@ -64,12 +62,28 @@ MAX_MENU_WIDTH = "22vw"
 WEB_UI_WIDTH = "95%"
 WEB_UI_PADDING = "1rem"
 WEB_UI_MARGIN = "0 auto"
-NOWRAP_STYLE = ("white-space: nowrap; ""overflow: hidden; ""text-overflow: ellipsis;")
+NOWRAP_STYLE = (
+    "white-space: nowrap; "
+    "overflow: hidden; "
+    "text-overflow: ellipsis;"
+)
 LIST_SUFFIX = "List"
 
 
 def generate_menu_style():
-    return (f"min-width: {MIN_MENU_WIDTH}; "f"max-width: {MAX_MENU_WIDTH}; ""width: 100%; ""white-space: nowrap; ""overflow: hidden; ""text-overflow: ellipsis; ""align-items: center; ""border-radius: 16px; ""display: inline-flex; ""justify-content: center; ""margin: 0 2px; ")
+    return (
+        f"min-width: {MIN_MENU_WIDTH}; "
+        f"max-width: {MAX_MENU_WIDTH}; "
+        "width: 100%; "
+        "white-space: nowrap; "
+        "overflow: hidden; "
+        "text-overflow: ellipsis; "
+        "align-items: center; "
+        "border-radius: 16px; "
+        "display: inline-flex; "
+        "justify-content: center; "
+        "margin: 0 2px; "
+    )
 
 
 def setup_logging():
@@ -155,7 +169,7 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def name(word):
+def title_name(word):
     return word.replace('_', ' ').replace('.', ' ').title()
 
 
@@ -1788,7 +1802,7 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
-    return Titled(f"{APP_NAME} / {name(last_profile_name)} / {format_endpoint_name(menux)}", response, data_theme="dark", style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
+    return Titled(f"{APP_NAME} / {title_name(last_profile_name)} / {format_endpoint_name(menux)}", response, data_theme="dark", style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
 
 
 def create_nav_group():
@@ -2057,7 +2071,7 @@ def create_poke_button():
 async def todo_render(menux, render_items=None):
     return Div(
         Card(
-            H2(f"{name(menux)} {LIST_SUFFIX}"),
+            H2(f"{title_name(menux)} {LIST_SUFFIX}"),
             Ul(
                 *[todo_app.render_item(item) for item in (render_items or [])],
                 id='todo-list',
@@ -2118,7 +2132,7 @@ async def profile_render():
                                 id="profile-name-input"
                             ),
                             Input(
-                                placeholder=f"{name(profile_app.name)} Name",
+                                placeholder=f"{title_name(profile_app.name)} Name",
                                 name="profile_menu_name", 
                                 id="profile-menu-name-input"
                             ),
@@ -2869,7 +2883,7 @@ def check_syntax(filename):
 
 
 def restart_server():
-    if not check_syntax(THIS_FILE):
+    if not check_syntax(Path(__file__)):
         print("Syntax error detected. Please fix the error and save the file again.")
         return
     max_retries = 3
