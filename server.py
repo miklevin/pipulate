@@ -82,16 +82,74 @@ def setup_logging():
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
     logger.remove()
+    
     for p in [app_log_path]:
         if p.exists():
             p.unlink()
-    logger.add(app_log_path, rotation="2 MB", level="DEBUG", format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}", enqueue=True)
-    logger.add(sys.stderr, level="DEBUG", format="<green>{time:HH:mm:ss}</green> | ""<level>{level: <8}</level> | ""<cyan>{name: <15}</cyan> | ""<cyan>{message}</cyan>", colorize=True, filter=lambda record: (record["level"].name in ["ERROR", "WARNING"] or record["level"].name == "INFO" or (record["level"].name == "DEBUG" and ("HTTP Request:" in record["message"] or "Pipeline ID:" in record["message"] or "State changed:" in record["message"] or record["message"].startswith("Creating") or record["message"].startswith("Updated")) and not "Pipeline" in record["message"] and not record["message"].startswith("DB: __") and not "First record" in record["message"] and not "Records found" in record["message"] and not "dir:" in record["message"])))
+            
+    logger.add(
+        app_log_path,
+        rotation="2 MB",
+        level="DEBUG", 
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}",
+        enqueue=True
+    )
+    
+    logger.add(
+        sys.stderr,
+        level="DEBUG",
+        format=(
+            "<green>{time:HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name: <15}</cyan> | "
+            "<cyan>{message}</cyan>"
+        ),
+        colorize=True,
+        filter=lambda record: (
+            record["level"].name in ["ERROR", "WARNING"] or
+            record["level"].name == "INFO" or
+            (record["level"].name == "DEBUG" and
+             ("HTTP Request:" in record["message"] or
+              "Pipeline ID:" in record["message"] or
+              "State changed:" in record["message"] or
+              record["message"].startswith("Creating") or
+              record["message"].startswith("Updated")) and
+             not "Pipeline" in record["message"] and
+             not record["message"].startswith("DB: __") and
+             not "First record" in record["message"] and
+             not "Records found" in record["message"] and
+             not "dir:" in record["message"])
+        )
+    )
+    
     return logger.opt(colors=True)
 
 
 logger = setup_logging()
-custom_theme = Theme({"default": "white on black", "header": RichStyle(color="magenta", bold=True, bgcolor="black"), "cyan": RichStyle(color="cyan", bgcolor="black"), "green": RichStyle(color="green", bgcolor="black"), "orange3": RichStyle(color="orange3", bgcolor="black"), "white": RichStyle(color="white", bgcolor="black"), })
+custom_theme = Theme({
+    "default": "white on black",
+    "header": RichStyle(
+        color="magenta",
+        bold=True,
+        bgcolor="black"
+    ),
+    "cyan": RichStyle(
+        color="cyan",
+        bgcolor="black"
+    ),
+    "green": RichStyle(
+        color="green",
+        bgcolor="black"
+    ),
+    "orange3": RichStyle(
+        color="orange3",
+        bgcolor="black"
+    ),
+    "white": RichStyle(
+        color="white",
+        bgcolor="black"
+    ),
+})
 
 
 class DebugConsole(Console):
@@ -260,8 +318,35 @@ def todo_list_training():
                 ]
             }
         }"""}
-    emoji_instructions = ("You are now the Tasks app and you add to the task list.\n\n""This is our JSON API contract. You must follow it to insert tasks.\n\n""Follow this whenever asked to add something to a list.\n\n""When inserting tasks, follow these rules:\n\n""1. Always use the actual emoji character with the text in the 'name' field\n""2. Example of minimal task insertion:\n\n""3. Always USE THIS EXACT FORMAT when asked to add or insert an apple:\n\n""```json\n""{\n"'  "action": "insert",\n''  "target": "task",\n''  "args": {\n''    "name": "🍎 Red Apple"\n''  }\n'"}\n""```\n\n""4. All string values must use double quotes\n")
-    syntax_instructions = ("You can use the following JSON syntax to perform operations on the database.\n""Important notes:\n""1. All IDs should be strings (e.g. \"123\")\n""2. Task names can include emojis (e.g. \"🎯 Important Task\")\n""3. All operations use 'task' as the target\n""4. All string values must be properly quoted with double quotes\n\n""5. Do not pretend to add something to a list without also including the JSON.\n\n")
+    emoji_instructions = (
+        "You are now the Tasks app and you add to the task list.\n\n"
+        "This is our JSON API contract. You must follow it to insert tasks.\n\n"
+        "Follow this whenever asked to add something to a list.\n\n"
+        "When inserting tasks, follow these rules:\n\n"
+        "1. Always use the actual emoji character with the text in the 'name' field\n"
+        "2. Example of minimal task insertion:\n\n"
+        "3. Always USE THIS EXACT FORMAT when asked to add or insert an apple:\n\n"
+        "```json\n"
+        "{\n"
+        '  "action": "insert",\n'
+        '  "target": "task",\n'
+        '  "args": {\n'
+        '    "name": "🍎 Red Apple"\n'
+        '  }\n'
+        "}\n"
+        "```\n\n"
+        "4. All string values must use double quotes\n"
+    )
+
+    syntax_instructions = (
+        "You can use the following JSON syntax to perform operations on the database.\n"
+        "Important notes:\n"
+        "1. All IDs should be strings (e.g. \"123\")\n"
+        "2. Task names can include emojis (e.g. \"🎯 Important Task\")\n"
+        "3. All operations use 'task' as the target\n"
+        "4. All string values must be properly quoted with double quotes\n\n"
+        "5. Do not pretend to add something to a list without also including the JSON.\n\n"
+    )
     for i, (operation_name, operation_key) in enumerate(operations, 1):
         doc = operation_docs.get(operation_key, "")
         syntax_instructions += (f"{i}. {operation_name}\n\n"f"```json\n{doc}\n```\n\n")
@@ -642,7 +727,34 @@ class BaseApp:
         return f"/{self.name}/{action}/{item_id}"
 
     def render_item(self, item):
-        return Li(A("🗑", href="#", hx_swap="outerHTML", hx_delete=f"/task/delete/{item.id}", hx_target=f"#todo-{item.id}", _class="delete-icon", style="cursor: pointer; display: inline;"), Input(type="checkbox", checked="1"if item.done else "0", hx_post=f"/task/toggle/{item.id}", hx_swap="outerHTML", hx_target=f"#todo-{item.id}"), A(item.name, href="#", _class="todo-title", style="text-decoration: none; color: inherit;"), data_id=item.id, data_priority=item.priority, id=f"todo-{item.id}", style="list-style-type: none;",)
+        return Li(
+            A(
+                "🗑",
+                href="#",
+                hx_swap="outerHTML",
+                hx_delete=f"/task/delete/{item.id}",
+                hx_target=f"#todo-{item.id}",
+                _class="delete-icon",
+                style="cursor: pointer; display: inline;"
+            ),
+            Input(
+                type="checkbox",
+                checked="1" if item.done else "0",
+                hx_post=f"/task/toggle/{item.id}",
+                hx_swap="outerHTML",
+                hx_target=f"#todo-{item.id}"
+            ),
+            A(
+                item.name,
+                href="#",
+                _class="todo-title",
+                style="text-decoration: none; color: inherit;"
+            ),
+            data_id=item.id,
+            data_priority=item.priority,
+            id=f"todo-{item.id}",
+            style="list-style-type: none;"
+        )
 
     async def delete_item(self, request, item_id: int):
         try:
@@ -807,14 +919,30 @@ class ProfileApp(BaseApp):
         profile_name = form.get('profile_name', '').strip()
         if not profile_name:
             return ''
-        max_priority = max((p.priority or 0 for p in self.table()), default=-1) + 1
-        return {"name": profile_name, "menu_name": form.get('profile_menu_name', '').strip(), "address": form.get('profile_address', '').strip(), "code": form.get('profile_code', '').strip(), "active": True, "priority": max_priority, }
+        max_priority = max(
+            (p.priority or 0 for p in self.table()),
+            default=-1
+        ) + 1
+        return {
+            "name": profile_name,
+            "menu_name": form.get('profile_menu_name', '').strip(),
+            "address": form.get('profile_address', '').strip(),
+            "code": form.get('profile_code', '').strip(),
+            "active": True,
+            "priority": max_priority,
+        }
 
     def prepare_update_data(self, form):
         profile_name = form.get('profile_name', '').strip()
         if not profile_name:
             return ''
-        return {"name": profile_name, "menu_name": form.get('profile_menu_name', '').strip(), "address": form.get('profile_address', '').strip(), "code": form.get('profile_code', '').strip(), "active": form.get('active', '').lower() == 'true', }
+        return {
+            "name": profile_name,
+            "menu_name": form.get('profile_menu_name', '').strip(),
+            "address": form.get('profile_address', '').strip(), 
+            "code": form.get('profile_code', '').strip(),
+            "active": form.get('active', '').lower() == 'true',
+        }
 
 
 def render_profile(profile):
@@ -1390,25 +1518,93 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
-    def revert_control(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None):
+    def revert_control(
+        self,
+        step_id: str,
+        app_name: str,
+        steps: list,
+        message: str = None,
+        target_id: str = None,
+        revert_label: str = None
+    ):
         pipeline_id = db.get("pipeline_id", "")
         finalize_step = steps[-1]
+
         if pipeline_id:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
+
         step = next(s for s in steps if s.id == step_id)
         refill = getattr(step, 'refill', False)
+        
         if not target_id:
             target_id = f"{app_name}-container"
-        default_style = ("background-color: var(--pico-del-color);""display: inline-flex;""padding: 0.5rem 0.5rem;""border-radius: 4px;""font-size: 0.85rem;""cursor: pointer;""margin: 0;""line-height: 1;""align-items: center;")
-        form = Form(Input(type="hidden", name="step_id", value=step_id), Button(format_step_button(step_id, refill, revert_label), type="submit", style=default_style), hx_post=f"/{app_name}/revert", hx_target=f"#{target_id}", hx_swap="outerHTML")
+
+        default_style = (
+            "background-color: var(--pico-del-color);"
+            "display: inline-flex;"
+            "padding: 0.5rem 0.5rem;"
+            "border-radius: 4px;"
+            "font-size: 0.85rem;"
+            "cursor: pointer;"
+            "margin: 0;"
+            "line-height: 1;"
+            "align-items: center;"
+        )
+
+        form = Form(
+            Input(
+                type="hidden",
+                name="step_id",
+                value=step_id
+            ),
+            Button(
+                format_step_button(step_id, refill, revert_label),
+                type="submit",
+                style=default_style
+            ),
+            hx_post=f"/{app_name}/revert",
+            hx_target=f"#{target_id}",
+            hx_swap="outerHTML"
+        )
+
         if not message:
             return form
-        return Card(Div(message, style="flex: 1;"), Div(form, style="flex: 0;"), style="display: flex; align-items: center; justify-content: space-between;")
 
-    def wrap_with_inline_button(self, input_element: Input, button_label: str = "Next", button_class: str = "primary") -> Div:
-        return Div(input_element, Button(button_label, type="submit", cls=button_class, style=("display: inline-block;""cursor: pointer;""width: auto !important;""white-space: nowrap;")), style="display: flex; align-items: center; gap: 0.5rem;")
+        return Card(
+            Div(
+                message,
+                style="flex: 1;"
+            ),
+            Div(
+                form,
+                style="flex: 0;"
+            ),
+            style="display: flex; align-items: center; justify-content: space-between;"
+        )
+
+    def wrap_with_inline_button(
+        self,
+        input_element: Input,
+        button_label: str = "Next",
+        button_class: str = "primary"
+    ) -> Div:
+        return Div(
+            input_element,
+            Button(
+                button_label,
+                type="submit",
+                cls=button_class,
+                style=(
+                    "display: inline-block;"
+                    "cursor: pointer;"
+                    "width: auto !important;"
+                    "white-space: nowrap;"
+                )
+            ),
+            style="display: flex; align-items: center; gap: 0.5rem;"
+        )
 
     async def get_state_message(self, url: str, steps: list, messages: dict) -> str:
         state = self.read_state(url)
@@ -1729,12 +1925,24 @@ async def create_grid_left(menux, render_items=None):
 
 
 def create_chat_interface(autofocus=False, mobile=False):
-    msg_list_height = 'height: 75vh;'if mobile else 'height: calc(70vh - 200px);'
+    msg_list_height = 'height: 75vh;' if mobile else 'height: calc(70vh - 200px);'
     temp_message = None
     if "temp_message" in db:
         temp_message = db["temp_message"]
         del db["temp_message"]
-    return Div(Card(None if mobile else H3(f"{APP_NAME} Chatbot"), Div(id='msg-list', cls='overflow-auto', style=(msg_list_height),), Form(mk_chat_input_group(value="", autofocus=autofocus), onsubmit="sendSidebarMessage(event)",), Script(r"""
+    return Div(
+        Card(
+            None if mobile else H3(f"{APP_NAME} Chatbot"),
+            Div(
+                id='msg-list',
+                cls='overflow-auto',
+                style=(msg_list_height),
+            ),
+            Form(
+                mk_chat_input_group(value="", autofocus=autofocus),
+                onsubmit="sendSidebarMessage(event)",
+            ),
+            Script(r"""
                 // Define test alert function globally
                 window.testAlert = function(message) {
                     alert('Test Alert: ' + message);
@@ -1836,7 +2044,18 @@ def create_chat_interface(autofocus=False, mobile=False):
                         }
                     }
                 }
-            """),), id="chat-interface", style=(("position: fixed; "if mobile else "position: sticky; ") + ("top: 0; left: 0; width: 100%; height: 100vh; "if mobile else "top: 20px; ") + ("z-index: 10000; "if mobile else "") + "margin: 0; " + "padding: 0; " + "overflow: hidden; "),)
+            """),
+        ),
+        id="chat-interface",
+        style=(
+            ("position: fixed; " if mobile else "position: sticky; ") +
+            ("top: 0; left: 0; width: 100%; height: 100vh; " if mobile else "top: 20px; ") +
+            ("z-index: 10000; " if mobile else "") +
+            "margin: 0; " +
+            "padding: 0; " +
+            "overflow: hidden; "
+        ),
+    )
 
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
@@ -2571,7 +2790,25 @@ class Chat:
             traceback.print_exc()
 
     def create_progress_card(self):
-        return Card(Header("Chat Playground"), Form(Div(TextArea(id="chat-input", placeholder="Type your message here...", rows="3"), Button("Send", type="submit"), id="chat-form"), onsubmit="sendMessage(event)"), Div(id="chat-messages"), Script("""
+        return Card(
+            Header("Chat Playground"),
+            Form(
+                Div(
+                    TextArea(
+                        id="chat-input",
+                        placeholder="Type your message here...",
+                        rows="3"
+                    ),
+                    Button(
+                        "Send",
+                        type="submit"
+                    ),
+                    id="chat-form"
+                ),
+                onsubmit="sendMessage(event)"
+            ),
+            Div(id="chat-messages"),
+            Script("""
                 const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`);
                 
                 ws.onmessage = function(event) {
@@ -2589,7 +2826,8 @@ class Chat:
                         input.value = '';
                     }
                 }
-            """))
+            """)
+        )
 
     async def handle_websocket(self, websocket: WebSocket):
         try:
