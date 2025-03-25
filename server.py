@@ -357,7 +357,6 @@ def todo_list_training():
     return message
 
 
-PERMITTED_LLM_ACTIONS = {"insert", "read", "update", "delete", "toggle", "sort", "list"}
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f"in under {MAX_LLM_RESPONSE_WORDS} {TONE} words"
 else:
