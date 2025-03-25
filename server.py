@@ -362,7 +362,6 @@ if MAX_LLM_RESPONSE_WORDS:
     limiter = f"in under {MAX_LLM_RESPONSE_WORDS} {TONE} words"
 else:
     limiter = ""
-CRUD_PROMPT_PREFIXES = {action: f"Make a {TONE} comment {limiter} to the user letting them know you know "for action in PERMITTED_LLM_ACTIONS}
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{"role": "system", "content": generate_system_message()}]
 
@@ -791,8 +790,6 @@ class BaseApp:
             error_msg = f"Error toggling item: {str(e)}"
             logger.error(error_msg)
             action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
-            prompt = f"{CRUD_PROMPT_PREFIXES['error']}{action_details}"
-            await chatq(prompt)
             return str(e), 500
 
     async def sort_items(self, request):
