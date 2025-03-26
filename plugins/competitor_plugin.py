@@ -8,7 +8,7 @@ import fastlite
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from server import BaseApp, db as server_db, priority_key, LIST_SUFFIX
+from server import BaseApp, db as server_db, priority_key, LIST_SUFFIX, DB_FILENAME
 
 # --- Define the App Logic Class (inherits from BaseApp) ---
 class CompetitorApp(BaseApp):
@@ -160,7 +160,8 @@ class CompetitorPlugin:
         self.db_dictlike = db_dictlike
         logger.debug(f"{self.DISPLAY_NAME} Plugin initializing...")
 
-        db_path = os.path.join(os.path.dirname(__file__), "..", "data", "data.db")
+        # Use the same DB_FILENAME from server.py
+        db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILENAME)
         logger.debug(f"Using database path: {db_path}")
 
         self.plugin_db = fastlite.database(db_path)
