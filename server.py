@@ -53,6 +53,7 @@ TONE = "neutral"
 MODEL = "gemma3"
 MAX_LLM_RESPONSE_WORDS = 60
 MAX_CONVERSATION_LENGTH = 10000
+DB_FILENAME = f"data/{APP_NAME.lower()}.db"
 PLACEHOLDER_ADDRESS = "www.site.com"
 PLACEHOLDER_CODE = "CCode (us, uk, de, etc)"
 GRID_LAYOUT = "65% 35%"
@@ -806,9 +807,8 @@ def render_todo(todo):
         data_priority=todo.priority
     )
 
-
 app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
-    "data/data.db",
+    DB_FILENAME,
     exts='ws',
     live=True,
     default_hdrs=False,
