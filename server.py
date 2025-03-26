@@ -1421,30 +1421,30 @@ class Pipulate:
 
 def discover_workflow_files():
     workflow_modules = {}
-    workflows_dir = os.path.join(os.path.dirname(__file__), 'workflows')
+    plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
 
-    logger.debug(f"Looking for workflows in: {workflows_dir}")
+    logger.debug(f"Looking for plugins in: {plugins_dir}")
 
     # Skip if the directory doesn't exist
-    if not os.path.isdir(workflows_dir):
-        logger.warning(f"Workflows directory not found: {workflows_dir}")
+    if not os.path.isdir(plugins_dir):
+        logger.warning(f"Plugins directory not found: {plugins_dir}")
         return workflow_modules
 
-    # Find all Python files in the workflows directory
-    for filename in os.listdir(workflows_dir):
+    # Find all Python files in the plugins directory
+    for filename in os.listdir(plugins_dir):
         logger.debug(f"Checking file: {filename}")
         if filename.endswith('.py') and not filename.startswith('__'):
             module_name = filename[:-3]  # Remove .py extension
             logger.debug(f"Attempting to import module: {module_name}")
             try:
                 # Import the module
-                module = importlib.import_module(f'workflows.{module_name}')
+                module = importlib.import_module(f'plugins.{module_name}')
                 workflow_modules[module_name] = module
                 logger.debug(f"Successfully imported module: {module_name}")
             except ImportError as e:
-                logger.error(f"Error importing workflow module {module_name}: {str(e)}")
+                logger.error(f"Error importing plugin module {module_name}: {str(e)}")
 
-    logger.debug(f"Discovered workflow modules: {list(workflow_modules.keys())}")
+    logger.debug(f"Discovered plugin modules: {list(workflow_modules.keys())}")
     return workflow_modules
 
 
