@@ -1204,7 +1204,7 @@ class Pipulate:
 
 
 def discover_workflow_files():
-    workflow_modules = {}
+    plugin_modules = {}
     plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
 
     logger.debug(f"Looking for plugins in: {plugins_dir}")
@@ -1212,7 +1212,7 @@ def discover_workflow_files():
     # Skip if the directory doesn't exist
     if not os.path.isdir(plugins_dir):
         logger.warning(f"Plugins directory not found: {plugins_dir}")
-        return workflow_modules
+        return plugin_modules
 
     # Find all Python files in the plugins directory
     for filename in os.listdir(plugins_dir):
@@ -1223,13 +1223,13 @@ def discover_workflow_files():
             try:
                 # Import the module
                 module = importlib.import_module(f'plugins.{module_name}')
-                workflow_modules[module_name] = module
+                plugin_modules[module_name] = module
                 logger.debug(f"Successfully imported module: {module_name}")
             except ImportError as e:
                 logger.error(f"Error importing plugin module {module_name}: {str(e)}")
 
-    logger.debug(f"Discovered plugin modules: {list(workflow_modules.keys())}")
-    return workflow_modules
+    logger.debug(f"Discovered plugin modules: {list(plugin_modules.keys())}")
+    return plugin_modules
 
 
 def find_workflow_classes(workflow_modules):
