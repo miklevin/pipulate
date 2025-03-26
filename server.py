@@ -347,68 +347,6 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
 
 
-class PipulatePlugin:
-    """Base class for all Pipulate plugins"""
-    NAME = None
-    DISPLAY_NAME = None
-    
-    def __init__(self, app, rt, db=None):
-        self.app = app
-        self.rt = rt
-        self.db = db
-    
-    def register_routes(self):
-        """Register routes with the application"""
-        pass
-        
-    async def render(self, render_items=None):
-        """Render the plugin UI"""
-        pass
-
-
-class PluginRegistry:
-    def __init__(self):
-        self.plugins = {}
-        
-    def register(self, plugin):
-        self.plugins[plugin.NAME] = plugin
-        
-    def get(self, name):
-        return self.plugins.get(name)
-        
-    def get_all(self):
-        return self.plugins.values()
-
-
-def discover_plugins(plugin_dir="plugins"):
-    """Discover and register plugins from the plugins directory."""
-    if not os.path.exists(plugin_dir):
-        return
-    
-    for filename in os.listdir(plugin_dir):
-        if filename.endswith('.py') and not filename.startswith('__'):
-            module_name = filename[:-3]  # Remove .py extension
-            try:
-                logger.debug(f"Checking file: {filename}")
-                module_path = f"{plugin_dir}.{module_name}"
-                module = importlib.import_module(module_path)
-                logger.debug(f"Successfully imported module: {module_name}")
-                
-                # Look for plugin classes in the module
-                for attr_name in dir(module):
-                    attr = getattr(module, attr_name)
-                    if (isinstance(attr, type) and 
-                        issubclass(attr, PipulatePlugin) and 
-                        attr is not PipulatePlugin):
-                        # Create an instance and register it
-                        plugin_instance = attr()
-                        plugin_id = module_name.lower()
-                        plugin_registry.register(plugin_id, plugin_instance)
-                        logger.debug(f"Registered plugin: {plugin_id}")
-            except Exception as e:
-                logger.error(f"Error importing plugin {module_name}: {e}")
-
-
 class BaseApp:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
@@ -924,48 +862,11 @@ todo_app = TodoApp(table=tasks)
 todo_app.register_routes(rt)
 todos = tasks
 
-# Initialize plugin registry
-plugin_registry = PluginRegistry()
-logger.debug("Plugin registry initialized.")
 
 # Ensure plugins directory exists
 if not os.path.exists("plugins"):
     os.makedirs("plugins")
     logger.debug("Created plugins directory")
-
-
-class TodoAppPlugin(PipulatePlugin):
-    NAME = "todo"
-    DISPLAY_NAME = "Tasks"
-    
-    def __init__(self, app, rt=None, tasks_table=None):
-        super().__init__(app, rt)
-        self.tasks = tasks_table
-        
-        # If app is a TodoApp instance, use it directly
-        if hasattr(app, 'table') and app.__class__.__name__ == 'TodoApp':
-            self.todo_app = app
-            self.tasks = app.table
-        else:
-            # Otherwise create a new TodoApp instance
-            self.todo_app = TodoApp(table=tasks_table)
-        
-    def register_routes(self):
-        if hasattr(self, 'rt') and self.rt:
-            self.todo_app.register_routes(self.rt)
-        
-    async def render(self, render_items=None):
-        return await todo_render(self.NAME, render_items)
-
-
-# After todo_app initialization
-# todo_plugin = TodoAppPlugin(app, rt, tasks)
-# todo_plugin.register_routes()  # Register routes since they're already registered by todo_app
-# plugin_registry.register(todo_plugin)
-# logger.debug(f"Registered TodoApp as plugin: {todo_plugin.NAME}")
-
-# Discover and load plugins
-discover_plugins()
 
 
 def build_endpoint_messages(endpoint):
@@ -1521,65 +1422,9 @@ for workflow_name, workflow_instance in workflow_instances.items():
         logger.debug(f"Setting endpoint message for {workflow_name}: {endpoint_message}")
         endpoint_training[workflow_name] = endpoint_message
 
-# Diagnostic logging for plugin registry
-logger.debug("=== PLUGIN REGISTRY DIAGNOSTIC START ===")
-logger.debug(f"Plugin registry type: {type(plugin_registry)}")
-logger.debug(f"Plugin registry dir: {dir(plugin_registry)}")
-logger.debug(f"Plugin registry plugins attribute exists: {hasattr(plugin_registry, 'plugins')}")
-
-if hasattr(plugin_registry, 'plugins'):
-    logger.debug(f"Plugin registry plugins type: {type(plugin_registry.plugins)}")
-    logger.debug(f"Plugin registry plugins content: {plugin_registry.plugins}")
-    
-    # Check if plugins is a dictionary
-    if isinstance(plugin_registry.plugins, dict):
-        logger.debug(f"Plugin registry contains {len(plugin_registry.plugins)} plugins")
-        for plugin_name, plugin_info in plugin_registry.plugins.items():
-            logger.debug(f"Found plugin: {plugin_name}, type: {type(plugin_info)}")
-    else:
-        logger.debug(f"Plugin registry plugins is not a dictionary, it's a {type(plugin_registry.plugins)}")
-else:
-    logger.debug("Plugin registry does not have a 'plugins' attribute")
-
-# Check if hello_plugin is in sys.modules
-import sys
-logger.debug(f"hello_plugin in sys.modules: {'hello_plugin' in sys.modules}")
-if 'hello_plugin' in sys.modules:
-    hello_module = sys.modules['hello_plugin']
-    logger.debug(f"hello_plugin module dir: {dir(hello_module)}")
-
-# Check plugin discovery process
-logger.debug("Plugin discovery process:")
-import os
-plugin_dir = "/home/mike/repos/pipulate/plugins"  # Adjust path as needed
-logger.debug(f"Plugin directory exists: {os.path.exists(plugin_dir)}")
-if os.path.exists(plugin_dir):
-    plugin_files = [f for f in os.listdir(plugin_dir) if f.endswith('.py') and not f.startswith('__')]
-    logger.debug(f"Python files in plugin directory: {plugin_files}")
-    
-    # Check if hello_plugin.py exists
-    hello_plugin_path = os.path.join(plugin_dir, "hello_plugin.py")
-    logger.debug(f"hello_plugin.py exists: {os.path.exists(hello_plugin_path)}")
-    
-    if os.path.exists(hello_plugin_path):
-        # Check file content (first few lines)
-        with open(hello_plugin_path, 'r') as f:
-            first_lines = [next(f) for _ in range(10)]
-        logger.debug(f"First 10 lines of hello_plugin.py: {first_lines}")
-
-logger.debug("=== PLUGIN REGISTRY DIAGNOSTIC END ===")
-
-# Original plugin menu code
-plugin_menu_items = []
-for plugin_name, plugin_info in plugin_registry.plugins.items():
-    plugin_menu_items.append(plugin_name)
-    logger.debug(f"Added plugin to menu: {plugin_name}")
-
-logger.debug(f"Final plugin_menu_items: {plugin_menu_items}")
-
 base_menu_items = ['', 'profile', todo_app.name]
 additional_menu_items = ['stream_simulator', 'mobile_chat']
-MENU_ITEMS = base_menu_items + list(workflow_instances.keys()) + plugin_menu_items + additional_menu_items
+MENU_ITEMS = base_menu_items + list(workflow_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
 
@@ -1711,13 +1556,6 @@ async def create_outer_container(current_profile_id, menux):
 
 
 async def create_grid_left(menux, render_items=None):
-    # Try plugin registry first
-    plugin = plugin_registry.get(menux)
-    if plugin:
-        logger.debug(f"Rendering using plugin: {menux}")
-        return await plugin.render(render_items)
-    
-    # Fall back to existing logic
     if menux == profile_app.name:
         return await profile_render()
     elif menux == todo_app.name:
