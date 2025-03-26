@@ -2,6 +2,7 @@
 
 import ast
 import asyncio
+from pyfiglet import Figlet
 import functools
 import importlib
 import inspect
@@ -47,6 +48,11 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
+def fig(text, font='slant', color='cyan'):
+    figlet = Figlet(font=font)
+    fig_text = figlet.renderText(str(text))
+    colored_text = Text(fig_text, style=f"{color} on default")
+    console.print(colored_text, style="on default")
 
 APP_NAME = get_app_name()
 TONE = "neutral"
@@ -593,8 +599,7 @@ def render_profile(profile):
         logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
         return count
 
-    todo_count = count_records_with_xtra(todos, 'profile_id', profile.id)
-    delete_icon_visibility = 'inline' if todo_count == 0 else 'none'
+    delete_icon_visibility = 'inline'
     delete_url = profile_app.get_action_url('delete', profile.id)
     toggle_url = profile_app.get_action_url('toggle', profile.id)
 
@@ -657,7 +662,7 @@ def render_profile(profile):
     )
 
     title_link = A(
-        f"{profile.name} ({todo_count})",
+        f"{profile.name}",
         href="#",
         hx_trigger="click",
         onclick=(
@@ -1345,6 +1350,7 @@ def get_profile_name():
 
 
 async def home(request):
+    fig("HOME")
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
     menux = path if path else "home"
@@ -1368,7 +1374,17 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
-    return Titled(f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}", response, data_theme="dark", style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
+    return Titled(
+        f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}", 
+        response, 
+        data_theme="dark", 
+        style=(
+            f"width: {WEB_UI_WIDTH}; "
+            f"max-width: none; "
+            f"padding: {WEB_UI_PADDING}; "
+            f"margin: {WEB_UI_MARGIN};"
+        ),
+    )
 
 
 def create_nav_group():
@@ -1414,16 +1430,90 @@ def create_app_menu(menux):
     return Details(Summary(f"APP: {endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
 
 
-async def create_outer_container(current_profile_id, menux):
+async def create_outer_container(current_profile_id, menux, temp_message=None):
+    """
+    Create the outer container for the application, including navigation and main content.
+
+    This function sets up the overall structure of the page. Plugins can integrate here
+    by adding conditions to handle their specific views.
+
+    This function generates the primary content area of the application, divided into
+    two columns: a main area (left) and a chat interface (right). The layout is as follows:
+
+    +-------------------------------------+
+    |             Main Content            |
+    | +---------------------------------+ |
+    | |                 |               | |
+    | |                 |               | |
+    | |                 |               | |
+    | |                 |               | |
+    | |                 |               | |
+    | |                 |               | |
+    | |                 |               | |
+    | +---------------------------------+ |
+    +-------------------------------------+
+
+    Args:
+        current_profile_id (int): The ID of the current profile.
+        menux (str): The current menu selection.
+        temp_message (str, optional): A temporary message to display. Defaults to None.
+
+    Returns:
+        Container: The outer container with all page elements.
+    """
+    fig(menux)
+    
+    # Handle mobile chat view
     if menux == "mobile_chat":
-        return Container(Meta(name="viewport", content="width=device-width, initial-scale=1.0"), create_chat_interface(autofocus=True, mobile=True), style=("width: 100vw; ""height: 100vh; ""margin: 0; ""padding: 0; ""position: fixed; ""top: 0; left: 0; ""z-index: 9999; ""background: var(--background-color); ""overflow: hidden; "))
+        return Container(
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            create_chat_interface(autofocus=True, mobile=True),
+            style=(
+                "width: 100vw; "
+                "height: 100vh; "
+                "margin: 0; "
+                "padding: 0; "
+                "position: fixed; "
+                "top: 0; left: 0; "
+                "z-index: 9999; "
+                "background: var(--background-color); "
+                "overflow: hidden; "
+            )
+        )
+
     nav_group = create_nav_group()
-    is_chat_view = menux == "mobile_chat"
+
+    # PLUGIN INTEGRATION POINT: Check for plugin-specific views
     if menux == "your_new_plugin_name":
+        # Handle your new plugin's view here
+        # return your_new_plugin.create_view()
         pass
+
+    # Default layout
+    return Container(
+        nav_group,
+        Grid(
+            await create_grid_left(menux),
+            create_chat_interface(temp_message),
+            cls="grid", 
+            style=(
+                "display: grid; "
+                "gap: 20px; "
+                f"grid-template-columns: {GRID_LAYOUT}; "
+            ),
+        ),
+        create_poke_button(),
+        style=(
+            f"width: {WEB_UI_WIDTH}; "
+            f"max-width: none; "
+            f"padding: {WEB_UI_PADDING}; "
+            f"margin: {WEB_UI_MARGIN};"
+        ),
+    )
 
 
 async def create_grid_left(menux, render_items=None):
+    fig(menux)
     if menux == profile_app.name:
         return await profile_render()
     elif menux == 'stream_simulator':
@@ -1611,7 +1701,7 @@ async def profile_render():
     )
 
 
-async def chatq(message: str, verbatim: bool = False, role: str = "user", base_app=None, spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
+async def chatq(message: str, verbatim: bool = False, role: str = "user", spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
     try:
         conversation_history = append_to_conversation(message, role)
         if verbatim:
@@ -1625,14 +1715,9 @@ async def chatq(message: str, verbatim: bool = False, role: str = "user", base_a
             response_text = ""
             if spaces_before:
                 await chat.broadcast("<br>" * spaces_before)
-            if base_app:
-                async for chunk in chat_with_llm(MODEL, conversation_history, base_app):
-                    await chat.broadcast(chunk)
-                    response_text += chunk
-            else:
-                async for chunk in chat_with_llm(MODEL, conversation_history):
-                    await chat.broadcast(chunk)
-                    response_text += chunk
+            async for chunk in chat_with_llm(MODEL, conversation_history):
+                await chat.broadcast(chunk)
+                response_text += chunk
             if spaces_after:
                 await chat.broadcast("<br>" * spaces_after)
         append_to_conversation(response_text, "assistant")
@@ -1654,7 +1739,7 @@ class Introduction:
         self.logger.debug("Starting welcome chat")
         try:
             hot_prompt_injection("introduction.md")
-            await chatq(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", base_app=self.app, spaces_before=1, spaces_after=1)
+            await chatq(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_before=1, spaces_after=1)
             return "Chat initiated"
         except Exception as e:
             self.logger.error(f"Error starting chat: {str(e)}")
@@ -1907,10 +1992,9 @@ async def select_profile(request):
 
 
 class Chat:
-    def __init__(self, app, id_suffix="", base_app=None):
+    def __init__(self, app, id_suffix=""):
         self.app = app
         self.id_suffix = id_suffix
-        self.base_app = base_app
         self.logger = logger.bind(name=f"Chat{id_suffix}")
         self.active_websockets = set()
         self.app.websocket_route("/ws")(self.handle_websocket)
@@ -1941,13 +2025,13 @@ class Chat:
                 !help - Show this help message"""
                 await websocket.send_text(help_text)
                 system_message = read_training("system_prompt.md")
-                await chatq(system_message, role="system", base_app=self)
+                await chatq(system_message, role="system")
                 return
             append_to_conversation(message, "user")
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
-            raw_response = await chatq(msg, verbatim=verbatim, base_app=self.base_app)
+            raw_response = await chatq(msg, verbatim=verbatim)
             append_to_conversation(raw_response, "assistant")
         except Exception as e:
             self.logger.error(f"Error in handle_chat_message: {e}")
@@ -2001,6 +2085,7 @@ class Chat:
             while True:
                 message = await websocket.receive_text()
                 self.logger.debug(f"Received message: {message}")
+                await self.handle_chat_message(websocket, message)
         except WebSocketDisconnect:
             self.logger.info("WebSocket disconnected")
         except Exception as e:
@@ -2139,6 +2224,7 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 
 def run_server_with_watchdog():
+    fig("SERVER RESTART")
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
