@@ -807,7 +807,7 @@ def render_todo(todo):
         data_priority=todo.priority
     )
 
-app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     DB_FILENAME,
     exts='ws',
     live=True,
@@ -827,14 +827,6 @@ app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline
         "key": str,
         "value": str,
         "pk": "key"
-    },
-    task={
-        "id": int,
-        "name": str,
-        "done": bool,
-        "priority": int,
-        "profile_id": int,
-        "pk": "id"
     },
     profile={
         "id": int,
@@ -858,9 +850,6 @@ app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline
 
 profile_app = ProfileApp(table=profiles)
 profile_app.register_routes(rt)
-todo_app = TodoApp(table=tasks)
-todo_app.register_routes(rt)
-todos = tasks
 
 
 # Ensure plugins directory exists
