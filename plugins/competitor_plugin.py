@@ -215,7 +215,7 @@ class CompetitorPlugin:
         prefix = f"/{self.competitor_app_instance.name}" # /competitor
 
         # Determine the sort path based on the BaseApp pattern
-        sort_path = f"/{self.competitor_app_instance.name}_sort" # e.g., /competitor_sort
+        sort_path = f"/{self.competitor_app_instance.name}/sort" # e.g., /competitor_sort
 
         routes_to_register = [
             (f'{prefix}', self.competitor_app_instance.insert_item, ['POST']),

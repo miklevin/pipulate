@@ -23,7 +23,15 @@ function setupSortable(sortableSelector, ghostClass) {
                 }));
                 
                 let path = window.location.pathname;
-                let updateUrl = path.endsWith('/') ? path + 'sort' : path + '_sort';
+                let basePath = path;
+                
+                if (path.endsWith('/')) {
+                    basePath = path.slice(0, -1);
+                }
+                
+                let pluginName = basePath.split('/').pop();
+                
+                let updateUrl = `/${pluginName.replace('_plugin', '')}/sort`;
                 
                 htmx.ajax('POST', updateUrl, {
                     target: sortableEl,
