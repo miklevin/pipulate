@@ -100,10 +100,11 @@ def render_competitor(competitor, app_instance: CompetitorApp):
         competitor.name,
         id=f"competitor-name-display-{competitor.id}", # Unique ID for display span
         style="margin-left: 5px; cursor: pointer;", # Make it look clickable
-         # JS to hide display, show form
+         # JS to hide display, show form and change parent alignment
         onclick=(
             f"document.getElementById('competitor-name-display-{competitor.id}').style.display='none'; "
             f"document.getElementById('update-form-{competitor.id}').style.display='inline-flex'; "
+            f"document.getElementById('{cid}').style.alignItems='baseline'; " # Change to baseline during edit
             f"document.getElementById('{update_input_id}').focus();"
         )
     )
@@ -119,14 +120,15 @@ def render_competitor(competitor, app_instance: CompetitorApp):
             ),
             Button("Save", type="submit", style="margin-bottom: 0;"), # Adjusted styles
             Button("Cancel", type="button", style="margin-bottom: 0;", cls="secondary",
-                   # JS to hide form, show display
+                   # JS to hide form, show display and restore center alignment
                    onclick=(
                        f"document.getElementById('update-form-{competitor.id}').style.display='none'; "
-                       f"document.getElementById('competitor-name-display-{competitor.id}').style.display='inline';"
+                       f"document.getElementById('competitor-name-display-{competitor.id}').style.display='inline'; "
+                       f"document.getElementById('{cid}').style.alignItems='center';"  # Restore center alignment
                    )),
             style="align-items: center;" # Align items in the group
         ),
-        style="display: none; margin-left: 5px;", # Hidden initially, inline-flex later
+        style="display: none; margin-left: 5px;", # Hidden initially
         id=f"update-form-{competitor.id}", # Unique ID for the form
         hx_post=update_url,
         hx_target=f"#{cid}",
