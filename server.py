@@ -768,7 +768,7 @@ def build_endpoint_messages(endpoint):
     }
 
     # Add messages for all workflows in our registry
-    for workflow_name, workflow_instance in workflow_instances.items():
+    for workflow_name, workflow_instance in plugin_instances.items():
         if workflow_name not in endpoint_messages:
             # First check for ENDPOINT_MESSAGE attribute
             if hasattr(workflow_instance, 'ENDPOINT_MESSAGE'):
@@ -781,8 +781,8 @@ def build_endpoint_messages(endpoint):
                 endpoint_messages[workflow_name] = f"{class_name} app is where you manage your workflows."
 
     # These debug logs should be outside the loop or use the endpoint parameter
-    if endpoint in workflow_instances:
-        workflow_instance = workflow_instances[endpoint]
+    if endpoint in plugin_instances:
+        workflow_instance = plugin_instances[endpoint]
         logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(workflow_instance, 'get_endpoint_message')}")
         logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(workflow_instance, 'get_endpoint_message', None))}")
         logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(workflow_instance, 'ENDPOINT_MESSAGE')}")
@@ -801,7 +801,7 @@ def build_endpoint_training(endpoint):
     }
 
     # Add training for all workflows in our registry
-    for workflow_name, workflow_instance in workflow_instances.items():
+    for workflow_name, workflow_instance in plugin_instances.items():
         if workflow_name not in endpoint_training:
             # Check for TRAINING_PROMPT attribute
             if hasattr(workflow_instance, 'TRAINING_PROMPT'):
@@ -1255,7 +1255,7 @@ def find_workflow_classes(workflow_modules):
 
 
 pipulate = Pipulate(pipeline)
-workflow_instances = {}
+plugin_instances = {}
 discovered_modules = discover_workflow_files()
 discovered_classes = find_workflow_classes(discovered_modules)
 
@@ -1265,14 +1265,14 @@ endpoint_training = {}
 
 
 def get_display_name(workflow_name):
-    instance = workflow_instances.get(workflow_name)
+    instance = plugin_instances.get(workflow_name)
     if instance and hasattr(instance, 'DISPLAY_NAME'):
         return instance.DISPLAY_NAME
     return workflow_name.replace('_', ' ').title()  # Default display name
 
 
 def get_endpoint_message(workflow_name):
-    instance = workflow_instances.get(workflow_name)
+    instance = plugin_instances.get(workflow_name)
     if instance and hasattr(instance, 'ENDPOINT_MESSAGE'):
         return instance.ENDPOINT_MESSAGE
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."  # Default message
@@ -1280,10 +1280,10 @@ def get_endpoint_message(workflow_name):
 
 # Register workflows
 for module_name, class_name, workflow_class in discovered_classes:
-    if module_name not in workflow_instances:
+    if module_name not in plugin_instances:
         try:
             instance = workflow_class(app, pipulate, pipeline, db)
-            workflow_instances[module_name] = instance
+            plugin_instances[module_name] = instance
             logger.debug(f"Auto-registered workflow: {module_name}")
 
             # Retrieve and log the endpoint message using the new method
@@ -1294,7 +1294,7 @@ for module_name, class_name, workflow_class in discovered_classes:
             logger.error(f"Error instantiating workflow {module_name}.{class_name}: {str(e)}")
 
 # Use the registry to set friendly names and endpoint messages
-for workflow_name, workflow_instance in workflow_instances.items():
+for workflow_name, workflow_instance in plugin_instances.items():
     if workflow_name not in friendly_names:
         display_name = get_display_name(workflow_name)
         logger.debug(f"Setting friendly name for {workflow_name}: {display_name}")
@@ -1307,7 +1307,7 @@ for workflow_name, workflow_instance in workflow_instances.items():
 
 base_menu_items = ['', 'profile']
 additional_menu_items = ['stream_simulator', 'mobile_chat']
-MENU_ITEMS = base_menu_items + list(workflow_instances.keys()) + additional_menu_items
+MENU_ITEMS = base_menu_items + list(plugin_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
 
@@ -1518,8 +1518,8 @@ async def create_grid_left(menux, render_items=None):
         return await profile_render()
     elif menux == 'stream_simulator':
         return await stream_simulator.stream_render()
-    elif menux in workflow_instances:
-        workflow_instance = workflow_instances[menux]
+    elif menux in plugin_instances:
+        workflow_instance = plugin_instances[menux]
         if hasattr(workflow_instance, 'render'):
             return await workflow_instance.render()
         return await workflow_instance.landing()
