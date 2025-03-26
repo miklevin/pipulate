@@ -380,17 +380,18 @@ class PluginRegistry:
         return self.plugins.values()
 
 
-def discover_plugins():
-    plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
-    logger.debug(f"Looking for plugins in: {plugins_dir}")
+def discover_plugins(plugin_dir="plugins"):
+    """Discover and register plugins from the plugins directory."""
+    if not os.path.exists(plugin_dir):
+        return
     
-    for filename in os.listdir(plugins_dir):
+    for filename in os.listdir(plugin_dir):
         if filename.endswith('.py') and not filename.startswith('__'):
             module_name = filename[:-3]  # Remove .py extension
-            logger.debug(f"Checking file: {filename}")
-            
             try:
-                module = importlib.import_module(f'plugins.{module_name}')
+                logger.debug(f"Checking file: {filename}")
+                module_path = f"{plugin_dir}.{module_name}"
+                module = importlib.import_module(module_path)
                 logger.debug(f"Successfully imported module: {module_name}")
                 
                 # Look for plugin classes in the module
@@ -400,12 +401,12 @@ def discover_plugins():
                         issubclass(attr, PipulatePlugin) and 
                         attr is not PipulatePlugin):
                         # Create an instance and register it
-                        plugin_instance = attr(app, rt)
-                        plugin_registry.register(plugin_instance)
-                        logger.debug(f"Registered {attr.__name__} as plugin: {plugin_instance.NAME}")
-                
+                        plugin_instance = attr()
+                        plugin_id = module_name.lower()
+                        plugin_registry.register(plugin_id, plugin_instance)
+                        logger.debug(f"Registered plugin: {plugin_id}")
             except Exception as e:
-                logger.error(f"Failed to import module {module_name}: {str(e)}")
+                logger.error(f"Error importing plugin {module_name}: {e}")
 
 
 class BaseApp:
@@ -958,10 +959,10 @@ class TodoAppPlugin(PipulatePlugin):
 
 
 # After todo_app initialization
-todo_plugin = TodoAppPlugin(app, rt, tasks)
-todo_plugin.register_routes()  # Register routes since they're already registered by todo_app
-plugin_registry.register(todo_plugin)
-logger.debug(f"Registered TodoApp as plugin: {todo_plugin.NAME}")
+# todo_plugin = TodoAppPlugin(app, rt, tasks)
+# todo_plugin.register_routes()  # Register routes since they're already registered by todo_app
+# plugin_registry.register(todo_plugin)
+# logger.debug(f"Registered TodoApp as plugin: {todo_plugin.NAME}")
 
 # Discover and load plugins
 discover_plugins()
@@ -1520,11 +1521,61 @@ for workflow_name, workflow_instance in workflow_instances.items():
         logger.debug(f"Setting endpoint message for {workflow_name}: {endpoint_message}")
         endpoint_training[workflow_name] = endpoint_message
 
-# Add plugins to the menu items
+# Diagnostic logging for plugin registry
+logger.debug("=== PLUGIN REGISTRY DIAGNOSTIC START ===")
+logger.debug(f"Plugin registry type: {type(plugin_registry)}")
+logger.debug(f"Plugin registry dir: {dir(plugin_registry)}")
+logger.debug(f"Plugin registry plugins attribute exists: {hasattr(plugin_registry, 'plugins')}")
+
+if hasattr(plugin_registry, 'plugins'):
+    logger.debug(f"Plugin registry plugins type: {type(plugin_registry.plugins)}")
+    logger.debug(f"Plugin registry plugins content: {plugin_registry.plugins}")
+    
+    # Check if plugins is a dictionary
+    if isinstance(plugin_registry.plugins, dict):
+        logger.debug(f"Plugin registry contains {len(plugin_registry.plugins)} plugins")
+        for plugin_name, plugin_info in plugin_registry.plugins.items():
+            logger.debug(f"Found plugin: {plugin_name}, type: {type(plugin_info)}")
+    else:
+        logger.debug(f"Plugin registry plugins is not a dictionary, it's a {type(plugin_registry.plugins)}")
+else:
+    logger.debug("Plugin registry does not have a 'plugins' attribute")
+
+# Check if hello_plugin is in sys.modules
+import sys
+logger.debug(f"hello_plugin in sys.modules: {'hello_plugin' in sys.modules}")
+if 'hello_plugin' in sys.modules:
+    hello_module = sys.modules['hello_plugin']
+    logger.debug(f"hello_plugin module dir: {dir(hello_module)}")
+
+# Check plugin discovery process
+logger.debug("Plugin discovery process:")
+import os
+plugin_dir = "/home/mike/repos/pipulate/plugins"  # Adjust path as needed
+logger.debug(f"Plugin directory exists: {os.path.exists(plugin_dir)}")
+if os.path.exists(plugin_dir):
+    plugin_files = [f for f in os.listdir(plugin_dir) if f.endswith('.py') and not f.startswith('__')]
+    logger.debug(f"Python files in plugin directory: {plugin_files}")
+    
+    # Check if hello_plugin.py exists
+    hello_plugin_path = os.path.join(plugin_dir, "hello_plugin.py")
+    logger.debug(f"hello_plugin.py exists: {os.path.exists(hello_plugin_path)}")
+    
+    if os.path.exists(hello_plugin_path):
+        # Check file content (first few lines)
+        with open(hello_plugin_path, 'r') as f:
+            first_lines = [next(f) for _ in range(10)]
+        logger.debug(f"First 10 lines of hello_plugin.py: {first_lines}")
+
+logger.debug("=== PLUGIN REGISTRY DIAGNOSTIC END ===")
+
+# Original plugin menu code
 plugin_menu_items = []
 for plugin_name, plugin_info in plugin_registry.plugins.items():
     plugin_menu_items.append(plugin_name)
-logger.debug(f"Adding plugins to menu items: {plugin_menu_items}")
+    logger.debug(f"Added plugin to menu: {plugin_name}")
+
+logger.debug(f"Final plugin_menu_items: {plugin_menu_items}")
 
 base_menu_items = ['', 'profile', todo_app.name]
 additional_menu_items = ['stream_simulator', 'mobile_chat']
