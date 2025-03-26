@@ -1232,7 +1232,7 @@ def discover_plugin_files():
     return plugin_modules
 
 
-def find_workflow_classes(workflow_modules):
+def find_plugin_classes(workflow_modules):
     workflow_classes = []
 
     for module_name, module in workflow_modules.items():
@@ -1257,7 +1257,7 @@ def find_workflow_classes(workflow_modules):
 pipulate = Pipulate(pipeline)
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
-discovered_classes = find_workflow_classes(discovered_modules)
+discovered_classes = find_plugin_classes(discovered_modules)
 
 # Ensure these dictionaries are initialized
 friendly_names = {"": "Home"}
