@@ -307,7 +307,6 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             table.add_column("Accumulated Response")
                             table.add_row(final_response, style="green")
                             console.print(table)
-                            await post_llm_stream_json_detection(final_response, base_app)
                             break
                         if content := chunk.get("message", {}).get("content", ""):
                             if content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
@@ -700,113 +699,6 @@ def render_profile(profile):
     )
 
 
-class TodoApp(BaseApp):
-    def __init__(self, table):
-        super().__init__(name=table.name, table=table, toggle_field='done', sort_field='priority')
-        self.item_name_field = 'name'
-
-    def render_item(self, todo):
-        logger.debug(f"[DEBUG] TodoApp.render_item called with: {todo}")
-        rendered = render_todo(todo)
-        logger.debug(f"[DEBUG] render_todo returned type: {type(rendered)}")
-        return rendered
-
-    def prepare_insert_data(self, form):
-        name = form.get('todo_title', form.get('name', '')).strip()
-        if not name:
-            return None
-        current_profile_id = db.get("last_profile_id", 1)
-        priority = int(form.get('todo_priority', 0)) or max((t.priority or 0 for t in self.table()), default=-1) + 1
-        return {"name": name, "done": False, "priority": priority, "profile_id": current_profile_id, }
-
-    def prepare_update_data(self, form):
-        name = form.get('name', '').strip()
-        if not name:
-            return ''
-        return {"name": name, "done": form.get('done', '').lower() == 'true', }
-
-
-def render_todo(todo):
-    tid = f'todo-{todo.id}'
-    print(f"[DEBUG] render_todo called for ID {todo.id} with name '{todo.name}'")
-    delete_url = todo_app.get_action_url('delete', todo.id)
-    toggle_url = todo_app.get_action_url('toggle', todo.id)
-    
-    checkbox = Input(
-        type="checkbox",
-        name="english" if todo.done else None,
-        checked=todo.done,
-        hx_post=toggle_url,
-        hx_swap="outerHTML",
-        hx_target=f"#{tid}",
-    )
-    
-    delete = A(
-        '🗑',
-        hx_delete=delete_url,
-        hx_swap='outerHTML',
-        hx_target=f"#{tid}",
-        style="cursor: pointer; display: inline;",
-        cls="delete-icon"
-    )
-    
-    name_link = A(
-        todo.name,
-        href="#",
-        cls="todo-title",
-        style="text-decoration: none; color: inherit;",
-        onclick=(
-            "let updateForm = this.nextElementSibling; "
-            "let checkbox = this.parentNode.querySelector('input[type=checkbox]'); "
-            "let deleteIcon = this.parentNode.querySelector('.delete-icon'); "
-            "if (updateForm.style.visibility === 'hidden' || updateForm.style.visibility === '') { "
-            "    updateForm.style.visibility = 'visible'; "
-            "    updateForm.style.height = 'auto'; "
-            "    checkbox.style.display = 'none'; "
-            "    deleteIcon.style.display = 'none'; "
-            "    this.remove(); "
-            "    const inputField = document.getElementById('todo_name_" + str(todo.id) + "'); "
-            "    inputField.focus(); "
-            "    inputField.setSelectionRange(inputField.value.length, inputField.value.length); "
-            "} else { "
-            "    updateForm.style.visibility = 'hidden'; "
-            "    updateForm.style.height = '0'; "
-            "    checkbox.style.display = 'inline'; "
-            "    deleteIcon.style.display = 'inline'; "
-            "    this.style.visibility = 'visible'; "
-            "}"
-        )
-    )
-    
-    update_form = Form(
-        Div(
-            Input(
-                type="text",
-                id=f"todo_name_{todo.id}",
-                value=todo.name,
-                name="name",
-                style="flex: 1; padding-right: 10px; margin-bottom: 0px;"
-            ),
-            style="display: flex; align-items: center;"
-        ),
-        style="visibility: hidden; height: 0; overflow: hidden;",
-        hx_post=f"/{todo_app.name}/{todo.id}",
-        hx_target=f"#{tid}",
-        hx_swap="outerHTML",
-    )
-    
-    return Li(
-        delete,
-        checkbox,
-        name_link,
-        update_form,
-        id=tid,
-        cls='done' if todo.done else '',
-        style="list-style-type: none;",
-        data_id=todo.id,
-        data_priority=todo.priority
-    )
-
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     DB_FILENAME,
     exts='ws',
@@ -1030,9 +922,6 @@ def populate_initial_data():
         logger.debug(f"Inserted default profile: {default_profile}")
     else:
         default_profile = profiles()[0]
-    if not todos():
-        todos.insert({"name": f"Sample {todo_app.name}", "done": False, "priority": 1, "profile_id": default_profile.id, })
-        logger.debug(f"Inserted sample {todo_app.name} item.")
 
 
 populate_initial_data()
@@ -1411,7 +1300,7 @@ for workflow_name, workflow_instance in workflow_instances.items():
         logger.debug(f"Setting endpoint message for {workflow_name}: {endpoint_message}")
         endpoint_training[workflow_name] = endpoint_message
 
-base_menu_items = ['', 'profile', todo_app.name]
+base_menu_items = ['', 'profile']
 additional_menu_items = ['stream_simulator', 'mobile_chat']
 MENU_ITEMS = base_menu_items + list(workflow_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
@@ -1465,10 +1354,8 @@ async def home(request):
     current_profile_id = db.get("last_profile_id")
     if current_profile_id:
         logger.debug(f"Current profile ID: {current_profile_id}")
-        todos.xtra(profile_id=current_profile_id)
     else:
         logger.warning("No current profile ID found. Using default filtering.")
-        todos.xtra(profile_id=None)
     if current_profile_id is None:
         first_profiles = profiles(order_by='id', limit=1)
         if first_profiles:
@@ -1477,8 +1364,6 @@ async def home(request):
             logger.debug(f"Set default profile ID to {current_profile_id}")
         else:
             logger.warning("No profiles found in the database")
-    if current_profile_id is not None:
-        todos.xtra(profile_id=current_profile_id)
     menux = db.get("last_app_choice", "App")
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
@@ -1534,21 +1419,13 @@ async def create_outer_container(current_profile_id, menux):
         return Container(Meta(name="viewport", content="width=device-width, initial-scale=1.0"), create_chat_interface(autofocus=True, mobile=True), style=("width: 100vw; ""height: 100vh; ""margin: 0; ""padding: 0; ""position: fixed; ""top: 0; left: 0; ""z-index: 9999; ""background: var(--background-color); ""overflow: hidden; "))
     nav_group = create_nav_group()
     is_chat_view = menux == "mobile_chat"
-    if menux == todo_app.name:
-        todo_items = sorted(todos(), key=priority_key)
-        logger.debug(f"Fetched {len(todo_items)} todo items for profile ID {current_profile_id}.")
-    elif menux == "your_new_plugin_name":
+    if menux == "your_new_plugin_name":
         pass
-    else:
-        todo_items = []
-    return Container(Meta(name="viewport", content="width=device-width, initial-scale=1.0"), nav_group, Grid(await create_grid_left(menux, todo_items), create_chat_interface()if not is_chat_view else None, cls="grid", style=("display: grid; ""gap: 20px; "f"grid-template-columns: {GRID_LAYOUT if not is_chat_view else '1fr'}; "),), create_poke_button(), style=(f"width: {WEB_UI_WIDTH}; "f"max-width: none; "f"padding: {WEB_UI_PADDING}; "f"margin: {WEB_UI_MARGIN};"),)
 
 
 async def create_grid_left(menux, render_items=None):
     if menux == profile_app.name:
         return await profile_render()
-    elif menux == todo_app.name:
-        return await todo_render(menux, render_items)
     elif menux == 'stream_simulator':
         return await stream_simulator.stream_render()
     elif menux in workflow_instances:
@@ -1660,36 +1537,6 @@ def create_poke_button():
     )
 
 
-async def todo_render(menux, render_items=None):
-    return Div(
-        Card(
-            H2(f"{title_name(menux)} {LIST_SUFFIX}"),
-            Ul(
-                *[todo_app.render_item(item) for item in (render_items or [])],
-                id='todo-list',
-                cls='sortable',
-                style="padding-left: 0;"
-            ),
-            header=Form(
-                Group(
-                    Input(
-                        placeholder=f'Add new {todo_app.name.capitalize()}',
-                        id='name',
-                        name='name',
-                        autofocus=True
-                    ),
-                    Button("Add", type="submit")
-                ),
-                hx_post=f"/{todo_app.name}",
-                hx_swap="beforeend",
-                hx_target="#todo-list"
-            )
-        ),
-        id="content-container",
-        style="display: flex; flex-direction: column;"
-    )
-
-
 async def profile_render():
     all_profiles = profiles()
     logger.debug("Initial profile state:")
@@ -1795,187 +1642,6 @@ async def chatq(message: str, verbatim: bool = False, role: str = "user", base_a
         logger.error(f"Error in chatq: {e}")
         traceback.print_exc()
         raise
-
-
-def get_filtered_table(current_profile_id, todo_app_instance):
-    try:
-        logger.debug(f"[DEBUG] Getting filtered table for profile_id: {current_profile_id}")
-        logger.debug(f"[DEBUG] Table object: {todo_app_instance.table}")
-        logger.debug(f"[DEBUG] Table contents: {list(todo_app_instance.table)}")
-        filtered_table = todo_app_instance.table.xtra(profile_id=current_profile_id)
-        logger.debug(f"[DEBUG] Filtered table query result: {filtered_table}")
-        if filtered_table is None:
-            logger.warning("Filtered table is None")
-            return []
-        filtered_list = list(filtered_table)
-        logger.debug(f"[DEBUG] Filtered list contents: {filtered_list}")
-        if not filtered_list:
-            logger.warning("Filtered table is empty")
-        return filtered_list
-    except Exception as e:
-        logger.error(f"Error getting filtered table: {str(e)}")
-        logger.error(f"[DEBUG] Stack trace: ", exc_info=True)
-        return []
-
-
-async def extract_json_objects(text):
-    logger.debug("Begin Extract JSON")
-    json_objects = []
-    json_pattern = r'\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\})*)*\}))*\}'
-    matches = list(re.finditer(json_pattern, text))
-    logger.debug(f"Number of JSON matches detected: {len(matches)}")
-    for match in matches:
-        try:
-            json_str = match.group()
-            fixed_str = json_str.encode('utf-16', 'surrogatepass').decode('utf-16')
-            json_obj = json.loads(fixed_str)
-            logger.debug(f"Parsed JSON object: {json.dumps(json_obj, indent=4, sort_keys=True, ensure_ascii=False)}")
-            json_objects.append(json_obj)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON: {e}")
-            logger.error(f"Problematic JSON string: {json_str}")
-            table = Table(title="JSON Error")
-            table.add_column("JSON String")
-            table.add_row(json_str, style="green")
-            console.print(table)
-            clear_system_messages_from_history()
-            system_message = generate_json_format_reminder()
-            append_to_conversation(system_message, role="system")
-            logger.info("Reinforced JSON formatting rules in conversation history")
-            return []
-    if not json_objects:
-        logger.info("No JSON objects detected in the text.")
-    logger.debug("End Extract JSON")
-    return json_objects
-
-
-async def post_llm_stream_json_detection(text, todo_app):
-    logger.debug("Begin Ollama JSON Detection")
-    detected_patterns = []
-    json_objects = await extract_json_objects(text)
-    logger.debug(f"[OLLAMA DEBUG] Detected JSON objects: {json_objects}")
-    logger.debug(f"[OLLAMA DEBUG] Number of JSON objects: {len(json_objects)}")
-    if not json_objects:
-        logger.info("No CRUD operations detected in the text.")
-        return detected_patterns
-    for json_obj in json_objects:
-        try:
-            if not isinstance(json_obj, dict):
-                raise ValueError(f"Invalid JSON object type: {type(json_obj)}")
-            if 'action'not in json_obj or 'target'not in json_obj:
-                raise ValueError(f"Missing 'action' or 'target' in JSON: {json_obj}")
-            logger.debug(f"[OLLAMA DEBUG] Executing action with json_obj: {json_obj}")
-            result, table_data = await execute_crud_operation(todo_app, json_obj)
-            logger.debug(f"[OLLAMA DEBUG] Operation result: {result}, table_data: {table_data}")
-        except Exception as e:
-            error_message = f"Error processing JSON object: {str(e)}\nJSON: {json.dumps(json_obj, indent=2, ensure_ascii=False)}"
-            logger.error(error_message)
-            detected_patterns.append((json_obj, error_message, []))
-    logger.debug("End Ollama JSON Detection")
-    return detected_patterns
-
-
-async def execute_crud_operation(todo_app_instance, operation_data):
-    try:
-        action = operation_data.get('action')
-        target = operation_data.get('target')
-        args = operation_data.get('args', {})
-        current_profile_id = db['last_profile_id']
-        logger.debug(f"[DEBUG] Current profile_id from db: {current_profile_id}")
-
-        def get_filtered_table():
-            try:
-                logger.debug(f"[DEBUG] Getting filtered table for profile_id: {current_profile_id}")
-                logger.debug(f"[DEBUG] Table object: {repr(todo_app_instance.table)}")
-                filtered_table = todo_app_instance.table.xtra(profile_id=current_profile_id)
-                return list(filtered_table)if filtered_table is not None else []
-            except Exception as e:
-                logger.error(f"Error getting filtered table: {str(e)}")
-                logger.error("[DEBUG] Stack trace: ", exc_info=True)
-                return []
-        if action == "insert" and target == "task":
-            logger.debug(f"[EXECUTE DEBUG] Inserting task with args: {args}")
-            try:
-                new_item = todos.insert({"name": args["name"]})
-                todo_html = to_xml(render_todo(new_item))
-                await broadcaster.send(todo_html)
-                return ("Task inserted successfully", new_item), get_filtered_table()
-            except Exception as e:
-                logger.error(f"Insert action failed: {str(e)}")
-                return (f"Error during insert: {str(e)}", None), []
-        elif action == "read":
-            item_id = args["id"]
-            logger.debug(f"[EXECUTE DEBUG] Reading item with ID: {item_id}")
-            result = (todo_app_instance.table[item_id], get_filtered_table())
-            logger.debug(f"[EXECUTE DEBUG] Read item: {result}")
-            return result
-        elif action == "update":
-            item_id = args.pop("id")
-            logger.debug(f"[EXECUTE DEBUG] Updating item {item_id} with args: {args}")
-            item = todo_app_instance.table[item_id]
-            for key, value in args.items():
-                setattr(item, key, value)
-            updated_item = todo_app_instance.table.update(item)
-            result = (updated_item, get_filtered_table())
-            logger.debug(f"[EXECUTE DEBUG] Updated item: {result}")
-            return result
-        elif action == "delete":
-            item_id = args["id"]
-            logger.debug(f"[EXECUTE DEBUG] Deleting item with ID: {item_id}")
-            todo_app_instance.table.delete(item_id)
-            result = (f"Item with ID {item_id} deleted.", get_filtered_table())
-            logger.debug(f"[EXECUTE DEBUG] Deleted item: {result}")
-            return result
-        elif action == "toggle":
-            item_id = args["id"]
-            field = args["field"]
-            new_value = args.get("new_value")
-            logger.debug(f"[EXECUTE DEBUG] Toggling {field} for item {item_id}")
-            if new_value is None:
-                item = todo_app_instance.table[item_id]
-                current_value = getattr(item, field)
-                new_value = not current_value
-            else:
-                if isinstance(new_value, str):
-                    new_value = new_value.lower() == 'true'
-            setattr(item, field, new_value)
-            updated_item = todo_app_instance.table.update(item)
-            result = (f"Field '{field}' updated.", updated_item)
-            logger.debug(f"[EXECUTE DEBUG] Toggled item: {result}")
-            return result, get_filtered_table()
-        elif action == "sort":
-            items = args["items"]
-            logger.debug(f"[EXECUTE DEBUG] Sorting items: {items}")
-            sorted_items = []
-            for item in items:
-                item_id = item["id"]
-                priority = item["priority"]
-                updated_item = todo_app_instance.table.update(id=item_id, priority=priority)
-                sorted_items.append(updated_item)
-            result = ("Items sorted by priority.", sorted_items)
-            logger.debug(f"[EXECUTE DEBUG] Sorted items: {result}")
-            return result, get_filtered_table()
-        elif action == "list":
-            logger.debug("[EXECUTE DEBUG] Listing all items")
-            items = get_filtered_table()
-            result = ("Items retrieved successfully", items)
-            logger.debug(f"[EXECUTE DEBUG] Listed items: {result}")
-            return result, items
-        elif action == "redirect":
-            profile_id = args["id"]
-            logger.debug(f"[EXECUTE DEBUG] Redirecting to profile: {profile_id}")
-            redirect_url = todo_app_instance.redirect_url(profile_id)
-            result = ("Redirect URL generated", redirect_url)
-            logger.debug(f"[EXECUTE DEBUG] Redirect result: {result}")
-            return result, get_filtered_table()
-        else:
-            raise ValueError(f"Unsupported action: {action}")
-    except Exception as e:
-        error_message = f"Error during {action}: {str(e)}"
-        logger.error(f"[EXECUTE DEBUG] {error_message}")
-        logger.error(f"[EXECUTE DEBUG] Operation data: {json.dumps(operation_data, indent=2, ensure_ascii=False)}")
-        logger.error("[EXECUTE DEBUG] Full stack trace: ", exc_info=True)
-        return (error_message, None), []
 
 
 class Introduction:
@@ -2282,21 +1948,6 @@ class Chat:
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
             raw_response = await chatq(msg, verbatim=verbatim, base_app=self.base_app)
-            try:
-                response_json = json.loads(raw_response)
-                if "action" in response_json:
-                    result = await execute_crud_operation(self.base_app, response_json)
-                    if isinstance(result, tuple) and len(result) > 1:
-                        response_message, new_item = result
-                        if new_item:
-                            html_content = to_xml(self.base_app.render_item(new_item))
-                            await websocket.send_text(html_content)
-                        else:
-                            await websocket.send_text(response_message)
-                    else:
-                        await websocket.send_text(result)
-            except json.JSONDecodeError:
-                pass
             append_to_conversation(raw_response, "assistant")
         except Exception as e:
             self.logger.error(f"Error in handle_chat_message: {e}")
@@ -2350,18 +2001,6 @@ class Chat:
             while True:
                 message = await websocket.receive_text()
                 self.logger.debug(f"Received message: {message}")
-                try:
-                    msg_data = json.loads(message)
-                    if "action" in msg_data:
-                        result = await execute_crud_operation(self.base_app, msg_data)
-                        if isinstance(result, tuple) and len(result) > 0:
-                            response, new_item = result
-                            html_content = to_xml(render_todo(new_item))
-                            swap_instruction = f"""<div hx-swap-oob="beforeend:#todo-list">{html_content}</div>"""
-                            await websocket.send_text(swap_instruction)
-                        continue
-                except json.JSONDecodeError:
-                    await self.handle_chat_message(websocket, message)
         except WebSocketDisconnect:
             self.logger.info("WebSocket disconnected")
         except Exception as e:
@@ -2372,7 +2011,7 @@ class Chat:
             self.logger.debug("WebSocket connection closed")
 
 
-chat = Chat(app, id_suffix="", base_app=todo_app)
+chat = Chat(app, id_suffix="")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True,)
 
 
@@ -2447,7 +2086,7 @@ def print_routes():
     console.print(table)
 
 
-ALL_ROUTES = list(set(['', todo_app.name, profile_app.name] + MENU_ITEMS))
+ALL_ROUTES = list(set(['', profile_app.name] + MENU_ITEMS))
 for item in ALL_ROUTES:
     path = f'/{item}'if item else '/'
 
