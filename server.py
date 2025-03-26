@@ -474,22 +474,22 @@ class BaseApp:
 
     async def insert_item(self, request):
         try:
-            logger.debug(f"[RENDER DEBUG] Starting insert_item for {self.name}")
+            logger.debug(f"[DEBUG] Starting insert_item for {self.name}")
             form = await request.form()
-            logger.debug(f"[RENDER DEBUG] Form data: {dict(form)}")
+            logger.debug(f"[DEBUG] Form data: {dict(form)}")
             new_item_data = self.prepare_insert_data(form)
             if not new_item_data:
-                logger.debug("[RENDER DEBUG] No new_item_data, returning empty")
+                logger.debug("[DEBUG] No new_item_data, returning empty")
                 return ''
             new_item = await self.create_item(**new_item_data)
-            logger.debug(f"[RENDER DEBUG] Created new item: {new_item}")
+            logger.debug(f"[DEBUG] Created new item: {new_item}")
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
             prompt = action_details
             asyncio.create_task(chatq(prompt, verbatim=True))
             rendered = self.render_item(new_item)
-            logger.debug(f"[RENDER DEBUG] Rendered item type: {type(rendered)}")
-            logger.debug(f"[RENDER DEBUG] Rendered item content: {rendered}")
+            logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
+            logger.debug(f"[DEBUG] Rendered item content: {rendered}")
             return rendered
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
@@ -705,9 +705,9 @@ class TodoApp(BaseApp):
         self.item_name_field = 'name'
 
     def render_item(self, todo):
-        logger.debug(f"[RENDER DEBUG] TodoApp.render_item called with: {todo}")
+        logger.debug(f"[DEBUG] TodoApp.render_item called with: {todo}")
         rendered = render_todo(todo)
-        logger.debug(f"[RENDER DEBUG] render_todo returned type: {type(rendered)}")
+        logger.debug(f"[DEBUG] render_todo returned type: {type(rendered)}")
         return rendered
 
     def prepare_insert_data(self, form):
@@ -1804,22 +1804,22 @@ async def chatq(message: str, verbatim: bool = False, role: str = "user", base_a
 
 def get_filtered_table(current_profile_id, todo_app_instance):
     try:
-        logger.debug(f"[RENDER DEBUG] Getting filtered table for profile_id: {current_profile_id}")
-        logger.debug(f"[RENDER DEBUG] Table object: {todo_app_instance.table}")
-        logger.debug(f"[RENDER DEBUG] Table contents: {list(todo_app_instance.table)}")
+        logger.debug(f"[DEBUG] Getting filtered table for profile_id: {current_profile_id}")
+        logger.debug(f"[DEBUG] Table object: {todo_app_instance.table}")
+        logger.debug(f"[DEBUG] Table contents: {list(todo_app_instance.table)}")
         filtered_table = todo_app_instance.table.xtra(profile_id=current_profile_id)
-        logger.debug(f"[RENDER DEBUG] Filtered table query result: {filtered_table}")
+        logger.debug(f"[DEBUG] Filtered table query result: {filtered_table}")
         if filtered_table is None:
             logger.warning("Filtered table is None")
             return []
         filtered_list = list(filtered_table)
-        logger.debug(f"[RENDER DEBUG] Filtered list contents: {filtered_list}")
+        logger.debug(f"[DEBUG] Filtered list contents: {filtered_list}")
         if not filtered_list:
             logger.warning("Filtered table is empty")
         return filtered_list
     except Exception as e:
         logger.error(f"Error getting filtered table: {str(e)}")
-        logger.error(f"[RENDER DEBUG] Stack trace: ", exc_info=True)
+        logger.error(f"[DEBUG] Stack trace: ", exc_info=True)
         return []
 
 
@@ -1886,17 +1886,17 @@ async def execute_crud_operation(todo_app_instance, operation_data):
         target = operation_data.get('target')
         args = operation_data.get('args', {})
         current_profile_id = db['last_profile_id']
-        logger.debug(f"[RENDER DEBUG] Current profile_id from db: {current_profile_id}")
+        logger.debug(f"[DEBUG] Current profile_id from db: {current_profile_id}")
 
         def get_filtered_table():
             try:
-                logger.debug(f"[RENDER DEBUG] Getting filtered table for profile_id: {current_profile_id}")
-                logger.debug(f"[RENDER DEBUG] Table object: {repr(todo_app_instance.table)}")
+                logger.debug(f"[DEBUG] Getting filtered table for profile_id: {current_profile_id}")
+                logger.debug(f"[DEBUG] Table object: {repr(todo_app_instance.table)}")
                 filtered_table = todo_app_instance.table.xtra(profile_id=current_profile_id)
                 return list(filtered_table)if filtered_table is not None else []
             except Exception as e:
                 logger.error(f"Error getting filtered table: {str(e)}")
-                logger.error("[RENDER DEBUG] Stack trace: ", exc_info=True)
+                logger.error("[DEBUG] Stack trace: ", exc_info=True)
                 return []
         if action == "insert" and target == "task":
             logger.debug(f"[EXECUTE DEBUG] Inserting task with args: {args}")
