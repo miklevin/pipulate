@@ -150,10 +150,24 @@ function setupWebSocketAndSSE() {
 function setupInteractions() {
     // Form reset after submission
     document.addEventListener('htmx:afterSwap', function(event) {
-        if (event.target.id === 'todo-list' && event.detail.successful) {
-            const form = document.querySelector('form[hx-target="#todo-list"]');
+        // Handle both todo-list and competitor-list targets
+        if ((event.target.id === 'todo-list' || event.target.id === 'competitor-list') && event.detail.successful) {
+            const targetId = event.target.id;
+            
+            const form = document.querySelector(`form[hx-target="#${targetId}"]`);
+            
             if (form) {
                 form.reset();
+            } else {
+                // Try alternative selectors if the first one doesn't work
+                const allForms = document.querySelectorAll('form[hx-target]');
+                
+                // Look for forms with matching target attributes
+                allForms.forEach(f => {
+                    if (f.getAttribute('hx-target') === `#${targetId}`) {
+                        f.reset();
+                    }
+                });
             }
         }
     });

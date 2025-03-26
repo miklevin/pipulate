@@ -266,8 +266,7 @@ class CompetitorPlugin:
                     ),
                     hx_post=f"/{app_name}",
                     hx_swap="beforeend",
-                    hx_target=f"#{app_name}-list",
-                    _="on htmx:afterRequest(maybeError) if maybeError === undefined then me.reset()"
+                    hx_target=f"#{app_name}-list"
                 )
             ),
             id=f"{app_name}-content-container",
