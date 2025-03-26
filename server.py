@@ -1203,7 +1203,7 @@ class Pipulate:
         asyncio.create_task(stream_task())
 
 
-def discover_workflow_files():
+def discover_plugin_files():
     plugin_modules = {}
     plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
 
@@ -1256,7 +1256,7 @@ def find_workflow_classes(workflow_modules):
 
 pipulate = Pipulate(pipeline)
 plugin_instances = {}
-discovered_modules = discover_workflow_files()
+discovered_modules = discover_plugin_files()
 discovered_classes = find_workflow_classes(discovered_modules)
 
 # Ensure these dictionaries are initialized
