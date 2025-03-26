@@ -235,18 +235,14 @@ class CompetitorPlugin:
         """Renders the main view for the Competitor plugin."""
         logger.debug(f"CompetitorPlugin.landing called")
         app_name = self.NAME
-        # Get current profile_id from the shared DictLikeDB passed during init
         current_profile_id = self.db_dictlike.get("last_profile_id", 1)
         logger.debug(f"Landing page using profile_id: {current_profile_id}")
 
-        # Filter competitors by profile_id using MiniDataAPI pattern
-        competitor_items = self.competitors_table("profile_id = ?", [current_profile_id])
-        competitor_items = sorted(competitor_items, key=priority_key)
+        competitor_items_query = self.competitors_table(where=f"profile_id = {current_profile_id}")
+        competitor_items = sorted(competitor_items_query, key=priority_key)
         logger.debug(f"Found {len(competitor_items)} competitors for profile {current_profile_id}")
 
-        # Build the UI Card
         add_placeholder = f'Add new {self.DISPLAY_NAME[:-1]}'
-        sort_url = f"/{app_name}_sort"
 
         return Div(
             Card(
@@ -255,11 +251,7 @@ class CompetitorPlugin:
                     *[self.competitor_app_instance.render_item(item) for item in competitor_items],
                     id=f'{app_name}-list',
                     cls='sortable',
-                    style="padding-left: 0;",
-                    hx_post=sort_url,
-                    hx_trigger="end",
-                    hx_target=f"#{app_name}-list",
-                    hx_swap="outerHTML"
+                    style="padding-left: 0;"
                 ),
                 header=Form(
                     Group(
