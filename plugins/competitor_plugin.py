@@ -89,7 +89,7 @@ def render_competitor(competitor, app_instance: CompetitorApp):
         hx_delete=delete_url,
         hx_swap='outerHTML',
         hx_target=f"#{cid}",
-        style="cursor: pointer; display: inline; margin-left: 5px;", # Added margin
+        style="cursor: pointer; display: inline; margin-left: 5px; text-decoration: none;", # Added text-decoration: none
         cls="delete-icon"
     )
 
