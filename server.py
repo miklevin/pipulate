@@ -1232,10 +1232,10 @@ def discover_plugin_files():
     return plugin_modules
 
 
-def find_plugin_classes(workflow_modules):
-    workflow_classes = []
+def find_plugin_classes(plugin_modules):
+    plugin_classes = []
 
-    for module_name, module in workflow_modules.items():
+    for module_name, module in plugin_modules.items():
         logger.debug(f"Examining module: {module_name}")
 
         for name, obj in inspect.getmembers(module):
@@ -1247,11 +1247,11 @@ def find_plugin_classes(workflow_modules):
 
                 # Check if it has the right methods that make it workflow-like
                 if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
-                    workflow_classes.append((module_name, name, obj))
-                    logger.debug(f"Found workflow-like class with landing method: {module_name}.{name}")
+                    plugin_classes.append((module_name, name, obj))
+                    logger.debug(f"Found plugin-like class with landing method: {module_name}.{name}")
 
-    logger.debug(f"Discovered workflow classes: {[(m, c) for m, c, _ in workflow_classes]}")
-    return workflow_classes
+    logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
+    return plugin_classes
 
 
 pipulate = Pipulate(pipeline)
