@@ -11,7 +11,6 @@ class HelloPlugin:
     def __init__(self, app, pipulate, pipeline, db):
         self.app = app
         self.pipulate = pipulate
-        self.pipeline = pipeline
         self.db = db
         logger.debug(f"HelloPlugin initialized with NAME: {self.NAME}")
     
