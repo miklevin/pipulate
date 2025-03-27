@@ -22,10 +22,10 @@ class BasePlugin:
         
         # Derive endpoint prefix and id prefixes from filename
         # We need both singular and plural forms for compatibility
-        self.singular = self.name.rstrip('s')  # 'tasks' -> 'task'
+        self.singular = self.name.rstrip('s') 
         
         # Use singular for endpoints to maintain compatibility
-        self.ENDPOINT_PREFIX = f"/{self.singular}"
+        self.ENDPOINT_PREFIX = f"/{self.name}"
         
         # Other naming constants
         self.LIST_ID = f"{self.name}-list"
