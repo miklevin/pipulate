@@ -370,7 +370,7 @@ class BaseApp:
         rt(f'/{self.name}/{{item_id}}', methods=['POST'])(self.update_item)
         rt(f'/{self.name}/delete/{{item_id}}', methods=['DELETE'])(self.delete_item)
         rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
-        rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
+        rt(f'/{self.name}/sort', methods=['POST'])(self.sort_items)
 
     def get_action_url(self, action, item_id):
         return f"/{self.name}/{action}/{item_id}"
