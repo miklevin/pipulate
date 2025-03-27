@@ -251,7 +251,8 @@ class TodoPlugin:
                     ),
                     hx_post=f"/{app_name}",
                     hx_swap="beforeend",
-                    hx_target=f"#{app_name}-list"
+                    hx_target=f"#{app_name}-list",
+                    hx_on__after_request="this.reset()"
                 )
             ),
             id=f"{app_name}-content-container",
