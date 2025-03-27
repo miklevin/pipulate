@@ -41,23 +41,27 @@ sidebarWs.onmessage = function(event) {
         return;
     }
     
-    // Check if the response contains 'todo-' in the id attribute
-    if (event.data.includes('todo-')) {
-        const todoList = document.getElementById('todo-list');
-        if (todoList) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = event.data.trim(); // Trim in case of leading/trailing whitespace
-            const newItem = tempDiv.firstElementChild;
-            if (newItem && newItem.tagName === 'LI') {
-                todoList.appendChild(newItem);
-                htmx.process(newItem);  // Process HTMX bindings on the new item
-                // Reinitialize sortable if necessary
-                if (window.Sortable && !todoList.classList.contains('sortable-initialized')) {
-                    new Sortable(todoList, {
+    // Check if the response contains a plugin list item
+    if (event.data.includes('data-plugin-item="true"')) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = event.data.trim();
+        const newItem = tempDiv.firstElementChild;
+        
+        if (newItem && newItem.hasAttribute('data-list-target')) {
+            const listId = newItem.getAttribute('data-list-target');
+            const targetList = document.getElementById(listId);
+            
+            if (targetList) {
+                targetList.appendChild(newItem);
+                htmx.process(newItem);
+                
+                // Initialize sortable if needed
+                if (window.Sortable && !targetList.classList.contains('sortable-initialized')) {
+                    new Sortable(targetList, {
                         animation: 150,
                         ghostClass: 'blue-background-class'
                     });
-                    todoList.classList.add('sortable-initialized');
+                    targetList.classList.add('sortable-initialized');
                 }
             }
         }

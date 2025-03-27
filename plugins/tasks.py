@@ -142,7 +142,7 @@ def render_todo(todo, app_instance: TodoApp):
 
 # --- Define the Plugin Wrapper ---
 class TodoPlugin:
-    NAME = "todo"
+    NAME = os.path.splitext(os.path.basename(__file__))[0]
     DISPLAY_NAME = "Tasks"
     ENDPOINT_MESSAGE = "Manage your todo list here. Add, edit, sort, and mark tasks as complete."
 
