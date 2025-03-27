@@ -1,4 +1,4 @@
-# plugins/tasks.py
+# Rename file to create a generic list plugin (e.g. tasks.py, competitors.py)
 
 import os
 import inspect
@@ -176,11 +176,11 @@ def render_item(item, app_instance):
         data_endpoint_prefix=app_instance.plugin.ENDPOINT_PREFIX
     )
 
-class TasksPlugin(BasePlugin):
+class ListPlugin(BasePlugin):
     ENDPOINT_MESSAGE = "Manage your task list here. Add, edit, sort, and mark tasks as complete."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
-        """Initialize the Tasks Plugin."""
+        """Initialize the List Plugin."""
         super().__init__()
         self.app = app
         self.pipulate = pipulate
