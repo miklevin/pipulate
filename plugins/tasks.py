@@ -20,26 +20,19 @@ class BasePlugin:
         # Strip .py extension to get the base name
         self.name = filename.replace('.py', '')
         
-        # Use the name directly for all endpoints - no singular conversion
+        # Use the name directly for all endpoints
         self.ENDPOINT_PREFIX = f"/{self.name}"
-        
-        # Keep singular reference only for display/naming purposes if needed
-        self.singular = self.name.rstrip('s')
         
         # Other naming constants
         self.LIST_ID = f"{self.name}-list"
-        self.ITEM_CLASS = f"{self.singular}-item"  # Keep singular for CSS classes
-        self.FORM_FIELD_NAME = f"{self.singular}-text"  # Keep singular for form fields
-        self.INPUT_ID = f"{self.singular}-input"  # Keep singular for input IDs
-        self.CONTAINER_ID = f"{self.name}-container"  # Use plural for container
+        self.ITEM_CLASS = f"{self.name}-item"
+        self.FORM_FIELD_NAME = f"{self.name}-text"
+        self.INPUT_ID = f"{self.name}-input"
+        self.CONTAINER_ID = f"{self.name}-container"
         
     @property
     def DISPLAY_NAME(self):
         return self.name.title()
-        
-    @property
-    def DISPLAY_NAME_SINGULAR(self):
-        return self.singular.title()
         
     @property
     def DB_TABLE_NAME(self):
@@ -177,7 +170,9 @@ def render_item(item, app_instance):
     )
 
 class ListPlugin(BasePlugin):
-    ENDPOINT_MESSAGE = "Manage your task list here. Add, edit, sort, and mark tasks as complete."
+    @property
+    def ENDPOINT_MESSAGE(self):
+        return f"Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
@@ -262,7 +257,7 @@ class ListPlugin(BasePlugin):
         items = sorted(items_query, key=priority_key)
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
-        add_placeholder = f"Add new {self.DISPLAY_NAME_SINGULAR.lower()}"
+        add_placeholder = f"Add new {self.name.lower()}"
 
         return Div(
             Card(

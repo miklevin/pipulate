@@ -761,8 +761,6 @@ def build_endpoint_messages(endpoint):
         "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
         "profile": ("This is where you add, edit, and delete clients. "
                     "The Nickname field is hidden on the menu so client names are never exposed unless in client (profile) list app."),
-        "task": ("This is where you manage your tasks. "
-                 "For a little fun, ask me to add an apple to the task list."),
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin.",
         "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
     }
@@ -795,7 +793,6 @@ def build_endpoint_training(endpoint):
     endpoint_training = {
         "": ("You were just switched to the home page."),
         "profile": ("You were just switched to the profile app."),
-        "task": read_training("todo.md"),
         "stream_simulator": ("Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."),
         "mobile_chat": ("You were just switched to the mobile chat app."),
     }
