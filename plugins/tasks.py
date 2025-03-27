@@ -20,19 +20,18 @@ class BasePlugin:
         # Strip .py extension to get the base name
         self.name = filename.replace('.py', '')
         
-        # Derive endpoint prefix and id prefixes from filename
-        # We need both singular and plural forms for compatibility
-        self.singular = self.name.rstrip('s') 
-        
-        # Use singular for endpoints to maintain compatibility
+        # Use the name directly for all endpoints - no singular conversion
         self.ENDPOINT_PREFIX = f"/{self.name}"
+        
+        # Keep singular reference only for display/naming purposes if needed
+        self.singular = self.name.rstrip('s')
         
         # Other naming constants
         self.LIST_ID = f"{self.name}-list"
-        self.ITEM_CLASS = f"{self.singular}-item"
-        self.FORM_FIELD_NAME = f"{self.singular}-text"
-        self.INPUT_ID = f"{self.singular}-input"
-        self.CONTAINER_ID = f"{self.name}-container"
+        self.ITEM_CLASS = f"{self.singular}-item"  # Keep singular for CSS classes
+        self.FORM_FIELD_NAME = f"{self.singular}-text"  # Keep singular for form fields
+        self.INPUT_ID = f"{self.singular}-input"  # Keep singular for input IDs
+        self.CONTAINER_ID = f"{self.name}-container"  # Use plural for container
         
     @property
     def DISPLAY_NAME(self):
@@ -44,36 +43,36 @@ class BasePlugin:
         
     @property
     def DB_TABLE_NAME(self):
-        return self.singular
+        return self.name
 
 class AppLogic(BaseApp):
     def __init__(self, table, plugin):
         self.plugin = plugin
         super().__init__(
-            name=plugin.singular,
+            name=plugin.name,
             table=table, 
             toggle_field='done',
             sort_field='priority'
         )
         self.item_name_field = 'text'
-        logger.debug(f"{self.plugin.DISPLAY_NAME_SINGULAR}App initialized with table name: {table.name}")
+        logger.debug(f"{self.plugin.DISPLAY_NAME}App initialized with table name: {table.name}")
 
     def render_item(self, item):
-        logger.debug(f"{self.plugin.DISPLAY_NAME_SINGULAR}App.render_item called for: {item}")
+        logger.debug(f"{self.plugin.DISPLAY_NAME}App.render_item called for: {item}")
         return render_item(item, self)
 
     def prepare_insert_data(self, form):
         text = form.get(self.plugin.FORM_FIELD_NAME, '').strip()
         if not text:
-            logger.warning(f"Attempted to insert {self.plugin.singular} with empty text.")
+            logger.warning(f"Attempted to insert {self.plugin.name} with empty text.")
             return None
 
         current_profile_id = server_db.get("last_profile_id", 1)
-        logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.singular}")
+        logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.name}")
 
         items_for_profile = self.table("profile_id = ?", [current_profile_id])
         max_priority = max((i.priority or 0 for i in items_for_profile), default=-1) + 1
-        priority = int(form.get(f"{self.plugin.singular}_priority", max_priority))
+        priority = int(form.get(f"{self.plugin.name}_priority", max_priority))
 
         insert_data = {
             "text": text,
@@ -87,7 +86,7 @@ class AppLogic(BaseApp):
     def prepare_update_data(self, form):
         text = form.get(self.plugin.FORM_FIELD_NAME, '').strip()
         if not text:
-            logger.warning(f"Attempted to update {self.plugin.singular} with empty text.")
+            logger.warning(f"Attempted to update {self.plugin.name} with empty text.")
             return None
 
         update_data = {
@@ -99,7 +98,7 @@ class AppLogic(BaseApp):
 def render_item(item, app_instance):
     """Renders a single item as an LI element."""
     item_id = f'{app_instance.name}-{item.id}'
-    logger.debug(f"Rendering {app_instance.plugin.singular} ID {item.id} with text '{item.text}'")
+    logger.debug(f"Rendering {app_instance.plugin.name} ID {item.id} with text '{item.text}'")
 
     delete_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/delete/{item.id}"
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
@@ -229,7 +228,7 @@ class TasksPlugin(BasePlugin):
             raise
 
         self.app_instance = AppLogic(table=self.table, plugin=self)
-        logger.debug(f"{self.DISPLAY_NAME_SINGULAR}App instance created.")
+        logger.debug(f"{self.DISPLAY_NAME}App instance created.")
 
         self.register_plugin_routes()
         logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
