@@ -231,7 +231,7 @@ class ListPlugin(BasePlugin):
     def register_plugin_routes(self):
         """Register routes manually using app.route."""
         prefix = self.ENDPOINT_PREFIX
-        sort_path = f"{prefix}/sort"
+        sort_path = f"{prefix}_sort"
 
         routes_to_register = [
             (f'{prefix}', self.app_instance.insert_item, ['POST']),

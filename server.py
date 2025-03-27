@@ -370,7 +370,7 @@ class BaseApp:
         rt(f'/{self.name}/{{item_id}}', methods=['POST'])(self.update_item)
         rt(f'/{self.name}/delete/{{item_id}}', methods=['DELETE'])(self.delete_item)
         rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
-        rt(f'/{self.name}/sort', methods=['POST'])(self.sort_items)
+        rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
 
     def get_action_url(self, action, item_id):
         return f"/{self.name}/{action}/{item_id}"
@@ -558,6 +558,7 @@ class ProfileApp(BaseApp):
     def __init__(self, table):
         super().__init__(name=table.name, table=table, toggle_field='active', sort_field='priority')
         self.item_name_field = 'name'
+        logger.debug(f"Initialized ProfileApp with name={table.name}")
 
     def render_item(self, profile):
         return render_profile(profile)
@@ -590,6 +591,7 @@ class ProfileApp(BaseApp):
             "code": form.get('profile_code', '').strip(),
             "active": form.get('active', '').lower() == 'true',
         }
+
 
 
 def render_profile(profile):
@@ -747,7 +749,6 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
 
 profile_app = ProfileApp(table=profiles)
 profile_app.register_routes(rt)
-
 
 # Ensure plugins directory exists
 if not os.path.exists("plugins"):

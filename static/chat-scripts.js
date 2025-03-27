@@ -31,9 +31,8 @@ function setupSortable(sortableSelector, ghostClass) {
                 
                 let pluginName = basePath.split('/').pop();
                 
-                let updateUrl = `/${pluginName.replace('_plugin', '')}/sort`;
-                
-                htmx.ajax('POST', updateUrl, {
+                // Use _sort instead of /sort
+                htmx.ajax('POST', '/' + pluginName + '_sort', {
                     target: sortableEl,
                     swap: 'none',
                     values: { items: JSON.stringify(items) }
