@@ -589,7 +589,6 @@ class ProfileApp(BaseApp):
             "menu_name": form.get('profile_menu_name', '').strip(),
             "address": form.get('profile_address', '').strip(), 
             "code": form.get('profile_code', '').strip(),
-            "active": form.get('active', '').lower() == 'true',
         }
 
 
