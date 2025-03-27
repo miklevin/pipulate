@@ -761,7 +761,6 @@ def build_endpoint_messages(endpoint):
         "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
         "profile": ("This is where you add, edit, and delete profiles (aka clients). "
                     "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
-        "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin.",
         "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
     }
 
@@ -793,7 +792,6 @@ def build_endpoint_training(endpoint):
     endpoint_training = {
         "": ("You were just switched to the home page."),
         "profile": ("You were just switched to the profile app."),
-        "stream_simulator": ("Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."),
         "mobile_chat": ("You were just switched to the mobile chat app."),
     }
 
@@ -1303,7 +1301,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
         endpoint_training[workflow_name] = endpoint_message
 
 base_menu_items = ['', 'profile']
-additional_menu_items = ['stream_simulator', 'mobile_chat']
+additional_menu_items = ['mobile_chat']
 MENU_ITEMS = base_menu_items + list(plugin_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
@@ -1513,8 +1511,6 @@ async def create_grid_left(menux, render_items=None):
     fig(menux)
     if menux == profile_app.name:
         return await profile_render()
-    elif menux == 'stream_simulator':
-        return await stream_simulator.stream_render()
     elif menux in plugin_instances:
         workflow_instance = plugin_instances[menux]
         if hasattr(workflow_instance, 'render'):
@@ -1747,191 +1743,33 @@ class Introduction:
         self.app.post(f"{self.route_prefix}/start-chat")(self.start_chat)
         return Card(
             H3(f"Meet {APP_NAME}"),
-            P("This demo showcases \"Hot Prompt Injection\" - a technique where the AI assistant learns new information through UI interactions so it knows what it needs to know to help you right when it needs to help you."),
-            P("Try asking the AI assistant \"What's the secret word?\" right now - it will give you the wrong answer. Then click the button below to invisibly teach the AI a secret word, and ask the same question again (hint: it's the opposite of Ephemeral)."),
+            P(
+                "This demo showcases \"Hot Prompt Injection\" - a technique where "
+                "the AI assistant learns new information through UI interactions "
+                "so it knows what it needs to know to help you right when it "
+                "needs to help you."
+            ),
+            P(
+                "Try asking the AI assistant \"What's the secret word?\" right "
+                "now - it will give you the wrong answer. Then click the button "
+                "below to invisibly teach the AI a secret word, and ask the same "
+                "question again (hint: it's the opposite of Ephemeral)."
+            ),
             Div(style="margin-bottom: 20px;"),
-            Div(Button("Teach AI assistant secret word", hx_post="/introduction/start-chat", hx_swap="none", hx_trigger="click, htmx:afterRequest[document.getElementById('msg').focus()]", style="margin-top: 10px;")),
+            Div(
+                Button(
+                    "Teach AI assistant secret word",
+                    hx_post="/introduction/start-chat",
+                    hx_swap="none",
+                    hx_trigger="click, htmx:afterRequest[document.getElementById('msg').focus()]",
+                    style="margin-top: 10px;"
+                )
+            ),
             id="intro-card",
         )
 
 
 introduction = Introduction(app, route_prefix="/introduction")
-
-
-class StreamSimulator:
-    def __init__(self, app, route_prefix="/stream-sim", id_suffix="", show_stream_content=False):
-        self.app = app
-        self.route_prefix = route_prefix
-        self.id_suffix = id_suffix
-        self.show_stream_content = show_stream_content
-        self.logger = logger.bind(name=f"StreamSimulator{id_suffix}")
-        self.app.route(f"{self.route_prefix}/stream")(self.stream_handler)
-        self.app.route(f"{self.route_prefix}/start", methods=["POST"])(self.start_handler)
-        self.logger.debug(f"Registered routes: {self.route_prefix}/stream and {self.route_prefix}/start")
-
-    async def stream_handler(self, request):
-        async def event_generator():
-            try:
-                async for chunk in self.generate_chunks():
-                    if isinstance(chunk, dict):
-                        yield f"data: {json.dumps(chunk)}\n\n"
-                    else:
-                        yield f"data: {chunk}\n\n"
-                yield f"data: Simulation complete\n\n"
-                yield f"data: {json.dumps({'type': 'swap', 'target': '#stream_sim_button', 'content': self.create_simulator_button().to_html()})}\n\n"
-            except Exception as e:
-                self.logger.error(f"Error in stream: {str(e)}")
-                yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
-        return EventStream(event_generator())
-
-    async def start_handler(self, request):
-        await chatq(f"Tell the user {limiter} that you see that they have started a ""streaming simulation and will keep them updated on progress.")
-        return Button("Streaming...", cls="stream-sim-button", id="stream_sim_button", disabled="true", aria_busy="true")
-
-    async def generate_chunks(self, total_chunks=100, delay_range=(0.1, 0.5)):
-        try:
-            logger.debug("Generating Chunks")
-            self.logger.debug(f"Generating chunks: total={total_chunks}, delay={delay_range}")
-            chat_tasks = []
-            for i in range(total_chunks):
-                chunk = f"Simulated chunk {i + 1}/{total_chunks}"
-                self.logger.debug(f"Generated chunk: {chunk}")
-                yield chunk
-                if i + 1 == 1:
-                    chat_tasks.append(asyncio.create_task(chatq(f"Tell the user {limiter} streaming is in progress, fake as it may be.")))
-                elif i + 1 == 15:
-                    chat_tasks.append(asyncio.create_task(chatq(f"Tell the user {limiter} the job is 25% done, fake as it may be.")))
-                elif i + 1 == 40:
-                    chat_tasks.append(asyncio.create_task(chatq(f"Tell the user {limiter} the job is 50% over half way there, fake as it may be.")))
-                elif i + 1 == 65:
-                    chat_tasks.append(asyncio.create_task(chatq(f"Tell the user {limiter} the job is nearly complete, fake as it may be.")))
-                elif i + 1 == 85:
-                    chat_tasks.append(asyncio.create_task(chatq(f"Tell the user in under 20 words just a little bit more, fake as it may be.")))
-                await asyncio.sleep(random.uniform(*delay_range))
-            self.logger.debug("Finished generating all chunks")
-            yield json.dumps({"status": "complete"})
-            if chat_tasks:
-                await asyncio.gather(*chat_tasks)
-            await chatq(f"Congratulate the user {limiter}. The long-running job is done, fake as it may be!")
-        except Exception as e:
-            self.logger.error(f"Error in chunk generation: {str(e)}")
-            yield json.dumps({"status": "error", "message": str(e)})
-
-    def create_progress_card(self):
-        self.logger.debug("Creating progress card")
-        elements = [H3("Streaming Progress"), Div(id=f"stream-progress{self.id_suffix}", cls="progress-bar")]
-        if self.show_stream_content:
-            elements.append(Div(id=f"stream-content{self.id_suffix}", cls="stream-content"))
-        return Card(*elements)
-
-    def create_simulator_button(self):
-        self.logger.debug("Creating simulator button")
-        return Button("Start Stream Simulation", onclick=f"startSimulation_{self.id_suffix}()", cls="stream-sim-button", id=f"stream_sim_button{self.id_suffix}")
-
-    async def stream_render(self):
-        logger.debug("Rendering Stream Simulator")
-        js_template = r"""
-            class StreamUI {
-                constructor(idSuffix) {
-                    this.idSuffix = idSuffix;
-                    this.progressBar = document.getElementById('stream-progress' + idSuffix);
-                    this.streamContent = document.getElementById('stream-content' + idSuffix);
-                    this.button = document.getElementById('stream_sim_button' + idSuffix);
-                }
-
-                setButtonState(isRunning) {
-                    this.button.disabled = isRunning;
-                    this.button.setAttribute('aria-busy', isRunning);
-                    this.button.textContent = isRunning ? 'Streaming...' : 'Start Stream Simulation';
-                }
-
-                updateProgress(current, total) {
-                    const percentage = (current / total) * 100;
-                    this.progressBar.style.transition = 'width 0.3s ease-out';
-                    this.progressBar.style.width = percentage + '%';
-                }
-
-                resetProgress() {
-                    // Smooth transition back to 0
-                    this.progressBar.style.transition = 'width 0.5s ease-out';
-                    this.progressBar.style.width = '0%';
-                }
-
-                appendMessage(message) {
-                    if (this.streamContent) {  // Only append if element exists
-                        this.streamContent.innerHTML += message + '<br>';
-                        this.streamContent.scrollTop = this.streamContent.scrollHeight;
-                    }
-                }
-
-                handleJobComplete() {
-                    this.resetProgress();
-                    this.setButtonState(false);
-                }
-            }
-
-            const streamUI_ID_SUFFIX = new StreamUI('ID_SUFFIX');
-
-            function startSimulation_ID_SUFFIX() {
-                streamUI_ID_SUFFIX.setButtonState(true);
-                
-                const eventSource = new EventSource('ROUTE_PREFIX/stream');
-                
-                eventSource.onmessage = function(event) {
-                    const message = event.data;
-                    streamUI_ID_SUFFIX.appendMessage(message);
-                    
-                    if (message.includes('Simulation complete')) {
-                        eventSource.close();
-                        streamUI_ID_SUFFIX.handleJobComplete();
-                        return;
-                    }
-                    
-                    const match = message.match(/(\d+)\/(\d+)/);
-                    if (match) {
-                        const [current, total] = match.slice(1).map(Number);
-                        streamUI_ID_SUFFIX.updateProgress(current, total);
-                    }
-                };
-
-                eventSource.onerror = function() {
-                    eventSource.close();
-                    streamUI_ID_SUFFIX.handleJobComplete();
-                };
-            }
-        """
-        js_code = (js_template.replace('ID_SUFFIX', self.id_suffix).replace('ROUTE_PREFIX', self.route_prefix))
-        return Div(self.create_progress_card(), self.create_simulator_button(), Script(js_code), Style("""
-                .spinner {
-                    display: inline-block;
-                    width: 20px;
-                    height: 20px;
-                    border: 3px solid rgba(255,255,255,.3);
-                    border-radius: 50%;
-                    border-top-color: #fff;
-                    animation: spin 1s ease-in-out infinite;
-                    margin-left: 10px;
-                }
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-                .progress-bar {
-                    width: 0;
-                    height: 20px;
-                    background-color: #4CAF50;
-                }
-                """ + ("""
-                .stream-content {
-                    height: 200px;
-                    overflow-y: auto;
-                    border: 1px solid #ddd;
-                    padding: 10px;
-                    margin-top: 10px;
-                }
-                """if self.show_stream_content else "")))
-
-
-stream_simulator = StreamSimulator(app, route_prefix="/stream-sim", id_suffix="")
 
 
 @rt("/sse")

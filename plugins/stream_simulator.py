@@ -7,7 +7,32 @@ from loguru import logger
 from fasthtml.common import *
 
 logger = logging.getLogger(__name__)
+from server import (
+    chatq,                      # Core LLM query function
+    append_to_conversation,     # Manage conversation history
+    read_training,              # Load system prompts
+    TONE,                       # Global conversation settings
+    MODEL,                      # Model identifier
+    MAX_LLM_RESPONSE_WORDS,     # Response length control
+)
 
+limiter = ""
+
+async def my_plugin_llm_handler(message):
+    # Add user message to conversation
+    append_to_conversation(message, "user")
+    
+    # Query the LLM
+    response = await chatq(
+        message,
+        verbatim=False,  # Process with the AI's personality
+        # role="user"    # Default is user, can be omitted
+    )
+    
+    # Store the response
+    append_to_conversation(response, "assistant")
+    
+    return response
 
 class StreamSimulatorPlugin:
     NAME = "stream_simulator"
@@ -28,6 +53,9 @@ class StreamSimulatorPlugin:
         DISPLAY_NAME = "Stream Simulator"
         ENDPOINT_MESSAGE = "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."
     
+        self.app.route(f"{self.route_prefix}/stream")(self.stream_handler)
+        self.app.route(f"{self.route_prefix}/start", methods=["POST"])(self.start_handler)
+
     def landing(self, request):
         """Landing page for the Hello plugin"""
         logger.debug("HelloPlugin.landing method called")
