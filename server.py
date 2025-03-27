@@ -1240,7 +1240,7 @@ def find_plugin_classes(plugin_modules):
             if inspect.isclass(obj):
                 logger.debug(f"Class found: {module_name}.{name}")
 
-                # Check if it has the right methods that make it workflow-like
+                # Check if it has the right methods that make it plugin-like
                 if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
                     plugin_classes.append((module_name, name, obj))
                     logger.debug(f"Found plugin-like class with landing method: {module_name}.{name}")
@@ -1426,36 +1426,6 @@ def create_app_menu(menux):
 
 
 async def create_outer_container(current_profile_id, menux, temp_message=None):
-    """
-    Create the outer container for the application, including navigation and main content.
-
-    This function sets up the overall structure of the page. Plugins can integrate here
-    by adding conditions to handle their specific views.
-
-    This function generates the primary content area of the application, divided into
-    two columns: a main area (left) and a chat interface (right). The layout is as follows:
-
-    +-------------------------------------+
-    |             Main Content            |
-    | +---------------------------------+ |
-    | |                 |               | |
-    | |                 |               | |
-    | |                 |               | |
-    | |                 |               | |
-    | |                 |               | |
-    | |                 |               | |
-    | |                 |               | |
-    | +---------------------------------+ |
-    +-------------------------------------+
-
-    Args:
-        current_profile_id (int): The ID of the current profile.
-        menux (str): The current menu selection.
-        temp_message (str, optional): A temporary message to display. Defaults to None.
-
-    Returns:
-        Container: The outer container with all page elements.
-    """
     fig(menux)
     
     # Handle mobile chat view
@@ -1477,12 +1447,6 @@ async def create_outer_container(current_profile_id, menux, temp_message=None):
         )
 
     nav_group = create_nav_group()
-
-    # PLUGIN INTEGRATION POINT: Check for plugin-specific views
-    if menux == "your_new_plugin_name":
-        # Handle your new plugin's view here
-        # return your_new_plugin.create_view()
-        pass
 
     # Default layout
     return Container(
