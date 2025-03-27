@@ -759,8 +759,8 @@ def build_endpoint_messages(endpoint):
     # Base dictionary for standard endpoints
     endpoint_messages = {
         "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
-        "profile": ("This is where you add, edit, and delete clients. "
-                    "The Nickname field is hidden on the menu so client names are never exposed unless in client (profile) list app."),
+        "profile": ("This is where you add, edit, and delete profiles (aka clients). "
+                    "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
         "stream_simulator": "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin.",
         "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
     }
