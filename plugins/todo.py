@@ -14,7 +14,7 @@ from server import BaseApp, db as server_db, priority_key, LIST_SUFFIX, DB_FILEN
 class TodoApp(BaseApp):
     def __init__(self, table):
         # Initialize BaseApp with specific names and fields for todos
-        super().__init__(name='task', table=table, toggle_field='done', sort_field='priority')
+        super().__init__(name='todo', table=table, toggle_field='done', sort_field='priority')
         self.item_name_field = 'text'
         logger.debug(f"TodoApp initialized with table name: {table.name}")
 
@@ -142,7 +142,7 @@ def render_todo(todo, app_instance: TodoApp):
 
 # --- Define the Plugin Wrapper ---
 class TodoPlugin:
-    NAME = "task"
+    NAME = "todo"
     DISPLAY_NAME = "Tasks"
     ENDPOINT_MESSAGE = "Manage your todo list here. Add, edit, sort, and mark tasks as complete."
 
@@ -200,12 +200,12 @@ class TodoPlugin:
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""
-        prefix = f"/{self.todo_app_instance.name}"
-        sort_path = f"/{self.todo_app_instance.name}/sort"
+        prefix = f"/{self.NAME}"  # Use self.NAME instead of self.todo_app_instance.name
+        sort_path = f"{prefix}/sort"  # Consistent path construction
 
         routes_to_register = [
             (f'{prefix}', self.todo_app_instance.insert_item, ['POST']),
-            (f'{prefix}/{{item_id:int}}', self.todo_app_instance.update_item, ['POST']),
+            (f'{prefix}/{{item_id:int}}', self.todo_app_instance.update_item, ['POST']), 
             (f'{prefix}/delete/{{item_id:int}}', self.todo_app_instance.delete_item, ['DELETE']),
             (f'{prefix}/toggle/{{item_id:int}}', self.todo_app_instance.toggle_item, ['POST']),
             (sort_path, self.todo_app_instance.sort_items, ['POST']),
