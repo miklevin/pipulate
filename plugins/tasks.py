@@ -8,11 +8,10 @@ import fastlite
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from server import BaseCrud, db as server_db, priority_key, LIST_SUFFIX, DB_FILENAME
+from server import BaseCrud, priority_key, LIST_SUFFIX, DB_FILENAME
 
 
 class PluginIdentityManager:
-    """Base class providing dynamic naming for plugins."""
     def __init__(self, filename=None):
         # Get filename if not provided
         if not filename:
@@ -62,7 +61,7 @@ class CrudCustomizer(BaseCrud):
             logger.warning(f"Attempted to insert {self.plugin.name} with empty text.")
             return None
 
-        current_profile_id = server_db.get("last_profile_id", 1)
+        current_profile_id = self.plugin.db_dictlike.get("last_profile_id", 1)
         logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.name}")
 
         items_for_profile = self.table("profile_id = ?", [current_profile_id])
@@ -149,6 +148,12 @@ class CrudUI(PluginIdentityManager):
 
         self.register_plugin_routes()
         logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
+
+        # Later usage
+        current_profile_id = self.db_dictlike.get("last_profile_id", 1)
+        
+        # For chat functionality
+        self.pipulate.stream("Message to chat")
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""

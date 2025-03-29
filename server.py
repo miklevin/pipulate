@@ -357,13 +357,16 @@ class BaseCrud:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
     """
-    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None):
+    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None, chat_function=None):
         self.name = name
         self.table = table
         self.toggle_field = toggle_field
         self.sort_field = sort_field
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
+        # Store pipulate instance and chat function if provided
+        self.pipulate_instance = pipulate_instance
+        self.chat_function = chat_function
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
