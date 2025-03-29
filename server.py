@@ -353,7 +353,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
 
 
-class BaseApp:
+class BaseCrud:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
     """
@@ -554,7 +554,7 @@ class BaseApp:
         raise NotImplementedError("Subclasses must implement prepare_update_data")
 
 
-class ProfileApp(BaseApp):
+class ProfileApp(BaseCrud):
     def __init__(self, table):
         super().__init__(name=table.name, table=table, toggle_field='active', sort_field='priority')
         self.item_name_field = 'name'

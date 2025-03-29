@@ -8,9 +8,10 @@ import fastlite
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from server import BaseApp, db as server_db, priority_key, LIST_SUFFIX, DB_FILENAME
+from server import BaseCrud, db as server_db, priority_key, LIST_SUFFIX, DB_FILENAME
 
-class BasePlugin:
+
+class PluginIdentityManager:
     """Base class providing dynamic naming for plugins."""
     def __init__(self, filename=None):
         # Get filename if not provided
@@ -38,7 +39,8 @@ class BasePlugin:
     def DB_TABLE_NAME(self):
         return self.name
 
-class AppLogic(BaseApp):
+
+class CrudCustomizer(BaseCrud):
     def __init__(self, table, plugin):
         self.plugin = plugin
         super().__init__(
@@ -87,6 +89,132 @@ class AppLogic(BaseApp):
         }
         logger.debug(f"Prepared update data: {update_data}")
         return update_data
+
+
+class CrudUI(PluginIdentityManager):
+    @property
+    def ENDPOINT_MESSAGE(self):
+        return f"Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete."
+
+    def __init__(self, app, pipulate, pipeline, db_dictlike):
+        """Initialize the List Plugin."""
+        super().__init__()
+        self.app = app
+        self.pipulate = pipulate
+        self.pipeline_table = pipeline
+        self.db_dictlike = db_dictlike
+        
+        logger.debug(f"{self.DISPLAY_NAME} Plugin initializing...")
+
+        db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILENAME)
+        logger.debug(f"Using database path: {db_path}")
+
+        self.plugin_db = fastlite.database(db_path)
+
+        schema = {
+            "id": int,
+            "text": str,
+            "done": bool,
+            "priority": int,
+            "profile_id": int,
+            "pk": "id"
+        }
+        schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
+        primary_key = schema.get('pk')
+
+        if not primary_key:
+            logger.error("Primary key 'pk' must be defined in the schema dictionary!")
+            raise ValueError("Schema dictionary must contain a 'pk' entry.")
+
+        try:
+            table_handle = self.plugin_db.t[self.DB_TABLE_NAME]
+            logger.debug(f"Got potential table handle via .t accessor: {table_handle}")
+
+            self.table = table_handle.create(
+                **schema_fields,
+                pk=primary_key,
+                if_not_exists=True
+            )
+            logger.info(f"Fastlite '{self.DB_TABLE_NAME}' table created or accessed via handle: {self.table}")
+
+            self.table.dataclass()
+            logger.info(f"Called .dataclass() on table handle to enable dataclass returns.")
+
+        except Exception as e:
+            logger.error(f"Error creating/accessing '{self.DB_TABLE_NAME}' table: {e}")
+            raise
+
+        self.app_instance = CrudCustomizer(table=self.table, plugin=self)
+        logger.debug(f"{self.DISPLAY_NAME}App instance created.")
+
+        self.register_plugin_routes()
+        logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
+
+    def register_plugin_routes(self):
+        """Register routes manually using app.route."""
+        prefix = self.ENDPOINT_PREFIX
+        sort_path = f"{prefix}_sort"
+
+        routes_to_register = [
+            (f'{prefix}', self.app_instance.insert_item, ['POST']),
+            (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']), 
+            (f'{prefix}/delete/{{item_id:int}}', self.app_instance.delete_item, ['DELETE']),
+            (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
+            (sort_path, self.app_instance.sort_items, ['POST']),
+        ]
+
+        logger.debug(f"Registering routes for {self.name} plugin:")
+        for path, handler, methods in routes_to_register:
+            func = handler
+            self.app.route(path, methods=methods)(func)
+            logger.debug(f"  Registered: {methods} {path} -> {handler.__name__}")
+
+    async def landing(self, request=None):
+        """Renders the main view for the plugin."""
+        logger.debug(f"{self.DISPLAY_NAME}Plugin.landing called")
+        current_profile_id = self.db_dictlike.get("last_profile_id", 1)
+        logger.debug(f"Landing page using profile_id: {current_profile_id}")
+
+        items_query = self.table(where=f"profile_id = {current_profile_id}")
+        items = sorted(items_query, key=priority_key)
+        logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
+
+        add_placeholder = f"Add new {self.name.lower()}"
+
+        return Div(
+            Card(
+                H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
+                Ul(
+                    *[self.app_instance.render_item(item) for item in items],
+                    id=self.LIST_ID,
+                    cls='sortable',
+                    style="padding-left: 0;"
+                ),
+                header=Form(
+                    Group(
+                        Input(
+                            placeholder=add_placeholder,
+                            id=self.INPUT_ID,
+                            name=self.FORM_FIELD_NAME,
+                            autofocus=True
+                        ),
+                        Button("Add", type="submit")
+                    ),
+                    hx_post=self.ENDPOINT_PREFIX,
+                    hx_swap="beforeend",
+                    hx_target=f"#{self.LIST_ID}",
+                    hx_on__after_request="this.reset()"
+                )
+            ),
+            id=self.CONTAINER_ID,
+            style="display: flex; flex-direction: column;"
+        )
+
+    async def render(self, render_items=None):
+        """Fallback render method, currently just calls landing."""
+        logger.debug(f"{self.DISPLAY_NAME}Plugin.render called, delegating to landing.")
+        return await self.landing()
+
 
 def render_item(item, app_instance):
     """Renders a single item as an LI element."""
@@ -169,126 +297,3 @@ def render_item(item, app_instance):
         data_endpoint_prefix=app_instance.plugin.ENDPOINT_PREFIX
     )
 
-class ListPlugin(BasePlugin):
-    @property
-    def ENDPOINT_MESSAGE(self):
-        return f"Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete."
-
-    def __init__(self, app, pipulate, pipeline, db_dictlike):
-        """Initialize the List Plugin."""
-        super().__init__()
-        self.app = app
-        self.pipulate = pipulate
-        self.pipeline_table = pipeline
-        self.db_dictlike = db_dictlike
-        
-        logger.debug(f"{self.DISPLAY_NAME} Plugin initializing...")
-
-        db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILENAME)
-        logger.debug(f"Using database path: {db_path}")
-
-        self.plugin_db = fastlite.database(db_path)
-
-        schema = {
-            "id": int,
-            "text": str,
-            "done": bool,
-            "priority": int,
-            "profile_id": int,
-            "pk": "id"
-        }
-        schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
-        primary_key = schema.get('pk')
-
-        if not primary_key:
-            logger.error("Primary key 'pk' must be defined in the schema dictionary!")
-            raise ValueError("Schema dictionary must contain a 'pk' entry.")
-
-        try:
-            table_handle = self.plugin_db.t[self.DB_TABLE_NAME]
-            logger.debug(f"Got potential table handle via .t accessor: {table_handle}")
-
-            self.table = table_handle.create(
-                **schema_fields,
-                pk=primary_key,
-                if_not_exists=True
-            )
-            logger.info(f"Fastlite '{self.DB_TABLE_NAME}' table created or accessed via handle: {self.table}")
-
-            self.table.dataclass()
-            logger.info(f"Called .dataclass() on table handle to enable dataclass returns.")
-
-        except Exception as e:
-            logger.error(f"Error creating/accessing '{self.DB_TABLE_NAME}' table: {e}")
-            raise
-
-        self.app_instance = AppLogic(table=self.table, plugin=self)
-        logger.debug(f"{self.DISPLAY_NAME}App instance created.")
-
-        self.register_plugin_routes()
-        logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
-
-    def register_plugin_routes(self):
-        """Register routes manually using app.route."""
-        prefix = self.ENDPOINT_PREFIX
-        sort_path = f"{prefix}_sort"
-
-        routes_to_register = [
-            (f'{prefix}', self.app_instance.insert_item, ['POST']),
-            (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']), 
-            (f'{prefix}/delete/{{item_id:int}}', self.app_instance.delete_item, ['DELETE']),
-            (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
-            (sort_path, self.app_instance.sort_items, ['POST']),
-        ]
-
-        logger.debug(f"Registering routes for {self.name} plugin:")
-        for path, handler, methods in routes_to_register:
-            func = handler
-            self.app.route(path, methods=methods)(func)
-            logger.debug(f"  Registered: {methods} {path} -> {handler.__name__}")
-
-    async def landing(self, request=None):
-        """Renders the main view for the plugin."""
-        logger.debug(f"{self.DISPLAY_NAME}Plugin.landing called")
-        current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-        logger.debug(f"Landing page using profile_id: {current_profile_id}")
-
-        items_query = self.table(where=f"profile_id = {current_profile_id}")
-        items = sorted(items_query, key=priority_key)
-        logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
-
-        add_placeholder = f"Add new {self.name.lower()}"
-
-        return Div(
-            Card(
-                H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
-                Ul(
-                    *[self.app_instance.render_item(item) for item in items],
-                    id=self.LIST_ID,
-                    cls='sortable',
-                    style="padding-left: 0;"
-                ),
-                header=Form(
-                    Group(
-                        Input(
-                            placeholder=add_placeholder,
-                            id=self.INPUT_ID,
-                            name=self.FORM_FIELD_NAME,
-                            autofocus=True
-                        ),
-                        Button("Add", type="submit")
-                    ),
-                    hx_post=self.ENDPOINT_PREFIX,
-                    hx_swap="beforeend",
-                    hx_target=f"#{self.LIST_ID}",
-                    hx_on__after_request="this.reset()"
-                )
-            ),
-            id=self.CONTAINER_ID,
-            style="display: flex; flex-direction: column;"
-        )
-
-    async def render(self, render_items=None):
-        """Fallback render method, currently just calls landing."""
-        logger.debug(f"{self.DISPLAY_NAME}Plugin.render called, delegating to landing.")
-        return await self.landing()
