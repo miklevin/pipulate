@@ -1,3 +1,4 @@
+*.json
 *.pkl
 .ipynb_checkpoints/
 .sesskey
@@ -7,9 +8,9 @@ __pycache__/
 app_name.txt
 botify_token.txt
 client/
-config.json
 data/
 downloads/*
 flake.lock
 logs/
+service_account.txt
 sort/*
