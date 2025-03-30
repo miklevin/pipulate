@@ -2,7 +2,6 @@
 
 import ast
 import asyncio
-from pyfiglet import Figlet
 import functools
 import importlib
 import inspect
@@ -21,6 +20,7 @@ import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
+from pyfiglet import Figlet
 from rich.console import Console
 from rich.json import JSON
 from rich.style import Style as RichStyle
@@ -32,6 +32,7 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -48,11 +49,13 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
+
 def fig(text, font='slant', color='cyan'):
     figlet = Figlet(font=font)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f"{color} on default")
     console.print(colored_text, style="on default")
+
 
 APP_NAME = get_app_name()
 TONE = "neutral"
@@ -98,19 +101,19 @@ def setup_logging():
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
     logger.remove()
-    
+
     for p in [app_log_path]:
         if p.exists():
             p.unlink()
-            
+
     logger.add(
         app_log_path,
         rotation="2 MB",
-        level="DEBUG", 
+        level="DEBUG",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}",
         enqueue=True
     )
-    
+
     logger.add(
         sys.stderr,
         level="DEBUG",
@@ -137,7 +140,7 @@ def setup_logging():
              not "dir:" in record["message"])
         )
     )
-    
+
     return logger.opt(colors=True)
 
 
@@ -357,6 +360,7 @@ class BaseCrud:
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
     """
+
     def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None, chat_function=None):
         self.name = name
         self.table = table
@@ -590,10 +594,9 @@ class ProfileApp(BaseCrud):
         return {
             "name": profile_name,
             "menu_name": form.get('profile_menu_name', '').strip(),
-            "address": form.get('profile_address', '').strip(), 
+            "address": form.get('profile_address', '').strip(),
             "code": form.get('profile_code', '').strip(),
         }
-
 
 
 def render_profile(profile):
@@ -955,20 +958,33 @@ def pipeline_operation(func):
 
 
 class Pipulate:
-    """
-    Helper class for all Workflows. The CRUD is DRY and the Workflows are WET!
+    """Central coordinator for pipelines and chat functionality.
+    
+    This class serves as the main interface for plugins to access
+    shared functionality without relying on globals.
     """
     PRESERVE_REFILL = True
 
     # Style constants
     ERROR_STYLE = "color: red;"
-    SUCCESS_STYLE = "color: green;"
+    SUCCESS_STYLE = "color: green;" 
     WARNING_BUTTON_STYLE = "background-color: #f66;"
     PRIMARY_BUTTON_STYLE = "background-color: #4CAF50;"
     SECONDARY_BUTTON_STYLE = "background-color: #008CBA;"
-    
-    def __init__(self, table):
-        self.table = table
+
+    def __init__(self, pipeline_table, chat_instance=None):
+        """Initialize Pipulate with required dependencies.
+        
+        Args:
+            pipeline_table: The database table for storing pipeline state
+            chat_instance: Optional chat coordinator instance
+        """
+        self.table = pipeline_table
+        self.chat = chat_instance
+
+    def set_chat(self, chat_instance):
+        """Set the chat instance after initialization."""
+        self.chat = chat_instance
 
     def get_style(self, style_type):
         """Get a predefined style by type"""
@@ -1001,7 +1017,6 @@ class Pipulate:
 
     @pipeline_operation
     def initialize_if_missing(self, url: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
-        # This needs to check for existing pipelines with the same URL for a different app_name
         try:
             state = self.read_state(url)
             if state:
@@ -1046,6 +1061,43 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
+    async def stream(self, message, verbatim=True, role="user", spaces_before=None, spaces_after=None):
+        """Send a message to the chat system.
+        
+        This method serves as a facade over the chat functionality, allowing
+        the internals to still use global state while presenting a clean interface.
+        
+        Args:
+            message: Text content to stream
+            verbatim: If True, sends message directly; if False, processes through LLM
+            role: Role of the message sender ("user" or "system")
+            spaces_before: Number of line breaks to insert before message
+            spaces_after: Number of line breaks to insert after message
+        """
+        if verbatim:
+            if spaces_before and self.chat:
+                await self.chat.broadcast("<br>" * spaces_before)
+                
+            if self.chat:
+                await self.chat.broadcast(message)
+                
+            if spaces_after and self.chat:
+                await self.chat.broadcast("<br>" * spaces_after)
+                
+            append_to_conversation(message, role)
+            return message
+        else:
+            conversation_history = append_to_conversation(message, role)
+            
+            response_text = ""
+            async for chunk in chat_with_llm(MODEL, conversation_history):
+                if self.chat:
+                    await self.chat.broadcast(chunk)
+                response_text += chunk
+                
+            append_to_conversation(response_text, "assistant")
+            return response_text
+
     def revert_control(
         self,
         step_id: str,
@@ -1065,7 +1117,7 @@ class Pipulate:
 
         step = next(s for s in steps if s.id == step_id)
         refill = getattr(step, 'refill', False)
-        
+
         if not target_id:
             target_id = f"{app_name}-container"
 
@@ -1178,30 +1230,16 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
-    async def stream(self, thewords: str, delay: float = 0.05):
-        async def stream_task():
-            import re
-            words = re.split(r'(\s+)', thewords)
-            words = [w for w in words if w]
-            current_chunk = []
-            for word in words[:-1]:
-                current_chunk.append(word)
-                if (any(p in word for p in '.!?:') or ''.join(current_chunk).strip().__len__() >= 30):
-                    chunk_text = ''.join(current_chunk)
-                    await chat.broadcast(chunk_text)
-                    append_to_conversation(chunk_text, role="system", quiet=True)
-                    current_chunk = []
-                    await asyncio.sleep(delay)
-            if words:
-                current_chunk.append(words[-1])
-            if current_chunk:
-                final_chunk = ''.join(current_chunk) + '<br>\n'
-                await chat.broadcast(final_chunk)
-                append_to_conversation(final_chunk, role="system", quiet=True)
-        asyncio.create_task(stream_task())
-
 
 def discover_plugin_files():
+    """Discover and import all Python files in the plugins directory.
+    
+    This function scans the 'plugins' directory and imports each .py file
+    as a module. It skips files starting with '__' (like __init__.py).
+    
+    Returns:
+        dict: Mapping of module names to imported module objects
+    """
     plugin_modules = {}
     plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
 
@@ -1231,6 +1269,17 @@ def discover_plugin_files():
 
 
 def find_plugin_classes(plugin_modules):
+    """Find plugin-compatible classes within imported modules.
+    
+    A plugin-compatible class is defined as a class that has a 'landing' method.
+    This function examines each imported module and identifies suitable plugin classes.
+    
+    Args:
+        plugin_modules (dict): Mapping of module names to module objects
+        
+    Returns:
+        list: List of tuples (module_name, class_name, class_object) for each plugin class
+    """
     plugin_classes = []
 
     for module_name, module in plugin_modules.items():
@@ -1252,8 +1301,13 @@ def find_plugin_classes(plugin_modules):
     return plugin_classes
 
 
+# Create the Pipulate instance first (needed for plugin initialization)
 pipulate = Pipulate(pipeline)
+
+# Dictionary to store instantiated plugin objects
 plugin_instances = {}
+
+# Discover plugin files and classes
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules)
 
@@ -1373,9 +1427,9 @@ async def home(request):
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
     return Titled(
-        f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}", 
-        response, 
-        data_theme="dark", 
+        f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}",
+        response,
+        data_theme="dark",
         style=(
             f"width: {WEB_UI_WIDTH}; "
             f"max-width: none; "
@@ -1430,7 +1484,7 @@ def create_app_menu(menux):
 
 async def create_outer_container(current_profile_id, menux, temp_message=None):
     fig(menux)
-    
+
     # Handle mobile chat view
     if menux == "mobile_chat":
         return Container(
@@ -1457,7 +1511,7 @@ async def create_outer_container(current_profile_id, menux, temp_message=None):
         Grid(
             await create_grid_left(menux),
             create_chat_interface(temp_message),
-            cls="grid", 
+            cls="grid",
             style=(
                 "display: grid; "
                 "gap: 20px; "
@@ -1493,7 +1547,7 @@ def create_chat_interface(autofocus=False, mobile=False):
     if "temp_message" in db:
         temp_message = db["temp_message"]
         del db["temp_message"]
-    
+
     # Small inline script to set the temp_message variable
     init_script = f"""
     // Set global variables for the external script
@@ -1502,7 +1556,7 @@ def create_chat_interface(autofocus=False, mobile=False):
         mobile: {json.dumps(mobile)}
     }};
     """
-    
+
     return Div(
         Card(
             None if mobile else H3(f"{APP_NAME} Chatbot"),
@@ -1536,7 +1590,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
     return Group(
         Input(
             id='msg',
-            name='msg', 
+            name='msg',
             placeholder='Chat...',
             value=value,
             disabled=disabled,
@@ -1592,12 +1646,12 @@ async def profile_render():
     logger.debug("Initial profile state:")
     for profile in all_profiles:
         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-    
+
     ordered_profiles = sorted(
-        all_profiles, 
+        all_profiles,
         key=lambda p: p.priority if p.priority is not None else float('inf')
     )
-    
+
     logger.debug("Ordered profile list:")
     for profile in ordered_profiles:
         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
@@ -1622,7 +1676,7 @@ async def profile_render():
                             ),
                             Input(
                                 placeholder=f"{title_name(profile_app.name)} Name",
-                                name="profile_menu_name", 
+                                name="profile_menu_name",
                                 id="profile-menu-name-input"
                             ),
                             Input(

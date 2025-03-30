@@ -1,14 +1,15 @@
 # Rename file to create a generic list plugin (e.g. tasks.py, competitors.py)
 
-import os
 import inspect
-from loguru import logger
-from fasthtml.common import *
-import fastlite
-
+import os
 import sys
+
+import fastlite
+from fasthtml.common import *
+from loguru import logger
+from server import DB_FILENAME, LIST_SUFFIX, BaseCrud, priority_key
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from server import BaseCrud, priority_key, LIST_SUFFIX, DB_FILENAME
 
 
 class PluginIdentityManager:
@@ -16,24 +17,24 @@ class PluginIdentityManager:
         # Get filename if not provided
         if not filename:
             filename = os.path.basename(__file__)
-            
+
         # Strip .py extension to get the base name
         self.name = filename.replace('.py', '')
-        
+
         # Use the name directly for all endpoints
         self.ENDPOINT_PREFIX = f"/{self.name}"
-        
+
         # Other naming constants
         self.LIST_ID = f"{self.name}-list"
         self.ITEM_CLASS = f"{self.name}-item"
         self.FORM_FIELD_NAME = f"{self.name}-text"
         self.INPUT_ID = f"{self.name}-input"
         self.CONTAINER_ID = f"{self.name}-container"
-        
+
     @property
     def DISPLAY_NAME(self):
         return self.name.title()
-        
+
     @property
     def DB_TABLE_NAME(self):
         return self.name
@@ -44,7 +45,7 @@ class CrudCustomizer(BaseCrud):
         self.plugin = plugin
         super().__init__(
             name=plugin.name,
-            table=table, 
+            table=table,
             toggle_field='done',
             sort_field='priority'
         )
@@ -102,7 +103,7 @@ class CrudUI(PluginIdentityManager):
         self.pipulate = pipulate
         self.pipeline_table = pipeline
         self.db_dictlike = db_dictlike
-        
+
         logger.debug(f"{self.DISPLAY_NAME} Plugin initializing...")
 
         db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILENAME)
@@ -151,7 +152,7 @@ class CrudUI(PluginIdentityManager):
 
         # Later usage
         current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-        
+
         # For chat functionality
         self.pipulate.stream("Message to chat")
 
@@ -162,7 +163,7 @@ class CrudUI(PluginIdentityManager):
 
         routes_to_register = [
             (f'{prefix}', self.app_instance.insert_item, ['POST']),
-            (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']), 
+            (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']),
             (f'{prefix}/delete/{{item_id:int}}', self.app_instance.delete_item, ['DELETE']),
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
             (sort_path, self.app_instance.sort_items, ['POST']),
@@ -273,11 +274,11 @@ def render_item(item, app_instance):
             ),
             Button("Save", type="submit", style="margin-bottom: 0;"),
             Button("Cancel", type="button", style="margin-bottom: 0;", cls="secondary",
-                onclick=(
-                    f"document.getElementById('update-form-{item.id}').style.display='none'; "
-                    f"document.getElementById('{app_instance.name}-text-display-{item.id}').style.display='inline'; "
-                    f"document.getElementById('{item_id}').style.alignItems='center';"
-                )),
+                   onclick=(
+                       f"document.getElementById('update-form-{item.id}').style.display='none'; "
+                       f"document.getElementById('{app_instance.name}-text-display-{item.id}').style.display='inline'; "
+                       f"document.getElementById('{item_id}').style.alignItems='center';"
+                   )),
             style="align-items: center;"
         ),
         style="display: none; margin-left: 5px;",
@@ -301,4 +302,3 @@ def render_item(item, app_instance):
         data_list_target=app_instance.plugin.LIST_ID,
         data_endpoint_prefix=app_instance.plugin.ENDPOINT_PREFIX
     )
-

@@ -75,7 +75,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Defines routes for standard workflow method (do not change)
         routes = [
             (f"/{app_name}", self.landing),
-            (f"/{app_name}/init", self.init, ["POST"]), 
+            (f"/{app_name}/init", self.init, ["POST"]),
             (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
