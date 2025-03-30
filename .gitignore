@@ -1,4 +1,5 @@
 *.json
+*.csv
 *.pkl
 .ipynb_checkpoints/
 .sesskey
@@ -13,4 +14,4 @@ downloads/*
 flake.lock
 logs/
 service_account.txt
-sort/*
+wip/*
