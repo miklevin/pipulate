@@ -1581,7 +1581,7 @@ def create_app_menu(menux):
     return Details(Summary(f"APP: {endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
 
 
-async def create_outer_container(current_profile_id, menux, temp_message=None):
+async def create_outer_container(current_profile_id, menux):
     fig(menux)
 
     # Handle mobile chat view
@@ -1609,7 +1609,7 @@ async def create_outer_container(current_profile_id, menux, temp_message=None):
         nav_group,
         Grid(
             await create_grid_left(menux),
-            create_chat_interface(temp_message),
+            create_chat_interface(),
             cls="grid",
             style=(
                 "display: grid; "
