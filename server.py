@@ -739,10 +739,14 @@ class BaseCrud:
             setattr(item, self.toggle_field, new_status)
             updated_item = self.table.update(item)
             item_name = getattr(updated_item, self.item_name_field, 'Item')
-            status_text = 'checked'if new_status else 'unchecked'
+            status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            prompt = action_details
-            asyncio.create_task(self.pipulate_instance.stream(prompt, verbatim=True))
+            
+            #if self.pipulate_instance:
+            #asyncio.create_task(self.pipulate_instance.stream(action_details, verbatim=True))
+            #else:
+            asyncio.create_task(chatq(action_details, verbatim=True))
+                
             return self.render_item(updated_item)
         except Exception as e:
             error_msg = f"Error toggling item: {str(e)}"
@@ -1731,7 +1735,7 @@ async def chatq(message: str, verbatim: bool = False, role: str = "user", spaces
         if verbatim:
             if spaces_before:
                 await chat.broadcast("<br>" * spaces_before)
-            await pipulate.stream(message)
+            await chat.broadcast(message)
             if spaces_after:
                 await chat.broadcast("<br>" * spaces_after)
             response_text = message
