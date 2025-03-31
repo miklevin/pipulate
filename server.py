@@ -400,9 +400,6 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
-
-
-
     async def stream(self, message: str, verbatim: bool = False, role: str = "user", spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
         try:
             conversation_history = append_to_conversation(message, role)
@@ -654,7 +651,7 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         self.pipulate_instance = pipulate_instance
-        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim)
+        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim, spaces_before=1, spaces_after=1)
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
