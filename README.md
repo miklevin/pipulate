@@ -16,7 +16,7 @@ Pipulate is the first local-first, single-tenant desktop app framework with buil
 
 * **Simplicity & Observability:** It intentionally avoids complex enterprise patterns like heavyweight ORMs (uses MiniDataAPI), message queues, build steps, or complex client-side state management (like Redux/JWT). State is managed server-side using simple dictionary-like structures (DictLikeDB) and JSON blobs, making it transparent and easy to debug ("know EVERYTHING!"). It aims for the "old-school webmaster feeling" with a modern stack.
 
-* **Reproducibility:** Uses Nix Flakes to ensure the exact same development and runtime environment across different operating systems (Linux, macOS, Windows via WSL).
+* **Reproducibility:** Uses Nix Flakes to ensure the exact same development and runtime environment every time across different operating systems (Linux, macOS, Windows via WSL).
 
 * **Future-Proofing:** Leverages technologies seen as durable: standard HTTP/HTML (via HTMX), Python (boosted by AI), Nix (universal Linux environments), and local AI (Ollama).
 
