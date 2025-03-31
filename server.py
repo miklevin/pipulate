@@ -279,667 +279,6 @@ def append_to_conversation(message=None, role="user", quiet=False):
     return list(global_conversation_history)
 
 
-async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
-    url = "http://localhost:11434/api/chat"
-    payload = {"MODEL": MODEL, "messages": messages, "stream": True}
-    accumulated_response = []
-    table = Table(title="User Input")
-    table.add_column("Role", style="cyan")
-    table.add_column("Content", style="orange3")
-    if messages:
-        last_message = messages[-1]
-        role = last_message.get("role", "unknown")
-        content = last_message.get("content", "")
-        if isinstance(content, dict):
-            content = json.dumps(content, indent=2, ensure_ascii=False)
-        table.add_row(role, content)
-    console.print(table)
-    try:
-        async with aiohttp.ClientSession()as session:
-            async with session.post(url, json=payload)as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    error_msg = f"Ollama server error: {error_text}"
-                    accumulated_response.append(error_msg)
-                    yield error_msg
-                    return
-                yield "\n"
-                async for line in response.content:
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        if chunk.get("done", False):
-                            print("\n", end='', flush=True)
-                            final_response = "".join(accumulated_response)
-                            table = Table(title="Chat Response")
-                            table.add_column("Accumulated Response")
-                            table.add_row(final_response, style="green")
-                            console.print(table)
-                            break
-                        if content := chunk.get("message", {}).get("content", ""):
-                            if content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
-                                content = '\n' + content.lstrip('\n')
-                            else:
-                                content = re.sub(r'\n\s*\n\s*', '\n\n', content)
-                                content = re.sub(r'([.!?])\n', r'\1 ', content)
-                                content = re.sub(r'\n ([^\s])', r'\n\1', content)
-                            print(content, end='', flush=True)
-                            accumulated_response.append(content)
-                            yield content
-                    except json.JSONDecodeError:
-                        continue
-    except aiohttp.ClientConnectorError as e:
-        error_msg = "Unable to connect to Ollama server. Please ensure Ollama is running."
-        accumulated_response.append(error_msg)
-        yield error_msg
-    except Exception as e:
-        error_msg = f"Error: {str(e)}"
-        accumulated_response.append(error_msg)
-        yield error_msg
-
-
-def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
-    # Instead of embedding the script, return a script tag that loads an external file
-    # and initializes with the parameters
-    init_script = f"""
-    document.addEventListener('DOMContentLoaded', (event) => {{
-        // Initialize with parameters
-        if (window.initializeChatScripts) {{
-            window.initializeChatScripts({{
-                sortableSelector: '{sortable_selector}',
-                ghostClass: '{ghost_class}'
-            }});
-        }}
-    }});
-    """
-    return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
-
-
-class BaseCrud:
-    """
-    CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
-    """
-
-    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None, chat_function=None):
-        self.name = name
-        self.table = table
-        self.toggle_field = toggle_field
-        self.sort_field = sort_field
-        self.item_name_field = 'name'
-        self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
-        # Store pipulate instance and chat function if provided
-        self.pipulate_instance = pipulate_instance
-        self.chat_function = chat_function
-
-    def register_routes(self, rt):
-        rt(f'/{self.name}', methods=['POST'])(self.insert_item)
-        rt(f'/{self.name}/{{item_id}}', methods=['POST'])(self.update_item)
-        rt(f'/{self.name}/delete/{{item_id}}', methods=['DELETE'])(self.delete_item)
-        rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
-        rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
-
-    def get_action_url(self, action, item_id):
-        return f"/{self.name}/{action}/{item_id}"
-
-    def render_item(self, item):
-        return Li(
-            A(
-                "🗑",
-                href="#",
-                hx_swap="outerHTML",
-                hx_delete=f"/task/delete/{item.id}",
-                hx_target=f"#todo-{item.id}",
-                _class="delete-icon",
-                style="cursor: pointer; display: inline;"
-            ),
-            Input(
-                type="checkbox",
-                checked="1" if item.done else "0",
-                hx_post=f"/task/toggle/{item.id}",
-                hx_swap="outerHTML",
-                hx_target=f"#todo-{item.id}"
-            ),
-            A(
-                item.name,
-                href="#",
-                _class="todo-title",
-                style="text-decoration: none; color: inherit;"
-            ),
-            data_id=item.id,
-            data_priority=item.priority,
-            id=f"todo-{item.id}",
-            style="list-style-type: none;"
-        )
-
-    async def delete_item(self, request, item_id: int):
-        try:
-            item = self.table[item_id]
-            item_name = getattr(item, self.item_name_field, 'Item')
-            self.table.delete(item_id)
-            logger.debug(f"Deleted item ID: {item_id}")
-            action_details = f"The {self.name} item '{item_name}' was removed."
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            return ''
-        except Exception as e:
-            error_msg = f"Error deleting item: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
-            prompt = action_details
-            await chatq(prompt, verbatim=True)
-            return str(e), 500
-
-    async def toggle_item(self, request, item_id: int):
-        try:
-            item = self.table[item_id]
-            current_status = getattr(item, self.toggle_field)
-            new_status = not current_status
-            setattr(item, self.toggle_field, new_status)
-            updated_item = self.table.update(item)
-            item_name = getattr(updated_item, self.item_name_field, 'Item')
-            status_text = 'checked'if new_status else 'unchecked'
-            action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            return self.render_item(updated_item)
-        except Exception as e:
-            error_msg = f"Error toggling item: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
-            return str(e), 500
-
-    async def sort_items(self, request):
-        logger.debug(f"Received request to sort {self.name}.")
-        try:
-            values = await request.form()
-            items = json.loads(values.get('items', '[]'))
-            logger.debug(f"Parsed items: {items}")
-            changes = []
-            sort_dict = {}
-            for item in items:
-                item_id = int(item['id'])
-                priority = int(item['priority'])
-                self.table.update(id=item_id, **{self.sort_field: priority})
-                item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
-                sort_dict[item_id] = priority
-                changes.append(f"'{item_name}' moved to position {priority}")
-            changes_str = '; '.join(changes)
-            action_details = f"The {self.name} items were reordered: {changes_str}"
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            logger.debug(f"{self.name.capitalize()} order updated successfully")
-            return ''
-        except json.JSONDecodeError as e:
-            error_msg = f"Invalid data format: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
-            prompt = action_details
-            await chatq(prompt, verbatim=True)
-            return "Invalid data format", 400
-        except Exception as e:
-            error_msg = f"Error updating {self.name} order: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            return str(e), 500
-
-    async def insert_item(self, request):
-        try:
-            logger.debug(f"[DEBUG] Starting insert_item for {self.name}")
-            form = await request.form()
-            logger.debug(f"[DEBUG] Form data: {dict(form)}")
-            new_item_data = self.prepare_insert_data(form)
-            if not new_item_data:
-                logger.debug("[DEBUG] No new_item_data, returning empty")
-                return ''
-            new_item = await self.create_item(**new_item_data)
-            logger.debug(f"[DEBUG] Created new item: {new_item}")
-            item_name = getattr(new_item, self.item_name_field, 'Item')
-            action_details = f"A new {self.name} item '{item_name}' was added."
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            rendered = self.render_item(new_item)
-            logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
-            logger.debug(f"[DEBUG] Rendered item content: {rendered}")
-            return rendered
-        except Exception as e:
-            error_msg = f"Error inserting {self.name}: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
-            prompt = action_details
-            await chatq(prompt, verbatim=True)
-            return str(e), 500
-
-    async def update_item(self, request, item_id: int):
-        try:
-            form = await request.form()
-            update_data = self.prepare_update_data(form)
-            if not update_data:
-                return ''
-            item = self.table[item_id]
-            before_state = item.__dict__.copy()
-            for key, value in update_data.items():
-                setattr(item, key, value)
-            updated_item = self.table.update(item)
-            after_state = updated_item.__dict__
-            change_dict = {}
-            for key in update_data.keys():
-                if before_state.get(key) != after_state.get(key):
-                    change_dict[key] = after_state.get(key)
-            changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
-            changes_str = '; '.join(changes)
-            item_name = getattr(updated_item, self.item_name_field, 'Item')
-            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {changes_str}"
-            prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
-            logger.debug(f"Updated {self.name} item {item_id}")
-            return self.render_item(updated_item)
-        except Exception as e:
-            error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
-            prompt = action_details
-            await chatq(prompt, verbatim=True)
-            return str(e), 500
-
-    async def create_item(self, **kwargs):
-        try:
-            logger.debug(f"Creating new {self.name} with data: {kwargs}")
-            new_item = self.table.insert(kwargs)
-            logger.debug(f"Created new {self.name}: {new_item}")
-            return new_item
-        except Exception as e:
-            logger.error(f"Error creating {self.name}: {str(e)}")
-            raise e
-
-    def prepare_insert_data(self, form):
-        raise NotImplementedError("Subclasses must implement prepare_insert_data")
-
-    def prepare_update_data(self, form):
-        raise NotImplementedError("Subclasses must implement prepare_update_data")
-
-
-class ProfileApp(BaseCrud):
-    def __init__(self, table):
-        super().__init__(name=table.name, table=table, toggle_field='active', sort_field='priority')
-        self.item_name_field = 'name'
-        logger.debug(f"Initialized ProfileApp with name={table.name}")
-
-    def render_item(self, profile):
-        return render_profile(profile)
-
-    def prepare_insert_data(self, form):
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            return ''
-        max_priority = max(
-            (p.priority or 0 for p in self.table()),
-            default=-1
-        ) + 1
-        return {
-            "name": profile_name,
-            "menu_name": form.get('profile_menu_name', '').strip(),
-            "address": form.get('profile_address', '').strip(),
-            "code": form.get('profile_code', '').strip(),
-            "active": True,
-            "priority": max_priority,
-        }
-
-    def prepare_update_data(self, form):
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            return ''
-        return {
-            "name": profile_name,
-            "menu_name": form.get('profile_menu_name', '').strip(),
-            "address": form.get('profile_address', '').strip(),
-            "code": form.get('profile_code', '').strip(),
-        }
-
-
-def render_profile(profile):
-    def count_records_with_xtra(table_handle, xtra_field, xtra_value):
-        table_handle.xtra(**{xtra_field: xtra_value})
-        count = len(table_handle())
-        logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
-        return count
-
-    delete_icon_visibility = 'inline'
-    delete_url = profile_app.get_action_url('delete', profile.id)
-    toggle_url = profile_app.get_action_url('toggle', profile.id)
-
-    delete_icon = A(
-        '🗑',
-        hx_delete=delete_url,
-        hx_target=f'#profile-{profile.id}',
-        hx_swap='outerHTML',
-        style=f"cursor: pointer; display: {delete_icon_visibility};",
-        cls="delete-icon"
-    )
-
-    active_checkbox = Input(
-        type="checkbox",
-        name="active" if profile.active else None,
-        checked=profile.active,
-        hx_post=toggle_url,
-        hx_target=f'#profile-{profile.id}',
-        hx_swap="outerHTML",
-        style="margin-right: 5px;"
-    )
-
-    update_form = Form(
-        Group(
-            Input(
-                type="text",
-                name="profile_name",
-                value=profile.name,
-                placeholder="Name",
-                id=f"name-{profile.id}"
-            ),
-            Input(
-                type="text",
-                name="profile_menu_name",
-                value=profile.menu_name,
-                placeholder="Menu Name",
-                id=f"menu_name-{profile.id}"
-            ),
-            Input(
-                type="text",
-                name="profile_address",
-                value=profile.address,
-                placeholder=PLACEHOLDER_ADDRESS,
-                id=f"address-{profile.id}"
-            ),
-            Input(
-                type="text",
-                name="profile_code",
-                value=profile.code,
-                placeholder=PLACEHOLDER_CODE,
-                id=f"code-{profile.id}"
-            ),
-            Button("Update", type="submit"),
-        ),
-        hx_post=f"/{profile_app.name}/{profile.id}",
-        hx_target=f'#profile-{profile.id}',
-        hx_swap='outerHTML',
-        style="display: none;",
-        id=f'update-form-{profile.id}'
-    )
-
-    title_link = A(
-        f"{profile.name}",
-        href="#",
-        hx_trigger="click",
-        onclick=(
-            "let li = this.closest('li'); "
-            "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "
-            "if (updateForm.style.display === 'none' || updateForm.style.display === '') { "
-            "    updateForm.style.display = 'block'; "
-            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); "
-            "} else { "
-            "    updateForm.style.display = 'none'; "
-            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); "
-            "}"
-        )
-    )
-
-    contact_info = []
-    if profile.address:
-        contact_info.append(profile.address)
-    if profile.code:
-        contact_info.append(profile.code)
-    contact_info_span = (
-        Span(f" ({', '.join(contact_info)})", style="margin-left: 10px;")
-        if contact_info else Span()
-    )
-
-    return Li(
-        Div(
-            active_checkbox,
-            title_link,
-            contact_info_span,
-            delete_icon,
-            update_form,
-            style="display: flex; align-items: center;"
-        ),
-        id=f'profile-{profile.id}',
-        data_id=profile.id,
-        data_priority=profile.priority,
-        style="list-style-type: none;"
-    )
-
-
-app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
-    DB_FILENAME,
-    exts='ws',
-    live=True,
-    default_hdrs=False,
-    hdrs=(
-        Meta(charset='utf-8'),
-        Link(rel='stylesheet', href='/static/pico.css'),
-        Script(src='/static/htmx.js'),
-        Script(src='/static/fasthtml.js'),
-        Script(src='/static/surreal.js'),
-        Script(src='/static/script.js'),
-        Script(src='/static/Sortable.js'),
-        create_chat_scripts('.sortable'),
-        Script(type='module')
-    ),
-    store={
-        "key": str,
-        "value": str,
-        "pk": "key"
-    },
-    profile={
-        "id": int,
-        "name": str,
-        "menu_name": str,
-        "address": str,
-        "code": str,
-        "active": bool,
-        "priority": int,
-        "pk": "id"
-    },
-    pipeline={
-        "url": str,
-        "app_name": str,
-        "data": str,
-        "created": str,
-        "updated": str,
-        "pk": "url"
-    }
-)
-
-profile_app = ProfileApp(table=profiles)
-profile_app.register_routes(rt)
-
-# Ensure plugins directory exists
-if not os.path.exists("plugins"):
-    os.makedirs("plugins")
-    logger.debug("Created plugins directory")
-
-
-def build_endpoint_messages(endpoint):
-    # Base dictionary for standard endpoints
-    endpoint_messages = {
-        "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
-        "profile": ("This is where you add, edit, and delete profiles (aka clients). "
-                    "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
-        "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
-    }
-
-    # Add messages for all workflows in our registry
-    for plugin_name, plugin_instance in plugin_instances.items():
-        if plugin_name not in endpoint_messages:
-            # First check for ENDPOINT_MESSAGE attribute
-            if hasattr(plugin_instance, 'ENDPOINT_MESSAGE'):
-                endpoint_messages[plugin_name] = plugin_instance.ENDPOINT_MESSAGE
-            # Then check for get_endpoint_message method
-            elif hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
-                endpoint_messages[plugin_name] = plugin_instance.get_endpoint_message()
-            else:
-                class_name = plugin_instance.__class__.__name__
-                endpoint_messages[plugin_name] = f"{class_name} app is where you manage your {plugin_name}."
-
-    # These debug logs should be outside the loop or use the endpoint parameter
-    if endpoint in plugin_instances:
-        plugin_instance = plugin_instances[endpoint]
-        logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(plugin_instance, 'get_endpoint_message')}")
-        logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(plugin_instance, 'get_endpoint_message', None))}")
-        logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
-
-    return endpoint_messages.get(endpoint, None)
-
-
-def build_endpoint_training(endpoint):
-    # Base dictionary for standard endpoints
-    endpoint_training = {
-        "": ("You were just switched to the home page."),
-        "profile": ("You were just switched to the profile app."),
-        "mobile_chat": ("You were just switched to the mobile chat app."),
-    }
-
-    # Add training for all workflows in our registry
-    for workflow_name, workflow_instance in plugin_instances.items():
-        if workflow_name not in endpoint_training:
-            # Check for TRAINING_PROMPT attribute
-            if hasattr(workflow_instance, 'TRAINING_PROMPT'):
-                prompt = workflow_instance.TRAINING_PROMPT
-                endpoint_training[workflow_name] = read_training(prompt)
-            else:
-                class_name = workflow_instance.__class__.__name__
-                endpoint_training[workflow_name] = f"{class_name} app is where you manage your workflows."
-
-    # Add the prompt to chat history as a system message
-    append_to_conversation(endpoint_training.get(endpoint, ""), "system")
-    return
-
-
-COLOR_MAP = {"key": "yellow", "value": "white", "error": "red", "warning": "yellow", "success": "green", "debug": "blue"}
-
-
-def db_operation(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            result = func(*args, **kwargs)
-            if func.__name__ == '__setitem__':
-                key, value = args[1], args[2]
-                if not key.startswith('_') and not key.endswith('_temp'):
-                    logger.debug(f"DB: {key} = {str(value)[:50]}...")
-            return result
-        except Exception as e:
-            logger.error(f"DB Error: {e}")
-            raise
-    return wrapper
-
-
-class DictLikeDB:
-    def __init__(self, store, Store):
-        self.store = store
-        self.Store = Store
-        logger.debug("DictLikeDB initialized.")
-
-    @db_operation
-    def __getitem__(self, key):
-        try:
-            value = self.store[key].value
-            logger.debug(f"Retrieved from DB: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
-            return value
-        except NotFoundError:
-            logger.error(f"Key not found: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
-            raise KeyError(key)
-
-    @db_operation
-    def __setitem__(self, key, value):
-        try:
-            self.store.update({"key": key, "value": value})
-            logger.debug(f"Updated persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
-        except NotFoundError:
-            self.store.insert({"key": key, "value": value})
-            logger.debug(f"Inserted new item in persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
-
-    @db_operation
-    def __delitem__(self, key):
-        try:
-            self.store.delete(key)
-            logger.warning(f"Deleted key from persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
-        except NotFoundError:
-            logger.error(f"Attempted to delete non-existent key: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
-            raise KeyError(key)
-
-    @db_operation
-    def __contains__(self, key):
-        exists = key in self.store
-        logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' exists: <{COLOR_MAP['value']}>{exists}</{COLOR_MAP['value']}>")
-        return exists
-
-    @db_operation
-    def __iter__(self):
-        for item in self.store():
-            yield item.key
-
-    @db_operation
-    def items(self):
-        for item in self.store():
-            yield item.key, item.value
-
-    @db_operation
-    def keys(self):
-        return list(self)
-
-    @db_operation
-    def values(self):
-        for item in self.store():
-            yield item.value
-
-    @db_operation
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' not found. Returning default: <{COLOR_MAP['value']}>{default}</{COLOR_MAP['value']}>")
-            return default
-
-    @db_operation
-    def set(self, key, value):
-        self[key] = value
-        return value
-
-
-db = DictLikeDB(store, Store)
-logger.debug("Database wrapper initialized.")
-
-
-def populate_initial_data():
-    logger.debug("Populating initial data.")
-    allowed_keys = {'last_app_choice', 'last_visited_url', 'last_profile_id'}
-    for key in list(db.keys()):
-        if key not in allowed_keys:
-            try:
-                del db[key]
-                logger.debug(f"Deleted non-essential persistent key: {key}")
-            except KeyError:
-                pass
-    if not profiles():
-        default_profile = profiles.insert({"name": f"Default {profile_app.name.capitalize()}", "address": "", "code": "", "active": True, "priority": 0, })
-        logger.debug(f"Inserted default profile: {default_profile}")
-    else:
-        default_profile = profiles()[0]
-
-
-populate_initial_data()
-
-
-def priority_key(item):
-    try:
-        return float(item.priority or 0)
-    except (ValueError, TypeError):
-        return float('inf')
-
-
 def pipeline_operation(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -1231,6 +570,680 @@ class Pipulate:
         return state
 
 
+async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+    url = "http://localhost:11434/api/chat"
+    payload = {"MODEL": MODEL, "messages": messages, "stream": True}
+    accumulated_response = []
+    table = Table(title="User Input")
+    table.add_column("Role", style="cyan")
+    table.add_column("Content", style="orange3")
+    if messages:
+        last_message = messages[-1]
+        role = last_message.get("role", "unknown")
+        content = last_message.get("content", "")
+        if isinstance(content, dict):
+            content = json.dumps(content, indent=2, ensure_ascii=False)
+        table.add_row(role, content)
+    console.print(table)
+    try:
+        async with aiohttp.ClientSession()as session:
+            async with session.post(url, json=payload)as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    error_msg = f"Ollama server error: {error_text}"
+                    accumulated_response.append(error_msg)
+                    yield error_msg
+                    return
+                yield "\n"
+                async for line in response.content:
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                        if chunk.get("done", False):
+                            print("\n", end='', flush=True)
+                            final_response = "".join(accumulated_response)
+                            table = Table(title="Chat Response")
+                            table.add_column("Accumulated Response")
+                            table.add_row(final_response, style="green")
+                            console.print(table)
+                            break
+                        if content := chunk.get("message", {}).get("content", ""):
+                            if content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
+                                content = '\n' + content.lstrip('\n')
+                            else:
+                                content = re.sub(r'\n\s*\n\s*', '\n\n', content)
+                                content = re.sub(r'([.!?])\n', r'\1 ', content)
+                                content = re.sub(r'\n ([^\s])', r'\n\1', content)
+                            print(content, end='', flush=True)
+                            accumulated_response.append(content)
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
+    except aiohttp.ClientConnectorError as e:
+        error_msg = "Unable to connect to Ollama server. Please ensure Ollama is running."
+        accumulated_response.append(error_msg)
+        yield error_msg
+    except Exception as e:
+        error_msg = f"Error: {str(e)}"
+        accumulated_response.append(error_msg)
+        yield error_msg
+
+
+def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
+    # Instead of embedding the script, return a script tag that loads an external file
+    # and initializes with the parameters
+    init_script = f"""
+    document.addEventListener('DOMContentLoaded', (event) => {{
+        // Initialize with parameters
+        if (window.initializeChatScripts) {{
+            window.initializeChatScripts({{
+                sortableSelector: '{sortable_selector}',
+                ghostClass: '{ghost_class}'
+            }});
+        }}
+    }});
+    """
+    return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
+
+
+class BaseCrud:
+    """
+    CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
+    """
+
+    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None, chat_function=None):
+        self.name = name
+        self.table = table
+        self.toggle_field = toggle_field
+        self.sort_field = sort_field
+        self.item_name_field = 'name'
+        self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
+        
+        # Store pipulate instance
+        self.pipulate_instance = pipulate_instance
+        
+        # Set up a single convenient chat method that handles the routing
+        if pipulate_instance:
+            self.send_message = lambda message, verbatim=True: asyncio.create_task(
+                self.pipulate_instance.stream(message, verbatim=verbatim)
+            )
+        else:
+            self.send_message = lambda message, verbatim=True: asyncio.create_task(
+                chatq(message, verbatim=verbatim)
+            )
+
+    def register_routes(self, rt):
+        rt(f'/{self.name}', methods=['POST'])(self.insert_item)
+        rt(f'/{self.name}/{{item_id}}', methods=['POST'])(self.update_item)
+        rt(f'/{self.name}/delete/{{item_id}}', methods=['DELETE'])(self.delete_item)
+        rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
+        rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
+
+    def get_action_url(self, action, item_id):
+        return f"/{self.name}/{action}/{item_id}"
+
+    def render_item(self, item):
+        return Li(
+            A(
+                "🗑",
+                href="#",
+                hx_swap="outerHTML",
+                hx_delete=f"/task/delete/{item.id}",
+                hx_target=f"#todo-{item.id}",
+                _class="delete-icon",
+                style="cursor: pointer; display: inline;"
+            ),
+            Input(
+                type="checkbox",
+                checked="1" if item.done else "0",
+                hx_post=f"/task/toggle/{item.id}",
+                hx_swap="outerHTML",
+                hx_target=f"#todo-{item.id}"
+            ),
+            A(
+                item.name,
+                href="#",
+                _class="todo-title",
+                style="text-decoration: none; color: inherit;"
+            ),
+            data_id=item.id,
+            data_priority=item.priority,
+            id=f"todo-{item.id}",
+            style="list-style-type: none;"
+        )
+
+    async def delete_item(self, request, item_id: int):
+        try:
+            item = self.table[item_id]
+            item_name = getattr(item, self.item_name_field, 'Item')
+            self.table.delete(item_id)
+            logger.debug(f"Deleted item ID: {item_id}")
+            action_details = f"The {self.name} item '{item_name}' was removed."
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
+            return ''
+        except Exception as e:
+            error_msg = f"Error deleting item: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
+            return str(e), 500
+
+    async def toggle_item(self, request, item_id: int):
+        try:
+            item = self.table[item_id]
+            current_status = getattr(item, self.toggle_field)
+            new_status = not current_status
+            setattr(item, self.toggle_field, new_status)
+            updated_item = self.table.update(item)
+            item_name = getattr(updated_item, self.item_name_field, 'Item')
+            status_text = 'checked'if new_status else 'unchecked'
+            action_details = f"The {self.name} item '{item_name}' is now {status_text}."
+            prompt = action_details
+            asyncio.create_task(self.pipulate_instance.stream(prompt, verbatim=True))
+            return self.render_item(updated_item)
+        except Exception as e:
+            error_msg = f"Error toggling item: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
+            return str(e), 500
+
+    async def sort_items(self, request):
+        logger.debug(f"Received request to sort {self.name}.")
+        try:
+            values = await request.form()
+            items = json.loads(values.get('items', '[]'))
+            logger.debug(f"Parsed items: {items}")
+            changes = []
+            sort_dict = {}
+            for item in items:
+                item_id = int(item['id'])
+                priority = int(item['priority'])
+                self.table.update(id=item_id, **{self.sort_field: priority})
+                item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
+                sort_dict[item_id] = priority
+                changes.append(f"'{item_name}' moved to position {priority}")
+            changes_str = '; '.join(changes)
+            action_details = f"The {self.name} items were reordered: {changes_str}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
+            logger.debug(f"{self.name.capitalize()} order updated successfully")
+            return ''
+        except json.JSONDecodeError as e:
+            error_msg = f"Invalid data format: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
+            return "Invalid data format", 400
+        except Exception as e:
+            error_msg = f"Error updating {self.name} order: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
+            return str(e), 500
+
+    async def insert_item(self, request):
+        try:
+            logger.debug(f"[DEBUG] Starting insert_item for {self.name}")
+            form = await request.form()
+            logger.debug(f"[DEBUG] Form data: {dict(form)}")
+            new_item_data = self.prepare_insert_data(form)
+            if not new_item_data:
+                logger.debug("[DEBUG] No new_item_data, returning empty")
+                return ''
+            new_item = await self.create_item(**new_item_data)
+            logger.debug(f"[DEBUG] Created new item: {new_item}")
+            item_name = getattr(new_item, self.item_name_field, 'Item')
+            action_details = f"A new {self.name} item '{item_name}' was added."
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
+            rendered = self.render_item(new_item)
+            logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
+            logger.debug(f"[DEBUG] Rendered item content: {rendered}")
+            return rendered
+        except Exception as e:
+            error_msg = f"Error inserting {self.name}: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
+            return str(e), 500
+
+    async def update_item(self, request, item_id: int):
+        try:
+            form = await request.form()
+            update_data = self.prepare_update_data(form)
+            if not update_data:
+                return ''
+            item = self.table[item_id]
+            before_state = item.__dict__.copy()
+            for key, value in update_data.items():
+                setattr(item, key, value)
+            updated_item = self.table.update(item)
+            after_state = updated_item.__dict__
+            change_dict = {}
+            for key in update_data.keys():
+                if before_state.get(key) != after_state.get(key):
+                    change_dict[key] = after_state.get(key)
+            changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
+            changes_str = '; '.join(changes)
+            item_name = getattr(updated_item, self.item_name_field, 'Item')
+            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {changes_str}"
+            prompt = action_details
+            asyncio.create_task(chatq(prompt, verbatim=True))
+            logger.debug(f"Updated {self.name} item {item_id}")
+            return self.render_item(updated_item)
+        except Exception as e:
+            error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
+            prompt = action_details
+            await chatq(prompt, verbatim=True)
+            return str(e), 500
+
+    async def create_item(self, **kwargs):
+        try:
+            logger.debug(f"Creating new {self.name} with data: {kwargs}")
+            new_item = self.table.insert(kwargs)
+            logger.debug(f"Created new {self.name}: {new_item}")
+            return new_item
+        except Exception as e:
+            logger.error(f"Error creating {self.name}: {str(e)}")
+            raise e
+
+    def prepare_insert_data(self, form):
+        raise NotImplementedError("Subclasses must implement prepare_insert_data")
+
+    def prepare_update_data(self, form):
+        raise NotImplementedError("Subclasses must implement prepare_update_data")
+
+
+class ProfileApp(BaseCrud):
+    def __init__(self, table, pipulate_instance=None):
+        super().__init__(
+            name=table.name,
+            table=table,
+            toggle_field='active',
+            sort_field='priority',
+            pipulate_instance=pipulate_instance
+        )
+        self.item_name_field = 'name'
+        logger.debug(f"Initialized ProfileApp with name={table.name}")
+
+    def render_item(self, profile):
+        return render_profile(profile)
+
+    def prepare_insert_data(self, form):
+        profile_name = form.get('profile_name', '').strip()
+        if not profile_name:
+            return ''
+        max_priority = max(
+            (p.priority or 0 for p in self.table()),
+            default=-1
+        ) + 1
+        return {
+            "name": profile_name,
+            "menu_name": form.get('profile_menu_name', '').strip(),
+            "address": form.get('profile_address', '').strip(),
+            "code": form.get('profile_code', '').strip(),
+            "active": True,
+            "priority": max_priority,
+        }
+
+    def prepare_update_data(self, form):
+        profile_name = form.get('profile_name', '').strip()
+        if not profile_name:
+            return ''
+        return {
+            "name": profile_name,
+            "menu_name": form.get('profile_menu_name', '').strip(),
+            "address": form.get('profile_address', '').strip(),
+            "code": form.get('profile_code', '').strip(),
+        }
+
+
+def render_profile(profile):
+    def count_records_with_xtra(table_handle, xtra_field, xtra_value):
+        table_handle.xtra(**{xtra_field: xtra_value})
+        count = len(table_handle())
+        logger.debug(f"Counted {count} records in table for {xtra_field} = {xtra_value}")
+        return count
+
+    delete_icon_visibility = 'inline'
+    delete_url = profile_app.get_action_url('delete', profile.id)
+    toggle_url = profile_app.get_action_url('toggle', profile.id)
+
+    delete_icon = A(
+        '🗑',
+        hx_delete=delete_url,
+        hx_target=f'#profile-{profile.id}',
+        hx_swap='outerHTML',
+        style=f"cursor: pointer; display: {delete_icon_visibility};",
+        cls="delete-icon"
+    )
+
+    active_checkbox = Input(
+        type="checkbox",
+        name="active" if profile.active else None,
+        checked=profile.active,
+        hx_post=toggle_url,
+        hx_target=f'#profile-{profile.id}',
+        hx_swap="outerHTML",
+        style="margin-right: 5px;"
+    )
+
+    update_form = Form(
+        Group(
+            Input(
+                type="text",
+                name="profile_name",
+                value=profile.name,
+                placeholder="Name",
+                id=f"name-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_menu_name",
+                value=profile.menu_name,
+                placeholder="Menu Name",
+                id=f"menu_name-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_address",
+                value=profile.address,
+                placeholder=PLACEHOLDER_ADDRESS,
+                id=f"address-{profile.id}"
+            ),
+            Input(
+                type="text",
+                name="profile_code",
+                value=profile.code,
+                placeholder=PLACEHOLDER_CODE,
+                id=f"code-{profile.id}"
+            ),
+            Button("Update", type="submit"),
+        ),
+        hx_post=f"/{profile_app.name}/{profile.id}",
+        hx_target=f'#profile-{profile.id}',
+        hx_swap='outerHTML',
+        style="display: none;",
+        id=f'update-form-{profile.id}'
+    )
+
+    title_link = A(
+        f"{profile.name}",
+        href="#",
+        hx_trigger="click",
+        onclick=(
+            "let li = this.closest('li'); "
+            "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "
+            "if (updateForm.style.display === 'none' || updateForm.style.display === '') { "
+            "    updateForm.style.display = 'block'; "
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'none'); "
+            "} else { "
+            "    updateForm.style.display = 'none'; "
+            "    li.querySelectorAll('input[type=checkbox], .delete-icon, span, a').forEach(el => el.style.display = 'inline'); "
+            "}"
+        )
+    )
+
+    contact_info = []
+    if profile.address:
+        contact_info.append(profile.address)
+    if profile.code:
+        contact_info.append(profile.code)
+    contact_info_span = (
+        Span(f" ({', '.join(contact_info)})", style="margin-left: 10px;")
+        if contact_info else Span()
+    )
+
+    return Li(
+        Div(
+            active_checkbox,
+            title_link,
+            contact_info_span,
+            delete_icon,
+            update_form,
+            style="display: flex; align-items: center;"
+        ),
+        id=f'profile-{profile.id}',
+        data_id=profile.id,
+        data_priority=profile.priority,
+        style="list-style-type: none;"
+    )
+
+
+app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+    DB_FILENAME,
+    exts='ws',
+    live=True,
+    default_hdrs=False,
+    hdrs=(
+        Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/pico.css'),
+        Script(src='/static/htmx.js'),
+        Script(src='/static/fasthtml.js'),
+        Script(src='/static/surreal.js'),
+        Script(src='/static/script.js'),
+        Script(src='/static/Sortable.js'),
+        create_chat_scripts('.sortable'),
+        Script(type='module')
+    ),
+    store={
+        "key": str,
+        "value": str,
+        "pk": "key"
+    },
+    profile={
+        "id": int,
+        "name": str,
+        "menu_name": str,
+        "address": str,
+        "code": str,
+        "active": bool,
+        "priority": int,
+        "pk": "id"
+    },
+    pipeline={
+        "url": str,
+        "app_name": str,
+        "data": str,
+        "created": str,
+        "updated": str,
+        "pk": "url"
+    }
+)
+
+# Create the Pipulate instance first (needed for plugin initialization)
+pipulate = Pipulate(pipeline)
+
+profile_app = ProfileApp(table=profiles, pipulate_instance=pipulate)
+profile_app.register_routes(rt)
+
+# Ensure plugins directory exists
+if not os.path.exists("plugins"):
+    os.makedirs("plugins")
+    logger.debug("Created plugins directory")
+
+
+def build_endpoint_messages(endpoint):
+    # Base dictionary for standard endpoints
+    endpoint_messages = {
+        "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
+        "profile": ("This is where you add, edit, and delete profiles (aka clients). "
+                    "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
+        "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
+    }
+
+    # Add messages for all workflows in our registry
+    for plugin_name, plugin_instance in plugin_instances.items():
+        if plugin_name not in endpoint_messages:
+            # First check for ENDPOINT_MESSAGE attribute
+            if hasattr(plugin_instance, 'ENDPOINT_MESSAGE'):
+                endpoint_messages[plugin_name] = plugin_instance.ENDPOINT_MESSAGE
+            # Then check for get_endpoint_message method
+            elif hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
+                endpoint_messages[plugin_name] = plugin_instance.get_endpoint_message()
+            else:
+                class_name = plugin_instance.__class__.__name__
+                endpoint_messages[plugin_name] = f"{class_name} app is where you manage your {plugin_name}."
+
+    # These debug logs should be outside the loop or use the endpoint parameter
+    if endpoint in plugin_instances:
+        plugin_instance = plugin_instances[endpoint]
+        logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(plugin_instance, 'get_endpoint_message')}")
+        logger.debug(f"Checking if get_endpoint_message is callable: {callable(getattr(plugin_instance, 'get_endpoint_message', None))}")
+        logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
+
+    return endpoint_messages.get(endpoint, None)
+
+
+def build_endpoint_training(endpoint):
+    # Base dictionary for standard endpoints
+    endpoint_training = {
+        "": ("You were just switched to the home page."),
+        "profile": ("You were just switched to the profile app."),
+        "mobile_chat": ("You were just switched to the mobile chat app."),
+    }
+
+    # Add training for all workflows in our registry
+    for workflow_name, workflow_instance in plugin_instances.items():
+        if workflow_name not in endpoint_training:
+            # Check for TRAINING_PROMPT attribute
+            if hasattr(workflow_instance, 'TRAINING_PROMPT'):
+                prompt = workflow_instance.TRAINING_PROMPT
+                endpoint_training[workflow_name] = read_training(prompt)
+            else:
+                class_name = workflow_instance.__class__.__name__
+                endpoint_training[workflow_name] = f"{class_name} app is where you manage your workflows."
+
+    # Add the prompt to chat history as a system message
+    append_to_conversation(endpoint_training.get(endpoint, ""), "system")
+    return
+
+
+COLOR_MAP = {"key": "yellow", "value": "white", "error": "red", "warning": "yellow", "success": "green", "debug": "blue"}
+
+
+def db_operation(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            if func.__name__ == '__setitem__':
+                key, value = args[1], args[2]
+                if not key.startswith('_') and not key.endswith('_temp'):
+                    logger.debug(f"DB: {key} = {str(value)[:50]}...")
+            return result
+        except Exception as e:
+            logger.error(f"DB Error: {e}")
+            raise
+    return wrapper
+
+
+class DictLikeDB:
+    def __init__(self, store, Store):
+        self.store = store
+        self.Store = Store
+        logger.debug("DictLikeDB initialized.")
+
+    @db_operation
+    def __getitem__(self, key):
+        try:
+            value = self.store[key].value
+            logger.debug(f"Retrieved from DB: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+            return value
+        except NotFoundError:
+            logger.error(f"Key not found: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+            raise KeyError(key)
+
+    @db_operation
+    def __setitem__(self, key, value):
+        try:
+            self.store.update({"key": key, "value": value})
+            logger.debug(f"Updated persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+        except NotFoundError:
+            self.store.insert({"key": key, "value": value})
+            logger.debug(f"Inserted new item in persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+
+    @db_operation
+    def __delitem__(self, key):
+        try:
+            self.store.delete(key)
+            logger.warning(f"Deleted key from persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+        except NotFoundError:
+            logger.error(f"Attempted to delete non-existent key: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+            raise KeyError(key)
+
+    @db_operation
+    def __contains__(self, key):
+        exists = key in self.store
+        logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' exists: <{COLOR_MAP['value']}>{exists}</{COLOR_MAP['value']}>")
+        return exists
+
+    @db_operation
+    def __iter__(self):
+        for item in self.store():
+            yield item.key
+
+    @db_operation
+    def items(self):
+        for item in self.store():
+            yield item.key, item.value
+
+    @db_operation
+    def keys(self):
+        return list(self)
+
+    @db_operation
+    def values(self):
+        for item in self.store():
+            yield item.value
+
+    @db_operation
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            logger.debug(f"Key '<{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>' not found. Returning default: <{COLOR_MAP['value']}>{default}</{COLOR_MAP['value']}>")
+            return default
+
+    @db_operation
+    def set(self, key, value):
+        self[key] = value
+        return value
+
+
+db = DictLikeDB(store, Store)
+logger.debug("Database wrapper initialized.")
+
+
+def populate_initial_data():
+    logger.debug("Populating initial data.")
+    allowed_keys = {'last_app_choice', 'last_visited_url', 'last_profile_id'}
+    for key in list(db.keys()):
+        if key not in allowed_keys:
+            try:
+                del db[key]
+                logger.debug(f"Deleted non-essential persistent key: {key}")
+            except KeyError:
+                pass
+    if not profiles():
+        default_profile = profiles.insert({"name": f"Default {profile_app.name.capitalize()}", "address": "", "code": "", "active": True, "priority": 0, })
+        logger.debug(f"Inserted default profile: {default_profile}")
+    else:
+        default_profile = profiles()[0]
+
+
+populate_initial_data()
+
+
+
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
     
@@ -1300,9 +1313,6 @@ def find_plugin_classes(plugin_modules):
     logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
     return plugin_classes
 
-
-# Create the Pipulate instance first (needed for plugin initialization)
-pipulate = Pipulate(pipeline)
 
 # Dictionary to store instantiated plugin objects
 plugin_instances = {}

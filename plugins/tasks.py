@@ -7,7 +7,7 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, LIST_SUFFIX, BaseCrud, priority_key
+from server import DB_FILENAME, LIST_SUFFIX, BaseCrud
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -182,7 +182,7 @@ class CrudUI(PluginIdentityManager):
         logger.debug(f"Landing page using profile_id: {current_profile_id}")
 
         items_query = self.table(where=f"profile_id = {current_profile_id}")
-        items = sorted(items_query, key=priority_key)
+        items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
         add_placeholder = f"Add new {self.name.lower()}"
