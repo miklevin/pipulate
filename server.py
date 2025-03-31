@@ -661,17 +661,13 @@ class BaseCrud:
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         
         # Store pipulate instance
-        self.pipulate_instance = pipulate_instance
+        #self.pipulate_instance = pipulate_instance
         
         # Set up a single convenient chat method that handles the routing
-        if pipulate_instance:
-            self.send_message = lambda message, verbatim=True: asyncio.create_task(
-                self.pipulate_instance.stream(message, verbatim=verbatim)
-            )
-        else:
-            self.send_message = lambda message, verbatim=True: asyncio.create_task(
-                chatq(message, verbatim=verbatim)
-            )
+        #if pipulate_instance:
+            #self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim)
+        #else:
+        self.send_message = lambda message, verbatim=True: chatq(message, verbatim=verbatim)
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
@@ -721,14 +717,14 @@ class BaseCrud:
             logger.debug(f"Deleted item ID: {item_id}")
             action_details = f"The {self.name} item '{item_name}' was removed."
             prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return ''
         except Exception as e:
             error_msg = f"Error deleting item: {str(e)}"
             logger.error(error_msg)
             action_details = f"An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
-            await chatq(prompt, verbatim=True)
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return str(e), 500
 
     async def toggle_item(self, request, item_id: int):
@@ -741,11 +737,7 @@ class BaseCrud:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            
-            #if self.pipulate_instance:
-            #asyncio.create_task(self.pipulate_instance.stream(action_details, verbatim=True))
-            #else:
-            asyncio.create_task(chatq(action_details, verbatim=True))
+            asyncio.create_task(self.send_message(action_details, verbatim=True))
                 
             return self.render_item(updated_item)
         except Exception as e:
@@ -772,7 +764,7 @@ class BaseCrud:
             changes_str = '; '.join(changes)
             action_details = f"The {self.name} items were reordered: {changes_str}"
             prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             logger.debug(f"{self.name.capitalize()} order updated successfully")
             return ''
         except json.JSONDecodeError as e:
@@ -780,14 +772,14 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
             prompt = action_details
-            await chatq(prompt, verbatim=True)
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return "Invalid data format", 400
         except Exception as e:
             error_msg = f"Error updating {self.name} order: {str(e)}"
             logger.error(error_msg)
             action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
             prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return str(e), 500
 
     async def insert_item(self, request):
@@ -804,7 +796,7 @@ class BaseCrud:
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
             prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             rendered = self.render_item(new_item)
             logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
             logger.debug(f"[DEBUG] Rendered item content: {rendered}")
@@ -814,7 +806,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
             prompt = action_details
-            await chatq(prompt, verbatim=True)
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return str(e), 500
 
     async def update_item(self, request, item_id: int):
@@ -838,7 +830,7 @@ class BaseCrud:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             action_details = f"The {self.name} item '{item_name}' was updated. Changes: {changes_str}"
             prompt = action_details
-            asyncio.create_task(chatq(prompt, verbatim=True))
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             logger.debug(f"Updated {self.name} item {item_id}")
             return self.render_item(updated_item)
         except Exception as e:
@@ -846,7 +838,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
-            await chatq(prompt, verbatim=True)
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
             return str(e), 500
 
     async def create_item(self, **kwargs):
