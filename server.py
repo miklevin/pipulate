@@ -400,42 +400,36 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
-    async def stream(self, message, verbatim=True, role="user", spaces_before=None, spaces_after=None):
-        """Send a message to the chat system.
-        
-        This method serves as a facade over the chat functionality, allowing
-        the internals to still use global state while presenting a clean interface.
-        
-        Args:
-            message: Text content to stream
-            verbatim: If True, sends message directly; if False, processes through LLM
-            role: Role of the message sender ("user" or "system")
-            spaces_before: Number of line breaks to insert before message
-            spaces_after: Number of line breaks to insert after message
-        """
-        if verbatim:
-            if spaces_before and self.chat:
-                await self.chat.broadcast("<br>" * spaces_before)
-                
-            if self.chat:
-                await self.chat.broadcast(message)
-                
-            if spaces_after and self.chat:
-                await self.chat.broadcast("<br>" * spaces_after)
-                
-            append_to_conversation(message, role)
-            return message
-        else:
+
+
+
+    async def stream(self, message: str, verbatim: bool = False, role: str = "user", spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
+        try:
             conversation_history = append_to_conversation(message, role)
-            
-            response_text = ""
-            async for chunk in chat_with_llm(MODEL, conversation_history):
-                if self.chat:
-                    await self.chat.broadcast(chunk)
-                response_text += chunk
-                
+            if verbatim:
+                if spaces_before:
+                    await chat.broadcast("<br>" * spaces_before)
+                await chat.broadcast(message)
+                if spaces_after:
+                    await chat.broadcast("<br>" * spaces_after)
+                response_text = message
+            else:
+                response_text = ""
+                if spaces_before:
+                    await chat.broadcast("<br>" * spaces_before)
+                async for chunk in chat_with_llm(MODEL, conversation_history):
+                    await chat.broadcast(chunk)
+                    response_text += chunk
+                if spaces_after:
+                    await chat.broadcast("<br>" * spaces_after)
             append_to_conversation(response_text, "assistant")
-            return response_text
+            logger.debug(f"Message streamed: {response_text}")
+            return message
+        except Exception as e:
+            logger.error(f"Error in chatq: {e}")
+            traceback.print_exc()
+            raise
+
 
     def revert_control(
         self,
@@ -659,15 +653,8 @@ class BaseCrud:
         self.sort_field = sort_field
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
-        
-        # Store pipulate instance
-        #self.pipulate_instance = pipulate_instance
-        
-        # Set up a single convenient chat method that handles the routing
-        #if pipulate_instance:
-            #self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim)
-        #else:
-        self.send_message = lambda message, verbatim=True: chatq(message, verbatim=verbatim)
+        self.pipulate_instance = pipulate_instance
+        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim)
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
@@ -1054,6 +1041,115 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         "pk": "url"
     }
 )
+
+class Chat:
+    def __init__(self, app, id_suffix=""):
+        self.app = app
+        self.id_suffix = id_suffix
+        self.logger = logger.bind(name=f"Chat{id_suffix}")
+        self.active_websockets = set()
+        self.app.websocket_route("/ws")(self.handle_websocket)
+        self.logger.debug("Registered WebSocket route: /ws")
+
+    async def broadcast(self, message: str):
+        try:
+            if isinstance(message, dict):
+                if message.get("type") == "htmx":
+                    htmx_response = message
+                    content = to_xml(htmx_response['content'])
+                    formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">
+                        {content}
+                    </div>"""
+                    for ws in self.active_websockets:
+                        await ws.send_text(formatted_response)
+                    return
+            formatted_msg = message.replace('\n', '<br>')if isinstance(message, str)else str(message)
+            for ws in self.active_websockets:
+                await ws.send_text(formatted_msg)
+        except Exception as e:
+            self.logger.error(f"Error in broadcast: {e}")
+
+    async def handle_chat_message(self, websocket: WebSocket, message: str):
+        try:
+            if message.lower().startswith('!help'):
+                help_text = """Available commands:
+                !help - Show this help message"""
+                await websocket.send_text(help_text)
+                system_message = read_training("system_prompt.md")
+                await chatq(system_message, role="system")
+                return
+            append_to_conversation(message, "user")
+            parts = message.split('|')
+            msg = parts[0]
+            verbatim = len(parts) > 1 and parts[1] == 'verbatim'
+            raw_response = await chatq(msg, verbatim=verbatim)
+            append_to_conversation(raw_response, "assistant")
+        except Exception as e:
+            self.logger.error(f"Error in handle_chat_message: {e}")
+            traceback.print_exc()
+
+    def create_progress_card(self):
+        return Card(
+            Header("Chat Playground"),
+            Form(
+                Div(
+                    TextArea(
+                        id="chat-input",
+                        placeholder="Type your message here...",
+                        rows="3"
+                    ),
+                    Button(
+                        "Send",
+                        type="submit"
+                    ),
+                    id="chat-form"
+                ),
+                onsubmit="sendMessage(event)"
+            ),
+            Div(id="chat-messages"),
+            Script("""
+                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`);
+                
+                ws.onmessage = function(event) {
+                    const messages = document.getElementById('chat-messages');
+                    messages.innerHTML += event.data + '<br>';
+                    messages.scrollTop = messages.scrollHeight;
+                };
+                
+                function sendMessage(event) {
+                    event.preventDefault();
+                    const input = document.getElementById('chat-input');
+                    const message = input.value;
+                    if (message.trim()) {
+                        ws.send(message);
+                        input.value = '';
+                    }
+                }
+            """)
+        )
+
+    async def handle_websocket(self, websocket: WebSocket):
+        try:
+            await websocket.accept()
+            self.active_websockets.add(websocket)
+            self.logger.debug("Chat WebSocket connected")
+            while True:
+                message = await websocket.receive_text()
+                self.logger.debug(f"Received message: {message}")
+                await self.handle_chat_message(websocket, message)
+        except WebSocketDisconnect:
+            self.logger.info("WebSocket disconnected")
+        except Exception as e:
+            self.logger.error(f"Error in WebSocket connection: {str(e)}")
+            self.logger.error(traceback.format_exc())
+        finally:
+            self.active_websockets.discard(websocket)
+            self.logger.debug("WebSocket connection closed")
+
+
+chat = Chat(app, id_suffix="")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True,)
+
 
 # Create the Pipulate instance first (needed for plugin initialization)
 pipulate = Pipulate(pipeline)
@@ -1851,115 +1947,6 @@ async def select_profile(request):
     redirect_url = db.get("last_visited_url", "/")
     logger.debug(f"Redirecting to: {redirect_url}")
     return Redirect(redirect_url)
-
-
-class Chat:
-    def __init__(self, app, id_suffix=""):
-        self.app = app
-        self.id_suffix = id_suffix
-        self.logger = logger.bind(name=f"Chat{id_suffix}")
-        self.active_websockets = set()
-        self.app.websocket_route("/ws")(self.handle_websocket)
-        self.logger.debug("Registered WebSocket route: /ws")
-
-    async def broadcast(self, message: str):
-        try:
-            if isinstance(message, dict):
-                if message.get("type") == "htmx":
-                    htmx_response = message
-                    content = to_xml(htmx_response['content'])
-                    formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">
-                        {content}
-                    </div>"""
-                    for ws in self.active_websockets:
-                        await ws.send_text(formatted_response)
-                    return
-            formatted_msg = message.replace('\n', '<br>')if isinstance(message, str)else str(message)
-            for ws in self.active_websockets:
-                await ws.send_text(formatted_msg)
-        except Exception as e:
-            self.logger.error(f"Error in broadcast: {e}")
-
-    async def handle_chat_message(self, websocket: WebSocket, message: str):
-        try:
-            if message.lower().startswith('!help'):
-                help_text = """Available commands:
-                !help - Show this help message"""
-                await websocket.send_text(help_text)
-                system_message = read_training("system_prompt.md")
-                await chatq(system_message, role="system")
-                return
-            append_to_conversation(message, "user")
-            parts = message.split('|')
-            msg = parts[0]
-            verbatim = len(parts) > 1 and parts[1] == 'verbatim'
-            raw_response = await chatq(msg, verbatim=verbatim)
-            append_to_conversation(raw_response, "assistant")
-        except Exception as e:
-            self.logger.error(f"Error in handle_chat_message: {e}")
-            traceback.print_exc()
-
-    def create_progress_card(self):
-        return Card(
-            Header("Chat Playground"),
-            Form(
-                Div(
-                    TextArea(
-                        id="chat-input",
-                        placeholder="Type your message here...",
-                        rows="3"
-                    ),
-                    Button(
-                        "Send",
-                        type="submit"
-                    ),
-                    id="chat-form"
-                ),
-                onsubmit="sendMessage(event)"
-            ),
-            Div(id="chat-messages"),
-            Script("""
-                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`);
-                
-                ws.onmessage = function(event) {
-                    const messages = document.getElementById('chat-messages');
-                    messages.innerHTML += event.data + '<br>';
-                    messages.scrollTop = messages.scrollHeight;
-                };
-                
-                function sendMessage(event) {
-                    event.preventDefault();
-                    const input = document.getElementById('chat-input');
-                    const message = input.value;
-                    if (message.trim()) {
-                        ws.send(message);
-                        input.value = '';
-                    }
-                }
-            """)
-        )
-
-    async def handle_websocket(self, websocket: WebSocket):
-        try:
-            await websocket.accept()
-            self.active_websockets.add(websocket)
-            self.logger.debug("Chat WebSocket connected")
-            while True:
-                message = await websocket.receive_text()
-                self.logger.debug(f"Received message: {message}")
-                await self.handle_chat_message(websocket, message)
-        except WebSocketDisconnect:
-            self.logger.info("WebSocket disconnected")
-        except Exception as e:
-            self.logger.error(f"Error in WebSocket connection: {str(e)}")
-            self.logger.error(traceback.format_exc())
-        finally:
-            self.active_websockets.discard(websocket)
-            self.logger.debug("WebSocket connection closed")
-
-
-chat = Chat(app, id_suffix="")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True,)
 
 
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
