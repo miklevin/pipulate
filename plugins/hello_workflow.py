@@ -168,7 +168,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
 
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}. You can use this ID to return to this workflow later."
-        await pip.stream(id_message, verbatim=True, spaces_after=1)
+        await pip.stream(id_message, verbatim=True, spaces_before=0)
 
         # Add a small delay to ensure messages appear in the correct order
         await asyncio.sleep(0.5)
@@ -182,7 +182,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         else:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
-                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True, spaces_after=1)
+                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
 
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
@@ -244,7 +244,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
 
-            await pip.stream(self.step_messages[step_id]["input"], verbatim=True, spaces_after=1)
+            await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -278,7 +278,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             state[step_id] = {step.done: True}
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.stream(message, verbatim=True, spaces_after=1)
+            await pip.stream(message, verbatim=True)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
 
@@ -307,12 +307,12 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip.write_state(pipeline_id, state)
 
         # Send the value confirmation
-        await pip.stream(f"{step.show}: {processed_val}", verbatim=True, spaces_after=1)
+        await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
 
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True, spaces_after=1)
+            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
 
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
@@ -373,7 +373,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
 
-            await pip.stream(self.step_messages[step_id]["input"], verbatim=True, spaces_after=1)
+            await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -407,7 +407,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             state[step_id] = {step.done: True}
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.stream(message, verbatim=True, spaces_after=1)
+            await pip.stream(message, verbatim=True)
             placeholders = self.generate_step_placeholders(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
 
@@ -436,12 +436,12 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip.write_state(pipeline_id, state)
 
         # Send the value confirmation
-        await pip.stream(f"{step.show}: {processed_val}", verbatim=True, spaces_after=1)
+        await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
 
         # If this is the last regular step (before finalize), add a prompt to finalize
         if next_step_id == "finalize":
             await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True, spaces_after=1)
+            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
 
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
@@ -503,7 +503,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             pip.write_state(pipeline_id, state)
 
             # Send a confirmation message
-            await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True, spaces_after=1)
+            await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
 
             # Return the updated UI
             return Div(*self.generate_step_placeholders(steps, app_name), id=f"{app_name}-container")
@@ -517,7 +517,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip.write_state(pipeline_id, state)
 
         # Send a message informing them they can revert to any step
-        await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True, spaces_after=1)
+        await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
 
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
@@ -563,6 +563,6 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         state["_revert_target"] = step_id
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-        await pip.stream(message, verbatim=True, spaces_after=1)
+        await pip.stream(message, verbatim=True)
         placeholders = self.generate_step_placeholders(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")

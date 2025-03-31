@@ -80,7 +80,7 @@ sidebarWs.onmessage = function(event) {
 window.addEventListener('DOMContentLoaded', () => {
     if (tempMessage) {
         console.log('Sidebar sending verbatim:', tempMessage);
-        const messageWithNewline = tempMessage + '\n \n';
+        const messageWithNewline = tempMessage + '';  // put \n if needed
         setTimeout(() => sidebarWs.send(`${messageWithNewline}|verbatim`), 1000);
     }
 });

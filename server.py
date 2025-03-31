@@ -400,9 +400,9 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
-    async def stream(self, message: str, verbatim: bool = False, role: str = "user", 
-                    spaces_before: Optional[int] = None, spaces_after: Optional[int] = None,
-                    simulate_typing: bool = True):
+    async def stream(self, message, verbatim=False, role="user", 
+                    spaces_before=None, spaces_after=1,
+                    simulate_typing=True):
         try:
             conversation_history = append_to_conversation(message, role)
             
@@ -1835,7 +1835,7 @@ class Introduction:
         self.logger.debug("Starting welcome chat")
         try:
             hot_prompt_injection("introduction.md")
-            await pipulate.stream(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_before=1, spaces_after=1)
+            await pipulate.stream(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_after=1)
             return "Chat initiated"
         except Exception as e:
             self.logger.error(f"Error starting chat: {str(e)}")
