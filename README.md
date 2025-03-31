@@ -2,6 +2,45 @@
 
 ![Pipulate Free & Open Source SEO with/for LLMs](pipulate-ai-seo.svg)
 
+> Workflows are WET as WET can be.  
+> The CRUD is DRY as DRY.  
+> You do not need the cloud because no lock-in need apply!  
+> Haters gonna hate because they need no reason why.  
+
+## What is Pipulate?
+
+Pipulate is a local-first, single-tenant desktop app framework. It's designed to function somewhat like an Electron app but runs a full Linux subsystem within a folder (using Nix) for reproducibility on macOS, Linux, and Windows (via WSL). Its primary focus is enabling SEO practitioners and others to use AI-assisted, step-by-step workflows (ported from Jupyter Notebooks) without needing to interact directly with Python code. It also serves developers who build these workflows.
+
+### Core Philosophy & Design:
+
+* **Local-First & Single-Tenant:** The application runs entirely on the user's machine, managing its state locally. This ensures privacy, gives full access to local hardware resources (for tasks like scraping or running LLMs 24/7 at minimal cost), and avoids cloud dependencies or vendor lock-in.
+
+* **Simplicity & Observability:** It intentionally avoids complex enterprise patterns like heavyweight ORMs (uses MiniDataAPI), message queues, build steps, or complex client-side state management (like Redux/JWT). State is managed server-side using simple dictionary-like structures (DictLikeDB) and JSON blobs, making it transparent and easy to debug ("know EVERYTHING!"). It aims for the "old-school webmaster feeling" with a modern stack.
+
+* **Reproducibility:** Uses Nix Flakes to ensure the exact same development and runtime environment across different operating systems (Linux, macOS, Windows via WSL).
+
+* **Future-Proofing:** Leverages technologies seen as durable: standard HTTP/HTML (via HTMX), Python (boosted by AI), Nix (universal Linux environments), and local AI (Ollama).
+
+### Key Technologies Used:
+
+* **FastHTML:** A Python web framework (explicitly not FastAPI) that focuses on simplicity, eliminating template languages (like Jinja2) and minimizing JavaScript by generating HTML directly from Python objects. It works closely with HTMX.
+
+* **HTMX:** A JavaScript library used to create dynamic, interactive user interfaces with minimal custom JavaScript, relying on server-rendered HTML updates.
+
+* **MiniDataAPI:** A simple, type-safe way to interact with SQLite databases using Python dictionaries for schema definition, avoiding complex ORMs like SQLAlchemy.
+
+* **Ollama:** Enables integration with locally running Large Language Models (LLMs) for features like in-app chat, guidance, and potentially automating tasks via structured JSON commands. Offers privacy and avoids API key costs.
+
+* **Nix Flakes:** Manages dependencies and creates reproducible development/runtime environments across operating systems, including optional CUDA support for GPU acceleration if available.
+
+* **SQLite & Jupyter Notebooks:** Integrated tools that support the core workflow development and execution process.
+
+### Target Audience:
+
+* **End-Users (e.g., SEO Practitioners):** Individuals who want to use AI-assisted, structured workflows (derived from Python/Jupyter) without needing to write or see the underlying code.
+
+* **Developers:** Those building these workflows, likely porting them from Jupyter Notebooks into the Pipulate framework. They benefit from the simple architecture, reproducibility, and integrated tooling.
+
 A **local-first, single-tenant desktop app framework** built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama). Designed to run like an Electron app—with full server-side state, minimal complexity, and reproducible environments using Nix Flakes. The CRUD is DRY and the Workflows are WET! by [Mike Levin](https://mikelev.in/)
 
                  ┌─────────────┐ Like Electron, but full Linux subsystem 
@@ -268,7 +307,7 @@ Designed to be ultimately simple. No directory-diving! Most things remain static
 
 ### Layout & User Interface
 
-The app’s UI is divided into clear, distinct regions:
+The app's UI is divided into clear, distinct regions:
 
     ┌─────────────────────────────┐
     │        Navigation           │
@@ -364,12 +403,12 @@ For workflow developers, it's a rapid no-build environment that's fully observab
 
 ## Key Design Guidelines & Speedbumps
 
-The documentation below outlines critical do’s and don’ts—speedbumps embedded throughout the app. They serve as reminders to keep the code simple and the state management robust.
+The documentation below outlines critical do's and don'ts—speedbumps embedded throughout the app. They serve as reminders to keep the code simple and the state management robust.
 
 ### Local vs. Enterprise Mindset
 
 - **Do:** Embrace server-side state, use DictLikeDB for persistent state management, and keep logic in one file.
-- **Don’t:** Attempt client-side state management using React, Redux, JWT tokens, or complex service workers.
+- **Don't:** Attempt client-side state management using React, Redux, JWT tokens, or complex service workers.
 
 ### JSON State Management
 
@@ -388,7 +427,7 @@ The documentation below outlines critical do’s and don’ts—speedbumps embed
       "updated": "2024-01-31T..."
   }
   ```
-- **Don’t:** Rely on over-engineered classes with explicit step tracking (like `current_step` fields).
+- **Don't:** Rely on over-engineered classes with explicit step tracking (like `current_step` fields).
 
 ### Database and MiniDataAPI
 
@@ -397,28 +436,28 @@ The documentation below outlines critical do’s and don’ts—speedbumps embed
   ```python
   app, rt, (tasks, Task), (profiles, Profile) = fast_app("data/data.db", task={...}, profile={...})
   ```
-- **Don’t:** Use heavyweight ORMs (like SQLAlchemy) with complex session management.
+- **Don't:** Use heavyweight ORMs (like SQLAlchemy) with complex session management.
 
 ### Pipulate for Workflows
 
 - **Do:** Design workflows as a series of self-contained steps stored in a JSON blob, ensuring interruption-safe progression (just follow the established patterns).
-- **Don’t:** Chain asynchronous tasks using patterns like Celery without clear state ownership.
+- **Don't:** Chain asynchronous tasks using patterns like Celery without clear state ownership.
 
 ### UI Rendering with FastHTML Components
 
 - **Do:** Render components directly with Python functions and HTMX attributes—no templating engines needed.
-- **Don’t:** Rely on string templates (like Jinja) for rendering dynamic UI components.
+- **Don't:** Rely on string templates (like Jinja) for rendering dynamic UI components.
 
 ### WebSocket Handling
 
 - **Do:** Use a dedicated Chat class to manage WebSocket connections, message handling, and command processing.
-- **Don’t:** Use raw WebSocket endpoints without proper connection management.
+- **Don't:** Use raw WebSocket endpoints without proper connection management.
 
 ---
 
 ## Core Concepts & Internal Components
 
-- There is a Rails-like CRUD pattern that derives from BaseApp
+- There is a Rails-like CRUD pattern that derives from BaseCrud
   - This is used for ProfileApp and TodoApp 
   - ProfileAppp lets you manage user profiles (MiniDataAPI .xtra() )
   - TodoApp demonstrates how the LLM can call the CRUD operations.
@@ -430,9 +469,9 @@ The documentation below outlines critical do’s and don’ts—speedbumps embed
   - StarterFlow is the copy/paste base class you can start from for new workflows.
   - New workflows are automatically added to the Navigation Bar.
 
-### BaseApp
+### BaseCrud
 
-A central class for creating application components, **BaseApp** provides the foundation for CRUD operations, route registration, and rendering items. It’s designed for extensibility—allowing developers to subclass and override methods such as `render_item`, `prepare_insert_data`, and `prepare_update_data`.
+A central class for creating application components, **BaseCrud** provides the foundation for CRUD operations, route registration, and rendering items. It's designed for extensibility—allowing developers to subclass and override methods such as `render_item`, `prepare_insert_data`, and `prepare_update_data`.
 
 ### render_profile
 
@@ -454,7 +493,7 @@ This helper function builds a fully rendered HTML list item for a user profile. 
 # *******************************
 ```
 
-**FastHTML’s Mantra:**
+**FastHTML's Mantra:**
 - Use `rt` (router decorator) inside classes instead of `app.route()`.
 - Keep the server-side on the right side; HTMX handles only the UI updates.
 - Maintain transparency and simplicity with local, single-tenant state management.

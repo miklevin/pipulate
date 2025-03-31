@@ -406,7 +406,6 @@ class Pipulate:
         try:
             conversation_history = append_to_conversation(message, role)
             
-            # Add line breaks before message using both approaches
             if spaces_before:
                 for _ in range(spaces_before):
                     await chat.broadcast("<br>\n")
@@ -421,18 +420,15 @@ class Pipulate:
                             await chat.broadcast(' ')
                         await asyncio.sleep(0.005)  # Adjust timing as needed
                 else:
-                    # Send the entire message at once (original behavior)
                     await chat.broadcast(message)
                     
                 response_text = message
             else:
-                # Using LLM streaming (unchanged)
                 response_text = ""
                 async for chunk in chat_with_llm(MODEL, conversation_history):
                     await chat.broadcast(chunk)
                     response_text += chunk
             
-            # Add line breaks after message using both approaches
             if spaces_after:
                 for _ in range(spaces_after):
                     await chat.broadcast("<br>\n")
