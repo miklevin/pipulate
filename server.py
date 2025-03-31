@@ -426,7 +426,7 @@ class Pipulate:
             logger.debug(f"Message streamed: {response_text}")
             return message
         except Exception as e:
-            logger.error(f"Error in chatq: {e}")
+            logger.error(f"Error in pipulate.stream: {e}")
             traceback.print_exc()
             raise
 
@@ -1076,13 +1076,13 @@ class Chat:
                 !help - Show this help message"""
                 await websocket.send_text(help_text)
                 system_message = read_training("system_prompt.md")
-                await chatq(system_message, role="system")
+                await pipulate.stream(system_message, role="system")
                 return
             append_to_conversation(message, "user")
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
-            raw_response = await chatq(msg, verbatim=verbatim)
+            raw_response = await pipulate.stream(msg, verbatim=verbatim)
             append_to_conversation(raw_response, "assistant")
         except Exception as e:
             self.logger.error(f"Error in handle_chat_message: {e}")
@@ -1817,34 +1817,6 @@ async def profile_render():
     )
 
 
-async def chatq(message: str, verbatim: bool = False, role: str = "user", spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
-    try:
-        conversation_history = append_to_conversation(message, role)
-        if verbatim:
-            if spaces_before:
-                await chat.broadcast("<br>" * spaces_before)
-            await chat.broadcast(message)
-            if spaces_after:
-                await chat.broadcast("<br>" * spaces_after)
-            response_text = message
-        else:
-            response_text = ""
-            if spaces_before:
-                await chat.broadcast("<br>" * spaces_before)
-            async for chunk in chat_with_llm(MODEL, conversation_history):
-                await chat.broadcast(chunk)
-                response_text += chunk
-            if spaces_after:
-                await chat.broadcast("<br>" * spaces_after)
-        append_to_conversation(response_text, "assistant")
-        logger.debug(f"Message streamed: {response_text}")
-        return message
-    except Exception as e:
-        logger.error(f"Error in chatq: {e}")
-        traceback.print_exc()
-        raise
-
-
 class Introduction:
     def __init__(self, app, route_prefix="/introduction"):
         self.app = app
@@ -1855,7 +1827,7 @@ class Introduction:
         self.logger.debug("Starting welcome chat")
         try:
             hot_prompt_injection("introduction.md")
-            await chatq(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_before=1, spaces_after=1)
+            await pipulate.stream(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_before=1, spaces_after=1)
             return "Chat initiated"
         except Exception as e:
             self.logger.error(f"Error starting chat: {str(e)}")
@@ -1902,7 +1874,7 @@ async def sse_endpoint(request):
 
 @app.post("/chat")
 async def chat_endpoint(request, message: str):
-    await chatq(f"Let the user know {limiter} {message}")
+    await pipulate.stream(f"Let the user know {limiter} {message}")
     return ""
 
 
@@ -1921,7 +1893,7 @@ def redirect_handler(request):
 async def poke_chatbot():
     logger.debug("Chatbot poke received.")
     poke_message = (f"The user poked the {APP_NAME} Chatbot. ""Respond with a brief, funny comment about being poked.")
-    asyncio.create_task(chatq(poke_message))
+    asyncio.create_task(pipulate.stream(poke_message))
     return "Poke received. Countdown to local LLM MODEL..."
 
 
