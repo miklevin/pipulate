@@ -406,9 +406,11 @@ class Pipulate:
         try:
             conversation_history = append_to_conversation(message, role)
             
+            # Add line breaks before message using both approaches
             if spaces_before:
-                await chat.broadcast("<br>" * spaces_before)
-                
+                for _ in range(spaces_before):
+                    await chat.broadcast("<br>\n")
+            
             if verbatim:
                 if simulate_typing:
                     # Split into words and simulate typing for verbatim messages
@@ -429,10 +431,12 @@ class Pipulate:
                 async for chunk in chat_with_llm(MODEL, conversation_history):
                     await chat.broadcast(chunk)
                     response_text += chunk
-                    
+            
+            # Add line breaks after message using both approaches
             if spaces_after:
-                await chat.broadcast("<br>" * spaces_after)
-                
+                for _ in range(spaces_after):
+                    await chat.broadcast("<br>\n")
+            
             append_to_conversation(response_text, "assistant")
             logger.debug(f"Message streamed: {response_text}")
             return message
@@ -665,7 +669,7 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         self.pipulate_instance = pipulate_instance
-        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim, spaces_before=1, spaces_after=1)
+        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim, spaces_after=1)
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
@@ -1082,13 +1086,6 @@ class Chat:
 
     async def handle_chat_message(self, websocket: WebSocket, message: str):
         try:
-            if message.lower().startswith('!help'):
-                help_text = """Available commands:
-                !help - Show this help message"""
-                await websocket.send_text(help_text)
-                system_message = read_training("system_prompt.md")
-                await pipulate.stream(system_message, role="system")
-                return
             append_to_conversation(message, "user")
             parts = message.split('|')
             msg = parts[0]
