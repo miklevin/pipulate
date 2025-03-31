@@ -2,9 +2,8 @@
 
 ![Pipulate Free & Open Source SEO with/for LLMs](pipulate-ai-seo.svg)
 
-> Workflows are WET as WET can be.  
-> The CRUD is DRY as DRY.  
-> You do not need the cloud because no lock-in need apply!  
+> Workflows are WET as WET can be. The CRUD is DRY as DRY.  
+> You do not need the Cloud because *no lock-in need apply!*  
 > Haters gonna hate because they need no reason why.  
 
 ## What is Pipulate?
