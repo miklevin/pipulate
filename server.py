@@ -400,25 +400,39 @@ class Pipulate:
         verification = self.read_state(url)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
-    async def stream(self, message: str, verbatim: bool = False, role: str = "user", spaces_before: Optional[int] = None, spaces_after: Optional[int] = None):
+    async def stream(self, message: str, verbatim: bool = False, role: str = "user", 
+                    spaces_before: Optional[int] = None, spaces_after: Optional[int] = None,
+                    simulate_typing: bool = True):
         try:
             conversation_history = append_to_conversation(message, role)
+            
+            if spaces_before:
+                await chat.broadcast("<br>" * spaces_before)
+                
             if verbatim:
-                if spaces_before:
-                    await chat.broadcast("<br>" * spaces_before)
-                await chat.broadcast(message)
-                if spaces_after:
-                    await chat.broadcast("<br>" * spaces_after)
+                if simulate_typing:
+                    # Split into words and simulate typing for verbatim messages
+                    words = message.split(' ')
+                    for i, word in enumerate(words):
+                        await chat.broadcast(word)
+                        if i < len(words) - 1:  # Don't add space after last word
+                            await chat.broadcast(' ')
+                        await asyncio.sleep(0.005)  # Adjust timing as needed
+                else:
+                    # Send the entire message at once (original behavior)
+                    await chat.broadcast(message)
+                    
                 response_text = message
             else:
+                # Using LLM streaming (unchanged)
                 response_text = ""
-                if spaces_before:
-                    await chat.broadcast("<br>" * spaces_before)
                 async for chunk in chat_with_llm(MODEL, conversation_history):
                     await chat.broadcast(chunk)
                     response_text += chunk
-                if spaces_after:
-                    await chat.broadcast("<br>" * spaces_after)
+                    
+            if spaces_after:
+                await chat.broadcast("<br>" * spaces_after)
+                
             append_to_conversation(response_text, "assistant")
             logger.debug(f"Message streamed: {response_text}")
             return message

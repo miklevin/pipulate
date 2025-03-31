@@ -79,8 +79,11 @@ sidebarWs.onmessage = function(event) {
 // Handle temp_message if it exists
 window.addEventListener('DOMContentLoaded', () => {
     if (tempMessage) {
-        console.log('Sidebar sending verbatim:', tempMessage);
-        setTimeout(() => sidebarWs.send(`${tempMessage}|verbatim`), 1000);
+        // Ensure proper format and add space after
+        const formattedMessage = `${tempMessage}\n`;  // Add line break
+        
+        console.log('Sidebar sending verbatim:', formattedMessage);
+        setTimeout(() => sidebarWs.send(`${formattedMessage}|verbatim`), 1000);
     }
 });
 
