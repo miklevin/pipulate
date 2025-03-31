@@ -1,6 +1,6 @@
-# Pipulate Free & Open Source SEO with/for LLMs
+# Pipulate Free & Open Source SEO *with & for* LLMs
 
-![Pipulate Free & Open Source SEO with/for LLMs](pipulate-ai-seo.svg)
+![Pipulate Free & Open Source SEO with & for LLMs](pipulate-ai-seo.svg)
 
 > Workflows are WET as WET can be. The Crud is DRY as DRY.  
 > You do not need the Cloud because *no lock-in need apply!*  
