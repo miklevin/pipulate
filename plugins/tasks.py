@@ -43,11 +43,15 @@ class PluginIdentityManager:
 class CrudCustomizer(BaseCrud):
     def __init__(self, table, plugin):
         self.plugin = plugin
+        # Get pipulate_instance from plugin if it exists
+        self.pipulate_instance = getattr(plugin, 'pipulate', None)
+        
         super().__init__(
             name=plugin.name,
             table=table,
             toggle_field='done',
-            sort_field='priority'
+            sort_field='priority',
+            pipulate_instance=self.pipulate_instance  # Pass it to BaseCrud
         )
         self.item_name_field = 'text'
         logger.debug(f"{self.plugin.DISPLAY_NAME}App initialized with table name: {table.name}")
