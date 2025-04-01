@@ -400,6 +400,20 @@ class Pipulate:
         verification = self.read_state(pkey)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
+    def format_links_in_text(self, text):
+        """
+        Convert plain URLs in text to clickable HTML links.
+        Safe for logging but renders as HTML in the UI.
+        """
+        import re
+        url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
+        
+        def replace_url(match):
+            url = match.group(0)
+            return f'<a href="{url}" target="_blank">{url}</a>'
+            
+        return re.sub(url_pattern, replace_url, text)
+
     async def stream(self, message, verbatim=False, role="user", 
                     spaces_before=None, spaces_after=1,
                     simulate_typing=True):
@@ -1437,7 +1451,11 @@ def get_display_name(workflow_name):
 def get_endpoint_message(workflow_name):
     instance = plugin_instances.get(workflow_name)
     if instance and hasattr(instance, 'ENDPOINT_MESSAGE'):
-        return instance.ENDPOINT_MESSAGE
+        # Use our new helper to format links
+        message = instance.ENDPOINT_MESSAGE
+        if hasattr(pipulate, 'format_links_in_text'):
+            message = pipulate.format_links_in_text(message)
+        return message
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."  # Default message
 
 
@@ -1454,7 +1472,7 @@ for module_name, class_name, workflow_class in discovered_classes:
             logger.debug(f"Endpoint message for {module_name}: {endpoint_message}")
 
         except Exception as e:
-            logger.error(f"Error instantiating workflow {module_name}.{class_name}: {str(e)}")
+            logger.error(f"Error instantiating workflow {module_name}.{class_name}")
 
 # Use the registry to set friendly names and endpoint messages
 for workflow_name, workflow_instance in plugin_instances.items():
@@ -1465,7 +1483,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
 
     if workflow_name not in endpoint_training:
         endpoint_message = get_endpoint_message(workflow_name)
-        logger.debug(f"Setting endpoint message for {workflow_name}: {endpoint_message}")
+        logger.debug(f"Setting endpoint message for {workflow_name}")
         endpoint_training[workflow_name] = endpoint_message
 
 base_menu_items = ['', 'profile']

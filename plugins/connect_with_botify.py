@@ -23,7 +23,8 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     APP_NAME = "botify"  # <-- CHANGE THIS to something no other workflow is using
     DISPLAY_NAME = "Connect With Botify"  # <-- CHANGE THIS to value for User Interface
     ENDPOINT_MESSAGE = (  # <-- Shows when user switches to workflow landing page
-        "Enter your Botify API token to connect with Botify."
+        "Enter your Botify API token to connect with Botify. "
+        "You can find your API token at https://app.botify.com/account"
     )
     TRAINING_PROMPT = "botify_workflow.md"  # markdown file from /training or plain text
     PRESERVE_REFILL = True  # <-- Whether to preserve refill values on revert
