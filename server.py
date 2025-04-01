@@ -574,6 +574,11 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
+    # Add this method to the Pipulate class
+    def id_conflict_style(self):
+        """Return style for ID conflict error messages"""
+        return "background-color: #ffdddd; color: #990000; padding: 10px; border-left: 5px solid #990000;"
+
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = "http://localhost:11434/api/chat"
