@@ -139,8 +139,17 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
-        message = "API token received. Ready to finalize."
-        await pip.stream(message, verbatim=True)
+        
+        # Validate the token immediately after submission
+        try:
+            username = await self.validate_botify_token(pipeline_id)
+            if username:
+                await pip.stream(f"Botify API token validated for user: {username}. Ready to finalize.", verbatim=True)
+            else:
+                await pip.stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True)
+        except Exception as e:
+            await pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
+        
         cells = self.run_all_cells(steps, app_name)
         return Div(*cells, id=f"{app_name}-container")
 
@@ -194,17 +203,18 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 # Validate the token and get the username
                 username = await self.validate_botify_token(pipeline_id)
                 
-                with open("botify_token.txt", "w") as token_file:
-                    token_file.write(pipeline_id)
-                    
                 if username:
+                    # Only save the token if validation is successful
+                    with open("botify_token.txt", "w") as token_file:
+                        token_file.write(pipeline_id)
                     await pip.stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True)
                 else:
-                    await pip.stream("Botify API token saved to botify_token.txt, but validation failed", verbatim=True)
+                    # Don't save the file if validation fails
+                    await pip.stream("Invalid Botify API token. No file was saved.", verbatim=True)
             except Exception as e:
-                await pip.stream(f"Error saving token to file: {type(e).__name__}", verbatim=True)
+                await pip.stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True)
 
-            # Return the updated UI
+            # Return the updated UI - this stays the same regardless of validation
             return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
 
     async def validate_botify_token(self, token):
