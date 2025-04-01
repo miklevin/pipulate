@@ -98,27 +98,13 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         pipeline.xtra(app_name=app_name)
         existing_ids = [record.pkey for record in pipeline()]
         
-        # Check if token file exists - do this dynamically each time
-        endpoint_message = self.ENDPOINT_MESSAGE
-        try:
-            token_path = "botify_token.txt"
-            if os.path.exists(token_path):
-                with open(token_path, "r") as f:
-                    token = f.read().strip()
-                    if token:
-                        endpoint_message = (
-                            "You already have a Botify API token configured. "
-                            "You can update it by entering a new token below. "
-                            "You can find your API token at https://app.botify.com/account"
-                        )
-        except Exception:
-            # Use default message if there's any issue
-            pass
+        # Use the same method for consistency
+        endpoint_message = self.get_endpoint_message()
             
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P(endpoint_message),  # Use our dynamically determined message
+                P(endpoint_message),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -283,3 +269,24 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         await pip.stream(message, verbatim=True)
         cells = self.run_all_cells(steps, app_name)
         return Div(*cells, id=f"{app_name}-container")
+
+    def get_endpoint_message(self):
+        """
+        Dynamically determine the endpoint message based on token file existence.
+        This is called by the server when displaying the message in the sidebar.
+        """
+        try:
+            token_path = "botify_token.txt"
+            if os.path.exists(token_path):
+                with open(token_path, "r") as f:
+                    token = f.read().strip()
+                    if token:
+                        return (
+                            "You already have a Botify API token configured. "
+                            "You can update it by entering a new token below. "
+                            "You can find your API token at https://app.botify.com/account"
+                        )
+        except Exception:
+            pass
+            
+        return self.ENDPOINT_MESSAGE

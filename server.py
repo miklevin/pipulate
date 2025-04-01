@@ -1208,12 +1208,12 @@ def build_endpoint_messages(endpoint):
     # Add messages for all workflows in our registry
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
-            # First check for ENDPOINT_MESSAGE attribute
-            if hasattr(plugin_instance, 'ENDPOINT_MESSAGE'):
-                endpoint_messages[plugin_name] = plugin_instance.ENDPOINT_MESSAGE
-            # Then check for get_endpoint_message method
-            elif hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
+            # First check for get_endpoint_message method (prioritize dynamic messages)
+            if hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
                 endpoint_messages[plugin_name] = plugin_instance.get_endpoint_message()
+            # Then fall back to static ENDPOINT_MESSAGE attribute
+            elif hasattr(plugin_instance, 'ENDPOINT_MESSAGE'):
+                endpoint_messages[plugin_name] = plugin_instance.ENDPOINT_MESSAGE
             else:
                 class_name = plugin_instance.__class__.__name__
                 endpoint_messages[plugin_name] = f"{class_name} app is where you manage your {plugin_name}."
