@@ -1,4 +1,5 @@
 *.csv
+*.gz
 *.json
 *.pkl
 .DS_Store
