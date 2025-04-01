@@ -1,6 +1,7 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
+import os
 
 from fasthtml.common import *
 from loguru import logger
@@ -40,7 +41,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         self.steps_indices = {}
         self.db = db
         pip = self.pipulate
-
+        
         # Customize the steps, it's like one step per cell in the Notebook
         steps = [
             # No steps for this workflow - just finalize
@@ -96,10 +97,28 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         title = f"{self.DISPLAY_NAME or app_name.title()}"
         pipeline.xtra(app_name=app_name)
         existing_ids = [record.pkey for record in pipeline()]
+        
+        # Check if token file exists - do this dynamically each time
+        endpoint_message = self.ENDPOINT_MESSAGE
+        try:
+            token_path = "botify_token.txt"
+            if os.path.exists(token_path):
+                with open(token_path, "r") as f:
+                    token = f.read().strip()
+                    if token:
+                        endpoint_message = (
+                            "You already have a Botify API token configured. "
+                            "You can update it by entering a new token below. "
+                            "You can find your API token at https://app.botify.com/account"
+                        )
+        except Exception:
+            # Use default message if there's any issue
+            pass
+            
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P("Enter your Botify API token:"),  # You can change this message
+                P(endpoint_message),  # Use our dynamically determined message
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -143,7 +162,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     
     async def finalize(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get("pipeline_id", "")
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         logger.debug(f"Pipeline ID: {pipeline_id}")
@@ -184,8 +203,13 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             state["updated"] = datetime.now().isoformat()
             pip.write_state(pipeline_id, state)
 
-            # Send a confirmation message
-            await pip.stream("Botify API token successfully saved.", verbatim=True)
+            # Write the token to a file in the current working directory
+            try:
+                with open("botify_token.txt", "w") as token_file:
+                    token_file.write(pipeline_id)
+                await pip.stream("Botify API token saved to botify_token.txt", verbatim=True)
+            except Exception as e:
+                await pip.stream(f"Error saving token to file: {type(e).__name__}", verbatim=True)
 
             # Return the updated UI
             return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
