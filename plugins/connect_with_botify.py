@@ -191,14 +191,44 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
 
             # Write the token to a file in the current working directory
             try:
+                # Validate the token and get the username
+                username = await self.validate_botify_token(pipeline_id)
+                
                 with open("botify_token.txt", "w") as token_file:
                     token_file.write(pipeline_id)
-                await pip.stream("Botify API token saved to botify_token.txt", verbatim=True)
+                    
+                if username:
+                    await pip.stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True)
+                else:
+                    await pip.stream("Botify API token saved to botify_token.txt, but validation failed", verbatim=True)
             except Exception as e:
                 await pip.stream(f"Error saving token to file: {type(e).__name__}", verbatim=True)
 
             # Return the updated UI
             return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
+
+    async def validate_botify_token(self, token):
+        """Check if the Botify API token is valid and return the username if successful."""
+        import httpx
+        
+        url = "https://api.botify.com/v1/authentication/profile"
+        headers = {"Authorization": f"Token {token}"}
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+                
+                # Extract username if the token is valid
+                user_data = response.json()
+                username = user_data["data"]["username"]
+                return username
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Authentication failed: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"API request error: {e}")
+            return None
 
     async def unfinalize(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
