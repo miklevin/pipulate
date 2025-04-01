@@ -26,6 +26,14 @@ sidebarWs.onerror = function(error) {
     console.error('Sidebar WebSocket error:', error);
 };
 
+// Add this function at the top of the file
+function linkifyText(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank">' + url + '</a>';
+    });
+}
+
 sidebarWs.onmessage = function(event) {
     console.log('Sidebar received:', event.data);
     
@@ -72,7 +80,11 @@ sidebarWs.onmessage = function(event) {
     if (!sidebarCurrentMessage.parentElement) {
         sidebarMsgList.appendChild(sidebarCurrentMessage);
     }
-    sidebarCurrentMessage.innerHTML += event.data;
+    
+    // Linkify URLs in the message before displaying
+    const linkedText = linkifyText(event.data);
+    sidebarCurrentMessage.innerHTML += linkedText;
+    
     sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
 };
 

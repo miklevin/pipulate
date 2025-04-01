@@ -20,6 +20,7 @@ import aiohttp
 import uvicorn
 from fasthtml.common import *
 from loguru import logger
+import loguru
 from pyfiglet import Figlet
 from rich.console import Console
 from rich.json import JSON
@@ -95,12 +96,45 @@ def generate_menu_style():
         "margin: 0 2px; "
     )
 
+def safe_str(obj):
+    """Convert to string while making HTML safe for logging"""
+    if obj is None:
+        return "None"
+    s = str(obj)
+    return s.replace("<", "[").replace(">", "]")
+
+# Monkey patch the _log method to sanitize all messages
+original_log = loguru._logger.Logger._log
+
+def safe_log(self, level, is_ansi, options, message, args, kwargs):
+    """Wrapper for _log that sanitizes HTML in all messages"""
+    # For f-strings that are already evaluated
+    if isinstance(message, str):
+        message = safe_str(message)
+    
+    # For args that might contain HTML (used with % formatting)
+    safe_args = tuple(safe_str(arg) if isinstance(arg, str) else arg for arg in args)
+    
+    # For kwargs that might contain HTML
+    safe_kwargs = {k: safe_str(v) if isinstance(v, str) else v for k, v in kwargs.items()}
+    
+    return original_log(self, level, is_ansi, options, message, safe_args, safe_kwargs)
+
+# Apply the monkey patch
+loguru._logger.Logger._log = safe_log
 
 def setup_logging():
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
     logger.remove()
+
+    # Create a function to sanitize HTML tags for the logger
+    def sanitize_for_log(record):
+        if "message" in record and isinstance(record["message"], str):
+            # Replace angle brackets with their HTML entities to prevent logger from parsing HTML tags
+            record["message"] = record["message"].replace("<", "&lt;").replace(">", "&gt;")
+        return record
 
     for p in [app_log_path]:
         if p.exists():
@@ -111,7 +145,8 @@ def setup_logging():
         rotation="2 MB",
         level="DEBUG",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}",
-        enqueue=True
+        enqueue=True,
+        filter=sanitize_for_log  # Add our sanitizer function
     )
 
     logger.add(
@@ -125,19 +160,21 @@ def setup_logging():
         ),
         colorize=True,
         filter=lambda record: (
-            record["level"].name in ["ERROR", "WARNING"] or
-            record["level"].name == "INFO" or
-            (record["level"].name == "DEBUG" and
-             ("HTTP Request:" in record["message"] or
-              "Pipeline ID:" in record["message"] or
-              "State changed:" in record["message"] or
-              record["message"].startswith("Creating") or
-              record["message"].startswith("Updated")) and
-             not "Pipeline" in record["message"] and
-             not record["message"].startswith("DB: __") and
-             not "First record" in record["message"] and
-             not "Records found" in record["message"] and
-             not "dir:" in record["message"])
+            sanitize_for_log(record) and  # First sanitize
+            (record["level"].name in ["ERROR", "WARNING"] or
+             record["level"].name == "INFO" or
+             (record["level"].name == "DEBUG" and
+              ("HTTP Request:" in record["message"] or
+               "Pipeline ID:" in record["message"] or
+               "State changed:" in record["message"] or
+               record["message"].startswith("Creating") or
+               record["message"].startswith("Updated")) and
+              not "Pipeline" in record["message"] and
+              not record["message"].startswith("DB: __") and
+              not "First record" in record["message"] and
+              not "Records found" in record["message"] and
+              not "dir:" in record["message"])
+            )
         )
     )
 

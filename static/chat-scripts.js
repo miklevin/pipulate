@@ -124,11 +124,12 @@ function setupWebSocketAndSSE() {
         // Handle line breaks in messages
         if (event.data.includes('\\n')) {
             const lines = event.data.split('\\n');
-            sidebarCurrentMessage.innerHTML += lines.map(line => 
-                line.trim() ? `<p>${line}</p>` : '<br>'
-            ).join('');
+            sidebarCurrentMessage.innerHTML += lines.map(line => {
+                const linkedLine = linkifyText(line);
+                return line.trim() ? `<p>${linkedLine}</p>` : '<br>';
+            }).join('');
         } else {
-            sidebarCurrentMessage.innerHTML += event.data;
+            sidebarCurrentMessage.innerHTML += linkifyText(event.data);
         }
         
         sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
@@ -169,5 +170,12 @@ function setupInteractions() {
                 });
             }
         }
+    });
+}
+
+function linkifyText(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank">' + url + '</a>';
     });
 }
