@@ -8,6 +8,9 @@ from loguru import logger
 """
 Pipulate Workflow Template
 
+After copy/pasting this file, edit this docstring first so that your
+AI coding assistant knows what you're trying to do.
+
 This file demonstrates the basic pattern for Pipulate Workflows:
 1. Define steps with optional transformations
 2. Each step collects or processes data
@@ -16,7 +19,7 @@ This file demonstrates the basic pattern for Pipulate Workflows:
 
 To create your own Workflow:
 1. Copy this file and rename the class, APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE
-2. Create a training.md file in the training folder (no path needed) and set TRAINING_PROMPT to refer to it
+2. Create a [filename].md the training folder (no path needed) and set TRAINING_PROMPT to refer to it
 3. Define your own steps
 4. Implement custom validation and processing as needed
 
@@ -38,7 +41,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         "This simple workflow demonstrates a basic Hello World example. "
         "Enter an ID to start or resume your workflow."
     )
-    TRAINING_PROMPT = "workflow_template.md"  # markdown file from /training or plain text
+    TRAINING_PROMPT = "hello_workflow.md"  # markdown file from /training or plain text
     PRESERVE_REFILL = True  # <-- Whether to preserve refill values on revert
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -121,7 +124,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
         pipeline.xtra(app_name=app_name)
-        existing_ids = [record.url for record in pipeline()]
+        existing_ids = [record.pkey for record in pipeline()]
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
@@ -187,7 +190,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
 
-        placeholders = self.generate_step_placeholders(steps, app_name)
+        placeholders = self.run_all_cells(steps, app_name)
         return Div(*placeholders, id=f"{app_name}-container")
 
     async def step_01(self, request):
@@ -279,7 +282,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
             await pip.stream(message, verbatim=True)
-            placeholders = self.generate_step_placeholders(steps, app_name)
+            placeholders = self.run_all_cells(steps, app_name)
             return Div(*placeholders, id=f"{app_name}-container")
 
         form = await request.form()
@@ -408,8 +411,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
             await pip.stream(message, verbatim=True)
-            placeholders = self.generate_step_placeholders(steps, app_name)
-            return Div(*placeholders, id=f"{app_name}-container")
+            cells = self.run_all_cells(steps, app_name)
+            return Div(*cells, id=f"{app_name}-container")
 
         form = await request.form()
         user_val = form.get(step.done, "")
@@ -506,7 +509,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
 
             # Return the updated UI
-            return Div(*self.generate_step_placeholders(steps, app_name), id=f"{app_name}-container")
+            return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
 
     async def unfinalize(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -519,15 +522,27 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Send a message informing them they can revert to any step
         await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
 
-        placeholders = self.generate_step_placeholders(steps, app_name)
-        return Div(*placeholders, id=f"{app_name}-container")
+        cells = self.run_all_cells(steps, app_name)
+        return Div(*cells, id=f"{app_name}-container")
 
-    def generate_step_placeholders(self, steps, app_name):
-        placeholders = []
+    def run_all_cells(self, steps, app_name):
+        """
+        Starts HTMX chain reaction of all steps up to current.
+        Equivalent to Running all Cells in a Jupyter Notebook.
+        """
+        cells = []
         for i, step in enumerate(steps):
-            trigger = "load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}"
-            placeholders.append(Div(id=step.id, hx_get=f"/{app_name}/{step.id}", hx_trigger=trigger, hx_swap="outerHTML"))
-        return placeholders
+            trigger = ("load" if i == 0 
+                      else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
+            cells.append(
+                Div(
+                    id=step.id,
+                    hx_get=f"/{app_name}/{step.id}",
+                    hx_trigger=trigger,
+                    hx_swap="outerHTML"
+                )
+            )
+        return cells
 
     async def jump_to_step(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -564,5 +579,5 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await pip.stream(message, verbatim=True)
-        placeholders = self.generate_step_placeholders(steps, app_name)
-        return Div(*placeholders, id=f"{app_name}-container")
+        cells = self.run_all_cells(steps, app_name)
+        return Div(*cells, id=f"{app_name}-container")

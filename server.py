@@ -341,9 +341,9 @@ class Pipulate:
             return friendly_names[endpoint]
         return ' '.join(word.capitalize() for word in endpoint.split('_'))
 
-    def _get_clean_state(self, url):
+    def _get_clean_state(self, pkey):
         try:
-            record = self.table[url]
+            record = self.table[pkey]
             state = json.loads(record.data)
             state.pop('created', None)
             state.pop('updated', None)
@@ -355,9 +355,9 @@ class Pipulate:
         return datetime.now().isoformat()
 
     @pipeline_operation
-    def initialize_if_missing(self, url: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
+    def initialize_if_missing(self, pkey: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
         try:
-            state = self.read_state(url)
+            state = self.read_state(pkey)
             if state:
                 return state, None
             now = self.get_timestamp()
@@ -367,16 +367,16 @@ class Pipulate:
                 if "app_name" in initial_step_data:
                     app_name = initial_step_data.pop("app_name")
                 state.update(initial_step_data)
-            self.table.insert({"url": url, "app_name": app_name if app_name else None, "data": json.dumps(state), "created": now, "updated": now})
+            self.table.insert({"pkey": pkey, "app_name": app_name if app_name else None, "data": json.dumps(state), "created": now, "updated": now})
             return state, None
         except:
-            error_card = Card(H3("ID Already In Use"), P(f"The ID '{url}' is already being used by another workflow. Please try a different ID."), style=self.id_conflict_style())
+            error_card = Card(H3("ID Already In Use"), P(f"The ID '{pkey}' is already being used by another workflow. Please try a different ID."), style=self.id_conflict_style())
             return None, error_card
 
-    def read_state(self, url: str) -> dict:
-        logger.debug(f"Reading state for pipeline: {url}")
+    def read_state(self, pkey: str) -> dict:
+        logger.debug(f"Reading state for pipeline: {pkey}")
         try:
-            self.table.xtra(url=url)
+            self.table.xtra(pkey=pkey)
             records = self.table()
             logger.debug(f"Records found: {records}")
             if records:
@@ -392,12 +392,12 @@ class Pipulate:
             logger.debug(f"Error reading state: {str(e)}")
             return {}
 
-    def write_state(self, url: str, state: dict) -> None:
+    def write_state(self, pkey: str, state: dict) -> None:
         state["updated"] = datetime.now().isoformat()
-        payload = {"url": url, "data": json.dumps(state), "updated": state["updated"]}
+        payload = {"pkey": pkey, "data": json.dumps(state), "updated": state["updated"]}
         logger.debug(f"Update payload:\n{json.dumps(payload, indent=2)}")
         self.table.update(payload)
-        verification = self.read_state(url)
+        verification = self.read_state(pkey)
         logger.debug(f"Verification read:\n{json.dumps(verification, indent=2)}")
 
     async def stream(self, message, verbatim=False, role="user", 
@@ -530,9 +530,9 @@ class Pipulate:
             style="display: flex; align-items: center; gap: 0.5rem;"
         )
 
-    async def get_state_message(self, url: str, steps: list, messages: dict) -> str:
-        state = self.read_state(url)
-        logger.debug(f"\nDEBUG [{url}] State Check:")
+    async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
+        state = self.read_state(pkey)
+        logger.debug(f"\nDEBUG [{pkey}] State Check:")
         logger.debug(json.dumps(state, indent=2))
         for step in reversed(steps):
             if step.id not in state:
@@ -557,8 +557,8 @@ class Pipulate:
         return message
 
     @pipeline_operation
-    def get_step_data(self, url: str, step_id: str, default=None) -> dict:
-        state = self.read_state(url)
+    def get_step_data(self, pkey: str, step_id: str, default=None) -> dict:
+        state = self.read_state(pkey)
         return state.get(step_id, default or {})
 
     async def clear_steps_from(self, pipeline_id: str, step_id: str, steps: list) -> dict:
@@ -1049,12 +1049,12 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         "pk": "id"
     },
     pipeline={
-        "url": str,
+        "pkey": str,
         "app_name": str,
         "data": str,
         "created": str,
         "updated": str,
-        "pk": "url"
+        "pk": "pkey"
     }
 )
 
@@ -1482,7 +1482,7 @@ async def clear_db(request):
     logger.debug("DictLikeDB cleared")
     records = list(pipulate.table())
     for record in records:
-        pipulate.table.delete(record.url)
+        pipulate.table.delete(record.pkey)
     logger.debug("Pipeline table cleared")
     db["temp_message"] = "Database cleared."
     logger.debug("DictLikeDB cleared for debugging")
@@ -1944,7 +1944,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             cookie_table.add_row(key, json_value)
         console.print(cookie_table)
         pipeline_table = Table(title="Pipeline States")
-        pipeline_table.add_column("URL", style="yellow")
+        pipeline_table.add_column("Key", style="yellow")
         pipeline_table.add_column("Created", style="magenta")
         pipeline_table.add_column("Updated", style="cyan")
         pipeline_table.add_column("Steps", style="white")
@@ -1952,10 +1952,10 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             try:
                 state = json.loads(record.data)
                 pre_state = json.loads(record.data)
-                pipeline_table.add_row(record.url, str(state.get('created', '')), str(state.get('updated', '')), str(len(pre_state) - 2))
+                pipeline_table.add_row(record.pkey, str(state.get('created', '')), str(state.get('updated', '')), str(len(pre_state) - 2))
             except (json.JSONDecodeError, AttributeError)as e:
-                logger.error(f"Error parsing pipeline state for {record.url}: {e}")
-                pipeline_table.add_row(record.url, "ERROR", "Invalid State")
+                logger.error(f"Error parsing pipeline state for {record.pkey}: {e}")
+                pipeline_table.add_row(record.pkey, "ERROR", "Invalid State")
         console.print(pipeline_table)
         return response
 
