@@ -532,8 +532,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         """
         cells = []
         for i, step in enumerate(steps):
-            trigger = ("load" if i == 0 
-                      else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
+            trigger = ("load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
             cells.append(
                 Div(
                     id=step.id,
