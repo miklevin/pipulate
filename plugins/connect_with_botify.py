@@ -208,6 +208,17 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             del state["finalize"]
         pip.write_state(pipeline_id, state)
 
+        # Delete the token file if it exists
+        try:
+            token_path = "botify_token.txt"
+            if os.path.exists(token_path):
+                os.remove(token_path)
+                await pip.stream("Botify API token file has been deleted.", verbatim=True)
+            else:
+                await pip.stream("No Botify API token file found to delete.", verbatim=True)
+        except Exception as e:
+            await pip.stream(f"Error deleting token file: {type(e).__name__}", verbatim=True)
+
         # Send a message informing them they can revert to any step
         await pip.stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True)
 
