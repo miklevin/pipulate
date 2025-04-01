@@ -1,6 +1,7 @@
-*.json
 *.csv
+*.json
 *.pkl
+.DS_Store
 .ipynb_checkpoints/
 .sesskey
 .ssh/key
