@@ -349,7 +349,7 @@ class Pipulate:
     def fmt(self, endpoint: str) -> str:
         if endpoint in friendly_names:
             return friendly_names[endpoint]
-        return ' '.join(word.capitalize() for word in endpoint.split('_'))
+        return ' '.join(word.capitalize() for word in endpoint.replace('.', ' ').split('_'))
 
     def _get_clean_state(self, pkey):
         try:
