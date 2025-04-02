@@ -19,13 +19,15 @@ Finalize button does nothing.
 # This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+account_url = "https://app.botify.com/account"
+
 
 class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     APP_NAME = "botify"  # <-- CHANGE THIS to something no other workflow is using
     DISPLAY_NAME = "Connect With Botify"  # <-- CHANGE THIS to value for User Interface
     ENDPOINT_MESSAGE = (  # <-- Shows when user switches to workflow landing page
         "Enter your Botify API token to connect with Botify. "
-        "You can find your API token at https://app.botify.com/account"
+        f"You can find your API token at {account_url}"
     )
     TRAINING_PROMPT = "botify_workflow.md"  # markdown file from /training or plain text
     PRESERVE_REFILL = True  # <-- Whether to preserve refill values on revert
@@ -108,14 +110,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Paste your Botify API token here",  # You can change this placeholder
+                            placeholder="Paste your Botify API token here",
                             name="pipeline_id",
                             list="pipeline-ids",
-                            type="text",
+                            type="password",
                             required=True,
                             autofocus=True,
                         ),
-                        button_label="Connect to Botify API",  # You can change this button label
+                        button_label="Connect to Botify API",
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
@@ -335,7 +337,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                         return (
                             "You already have a Botify API token configured. "
                             "You can update it by entering a new token below. "
-                            "You can find your API token at https://app.botify.com/account"
+                            f"You can find your API token at {account_url}"
                         )
         except Exception:
             pass
