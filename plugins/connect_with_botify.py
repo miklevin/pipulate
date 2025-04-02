@@ -178,7 +178,11 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         try:
             username = await self.validate_botify_token(pipeline_id)
             if username:
-                await pip.stream(f"Botify API token validated for user: {username}. Ready to finalize.", verbatim=True)
+                await pip.stream(
+                    f"Botify API token validated for user: {username}. Ready to finalize.", 
+                    verbatim=True,
+                    spaces_after=0  # Set to 0 to remove the extra line break
+                )
                 
                 # Have the LLM greet the user with a short message
                 formatted_username = pip.fmt(username)
