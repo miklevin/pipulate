@@ -432,7 +432,7 @@ class Pipulate:
             
             if spaces_before:
                 for _ in range(spaces_before):
-                    await chat.broadcast("<br>\n")
+                    await chat.broadcast(" <br>\n")
             
             if verbatim:
                 if simulate_typing:
@@ -455,7 +455,7 @@ class Pipulate:
             
             if spaces_after:
                 for _ in range(spaces_after):
-                    await chat.broadcast("<br>\n")
+                    await chat.broadcast(" <br>\n")
             
             append_to_conversation(response_text, "assistant")
             logger.debug(f"Message streamed: {response_text}")
