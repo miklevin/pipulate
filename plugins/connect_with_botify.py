@@ -322,7 +322,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         await pip.stream(message, verbatim=True)
         cells = self.run_all_cells(steps, app_name)
         return Div(*cells, id=f"{app_name}-container")
-
     def get_endpoint_message(self):
         """
         Dynamically determine the endpoint message based on token file existence.
@@ -343,3 +342,4 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             pass
             
         return self.ENDPOINT_MESSAGE
+
