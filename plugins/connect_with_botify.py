@@ -179,6 +179,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             username = await self.validate_botify_token(pipeline_id)
             if username:
                 await pip.stream(f"Botify API token validated for user: {username}. Ready to finalize.", verbatim=True)
+                
+                # Have the LLM greet the user with a short message
+                formatted_username = pip.fmt(username)
+                await pip.stream(
+                    f"Greet {formatted_username} briefly as their Botify assistant. Keep your response under 20 words.", 
+                    verbatim=False,
+                    role="system"
+                )
             else:
                 await pip.stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True)
         except Exception as e:
