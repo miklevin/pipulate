@@ -1544,7 +1544,7 @@ async def home(request):
     fig("HOME")
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
-    menux = path if path else "home"
+    menux = normalize_menu_path(path)  # Use the helper function here
     logger.debug(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
@@ -2073,3 +2073,27 @@ if __name__ == "__main__":
     run_server_with_watchdog()
 
 # Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!
+
+def get_button_style(button_type="default"):
+    """Return button style string based on type."""
+    if button_type == "warning":
+        return "background-color: var(--pico-primary-background); color: #f66;"
+    elif button_type == "primary":
+        return "background-color: var(--pico-primary-background); color: #4CAF50;" 
+    # etc.
+
+def get_current_profile_id():
+    """Get the current profile ID, defaulting to the first profile if none is selected."""
+    profile_id = db.get("last_profile_id")
+    
+    if profile_id is None:
+        logger.debug("No last_profile_id found. Finding first available profile.")
+        first_profiles = profiles(order_by='id', limit=1)
+        if first_profiles:
+            profile_id = first_profiles[0].id
+            db["last_profile_id"] = profile_id
+            logger.debug(f"Set default profile ID to {profile_id}")
+        else:
+            logger.warning("No profiles found in the database")
+            
+    return profile_id
