@@ -1618,8 +1618,9 @@ def create_app_menu(menux):
         # Skip only the profile app in the Apps menu
         if item == profile_app.name:
             continue
-            
-        is_selected = item == menux
+        
+        # For the home page, menux might be "home" but item is ""
+        is_selected = (item == menux) or (item == "" and menux == "home")
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
     return Details(Summary(f"APP: {endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
