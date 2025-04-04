@@ -1612,17 +1612,25 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     return Details(Summary(f"{profile_app.name.upper()}: {selected_profile_name}", style=generate_menu_style(), id="profile-id",), Ul(*menu_items, style="padding-left: 0;",), cls="dropdown",)
 
 
+def normalize_menu_path(path):
+    """Convert empty paths to 'home' and return the path otherwise."""
+    return "home" if path == "" else path
+
 def create_app_menu(menux):
     menu_items = []
     for item in MENU_ITEMS:
-        # Skip only the profile app in the Apps menu
+        # Skip profile app in Apps menu
         if item == profile_app.name:
             continue
         
-        # For the home page, menux might be "home" but item is ""
-        is_selected = (item == menux) or (item == "" and menux == "home")
+        # Normalize both the current selection and menu item for comparison
+        norm_menux = normalize_menu_path(menux)
+        norm_item = normalize_menu_path(item)
+        
+        is_selected = norm_item == norm_menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
+    
     return Details(Summary(f"APP: {endpoint_name(menux)}", style=generate_menu_style(), id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
 
 
