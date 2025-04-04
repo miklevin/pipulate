@@ -39,6 +39,10 @@ class PluginIdentityManager:
     def DB_TABLE_NAME(self):
         return self.name
 
+    @property
+    def TRAINING_PROMPT(self):
+        return f"{self.name}.md"
+
 
 class CrudCustomizer(BaseCrud):
     def __init__(self, table, plugin):
@@ -99,7 +103,7 @@ class CrudUI(PluginIdentityManager):
     @property
     def ENDPOINT_MESSAGE(self):
         return f"Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete."
-
+    
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
         super().__init__()
