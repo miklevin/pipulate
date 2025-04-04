@@ -128,7 +128,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P("Enter or resume a Pipeline ID:"),  # You can change this message
+                P("Enter or resume a Workflow ID:"),  # You can change this message
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
