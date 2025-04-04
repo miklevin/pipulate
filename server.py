@@ -1603,7 +1603,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     def get_selected_item_style(is_selected):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
-    menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
+    menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
     active_profiles = profiles("active=?", (True,), order_by='priority')
     for profile in active_profiles:
         is_selected = str(profile.id) == str(selected_profile_id)
