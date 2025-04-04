@@ -1677,7 +1677,12 @@ async def create_grid_left(menux, render_items=None):
             return await workflow_instance.render()
         return await workflow_instance.landing()
     else:
-        return await introduction.introduction_render()
+        # Default to a simple welcome page if no specific menu is selected
+        return Div(
+            H2(f"Welcome to {APP_NAME}"),
+            P("Please select an option from the menu to get started."),
+            id="welcome-content"
+        )
 
 
 def create_chat_interface(autofocus=False, mobile=False):
@@ -1854,54 +1859,6 @@ async def profile_render():
     )
 
 
-class Introduction:
-    def __init__(self, app, route_prefix="/introduction"):
-        self.app = app
-        self.route_prefix = route_prefix
-        self.logger = logger.bind(name="Introduction")
-
-    async def start_chat(self, request):
-        self.logger.debug("Starting welcome chat")
-        try:
-            hot_prompt_injection("introduction.md")
-            await pipulate.stream(f"The app name you're built into is {APP_NAME}. Please {limiter} introduce yourself and explain how you can help. Tell them to ask you the secret word.", spaces_after=1)
-            return "Chat initiated"
-        except Exception as e:
-            self.logger.error(f"Error starting chat: {str(e)}")
-            return "I'm having trouble connecting right now. Please try again in a moment."
-
-    async def introduction_render(self):
-        self.logger.debug("Rendering introduction content")
-        self.app.post(f"{self.route_prefix}/start-chat")(self.start_chat)
-        return Card(
-            H3(f"Meet {APP_NAME}"),
-            P(
-                "This demo showcases \"Hot Prompt Injection\" - a technique where "
-                "the AI assistant learns new information through UI interactions "
-                "so it knows what it needs to know to help you right when it "
-                "needs to help you."
-            ),
-            P(
-                "Try asking the AI assistant \"What's the secret word?\" right "
-                "now - it will give you the wrong answer. Then click the button "
-                "below to invisibly teach the AI a secret word, and ask the same "
-                "question again (hint: it's the opposite of Ephemeral)."
-            ),
-            Div(style="margin-bottom: 20px;"),
-            Div(
-                Button(
-                    "Teach AI assistant secret word",
-                    hx_post="/introduction/start-chat",
-                    hx_swap="none",
-                    hx_trigger="click, htmx:afterRequest[document.getElementById('msg').focus()]",
-                    style="margin-top: 10px;"
-                )
-            ),
-            id="intro-card",
-        )
-
-
-introduction = Introduction(app, route_prefix="/introduction")
 
 
 @rt("/sse")
