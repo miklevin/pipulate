@@ -1496,7 +1496,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
         logger.debug(f"Setting endpoint message for {workflow_name}")
         endpoint_training[workflow_name] = endpoint_message
 
-base_menu_items = ['', 'profile']
+base_menu_items = ['']  # Remove 'profile' from here
 additional_menu_items = ['mobile_chat']
 MENU_ITEMS = base_menu_items + list(plugin_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
@@ -1613,8 +1613,14 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
 
 
 def create_app_menu(menux):
+    # Filter out profile from the menu items
+    app_menu_items = [item for item in MENU_ITEMS if item != profile_app.name]
     menu_items = []
-    for item in MENU_ITEMS:
+    for item in app_menu_items:
+        # Skip the profile app in the Apps menu
+        if item == menux:
+            continue
+        
         is_selected = item == menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
