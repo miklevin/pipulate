@@ -1613,14 +1613,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
 
 
 def create_app_menu(menux):
-    # Filter out profile from the menu items
-    app_menu_items = [item for item in MENU_ITEMS if item != profile_app.name]
     menu_items = []
-    for item in app_menu_items:
-        # Skip the profile app in the Apps menu
-        if item == menux:
+    for item in MENU_ITEMS:
+        # Skip only the profile app in the Apps menu
+        if item == profile_app.name:
             continue
-        
+            
         is_selected = item == menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
