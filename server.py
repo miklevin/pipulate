@@ -489,18 +489,9 @@ class Pipulate:
         if not target_id:
             target_id = f"{app_name}-container"
 
-        default_style = (
-            "background-color: var(--pico-del-color);"
-            "display: inline-flex;"
-            "padding: 0.5rem 0.5rem;"
-            "border-radius: 4px;"
-            "font-size: 0.85rem;"
-            "cursor: pointer;"
-            "margin: 0;"
-            "line-height: 1;"
-            "align-items: center;"
-        )
-
+        # Use the style helper instead of hardcoding
+        default_style = get_button_style("warning")  
+        
         form = Form(
             Input(
                 type="hidden",
@@ -1593,7 +1584,8 @@ def create_nav_group():
 def create_nav_menu():
     logger.debug("Creating navigation menu.")
     menux = db.get("last_app_choice", "App")
-    selected_profile_id = db.get("last_profile_id")
+    # Use our helper functions for profile id and name
+    selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     nav_items = [create_filler_item(), create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux)]
     nav = Div(*nav_items, style="display: flex; gap: 20px;")
@@ -1606,6 +1598,9 @@ def create_filler_item():
 
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
+    # Use our helper instead of passing in selected_profile_id
+    selected_profile_id = get_current_profile_id()
+    
     def get_selected_item_style(is_selected):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
