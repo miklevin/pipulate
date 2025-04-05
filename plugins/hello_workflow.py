@@ -134,17 +134,20 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pipeline.xtra(app_name=app_name)
         
         # Filter IDs to only show those relevant to this plugin and profile
-        plugin_part = plugin_name.replace(" ", "_")
-        profile_part = profile_name.replace(" ", "_") 
-        prefix = f"{plugin_part}-{profile_part}-"
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_") 
+        prefix = f"{profile_part}-{plugin_part}-"
         
         existing_ids = [record.pkey.replace(prefix, "") for record in pipeline() 
                        if record.pkey.startswith(prefix)]
         
+        # Create the default value for the input field - profile-plugin-
+        default_value = f"{prefix}"
+        
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P(f"Enter a unique ID to create a composite key: {plugin_name}-{profile_name}-[your input]"),
+                P(f"The composite key format is: {profile_name}-{plugin_name}-[your input]"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -154,11 +157,12 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             type="text",
                             required=True,
                             autofocus=True,
+                            value=default_value
                         ),
                         button_label=f"Start {self.DISPLAY_NAME} 🔑",  # Keep the original button label
                         button_class="secondary"
                     ),
-                    Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
+                    Datalist(*[Option(value=f"{prefix}{pid}") for pid in existing_ids], id="pipeline-ids"),
                     hx_post=f"/{app_name}/init",
                     hx_target=f"#{app_name}-container"
                 )
@@ -169,24 +173,36 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
     async def init(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
-        user_provided_id = form.get("pipeline_id", "untitled")
+        user_input = form.get("pipeline_id", "untitled")
         
         # Get the context with plugin name and profile name
         context = pip.get_plugin_context(self)
         plugin_name = context['plugin_name'] or app_name
         profile_name = context['profile_name'] or "default"
         
-        # Create a composite key with format: plugin_name-profile_name-user_id
-        # Replace spaces with underscores to avoid issues in IDs
-        plugin_part = plugin_name.replace(" ", "_")
+        # Create the expected prefix parts
         profile_part = profile_name.replace(" ", "_")
-        user_part = user_provided_id.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
         
-        composite_id = f"{plugin_part}-{profile_part}-{user_part}"
+        # Determine if the user provided just their part or the full composite key
+        if user_input.startswith(expected_prefix):
+            # They provided the full composite key - extract the user part
+            user_provided_id = user_input.replace(expected_prefix, "")
+            # If they didn't add anything after the prefix, use a default
+            if not user_provided_id:
+                user_provided_id = "untitled"
+            # Use the input directly as it already has the prefix
+            pipeline_id = user_input
+        else:
+            # They provided just their part - construct the full key
+            user_provided_id = user_input
+            # Create a composite key with format: profile_name-plugin_name-user_id
+            user_part = user_provided_id.replace(" ", "_")
+            pipeline_id = f"{profile_part}-{plugin_part}-{user_part}"
         
-        # Use the composite ID as the pipeline_id
-        pipeline_id = composite_id
         db["pipeline_id"] = pipeline_id
+        logger.debug(f"Using pipeline ID: {pipeline_id}")
         
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
@@ -207,11 +223,11 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         await pip.stream(id_message, verbatim=True, spaces_before=0)
         
         # Add a message about the components of the ID
-        components_message = f"Your ID is made up of: plugin ({plugin_part}), profile ({profile_part}), and your input ({user_part})."
+        components_message = f"Your ID is made up of: profile ({profile_part}), plugin ({plugin_part}), and your input ({user_provided_id})."
         await pip.stream(components_message, verbatim=True, spaces_before=0)
         
         # Add the return message
-        return_message = f"You can use '{user_part}' to return to this workflow later (we'll automatically add the plugin and profile prefixes)."
+        return_message = f"You can use '{user_provided_id}' to return to this workflow later (we'll automatically add the prefixes)."
         await pip.stream(return_message, verbatim=True, spaces_before=0)
 
         # Add a small delay to ensure messages appear in the correct order
