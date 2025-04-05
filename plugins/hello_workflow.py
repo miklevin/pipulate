@@ -179,7 +179,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             required=True,
                             autofocus=True,
                             value=default_value,
-                            _onfocus="this.setSelectionRange(this.value.length, this.value.length)"
+                            _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
                         ),
                         button_label=f"Start {self.DISPLAY_NAME} 🔑",  # Keep the original button label
                         button_class="secondary"
@@ -254,7 +255,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream(auto_increment_message, verbatim=True, spaces_before=0)
         
         # Add the return message
-        return_message = f"You can use '{user_provided_id}' to return to this workflow later (we'll automatically add the prefixes)."
+        return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
         await pip.stream(return_message, verbatim=True, spaces_before=0)
 
         # Add a small delay to ensure messages appear in the correct order
