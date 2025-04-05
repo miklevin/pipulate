@@ -812,6 +812,7 @@ class BaseCrud:
             return str(e), 500
 
     async def toggle_item(self, request, item_id: int):
+        """Override the BaseCrud toggle_item to handle FastHTML objects properly"""
         try:
             item = self.table[item_id]
             current_status = getattr(item, self.toggle_field)
@@ -823,7 +824,15 @@ class BaseCrud:
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
             asyncio.create_task(self.send_message(action_details, verbatim=True))
                 
-            return self.render_item(updated_item)
+            # Get the profile HTML representation
+            rendered_profile = self.render_item(updated_item)
+            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            
+            # Convert FT object to HTML string using to_xml
+            html_content = to_xml(rendered_profile)
+            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
+            
+            return HTMLResponse(html_content)
         except Exception as e:
             error_msg = f"Error toggling item: {str(e)}"
             logger.error(error_msg)
@@ -894,6 +903,7 @@ class BaseCrud:
             return str(e), 500
 
     async def update_item(self, request, item_id: int):
+        """Override the BaseCrud update_item to handle FastHTML objects properly"""
         try:
             form = await request.form()
             update_data = self.prepare_update_data(form)
@@ -916,7 +926,16 @@ class BaseCrud:
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
             logger.debug(f"Updated {self.name} item {item_id}")
-            return self.render_item(updated_item)
+            
+            # Get the profile HTML representation
+            rendered_profile = self.render_item(updated_item)
+            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            
+            # Convert FT object to HTML string using to_xml
+            html_content = to_xml(rendered_profile)
+            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
+            
+            return HTMLResponse(html_content)
         except Exception as e:
             error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
             logger.error(error_msg)
@@ -955,7 +974,49 @@ class ProfileApp(BaseCrud):
         logger.debug(f"Initialized ProfileApp with name={table.name}")
 
     def render_item(self, profile):
-        return render_profile(profile)
+        result = render_profile(profile)
+        return result
+        
+    async def insert_item(self, request):
+        """Override the BaseCrud insert_item to handle FastHTML objects properly"""
+        try:
+            logger.debug(f"[DEBUG] Starting ProfileApp insert_item")
+            form = await request.form()
+            logger.debug(f"[DEBUG] Form data: {dict(form)}")
+            new_item_data = self.prepare_insert_data(form)
+            if not new_item_data:
+                logger.debug("[DEBUG] No new_item_data, returning empty")
+                return ''
+                
+            # Create the new profile
+            new_profile = await self.create_item(**new_item_data)
+            logger.debug(f"[DEBUG] Created new profile: {new_profile}")
+            profile_name = getattr(new_profile, self.item_name_field, 'Profile')
+            
+            # Log the action
+            action_details = f"A new {self.name} '{profile_name}' was added."
+            prompt = action_details
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            
+            # Get the profile HTML representation
+            rendered_profile = self.render_item(new_profile)
+            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            
+            # Convert FT object to HTML string using to_xml
+            html_content = to_xml(rendered_profile)
+            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
+            
+            # Create response with refresh trigger for profile menu
+            response = HTMLResponse(html_content)
+            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            return response
+        except Exception as e:
+            error_msg = f"Error inserting {self.name}: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
+            prompt = action_details
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            return str(e), 500
 
     def prepare_insert_data(self, form):
         profile_name = form.get('profile_name', '').strip()
