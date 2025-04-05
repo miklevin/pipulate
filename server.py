@@ -490,7 +490,17 @@ class Pipulate:
             target_id = f"{app_name}-container"
 
         # Use the style helper instead of hardcoding
-        default_style = get_button_style("warning")  
+        default_style = (
+            "background-color: var(--pico-del-color);"
+            "display: inline-flex;"
+            "padding: 0.5rem 0.5rem;"
+            "border-radius: 4px;"
+            "font-size: 0.85rem;"
+            "cursor: pointer;"
+            "margin: 0;"
+            "line-height: 1;"
+            "align-items: center;"
+        )
         
         form = Form(
             Input(
