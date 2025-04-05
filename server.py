@@ -802,7 +802,11 @@ class BaseCrud:
             action_details = f"The {self.name} item '{item_name}' was removed."
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
-            return ''
+            
+            # Add a trigger to refresh the profile menu
+            response = HTMLResponse("") 
+            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            return response
         except Exception as e:
             error_msg = f"Error deleting item: {str(e)}"
             logger.error(error_msg)
@@ -840,8 +844,9 @@ class BaseCrud:
             return str(e), 500
 
     async def sort_items(self, request):
-        logger.debug(f"Received request to sort {self.name}.")
+        """Override the BaseCrud sort_items to also refresh the profile menu"""
         try:
+            logger.debug(f"Received request to sort {self.name}.")
             values = await request.form()
             items = json.loads(values.get('items', '[]'))
             logger.debug(f"Parsed items: {items}")
@@ -859,7 +864,11 @@ class BaseCrud:
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
             logger.debug(f"{self.name.capitalize()} order updated successfully")
-            return ''
+            
+            # Add a trigger to refresh the profile menu
+            response = HTMLResponse("") 
+            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            return response
         except json.JSONDecodeError as e:
             error_msg = f"Invalid data format: {str(e)}"
             logger.error(error_msg)
@@ -974,11 +983,10 @@ class ProfileApp(BaseCrud):
         logger.debug(f"Initialized ProfileApp with name={table.name}")
 
     def render_item(self, profile):
-        result = render_profile(profile)
-        return result
+        return render_profile(profile)
         
     async def insert_item(self, request):
-        """Override the BaseCrud insert_item to handle FastHTML objects properly"""
+        """Override the BaseCrud insert_item to also refresh the profile menu"""
         try:
             logger.debug(f"[DEBUG] Starting ProfileApp insert_item")
             form = await request.form()
@@ -998,22 +1006,89 @@ class ProfileApp(BaseCrud):
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
             
-            # Get the profile HTML representation
+            # Render the new profile item
             rendered_profile = self.render_item(new_profile)
-            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            logger.debug(f"[DEBUG] Rendered profile: {rendered_profile}")
             
-            # Convert FT object to HTML string using to_xml
-            html_content = to_xml(rendered_profile)
-            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
-            
-            # Create response with refresh trigger for profile menu
-            response = HTMLResponse(html_content)
+            # Combine the rendered profile with an HTMX trigger to refresh the menu
+            response = HTMLResponse(str(to_xml(rendered_profile)))
             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            
             return response
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
             logger.error(error_msg)
             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
+            prompt = action_details
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            return str(e), 500
+
+    async def toggle_item(self, request, item_id: int):
+        """Override the BaseCrud toggle_item to properly handle FastHTML objects"""
+        try:
+            item = self.table[item_id]
+            current_status = getattr(item, self.toggle_field)
+            new_status = not current_status
+            setattr(item, self.toggle_field, new_status)
+            updated_item = self.table.update(item)
+            item_name = getattr(updated_item, self.item_name_field, 'Item')
+            status_text = 'checked' if new_status else 'unchecked'
+            action_details = f"The {self.name} item '{item_name}' is now {status_text}."
+            asyncio.create_task(self.send_message(action_details, verbatim=True))
+                
+            # Get the profile HTML representation
+            rendered_profile = self.render_item(updated_item)
+            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            
+            # Add a trigger to refresh the profile menu
+            response = HTMLResponse(str(to_xml(rendered_profile)))
+            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            return response
+        except Exception as e:
+            error_msg = f"Error toggling item: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
+            return str(e), 500
+
+    async def update_item(self, request, item_id: int):
+        """Override the BaseCrud update_item to properly handle FastHTML objects"""
+        try:
+            form = await request.form()
+            update_data = self.prepare_update_data(form)
+            if not update_data:
+                return ''
+            item = self.table[item_id]
+            before_state = item.__dict__.copy()
+            for key, value in update_data.items():
+                setattr(item, key, value)
+            updated_item = self.table.update(item)
+            after_state = updated_item.__dict__
+            change_dict = {}
+            for key in update_data.keys():
+                if before_state.get(key) != after_state.get(key):
+                    change_dict[key] = after_state.get(key)
+            changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
+            changes_str = '; '.join(changes)
+            item_name = getattr(updated_item, self.item_name_field, 'Item')
+            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
+            prompt = action_details
+            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            logger.debug(f"Updated {self.name} item {item_id}")
+            
+            # Get the profile HTML representation
+            rendered_profile = self.render_item(updated_item)
+            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            
+            # Add a trigger to refresh the profile menu if the name field was updated
+            response = HTMLResponse(str(to_xml(rendered_profile)))
+            if 'name' in change_dict:
+                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            
+            return response
+        except Exception as e:
+            error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
+            logger.error(error_msg)
+            action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
             return str(e), 500
@@ -1676,9 +1751,21 @@ async def home(request):
 
 
 def create_nav_group():
+    # Create the initial nav menu
     nav = create_nav_menu()
+    
+    # Add a hidden event listener to refresh the profile dropdown
+    refresh_listener = Div(
+        id="profile-menu-refresh-listener",
+        hx_get="/refresh-profile-menu",
+        hx_trigger="refreshProfileMenu from:body",
+        hx_target="#profile-dropdown-menu",
+        hx_swap="outerHTML",
+        style="display: none;"
+    )
+    
     nav_group_style = ("display: flex; ""align-items: center; ""position: relative;")
-    return Group(nav, style=nav_group_style)
+    return Group(nav, refresh_listener, style=nav_group_style)
 
 
 def create_nav_menu():
@@ -1710,7 +1797,14 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         is_selected = str(profile.id) == str(selected_profile_id)
         item_style = get_selected_item_style(is_selected)
         menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
-    return Details(Summary(f"{profile_app.name.upper()}: {selected_profile_name}", style=generate_menu_style(), id="profile-id",), Ul(*menu_items, style="padding-left: 0;",), cls="dropdown",)
+    return Details(
+        Summary(f"{profile_app.name.upper()}: {selected_profile_name}", 
+                style=generate_menu_style(), 
+                id="profile-id"),
+        Ul(*menu_items, style="padding-left: 0;"),
+        cls="dropdown",
+        id="profile-dropdown-menu"  # Add this ID to target for refresh
+    )
 
 
 def normalize_menu_path(path):
@@ -2079,6 +2173,14 @@ def print_routes():
         table.add_row(entry[0], entry[1], Text(entry[2], style=f"{entry[3]} on black"), entry[4])
     console.print(table)
 
+
+@rt('/refresh-profile-menu')
+async def refresh_profile_menu(request):
+    """Endpoint to refresh just the profile dropdown menu without reloading the whole page."""
+    logger.debug("Refreshing profile menu")
+    selected_profile_id = get_current_profile_id()
+    selected_profile_name = get_profile_name()
+    return create_profile_menu(selected_profile_id, selected_profile_name)
 
 ALL_ROUTES = list(set(['', profile_app.name] + MENU_ITEMS))
 for item in ALL_ROUTES:
