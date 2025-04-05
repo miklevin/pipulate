@@ -172,10 +172,10 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="🗝 Existing or new ID here",  # Keep the original placeholder
+                            placeholder="🗝 Existing or new ID here",
                             name="pipeline_id",
                             list="pipeline-ids",
-                            type="text",
+                            type="search",
                             required=True,
                             autofocus=True,
                             value=default_value
