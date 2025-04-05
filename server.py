@@ -664,6 +664,31 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         yield error_msg
 
 
+def get_button_style(button_type="default"):
+    """Return button style string based on type."""
+    if button_type == "warning":
+        return "background-color: var(--pico-primary-background); color: #f66;"
+    elif button_type == "primary":
+        return "background-color: var(--pico-primary-background); color: #4CAF50;" 
+    # etc.
+
+def get_current_profile_id():
+    """Get the current profile ID, defaulting to the first profile if none is selected."""
+    profile_id = db.get("last_profile_id")
+    
+    if profile_id is None:
+        logger.debug("No last_profile_id found. Finding first available profile.")
+        first_profiles = profiles(order_by='id', limit=1)
+        if first_profiles:
+            profile_id = first_profiles[0].id
+            db["last_profile_id"] = profile_id
+            logger.debug(f"Set default profile ID to {profile_id}")
+        else:
+            logger.warning("No profiles found in the database")
+            
+    return profile_id
+
+
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     # Instead of embedding the script, return a script tag that loads an external file
     # and initializes with the parameters
@@ -855,7 +880,7 @@ class BaseCrud:
             changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
             changes_str = '; '.join(changes)
             item_name = getattr(updated_item, self.item_name_field, 'Item')
-            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {changes_str}"
+            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
             prompt = action_details
             asyncio.create_task(self.send_message(prompt, verbatim=True))
             logger.debug(f"Updated {self.name} item {item_id}")
@@ -910,7 +935,7 @@ class ProfileApp(BaseCrud):
         ) + 1
         return {
             "name": profile_name,
-            "menu_name": form.get('profile_menu_name', '').strip(),
+            "real_name": form.get('profile_real_name', '').strip(),
             "address": form.get('profile_address', '').strip(),
             "code": form.get('profile_code', '').strip(),
             "active": True,
@@ -923,7 +948,7 @@ class ProfileApp(BaseCrud):
             return ''
         return {
             "name": profile_name,
-            "menu_name": form.get('profile_menu_name', '').strip(),
+            "real_name": form.get('profile_real_name', '').strip(),
             "address": form.get('profile_address', '').strip(),
             "code": form.get('profile_code', '').strip(),
         }
@@ -970,10 +995,10 @@ def render_profile(profile):
             ),
             Input(
                 type="text",
-                name="profile_menu_name",
-                value=profile.menu_name,
-                placeholder="Menu Name",
-                id=f"menu_name-{profile.id}"
+                name="profile_real_name",
+                value=profile.real_name,
+                placeholder="Real Name",
+                id=f"real_name-{profile.id}"
             ),
             Input(
                 type="text",
@@ -1065,7 +1090,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     profile={
         "id": int,
         "name": str,
-        "menu_name": str,
+        "real_name": str,
         "address": str,
         "code": str,
         "active": bool,
@@ -1518,9 +1543,7 @@ async def clear_db(request):
 
 
 def get_profile_name():
-    profile_id = db.get("last_profile_id")
-    if profile_id is None:
-        logger.debug("No last_profile_id found. Attempting to use the first available profile.")
+    profile_id = get_current_profile_id()
     logger.debug(f"Retrieving profile name for ID: {profile_id}")
     try:
         profile = profiles.get(profile_id)
@@ -1528,39 +1551,22 @@ def get_profile_name():
             logger.debug(f"Found profile: {profile.name}")
             return profile.name
     except NotFoundError:
-        logger.warning(f"No profile found for ID: {profile_id}. Attempting to use the first available profile.")
-        all_profiles = profiles()
-        if all_profiles:
-            first_profile = all_profiles[0]
-            db["last_profile_id"] = first_profile.id
-            logger.debug(f"Using first available profile ID: {first_profile.id}")
-            return first_profile.name
-        else:
-            logger.warning("No profiles found in the database.")
-            return "Unknown Profile"
+        logger.warning(f"No profile found for ID: {profile_id}")
+        return "Unknown Profile"
 
 
 async def home(request):
     fig("HOME")
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
-    menux = normalize_menu_path(path)  # Use the helper function here
+    menux = normalize_menu_path(path)
     logger.debug(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
-    current_profile_id = db.get("last_profile_id")
-    if current_profile_id:
-        logger.debug(f"Current profile ID: {current_profile_id}")
-    else:
-        logger.warning("No current profile ID found. Using default filtering.")
-    if current_profile_id is None:
-        first_profiles = profiles(order_by='id', limit=1)
-        if first_profiles:
-            current_profile_id = first_profiles[0].id
-            db["last_profile_id"] = current_profile_id
-            logger.debug(f"Set default profile ID to {current_profile_id}")
-        else:
-            logger.warning("No profiles found in the database")
+    
+    # Replace this block with the helper function
+    current_profile_id = get_current_profile_id()
+    
     menux = db.get("last_app_choice", "App")
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
@@ -1827,12 +1833,12 @@ async def profile_render():
                     footer=Form(
                         Group(
                             Input(
-                                placeholder="Nickname (menu)",
+                                placeholder="Nickname",
                                 name="profile_name",
                                 id="profile-name-input"
                             ),
                             Input(
-                                placeholder=f"{title_name(profile_app.name)} Name",
+                                placeholder=f"Real Name",
                                 name="profile_menu_name",
                                 id="profile-menu-name-input"
                             ),
@@ -2073,27 +2079,3 @@ if __name__ == "__main__":
     run_server_with_watchdog()
 
 # Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!
-
-def get_button_style(button_type="default"):
-    """Return button style string based on type."""
-    if button_type == "warning":
-        return "background-color: var(--pico-primary-background); color: #f66;"
-    elif button_type == "primary":
-        return "background-color: var(--pico-primary-background); color: #4CAF50;" 
-    # etc.
-
-def get_current_profile_id():
-    """Get the current profile ID, defaulting to the first profile if none is selected."""
-    profile_id = db.get("last_profile_id")
-    
-    if profile_id is None:
-        logger.debug("No last_profile_id found. Finding first available profile.")
-        first_profiles = profiles(order_by='id', limit=1)
-        if first_profiles:
-            profile_id = first_profiles[0].id
-            db["last_profile_id"] = profile_id
-            logger.debug(f"Set default profile ID to {profile_id}")
-        else:
-            logger.warning("No profiles found in the database")
-            
-    return profile_id
