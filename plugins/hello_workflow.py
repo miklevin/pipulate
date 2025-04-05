@@ -122,13 +122,21 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         It is necessary for the workflow to function. Only change cosmetic elements.
         """
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        
+        # Example of using the new get_plugin_context method
+        context = pip.get_plugin_context(self)
+        plugin_name = context['plugin_name']
+        profile_id = context['profile_id']
+        profile_name = context['profile_name']
+        logger.debug(f"Current context - Plugin: {plugin_name}, Profile ID: {profile_id}, Profile Name: {profile_name}")
+        
         title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
         pipeline.xtra(app_name=app_name)
         existing_ids = [record.pkey for record in pipeline()]
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P("Enter or resume a Workflow ID:"),  # You can change this message
+                P(f"Enter or resume a Workflow ID: {plugin_name} (Profile: {profile_name})"),  # You can change this message
                 Form(
                     pip.wrap_with_inline_button(
                         Input(

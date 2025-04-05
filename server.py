@@ -364,6 +364,37 @@ class Pipulate:
     def get_timestamp(self) -> str:
         return datetime.now().isoformat()
 
+    def get_plugin_context(self, plugin_instance=None):
+        """
+        Returns the context information about the current plugin and profile.
+        
+        Args:
+            plugin_instance: Optional plugin instance to extract name from
+            
+        Returns:
+            dict: Contains plugin_name, profile_id, and profile_name
+        """
+        # Get profile_id from the global function
+        profile_id = get_current_profile_id()
+        
+        # Get profile name from the global function
+        profile_name = get_profile_name()
+        
+        # Get plugin name from the instance if provided
+        plugin_name = None
+        if plugin_instance:
+            # Handle both class names and plugin objects with a name attribute
+            if hasattr(plugin_instance, 'name'):
+                plugin_name = plugin_instance.name
+            elif hasattr(plugin_instance, '__class__'):
+                plugin_name = plugin_instance.__class__.__name__
+                
+        return {
+            'plugin_name': plugin_name,
+            'profile_id': profile_id,
+            'profile_name': profile_name
+        }
+
     @pipeline_operation
     def initialize_if_missing(self, pkey: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
         try:
