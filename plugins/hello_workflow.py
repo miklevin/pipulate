@@ -178,7 +178,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             type="search",
                             required=True,
                             autofocus=True,
-                            value=default_value
+                            value=default_value,
+                            _onfocus="this.setSelectionRange(this.value.length, this.value.length)"
                         ),
                         button_label=f"Start {self.DISPLAY_NAME} 🔑",  # Keep the original button label
                         button_class="secondary"
