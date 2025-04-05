@@ -138,16 +138,37 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         plugin_part = plugin_name.replace(" ", "_") 
         prefix = f"{profile_part}-{plugin_part}-"
         
-        existing_ids = [record.pkey.replace(prefix, "") for record in pipeline() 
-                       if record.pkey.startswith(prefix)]
+        # Find all records with the current prefix
+        matching_records = [record.pkey for record in pipeline() 
+                           if record.pkey.startswith(prefix)]
         
-        # Create the default value for the input field - profile-plugin-
-        default_value = f"{prefix}"
+        # Extract numeric values from the third part of the key
+        numeric_suffixes = []
+        for record_key in matching_records:
+            # Extract the user part (everything after the prefix)
+            user_part = record_key.replace(prefix, "")
+            # Check if it's purely numeric
+            if user_part.isdigit():
+                numeric_suffixes.append(int(user_part))
+        
+        # Determine the next number (max + 1, or 1 if none exist)
+        next_number = 1
+        if numeric_suffixes:
+            next_number = max(numeric_suffixes) + 1
+            
+        logger.debug(f"Auto-incrementing ID to: {next_number} (based on existing records)")
+        
+        # Create the default value for the input field - profile-plugin-next_number
+        default_value = f"{prefix}{next_number}"
+        
+        # For the datalist, show existing user parts without the prefix
+        existing_ids = [record_key.replace(prefix, "") for record_key in matching_records]
         
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P(f"The composite key format is: {profile_name}-{plugin_name}-[your input]"),
+                P(f"Composite key format: {profile_name}-{plugin_name}-[number]"),
+                P(f"Starting with auto-incremented value: {next_number}", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -225,6 +246,11 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Add a message about the components of the ID
         components_message = f"Your ID is made up of: profile ({profile_part}), plugin ({plugin_part}), and your input ({user_provided_id})."
         await pip.stream(components_message, verbatim=True, spaces_before=0)
+        
+        # Add a message about auto-incrementing (if applicable)
+        if user_provided_id.isdigit():
+            auto_increment_message = f"Your ID was auto-incremented to the next available number ({user_provided_id})."
+            await pip.stream(auto_increment_message, verbatim=True, spaces_before=0)
         
         # Add the return message
         return_message = f"You can use '{user_provided_id}' to return to this workflow later (we'll automatically add the prefixes)."
