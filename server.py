@@ -1690,8 +1690,7 @@ def create_chat_interface(autofocus=False):
     init_script = f"""
     // Set global variables for the external script
     window.PIPULATE_CONFIG = {{
-        tempMessage: {json.dumps(temp_message)},
-        mobile: false
+        tempMessage: {json.dumps(temp_message)}
     }};
     """
 
