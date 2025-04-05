@@ -1218,7 +1218,6 @@ def build_endpoint_messages(endpoint):
         "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started. If you want to see just-in-time training, ask me the secret word before and after pressing that button.",
         "profile": ("This is where you add, edit, and delete profiles (aka clients). "
                     "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
-        "mobile_chat": "Even when installed on your desktop, you can chat with the local LLM from your phone.",
     }
 
     # Add messages for all workflows in our registry
@@ -1249,7 +1248,6 @@ def build_endpoint_training(endpoint):
     endpoint_training = {
         "": ("You were just switched to the home page."),
         "profile": ("You were just switched to the profile app."),
-        "mobile_chat": ("You were just switched to the mobile chat app."),
     }
 
     # Add training for all workflows in our registry
@@ -1513,7 +1511,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
         endpoint_training[workflow_name] = endpoint_message
 
 base_menu_items = ['']  # Remove 'profile' from here
-additional_menu_items = ['mobile_chat']
+additional_menu_items = []  # Remove 'mobile_chat' from here
 MENU_ITEMS = base_menu_items + list(plugin_instances.keys()) + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
@@ -1638,24 +1636,6 @@ def create_app_menu(menux):
 async def create_outer_container(current_profile_id, menux):
     fig(menux)
 
-    # Handle mobile chat view
-    if menux == "mobile_chat":
-        return Container(
-            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            create_chat_interface(autofocus=True, mobile=True),
-            style=(
-                "width: 100vw; "
-                "height: 100vh; "
-                "margin: 0; "
-                "padding: 0; "
-                "position: fixed; "
-                "top: 0; left: 0; "
-                "z-index: 9999; "
-                "background: var(--background-color); "
-                "overflow: hidden; "
-            )
-        )
-
     nav_group = create_nav_group()
 
     # Default layout
@@ -1699,8 +1679,8 @@ async def create_grid_left(menux, render_items=None):
         )
 
 
-def create_chat_interface(autofocus=False, mobile=False):
-    msg_list_height = 'height: 75vh;' if mobile else 'height: calc(70vh - 200px);'
+def create_chat_interface(autofocus=False):
+    msg_list_height = 'height: calc(70vh - 200px);'
     temp_message = None
     if "temp_message" in db:
         temp_message = db["temp_message"]
@@ -1711,13 +1691,13 @@ def create_chat_interface(autofocus=False, mobile=False):
     // Set global variables for the external script
     window.PIPULATE_CONFIG = {{
         tempMessage: {json.dumps(temp_message)},
-        mobile: {json.dumps(mobile)}
+        mobile: false
     }};
     """
 
     return Div(
         Card(
-            None if mobile else H3(f"{APP_NAME} Chatbot"),
+            H3(f"{APP_NAME} Chatbot"),
             Div(
                 id='msg-list',
                 cls='overflow-auto',
@@ -1734,9 +1714,8 @@ def create_chat_interface(autofocus=False, mobile=False):
         ),
         id="chat-interface",
         style=(
-            ("position: fixed; " if mobile else "position: sticky; ") +
-            ("top: 0; left: 0; width: 100%; height: 100vh; " if mobile else "top: 20px; ") +
-            ("z-index: 10000; " if mobile else "") +
+            "position: sticky; " +
+            "top: 20px; " +
             "margin: 0; " +
             "padding: 0; " +
             "overflow: hidden; "
