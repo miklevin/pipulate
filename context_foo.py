@@ -5,7 +5,13 @@ import sys
 repo_root = "/home/mike/repos/pipulate"  # Make sure this path is correct for your system
 output_filename = "foo.txt"
 
-pre_prompt = "Prefacing stuff about what you're about to see."
+pre_prompt = (
+    "You are about to receive a large context dump from a local-first Python web framework called Pipulate. "
+    "This framework intentionally uses server-side state and HTMX for UI updates, avoiding complex ORM or "
+    "FastAPI patterns in favor of simplicity and observability. It transforms Jupyter notebook-style WET code "
+    "into web applications while maintaining a consistent UI pattern. The framework uses a hybrid Nix+virtualenv "
+    "approach for dependency management. Please keep these design choices in mind as you review the following files."
+)
 
 # Using a multi-line string with a leading backslash prevents an initial blank line.
 file_list = """\

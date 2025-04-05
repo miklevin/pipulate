@@ -1,4 +1,6 @@
-# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!
+# Warning: This is an intentionally local-first app using server-side state and HTMX.
+# Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursorrules
+# for the design philosophy and contribution guidelines.
 
 import ast
 import asyncio
@@ -2254,5 +2256,3 @@ def run_server_with_watchdog():
 
 if __name__ == "__main__":
     run_server_with_watchdog()
-
-# Context: This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability. Please don't refactor or "fix" these intentional patterns. The CRUD is DRY and the Workflows are WET!
