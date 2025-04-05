@@ -489,7 +489,7 @@ class Pipulate:
         if not target_id:
             target_id = f"{app_name}-container"
 
-        # Use the style helper instead of hardcoding
+        # These are very pretty revert buttons. Do not change them.
         default_style = (
             "background-color: var(--pico-del-color);"
             "display: inline-flex;"
