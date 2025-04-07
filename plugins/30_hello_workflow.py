@@ -136,8 +136,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         matching_records = [record.pkey for record in pipeline() 
                            if record.pkey.startswith(prefix)]
         
-        # Extract the user parts for the datalist
-        existing_ids = [record_key.replace(prefix, "") for record_key in matching_records]
+        # Create full key options for the datalist
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
         
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
@@ -159,7 +159,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                         button_label=f"Use 🔑",
                         button_class="secondary"
                     ),
-                    Datalist(*[Option(value=f"{prefix}{pid}") for pid in existing_ids], id="pipeline-ids"),
+                    # Use the helper method to create the initial datalist
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
                     hx_post=f"/{app_name}/init",
                     hx_target=f"#{app_name}-container"
                 )
@@ -251,12 +252,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
         
-        # Create datalist with all options
-        updated_datalist = Datalist(
-            *[Option(value=key) for key in matching_records],
-            id="pipeline-ids",
-            _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
-        )
+        # Use the Pipulate helper method to create the updated datalist
+        updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
         
         placeholders = self.run_all_cells(steps, app_name)
         return Div(

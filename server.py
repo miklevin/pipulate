@@ -828,6 +828,34 @@ class Pipulate:
             'user_part': parts[2]
         }
 
+    def update_datalist(self, datalist_id, options=None, clear=False):
+        """Create a datalist with out-of-band swap for updating dropdown options.
+        
+        This helper method allows easy updates to datalist options using HTMX's
+        out-of-band swap feature. It can either update with new options or clear all options.
+        
+        Args:
+            datalist_id: The ID of the datalist to update
+            options: List of option values to include, or None to clear
+            clear: If True, force clear all options regardless of options parameter
+            
+        Returns:
+            Datalist: A FastHTML Datalist object with out-of-band swap attribute
+        """
+        if clear or options is None:
+            # Return an empty datalist to clear all options
+            return Datalist(
+                id=datalist_id,
+                _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
+            )
+        else:
+            # Create a datalist with the provided options
+            return Datalist(
+                *[Option(value=opt) for opt in options],
+                id=datalist_id,
+                _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
+            )
+
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = "http://localhost:11434/api/chat"
@@ -1954,10 +1982,13 @@ async def clear_db(request):
     db["temp_message"] = f"{workflow_display_name} cleared. Next ID will be 01."
     logger.debug(f"{workflow_display_name} DictLikeDB cleared for debugging")
     
+    # Use the new helper method to create an empty datalist
+    empty_datalist = pipulate.update_datalist("pipeline-ids", clear=True)
+    
     # Create a response with an empty datalist and a refresh header
     response = Div(
         # Empty datalist with out-of-band swap to clear all options
-        Datalist(id="pipeline-ids", _hx_swap_oob="true"),
+        empty_datalist,
         # Normal message displayed to the user
         P(f"{workflow_display_name} cleared."),
         cls="clear-message"
