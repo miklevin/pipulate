@@ -779,41 +779,34 @@ if not args.concat_mode:
     else:
         print("Warning: Post-prompt skipped as it would exceed token limit")
 
-# Add final token summary
-lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
-if args.concat_mode:
-    lines.append(f"Files processed: {files_processed} of {total_files} found")
-    if files_processed < total_files:
-        lines.append(f"Remaining files: {total_files - files_processed}")
-        if files_processed < len(md_files):
-            lines.append(f"Next chunk will start with: {md_files[files_processed]}")
-    # Only include date range if we're in concat mode and have processed files
-    if 'md_files' in locals() and len(md_files) > 0:
-        try:
-            first_date = md_files[0][:10]
-            last_date = md_files[-1][:10]
-            lines.append(f"Date range processed: {first_date} to {last_date}")
-        except Exception as e:
-            print(f"Warning: Could not determine date range: {e}")
-lines.append(f"Total context size: {format_token_count(total_tokens)}")
-lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
-lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
+# Add final token summary only if not in chunk mode
+if not args.concat_mode:
+    lines = []
+    lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
+    if args.concat_mode:
+        lines.append(f"Files processed: {files_processed} of {total_files} found")
+        if files_processed < total_files:
+            lines.append(f"Remaining files: {total_files - files_processed}")
+            if files_processed < len(md_files):
+                lines.append(f"Next chunk will start with: {md_files[files_processed]}")
+        # Only include date range if we're in concat mode and have processed files
+        if 'md_files' in locals() and len(md_files) > 0:
+            try:
+                first_date = md_files[0][:10]
+                last_date = md_files[-1][:10]
+                lines.append(f"Date range processed: {first_date} to {last_date}")
+            except Exception as e:
+                print(f"Warning: Could not determine date range: {e}")
+    lines.append(f"Total context size: {format_token_count(total_tokens)}")
+    lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
+    lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
 
-# Combine all lines with actual newline characters
-final_output_string = "\n".join(lines)
-
-# Write the combined content to output file
-try:
-    if args.concat_mode and total_chunks > 1:
-        output_filename = get_chunk_filename(args.output, 1, total_chunks)
-    else:
-        output_filename = args.output
-        
-    with open(output_filename, 'w', encoding='utf-8') as outfile:
-        outfile.write(final_output_string)
-    print(f"\nSuccessfully created '{output_filename}' with combined context.")
-except Exception as e:
-    print(f"Error writing to '{output_filename}': {e}")
+    # Write the summary to the output file
+    try:
+        with open(args.output, 'w', encoding='utf-8') as outfile:
+            outfile.write("\n".join(lines))
+    except Exception as e:
+        print(f"Error writing summary to '{args.output}': {e}")
 
 # --- Clipboard Handling ---
 print("\n--- Clipboard Instructions ---")
