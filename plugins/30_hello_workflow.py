@@ -159,8 +159,15 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             
         logger.debug(f"Auto-incrementing ID to: {next_number} (based on existing records)")
         
+        # Format as 01, 02, etc. for numbers less than 100
+        formatted_number = next_number
+        if next_number < 100:
+            formatted_number = f"{next_number:02d}"  # Format as 2-digit with leading zero
+        else:
+            formatted_number = str(next_number)
+            
         # Create the default value for the input field - profile-plugin-next_number
-        default_value = f"{prefix}{next_number}"
+        default_value = f"{prefix}{formatted_number}"
         
         # For the datalist, show existing user parts without the prefix
         existing_ids = [record_key.replace(prefix, "") for record_key in matching_records]
