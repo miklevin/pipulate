@@ -888,6 +888,191 @@ class Pipulate:
             *placeholders,
             id=f"{app_name}-container"
         )
+    
+    def validate_step_input(self, value, step_show, custom_validator=None):
+        """
+        Validate step input with default and optional custom validation.
+        
+        Args:
+            value: The user input value to validate
+            step_show: Display name of the step (for error messages)
+            custom_validator: Optional function(value) -> (is_valid, error_msg)
+            
+        Returns:
+            tuple: (is_valid, error_message, P_component_or_None)
+        """
+        is_valid = True
+        error_msg = ""
+        
+        # Default validation (non-empty)
+        if not value.strip():
+            is_valid = False
+            error_msg = f"{step_show} cannot be empty"
+        
+        # Custom validation if provided
+        if is_valid and custom_validator:
+            custom_valid, custom_error = custom_validator(value)
+            if not custom_valid:
+                is_valid = False
+                error_msg = custom_error
+        
+        if not is_valid:
+            return False, error_msg, P(error_msg, style=self.get_style("error"))
+        
+        return True, "", None
+
+    async def update_step_state(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
+        """
+        Update the state for a step and handle reverting.
+        
+        Args:
+            pipeline_id: The pipeline key
+            step_id: The current step ID
+            step_value: The value to store for this step
+            steps: The steps list
+            clear_previous: Whether to clear steps after this one
+            
+        Returns:
+            str: The processed step value (for confirmation messages)
+        """
+        if clear_previous:
+            await self.clear_steps_from(pipeline_id, step_id, steps)
+        
+        state = self.read_state(pipeline_id)
+        step = next((s for s in steps if s.id == step_id), None)
+        if step:
+            state[step_id] = {step.done: step_value}
+            if "_revert_target" in state:
+                del state["_revert_target"]
+            self.write_state(pipeline_id, state)
+        
+        # Return the step value for confirmation message
+        return step_value
+
+    def check_finalize_needed(self, step_index, steps):
+        """
+        Check if we're on the final step before finalization.
+        
+        Args:
+            step_index: Index of current step in steps list
+            steps: The steps list
+            
+        Returns:
+            bool: True if the next step is the finalize step
+        """
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        return next_step_id == "finalize"
+
+    def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):
+        """
+        Create the standard navigation controls after a step submission.
+        
+        Args:
+            step_id: The current step ID
+            step_index: Index of current step in steps list
+            steps: The steps list
+            app_name: The workflow app name
+            processed_val: The processed value to display
+            
+        Returns:
+            Div: A FastHTML Div component with revert control and next step trigger
+        """
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        
+        return Div(
+            self.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {processed_val}", 
+                steps=steps
+            ),
+            Div(
+                id=next_step_id, 
+                hx_get=f"/{app_name}/{next_step_id}", 
+                hx_trigger="load"
+            ) if next_step_id else Div()
+        )
+
+    async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
+        """
+        Handle the case when a step is submitted in finalized state.
+        
+        Args:
+            pipeline_id: The pipeline key
+            step_id: The current step ID
+            steps: The steps list
+            app_name: The workflow app name
+            plugin_instance: Optional plugin instance (for accessing step_messages)
+            
+        Returns:
+            Div: The rebuilt workflow UI
+        """
+        state = self.read_state(pipeline_id)
+        state[step_id] = {"finalized": True}
+        self.write_state(pipeline_id, state)
+        
+        # Get step_messages from the plugin instance if provided
+        step_messages = {}
+        if plugin_instance and hasattr(plugin_instance, 'step_messages'):
+            step_messages = plugin_instance.step_messages
+        
+        message = await self.get_state_message(pipeline_id, steps, step_messages)
+        await self.stream(message, verbatim=True)
+        
+        return self.rebuild(app_name, steps)
+        
+    async def finalize_workflow(self, pipeline_id, state_update=None):
+        """
+        Finalize a workflow by marking it as complete and updating its state.
+        
+        Args:
+            pipeline_id: The pipeline key
+            state_update: Optional additional state to update (beyond finalized flag)
+            
+        Returns:
+            dict: The updated state
+        """
+        state = self.read_state(pipeline_id)
+        
+        # Mark as finalized
+        if "finalize" not in state:
+            state["finalize"] = {}
+        
+        state["finalize"]["finalized"] = True
+        state["updated"] = datetime.now().isoformat()
+        
+        # Apply additional updates if provided
+        if state_update:
+            state.update(state_update)
+        
+        # Save state
+        self.write_state(pipeline_id, state)
+        
+        return state
+
+    async def unfinalize_workflow(self, pipeline_id):
+        """
+        Unfinalize a workflow by removing the finalized flag.
+        
+        Args:
+            pipeline_id: The pipeline key
+            
+        Returns:
+            dict: The updated state
+        """
+        state = self.read_state(pipeline_id)
+        
+        # Remove finalization
+        if "finalize" in state:
+            del state["finalize"]
+        
+        state["updated"] = datetime.now().isoformat()
+        
+        # Save state
+        self.write_state(pipeline_id, state)
+        
+        return state
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:

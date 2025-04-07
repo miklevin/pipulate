@@ -346,50 +346,49 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Handle finalized state using helper
         if step.done == 'finalized':
-            state = pip.read_state(pipeline_id)
-            state[step_id] = {step.done: True}
-            pip.write_state(pipeline_id, state)
-            message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.stream(message, verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
 
+        # Get form data
         form = await request.form()
         user_val = form.get(step.done, "")
-
-        # VALIDATION: Add step-specific validation here
-        is_valid = True
-        error_msg = ""
-        if not user_val.strip():
-            is_valid = False
-            error_msg = f"{step.show} cannot be empty"
-
+        
+        # Validate input using helper
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
-            return P(error_msg, style=pip.get_style("error"))
+            return error_component
 
-        processed_val = user_val  # Perform any processing here
+        # ===== START PLAYWRIGHT AUTOMATION SECTION =====
+        # This is where you would add Playwright-specific logic for this step
+        # Example:
+        # async with async_playwright() as playwright:
+        #     browser = await playwright.chromium.launch()
+        #     context = await browser.new_context()
+        #     page = await context.new_page()
+        #     await page.goto("https://example.com")
+        #     # Perform actions based on user_val
+        #     # Extract data or validation results
+        #     await browser.close()
+        
+        # For now, just use the user input directly
+        processed_val = user_val
+        # ===== END PLAYWRIGHT AUTOMATION SECTION =====
 
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        # Update state using helper
+        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        state = pip.read_state(pipeline_id)
-        state[step_id] = {step.done: processed_val}
-        if "_revert_target" in state:
-            del state["_revert_target"]
-        pip.write_state(pipeline_id, state)
-
-        # Send the value confirmation
+        # Send confirmation message
         await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
-
-        # If this is the last regular step (before finalize), add a prompt to finalize
-        if next_step_id == "finalize":
+        
+        # Check if we need finalize prompt
+        if pip.check_finalize_needed(step_index, steps):
             await asyncio.sleep(0.1)  # Small delay for better readability
             await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
-
-        return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-        )
+        
+        # Return navigation controls
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
 
     async def step_02(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -474,53 +473,72 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Handle finalized state using helper
         if step.done == 'finalized':
-            state = pip.read_state(pipeline_id)
-            state[step_id] = {step.done: True}
-            pip.write_state(pipeline_id, state)
-            message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-            await pip.stream(message, verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
 
+        # Get form data
         form = await request.form()
         user_val = form.get(step.done, "")
-
-        # VALIDATION: Add step-specific validation here
-        is_valid = True
-        error_msg = ""
-        if not user_val.strip():
-            is_valid = False
-            error_msg = f"{step.show} cannot be empty"
-
+        
+        # Validate input using helper
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
-            return P(error_msg, style=pip.get_style("error"))
+            return error_component
 
-        processed_val = user_val  # Perform any processing here
+        # ===== START PLAYWRIGHT AUTOMATION SECTION =====
+        # This is where you would add Playwright-specific logic for this step
+        # The step_02 might use different automation than step_01
+        # Example:
+        # async with async_playwright() as playwright:
+        #     browser = await playwright.chromium.launch()
+        #     context = await browser.new_context()
+        #     page = await context.new_page()
+        #     await page.goto("https://example.com/step2")
+        #     # Perform different actions based on user_val
+        #     # Extract data specific to step_02
+        #     await browser.close()
+        
+        # For now, just use the user input directly
+        processed_val = user_val
+        # ===== END PLAYWRIGHT AUTOMATION SECTION =====
 
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        # Update state using helper
+        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        state = pip.read_state(pipeline_id)
-        state[step_id] = {step.done: processed_val}
-        if "_revert_target" in state:
-            del state["_revert_target"]
-        pip.write_state(pipeline_id, state)
-
-        # Send the value confirmation
+        # Send confirmation message
         await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
-
-        # If this is the last regular step (before finalize), add a prompt to finalize
-        if next_step_id == "finalize":
+        
+        # Check if we need finalize prompt
+        if pip.check_finalize_needed(step_index, steps):
             await asyncio.sleep(0.1)  # Small delay for better readability
             await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
-
-        return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-        )
+        
+        # Return navigation controls
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
+        """
+        Finalize the workflow, locking all steps from further changes.
+        
+        This method handles both GET requests (displaying finalization UI) and 
+        POST requests (performing the actual finalization). The UI portions
+        are intentionally kept WET to allow for full customization of the user
+        experience, while core state management is handled by DRY helper methods.
+        
+        Customization Points:
+        - GET response: The cards/UI shown before finalization
+        - Confirmation message: What the user sees after finalizing
+        - Any additional UI elements or messages
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components for either the finalization prompt or confirmation
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = steps[-1]
@@ -529,6 +547,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         logger.debug(f"Finalize step: {finalize_step}")
         logger.debug(f"Finalize data: {finalize_data}")
 
+        # ───────── GET REQUEST: FINALIZATION UI (INTENTIONALLY WET) ─────────
         if request.method == "GET":
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
@@ -566,31 +585,52 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                 )
             else:
                 return Div(P("Nothing to finalize yet."), id=finalize_step.id)
+        # ───────── END GET REQUEST ─────────
         else:
-            # This is the POST request when they press the Finalize button
-            state = pip.read_state(pipeline_id)
-            state["finalize"] = {"finalized": True}
-            state["updated"] = datetime.now().isoformat()
-            pip.write_state(pipeline_id, state)
-
-            # Send a confirmation message
+            # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
+            # Update state using DRY helper
+            await pip.finalize_workflow(pipeline_id)
+            
+            # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
+            # Send a confirmation message 
             await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
-
+            
             # Return the updated UI
             return pip.rebuild(app_name, steps)
+            # ───────── END CUSTOM FINALIZATION UI ─────────
 
     async def unfinalize(self, request):
+        """
+        Unfinalize the workflow, allowing steps to be modified again.
+        
+        This method removes the finalization flag from the workflow state
+        and displays a confirmation message to the user. The core state
+        management is handled by a DRY helper method, while the UI generation
+        is intentionally kept WET for customization.
+        
+        Customization Points:
+        - Confirmation message: What the user sees after unfinalizing
+        - Any additional UI elements or actions
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components showing the workflow is unlocked
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        if "finalize" in state:
-            del state["finalize"]
-        pip.write_state(pipeline_id, state)
-
+        
+        # Update state using DRY helper
+        await pip.unfinalize_workflow(pipeline_id)
+        
+        # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
         # Send a message informing them they can revert to any step
         await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
-
+        
+        # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
+        # ───────── END CUSTOM UNFINALIZATION UI ─────────
 
     def run_all_cells(self, steps, app_name):
         """
