@@ -19,7 +19,7 @@ import re  # Add regex for front matter extraction
 # windows, allowing you to feed in entire codebases or blog archives for
 # analysis without the tedium of manual file selection and copying. It's a
 # practical alternative to RAG or file-by-file processing for one-shot
-# analysis of large bodies of text, particularly Jekyll blog posts.
+# analysis of large bodies of text, particularly entire Jekyll _posts folders.
 # -------------------------------------------------------------------------
 
 
