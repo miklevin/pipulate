@@ -702,6 +702,110 @@ class Pipulate:
     def id_conflict_style(self):
         """Return style for ID conflict error messages"""
         return "background-color: #ffdddd; color: #990000; padding: 10px; border-left: 5px solid #990000;"
+        
+    def generate_pipeline_key(self, plugin_instance, user_input=None):
+        """Generate a standardized pipeline key using the current profile and plugin.
+        
+        Creates a composite key in the format: profile_name-plugin_name-user_id
+        If user_input is numeric and less than 100, it will be formatted with leading zeros.
+        
+        Args:
+            plugin_instance: The plugin instance requesting the key
+            user_input: Optional user-provided ID part (defaults to auto-incrementing number)
+            
+        Returns:
+            tuple: (full_key, prefix, user_part) where:
+                full_key: The complete pipeline key
+                prefix: The profile-plugin prefix
+                user_part: The user-specific part of the key
+        """
+        # Get context for the key parts
+        context = self.get_plugin_context(plugin_instance)
+        # Use the display name (plugin_name) instead of internal_name for more user-friendly keys
+        plugin_name = context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
+        profile_name = context['profile_name'] or "default"
+        
+        # Get the app_name for the database query - this is crucial for proper filtering
+        app_name = getattr(plugin_instance, 'app_name', None)
+        
+        # Format the prefix parts - replace spaces with underscores but preserve case
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        prefix = f"{profile_part}-{plugin_part}-"
+        
+        # If no user input is provided, generate an auto-incrementing number
+        if user_input is None:
+            # Filter by app_name to ensure each workflow has its own number sequence
+            self.table.xtra(app_name=app_name)
+            
+            # Get records for this specific app (workflow type)
+            app_records = list(self.table())
+            
+            # Find records with the current prefix
+            matching_records = [record.pkey for record in app_records 
+                               if record.pkey.startswith(prefix)]
+            
+            # Extract numeric values from the third part of the key
+            numeric_suffixes = []
+            for record_key in matching_records:
+                # Extract the user part (everything after the prefix)
+                rec_user_part = record_key.replace(prefix, "")
+                # Check if it's purely numeric
+                if rec_user_part.isdigit():
+                    numeric_suffixes.append(int(rec_user_part))
+            
+            # Determine the next number (max + 1, or 1 if none exist)
+            next_number = 1
+            if numeric_suffixes:
+                next_number = max(numeric_suffixes) + 1
+                
+            # Format with leading zeros for numbers less than 100
+            if next_number < 100:
+                user_part = f"{next_number:02d}"
+            else:
+                user_part = str(next_number)
+        else:
+            # Use the provided input, with potential formatting
+            if isinstance(user_input, int) or (isinstance(user_input, str) and user_input.isdigit()):
+                # It's a number, so format it if needed
+                number = int(user_input)
+                if number < 100:
+                    user_part = f"{number:02d}"
+                else:
+                    user_part = str(number)
+            else:
+                # Not a number, use as is
+                user_part = str(user_input)
+        
+        # Create the full key
+        full_key = f"{prefix}{user_part}"
+        
+        return (full_key, prefix, user_part)
+    
+    def parse_pipeline_key(self, pipeline_key):
+        """Parse a pipeline key into its component parts.
+        
+        Args:
+            pipeline_key: The full pipeline key to parse
+            
+        Returns:
+            dict: Contains profile_part, plugin_part, and user_part components
+        """
+        parts = pipeline_key.split('-', 2)  # Split into max 3 parts
+        
+        if len(parts) < 3:
+            # Not enough parts for a valid key
+            return {
+                'profile_part': parts[0] if len(parts) > 0 else "",
+                'plugin_part': parts[1] if len(parts) > 1 else "",
+                'user_part': ""
+            }
+            
+        return {
+            'profile_part': parts[0],
+            'plugin_part': parts[1],
+            'user_part': parts[2]
+        }
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:

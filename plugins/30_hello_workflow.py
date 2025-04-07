@@ -123,60 +123,26 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         """
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         
-        # Example of using the new get_plugin_context method
+        # Get plugin display name for the title
         context = pip.get_plugin_context(self)
-        plugin_name = context['plugin_name']
-        profile_id = context['profile_id']
-        profile_name = context['profile_name']
-        logger.debug(f"Current context - Plugin: {plugin_name}, Profile ID: {profile_id}, Profile Name: {profile_name}")
-        
-        # title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
         title = f"{self.DISPLAY_NAME or app_name.title()}"
+        
+        # Generate a default key and get the prefix for the datalist
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        
+        # Get existing keys for the datalist
         pipeline.xtra(app_name=app_name)
-        
-        # Filter IDs to only show those relevant to this plugin and profile
-        profile_part = profile_name.replace(" ", "_")
-        plugin_part = plugin_name.replace(" ", "_") 
-        prefix = f"{profile_part}-{plugin_part}-"
-        
-        # Find all records with the current prefix
         matching_records = [record.pkey for record in pipeline() 
                            if record.pkey.startswith(prefix)]
         
-        # Extract numeric values from the third part of the key
-        numeric_suffixes = []
-        for record_key in matching_records:
-            # Extract the user part (everything after the prefix)
-            user_part = record_key.replace(prefix, "")
-            # Check if it's purely numeric
-            if user_part.isdigit():
-                numeric_suffixes.append(int(user_part))
-        
-        # Determine the next number (max + 1, or 1 if none exist)
-        next_number = 1
-        if numeric_suffixes:
-            next_number = max(numeric_suffixes) + 1
-            
-        logger.debug(f"Auto-incrementing ID to: {next_number} (based on existing records)")
-        
-        # Format as 01, 02, etc. for numbers less than 100
-        formatted_number = next_number
-        if next_number < 100:
-            formatted_number = f"{next_number:02d}"  # Format as 2-digit with leading zero
-        else:
-            formatted_number = str(next_number)
-            
-        # Create the default value for the input field - profile-plugin-next_number
-        default_value = f"{prefix}{formatted_number}"
-        
-        # For the datalist, show existing user parts without the prefix
+        # Extract the user parts for the datalist
         existing_ids = [record_key.replace(prefix, "") for record_key in matching_records]
         
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                # P(f"Composite key format: {profile_name}-{plugin_name}-[number]"),
-                # P(f"Starting with auto-incremented value: {next_number}", style="font-size: 0.9em; color: #666;"),
+                # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -190,8 +156,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
                             cls="contrast"
                         ),
-                        # button_label=f"Use {self.DISPLAY_NAME} 🔑",  # Keep the original button label
-                        button_label=f"Use 🔑",  # Keep the original button label
+                        button_label=f"Use 🔑",
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=f"{prefix}{pid}") for pid in existing_ids], id="pipeline-ids"),
@@ -217,21 +182,17 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         plugin_part = plugin_name.replace(" ", "_")
         expected_prefix = f"{profile_part}-{plugin_part}-"
         
-        # Determine if the user provided just their part or the full composite key
+        # Determine pipeline ID based on user input
         if user_input.startswith(expected_prefix):
-            # They provided the full composite key - extract the user part
-            user_provided_id = user_input.replace(expected_prefix, "")
-            # If they didn't add anything after the prefix, use a default
-            if not user_provided_id:
-                user_provided_id = "untitled"
-            # Use the input directly as it already has the prefix
+            # They provided the full composite key
             pipeline_id = user_input
+            # Parse it to get the user part
+            parsed = pip.parse_pipeline_key(pipeline_id)
+            user_provided_id = parsed['user_part']
         else:
-            # They provided just their part - construct the full key
-            user_provided_id = user_input
-            # Create a composite key with format: profile_name-plugin_name-user_id
-            user_part = user_provided_id.replace(" ", "_")
-            pipeline_id = f"{profile_part}-{plugin_part}-{user_part}"
+            # They provided just their part - generate a full key
+            _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{prefix}{user_provided_id}"
         
         db["pipeline_id"] = pipeline_id
         logger.debug(f"Using pipeline ID: {pipeline_id}")
@@ -255,13 +216,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         await pip.stream(id_message, verbatim=True, spaces_before=0)
         
         # Add a message about the components of the ID
-        components_message = f"Your ID is made up of: profile ({profile_part}), plugin ({plugin_part}), and your input ({user_provided_id})."
-        await pip.stream(components_message, verbatim=True, spaces_before=0)
-        
-        # Add a message about auto-incrementing (if applicable)
-        if user_provided_id.isdigit():
-            auto_increment_message = f"Your ID was auto-incremented to the next available number ({user_provided_id})."
-            await pip.stream(auto_increment_message, verbatim=True, spaces_before=0)
+        # components_message = f"Your ID is made up of: profile ({profile_part}), plugin ({plugin_part}), and your input ({user_provided_id})."
+        # await pip.stream(components_message, verbatim=True, spaces_before=0)
         
         # Add the return message
         return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
