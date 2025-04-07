@@ -7,6 +7,10 @@ import tiktoken  # Add tiktoken import
 # Edit these values as needed
 repo_root = "/home/mike/repos/pipulate"  # Path to your repository
 
+# Gemini model token limits
+GEMINI_15_PRO_LIMIT = 2_097_152  # Gemini 1.5 Pro's 2M token limit
+GEMINI_25_PRO_LIMIT = 1_048_576  # Gemini 2.5 Pro's 1M token limit
+
 # List of files to include in context
 file_list = """\
 README.md
@@ -217,10 +221,14 @@ while keeping in mind how it contributes to building Chip's memory and capabilit
 template_index = 0
 
 # Parse command line arguments
-parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates.')
+parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
 parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
 parser.add_argument('-l', '--list', action='store_true', help='List available templates')
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
+parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT, 
+                    help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT}, Gemini 1.5 Pro limit)')
+parser.add_argument('--concat-mode', action='store_true', 
+                    help='Use concatenation mode similar to cat_foo.py')
 
 args = parser.parse_args()
 
@@ -398,6 +406,10 @@ def create_pipulate_manifest():
     """Create a manifest specific to the Pipulate project."""
     manifest = AIAssistantManifest()
     
+    # Track total tokens to respect limit
+    total_tokens = 0
+    max_tokens = args.max_tokens
+    
     # Define the environment
     manifest.set_environment("Runtime", "Python 3.12 in a Nix-managed virtualenv (.venv)")
     manifest.set_environment("Package Management", "Hybrid approach using Nix flakes for system dependencies + pip for Python packages")
@@ -412,16 +424,30 @@ def create_pipulate_manifest():
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
+                content_tokens = count_tokens(content)
                 
-            # Default description just shows the file was loaded
-            description = f"{os.path.basename(relative_path)} [loaded]"
-            
-            # Add file to manifest
-            manifest.add_file(
-                relative_path,
-                description,
-                content=content
-            )
+                # Check if adding this file would exceed token limit
+                if total_tokens + content_tokens > max_tokens:
+                    print(f"Warning: Skipping {relative_path} as it would exceed the {max_tokens:,} token limit")
+                    manifest.add_file(
+                        relative_path,
+                        f"{os.path.basename(relative_path)} [skipped: would exceed token limit]"
+                    )
+                    continue
+                
+                total_tokens += content_tokens
+                description = f"{os.path.basename(relative_path)} [loaded: {format_token_count(content_tokens)}]"
+                
+                # Add file to manifest
+                manifest.add_file(
+                    relative_path,
+                    description,
+                    content=content
+                )
+                
+                print(f"Added {relative_path} ({format_token_count(content_tokens)})")
+                print(f"Total tokens so far: {format_token_count(total_tokens)}")
+                
         except Exception as e:
             print(f"Warning: Could not read {full_path}: {e}")
             manifest.add_file(
@@ -429,32 +455,33 @@ def create_pipulate_manifest():
                 f"{os.path.basename(relative_path)} [not loaded: {str(e)}]"
             )
     
-    # Add conventions
-    manifest.add_convention(
-        "FastHTML Rendering", 
-        "All FastHTML objects must be converted with to_xml() before being returned in HTTP responses"
-    )
-    
-    manifest.add_convention(
-        "Environment Activation", 
-        "Always run 'nix develop' in new terminals before any other commands"
-    )
-    
-    manifest.add_convention(
-        "Dependency Management",
-        "System deps go in flake.nix, Python packages in requirements.txt"
-    )
-    
-    # Critical patterns
-    manifest.add_critical_pattern(
-        "to_xml(ft_object)",
-        "Required to convert FastHTML objects to strings before HTTP responses"
-    )
-    
-    manifest.add_critical_pattern(
-        "HTMLResponse(str(to_xml(rendered_item)))",
-        "Proper pattern for returning FastHTML content with HTMX triggers"
-    )
+    # Add conventions and patterns only if we have room
+    remaining_tokens = max_tokens - total_tokens
+    if remaining_tokens > 1000:  # Arbitrary threshold for metadata
+        manifest.add_convention(
+            "FastHTML Rendering", 
+            "All FastHTML objects must be converted with to_xml() before being returned in HTTP responses"
+        )
+        
+        manifest.add_convention(
+            "Environment Activation", 
+            "Always run 'nix develop' in new terminals before any other commands"
+        )
+        
+        manifest.add_convention(
+            "Dependency Management",
+            "System deps go in flake.nix, Python packages in requirements.txt"
+        )
+        
+        manifest.add_critical_pattern(
+            "to_xml(ft_object)",
+            "Required to convert FastHTML objects to strings before HTTP responses"
+        )
+        
+        manifest.add_critical_pattern(
+            "HTMLResponse(str(to_xml(rendered_item)))",
+            "Proper pattern for returning FastHTML content with HTMX triggers"
+        )
     
     return manifest.generate()
 
@@ -462,15 +489,15 @@ def create_pipulate_manifest():
 # --- Core Logic to Create foo.txt ---
 lines = []
 
-# Create the manifest and incorporate user's pre_prompt
-manifest = create_pipulate_manifest()
-final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
-
-# Add the pre-prompt and a separator
-lines.append(final_pre_prompt)
-lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
-
-total_tokens = count_tokens(final_pre_prompt, "gpt-4")
+# Create the manifest and incorporate user's pre_prompt if not in concat mode
+if not args.concat_mode:
+    manifest = create_pipulate_manifest()
+    final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
+    lines.append(final_pre_prompt)
+    lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
+    total_tokens = count_tokens(final_pre_prompt, "gpt-4")
+else:
+    total_tokens = 0
 
 # Process each file in the list
 for relative_path in file_list:
@@ -479,41 +506,71 @@ for relative_path in file_list:
         continue
 
     full_path = os.path.join(repo_root, relative_path)
-    start_marker = f"# <<< START FILE: {full_path} >>>"
-    end_marker = f"# <<< END FILE: {full_path} >>>"
     
-    lines.append(start_marker)
-    try:
-        with open(full_path, 'r', encoding='utf-8') as infile:
-            file_content = infile.read()
-            file_tokens = count_tokens(file_content, "gpt-4")
-            total_tokens += file_tokens
-            token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-            lines.append(file_content + token_info)
-    except FileNotFoundError:
-        error_message = f"# --- ERROR: File not found: {full_path} ---"
-        print(f"Warning: {error_message}")
-        lines.append(error_message)
-    except UnicodeDecodeError:
-        error_message = f"# --- ERROR: Could not decode file as UTF-8: {full_path} ---"
-        print(f"Warning: {error_message}")
-        lines.append(error_message)
-    except Exception as e:
-        error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-        print(f"Warning: {error_message}")
-        lines.append(error_message)
-    
-    lines.append(end_marker)
+    if args.concat_mode:
+        # Simple concatenation mode like cat_foo.py
+        try:
+            with open(full_path, 'r', encoding='utf-8') as infile:
+                content = infile.read()
+                file_tokens = count_tokens(content, "gpt-4")
+                
+                # Check token limit
+                if total_tokens + file_tokens > args.max_tokens:
+                    print(f"Warning: Skipping {relative_path} as it would exceed the {args.max_tokens:,} token limit")
+                    continue
+                    
+                total_tokens += file_tokens
+                lines.append(f"# {relative_path}\n")
+                lines.append(content)
+                lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
+                print(f"Added {relative_path} ({format_token_count(file_tokens)})")
+                print(f"Total tokens so far: {format_token_count(total_tokens)}")
+        except Exception as e:
+            print(f"Warning: Could not process {full_path}: {e}")
+    else:
+        # Original detailed mode with markers
+        start_marker = f"# <<< START FILE: {full_path} >>>"
+        end_marker = f"# <<< END FILE: {full_path} >>>"
+        
+        lines.append(start_marker)
+        try:
+            with open(full_path, 'r', encoding='utf-8') as infile:
+                file_content = infile.read()
+                file_tokens = count_tokens(file_content, "gpt-4")
+                
+                # Check token limit
+                if total_tokens + file_tokens > args.max_tokens:
+                    error_message = f"# --- WARNING: File skipped, would exceed {args.max_tokens:,} token limit ---"
+                    print(f"Warning: {error_message}")
+                    lines.append(error_message)
+                else:
+                    total_tokens += file_tokens
+                    token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+                    lines.append(file_content + token_info)
+                    print(f"Added {relative_path} ({format_token_count(file_tokens)})")
+                    print(f"Total tokens so far: {format_token_count(total_tokens)}")
+        except Exception as e:
+            error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
+            print(f"Warning: {error_message}")
+            lines.append(error_message)
+        
+        lines.append(end_marker)
 
-# Add a separator and the post-prompt
-lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
-post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
-total_tokens += post_prompt_tokens
-lines.append(post_prompt)
+# Add a separator and the post-prompt if not in concat mode
+if not args.concat_mode:
+    lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
+    post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
+    if total_tokens + post_prompt_tokens <= args.max_tokens:
+        total_tokens += post_prompt_tokens
+        lines.append(post_prompt)
+    else:
+        print("Warning: Post-prompt skipped as it would exceed token limit")
 
 # Add final token summary
 lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
 lines.append(f"Total context size: {format_token_count(total_tokens)}")
+lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
+lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
 
 # Combine all lines with actual newline characters
 final_output_string = "\n".join(lines)
