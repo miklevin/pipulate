@@ -352,8 +352,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
             await pip.stream(message, verbatim=True)
-            placeholders = self.run_all_cells(steps, app_name)
-            return Div(*placeholders, id=f"{app_name}-container")
+            return pip.rebuild(app_name, steps)
 
         form = await request.form()
         user_val = form.get(step.done, "")
@@ -481,8 +480,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             pip.write_state(pipeline_id, state)
             message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
             await pip.stream(message, verbatim=True)
-            cells = self.run_all_cells(steps, app_name)
-            return Div(*cells, id=f"{app_name}-container")
+            return pip.rebuild(app_name, steps)
 
         form = await request.form()
         user_val = form.get(step.done, "")
@@ -579,7 +577,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
 
             # Return the updated UI
-            return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
+            return pip.rebuild(app_name, steps)
 
     async def unfinalize(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -592,26 +590,14 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Send a message informing them they can revert to any step
         await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
 
-        cells = self.run_all_cells(steps, app_name)
-        return Div(*cells, id=f"{app_name}-container")
+        return pip.rebuild(app_name, steps)
 
     def run_all_cells(self, steps, app_name):
         """
         Starts HTMX chain reaction of all steps up to current.
         Equivalent to Running all Cells in a Jupyter Notebook.
         """
-        cells = []
-        for i, step in enumerate(steps):
-            trigger = ("load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
-            cells.append(
-                Div(
-                    id=step.id,
-                    hx_get=f"/{app_name}/{step.id}",
-                    hx_trigger=trigger,
-                    hx_swap="outerHTML"
-                )
-            )
-        return cells
+        return self.pipulate.run_all_cells(app_name, steps)
 
     async def jump_to_step(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -648,5 +634,4 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await pip.stream(message, verbatim=True)
-        cells = self.run_all_cells(steps, app_name)
-        return Div(*cells, id=f"{app_name}-container")
+        return pip.rebuild(app_name, steps)

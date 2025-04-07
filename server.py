@@ -837,6 +837,57 @@ class Pipulate:
                 id=datalist_id,
                 _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
             )
+            
+    def run_all_cells(self, app_name, steps):
+        """
+        Create a series of HTMX divs that will trigger a chain reaction of loading all steps.
+        
+        This method standardizes the pattern used in workflows where each step is loaded
+        in sequence through HTMX triggers, similar to running all cells in a Jupyter Notebook.
+        
+        Args:
+            app_name: The name of the workflow app
+            steps: List of Step namedtuples defining the workflow
+            
+        Returns:
+            list: List of Div elements configured with HTMX attributes for sequential loading
+        """
+        cells = []
+        for i, step in enumerate(steps):
+            # First step loads immediately, subsequent steps wait for previous to complete
+            trigger = ("load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
+            cells.append(
+                Div(
+                    id=step.id,
+                    hx_get=f"/{app_name}/{step.id}",
+                    hx_trigger=trigger,
+                    hx_swap="outerHTML"
+                )
+            )
+        return cells
+    
+    def rebuild(self, app_name, steps):
+        """
+        Rebuild the entire workflow UI from scratch.
+        
+        This is used after state changes that require the entire workflow to be regenerated,
+        such as reverting to a previous step or jumping to a specific step.
+        
+        Args:
+            app_name: The name of the workflow app
+            steps: List of Step namedtuples defining the workflow
+            
+        Returns:
+            Div: Container with all steps ready to be displayed
+        """
+        # Get the placeholders for all steps
+        placeholders = self.run_all_cells(app_name, steps)
+        
+        # Return a container with all placeholders
+        return Div(
+            *placeholders,
+            id=f"{app_name}-container"
+        )
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
