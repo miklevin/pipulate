@@ -197,6 +197,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         db["pipeline_id"] = pipeline_id
         logger.debug(f"Using pipeline ID: {pipeline_id}")
         
+        # Initialize the pipeline state
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
@@ -214,10 +215,6 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}"
         await pip.stream(id_message, verbatim=True, spaces_before=0)
-        
-        # Add a message about the components of the ID
-        # components_message = f"Your ID is made up of: profile ({profile_part}), plugin ({plugin_part}), and your input ({user_provided_id})."
-        # await pip.stream(components_message, verbatim=True, spaces_before=0)
         
         # Add the return message
         return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
@@ -240,8 +237,34 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
 
+        # Update the datalist by adding this key immediately to the UI
+        # This ensures the key is available in the dropdown even after clearing the database
+        parsed = pip.parse_pipeline_key(pipeline_id)
+        prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
+        
+        # Get all existing keys for this workflow type
+        self.pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in self.pipeline() 
+                           if record.pkey.startswith(prefix)]
+        
+        # Make sure the current key is included, even if it's not in the database yet
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
+        
+        # Create datalist with all options
+        updated_datalist = Datalist(
+            *[Option(value=key) for key in matching_records],
+            id="pipeline-ids",
+            _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
+        )
+        
         placeholders = self.run_all_cells(steps, app_name)
-        return Div(*placeholders, id=f"{app_name}-container")
+        return Div(
+            # Add updated datalist that includes all existing keys plus the current one
+            updated_datalist,
+            *placeholders, 
+            id=f"{app_name}-container"
+        )
 
     async def step_01(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
