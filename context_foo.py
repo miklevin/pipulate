@@ -341,10 +341,10 @@ def get_post_url(front_matter, filename):
     """Construct post URL from front matter or filename."""
     if front_matter and 'permalink' in front_matter:
         permalink = front_matter['permalink'].strip('/')
-        return f"{blog_base_url}/{permalink}"
+        return f"{blog_base_url}/{permalink}/"  # Ensure trailing slash
     # Fallback to Jekyll's default URL structure
     date_title = filename[:-3]  # Remove .md extension
-    return f"{blog_base_url}/{date_title}/"
+    return f"{blog_base_url}/{date_title}/"  # Already has trailing slash
 
 def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base, compress=False):
     """Process a single chunk of files and write to output."""
