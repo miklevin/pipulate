@@ -2138,9 +2138,21 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 
 def create_poke_button():
+    # Get current workflow name from the app choice
+    menux = db.get("last_app_choice", "App")
+    workflow_display_name = "Pipeline"
+    
+    # Get the display name for the current workflow if available
+    if menux and menux in plugin_instances:
+        instance = plugin_instances.get(menux)
+        if instance and hasattr(instance, 'DISPLAY_NAME'):
+            workflow_display_name = instance.DISPLAY_NAME
+        else:
+            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
+    
     return Div(
         A(
-            "Clear Pipeline",
+            f"Clear {workflow_display_name}",
             hx_post="/clear-db",
             hx_swap="none",
             cls="button",
