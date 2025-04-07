@@ -143,6 +143,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             Card(
                 H2(title),
                 # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
+                P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -156,7 +157,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
                             cls="contrast"
                         ),
-                        button_label=f"Use 🔑",
+                        button_label=f"Enter 🔑",
                         button_class="secondary"
                     ),
                     # Use the helper method to create the initial datalist
