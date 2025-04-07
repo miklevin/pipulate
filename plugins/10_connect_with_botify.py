@@ -218,7 +218,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     role="system"
                 ))
             else:
-                asyncio.create_task(self.safe_stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True))
+                asyncio.create_task(self.safe_stream("⚠️ Invalid Botify API token. The finalize button won't work and the token won't be saved until it's valid.", verbatim=True))
         except Exception as e:
             asyncio.create_task(self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True))
         
