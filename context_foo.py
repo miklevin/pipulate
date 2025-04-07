@@ -270,6 +270,44 @@ def format_token_count(num: int) -> str:
     cost = (num / 1000) * 0.03  # GPT-4 costs approximately $0.03 per 1K tokens
     return f"{num:,} tokens (≈${cost:.2f} at GPT-4 rates)"
 
+def estimate_total_chunks(files, max_tokens):
+    """Estimate total chunks needed based on file token counts."""
+    total_tokens = 0
+    for filepath in files:
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+                total_tokens += count_tokens(content, "gpt-4")
+        except Exception as e:
+            print(f"Warning: Could not count tokens for {filepath}: {e}")
+    return max(1, (total_tokens + max_tokens - 1) // max_tokens)
+
+def get_chunk_filename(base_filename, chunk_num, total_chunks):
+    """Generate chunk filename with metadata."""
+    name, ext = os.path.splitext(base_filename)
+    return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}"
+
+def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date):
+    """Write chunk metadata header."""
+    chunk_info = [
+        f"CHUNK {chunk_num} OF {total_chunks}",
+        f"Files: {len(files_in_chunk)} of {total_files} total",
+        f"Date range: {start_date} to {end_date}",
+        f"Max tokens: {args.max_tokens:,}",
+        "Purpose: Site topology & content analysis for:",
+        "- Topic clustering",
+        "- Information architecture",
+        "- Hub-and-spoke organization",
+        "- 5-click depth distribution",
+        "- Content summarization"
+    ]
+    
+    max_length = max(len(line) for line in chunk_info)
+    lines.append("=" * max_length)
+    lines.extend(chunk_info)
+    lines.append("=" * max_length)
+    lines.append("")
+
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
     """
@@ -576,14 +614,16 @@ else:
                           if f.endswith('.md') and f not in ['foo.md', args.output]])
         total_files = len(md_files)
         
-        print(f"\nFound {total_files} markdown files in {target_dir}")
+        # Get full paths for token counting
+        md_paths = [os.path.join(target_dir, f) for f in md_files]
+        total_chunks = estimate_total_chunks(md_paths, args.max_tokens)
         
-        # Add chunk header if this is the first chunk
-        chunk_info = f"CHUNK 1 OF ? (First {args.max_tokens:,} tokens)"
-        lines.append("=" * len(chunk_info))
-        lines.append(chunk_info)
-        lines.append("=" * len(chunk_info))
-        lines.append("")
+        print(f"\nFound {total_files} markdown files in {target_dir}")
+        print(f"Estimated chunks needed: {total_chunks}")
+        
+        # Extract dates from filenames (assuming YYYY-MM-DD-title.md format)
+        current_files = []
+        start_date = end_date = md_files[0][:10] if md_files else "Unknown"
         
         for filename in md_files:
             filepath = os.path.join(target_dir, filename)
@@ -594,11 +634,18 @@ else:
                     
                     # Check token limit
                     if total_tokens + file_tokens > args.max_tokens:
-                        print(f"Warning: Skipping {filename} as it would exceed the {args.max_tokens:,} token limit")
-                        continue
+                        break  # We'll handle remaining files in next chunk
                         
                     total_tokens += file_tokens
                     files_processed += 1
+                    current_files.append(filename)
+                    
+                    # Update date range
+                    if filename[:10] < start_date:
+                        start_date = filename[:10]
+                    if filename[:10] > end_date:
+                        end_date = filename[:10]
+                    
                     lines.append(f"# {filename}\n")
                     lines.append(content)
                     lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
@@ -606,6 +653,13 @@ else:
                     print(f"Total tokens so far: {format_token_count(total_tokens)}")
             except Exception as e:
                 print(f"Warning: Could not process {filepath}: {e}")
+                
+        # Write chunk metadata at the top
+        metadata_lines = []
+        write_chunk_metadata(metadata_lines, 1, total_chunks, current_files, 
+                           total_files, start_date, end_date)
+        lines = metadata_lines + lines
+                
     except Exception as e:
         print(f"Error accessing directory {target_dir}: {e}")
         sys.exit(1)
@@ -625,7 +679,9 @@ lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
 if args.concat_mode:
     lines.append(f"Files processed: {files_processed} of {total_files} found")
     if files_processed < total_files:
-        lines.append(f"Remaining files: {total_files - files_processed} (Will need additional chunks)")
+        lines.append(f"Remaining files: {total_files - files_processed}")
+        lines.append(f"Next chunk will start with: {md_files[files_processed]}")
+    lines.append(f"Date range processed: {start_date} to {end_date}")
 lines.append(f"Total context size: {format_token_count(total_tokens)}")
 lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
 lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
@@ -633,11 +689,16 @@ lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
 # Combine all lines with actual newline characters
 final_output_string = "\n".join(lines)
 
-# Write the combined content to foo.txt
+# Write the combined content to output file
 try:
+    if args.concat_mode and total_chunks > 1:
+        output_filename = get_chunk_filename(args.output, 1, total_chunks)
+    else:
+        output_filename = args.output
+        
     with open(output_filename, 'w', encoding='utf-8') as outfile:
         outfile.write(final_output_string)
-    print(f"Successfully created '{output_filename}' with combined context.")
+    print(f"\nSuccessfully created '{output_filename}' with combined context.")
 except Exception as e:
     print(f"Error writing to '{output_filename}': {e}")
 
