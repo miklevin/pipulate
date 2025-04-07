@@ -1954,7 +1954,19 @@ async def clear_db(request):
     db["temp_message"] = f"{workflow_display_name} cleared. Next ID will be 01."
     logger.debug(f"{workflow_display_name} DictLikeDB cleared for debugging")
     
-    return HTMLResponse(f"{workflow_display_name} cleared.", headers={"HX-Refresh": "true"})
+    # Create a response with an empty datalist and a refresh header
+    response = Div(
+        # Empty datalist with out-of-band swap to clear all options
+        Datalist(id="pipeline-ids", _hx_swap_oob="true"),
+        # Normal message displayed to the user
+        P(f"{workflow_display_name} cleared."),
+        cls="clear-message"
+    )
+    
+    # Convert to HTTPResponse to add the refresh header
+    html_response = HTMLResponse(str(response))
+    html_response.headers["HX-Refresh"] = "true"
+    return html_response
 
 
 def get_profile_name():
