@@ -333,6 +333,57 @@ class Pipulate:
         self.table = pipeline_table
         self.chat = chat_instance
 
+    def make_singular(self, word):
+        """Convert a potentially plural word to its singular form using simple rules.
+        
+        This uses basic suffix replacement rules to handle common English plurals.
+        It's designed for the 80/20 rule - handling common cases without complexity.
+        
+        Args:
+            word (str): The potentially plural word to convert
+            
+        Returns:
+            str: The singular form of the word
+        """
+        word = word.strip()
+        
+        # Empty string case
+        if not word:
+            return word
+            
+        # Already singular cases
+        if word.lower() in ('data', 'media', 'series', 'species', 'news'):
+            return word
+            
+        # Common irregular plurals
+        irregulars = {
+            'children': 'child',
+            'people': 'person',
+            'men': 'man',
+            'women': 'woman',
+            'teeth': 'tooth',
+            'feet': 'foot',
+            'geese': 'goose',
+            'mice': 'mouse',
+            'criteria': 'criterion',
+        }
+        
+        if word.lower() in irregulars:
+            return irregulars[word.lower()]
+        
+        # Common suffix rules - ordered by specificity
+        if word.lower().endswith('ies'):
+            return word[:-3] + 'y'
+        if word.lower().endswith('ves'):
+            return word[:-3] + 'f'
+        if word.lower().endswith('xes') or word.lower().endswith('sses') or word.lower().endswith('shes') or word.lower().endswith('ches'):
+            return word[:-2]
+        if word.lower().endswith('s') and not word.lower().endswith('ss'):
+            return word[:-1]
+            
+        # Already singular
+        return word
+
     def set_chat(self, chat_instance):
         """Set the chat instance after initialization."""
         self.chat = chat_instance
@@ -1954,7 +2005,7 @@ def create_poke_button():
             style="margin-right: 10px;"
         ),
         A(
-            f"Poke {APP_NAME} {MODEL}",
+            f"Poke {MODEL}",
             hx_post="/poke",
             hx_target="#msg-list",
             hx_swap="innerHTML",

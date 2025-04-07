@@ -193,7 +193,7 @@ class CrudUI(PluginIdentityManager):
         items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
-        add_placeholder = f"Add new {self.name.lower()}"
+        add_placeholder = f"Add new {self.pipulate.make_singular(self.name.lower())}"
 
         return Div(
             Card(
