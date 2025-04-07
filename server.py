@@ -735,7 +735,10 @@ class Pipulate:
         
         # If no user input is provided, generate an auto-incrementing number
         if user_input is None:
-            # Filter by app_name to ensure each workflow has its own number sequence
+            # First, reset any lingering filters
+            self.table.xtra()
+            
+            # Then filter by app_name to ensure each workflow has its own number sequence
             self.table.xtra(app_name=app_name)
             
             # Get records for this specific app (workflow type)
@@ -1949,8 +1952,14 @@ async def clear_db(request):
     if last_visited_url:
         db["last_visited_url"] = last_visited_url
     
-    # Clear pipeline records
+    # Clear ALL pipeline records - reset any filters first
+    # This is crucial to ensure we're not filtering records when fetching to delete
+    if hasattr(pipulate.table, 'xtra'):
+        # Reset any filters by passing an empty dict to xtra
+        pipulate.table.xtra()
+    
     records = list(pipulate.table())
+    logger.debug(f"Found {len(records)} records to delete")
     for record in records:
         pipulate.table.delete(record.pkey)
     logger.debug(f"{workflow_display_name} table cleared")
