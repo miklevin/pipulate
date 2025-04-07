@@ -1561,7 +1561,6 @@ def populate_initial_data():
 populate_initial_data()
 
 
-
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
     
