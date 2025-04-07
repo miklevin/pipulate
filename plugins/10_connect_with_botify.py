@@ -194,23 +194,24 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         try:
             username = await self.validate_botify_token(pipeline_id)
             if username:
-                await pip.stream(
+                # Make chat messages non-blocking
+                asyncio.create_task(pip.stream(
                     f"Botify API token validated for user: {username}. Ready to finalize.", 
                     verbatim=True,
                     spaces_after=0  # Set to 0 to remove the extra line break
-                )
+                ))
                 
-                # Have the LLM greet the user with a short message
+                # Have the LLM greet the user with a short message - non-blocking
                 formatted_username = pip.fmt(username)
-                await pip.stream(
+                asyncio.create_task(pip.stream(
                     f"Greet {formatted_username} briefly as their Botify assistant and tell them to click Finalize to save their token. Keep your response under 40 words.",
                     verbatim=False,
                     role="system"
-                )
+                ))
             else:
-                await pip.stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True)
+                asyncio.create_task(pip.stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True))
         except Exception as e:
-            await pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
+            asyncio.create_task(pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True))
         
         # Get placeholders for all steps
         placeholders = pip.run_all_cells(app_name, steps)
@@ -294,19 +295,19 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     with open("botify_token.txt", "w") as token_file:
                         token_file.write(f"{pipeline_id}\n# username: {username}")
                         
-                    await pip.stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0)
+                    asyncio.create_task(pip.stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0))
                     
                     # Add the system prompt to inform users about Botify workflows
-                    await pip.stream(
+                    asyncio.create_task(pip.stream(
                         "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
                         verbatim=False,
                         role="system"
-                    )
+                    ))
                 else:
                     # Don't save the file if validation fails
-                    await pip.stream("Invalid Botify API token. No file was saved.", verbatim=True)
+                    asyncio.create_task(pip.stream("Invalid Botify API token. No file was saved.", verbatim=True))
             except Exception as e:
-                await pip.stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True)
+                asyncio.create_task(pip.stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True))
 
             # Return the updated UI
             return pip.rebuild(app_name, steps)
@@ -380,14 +381,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             token_path = "botify_token.txt"
             if os.path.exists(token_path):
                 os.remove(token_path)
-                await pip.stream("Botify API token file has been deleted.", verbatim=True)
+                asyncio.create_task(pip.stream("Botify API token file has been deleted.", verbatim=True))
             else:
-                await pip.stream("No Botify API token file found to delete.", verbatim=True)
+                asyncio.create_task(pip.stream("No Botify API token file found to delete.", verbatim=True))
         except Exception as e:
-            await pip.stream(f"Error deleting token file: {type(e).__name__}", verbatim=True)
+            asyncio.create_task(pip.stream(f"Error deleting token file: {type(e).__name__}", verbatim=True))
 
         # Send a message informing them they can revert to any step
-        await pip.stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True)
+        asyncio.create_task(pip.stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True))
 
         # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
@@ -468,7 +469,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         state = self.pipulate.read_state(pipeline_id)
         state["_revert_target"] = step_id
         self.pipulate.write_state(pipeline_id, state)
-        message = "Reverting to update your Botify API token."
-        await self.pipulate.stream(message, verbatim=True)
+        asyncio.create_task(pip.stream("Reverting to update your Botify API token.", verbatim=True))
         return self.pipulate.rebuild(app_name, steps)
 
