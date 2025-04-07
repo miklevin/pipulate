@@ -435,15 +435,30 @@ class Pipulate:
         
         # Get plugin name from the instance if provided
         plugin_name = None
+        display_name = None
+        
         if plugin_instance:
-            # Handle both class names and plugin objects with a name attribute
+            # Try to get the display name first
+            if hasattr(plugin_instance, 'DISPLAY_NAME'):
+                display_name = plugin_instance.DISPLAY_NAME
+            
+            # Get the internal name
             if hasattr(plugin_instance, 'name'):
                 plugin_name = plugin_instance.name
             elif hasattr(plugin_instance, '__class__'):
                 plugin_name = plugin_instance.__class__.__name__
+            
+            # If we have a plugin_name but no display_name, try to get it from friendly_names
+            if plugin_name and not display_name:
+                if plugin_name in friendly_names:
+                    display_name = friendly_names[plugin_name]
+                else:
+                    # Fall back to a title-cased version of plugin_name
+                    display_name = title_name(plugin_name)
                 
         return {
-            'plugin_name': plugin_name,
+            'plugin_name': display_name or plugin_name,  # Prefer display name
+            'internal_name': plugin_name,  # Keep internal name for reference if needed
             'profile_id': profile_id,
             'profile_name': profile_name
         }
