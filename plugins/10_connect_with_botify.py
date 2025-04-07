@@ -189,6 +189,15 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
+            
+        # Always clear any existing "finalize" state when a new token is entered
+        # This ensures we start with a clean slate and the proper Finalize button shows
+        state = pip.read_state(pipeline_id)
+        if "finalize" in state:
+            del state["finalize"]
+            state["updated"] = datetime.now().isoformat()
+            pip.write_state(pipeline_id, state)
+            logger.debug(f"Cleared finalize state for pipeline: {pipeline_id}")
         
         # Validate the token immediately after submission
         try:
