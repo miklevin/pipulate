@@ -6,6 +6,21 @@ import gzip  # Add gzip for compression
 import yaml  # Add YAML for front matter parsing
 import re  # Add regex for front matter extraction
 
+# -------------------------------------------------------------------------
+# NOTE TO USERS:
+# This script is obviously customized to my (Mike Levin's) specific purposes,
+# but if you find this interesting, just go in and adjust the paths and the 
+# prompts to taste. It's an effective way to put a lot of separate files into 
+# one text-file or your OS's copy/paste buffer and do one-shot prompting with 
+# spread out files as if they were a single file (reduce copy/paste tedium 
+# and prompt injection consistency).
+#
+# This is particularly useful when working with LLMs that have large context
+# windows, allowing you to feed in entire codebases or blog archives for
+# analysis without the tedium of manual file selection and copying.
+# -------------------------------------------------------------------------
+
+
 # --- Configuration for context building ---
 # Edit these values as needed
 repo_root = "/home/mike/repos/pipulate"  # Path to your repository
