@@ -1632,7 +1632,8 @@ def discover_plugin_files():
         return plugin_modules
 
     # Find all Python files in the plugins directory
-    for filename in os.listdir(plugins_dir):
+    sorted_files = sorted(os.listdir(plugins_dir))
+    for filename in sorted_files:
         logger.debug(f"Checking file: {filename}")
         # Skip files with parentheses (like "tasks (Copy).py")
         if '(' in filename or ')' in filename:
@@ -1640,15 +1641,30 @@ def discover_plugin_files():
             continue
             
         if filename.endswith('.py') and not filename.startswith('__'):
-            module_name = filename[:-3]  # Remove .py extension
-            logger.debug(f"Attempting to import module: {module_name}")
+            # Extract the module name, removing numeric prefix if present
+            base_name = filename[:-3]  # Remove .py extension
+            
+            # Store both the clean name (for the module) and original name (for imports)
+            # Pattern: match digits and underscore at the beginning (like "01_tasks")
+            import re
+            clean_name = re.sub(r'^\d+_', '', base_name)
+            original_name = base_name
+            
+            logger.debug(f"Module name: {clean_name} (from {original_name})")
+            
             try:
-                # Import the module
-                module = importlib.import_module(f'plugins.{module_name}')
-                plugin_modules[module_name] = module
-                logger.debug(f"Successfully imported module: {module_name}")
+                # Import using the original filename
+                module = importlib.import_module(f'plugins.{original_name}')
+                
+                # But store it using the clean name (without numeric prefix)
+                plugin_modules[clean_name] = module
+                
+                # Attach the original name to the module for reference if needed
+                module._original_filename = original_name
+                
+                logger.debug(f"Successfully imported module: {clean_name} from {original_name}")
             except ImportError as e:
-                logger.error(f"Error importing plugin module {module_name}: {str(e)}")
+                logger.error(f"Error importing plugin module {original_name}: {str(e)}")
 
     logger.debug(f"Discovered plugin modules: {list(plugin_modules.keys())}")
     return plugin_modules
@@ -1746,7 +1762,14 @@ for workflow_name, workflow_instance in plugin_instances.items():
 
 base_menu_items = ['']  # Remove 'profile' from here
 additional_menu_items = []  # Remove 'mobile_chat' from here
-MENU_ITEMS = base_menu_items + list(plugin_instances.keys()) + additional_menu_items
+
+# Get discovered plugins in the order they were discovered (based on numeric prefix)
+ordered_plugins = []
+for module_name, class_name, workflow_class in discovered_classes:
+    if module_name not in ordered_plugins and module_name in plugin_instances:
+        ordered_plugins.append(module_name)
+
+MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
 

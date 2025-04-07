@@ -3,6 +3,7 @@
 import inspect
 import os
 import sys
+import re
 
 import fastlite
 from fasthtml.common import *
@@ -18,10 +19,13 @@ class PluginIdentityManager:
         if not filename:
             filename = os.path.basename(__file__)
 
-        # Strip .py extension to get the base name
-        self.name = filename.replace('.py', '')
+        # Strip .py extension to get the base name with potential numeric prefix
+        self.original_name = filename.replace('.py', '')
+        
+        # Remove any numeric prefix (e.g., "01_tasks" -> "tasks")
+        self.name = re.sub(r'^\d+_', '', self.original_name)
 
-        # Use the name directly for all endpoints
+        # Use the name without prefix for all endpoints
         self.ENDPOINT_PREFIX = f"/{self.name}"
 
         # Other naming constants
