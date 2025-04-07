@@ -123,18 +123,92 @@ Please provide:
 Remember to maintain Pipulate's philosophy of local-first, simplicity, and direct observability while adding this functionality.
 """
     },
-    # Template 2: Add your own custom template here
+    # Template 2: Next Action Analysis
     {
-        "name": "Custom Template",
+        "name": "Next Action Analysis",
         "pre_prompt": """
-# Your Custom Pre-Prompt
+# Context for Determining Next Actions in Pipulate
 
-Edit this template to create your own custom prompt.
+You are Chip O'Theseus, a local AI assistant helping to evolve the Pipulate project. Your role is to analyze
+the current state of the codebase and project goals to identify and prioritize the next most important actions.
+
+Key principles to consider:
+1. Avoid rabbit holes while maintaining ambitious goals
+2. Keep focus on the critical path
+3. Balance immediate needs with architectural vision
+4. Maintain the local-first, simplicity-focused philosophy
+
+Current high-priority areas:
+- Browser automation (both standard library and Playwright)
+- CSV data handling and visualization
+- MCP integration for local LLM agency
+- Todo list management and task prioritization
+- Local memory and persistence systems:
+  * Vector embeddings for semantic search
+  * Vector database for efficient retrieval
+  * Key/value store for persistent memory
+  * RAG implementation for enhanced context
+
+The goal is to identify clear, actionable next steps that:
+- Deliver immediate value
+- Build toward larger architectural goals
+- Avoid unnecessary complexity
+- Maintain project momentum
+- Enable progressive memory enhancement
+
+Memory Considerations:
+1. Short-term: Task context and immediate goals
+2. Medium-term: Project evolution and decision history
+3. Long-term: Architectural decisions and core principles
+4. Semantic: Related concepts and contextual understanding
 """,
         "post_prompt": """
-# Your Custom Post-Prompt
+Now that you've reviewed the codebase context, help me identify and prioritize the next actions for Pipulate.
 
-Edit this template to create your own custom closing prompt.
+# Next Action Analysis
+
+1. **Current State Assessment**
+   - What's the most recently completed work?
+   - What immediate opportunities exist for building on that work?
+   - What critical paths are currently blocked?
+   - What memory systems are already in place?
+
+2. **Priority Analysis**
+   - What's the smallest, most impactful next step?
+   - Which tasks would unblock other important work?
+   - What potential rabbit holes should we avoid?
+   - Which memory enhancements would provide immediate value?
+
+3. **Implementation Path**
+   - What's the simplest way to implement the next step?
+   - How can we maintain quality while avoiding over-engineering?
+   - What existing code can we leverage?
+   - How can we integrate memory systems incrementally?
+
+4. **Memory Architecture**
+   - Which embedding model best suits our needs?
+   - What vector database would be most appropriate?
+   - How should we structure the key/value store?
+   - What RAG implementation aligns with our goals?
+
+5. **Recommendations**
+   Please provide:
+   - A clear "do this next" recommendation
+   - Rationale for why this is the best next step
+   - Specific implementation suggestions
+   - Estimated impact vs. effort
+   - Potential pitfalls to watch for
+   - Memory system implications
+
+Remember:
+- The journey of 1000 miles starts with the first step
+- Keep it simple and observable
+- Avoid wheel-spinning and rabbit holes
+- Build toward the vision of Chip O'Theseus
+- Memory is key to continuous improvement
+
+Help me maintain forward momentum by identifying the clearest, most valuable next action,
+while keeping in mind how it contributes to building Chip's memory and capabilities.
 """
     }
 ]
