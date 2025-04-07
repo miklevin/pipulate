@@ -3,16 +3,24 @@ import sys
 import argparse
 import tiktoken  # Add tiktoken import
 import gzip  # Add gzip for compression
+import yaml  # Add YAML for front matter parsing
+import re  # Add regex for front matter extraction
 
 # --- Configuration for context building ---
 # Edit these values as needed
 repo_root = "/home/mike/repos/pipulate"  # Path to your repository
 blog_posts_path = "/home/mike/repos/MikeLev.in/_posts"  # Path to blog posts
+blog_base_url = "https://mikelev.in"  # Base URL for blog posts
 
-# Gemini model token limits
+# Model token limits
 GEMINI_15_PRO_LIMIT = 2_097_152  # Gemini 1.5 Pro's 2M token limit
 GEMINI_25_PRO_LIMIT = 1_048_576  # Gemini 2.5 Pro's 1M token limit
-TOKEN_BUFFER = 10_000  # Buffer for pre/post prompts and Gemini overhead
+CLAUDE_LIMIT = 3_145_728  # Claude's 3M token limit (approximate)
+GPT_4_TURBO_LIMIT = 4_194_304  # GPT-4 Turbo's 4M token limit (128K tokens)
+TOKEN_BUFFER = 10_000  # Buffer for pre/post prompts and overhead
+
+# Default to Claude's 3M limit for single-file mode
+SINGLE_FILE_LIMIT = CLAUDE_LIMIT
 
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
@@ -264,7 +272,7 @@ def format_token_count(num: int) -> str:
     cost = (num / 1000) * 0.03  # GPT-4 costs approximately $0.03 per 1K tokens
     return f"{num:,} tokens (≈${cost:.2f} at GPT-4 rates)"
 
-def estimate_total_chunks(files, max_tokens):
+def estimate_total_chunks(files, max_tokens, force_single=False):
     """Estimate total chunks needed based on file token counts."""
     total_tokens = 0
     for filepath in files:
@@ -274,12 +282,23 @@ def estimate_total_chunks(files, max_tokens):
                 total_tokens += count_tokens(content, "gpt-4")
         except Exception as e:
             print(f"Warning: Could not count tokens for {filepath}: {e}")
+    
+    if force_single:
+        return 1
     return max(1, (total_tokens + max_tokens - 1) // max_tokens)
 
 def get_chunk_filename(base_filename, chunk_num, total_chunks, compress=False):
     """Generate chunk filename with metadata."""
     name, _ = os.path.splitext(base_filename)  # Ignore original extension
     ext = ".txt"  # Always use .txt extension for Gemini compatibility
+    
+    # For single chunk, don't add chunk numbering
+    if total_chunks == 1:
+        if compress:
+            return f"{name}{ext}.gz"
+        return f"{name}{ext}"
+    
+    # Multiple chunks get numbered
     if compress:
         return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}.gz"
     return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}"
@@ -307,6 +326,26 @@ def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_f
     lines.append("=" * max_length)
     lines.append("")
 
+def extract_front_matter(content):
+    """Extract YAML front matter from Jekyll blog post."""
+    front_matter_match = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+    if front_matter_match:
+        try:
+            front_matter = yaml.safe_load(front_matter_match.group(1))
+            return front_matter, content[front_matter_match.end():]
+        except yaml.YAMLError:
+            return None, content
+    return None, content
+
+def get_post_url(front_matter, filename):
+    """Construct post URL from front matter or filename."""
+    if front_matter and 'permalink' in front_matter:
+        permalink = front_matter['permalink'].strip('/')
+        return f"{blog_base_url}/{permalink}"
+    # Fallback to Jekyll's default URL structure
+    date_title = filename[:-3]  # Remove .md extension
+    return f"{blog_base_url}/{date_title}/"
+
 def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base, compress=False):
     """Process a single chunk of files and write to output."""
     lines = []
@@ -325,6 +364,9 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
         try:
             with open(filepath, 'r', encoding='utf-8') as infile:
                 content = infile.read()
+                front_matter, post_content = extract_front_matter(content)
+                post_url = get_post_url(front_matter, filename)
+                
                 file_tokens = count_tokens(content, "gpt-4")
                 
                 # Reserve space for metadata and buffer
@@ -344,8 +386,19 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                 if filename[:10] > end_date:
                     end_date = filename[:10]
                 
-                lines.append(f"# {filename}\n")
-                lines.append(content)
+                # Add file header with URL
+                lines.append(f"# {filename}")
+                lines.append(f"URL: {post_url}\n")
+                
+                if front_matter:
+                    # Add relevant front matter fields
+                    if 'title' in front_matter:
+                        lines.append(f"Title: {front_matter['title']}")
+                    if 'description' in front_matter:
+                        lines.append(f"Description: {front_matter['description']}")
+                    lines.append("")  # Empty line after metadata
+                
+                lines.append(post_content)
                 lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
                 print(f"Added {filename} ({format_token_count(file_tokens)})")
                 print(f"Total tokens so far: {format_token_count(total_tokens)}")
@@ -391,14 +444,31 @@ parser.add_argument('--chunk', type=int,
                     help='Process specific chunk number (default: process all chunks)')
 parser.add_argument('--compress', action='store_true',
                     help='Compress output files using gzip')
+parser.add_argument('--single', action='store_true',
+                    help=f'Force single file output with {SINGLE_FILE_LIMIT:,} token limit')
+parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
+                    help='Set token limit based on model (default: claude)')
 
 args = parser.parse_args()
+
+# Set max tokens based on model if specified
+if args.single:
+    if args.model == 'gemini15':
+        args.max_tokens = GEMINI_15_PRO_LIMIT - TOKEN_BUFFER
+    elif args.model == 'gemini25':
+        args.max_tokens = GEMINI_25_PRO_LIMIT - TOKEN_BUFFER
+    elif args.model == 'claude':
+        args.max_tokens = CLAUDE_LIMIT - TOKEN_BUFFER
+    elif args.model == 'gpt4':
+        args.max_tokens = GPT_4_TURBO_LIMIT - TOKEN_BUFFER
+    print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
 
 # If --cat is used, set concat mode and blog posts directory
 if args.cat:
     args.concat_mode = True
     args.directory = blog_posts_path
-    args.output = "foo.md"  # Set default output for blog posts to .md
+    if not args.output:  # Only set default if no output specified
+        args.output = "foo.txt"  # Set default output for blog posts to .txt
 
 if args.list:
     print("Available prompt templates:")
