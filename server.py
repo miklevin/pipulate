@@ -574,6 +574,34 @@ class Pipulate:
         target_id: str = None,
         revert_label: str = None
     ):
+        """
+        Create a UI control for reverting to a previous workflow step.
+        
+        This helper generates a consistent UI component for displaying completed
+        step data with an option to revert back to that step. It's a critical part
+        of the workflow navigation system that allows users to backtrack and modify
+        their previous inputs.
+        
+        The component includes:
+        1. A card displaying the step's current value
+        2. A small revert button that triggers the revert action
+        3. HTMX attributes for handling the revert without page refresh
+        
+        Used in step_xx methods to display completed steps with revert functionality.
+        The method checks if the workflow is finalized and avoids showing revert controls
+        for finalized workflows.
+        
+        Args:
+            step_id: The ID of the step to revert to
+            app_name: The workflow app name
+            steps: List of Step namedtuples defining the workflow
+            message: Optional message to display (defaults to step_id)
+            target_id: Optional target for HTMX updates (defaults to app container)
+            revert_label: Optional custom label for the revert button
+            
+        Returns:
+            Card: A FastHTML Card component with revert functionality
+        """
         pipeline_id = db.get("pipeline_id", "")
         finalize_step = steps[-1]
 
@@ -844,6 +872,11 @@ class Pipulate:
         
         This method standardizes the pattern used in workflows where each step is loaded
         in sequence through HTMX triggers, similar to running all cells in a Jupyter Notebook.
+        It's a core helper method used by workflow plugins to generate placeholders that
+        will automatically load each step in order.
+        
+        The first step loads immediately on trigger="load", while subsequent steps
+        wait for the previous step to complete using a custom HTMX event.
         
         Args:
             app_name: The name of the workflow app
@@ -871,7 +904,12 @@ class Pipulate:
         Rebuild the entire workflow UI from scratch.
         
         This is used after state changes that require the entire workflow to be regenerated,
-        such as reverting to a previous step or jumping to a specific step.
+        such as reverting to a previous step or jumping to a specific step. It's a core
+        helper method commonly used in workflow methods like finalize, unfinalize, and
+        handle_revert.
+        
+        The method creates a fresh container with all step placeholders, allowing
+        the workflow to reload from the current state.
         
         Args:
             app_name: The name of the workflow app
@@ -892,6 +930,13 @@ class Pipulate:
     def validate_step_input(self, value, step_show, custom_validator=None):
         """
         Validate step input with default and optional custom validation.
+        
+        This helper ensures consistent validation across all workflow steps:
+        1. Basic validation: Ensures the input is not empty
+        2. Custom validation: Applies workflow-specific validation logic if provided
+        
+        When validation fails, it returns an error component ready for direct
+        display in the UI, helping maintain consistent error handling.
         
         Args:
             value: The user input value to validate
@@ -925,6 +970,16 @@ class Pipulate:
         """
         Update the state for a step and handle reverting.
         
+        This core helper manages workflow state updates, ensuring consistent state 
+        management across all workflows. It handles several important tasks:
+        
+        1. Clearing subsequent steps when a step is updated (optional)
+        2. Storing the new step value in the correct format
+        3. Removing any revert target flags that are no longer needed
+        4. Persisting the updated state to storage
+        
+        Used by workflow step_xx_submit methods to maintain state after form submissions.
+        
         Args:
             pipeline_id: The pipeline key
             step_id: The current step ID
@@ -953,6 +1008,13 @@ class Pipulate:
         """
         Check if we're on the final step before finalization.
         
+        This helper determines if the workflow is ready for finalization by checking
+        if the next step in the sequence is the "finalize" step. Workflows use this
+        to decide whether to prompt the user to finalize after completing a step.
+        
+        Used in step_xx_submit methods to show appropriate finalization prompts
+        after the user completes the last regular step in the workflow.
+        
         Args:
             step_index: Index of current step in steps list
             steps: The steps list
@@ -966,6 +1028,14 @@ class Pipulate:
     def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):
         """
         Create the standard navigation controls after a step submission.
+        
+        This helper generates a consistent UI pattern for step navigation that includes:
+        1. A revert control showing the current step's value
+        2. An HTMX-enabled div that triggers loading the next step automatically
+        
+        By centralizing this UI generation, all workflows maintain consistent
+        navigation controls and behavior. This is typically returned by step_xx_submit
+        methods after successfully processing user input.
         
         Args:
             step_id: The current step ID

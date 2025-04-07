@@ -263,6 +263,45 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Check if workflow is finalized
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
 
+        # Start chat messages in a background task to avoid blocking UI
+        asyncio.create_task(self._send_workflow_messages(
+            pipeline_id, 
+            all_steps_complete, 
+            is_finalized, 
+            state
+        ))
+
+        # ───────── UI GENERATION AND DATALIST UPDATES ─────────
+        # Update the datalist by adding this key immediately to the UI
+        # This ensures the key is available in the dropdown even after clearing the database
+        parsed = pip.parse_pipeline_key(pipeline_id)
+        prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
+        
+        # Get all existing keys for this workflow type
+        self.pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in self.pipeline() 
+                           if record.pkey.startswith(prefix)]
+        
+        # Make sure the current key is included, even if it's not in the database yet
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
+        
+        # Use the Pipulate helper method to create the updated datalist
+        updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
+        
+        # Get placeholders for all steps
+        placeholders = pip.run_all_cells(app_name, steps)
+        return Div(
+            # Add updated datalist that includes all existing keys plus the current one
+            updated_datalist,
+            *placeholders, 
+            id=f"{app_name}-container"
+        )
+
+    async def _send_workflow_messages(self, pipeline_id, all_steps_complete, is_finalized, state):
+        """Send chat messages in background without blocking the UI."""
+        pip = self.pipulate
+        
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}"
         await pip.stream(id_message, verbatim=True, spaces_before=0)
@@ -284,36 +323,6 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
                 await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
-
-        # Add another delay before loading the first step
-        await asyncio.sleep(0.5)
-
-        # ───────── UI GENERATION AND DATALIST UPDATES ─────────
-        # Update the datalist by adding this key immediately to the UI
-        # This ensures the key is available in the dropdown even after clearing the database
-        parsed = pip.parse_pipeline_key(pipeline_id)
-        prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
-        
-        # Get all existing keys for this workflow type
-        self.pipeline.xtra(app_name=app_name)
-        matching_records = [record.pkey for record in self.pipeline() 
-                           if record.pkey.startswith(prefix)]
-        
-        # Make sure the current key is included, even if it's not in the database yet
-        if pipeline_id not in matching_records:
-            matching_records.append(pipeline_id)
-        
-        # Use the Pipulate helper method to create the updated datalist
-        updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
-        
-        # Get placeholders for all steps
-        placeholders = self.run_all_cells(steps, app_name)
-        return Div(
-            # Add updated datalist that includes all existing keys plus the current one
-            updated_datalist,
-            *placeholders, 
-            id=f"{app_name}-container"
-        )
 
     async def step_01(self, request):
         """
@@ -721,21 +730,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # ───────── END CUSTOM UNFINALIZATION UI ─────────
 
     def run_all_cells(self, steps, app_name):
-        """
-        Starts HTMX chain reaction of all steps up to current.
-        Equivalent to Running all Cells in a Jupyter Notebook.
-        
-        This method is a pass-through to the Pipulate helper that creates
-        a series of HTMX divs triggering sequential loading of each step.
-        The pattern mimics the behavior of running all cells in a notebook.
-        
-        Args:
-            steps: List of Step namedtuples defining the workflow
-            app_name: The name of the workflow app
-            
-        Returns:
-            list: List of Div elements configured with HTMX attributes
-        """
+        """Generate placeholders for all steps through Pipulate helper."""
         return self.pipulate.run_all_cells(app_name, steps)
 
     async def jump_to_step(self, request):

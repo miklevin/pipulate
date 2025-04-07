@@ -213,7 +213,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
         
         # Get placeholders for all steps
-        placeholders = self.run_all_cells(steps, app_name)
+        placeholders = pip.run_all_cells(app_name, steps)
         return Div(*placeholders, id=f"{app_name}-container")
 
     # Required methods for the workflow system, even if we don't have steps
@@ -394,10 +394,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         # ───────── END CUSTOM UNFINALIZATION UI ─────────
 
     def run_all_cells(self, steps, app_name):
-        """
-        Starts HTMX chain reaction of all steps up to current.
-        Equivalent to Running all Cells in a Jupyter Notebook.
-        """
+        """Generate placeholders for all steps through Pipulate helper."""
         return self.pipulate.run_all_cells(app_name, steps)
 
     async def jump_to_step(self, request):
