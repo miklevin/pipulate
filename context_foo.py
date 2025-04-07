@@ -436,7 +436,8 @@ def create_pipulate_manifest():
                     continue
                 
                 total_tokens += content_tokens
-                description = f"{os.path.basename(relative_path)} [loaded: {format_token_count(content_tokens)}]"
+                # Remove token count from description since it will be shown in the file content
+                description = f"{os.path.basename(relative_path)} [loaded]"
                 
                 # Add file to manifest
                 manifest.add_file(
