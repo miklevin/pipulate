@@ -287,6 +287,25 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         # ───────── END GET REQUEST ─────────
         else:
             # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
+            # First validate the token
+            username = await self.validate_botify_token(pipeline_id)
+            
+            # If token is invalid, just update state and return to unfinalized state
+            if not username:
+                # Send message about invalid token
+                asyncio.create_task(self.safe_stream("⚠️ Invalid Botify API token! Cannot finalize.", verbatim=True))
+                
+                # Make sure we're not finalized
+                state = pip.read_state(pipeline_id)
+                if "finalize" in state:
+                    del state["finalize"]
+                    state["updated"] = datetime.now().isoformat()
+                    pip.write_state(pipeline_id, state)
+                
+                # Just rebuild the workflow, which will now show the unfinalized state
+                return pip.rebuild(app_name, steps)
+            
+            # Token is valid, proceed with finalization
             # Update state using DRY helper
             state = pip.read_state(pipeline_id)
             state["finalize"] = {"finalized": True}
@@ -296,27 +315,20 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
             # Write the token to a file in the current working directory
             try:
-                # Validate the token and get the username
-                username = await self.validate_botify_token(pipeline_id)
-                
-                if username:
-                    # Save token with a comment containing the username
-                    with open("botify_token.txt", "w") as token_file:
-                        token_file.write(f"{pipeline_id}\n# username: {username}")
-                        
-                    asyncio.create_task(self.safe_stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0))
+                # Save token with a comment containing the username
+                with open("botify_token.txt", "w") as token_file:
+                    token_file.write(f"{pipeline_id}\n# username: {username}")
                     
-                    # Add the system prompt to inform users about Botify workflows
-                    asyncio.create_task(self.safe_stream(
-                        "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
-                        verbatim=False,
-                        role="system"
-                    ))
-                else:
-                    # Don't save the file if validation fails
-                    asyncio.create_task(self.safe_stream("Invalid Botify API token. No file was saved.", verbatim=True))
+                asyncio.create_task(self.safe_stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0))
+                
+                # Add the system prompt to inform users about Botify workflows
+                asyncio.create_task(self.safe_stream(
+                    "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
+                    verbatim=False,
+                    role="system"
+                ))
             except Exception as e:
-                asyncio.create_task(self.safe_stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True))
+                asyncio.create_task(self.safe_stream(f"Error saving token file: {type(e).__name__}.", verbatim=True))
 
             # Return the updated UI
             return pip.rebuild(app_name, steps)
