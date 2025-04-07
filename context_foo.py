@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import tiktoken  # Add tiktoken import
+import gzip  # Add gzip for compression
 
 # --- Configuration for context building ---
 # Edit these values as needed
@@ -275,18 +276,23 @@ def estimate_total_chunks(files, max_tokens):
             print(f"Warning: Could not count tokens for {filepath}: {e}")
     return max(1, (total_tokens + max_tokens - 1) // max_tokens)
 
-def get_chunk_filename(base_filename, chunk_num, total_chunks):
+def get_chunk_filename(base_filename, chunk_num, total_chunks, compress=False):
     """Generate chunk filename with metadata."""
-    name, ext = os.path.splitext(base_filename)
+    name, _ = os.path.splitext(base_filename)  # Ignore original extension
+    ext = ".txt"  # Always use .txt extension for Gemini compatibility
+    if compress:
+        return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}.gz"
     return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}"
 
-def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date, max_tokens):
+def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date, max_tokens, token_count):
     """Write chunk metadata header."""
     chunk_info = [
         f"CHUNK {chunk_num} OF {total_chunks}",
         f"Files: {len(files_in_chunk)} of {total_files} total",
         f"Date range: {start_date} to {end_date}",
+        f"Token count: {format_token_count(token_count)}",
         f"Max tokens: {max_tokens:,}",
+        f"Remaining: {format_token_count(max_tokens - token_count)}",
         "Purpose: Site topology & content analysis for:",
         "- Topic clustering",
         "- Information architecture",
@@ -301,19 +307,12 @@ def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_f
     lines.append("=" * max_length)
     lines.append("")
 
-def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base):
+def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base, compress=False):
     """Process a single chunk of files and write to output."""
     lines = []
     total_tokens = 0
     files_processed = 0
     current_files = []
-    
-    # Add pre-prompt if in concat mode
-    if BLOG_PRE_PROMPT:
-        pre_tokens = count_tokens(BLOG_PRE_PROMPT, "gpt-4")
-        total_tokens += pre_tokens
-        lines.append(BLOG_PRE_PROMPT)
-        lines.append("\n" + "=" * 40 + "\n")
     
     # Initialize date range
     start_date = end_date = md_files[start_idx][:10] if start_idx < len(md_files) else "Unknown"
@@ -328,10 +327,8 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                 content = infile.read()
                 file_tokens = count_tokens(content, "gpt-4")
                 
-                # Reserve space for post-prompt and buffer
-                reserved_tokens = TOKEN_BUFFER
-                if BLOG_POST_PROMPT:
-                    reserved_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
+                # Reserve space for metadata and buffer
+                reserved_tokens = TOKEN_BUFFER + 500  # 500 tokens for metadata
                 
                 # Check if adding this file would exceed limit
                 if total_tokens + file_tokens + reserved_tokens > max_tokens:
@@ -356,35 +353,21 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
         except Exception as e:
             print(f"Warning: Could not process {filepath}: {e}")
     
-    # Add post-prompt if specified
-    if BLOG_POST_PROMPT:
-        lines.append("\n" + "=" * 40 + "\n")
-        lines.append(BLOG_POST_PROMPT)
-        total_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
-    
     # Write chunk metadata at the top
     metadata_lines = []
     write_chunk_metadata(metadata_lines, chunk_num, total_chunks, current_files, 
-                        len(md_files), start_date, end_date, max_tokens)
+                        len(md_files), start_date, end_date, max_tokens, total_tokens)
     lines = metadata_lines + lines
     
-    # Add final token summary
-    lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
-    lines.append(f"Files processed: {files_processed} of {len(md_files)} found")
-    if start_idx + files_processed < len(md_files):
-        lines.append(f"Remaining files: {len(md_files) - (start_idx + files_processed)}")
-        lines.append(f"Next chunk will start with: {md_files[start_idx + files_processed]}")
-    lines.append(f"Date range processed: {start_date} to {end_date}")
-    lines.append(f"Total context size: {format_token_count(total_tokens)}")
-    lines.append(f"Maximum allowed: {format_token_count(max_tokens)} ({max_tokens:,} tokens)")
-    lines.append(f"Buffer reserved: {format_token_count(TOKEN_BUFFER)}")
-    lines.append(f"Remaining: {format_token_count(max_tokens - total_tokens)}")
-    
     # Write to file
-    chunk_filename = get_chunk_filename(output_base, chunk_num, total_chunks)
+    chunk_filename = get_chunk_filename(output_base, chunk_num, total_chunks, compress)
     try:
-        with open(chunk_filename, 'w', encoding='utf-8') as outfile:
-            outfile.write("\n".join(lines))
+        if compress:
+            with gzip.open(chunk_filename, 'wt', encoding='utf-8') as outfile:
+                outfile.write("\n".join(lines))
+        else:
+            with open(chunk_filename, 'w', encoding='utf-8') as outfile:
+                outfile.write("\n".join(lines))
         print(f"\nSuccessfully created '{chunk_filename}'")
     except Exception as e:
         print(f"Error writing to '{chunk_filename}': {e}")
@@ -406,6 +389,8 @@ parser.add_argument('-d', '--directory', type=str, default=".",
                     help='Target directory for concat mode (default: current directory)')
 parser.add_argument('--chunk', type=int,
                     help='Process specific chunk number (default: process all chunks)')
+parser.add_argument('--compress', action='store_true',
+                    help='Compress output files using gzip')
 
 args = parser.parse_args()
 
@@ -752,9 +737,9 @@ else:
                 start_idx = 0
                 for i in range(1, args.chunk):
                     start_idx = process_chunk(md_files, start_idx, i, total_chunks, 
-                                           args.max_tokens, args.output)
+                                           args.max_tokens, args.output, args.compress)
                 process_chunk(md_files, start_idx, args.chunk, total_chunks, 
-                            args.max_tokens, args.output)
+                            args.max_tokens, args.output, args.compress)
             else:
                 print(f"Error: Chunk number must be between 1 and {total_chunks}")
                 sys.exit(1)
@@ -763,7 +748,7 @@ else:
             start_idx = 0
             for chunk_num in range(1, total_chunks + 1):
                 start_idx = process_chunk(md_files, start_idx, chunk_num, total_chunks, 
-                                       args.max_tokens, args.output)
+                                       args.max_tokens, args.output, args.compress)
                 
     except Exception as e:
         print(f"Error accessing directory {target_dir}: {e}")
@@ -812,30 +797,41 @@ if not args.concat_mode:
 print("\n--- Clipboard Instructions ---")
 try:
     import pyperclip
-    pyperclip.copy(final_output_string)
-    print("Content successfully copied to clipboard using pyperclip.")
-    print("You can now paste it.")
+    # In chunk mode, copy the first chunk
+    if args.concat_mode and total_chunks > 1:
+        chunk_to_copy = get_chunk_filename(args.output, 1, total_chunks, args.compress)
+    else:
+        chunk_to_copy = args.output
+        
+    try:
+        with open(chunk_to_copy, 'r', encoding='utf-8') as infile:
+            content = infile.read()
+            pyperclip.copy(content)
+            print(f"Content from '{chunk_to_copy}' successfully copied to clipboard using pyperclip.")
+            print("You can now paste it.")
+    except Exception as e:
+        print(f"Error reading '{chunk_to_copy}' for clipboard: {e}")
 except ImportError:
     print("`pyperclip` library not found.")
     print("To install it: pip install pyperclip")
-    print("Alternatively, use OS-specific commands below or manually copy from foo.txt.")
+    print("Alternatively, use OS-specific commands below or manually copy from the output files.")
 except Exception as e:
     print(f"An error occurred while using pyperclip: {e}")
-    print("Try OS-specific commands or manually copy from foo.txt.")
+    print("Try OS-specific commands or manually copy from the output files.")
 
-# OS-specific clipboard instructions if pyperclip isn't available
-if 'pyperclip' not in sys.modules:
+# OS-specific clipboard instructions if pyperclip isn't available or failed
+if 'pyperclip' not in sys.modules or 'content' not in locals():
     if sys.platform == "darwin":  # macOS
         print("\nOn macOS, you can try in your terminal:")
-        print(f"  cat {output_filename} | pbcopy")
+        print(f"  cat {args.output} | pbcopy")
     elif sys.platform == "win32":  # Windows
         print("\nOn Windows, try in Command Prompt or PowerShell:")
-        print(f"  type {output_filename} | clip")         # Command Prompt
-        print(f"  Get-Content {output_filename} | Set-Clipboard")  # PowerShell
+        print(f"  type {args.output} | clip")         # Command Prompt
+        print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
     else:  # Linux (assuming X11 with xclip or xsel)
         print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
-        print(f"  cat {output_filename} | xclip -selection clipboard")
+        print(f"  cat {args.output} | xclip -selection clipboard")
         print("  # or")
-        print(f"  cat {output_filename} | xsel --clipboard --input")
+        print(f"  cat {args.output} | xsel --clipboard --input")
 
 print("\nScript finished.")
