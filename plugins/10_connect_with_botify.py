@@ -195,7 +195,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             username = await self.validate_botify_token(pipeline_id)
             if username:
                 # Make chat messages non-blocking
-                asyncio.create_task(pip.stream(
+                asyncio.create_task(self.safe_stream(
                     f"Botify API token validated for user: {username}. Ready to finalize.", 
                     verbatim=True,
                     spaces_after=0  # Set to 0 to remove the extra line break
@@ -203,15 +203,15 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 
                 # Have the LLM greet the user with a short message - non-blocking
                 formatted_username = pip.fmt(username)
-                asyncio.create_task(pip.stream(
+                asyncio.create_task(self.safe_stream(
                     f"Greet {formatted_username} briefly as their Botify assistant and tell them to click Finalize to save their token. Keep your response under 40 words.",
                     verbatim=False,
                     role="system"
                 ))
             else:
-                asyncio.create_task(pip.stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True))
+                asyncio.create_task(self.safe_stream("⚠️ Invalid Botify API token. You can still proceed, but the token won't be saved until it's valid.", verbatim=True))
         except Exception as e:
-            asyncio.create_task(pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True))
+            asyncio.create_task(self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True))
         
         # Get placeholders for all steps
         placeholders = pip.run_all_cells(app_name, steps)
@@ -295,19 +295,19 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     with open("botify_token.txt", "w") as token_file:
                         token_file.write(f"{pipeline_id}\n# username: {username}")
                         
-                    asyncio.create_task(pip.stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0))
+                    asyncio.create_task(self.safe_stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0))
                     
                     # Add the system prompt to inform users about Botify workflows
-                    asyncio.create_task(pip.stream(
+                    asyncio.create_task(self.safe_stream(
                         "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
                         verbatim=False,
                         role="system"
                     ))
                 else:
                     # Don't save the file if validation fails
-                    asyncio.create_task(pip.stream("Invalid Botify API token. No file was saved.", verbatim=True))
+                    asyncio.create_task(self.safe_stream("Invalid Botify API token. No file was saved.", verbatim=True))
             except Exception as e:
-                asyncio.create_task(pip.stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True))
+                asyncio.create_task(self.safe_stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True))
 
             # Return the updated UI
             return pip.rebuild(app_name, steps)
@@ -381,14 +381,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             token_path = "botify_token.txt"
             if os.path.exists(token_path):
                 os.remove(token_path)
-                asyncio.create_task(pip.stream("Botify API token file has been deleted.", verbatim=True))
+                asyncio.create_task(self.safe_stream("Botify API token file has been deleted.", verbatim=True))
             else:
-                asyncio.create_task(pip.stream("No Botify API token file found to delete.", verbatim=True))
+                asyncio.create_task(self.safe_stream("No Botify API token file found to delete.", verbatim=True))
         except Exception as e:
-            asyncio.create_task(pip.stream(f"Error deleting token file: {type(e).__name__}", verbatim=True))
+            asyncio.create_task(self.safe_stream(f"Error deleting token file: {type(e).__name__}", verbatim=True))
 
         # Send a message informing them they can revert to any step
-        asyncio.create_task(pip.stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True))
+        asyncio.create_task(self.safe_stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True))
 
         # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
@@ -469,6 +469,65 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         state = self.pipulate.read_state(pipeline_id)
         state["_revert_target"] = step_id
         self.pipulate.write_state(pipeline_id, state)
-        asyncio.create_task(pip.stream("Reverting to update your Botify API token.", verbatim=True))
+        asyncio.create_task(self.safe_stream("Reverting to update your Botify API token.", verbatim=True))
         return self.pipulate.rebuild(app_name, steps)
+
+    async def safe_stream(self, message, verbatim=False, role="user", spaces_before=None, spaces_after=1):
+        """
+        Safely stream messages, gracefully handling failures when Ollama/LLM is not available.
+        
+        For verbatim messages, this behaves exactly like the regular stream method.
+        For LLM-processed messages (verbatim=False), it will fall back to a direct message
+        if the LLM processing fails.
+        
+        Args:
+            message: The message to stream
+            verbatim: If True, send message as-is; if False, process with LLM
+            role: The role for the message in the conversation history
+            spaces_before: Number of line breaks to add before the message
+            spaces_after: Number of line breaks to add after the message
+            
+        Returns:
+            The original message
+        """
+        pip = self.pipulate
+        
+        try:
+            # For verbatim messages, just use the regular stream method
+            if verbatim:
+                return await asyncio.create_task(pip.stream(
+                    message, 
+                    verbatim=True, 
+                    role=role,
+                    spaces_before=spaces_before,
+                    spaces_after=spaces_after
+                ))
+            
+            # For LLM-processed messages, try the LLM but have a fallback
+            try:
+                return await asyncio.create_task(pip.stream(
+                    message, 
+                    verbatim=False, 
+                    role=role,
+                    spaces_before=spaces_before,
+                    spaces_after=spaces_after
+                ))
+            except Exception as e:
+                logger.error(f"LLM processing failed: {str(e)}. Falling back to direct message.")
+                # If LLM fails, just output a simpler message directly
+                fallback_message = "Botify integration complete. You can now use the Botify API token in other workflows."
+                if "Greet" in message:
+                    fallback_message = "Welcome! Your Botify token is ready to be saved. Click Finalize to continue."
+                
+                return await asyncio.create_task(pip.stream(
+                    fallback_message, 
+                    verbatim=True,  # Force verbatim mode for the fallback
+                    role=role,
+                    spaces_before=spaces_before,
+                    spaces_after=spaces_after
+                ))
+        except Exception as e:
+            # If everything fails, log the error but don't crash the workflow
+            logger.error(f"Message streaming failed completely: {str(e)}")
+            return message  # Return the original message but don't attempt to display it
 
