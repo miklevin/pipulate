@@ -47,6 +47,21 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
         Initialize the workflow.
+        
+        This method sets up the workflow by:
+        1. Storing references to app, pipulate, pipeline, and database
+        2. Defining the ordered sequence of workflow steps
+        3. Registering routes for standard workflow methods
+        4. Registering custom routes for each step
+        5. Creating step messages for UI feedback
+        6. Adding a finalize step to complete the workflow
+        
+        Args:
+            app: The FastAPI application instance
+            pipulate: The Pipulate helper instance
+            pipeline: The pipeline database handler
+            db: The request-scoped database dictionary
+            app_name: Optional override for the workflow app name
         """
         self.app = app
         self.app_name = app_name
@@ -118,8 +133,19 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
 
     async def landing(self):
         """
-        This is the landing page for the workflow. It asks for a unique identifier.
-        It is necessary for the workflow to function. Only change cosmetic elements.
+        Generate the landing page for the workflow.
+        
+        This method creates the initial UI that users see when they access the
+        workflow. It provides a form for entering or selecting a unique identifier
+        (pipeline ID) to start or resume a workflow. Key features:
+        
+        - Displays the workflow title and description
+        - Generates a default pipeline ID for new workflows
+        - Provides a datalist of existing workflow IDs
+        - Creates an HTMX-enabled form for workflow initialization
+        
+        Returns:
+            FastHTML container with the landing page UI components
         """
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         
@@ -170,6 +196,27 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         )
 
     async def init(self, request):
+        """
+        Initialize the workflow and create the UI for all steps.
+        
+        This method handles the form submission from the landing page, setting up
+        the workflow pipeline. It performs several key operations:
+        
+        1. Generates or validates the pipeline ID
+        2. Initializes the workflow state
+        3. Provides user feedback about workflow status
+        4. Updates the datalist for returning to this workflow
+        5. Generates the HTMX-enabled placeholders for all steps
+        
+        The initialization process accommodates both new workflows and resuming
+        existing ones, with appropriate feedback for each situation.
+        
+        Args:
+            request: The HTTP request object containing the pipeline_id form field
+            
+        Returns:
+            FastHTML container with all workflow step placeholders
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         user_input = form.get("pipeline_id", "untitled")
@@ -179,6 +226,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         plugin_name = context['plugin_name'] or app_name
         profile_name = context['profile_name'] or "default"
         
+        # ───────── PIPELINE ID GENERATION AND PARSING ─────────
         # Create the expected prefix parts
         profile_part = profile_name.replace(" ", "_")
         plugin_part = plugin_name.replace(" ", "_")
@@ -199,6 +247,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         db["pipeline_id"] = pipeline_id
         logger.debug(f"Using pipeline ID: {pipeline_id}")
         
+        # ───────── STATE INITIALIZATION AND WORKFLOW MESSAGES ─────────
         # Initialize the pipeline state
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
@@ -239,6 +288,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Add another delay before loading the first step
         await asyncio.sleep(0.5)
 
+        # ───────── UI GENERATION AND DATALIST UPDATES ─────────
         # Update the datalist by adding this key immediately to the UI
         # This ensures the key is available in the dropdown even after clearing the database
         parsed = pip.parse_pipeline_key(pipeline_id)
@@ -256,6 +306,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Use the Pipulate helper method to create the updated datalist
         updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
         
+        # Get placeholders for all steps
         placeholders = self.run_all_cells(steps, app_name)
         return Div(
             # Add updated datalist that includes all existing keys plus the current one
@@ -265,6 +316,22 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         )
 
     async def step_01(self, request):
+        """
+        Handle GET requests for the first step of the workflow.
+        
+        This method generates the appropriate UI for step_01 based on its state:
+        - If workflow is finalized: Display locked content
+        - If step is completed: Show step data with revert option
+        - If step needs input: Show input form with suggestion if available
+        
+        The UI components use HTMX for interactive updates without page refresh.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            FastHTML components representing the step UI
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -342,6 +409,26 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             )
 
     async def step_01_submit(self, request):
+        """
+        Handle POST submissions for the first step of the workflow.
+        
+        This method processes form data submitted by the user, validates the input,
+        updates the workflow state, and provides UI feedback. It includes integration
+        points for optional Playwright automation to process the user's input.
+        
+        Processing flow:
+        1. Handle finalized state if applicable
+        2. Extract and validate form data
+        3. Process data (with optional Playwright automation)
+        4. Update state and provide feedback
+        5. Return navigation controls for the next step
+        
+        Args:
+            request: The HTTP request object containing form data
+            
+        Returns:
+            FastHTML components for navigation and the next step trigger
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -637,10 +724,33 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         """
         Starts HTMX chain reaction of all steps up to current.
         Equivalent to Running all Cells in a Jupyter Notebook.
+        
+        This method is a pass-through to the Pipulate helper that creates
+        a series of HTMX divs triggering sequential loading of each step.
+        The pattern mimics the behavior of running all cells in a notebook.
+        
+        Args:
+            steps: List of Step namedtuples defining the workflow
+            app_name: The name of the workflow app
+            
+        Returns:
+            list: List of Div elements configured with HTMX attributes
         """
         return self.pipulate.run_all_cells(app_name, steps)
 
     async def jump_to_step(self, request):
+        """
+        Jump to a specific step in the workflow.
+        
+        This method updates the step_id in the database and rebuilds the UI
+        to show the workflow from the selected step.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components showing the workflow from the selected step
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
@@ -648,6 +758,20 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
+        """
+        Get a suggestion value for a step based on transform function.
+        
+        If the step has a transform function, use the previous step's output
+        to generate a suggested value. This enables data to flow naturally
+        from one step to the next, creating a connected workflow experience.
+        
+        Args:
+            step_id: The ID of the step to generate a suggestion for
+            state: The current workflow state
+            
+        Returns:
+            str: The suggested value or empty string if not applicable
+        """
         pip, db, steps = self.pipulate, self.db, self.steps
         # If a transform function exists, use the previous step's output.
         step = next((s for s in steps if s.id == step_id), None)
@@ -663,6 +787,20 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
+        """
+        Handle reverting to a previous step in the workflow.
+        
+        This method clears state data from the specified step forward,
+        marks the step as the revert target in the state, and rebuilds
+        the workflow UI. It allows users to go back and modify their
+        inputs at any point in the workflow process.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components representing the rebuilt workflow UI
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
