@@ -567,14 +567,24 @@ if not args.concat_mode:
             lines.append(end_marker)
 else:
     total_tokens = 0
+    files_processed = 0
     # Process markdown files in target directory
     target_dir = args.directory
     try:
         # Get list of markdown files, sorted
         md_files = sorted([f for f in os.listdir(target_dir) 
                           if f.endswith('.md') and f not in ['foo.md', args.output]])
+        total_files = len(md_files)
         
-        print(f"\nProcessing markdown files in {target_dir}:")
+        print(f"\nFound {total_files} markdown files in {target_dir}")
+        
+        # Add chunk header if this is the first chunk
+        chunk_info = f"CHUNK 1 OF ? (First {args.max_tokens:,} tokens)"
+        lines.append("=" * len(chunk_info))
+        lines.append(chunk_info)
+        lines.append("=" * len(chunk_info))
+        lines.append("")
+        
         for filename in md_files:
             filepath = os.path.join(target_dir, filename)
             try:
@@ -588,6 +598,7 @@ else:
                         continue
                         
                     total_tokens += file_tokens
+                    files_processed += 1
                     lines.append(f"# {filename}\n")
                     lines.append(content)
                     lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
@@ -611,6 +622,10 @@ if not args.concat_mode:
 
 # Add final token summary
 lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
+if args.concat_mode:
+    lines.append(f"Files processed: {files_processed} of {total_files} found")
+    if files_processed < total_files:
+        lines.append(f"Remaining files: {total_files - files_processed} (Will need additional chunks)")
 lines.append(f"Total context size: {format_token_count(total_tokens)}")
 lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
 lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
