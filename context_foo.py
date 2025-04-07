@@ -11,18 +11,7 @@ blog_posts_path = "/home/mike/repos/MikeLev.in/_posts"  # Path to blog posts
 # Gemini model token limits
 GEMINI_15_PRO_LIMIT = 2_097_152  # Gemini 1.5 Pro's 2M token limit
 GEMINI_25_PRO_LIMIT = 1_048_576  # Gemini 2.5 Pro's 1M token limit
-
-# List of files to include in context
-file_list = """\
-README.md
-flake.nix
-server.py
-plugins/hello_workflow.py
-training/hello_workflow.md
-plugins/tasks.py
-training/tasks.md
-.cursorrules
-""".splitlines()
+TOKEN_BUFFER = 10_000  # Buffer for pre/post prompts and Gemini overhead
 
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
@@ -218,47 +207,51 @@ while keeping in mind how it contributes to building Chip's memory and capabilit
     }
 ]
 
-# Default to the first template (index 0)
-template_index = 0
+# Blog analysis prompts
+BLOG_PRE_PROMPT = """
+# Blog Content Analysis Task
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
-parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
-parser.add_argument('-l', '--list', action='store_true', help='List available templates')
-parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
-parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT, 
-                    help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT}, Gemini 1.5 Pro limit)')
-parser.add_argument('--cat', action='store_true',
-                    help=f'Shortcut for --concat-mode -d {blog_posts_path}')
-parser.add_argument('--concat-mode', action='store_true', 
-                    help='Use concatenation mode similar to cat_foo.py')
-parser.add_argument('-d', '--directory', type=str, default=".",
-                    help='Target directory for concat mode (default: current directory)')
+You are analyzing a large collection of blog posts to help organize and optimize the site's information architecture.
+This content is being provided in chunks due to size. For each chunk:
 
-args = parser.parse_args()
+1. Identify main topics and themes
+2. Note potential hub posts that could serve as navigation centers
+3. Track chronological development of ideas
+4. Map relationships between posts
+5. Consider optimal click-depth organization
 
-# If --cat is used, set concat mode and blog posts directory
-if args.cat:
-    args.concat_mode = True
-    args.directory = blog_posts_path
-    args.output = "foo.md"  # Set default output for blog posts to .md
+Focus on finding natural topic clusters and hierarchy patterns.
+"""
 
-if args.list:
-    print("Available prompt templates:")
-    for i, template in enumerate(prompt_templates):
-        print(f"{i}: {template['name']}")
-    sys.exit(0)
+BLOG_POST_PROMPT = """
+Please analyze this content chunk with attention to:
+1. Topic clustering and theme identification
+2. Potential hub posts and their spoke relationships
+3. Chronological development patterns
+4. Cross-referencing opportunities
+5. Hierarchy optimization for 5-click maximum depth
 
-# Set the template index and output filename
-template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
-output_filename = args.output
+Identify posts that could serve as:
+- Main topic hubs
+- Subtopic centers
+- Detail/leaf nodes
+- Chronological markers
+- Cross-topic bridges
 
-# Set the pre and post prompts from the selected template
-pre_prompt = prompt_templates[template_index]["pre_prompt"]
-post_prompt = prompt_templates[template_index]["post_prompt"]
+This analysis will be used to optimize the site's information architecture.
+"""
 
-print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
-print(f"Output will be written to: {output_filename}")
+# List of files to include in context
+file_list = """\
+README.md
+flake.nix
+server.py
+plugins/hello_workflow.py
+training/hello_workflow.md
+plugins/tasks.py
+training/tasks.md
+.cursorrules
+""".splitlines()
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
     """Count the number of tokens in a text string."""
@@ -287,13 +280,13 @@ def get_chunk_filename(base_filename, chunk_num, total_chunks):
     name, ext = os.path.splitext(base_filename)
     return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}"
 
-def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date):
+def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date, max_tokens):
     """Write chunk metadata header."""
     chunk_info = [
         f"CHUNK {chunk_num} OF {total_chunks}",
         f"Files: {len(files_in_chunk)} of {total_files} total",
         f"Date range: {start_date} to {end_date}",
-        f"Max tokens: {args.max_tokens:,}",
+        f"Max tokens: {max_tokens:,}",
         "Purpose: Site topology & content analysis for:",
         "- Topic clustering",
         "- Information architecture",
@@ -307,6 +300,137 @@ def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_f
     lines.extend(chunk_info)
     lines.append("=" * max_length)
     lines.append("")
+
+def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base):
+    """Process a single chunk of files and write to output."""
+    lines = []
+    total_tokens = 0
+    files_processed = 0
+    current_files = []
+    
+    # Add pre-prompt if in concat mode
+    if BLOG_PRE_PROMPT:
+        pre_tokens = count_tokens(BLOG_PRE_PROMPT, "gpt-4")
+        total_tokens += pre_tokens
+        lines.append(BLOG_PRE_PROMPT)
+        lines.append("\n" + "=" * 40 + "\n")
+    
+    # Initialize date range
+    start_date = end_date = md_files[start_idx][:10] if start_idx < len(md_files) else "Unknown"
+    
+    # Process files for this chunk
+    for i in range(start_idx, len(md_files)):
+        filename = md_files[i]
+        filepath = os.path.join(args.directory, filename)
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8') as infile:
+                content = infile.read()
+                file_tokens = count_tokens(content, "gpt-4")
+                
+                # Reserve space for post-prompt and buffer
+                reserved_tokens = TOKEN_BUFFER
+                if BLOG_POST_PROMPT:
+                    reserved_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
+                
+                # Check if adding this file would exceed limit
+                if total_tokens + file_tokens + reserved_tokens > max_tokens:
+                    break
+                
+                total_tokens += file_tokens
+                files_processed += 1
+                current_files.append(filename)
+                
+                # Update date range
+                if filename[:10] < start_date:
+                    start_date = filename[:10]
+                if filename[:10] > end_date:
+                    end_date = filename[:10]
+                
+                lines.append(f"# {filename}\n")
+                lines.append(content)
+                lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
+                print(f"Added {filename} ({format_token_count(file_tokens)})")
+                print(f"Total tokens so far: {format_token_count(total_tokens)}")
+                
+        except Exception as e:
+            print(f"Warning: Could not process {filepath}: {e}")
+    
+    # Add post-prompt if specified
+    if BLOG_POST_PROMPT:
+        lines.append("\n" + "=" * 40 + "\n")
+        lines.append(BLOG_POST_PROMPT)
+        total_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
+    
+    # Write chunk metadata at the top
+    metadata_lines = []
+    write_chunk_metadata(metadata_lines, chunk_num, total_chunks, current_files, 
+                        len(md_files), start_date, end_date, max_tokens)
+    lines = metadata_lines + lines
+    
+    # Add final token summary
+    lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
+    lines.append(f"Files processed: {files_processed} of {len(md_files)} found")
+    if start_idx + files_processed < len(md_files):
+        lines.append(f"Remaining files: {len(md_files) - (start_idx + files_processed)}")
+        lines.append(f"Next chunk will start with: {md_files[start_idx + files_processed]}")
+    lines.append(f"Date range processed: {start_date} to {end_date}")
+    lines.append(f"Total context size: {format_token_count(total_tokens)}")
+    lines.append(f"Maximum allowed: {format_token_count(max_tokens)} ({max_tokens:,} tokens)")
+    lines.append(f"Buffer reserved: {format_token_count(TOKEN_BUFFER)}")
+    lines.append(f"Remaining: {format_token_count(max_tokens - total_tokens)}")
+    
+    # Write to file
+    chunk_filename = get_chunk_filename(output_base, chunk_num, total_chunks)
+    try:
+        with open(chunk_filename, 'w', encoding='utf-8') as outfile:
+            outfile.write("\n".join(lines))
+        print(f"\nSuccessfully created '{chunk_filename}'")
+    except Exception as e:
+        print(f"Error writing to '{chunk_filename}': {e}")
+    
+    return start_idx + files_processed
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
+parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
+parser.add_argument('-l', '--list', action='store_true', help='List available templates')
+parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
+parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT - TOKEN_BUFFER, 
+                    help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT - TOKEN_BUFFER:,}, Gemini 1.5 Pro limit minus buffer)')
+parser.add_argument('--cat', action='store_true',
+                    help=f'Shortcut for --concat-mode -d {blog_posts_path}')
+parser.add_argument('--concat-mode', action='store_true', 
+                    help='Use concatenation mode similar to cat_foo.py')
+parser.add_argument('-d', '--directory', type=str, default=".",
+                    help='Target directory for concat mode (default: current directory)')
+parser.add_argument('--chunk', type=int,
+                    help='Process specific chunk number (default: process all chunks)')
+
+args = parser.parse_args()
+
+# If --cat is used, set concat mode and blog posts directory
+if args.cat:
+    args.concat_mode = True
+    args.directory = blog_posts_path
+    args.output = "foo.md"  # Set default output for blog posts to .md
+
+if args.list:
+    print("Available prompt templates:")
+    for i, template in enumerate(prompt_templates):
+        print(f"{i}: {template['name']}")
+    sys.exit(0)
+
+# Set the template index and output filename
+template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
+output_filename = args.output
+
+# Set the pre and post prompts from the selected template
+pre_prompt = prompt_templates[template_index]["pre_prompt"]
+post_prompt = prompt_templates[template_index]["post_prompt"]
+
+print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
+print(f"Output will be written to: {output_filename}")
 
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
@@ -621,44 +745,25 @@ else:
         print(f"\nFound {total_files} markdown files in {target_dir}")
         print(f"Estimated chunks needed: {total_chunks}")
         
-        # Extract dates from filenames (assuming YYYY-MM-DD-title.md format)
-        current_files = []
-        start_date = end_date = md_files[0][:10] if md_files else "Unknown"
-        
-        for filename in md_files:
-            filepath = os.path.join(target_dir, filename)
-            try:
-                with open(filepath, 'r', encoding='utf-8') as infile:
-                    content = infile.read()
-                    file_tokens = count_tokens(content, "gpt-4")
-                    
-                    # Check token limit
-                    if total_tokens + file_tokens > args.max_tokens:
-                        break  # We'll handle remaining files in next chunk
-                        
-                    total_tokens += file_tokens
-                    files_processed += 1
-                    current_files.append(filename)
-                    
-                    # Update date range
-                    if filename[:10] < start_date:
-                        start_date = filename[:10]
-                    if filename[:10] > end_date:
-                        end_date = filename[:10]
-                    
-                    lines.append(f"# {filename}\n")
-                    lines.append(content)
-                    lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
-                    print(f"Added {filename} ({format_token_count(file_tokens)})")
-                    print(f"Total tokens so far: {format_token_count(total_tokens)}")
-            except Exception as e:
-                print(f"Warning: Could not process {filepath}: {e}")
-                
-        # Write chunk metadata at the top
-        metadata_lines = []
-        write_chunk_metadata(metadata_lines, 1, total_chunks, current_files, 
-                           total_files, start_date, end_date)
-        lines = metadata_lines + lines
+        if args.chunk:
+            # Process specific chunk
+            if 1 <= args.chunk <= total_chunks:
+                # Calculate start index for this chunk
+                start_idx = 0
+                for i in range(1, args.chunk):
+                    start_idx = process_chunk(md_files, start_idx, i, total_chunks, 
+                                           args.max_tokens, args.output)
+                process_chunk(md_files, start_idx, args.chunk, total_chunks, 
+                            args.max_tokens, args.output)
+            else:
+                print(f"Error: Chunk number must be between 1 and {total_chunks}")
+                sys.exit(1)
+        else:
+            # Process all chunks
+            start_idx = 0
+            for chunk_num in range(1, total_chunks + 1):
+                start_idx = process_chunk(md_files, start_idx, chunk_num, total_chunks, 
+                                       args.max_tokens, args.output)
                 
     except Exception as e:
         print(f"Error accessing directory {target_dir}: {e}")
