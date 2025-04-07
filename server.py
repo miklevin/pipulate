@@ -1894,17 +1894,32 @@ logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
+    # Get the current workflow name and display name
+    menux = db.get("last_app_choice", "App")
+    workflow_display_name = "Pipeline"
+    
+    # Get the display name for the current workflow if available
+    if menux and menux in plugin_instances:
+        instance = plugin_instances.get(menux)
+        if instance and hasattr(instance, 'DISPLAY_NAME'):
+            workflow_display_name = instance.DISPLAY_NAME
+        else:
+            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
+    
     keys = list(db.keys())
     for key in keys:
         del db[key]
-    logger.debug("DictLikeDB cleared")
+    logger.debug(f"{workflow_display_name} DictLikeDB cleared")
+    
     records = list(pipulate.table())
     for record in records:
         pipulate.table.delete(record.pkey)
-    logger.debug("Pipeline table cleared")
-    db["temp_message"] = "Database cleared."
-    logger.debug("DictLikeDB cleared for debugging")
-    return HTMLResponse("Database cleared.", headers={"HX-Refresh": "true"})
+    logger.debug(f"{workflow_display_name} table cleared")
+    
+    db["temp_message"] = f"{workflow_display_name} cleared."
+    logger.debug(f"{workflow_display_name} DictLikeDB cleared for debugging")
+    
+    return HTMLResponse(f"{workflow_display_name} cleared.", headers={"HX-Refresh": "true"})
 
 
 def get_profile_name():
