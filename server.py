@@ -735,50 +735,29 @@ class Pipulate:
         
         # If no user input is provided, generate an auto-incrementing number
         if user_input is None:
-            next_number = 1
+            # Filter by app_name to ensure each workflow has its own number sequence
+            self.table.xtra(app_name=app_name)
             
-            # Check if we have a counter for this workflow
-            counter_key = f"next_id_{app_name}"
-            if counter_key in db:
-                # Use the stored counter value - ensure it's an integer
-                try:
-                    next_number = int(db[counter_key])
-                except (ValueError, TypeError):
-                    # If conversion fails, default to 1
-                    next_number = 1
-                    logger.warning(f"Invalid counter value for {app_name}, resetting to 1")
-                
-                # Increment for next time
-                db[counter_key] = next_number + 1
-                logger.debug(f"Using stored counter for {app_name}: {next_number}")
-            else:
-                # No counter exists yet, we need to determine the next number from existing records
-                # Filter by app_name to ensure each workflow has its own number sequence
-                self.table.xtra(app_name=app_name)
-                
-                # Get records for this specific app (workflow type)
-                app_records = list(self.table())
-                
-                # Find records with the current prefix
-                matching_records = [record.pkey for record in app_records 
-                                   if record.pkey.startswith(prefix)]
-                
-                # Extract numeric values from the third part of the key
-                numeric_suffixes = []
-                for record_key in matching_records:
-                    # Extract the user part (everything after the prefix)
-                    rec_user_part = record_key.replace(prefix, "")
-                    # Check if it's purely numeric
-                    if rec_user_part.isdigit():
-                        numeric_suffixes.append(int(rec_user_part))
-                
-                # Determine the next number (max + 1, or 1 if none exist)
-                if numeric_suffixes:
-                    next_number = max(numeric_suffixes) + 1
-                
-                # Store the next number for future use
-                db[counter_key] = next_number + 1
-                logger.debug(f"Set initial counter for {app_name}: {next_number}")
+            # Get records for this specific app (workflow type)
+            app_records = list(self.table())
+            
+            # Find records with the current prefix
+            matching_records = [record.pkey for record in app_records 
+                               if record.pkey.startswith(prefix)]
+            
+            # Extract numeric values from the third part of the key
+            numeric_suffixes = []
+            for record_key in matching_records:
+                # Extract the user part (everything after the prefix)
+                rec_user_part = record_key.replace(prefix, "")
+                # Check if it's purely numeric
+                if rec_user_part.isdigit():
+                    numeric_suffixes.append(int(rec_user_part))
+            
+            # Determine the next number (max + 1, or 1 if none exist)
+            next_number = 1
+            if numeric_suffixes:
+                next_number = max(numeric_suffixes) + 1
                 
             # Format with leading zeros for numbers less than 100
             if next_number < 100:
@@ -1946,7 +1925,6 @@ async def clear_db(request):
     # Get the current workflow name and display name
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
-    current_app_name = None
     
     # Get the display name for the current workflow if available
     if menux and menux in plugin_instances:
@@ -1955,15 +1933,21 @@ async def clear_db(request):
             workflow_display_name = instance.DISPLAY_NAME
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-        
-        # Get app_name for resetting counters
-        current_app_name = getattr(instance, 'app_name', None)
     
-    # Clear all standard database keys
+    # Clear all standard database keys except for navigation state
+    last_app_choice = db.get("last_app_choice")
+    last_visited_url = db.get("last_visited_url")
+    
     keys = list(db.keys())
     for key in keys:
         del db[key]
     logger.debug(f"{workflow_display_name} DictLikeDB cleared")
+    
+    # Restore navigation state
+    if last_app_choice:
+        db["last_app_choice"] = last_app_choice
+    if last_visited_url:
+        db["last_visited_url"] = last_visited_url
     
     # Clear pipeline records
     records = list(pipulate.table())
@@ -1971,24 +1955,13 @@ async def clear_db(request):
         pipulate.table.delete(record.pkey)
     logger.debug(f"{workflow_display_name} table cleared")
     
-    # Reset the workflow counter to ensure next key starts from 01
-    # Create a workflow-specific counter key
-    if current_app_name:
-        counter_key = f"next_id_{current_app_name}"
-        # Ensure we store an integer
-        db[counter_key] = 1
-        logger.debug(f"Reset counter for {workflow_display_name} to 1")
-    
     db["temp_message"] = f"{workflow_display_name} cleared. Next ID will be 01."
     logger.debug(f"{workflow_display_name} DictLikeDB cleared for debugging")
-    
-    # Use the new helper method to create an empty datalist
-    empty_datalist = pipulate.update_datalist("pipeline-ids", clear=True)
     
     # Create a response with an empty datalist and a refresh header
     response = Div(
         # Empty datalist with out-of-band swap to clear all options
-        empty_datalist,
+        pipulate.update_datalist("pipeline-ids", clear=True),
         # Normal message displayed to the user
         P(f"{workflow_display_name} cleared."),
         cls="clear-message"
