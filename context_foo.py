@@ -13,7 +13,7 @@ import re  # Add regex for front matter extraction
 # prompts to taste. It's an effective way to put a lot of separate files into 
 # one text-file or your OS's copy/paste buffer and do one-shot prompting with 
 # spread out files as if they were a single file (reduce copy/paste tedium 
-# and prompt injection consistency).
+# and improve prompt injection consistency).
 #
 # This is particularly useful when working with LLMs that have large context
 # windows, allowing you to feed in entire codebases or blog archives for
