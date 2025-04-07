@@ -6,6 +6,7 @@ import tiktoken  # Add tiktoken import
 # --- Configuration for context building ---
 # Edit these values as needed
 repo_root = "/home/mike/repos/pipulate"  # Path to your repository
+blog_posts_path = "/home/mike/repos/MikeLev.in/_posts"  # Path to blog posts
 
 # Gemini model token limits
 GEMINI_15_PRO_LIMIT = 2_097_152  # Gemini 1.5 Pro's 2M token limit
@@ -227,12 +228,20 @@ parser.add_argument('-l', '--list', action='store_true', help='List available te
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT, 
                     help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT}, Gemini 1.5 Pro limit)')
+parser.add_argument('--cat', action='store_true',
+                    help=f'Shortcut for --concat-mode -d {blog_posts_path}')
 parser.add_argument('--concat-mode', action='store_true', 
                     help='Use concatenation mode similar to cat_foo.py')
 parser.add_argument('-d', '--directory', type=str, default=".",
                     help='Target directory for concat mode (default: current directory)')
 
 args = parser.parse_args()
+
+# If --cat is used, set concat mode and blog posts directory
+if args.cat:
+    args.concat_mode = True
+    args.directory = blog_posts_path
+    args.output = "foo.md"  # Set default output for blog posts to .md
 
 if args.list:
     print("Available prompt templates:")
