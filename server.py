@@ -1583,6 +1583,11 @@ def discover_plugin_files():
     # Find all Python files in the plugins directory
     for filename in os.listdir(plugins_dir):
         logger.debug(f"Checking file: {filename}")
+        # Skip files with parentheses (like "tasks (Copy).py")
+        if '(' in filename or ')' in filename:
+            logger.debug(f"Skipping file with parentheses: {filename}")
+            continue
+            
         if filename.endswith('.py') and not filename.startswith('__'):
             module_name = filename[:-3]  # Remove .py extension
             logger.debug(f"Attempting to import module: {module_name}")
@@ -1942,7 +1947,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 def create_poke_button():
     return Div(
         A(
-            "Clear Cookie",
+            "Clear Pipeline",
             hx_post="/clear-db",
             hx_swap="none",
             cls="button",
@@ -1954,13 +1959,6 @@ def create_poke_button():
             hx_target="#msg-list",
             hx_swap="innerHTML",
             cls="button",
-            style="margin-right: 10px;"
-        ),
-        A(
-            "Help",
-            hx_ws_send="!help",
-            cls="button",
-            onclick="document.querySelector('#msg').value = '!help'; document.querySelector('#send-btn').click();",
             style="margin-right: 10px;"
         ),
         style=(
