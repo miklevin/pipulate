@@ -168,8 +168,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
-                P(f"Composite key format: {profile_name}-{plugin_name}-[number]"),
-                P(f"Starting with auto-incremented value: {next_number}", style="font-size: 0.9em; color: #666;"),
+                # P(f"Composite key format: {profile_name}-{plugin_name}-[number]"),
+                # P(f"Starting with auto-incremented value: {next_number}", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -183,7 +183,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                             _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
                             cls="contrast"
                         ),
-                        button_label=f"Start {self.DISPLAY_NAME} 🔑",  # Keep the original button label
+                        # button_label=f"Use {self.DISPLAY_NAME} 🔑",  # Keep the original button label
+                        button_label=f"Use 🔑",  # Keep the original button label
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=f"{prefix}{pid}") for pid in existing_ids], id="pipeline-ids"),
