@@ -130,7 +130,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         profile_name = context['profile_name']
         logger.debug(f"Current context - Plugin: {plugin_name}, Profile ID: {profile_id}, Profile Name: {profile_name}")
         
-        title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
+        # title = f"{self.DISPLAY_NAME or app_name.title()}: {len(steps) - 1} Steps + Finalize"
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
         pipeline.xtra(app_name=app_name)
         
         # Filter IDs to only show those relevant to this plugin and profile
