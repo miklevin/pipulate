@@ -263,13 +263,24 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Check if workflow is finalized
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
 
-        # Start chat messages in a background task to avoid blocking UI
-        asyncio.create_task(self._send_workflow_messages(
-            pipeline_id, 
-            all_steps_complete, 
-            is_finalized, 
-            state
-        ))
+        # Add information about the workflow ID to conversation history - non-blocking
+        id_message = f"Workflow ID: {pipeline_id}"
+        asyncio.create_task(pip.stream(id_message, verbatim=True, spaces_before=0))
+        
+        # Add the return message - non-blocking
+        return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
+        asyncio.create_task(pip.stream(return_message, verbatim=True, spaces_before=0))
+
+        # Non-blocking workflow status messages
+        if all_steps_complete:
+            if is_finalized:
+                asyncio.create_task(pip.stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.", verbatim=True))
+            else:
+                asyncio.create_task(pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True))
+        else:
+            # If it's a new workflow, add a brief explanation
+            if not any(step.id in state for step in self.steps):
+                asyncio.create_task(pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True))
 
         # ───────── UI GENERATION AND DATALIST UPDATES ─────────
         # Update the datalist by adding this key immediately to the UI
@@ -297,32 +308,6 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             *placeholders, 
             id=f"{app_name}-container"
         )
-
-    async def _send_workflow_messages(self, pipeline_id, all_steps_complete, is_finalized, state):
-        """Send chat messages in background without blocking the UI."""
-        pip = self.pipulate
-        
-        # Add information about the workflow ID to conversation history
-        id_message = f"Workflow ID: {pipeline_id}"
-        await pip.stream(id_message, verbatim=True, spaces_before=0)
-        
-        # Add the return message
-        return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
-        await pip.stream(return_message, verbatim=True, spaces_before=0)
-
-        # Add a small delay to ensure messages appear in the correct order
-        await asyncio.sleep(0.5)
-
-        # If all steps are complete, show an appropriate message
-        if all_steps_complete:
-            if is_finalized:
-                await pip.stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.", verbatim=True)
-            else:
-                await pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True)
-        else:
-            # If it's a new workflow, add a brief explanation
-            if not any(step.id in state for step in self.steps):
-                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
 
     async def step_01(self, request):
         """
