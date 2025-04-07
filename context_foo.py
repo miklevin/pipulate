@@ -785,8 +785,16 @@ if args.concat_mode:
     lines.append(f"Files processed: {files_processed} of {total_files} found")
     if files_processed < total_files:
         lines.append(f"Remaining files: {total_files - files_processed}")
-        lines.append(f"Next chunk will start with: {md_files[files_processed]}")
-    lines.append(f"Date range processed: {start_date} to {end_date}")
+        if files_processed < len(md_files):
+            lines.append(f"Next chunk will start with: {md_files[files_processed]}")
+    # Only include date range if we're in concat mode and have processed files
+    if 'md_files' in locals() and len(md_files) > 0:
+        try:
+            first_date = md_files[0][:10]
+            last_date = md_files[-1][:10]
+            lines.append(f"Date range processed: {first_date} to {last_date}")
+        except Exception as e:
+            print(f"Warning: Could not determine date range: {e}")
 lines.append(f"Total context size: {format_token_count(total_tokens)}")
 lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
 lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
