@@ -229,6 +229,8 @@ parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT,
                     help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT}, Gemini 1.5 Pro limit)')
 parser.add_argument('--concat-mode', action='store_true', 
                     help='Use concatenation mode similar to cat_foo.py')
+parser.add_argument('-d', '--directory', type=str, default=".",
+                    help='Target directory for concat mode (default: current directory)')
 
 args = parser.parse_args()
 
@@ -497,65 +499,96 @@ if not args.concat_mode:
     lines.append(final_pre_prompt)
     lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
     total_tokens = count_tokens(final_pre_prompt, "gpt-4")
-else:
-    total_tokens = 0
-
-# Process each file in the list
-for relative_path in file_list:
-    relative_path = relative_path.strip()
-    if not relative_path:
-        continue
-
-    full_path = os.path.join(repo_root, relative_path)
     
-    if args.concat_mode:
-        # Simple concatenation mode like cat_foo.py
-        try:
-            with open(full_path, 'r', encoding='utf-8') as infile:
-                content = infile.read()
-                file_tokens = count_tokens(content, "gpt-4")
-                
-                # Check token limit
-                if total_tokens + file_tokens > args.max_tokens:
-                    print(f"Warning: Skipping {relative_path} as it would exceed the {args.max_tokens:,} token limit")
-                    continue
-                    
-                total_tokens += file_tokens
-                lines.append(f"# {relative_path}\n")
-                lines.append(content)
-                lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
-                print(f"Added {relative_path} ({format_token_count(file_tokens)})")
-                print(f"Total tokens so far: {format_token_count(total_tokens)}")
-        except Exception as e:
-            print(f"Warning: Could not process {full_path}: {e}")
-    else:
-        # Original detailed mode with markers
-        start_marker = f"# <<< START FILE: {full_path} >>>"
-        end_marker = f"# <<< END FILE: {full_path} >>>"
+    # Process each file in the manifest file list
+    for relative_path in file_list:
+        relative_path = relative_path.strip()
+        if not relative_path:
+            continue
+
+        full_path = os.path.join(repo_root, relative_path)
         
-        lines.append(start_marker)
-        try:
-            with open(full_path, 'r', encoding='utf-8') as infile:
-                file_content = infile.read()
-                file_tokens = count_tokens(file_content, "gpt-4")
-                
-                # Check token limit
-                if total_tokens + file_tokens > args.max_tokens:
-                    error_message = f"# --- WARNING: File skipped, would exceed {args.max_tokens:,} token limit ---"
-                    print(f"Warning: {error_message}")
-                    lines.append(error_message)
-                else:
+        if args.concat_mode:
+            # Simple concatenation mode like cat_foo.py
+            try:
+                with open(full_path, 'r', encoding='utf-8') as infile:
+                    content = infile.read()
+                    file_tokens = count_tokens(content, "gpt-4")
+                    
+                    # Check token limit
+                    if total_tokens + file_tokens > args.max_tokens:
+                        print(f"Warning: Skipping {relative_path} as it would exceed the {args.max_tokens:,} token limit")
+                        continue
+                        
                     total_tokens += file_tokens
-                    token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-                    lines.append(file_content + token_info)
+                    lines.append(f"# {relative_path}\n")
+                    lines.append(content)
+                    lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
                     print(f"Added {relative_path} ({format_token_count(file_tokens)})")
                     print(f"Total tokens so far: {format_token_count(total_tokens)}")
-        except Exception as e:
-            error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-            print(f"Warning: {error_message}")
-            lines.append(error_message)
+            except Exception as e:
+                print(f"Warning: Could not process {full_path}: {e}")
+        else:
+            # Original detailed mode with markers
+            start_marker = f"# <<< START FILE: {full_path} >>>"
+            end_marker = f"# <<< END FILE: {full_path} >>>"
+            
+            lines.append(start_marker)
+            try:
+                with open(full_path, 'r', encoding='utf-8') as infile:
+                    file_content = infile.read()
+                    file_tokens = count_tokens(file_content, "gpt-4")
+                    
+                    # Check token limit
+                    if total_tokens + file_tokens > args.max_tokens:
+                        error_message = f"# --- WARNING: File skipped, would exceed {args.max_tokens:,} token limit ---"
+                        print(f"Warning: {error_message}")
+                        lines.append(error_message)
+                    else:
+                        total_tokens += file_tokens
+                        token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+                        lines.append(file_content + token_info)
+                        print(f"Added {relative_path} ({format_token_count(file_tokens)})")
+                        print(f"Total tokens so far: {format_token_count(total_tokens)}")
+            except Exception as e:
+                error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
+                print(f"Warning: {error_message}")
+                lines.append(error_message)
+            
+            lines.append(end_marker)
+else:
+    total_tokens = 0
+    # Process markdown files in target directory
+    target_dir = args.directory
+    try:
+        # Get list of markdown files, sorted
+        md_files = sorted([f for f in os.listdir(target_dir) 
+                          if f.endswith('.md') and f not in ['foo.md', args.output]])
         
-        lines.append(end_marker)
+        print(f"\nProcessing markdown files in {target_dir}:")
+        for filename in md_files:
+            filepath = os.path.join(target_dir, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as infile:
+                    content = infile.read()
+                    file_tokens = count_tokens(content, "gpt-4")
+                    
+                    # Check token limit
+                    if total_tokens + file_tokens > args.max_tokens:
+                        print(f"Warning: Skipping {filename} as it would exceed the {args.max_tokens:,} token limit")
+                        continue
+                        
+                    total_tokens += file_tokens
+                    lines.append(f"# {filename}\n")
+                    lines.append(content)
+                    lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
+                    print(f"Added {filename} ({format_token_count(file_tokens)})")
+                    print(f"Total tokens so far: {format_token_count(total_tokens)}")
+            except Exception as e:
+                print(f"Warning: Could not process {filepath}: {e}")
+    except Exception as e:
+        print(f"Error accessing directory {target_dir}: {e}")
+        sys.exit(1)
 
 # Add a separator and the post-prompt if not in concat mode
 if not args.concat_mode:
