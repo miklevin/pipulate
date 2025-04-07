@@ -93,7 +93,13 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     def get_endpoint_message(self):
         """
         Dynamically determine the endpoint message based on token file existence.
-        This is called by the server when displaying the message in the sidebar.
+        
+        This method checks if a Botify token file exists and returns an appropriate
+        message for the user. It's called by the server when displaying the message
+        in the sidebar.
+        
+        Returns:
+            str: A message indicating whether a token exists and how to proceed
         """
         try:
             token_path = "botify_token.txt"
@@ -162,7 +168,17 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
 
     async def init(self, request):
         """
-        Process the landing page form submission.
+        Process the landing page form submission and initialize the workflow.
+        
+        This method validates the Botify API token, initializes the pipeline state,
+        and returns the UI with placeholders for the workflow steps. It handles
+        token validation and provides appropriate feedback through the UI.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            FastHTML components representing the workflow UI
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
@@ -196,12 +212,32 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         except Exception as e:
             await pip.stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
         
-        cells = self.run_all_cells(steps, app_name)
-        return Div(*cells, id=f"{app_name}-container")
+        # Get placeholders for all steps
+        placeholders = self.run_all_cells(steps, app_name)
+        return Div(*placeholders, id=f"{app_name}-container")
 
     # Required methods for the workflow system, even if we don't have steps
     
     async def finalize(self, request):
+        """
+        Finalize the workflow, saving the Botify API token.
+        
+        This method handles both GET requests (displaying finalization UI) and 
+        POST requests (performing the actual finalization). The UI portions
+        are intentionally kept WET to allow for full customization of the user
+        experience, while core state management is handled by DRY helper methods.
+        
+        Customization Points:
+        - GET response: The cards/UI shown before finalization
+        - Token validation and storage logic
+        - Confirmation message: What the user sees after token is saved
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components for either the finalization prompt or confirmation
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "")
         finalize_step = steps[-1]
@@ -210,6 +246,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         logger.debug(f"Finalize step: {finalize_step}")
         logger.debug(f"Finalize data: {finalize_data}")
 
+        # ───────── GET REQUEST: FINALIZATION UI (INTENTIONALLY WET) ─────────
         if request.method == "GET":
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
@@ -237,13 +274,16 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 ),
                 id=finalize_step.id
             )
+        # ───────── END GET REQUEST ─────────
         else:
-            # This is the POST request when they press the Finalize button
+            # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
+            # Update state using DRY helper
             state = pip.read_state(pipeline_id)
             state["finalize"] = {"finalized": True}
             state["updated"] = datetime.now().isoformat()
             pip.write_state(pipeline_id, state)
 
+            # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
             # Write the token to a file in the current working directory
             try:
                 # Validate the token and get the username
@@ -268,11 +308,23 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             except Exception as e:
                 await pip.stream(f"Error validating token: {type(e).__name__}. No file was saved.", verbatim=True)
 
-            # Return the updated UI - this stays the same regardless of validation
-            return Div(*self.run_all_cells(steps, app_name), id=f"{app_name}-container")
+            # Return the updated UI
+            return pip.rebuild(app_name, steps)
+            # ───────── END CUSTOM FINALIZATION UI ─────────
 
     async def validate_botify_token(self, token):
-        """Check if the Botify API token is valid and return the username if successful."""
+        """
+        Check if the Botify API token is valid and return the username if successful.
+        
+        This method makes an API request to the Botify authentication endpoint
+        to validate the provided token and retrieve the associated username.
+        
+        Args:
+            token: The Botify API token to validate
+            
+        Returns:
+            str or None: The username if token is valid, None otherwise
+        """
         import httpx
         
         url = "https://api.botify.com/v1/authentication/profile"
@@ -295,13 +347,34 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             return None
 
     async def unfinalize(self, request):
+        """
+        Unfinalize the workflow, allowing the Botify API token to be changed.
+        
+        This method removes the finalization flag from the workflow state,
+        deletes the Botify API token file, and displays a confirmation message 
+        to the user. The UI generation is intentionally kept WET for 
+        customization.
+        
+        Customization Points:
+        - Token file deletion logic
+        - Confirmation message: What the user sees after unfinalizing
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components showing the workflow is unlocked
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Update state using DRY helper
         state = pip.read_state(pipeline_id)
         if "finalize" in state:
             del state["finalize"]
         pip.write_state(pipeline_id, state)
 
+        # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
         # Delete the token file if it exists
         try:
             token_path = "botify_token.txt"
@@ -316,28 +389,30 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         # Send a message informing them they can revert to any step
         await pip.stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True)
 
-        cells = self.run_all_cells(steps, app_name)
-        return Div(*cells, id=f"{app_name}-container")
+        # Return the rebuilt UI
+        return pip.rebuild(app_name, steps)
+        # ───────── END CUSTOM UNFINALIZATION UI ─────────
 
     def run_all_cells(self, steps, app_name):
         """
         Starts HTMX chain reaction of all steps up to current.
         Equivalent to Running all Cells in a Jupyter Notebook.
         """
-        cells = []
-        for i, step in enumerate(steps):
-            trigger = ("load" if i == 0 else f"stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}")
-            cells.append(
-                Div(
-                    id=step.id,
-                    hx_get=f"/{app_name}/{step.id}",
-                    hx_trigger=trigger,
-                    hx_swap="outerHTML"
-                )
-            )
-        return cells
+        return self.pipulate.run_all_cells(app_name, steps)
 
     async def jump_to_step(self, request):
+        """
+        Jump to a specific step in the workflow.
+        
+        This method updates the step_id in the database and rebuilds the UI
+        to show the workflow from the selected step.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components showing the workflow from the selected step
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
@@ -345,6 +420,19 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
+        """
+        Get a suggestion value for a step based on transform function.
+        
+        If the step has a transform function, use the previous step's output
+        to generate a suggested value.
+        
+        Args:
+            step_id: The ID of the step to generate a suggestion for
+            state: The current workflow state
+            
+        Returns:
+            str: The suggested value or empty string if not applicable
+        """
         pip, db, steps = self.pipulate, self.db, self.steps
         # If a transform function exists, use the previous step's output.
         step = next((s for s in steps if s.id == step_id), None)
@@ -360,18 +448,30 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
+        """
+        Handle reverting to a previous step in the workflow.
+        
+        This method clears state data from the specified step forward,
+        marks the step as the revert target in the state, and rebuilds
+        the workflow UI.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components representing the rebuilt workflow UI
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
-            return P("Error: No step specified", style=pip.get_style("error"))
-        await pip.clear_steps_from(pipeline_id, step_id, steps)
-        state = pip.read_state(pipeline_id)
+            return P("Error: No step specified", style=self.pipulate.get_style("error"))
+        await self.pipulate.clear_steps_from(pipeline_id, step_id, steps)
+        state = self.pipulate.read_state(pipeline_id)
         state["_revert_target"] = step_id
-        pip.write_state(pipeline_id, state)
+        self.pipulate.write_state(pipeline_id, state)
         message = "Reverting to update your Botify API token."
-        await pip.stream(message, verbatim=True)
-        cells = self.run_all_cells(steps, app_name)
-        return Div(*cells, id=f"{app_name}-container")
+        await self.pipulate.stream(message, verbatim=True)
+        return self.pipulate.rebuild(app_name, steps)
 
