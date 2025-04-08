@@ -30,6 +30,34 @@ There are two types of apps in Pipulate:
 CRUD is DRY and Workflows are WET! Get ready to get WET!
 """
 
+# Simple ordered message queue to ensure messages appear in sequence
+class OrderedMessageQueue:
+    """A lightweight queue to ensure messages are delivered in order.
+    
+    This class creates a simple message queue that ensures messages are delivered
+    in the exact order they are added, without requiring explicit delays between
+    messages. It's used to fix the message streaming order issues.
+    """
+    def __init__(self):
+        self.queue = []
+        self._processing = False
+        
+    async def add(self, pipulate, message, **kwargs):
+        """Add a message to the queue and process if not already processing."""
+        self.queue.append((pipulate, message, kwargs))
+        if not self._processing:
+            await self._process_queue()
+    
+    async def _process_queue(self):
+        """Process all queued messages in order."""
+        self._processing = True
+        try:
+            while self.queue:
+                pipulate, message, kwargs = self.queue.pop(0)
+                await pipulate.stream(message, **kwargs)
+        finally:
+            self._processing = False
+
 # This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -70,6 +98,8 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         self.steps_indices = {}
         self.db = db
         pip = self.pipulate
+        # Create message queue for ordered streaming
+        self.message_queue = OrderedMessageQueue()
 
         # Customize the steps, it's like one step per cell in the Notebook
         steps = [
@@ -263,30 +293,25 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Check if workflow is finalized
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
 
+        # Add all messages to the ordered queue in sequence - they'll be delivered in order
         # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}"
-        await pip.stream(id_message, verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, id_message, verbatim=True, spaces_before=0)
         
         # Add the return message
         return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
-        await pip.stream(return_message, verbatim=True, spaces_before=0)
-
-        # Add a small delay to ensure messages appear in the correct order
-        await asyncio.sleep(0.5)
+        await self.message_queue.add(pip, return_message, verbatim=True, spaces_before=0)
 
         # Workflow status messages
         if all_steps_complete:
             if is_finalized:
-                await pip.stream(f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.", verbatim=True)
+                await self.message_queue.add(pip, f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.", verbatim=True)
             else:
-                await pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True)
+                await self.message_queue.add(pip, f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True)
         else:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
-                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
-
-        # Add another delay before loading the first step
-        await asyncio.sleep(0.5)
+                await self.message_queue.add(pip, "Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
 
         # ───────── UI GENERATION AND DATALIST UPDATES ─────────
         # Update the datalist by adding this key immediately to the UI
@@ -385,7 +410,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
 
-            await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
                     H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -467,13 +492,12 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Update state using helper
         await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        # Send confirmation message
-        await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
+        # Send confirmation message - use the queue for ordered delivery
+        await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
         
         # Check if we need finalize prompt
         if pip.check_finalize_needed(step_index, steps):
-            await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
+            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
         
         # Return navigation controls
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
@@ -532,7 +556,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         else:
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
 
-            await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
                     H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
@@ -583,13 +607,12 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Update state using helper
         await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        # Send confirmation message
-        await pip.stream(f"{step.show}: {processed_val}", verbatim=True)
+        # Send confirmation message - use the queue for ordered delivery
+        await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
         
         # Check if we need finalize prompt
         if pip.check_finalize_needed(step_index, steps):
-            await asyncio.sleep(0.1)  # Small delay for better readability
-            await pip.stream("All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
+            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
         
         # Return navigation controls
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
@@ -670,7 +693,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             
             # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
             # Send a confirmation message 
-            await pip.stream("Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
+            await self.message_queue.add(pip, "Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
             
             # Return the updated UI
             return pip.rebuild(app_name, steps)
@@ -703,7 +726,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         
         # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
         # Send a message informing them they can revert to any step
-        await pip.stream("Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
         
         # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
@@ -787,5 +810,5 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         state["_revert_target"] = step_id
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-        await pip.stream(message, verbatim=True)
+        await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
