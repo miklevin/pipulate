@@ -60,11 +60,6 @@ class StreamSimulatorPlugin:
         return EventStream(event_generator())
 
     async def start_handler(self, request):
-        # Use pipulate.stream instead of chatq
-        await self.pipulate.stream(
-            f"Tell the user {limiter} that you see that they have started a streaming simulation and will keep them updated on progress.",
-            spaces_after=1
-        )
         return Button("Streaming...", cls="stream-sim-button", id="stream_sim_button", disabled="true", aria_busy="true")
 
     async def generate_chunks(self, total_chunks=100, delay_range=(0.1, 0.5)):
@@ -80,35 +75,40 @@ class StreamSimulatorPlugin:
                     chat_tasks.append(asyncio.create_task(
                         self.pipulate.stream(
                             f"Tell the user {limiter} streaming is in progress, fake as it may be.",
-                            spaces_after=1
+                            spaces_before=0,
+                            spaces_after=0,
                         )
                     ))
                 elif i + 1 == 15:
                     chat_tasks.append(asyncio.create_task(
                         self.pipulate.stream(
                             f"Tell the user {limiter} the job is 25% done, fake as it may be.",
-                            spaces_after=1
+                            spaces_before=1,
+                            spaces_after=0
                         )
                     ))
                 elif i + 1 == 40:
                     chat_tasks.append(asyncio.create_task(
                         self.pipulate.stream(
                             f"Tell the user {limiter} the job is 50% over half way there, fake as it may be.",
-                            spaces_after=1
+                            spaces_before=1,
+                            spaces_after=0
                         )
                     ))
                 elif i + 1 == 65:
                     chat_tasks.append(asyncio.create_task(
                         self.pipulate.stream(
                             f"Tell the user {limiter} the job is nearly complete, fake as it may be.",
-                            spaces_after=1
+                            spaces_before=1,
+                            spaces_after=0
                         )
                     ))
                 elif i + 1 == 85:
                     chat_tasks.append(asyncio.create_task(
                         self.pipulate.stream(
                             f"Tell the user in under 20 words just a little bit more, fake as it may be.",
-                            spaces_after=1
+                            spaces_before=1,
+                            spaces_after=0
                         )
                     ))
                 await asyncio.sleep(random.uniform(*delay_range))
@@ -118,7 +118,8 @@ class StreamSimulatorPlugin:
                 await asyncio.gather(*chat_tasks)
             await self.pipulate.stream(
                 f"Congratulate the user {limiter}. The long-running job is done, fake as it may be!",
-                spaces_after=1
+                spaces_before=1,
+                spaces_after=0
             )
         except Exception as e:
             self.logger.error(f"Error in chunk generation: {str(e)}")
