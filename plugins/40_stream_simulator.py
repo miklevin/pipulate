@@ -27,6 +27,8 @@ class StreamSimulatorPlugin:
         self.pipulate = pipulate
         self.db = db
         self.logger = logger
+        # Use message queue from Pipulate for ordered message streaming
+        self.message_queue = pipulate.message_queue
         logger.debug(f"StreamSimulatorPlugin initialized with NAME: {self.NAME}")
         NAME = "stream_simulator"
         DISPLAY_NAME = "Stream Simulator"
@@ -66,47 +68,40 @@ class StreamSimulatorPlugin:
         try:
             logger.debug("Generating Chunks")
             self.logger.debug(f"Generating chunks: total={total_chunks}, delay={delay_range}")
-            chat_tasks = []
             for i in range(total_chunks):
                 chunk = f"Simulated chunk {i + 1}/{total_chunks}"
                 self.logger.debug(f"Generated chunk: {chunk}")
                 yield chunk
                 if i + 1 == 1:
-                    chat_tasks.append(asyncio.create_task(
-                        self.pipulate.stream(
-                            f"Tell the user {limiter} streaming is in progress, fake as it may be.",
-                        )
-                    ))
+                    await self.message_queue.add(
+                        self.pipulate,
+                        f"Tell the user {limiter} streaming is in progress, fake as it may be.",
+                    )
                 elif i + 1 == 15:
-                    chat_tasks.append(asyncio.create_task(
-                        self.pipulate.stream(
-                            f"Tell the user {limiter} the job is 25% done, fake as it may be.",
-                        )
-                    ))
+                    await self.message_queue.add(
+                        self.pipulate,
+                        f"Tell the user {limiter} the job is 25% done, fake as it may be.",
+                    )
                 elif i + 1 == 40:
-                    chat_tasks.append(asyncio.create_task(
-                        self.pipulate.stream(
-                            f"Tell the user {limiter} the job is 50% over half way there, fake as it may be.",
-                        )
-                    ))
+                    await self.message_queue.add(
+                        self.pipulate,
+                        f"Tell the user {limiter} the job is 50% over half way there, fake as it may be.",
+                    )
                 elif i + 1 == 65:
-                    chat_tasks.append(asyncio.create_task(
-                        self.pipulate.stream(
-                            f"Tell the user {limiter} the job is nearly complete, fake as it may be.",
-                        )
-                    ))
+                    await self.message_queue.add(
+                        self.pipulate,
+                        f"Tell the user {limiter} the job is nearly complete, fake as it may be.",
+                    )
                 elif i + 1 == 85:
-                    chat_tasks.append(asyncio.create_task(
-                        self.pipulate.stream(
-                            f"Tell the user in under 20 words just a little bit more, fake as it may be.",
-                        )
-                    ))
+                    await self.message_queue.add(
+                        self.pipulate,
+                        f"Tell the user in under 20 words just a little bit more, fake as it may be.",
+                    )
                 await asyncio.sleep(random.uniform(*delay_range))
             self.logger.debug("Finished generating all chunks")
             yield json.dumps({"status": "complete"})
-            if chat_tasks:
-                await asyncio.gather(*chat_tasks)
-            await self.pipulate.stream(
+            await self.message_queue.add(
+                self.pipulate,
                 f"Congratulate the user {limiter}. The long-running job is done, fake as it may be!",
             )
         except Exception as e:
