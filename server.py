@@ -574,6 +574,25 @@ class Pipulate:
     async def stream(self, message, verbatim=False, role="user", 
                     spaces_before=None, spaces_after=1,
                     simulate_typing=True):
+        """
+        Stream a message to the chat interface.
+        
+        This method is now a direct passthrough to the streaming implementation.
+        Using this method directly will bypass the OrderedMessageQueue - it's
+        recommended to use message_queue.add() for proper message ordering in 
+        complex async scenarios.
+        
+        Args:
+            message: The message to stream
+            verbatim: If True, send message as-is; if False, process with LLM
+            role: The role for the message in the conversation history
+            spaces_before: Number of line breaks to add before the message
+            spaces_after: Number of line breaks to add after the message
+            simulate_typing: Whether to simulate typing for verbatim messages
+            
+        Returns:
+            The original message
+        """
         try:
             conversation_history = append_to_conversation(message, role)
             
@@ -611,7 +630,6 @@ class Pipulate:
             logger.error(f"Error in pipulate.stream: {e}")
             traceback.print_exc()
             raise
-
 
     def revert_control(
         self,
@@ -1308,7 +1326,11 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         self.pipulate_instance = pipulate_instance
-        self.send_message = lambda message, verbatim=True: self.pipulate_instance.stream(message, verbatim=verbatim, spaces_after=1)
+        # For now, directly use stream with create_task as it's proven to work reliably
+        # TODO: In the future, update this to use the OrderedMessageQueue once that's fully tested
+        self.send_message = lambda message, verbatim=True: asyncio.create_task(
+            self.pipulate_instance.stream(message, verbatim=verbatim, spaces_after=1)
+        )
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
@@ -1358,7 +1380,7 @@ class BaseCrud:
             logger.debug(f"Deleted item ID: {item_id}")
             action_details = f"The {self.name} item '{item_name}' was removed."
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             
             # Add a trigger to refresh the profile menu
             response = HTMLResponse("") 
@@ -1369,7 +1391,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while deleting {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     async def toggle_item(self, request, item_id: int):
@@ -1383,7 +1405,7 @@ class BaseCrud:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            asyncio.create_task(self.send_message(action_details, verbatim=True))
+            self.send_message(action_details, verbatim=True)
                 
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
@@ -1419,7 +1441,7 @@ class BaseCrud:
             changes_str = '; '.join(changes)
             action_details = f"The {self.name} items were reordered: {changes_str}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             logger.debug(f"{self.name.capitalize()} order updated successfully")
             
             # Add a trigger to refresh the profile menu
@@ -1431,14 +1453,14 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return "Invalid data format", 400
         except Exception as e:
             error_msg = f"Error updating {self.name} order: {str(e)}"
             logger.error(error_msg)
             action_details = f"An error occurred while sorting {self.name} items: {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     async def insert_item(self, request):
@@ -1455,7 +1477,7 @@ class BaseCrud:
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             rendered = self.render_item(new_item)
             logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
             logger.debug(f"[DEBUG] Rendered item content: {rendered}")
@@ -1465,7 +1487,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     async def update_item(self, request, item_id: int):
@@ -1490,7 +1512,7 @@ class BaseCrud:
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             logger.debug(f"Updated {self.name} item {item_id}")
             
             # Get the profile HTML representation
@@ -1507,7 +1529,7 @@ class BaseCrud:
             logger.error(error_msg)
             action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     async def create_item(self, **kwargs):
@@ -1561,7 +1583,7 @@ class ProfileApp(BaseCrud):
             # Log the action
             action_details = f"A new {self.name} '{profile_name}' was added."
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             
             # Render the new profile item
             rendered_profile = self.render_item(new_profile)
@@ -1577,7 +1599,7 @@ class ProfileApp(BaseCrud):
             logger.error(error_msg)
             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     async def toggle_item(self, request, item_id: int):
@@ -1591,7 +1613,7 @@ class ProfileApp(BaseCrud):
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            asyncio.create_task(self.send_message(action_details, verbatim=True))
+            self.send_message(action_details, verbatim=True)
                 
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
@@ -1629,7 +1651,7 @@ class ProfileApp(BaseCrud):
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             logger.debug(f"Updated {self.name} item {item_id}")
             
             # Get the profile HTML representation
@@ -1647,7 +1669,7 @@ class ProfileApp(BaseCrud):
             logger.error(error_msg)
             action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
             prompt = action_details
-            asyncio.create_task(self.send_message(prompt, verbatim=True))
+            self.send_message(prompt, verbatim=True)
             return str(e), 500
 
     def prepare_insert_data(self, form):
