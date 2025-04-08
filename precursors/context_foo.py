@@ -373,6 +373,11 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
     # Initialize date range
     start_date = end_date = md_files[start_idx][:10] if start_idx < len(md_files) else "Unknown"
     
+    # Add blog pre-prompt if using --cat
+    if args.cat and BLOG_PRE_PROMPT:
+        lines.append(BLOG_PRE_PROMPT)
+        total_tokens += count_tokens(BLOG_PRE_PROMPT, "gpt-4")
+    
     # Process files for this chunk
     for i in range(start_idx, len(md_files)):
         filename = md_files[i]
@@ -387,7 +392,10 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                 file_tokens = count_tokens(content, "gpt-4")
                 
                 # Reserve space for metadata and buffer
-                reserved_tokens = TOKEN_BUFFER + 500  # 500 tokens for metadata
+                reserved_tokens = TOKEN_BUFFER
+                if args.cat and BLOG_POST_PROMPT:
+                    reserved_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
+                reserved_tokens += 500  # 500 tokens for metadata
                 
                 # Check if adding this file would exceed limit
                 if total_tokens + file_tokens + reserved_tokens > max_tokens:
@@ -429,6 +437,11 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                         len(md_files), start_date, end_date, max_tokens, total_tokens)
     lines = metadata_lines + lines
     
+    # Add blog post prompt if using --cat
+    if args.cat and BLOG_POST_PROMPT and total_tokens + count_tokens(BLOG_POST_PROMPT, "gpt-4") <= max_tokens:
+        lines.append(BLOG_POST_PROMPT)
+        total_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
+    
     # Write to file
     chunk_filename = get_chunk_filename(output_base, chunk_num, total_chunks, compress)
     try:
@@ -439,6 +452,20 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
             with open(chunk_filename, 'w', encoding='utf-8') as outfile:
                 outfile.write("\n".join(lines))
         print(f"\nSuccessfully created '{chunk_filename}'")
+        
+        # Copy to clipboard if this is the first chunk or forced single file
+        if (chunk_num == 1 and (args.cat or args.single or total_chunks == 1)):
+            try:
+                import pyperclip
+                with open(chunk_filename, 'r', encoding='utf-8') as infile:
+                    content = infile.read()
+                    pyperclip.copy(content)
+                    print(f"Content from '{chunk_filename}' successfully copied to clipboard using pyperclip.")
+            except ImportError:
+                print("`pyperclip` library not found for clipboard copy.")
+            except Exception as e:
+                print(f"Error copying to clipboard: {e}")
+                
     except Exception as e:
         print(f"Error writing to '{chunk_filename}': {e}")
     
@@ -452,7 +479,7 @@ parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output 
 parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT - TOKEN_BUFFER:,}, Gemini 1.5 Pro limit minus buffer)')
 parser.add_argument('--cat', action='store_true',
-                    help=f'Shortcut for --concat-mode -d {blog_posts_path}')
+                    help='Shortcut for concat mode with blog posts, outputs a single file')
 parser.add_argument('--concat-mode', action='store_true', 
                     help='Use concatenation mode similar to cat_foo.py')
 parser.add_argument('-d', '--directory', type=str, default=".",
@@ -468,8 +495,17 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
 
 args = parser.parse_args()
 
+# If --cat is used, set concat mode and blog posts directory
+if args.cat:
+    args.concat_mode = True
+    args.directory = blog_posts_path
+    if not args.output:  # Only set default if no output specified
+        args.output = "foo.txt"  # Set default output for blog posts to .txt
+    args.single = True  # Force single file output when using --cat
+
 # Set max tokens based on model if specified
-if args.single:
+if args.single or args.cat:
+    # Use a very large token limit for single file mode
     if args.model == 'gemini15':
         args.max_tokens = GEMINI_15_PRO_LIMIT - TOKEN_BUFFER
     elif args.model == 'gemini25':
@@ -479,13 +515,6 @@ if args.single:
     elif args.model == 'gpt4':
         args.max_tokens = GPT_4_TURBO_LIMIT - TOKEN_BUFFER
     print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
-
-# If --cat is used, set concat mode and blog posts directory
-if args.cat:
-    args.concat_mode = True
-    args.directory = blog_posts_path
-    if not args.output:  # Only set default if no output specified
-        args.output = "foo.txt"  # Set default output for blog posts to .txt
 
 if args.list:
     print("Available prompt templates:")
@@ -812,12 +841,18 @@ else:
         
         # Get full paths for token counting
         md_paths = [os.path.join(target_dir, f) for f in md_files]
-        total_chunks = estimate_total_chunks(md_paths, args.max_tokens)
-        
-        print(f"\nFound {total_files} markdown files in {target_dir}")
-        print(f"Estimated chunks needed: {total_chunks}")
-        
-        if args.chunk:
+
+        # Force single file output when --cat is used or --single is specified
+        if args.cat or args.single:
+            total_chunks = 1
+            print(f"\nFound {total_files} markdown files in {target_dir}")
+            print("Generating single file output...")
+        else:
+            total_chunks = estimate_total_chunks(md_paths, args.max_tokens)
+            print(f"\nFound {total_files} markdown files in {target_dir}")
+            print(f"Estimated chunks needed: {total_chunks}")
+
+        if args.chunk and not args.single and not args.cat:
             # Process specific chunk
             if 1 <= args.chunk <= total_chunks:
                 # Calculate start index for this chunk
@@ -836,7 +871,7 @@ else:
             for chunk_num in range(1, total_chunks + 1):
                 start_idx = process_chunk(md_files, start_idx, chunk_num, total_chunks, 
                                        args.max_tokens, args.output, args.compress)
-                
+        
     except Exception as e:
         print(f"Error accessing directory {target_dir}: {e}")
         sys.exit(1)
@@ -882,43 +917,44 @@ if not args.concat_mode:
 
 # --- Clipboard Handling ---
 print("\n--- Clipboard Instructions ---")
-try:
-    import pyperclip
-    # In chunk mode, copy the first chunk
-    if args.concat_mode and total_chunks > 1:
-        chunk_to_copy = get_chunk_filename(args.output, 1, total_chunks, args.compress)
-    else:
-        chunk_to_copy = args.output
-        
+# Skip clipboard handling if already done in process_chunk function
+if not args.cat and not args.single and (args.concat_mode and total_chunks > 1):
     try:
-        with open(chunk_to_copy, 'r', encoding='utf-8') as infile:
-            content = infile.read()
-            pyperclip.copy(content)
-            print(f"Content from '{chunk_to_copy}' successfully copied to clipboard using pyperclip.")
-            print("You can now paste it.")
+        import pyperclip
+        # In chunk mode, copy the first chunk
+        chunk_to_copy = get_chunk_filename(args.output, 1, total_chunks, args.compress)
+            
+        try:
+            with open(chunk_to_copy, 'r', encoding='utf-8') as infile:
+                content = infile.read()
+                pyperclip.copy(content)
+                print(f"Content from '{chunk_to_copy}' successfully copied to clipboard using pyperclip.")
+                print("You can now paste it.")
+        except Exception as e:
+            print(f"Error reading '{chunk_to_copy}' for clipboard: {e}")
+    except ImportError:
+        print("`pyperclip` library not found.")
+        print("To install it: pip install pyperclip")
+        print("Alternatively, use OS-specific commands below or manually copy from the output files.")
     except Exception as e:
-        print(f"Error reading '{chunk_to_copy}' for clipboard: {e}")
-except ImportError:
-    print("`pyperclip` library not found.")
-    print("To install it: pip install pyperclip")
-    print("Alternatively, use OS-specific commands below or manually copy from the output files.")
-except Exception as e:
-    print(f"An error occurred while using pyperclip: {e}")
-    print("Try OS-specific commands or manually copy from the output files.")
+        print(f"An error occurred while using pyperclip: {e}")
+        print("Try OS-specific commands or manually copy from the output files.")
 
-# OS-specific clipboard instructions if pyperclip isn't available or failed
-if 'pyperclip' not in sys.modules or 'content' not in locals():
-    if sys.platform == "darwin":  # macOS
-        print("\nOn macOS, you can try in your terminal:")
-        print(f"  cat {args.output} | pbcopy")
-    elif sys.platform == "win32":  # Windows
-        print("\nOn Windows, try in Command Prompt or PowerShell:")
-        print(f"  type {args.output} | clip")         # Command Prompt
-        print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
-    else:  # Linux (assuming X11 with xclip or xsel)
-        print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
-        print(f"  cat {args.output} | xclip -selection clipboard")
-        print("  # or")
-        print(f"  cat {args.output} | xsel --clipboard --input")
+    # OS-specific clipboard instructions if pyperclip isn't available or failed
+    if 'pyperclip' not in sys.modules or 'content' not in locals():
+        if sys.platform == "darwin":  # macOS
+            print("\nOn macOS, you can try in your terminal:")
+            print(f"  cat {args.output} | pbcopy")
+        elif sys.platform == "win32":  # Windows
+            print("\nOn Windows, try in Command Prompt or PowerShell:")
+            print(f"  type {args.output} | clip")         # Command Prompt
+            print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
+        else:  # Linux (assuming X11 with xclip or xsel)
+            print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
+            print(f"  cat {args.output} | xclip -selection clipboard")
+            print("  # or")
+            print(f"  cat {args.output} | xsel --clipboard --input")
+else:
+    print("Content already copied to clipboard.")
 
 print("\nScript finished.")
