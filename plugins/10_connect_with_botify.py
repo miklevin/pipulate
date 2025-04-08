@@ -77,7 +77,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         self.step_messages = {
             "finalize": {
                 "ready": "Ready to save your Botify API token.",
-                "complete": f"Botify API token saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+                "complete": f"✅ Botify API token saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             }
         }
 
@@ -207,18 +207,17 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             if username:
                 # Make chat messages non-blocking
                 await self.safe_stream(
-                    f"Botify API token validated for user: {username}. Ready to finalize.", 
+                    f"🟢 Botify API token validated for user: {pip.fmt(username)}. Ready to finalize.", 
                     verbatim=True,
-                    spaces_after=0  # Set to 0 to remove the extra line break
+                    spaces_after=1  # Set to 0 to remove the extra line break
                 )
-                
                 # Have the LLM greet the user with a short message - non-blocking
-                formatted_username = pip.fmt(username)
-                await self.safe_stream(
-                    f"Greet {formatted_username} briefly as their Botify assistant and tell them to click Finalize to save their token. Keep your response under 40 words.",
-                    verbatim=False,
-                    role="system"
-                )
+                # formatted_username = pip.fmt(username)
+                # await self.safe_stream(
+                #     f"Greet {formatted_username} briefly as their Botify assistant and tell them to click Finalize to save their token. Keep your response under 40 words.",
+                #     verbatim=False,
+                #     role="system"
+                # )
             else:
                 await self.safe_stream("⚠️ Invalid Botify API token. The finalize button won't work and the token won't be saved until it's valid.", verbatim=True)
         except Exception as e:
@@ -325,14 +324,20 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 with open("botify_token.txt", "w") as token_file:
                     token_file.write(f"{pipeline_id}\n# username: {username}")
                     
-                await self.safe_stream(f"Botify API token saved to botify_token.txt for user: {username}", verbatim=True, spaces_after=0)
+                await self.safe_stream(f"✅ Botify API token saved to botify_token.txt for user: {pip.fmt(username)}", verbatim=True, spaces_after=1)
+
+                await self.safe_stream(
+                    f"You may now use any workflows requiring Botify API integration.", 
+                    verbatim=True,
+                    spaces_after=1  # Set to 0 to remove the extra line break
+                )
                 
                 # Add the system prompt to inform users about Botify workflows
-                await self.safe_stream(
-                    "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
-                    verbatim=False,
-                    role="system"
-                )
+                # await self.safe_stream(
+                #     "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
+                #     verbatim=False,
+                #     role="system"
+                # )
             except Exception as e:
                 await self.safe_stream(f"Error saving token file: {type(e).__name__}.", verbatim=True)
 
