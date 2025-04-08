@@ -943,7 +943,7 @@ These workshop tools are valuable on their own and represent the active developm
 
 The plugin discovery system has a few important behaviors to be aware of:
 
-1. **Numeric Prefixes**: Files like `01_tasks.py` will be registered as just `tasks` - the numeric prefix is stripped for the module name while preserving the original filename for imports.
+1. **Numeric Prefixes**: Files like `10_tasks.py` will be registered as just `tasks` - the numeric prefix (used for dropdown menu order) is stripped for the module name while preserving the original filename for imports.
 
 2. **Files with Parentheses**: Any file with parentheses in the name (e.g., `tasks (Copy).py`) will be **skipped** by the plugin discovery system. This is useful when copying plugins as templates, as you can make edits before renaming.
 
