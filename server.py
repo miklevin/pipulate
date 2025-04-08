@@ -1717,7 +1717,7 @@ def render_profile(profile):
         hx_delete=delete_url,
         hx_target=f'#profile-{profile.id}',
         hx_swap='outerHTML',
-        style=f"cursor: pointer; display: {delete_icon_visibility}; text-decoration: none;",
+        style=f"cursor: pointer; display: {delete_icon_visibility}; text-decoration: none; margin-left: 10px;",
         cls="delete-icon"
     )
 
