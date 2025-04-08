@@ -1717,7 +1717,7 @@ def render_profile(profile):
         hx_delete=delete_url,
         hx_target=f'#profile-{profile.id}',
         hx_swap='outerHTML',
-        style=f"cursor: pointer; display: {delete_icon_visibility};",
+        style=f"cursor: pointer; display: {delete_icon_visibility}; text-decoration: none;",
         cls="delete-icon"
     )
 
@@ -1770,10 +1770,10 @@ def render_profile(profile):
         id=f'update-form-{profile.id}'
     )
 
-    title_link = A(
+    title_link = Span(
         f"{profile.name}",
-        href="#",
-        hx_trigger="click",
+        id=f"profile-text-display-{profile.id}",
+        style="margin-left: 5px; cursor: pointer;",
         onclick=(
             "let li = this.closest('li'); "
             "let updateForm = document.getElementById('update-form-" + str(profile.id) + "'); "
