@@ -263,24 +263,30 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Check if workflow is finalized
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
 
-        # Add information about the workflow ID to conversation history - non-blocking
+        # Add information about the workflow ID to conversation history
         id_message = f"Workflow ID: {pipeline_id}"
-        asyncio.create_task(pip.stream(id_message, verbatim=True, spaces_before=0))
+        await pip.stream(id_message, verbatim=True, spaces_before=0)
         
-        # Add the return message - non-blocking
+        # Add the return message
         return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
-        asyncio.create_task(pip.stream(return_message, verbatim=True, spaces_before=0))
+        await pip.stream(return_message, verbatim=True, spaces_before=0)
 
-        # Non-blocking workflow status messages
+        # Add a small delay to ensure messages appear in the correct order
+        await asyncio.sleep(0.5)
+
+        # Workflow status messages
         if all_steps_complete:
             if is_finalized:
-                asyncio.create_task(pip.stream(f"Workflow is complete and finalized. Use Unfinalize to make changes.", verbatim=True))
+                await pip.stream(f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.", verbatim=True)
             else:
-                asyncio.create_task(pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True))
+                await pip.stream(f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True)
         else:
             # If it's a new workflow, add a brief explanation
             if not any(step.id in state for step in self.steps):
-                asyncio.create_task(pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True))
+                await pip.stream("Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
+
+        # Add another delay before loading the first step
+        await asyncio.sleep(0.5)
 
         # ───────── UI GENERATION AND DATALIST UPDATES ─────────
         # Update the datalist by adding this key immediately to the UI
