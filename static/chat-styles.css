@@ -52,3 +52,37 @@ hr {
     border-color: var(--pico-primary);
     opacity: 0.3;
 }
+
+/* Enhanced dropdown styling - focusing ONLY on the dropdown menu part */
+details.dropdown summary + ul {
+    border: 2px solid var(--pico-primary-focus);  /* Subtle border using PicoCSS variable */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);  /* Moderate shadow */
+    background-color: var(--pico-dropdown-background-color);  /* Using the default PicoCSS variable with increased brightness */
+    filter: brightness(1.5);  /* Makes the background color 20% brighter while maintaining the theme */
+    padding: 8px 0;  /* Keep improved spacing */
+}
+
+details.dropdown summary + ul li {
+    padding: 8px 12px;  /* Keep improved padding */
+}
+
+details.dropdown summary + ul li a,
+details.dropdown summary + ul li label {
+    color: #ffffff;  /* White text for contrast with the new background */
+    font-weight: 500;  /* Slightly less bold */
+}
+
+details.dropdown summary + ul li:hover {
+    background-color: rgba(255, 255, 255, 0.2);  /* Subtle highlight on hover */
+}
+
+details.dropdown summary + ul li a:hover,
+details.dropdown summary + ul li label:hover {
+    color: #ffffff;
+}
+
+/* Style the currently selected item */
+details.dropdown summary + ul li[style*="background-color"] {
+    background-color: rgba(255, 255, 255, 0.3) !important;  /* Subtle highlight for selected items */
+    color: #ffffff;
+}
