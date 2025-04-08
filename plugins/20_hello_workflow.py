@@ -442,7 +442,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         if not is_valid:
             return error_component
 
-        # ===== START PLAYWRIGHT AUTOMATION SECTION =====
+        # ===== START PLAYWRIGHT AUTOMATION SECTION (FOR EXAMPLE) =====
         # This is where you would add Playwright-specific logic for this step
         # Example:
         # async with async_playwright() as playwright:
@@ -569,22 +569,10 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         if not is_valid:
             return error_component
 
-        # ===== START PLAYWRIGHT AUTOMATION SECTION =====
-        # This is where you would add Playwright-specific logic for this step
-        # The step_02 might use different automation than step_01
-        # Example:
-        # async with async_playwright() as playwright:
-        #     browser = await playwright.chromium.launch()
-        #     context = await browser.new_context()
-        #     page = await context.new_page()
-        #     await page.goto("https://example.com/step2")
-        #     # Perform different actions based on user_val
-        #     # Extract data specific to step_02
-        #     await browser.close()
-        
+        # ===== START POST-PROCESSING SECTION =====
         # For now, just use the user input directly
         processed_val = user_val
-        # ===== END PLAYWRIGHT AUTOMATION SECTION =====
+        # ===== END POST-PROCESSING SECTION =====
 
         # Update state using helper
         await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
