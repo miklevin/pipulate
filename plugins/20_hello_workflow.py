@@ -382,7 +382,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
-                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
@@ -529,7 +529,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             await pip.stream(self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
-                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
