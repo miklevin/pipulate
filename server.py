@@ -319,9 +319,13 @@ class Pipulate:
     # Style constants
     ERROR_STYLE = "color: red;"
     SUCCESS_STYLE = "color: green;" 
-    WARNING_BUTTON_STYLE = "background-color: #f66;"
-    PRIMARY_BUTTON_STYLE = "background-color: #4CAF50;"
-    SECONDARY_BUTTON_STYLE = "background-color: #008CBA;"
+    # Button styles using PicoCSS classes instead of custom styles
+    WARNING_BUTTON_STYLE = None  # Now using cls="secondary outline" instead
+    PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
+    SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
+    
+    # Button labels
+    UNLOCK_BUTTON_LABEL = "Unlock 🔓"  # Global label for unlock/unfinalize buttons
 
     def __init__(self, pipeline_table, chat_instance=None):
         """Initialize Pipulate with required dependencies.

@@ -116,7 +116,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         self.step_messages = {
             "finalize": {
                 "ready": "All steps complete. Ready to finalize workflow.",
-                "complete": "Workflow finalized. Use Unfinalize to make changes."
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             }
         }
 
@@ -343,7 +343,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                     H3("Pipeline Finalized"),
                     P("All steps are locked."),
                     Form(
-                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -355,7 +355,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                         H3("Finalize Pipeline"),
                         P("You can finalize this pipeline or go back to fix something."),
                         Form(
-                            Button("Finalize All Steps", type="submit"),
+                            Button("Finalize All Steps", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize",
                             hx_target=f"#{app_name}-container",
                             hx_swap="outerHTML"
@@ -490,7 +490,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                     H3("Pipeline Finalized"),
                     P("All steps are locked."),
                     Form(
-                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -502,7 +502,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
                         H3("Finalize Pipeline"),
                         P("You can finalize this pipeline or go back to fix something."),
                         Form(
-                            Button("Finalize All Steps", type="submit", style=pip.get_style("primary_button")),
+                            Button("Finalize All Steps", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize",
                             hx_target=f"#{app_name}-container",
                             hx_swap="outerHTML"
@@ -634,10 +634,10 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
                 return Card(
-                    H3("All Cards Complete"),
-                    P("Pipeline is finalized. Use Unfinalize to make changes."),
+                    H4("Workflow is locked."),
+                    # P(f"Pipeline is finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."),
                     Form(
-                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -655,10 +655,11 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
 
             if all_steps_complete:
                 return Card(
-                    H3("Ready to finalize?"),
-                    P("All data is saved. Lock it in?"),
+                    H4("All steps complete. Finalize?"),
+                    P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                    # P("All data is saved. Lock it in?"),
                     Form(
-                        Button("Finalize", type="submit", style=pip.get_style("primary_button")),
+                        Button("Finalize", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/finalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"

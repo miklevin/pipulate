@@ -75,7 +75,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         self.step_messages = {
             "finalize": {
                 "ready": "Ready to save your Botify API token.",
-                "complete": "Botify API token saved. Use Unfinalize to make changes."
+                "complete": f"Botify API token saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             }
         }
 
@@ -262,9 +262,13 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 logger.debug("Pipeline is already finalized")
                 return Card(
                     H3("Connection Complete"),
-                    P("Botify API token is saved. Use Unfinalize to make changes."),
+                    P(f"Botify API token is saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."),
                     Form(
-                        Button("Unfinalize", type="submit", style=pip.get_style("warning_button")),
+                        Button(
+                            pip.UNLOCK_BUTTON_LABEL, 
+                            type="submit", 
+                            cls="secondary outline"  # PicoCSS secondary outline style - more subtle
+                        ),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"
@@ -277,7 +281,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 H3("Ready to finalize?"),
                 P("Save your Botify API token?"),
                 Form(
-                    Button("Finalize", type="submit", style=pip.get_style("primary_button")),
+                    Button("Finalize", type="submit", cls="primary"),  # PicoCSS primary style
                     hx_post=f"/{app_name}/finalize",
                     hx_target=f"#{app_name}-container",
                     hx_swap="outerHTML"
