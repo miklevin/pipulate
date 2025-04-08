@@ -30,34 +30,6 @@ There are two types of apps in Pipulate:
 CRUD is DRY and Workflows are WET! Get ready to get WET!
 """
 
-# Simple ordered message queue to ensure messages appear in sequence
-class OrderedMessageQueue:
-    """A lightweight queue to ensure messages are delivered in order.
-    
-    This class creates a simple message queue that ensures messages are delivered
-    in the exact order they are added, without requiring explicit delays between
-    messages. It's used to fix the message streaming order issues.
-    """
-    def __init__(self):
-        self.queue = []
-        self._processing = False
-        
-    async def add(self, pipulate, message, **kwargs):
-        """Add a message to the queue and process if not already processing."""
-        self.queue.append((pipulate, message, kwargs))
-        if not self._processing:
-            await self._process_queue()
-    
-    async def _process_queue(self):
-        """Process all queued messages in order."""
-        self._processing = True
-        try:
-            while self.queue:
-                pipulate, message, kwargs = self.queue.pop(0)
-                await pipulate.stream(message, **kwargs)
-        finally:
-            self._processing = False
-
 # This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -99,7 +71,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         self.db = db
         pip = self.pipulate
         # Create message queue for ordered streaming
-        self.message_queue = OrderedMessageQueue()
+        self.message_queue = pip.message_queue
 
         # Customize the steps, it's like one step per cell in the Notebook
         steps = [

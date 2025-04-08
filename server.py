@@ -336,6 +336,35 @@ class Pipulate:
         """
         self.table = pipeline_table
         self.chat = chat_instance
+        # Initialize the message queue
+        self.message_queue = self.OrderedMessageQueue()
+
+    class OrderedMessageQueue:
+        """A lightweight queue to ensure messages are delivered in order.
+        
+        This class creates a simple message queue that ensures messages are delivered
+        in the exact order they are added, without requiring explicit delays between
+        messages. It's used to fix the message streaming order issues.
+        """
+        def __init__(self):
+            self.queue = []
+            self._processing = False
+            
+        async def add(self, pipulate, message, **kwargs):
+            """Add a message to the queue and process if not already processing."""
+            self.queue.append((pipulate, message, kwargs))
+            if not self._processing:
+                await self._process_queue()
+        
+        async def _process_queue(self):
+            """Process all queued messages in order."""
+            self._processing = True
+            try:
+                while self.queue:
+                    pipulate, message, kwargs = self.queue.pop(0)
+                    await pipulate.stream(message, **kwargs)
+            finally:
+                self._processing = False
 
     def make_singular(self, word):
         """Convert a potentially plural word to its singular form using simple rules.
@@ -391,6 +420,10 @@ class Pipulate:
     def set_chat(self, chat_instance):
         """Set the chat instance after initialization."""
         self.chat = chat_instance
+        
+    def get_message_queue(self):
+        """Return the message queue instance for ordered message delivery."""
+        return self.message_queue
 
     def get_style(self, style_type):
         """Get a predefined style by type"""
