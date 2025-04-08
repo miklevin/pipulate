@@ -1,6 +1,6 @@
 # Pipulate Free & Open Source SEO *with & for* LLMs
 
-![Pipulate Free & Open Source SEO with & for LLMs](pipulate-ai-seo.svg)
+![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
 > Workflows are WET as WET can be. The Crud is DRY as DRY.  
 > You need not use the Cloud because *no lock-in does apply!*  
@@ -857,8 +857,6 @@ This alone is a bit hard to grok, but the fact that [FastHTML database objects a
 
 And if you're like me, trying to truly understand and take advantage of this, you would be well served by examining the [`fast_app` signature](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py)) directly.
 
-
-
 ---
 
 **Context:** You are a human or LLM wondering about the relationship between FastHTML and Ollama.
@@ -875,25 +873,7 @@ And if you're like me, trying to truly understand and take advantage of this, yo
 
 **Question:** What should you know about your role within this application?
 
-**Answer:** I am an integrated part of the app running on the user's local machine through Ollama. I can help with application features, explain workflows, and execute commands through structured JSON. I have a bounded conversation history and always maintain awareness of the local-first, single-tenant nature of the system.
-
----
-
-**Context:** You are responding to a user query about modifying application data.
-
-**Question:** How should you respond to requests to create or modify data?
-
-**Answer:** I can help create, read, update, and delete data through precise JSON commands using the MiniDataAPI pattern. For example, to create a task, I would generate a valid JSON instruction like:
-
-```json
-{
-  "action": "insert",
-  "target": "task",
-  "args": {
-    "name": "🎯 Example Task"
-  }
-}
-```
+**Answer:** I am an integrated part of the app running on the user's local machine through Ollama. I can help with application features and explain workflows. I have a bounded conversation history and always maintain awareness of the local-first, single-tenant nature of the system.
 
 ---
 
@@ -923,7 +903,6 @@ And if you're like me, trying to truly understand and take advantage of this, yo
 
 **Answer:** As the integrated AI assistant, I have:
 
-
 - **Direct Access**: I can read the application state and understand the current workflow.
 - **Limited Context**: My conversation history is bounded to ~128,000 tokens.
 - **Local Processing**: All processing happens on your machine via Ollama.
@@ -943,6 +922,68 @@ I soon will be able to:
   - Suggest code changes and improvements
 
 For more detailed internal guidelines, see the [`.cursorrules`](./.cursorrules) file.
+
+---
+
+## Developer's Notes
+
+### The Pipulate Workshop
+
+Not everything in Pipulate is a polished workflow or CRUD app. The repository also contains a growing collection of standalone tools that serve different purposes:
+
+- **Workflow Precursors**: Scripts like `iterate_ollama.py` that are being refined before graduating to official workflows
+- **Utility Scripts**: Tools like `context_foo.py` that provide specific functionality without needing full workflow integration
+- **Exploration Notebooks**: Files like `gsc_page_query.ipynb` that showcase techniques or data processing approaches
+
+These workshop tools are valuable on their own and represent the active development process behind Pipulate. Some will eventually be promoted to official plugins, while others will remain as helpful utilities for specific tasks.
+
+### Plugin Development Conventions
+
+#### Auto-Registration Behavior
+
+The plugin discovery system has a few important behaviors to be aware of:
+
+1. **Numeric Prefixes**: Files like `01_tasks.py` will be registered as just `tasks` - the numeric prefix is stripped for the module name while preserving the original filename for imports.
+
+2. **Files with Parentheses**: Any file with parentheses in the name (e.g., `tasks (Copy).py`) will be **skipped** by the plugin discovery system. This is useful when copying plugins as templates, as you can make edits before renaming.
+
+3. **Experimental Plugins (xx_ prefix)**: Files prefixed with `xx_` or `XX_` (e.g., `xx_new_feature.py`) are considered experimental/workshop plugins and will be **skipped** by the plugin discovery system. This allows you to keep work-in-progress plugins in the same directory.
+
+#### Workflow for Creating New Plugins
+
+1. **Copy from Template**: Copy an existing plugin like `hello_workflow.py` to `hello_workflow (Copy).py`
+2. **Modify**: Make your changes (plugin won't auto-register due to parentheses)
+3. **Test Directly**: Test by importing directly in Python if needed
+4. **Deploy as Experimental**: Rename to `xx_new_feature.py` for continued development
+5. **Promote to Production**: When ready, rename to `21_new_feature.py` (using next available number)
+
+#### Git History Considerations
+
+When renaming plugins through their development lifecycle, be aware of the impact on git history:
+
+- Simple renames (`xx_foo.py` → `21_foo.py`) preserve git history with `git mv`
+- Complex renames (changing module name) can disrupt history
+- Consider using explicit commit messages that reference the original filename
+
+To maintain history when promoting a plugin:
+```bash
+git mv plugins/xx_new_feature.py plugins/21_new_feature.py
+git commit -m "Promote: xx_new_feature.py → 21_new_feature.py"
+```
+
+This approach ensures a clean repository while maintaining development flexibility.
+
+---
+
+## Roadmap
+
+- Dev, Test and Prod database switching
+- Saving source HTML and rendered DOM of any URL
+- Botify data export CSV save (the whole polling thing)
+- LLM inspection of any local data object (RAG-ish)
+- Various memory (vector embedding, graph, key/val-store)
+- MCP Server for automated web browsing and such
+- Enabling the local LLM to be an MCP Client
 
 ---
 

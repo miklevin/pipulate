@@ -2126,7 +2126,10 @@ def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
     
     This function scans the 'plugins' directory and imports each .py file
-    as a module. It skips files starting with '__' (like __init__.py).
+    as a module. It skips files:
+    - Starting with '__' (like __init__.py)
+    - Starting with 'xx_' or 'XX_' (indicating experimental/in-progress plugins)
+    - Containing parentheses (like "tasks (Copy).py")
     
     Returns:
         dict: Mapping of module names to imported module objects
@@ -2148,6 +2151,11 @@ def discover_plugin_files():
         # Skip files with parentheses (like "tasks (Copy).py")
         if '(' in filename or ')' in filename:
             logger.debug(f"Skipping file with parentheses: {filename}")
+            continue
+            
+        # Skip files prefixed with xx_ or XX_ (experimental plugins)
+        if filename.lower().startswith('xx_'):
+            logger.debug(f"Skipping experimental plugin: {filename}")
             continue
             
         if filename.endswith('.py') and not filename.startswith('__'):
