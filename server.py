@@ -2283,7 +2283,9 @@ for module_name, class_name, workflow_class in discovered_classes:
             logger.debug(f"Endpoint message for {module_name}: {endpoint_message}")
 
         except Exception as e:
-            logger.error(f"Error instantiating workflow {module_name}.{class_name}")
+            logger.warning(f"Issue with workflow {module_name}.{class_name} - continuing anyway")
+            # Optional: Log error type separately if needed
+            logger.debug(f"Error type: {e.__class__.__name__}")
 
 # Use the registry to set friendly names and endpoint messages
 for workflow_name, workflow_instance in plugin_instances.items():
