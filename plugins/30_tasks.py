@@ -221,7 +221,7 @@ class CrudUI(PluginIdentityManager):
                     hx_post=self.ENDPOINT_PREFIX,
                     hx_swap="beforeend",
                     hx_target=f"#{self.LIST_ID}",
-                    hx_on__after_request="this.reset()"
+                    hx_on__after_request="this.reset(); document.getElementById(this.querySelector('input').id).focus();"
                 )
             ),
             id=self.CONTAINER_ID,
