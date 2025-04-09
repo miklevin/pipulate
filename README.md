@@ -953,9 +953,9 @@ The plugin discovery system has a few important behaviors to be aware of:
 
 1. **Copy from Template**: Copy an existing plugin like `hello_workflow.py` to `hello_workflow (Copy).py`
 2. **Modify**: Make your changes (plugin won't auto-register due to parentheses)
-3. **Test Directly**: Test by importing directly in Python if needed
-4. **Deploy as Experimental**: Rename to `xx_new_feature.py` for continued development
-5. **Promote to Production**: When ready, rename to `21_new_feature.py` (using next available number)
+3. **Test**: The webserver should automatically restart and import your plugin automatically, but restart server as needed.
+4. **Turn Off Plugins**: Rename to `xx_new_feature.py` for hiding from menu (no directory diving)
+5. **Promote to Production**: When ready, rename to `21_new_feature.py` (inserting by order into dropdown menu)
 
 #### Git History Considerations
 
@@ -981,9 +981,12 @@ This approach ensures a clean repository while maintaining development flexibili
 - Saving source HTML and rendered DOM of any URL
 - Botify data export CSV save (the whole polling thing)
 - LLM inspection of any local data object (RAG-ish)
-- Various memory (vector embedding, graph, key/val-store)
+- Various memories (vector embedding, graph, key/val-store)
+- All web form field support (textarea, dropdown, checkboxes)
 - MCP Server for automated web browsing and such
 - Enabling the local LLM to be an MCP Client
+- Generic support for Anywidgets
+- Deletion of garbage tables from plugin experimentation
 
 ---
 
