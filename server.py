@@ -234,7 +234,6 @@ def read_training(prompt_or_filename):
             logger.debug(f"Loading prompt from training/{prompt_or_filename}")
             with open(f"training/{prompt_or_filename}", "r") as f:
                 content = f.read()
-                print(content)
                 logger.debug(f"Successfully loaded prompt: {content[:100]}...")
                 return content
         except FileNotFoundError:
