@@ -52,8 +52,8 @@ def get_app_name(force_app_name=None):
     return name.capitalize()
 
 
-def fig(text, font='slant', color='cyan'):
-    figlet = Figlet(font=font)
+def fig(text, font='slant', color='cyan', width=200):
+    figlet = Figlet(font=font, width=width)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f"{color} on default")
     console.print(colored_text, style="on default")
@@ -133,7 +133,7 @@ def setup_logging():
               not "First record" in record["message"] and
               not "Records found" in record["message"] and
               not "dir:" in record["message"])
-            )
+             )
         )
     )
 
@@ -294,7 +294,7 @@ def pipeline_operation(func):
 
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
-    
+
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
     """
@@ -302,18 +302,18 @@ class Pipulate:
 
     # Style constants
     ERROR_STYLE = "color: red;"
-    SUCCESS_STYLE = "color: green;" 
+    SUCCESS_STYLE = "color: green;"
     # Button styles using PicoCSS classes instead of custom styles
     WARNING_BUTTON_STYLE = None  # Now using cls="secondary outline" instead
     PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
-    
+
     # Button labels
     UNLOCK_BUTTON_LABEL = "Unlock 🔓"  # Global label for unlock/unfinalize buttons
 
     def __init__(self, pipeline_table, chat_instance=None):
         """Initialize Pipulate with required dependencies.
-        
+
         Args:
             pipeline_table: The database table for storing pipeline state
             chat_instance: Optional chat coordinator instance
@@ -325,21 +325,22 @@ class Pipulate:
 
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
-        
+
         This class creates a simple message queue that ensures messages are delivered
         in the exact order they are added, without requiring explicit delays between
         messages. It's used to fix the message streaming order issues.
         """
+
         def __init__(self):
             self.queue = []
             self._processing = False
-            
+
         async def add(self, pipulate, message, **kwargs):
             """Add a message to the queue and process if not already processing."""
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
                 await self._process_queue()
-        
+
         async def _process_queue(self):
             """Process all queued messages in order."""
             self._processing = True
@@ -352,26 +353,26 @@ class Pipulate:
 
     def make_singular(self, word):
         """Convert a potentially plural word to its singular form using simple rules.
-        
+
         This uses basic suffix replacement rules to handle common English plurals.
         It's designed for the 80/20 rule - handling common cases without complexity.
-        
+
         Args:
             word (str): The potentially plural word to convert
-            
+
         Returns:
             str: The singular form of the word
         """
         word = word.strip()
-        
+
         # Empty string case
         if not word:
             return word
-            
+
         # Already singular cases
         if word.lower() in ('data', 'media', 'series', 'species', 'news'):
             return word
-            
+
         # Common irregular plurals
         irregulars = {
             'children': 'child',
@@ -384,10 +385,10 @@ class Pipulate:
             'mice': 'mouse',
             'criteria': 'criterion',
         }
-        
+
         if word.lower() in irregulars:
             return irregulars[word.lower()]
-        
+
         # Common suffix rules - ordered by specificity
         if word.lower().endswith('ies'):
             return word[:-3] + 'y'
@@ -397,14 +398,14 @@ class Pipulate:
             return word[:-2]
         if word.lower().endswith('s') and not word.lower().endswith('ss'):
             return word[:-1]
-            
+
         # Already singular
         return word
 
     def set_chat(self, chat_instance):
         """Set the chat instance after initialization."""
         self.chat = chat_instance
-        
+
     def get_message_queue(self):
         """Return the message queue instance for ordered message delivery."""
         return self.message_queue
@@ -424,15 +425,15 @@ class Pipulate:
         """Format an endpoint string into a human-readable form."""
         if endpoint in friendly_names:
             return friendly_names[endpoint]
-        
+
         # First replace periods with spaces, then hyphens with spaces
         formatted = endpoint.replace('.', ' ').replace('-', ' ')
-        
+
         # Split by underscores and spaces
         words = []
         for part in formatted.split('_'):
             words.extend(part.split())
-        
+
         # Capitalize each word and join with spaces
         return ' '.join(word.capitalize() for word in words)
 
@@ -452,34 +453,34 @@ class Pipulate:
     def get_plugin_context(self, plugin_instance=None):
         """
         Returns the context information about the current plugin and profile.
-        
+
         Args:
             plugin_instance: Optional plugin instance to extract name from
-            
+
         Returns:
             dict: Contains plugin_name, profile_id, and profile_name
         """
         # Get profile_id from the global function
         profile_id = get_current_profile_id()
-        
+
         # Get profile name from the global function
         profile_name = get_profile_name()
-        
+
         # Get plugin name from the instance if provided
         plugin_name = None
         display_name = None
-        
+
         if plugin_instance:
             # Try to get the display name first
             if hasattr(plugin_instance, 'DISPLAY_NAME'):
                 display_name = plugin_instance.DISPLAY_NAME
-            
+
             # Get the internal name
             if hasattr(plugin_instance, 'name'):
                 plugin_name = plugin_instance.name
             elif hasattr(plugin_instance, '__class__'):
                 plugin_name = plugin_instance.__class__.__name__
-            
+
             # If we have a plugin_name but no display_name, try to get it from friendly_names
             if plugin_name and not display_name:
                 if plugin_name in friendly_names:
@@ -487,7 +488,7 @@ class Pipulate:
                 else:
                     # Fall back to a title-cased version of plugin_name
                     display_name = title_name(plugin_name)
-                
+
         return {
             'plugin_name': display_name or plugin_name,  # Prefer display name
             'internal_name': plugin_name,  # Keep internal name for reference if needed
@@ -548,24 +549,24 @@ class Pipulate:
         """
         import re
         url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
-        
+
         def replace_url(match):
             url = match.group(0)
             return f'<a href="{url}" target="_blank">{url}</a>'
-            
+
         return re.sub(url_pattern, replace_url, text)
 
-    async def stream(self, message, verbatim=False, role="user", 
-                    spaces_before=None, spaces_after=1,
-                    simulate_typing=True):
+    async def stream(self, message, verbatim=False, role="user",
+                     spaces_before=None, spaces_after=1,
+                     simulate_typing=True):
         """
         Stream a message to the chat interface.
-        
+
         This method is now a direct passthrough to the streaming implementation.
         Using this method directly will bypass the OrderedMessageQueue - it's
         recommended to use message_queue.add() for proper message ordering in 
         complex async scenarios.
-        
+
         Args:
             message: The message to stream
             verbatim: If True, send message as-is; if False, process with LLM
@@ -573,17 +574,17 @@ class Pipulate:
             spaces_before: Number of line breaks to add before the message
             spaces_after: Number of line breaks to add after the message
             simulate_typing: Whether to simulate typing for verbatim messages
-            
+
         Returns:
             The original message
         """
         try:
             conversation_history = append_to_conversation(message, role)
-            
+
             if spaces_before:
                 for _ in range(spaces_before):
                     await chat.broadcast(" <br>\n")
-            
+
             if verbatim:
                 if simulate_typing:
                     # Split into words and simulate typing for verbatim messages
@@ -595,18 +596,18 @@ class Pipulate:
                         await asyncio.sleep(0.005)  # Adjust timing as needed
                 else:
                     await chat.broadcast(message)
-                    
+
                 response_text = message
             else:
                 response_text = ""
                 async for chunk in chat_with_llm(MODEL, conversation_history):
                     await chat.broadcast(chunk)
                     response_text += chunk
-            
+
             if spaces_after:
                 for _ in range(spaces_after):
                     await chat.broadcast(" <br>\n")
-            
+
             append_to_conversation(response_text, "assistant")
             logger.debug(f"Message streamed: {response_text}")
             return message
@@ -626,21 +627,21 @@ class Pipulate:
     ):
         """
         Create a UI control for reverting to a previous workflow step.
-        
+
         This helper generates a consistent UI component for displaying completed
         step data with an option to revert back to that step. It's a critical part
         of the workflow navigation system that allows users to backtrack and modify
         their previous inputs.
-        
+
         The component includes:
         1. A card displaying the step's current value
         2. A small revert button that triggers the revert action
         3. HTMX attributes for handling the revert without page refresh
-        
+
         Used in step_xx methods to display completed steps with revert functionality.
         The method checks if the workflow is finalized and avoids showing revert controls
         for finalized workflows.
-        
+
         Args:
             step_id: The ID of the step to revert to
             app_name: The workflow app name
@@ -648,7 +649,7 @@ class Pipulate:
             message: Optional message to display (defaults to step_id)
             target_id: Optional target for HTMX updates (defaults to app container)
             revert_label: Optional custom label for the revert button
-            
+
         Returns:
             Card: A FastHTML Card component with revert functionality
         """
@@ -678,7 +679,7 @@ class Pipulate:
             "line-height: 1;"
             "align-items: center;"
         )
-        
+
         form = Form(
             Input(
                 type="hidden",
@@ -780,17 +781,17 @@ class Pipulate:
     def id_conflict_style(self):
         """Return style for ID conflict error messages"""
         return "background-color: #ffdddd; color: #990000; padding: 10px; border-left: 5px solid #990000;"
-        
+
     def generate_pipeline_key(self, plugin_instance, user_input=None):
         """Generate a standardized pipeline key using the current profile and plugin.
-        
+
         Creates a composite key in the format: profile_name-plugin_name-user_id
         If user_input is numeric and less than 100, it will be formatted with leading zeros.
-        
+
         Args:
             plugin_instance: The plugin instance requesting the key
             user_input: Optional user-provided ID part (defaults to auto-incrementing number)
-            
+
         Returns:
             tuple: (full_key, prefix, user_part) where:
                 full_key: The complete pipeline key
@@ -802,30 +803,30 @@ class Pipulate:
         # Use the display name (plugin_name) instead of internal_name for more user-friendly keys
         plugin_name = context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
         profile_name = context['profile_name'] or "default"
-        
+
         # Get the app_name for the database query - this is crucial for proper filtering
         app_name = getattr(plugin_instance, 'app_name', None)
-        
+
         # Format the prefix parts - replace spaces with underscores but preserve case
         profile_part = profile_name.replace(" ", "_")
         plugin_part = plugin_name.replace(" ", "_")
         prefix = f"{profile_part}-{plugin_part}-"
-        
+
         # If no user input is provided, generate an auto-incrementing number
         if user_input is None:
             # First, reset any lingering filters
             self.table.xtra()
-            
+
             # Then filter by app_name to ensure each workflow has its own number sequence
             self.table.xtra(app_name=app_name)
-            
+
             # Get records for this specific app (workflow type)
             app_records = list(self.table())
-            
+
             # Find records with the current prefix
-            matching_records = [record.pkey for record in app_records 
-                               if record.pkey.startswith(prefix)]
-            
+            matching_records = [record.pkey for record in app_records
+                                if record.pkey.startswith(prefix)]
+
             # Extract numeric values from the third part of the key
             numeric_suffixes = []
             for record_key in matching_records:
@@ -834,12 +835,12 @@ class Pipulate:
                 # Check if it's purely numeric
                 if rec_user_part.isdigit():
                     numeric_suffixes.append(int(rec_user_part))
-            
+
             # Determine the next number (max + 1, or 1 if none exist)
             next_number = 1
             if numeric_suffixes:
                 next_number = max(numeric_suffixes) + 1
-                
+
             # Format with leading zeros for numbers less than 100
             if next_number < 100:
                 user_part = f"{next_number:02d}"
@@ -857,23 +858,23 @@ class Pipulate:
             else:
                 # Not a number, use as is
                 user_part = str(user_input)
-        
+
         # Create the full key
         full_key = f"{prefix}{user_part}"
-        
+
         return (full_key, prefix, user_part)
-    
+
     def parse_pipeline_key(self, pipeline_key):
         """Parse a pipeline key into its component parts.
-        
+
         Args:
             pipeline_key: The full pipeline key to parse
-            
+
         Returns:
             dict: Contains profile_part, plugin_part, and user_part components
         """
         parts = pipeline_key.split('-', 2)  # Split into max 3 parts
-        
+
         if len(parts) < 3:
             # Not enough parts for a valid key
             return {
@@ -881,7 +882,7 @@ class Pipulate:
                 'plugin_part': parts[1] if len(parts) > 1 else "",
                 'user_part': ""
             }
-            
+
         return {
             'profile_part': parts[0],
             'plugin_part': parts[1],
@@ -890,15 +891,15 @@ class Pipulate:
 
     def update_datalist(self, datalist_id, options=None, clear=False):
         """Create a datalist with out-of-band swap for updating dropdown options.
-        
+
         This helper method allows easy updates to datalist options using HTMX's
         out-of-band swap feature. It can either update with new options or clear all options.
-        
+
         Args:
             datalist_id: The ID of the datalist to update
             options: List of option values to include, or None to clear
             clear: If True, force clear all options regardless of options parameter
-            
+
         Returns:
             Datalist: A FastHTML Datalist object with out-of-band swap attribute
         """
@@ -915,23 +916,23 @@ class Pipulate:
                 id=datalist_id,
                 _hx_swap_oob="true"  # Out-of-band swap to update the dropdown
             )
-            
+
     def run_all_cells(self, app_name, steps):
         """
         Create a series of HTMX divs that will trigger a chain reaction of loading all steps.
-        
+
         This method standardizes the pattern used in workflows where each step is loaded
         in sequence through HTMX triggers, similar to running all cells in a Jupyter Notebook.
         It's a core helper method used by workflow plugins to generate placeholders that
         will automatically load each step in order.
-        
+
         The first step loads immediately on trigger="load", while subsequent steps
         wait for the previous step to complete using a custom HTMX event.
-        
+
         Args:
             app_name: The name of the workflow app
             steps: List of Step namedtuples defining the workflow
-            
+
         Returns:
             list: List of Div elements configured with HTMX attributes for sequential loading
         """
@@ -948,101 +949,101 @@ class Pipulate:
                 )
             )
         return cells
-    
+
     def rebuild(self, app_name, steps):
         """
         Rebuild the entire workflow UI from scratch.
-        
+
         This is used after state changes that require the entire workflow to be regenerated,
         such as reverting to a previous step or jumping to a specific step. It's a core
         helper method commonly used in workflow methods like finalize, unfinalize, and
         handle_revert.
-        
+
         The method creates a fresh container with all step placeholders, allowing
         the workflow to reload from the current state.
-        
+
         Args:
             app_name: The name of the workflow app
             steps: List of Step namedtuples defining the workflow
-            
+
         Returns:
             Div: Container with all steps ready to be displayed
         """
         # Get the placeholders for all steps
         placeholders = self.run_all_cells(app_name, steps)
-        
+
         # Return a container with all placeholders
         return Div(
             *placeholders,
             id=f"{app_name}-container"
         )
-    
+
     def validate_step_input(self, value, step_show, custom_validator=None):
         """
         Validate step input with default and optional custom validation.
-        
+
         This helper ensures consistent validation across all workflow steps:
         1. Basic validation: Ensures the input is not empty
         2. Custom validation: Applies workflow-specific validation logic if provided
-        
+
         When validation fails, it returns an error component ready for direct
         display in the UI, helping maintain consistent error handling.
-        
+
         Args:
             value: The user input value to validate
             step_show: Display name of the step (for error messages)
             custom_validator: Optional function(value) -> (is_valid, error_msg)
-            
+
         Returns:
             tuple: (is_valid, error_message, P_component_or_None)
         """
         is_valid = True
         error_msg = ""
-        
+
         # Default validation (non-empty)
         if not value.strip():
             is_valid = False
             error_msg = f"{step_show} cannot be empty"
-        
+
         # Custom validation if provided
         if is_valid and custom_validator:
             custom_valid, custom_error = custom_validator(value)
             if not custom_valid:
                 is_valid = False
                 error_msg = custom_error
-        
+
         if not is_valid:
             return False, error_msg, P(error_msg, style=self.get_style("error"))
-        
+
         return True, "", None
 
     async def update_step_state(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
         """
         Update the state for a step and handle reverting.
-        
+
         This core helper manages workflow state updates, ensuring consistent state 
         management across all workflows. It handles several important tasks:
-        
+
         1. Clearing subsequent steps when a step is updated (optional)
         2. Storing the new step value in the correct format
         3. Removing any revert target flags that are no longer needed
         4. Persisting the updated state to storage
-        
+
         Used by workflow step_xx_submit methods to maintain state after form submissions.
-        
+
         Args:
             pipeline_id: The pipeline key
             step_id: The current step ID
             step_value: The value to store for this step
             steps: The steps list
             clear_previous: Whether to clear steps after this one
-            
+
         Returns:
             str: The processed step value (for confirmation messages)
         """
         if clear_previous:
             await self.clear_steps_from(pipeline_id, step_id, steps)
-        
+
         state = self.read_state(pipeline_id)
         step = next((s for s in steps if s.id == step_id), None)
         if step:
@@ -1050,25 +1051,25 @@ class Pipulate:
             if "_revert_target" in state:
                 del state["_revert_target"]
             self.write_state(pipeline_id, state)
-        
+
         # Return the step value for confirmation message
         return step_value
 
     def check_finalize_needed(self, step_index, steps):
         """
         Check if we're on the final step before finalization.
-        
+
         This helper determines if the workflow is ready for finalization by checking
         if the next step in the sequence is the "finalize" step. Workflows use this
         to decide whether to prompt the user to finalize after completing a step.
-        
+
         Used in step_xx_submit methods to show appropriate finalization prompts
         after the user completes the last regular step in the workflow.
-        
+
         Args:
             step_index: Index of current step in steps list
             steps: The steps list
-            
+
         Returns:
             bool: True if the next step is the finalize step
         """
@@ -1078,38 +1079,38 @@ class Pipulate:
     def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):
         """
         Create the standard navigation controls after a step submission.
-        
+
         This helper generates a consistent UI pattern for step navigation that includes:
         1. A revert control showing the current step's value
         2. An HTMX-enabled div that triggers loading the next step automatically
-        
+
         By centralizing this UI generation, all workflows maintain consistent
         navigation controls and behavior. This is typically returned by step_xx_submit
         methods after successfully processing user input.
-        
+
         Args:
             step_id: The current step ID
             step_index: Index of current step in steps list
             steps: The steps list
             app_name: The workflow app name
             processed_val: The processed value to display
-            
+
         Returns:
             Div: A FastHTML Div component with revert control and next step trigger
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        
+
         return Div(
             self.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: {processed_val}", 
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {processed_val}",
                 steps=steps
             ),
             Div(
-                id=next_step_id, 
-                hx_get=f"/{app_name}/{next_step_id}", 
+                id=next_step_id,
+                hx_get=f"/{app_name}/{next_step_id}",
                 hx_trigger="load"
             ) if next_step_id else Div()
         )
@@ -1117,81 +1118,81 @@ class Pipulate:
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
         """
         Handle the case when a step is submitted in finalized state.
-        
+
         Args:
             pipeline_id: The pipeline key
             step_id: The current step ID
             steps: The steps list
             app_name: The workflow app name
             plugin_instance: Optional plugin instance (for accessing step_messages)
-            
+
         Returns:
             Div: The rebuilt workflow UI
         """
         state = self.read_state(pipeline_id)
         state[step_id] = {"finalized": True}
         self.write_state(pipeline_id, state)
-        
+
         # Get step_messages from the plugin instance if provided
         step_messages = {}
         if plugin_instance and hasattr(plugin_instance, 'step_messages'):
             step_messages = plugin_instance.step_messages
-        
+
         message = await self.get_state_message(pipeline_id, steps, step_messages)
         await self.stream(message, verbatim=True)
-        
+
         return self.rebuild(app_name, steps)
-        
+
     async def finalize_workflow(self, pipeline_id, state_update=None):
         """
         Finalize a workflow by marking it as complete and updating its state.
-        
+
         Args:
             pipeline_id: The pipeline key
             state_update: Optional additional state to update (beyond finalized flag)
-            
+
         Returns:
             dict: The updated state
         """
         state = self.read_state(pipeline_id)
-        
+
         # Mark as finalized
         if "finalize" not in state:
             state["finalize"] = {}
-        
+
         state["finalize"]["finalized"] = True
         state["updated"] = datetime.now().isoformat()
-        
+
         # Apply additional updates if provided
         if state_update:
             state.update(state_update)
-        
+
         # Save state
         self.write_state(pipeline_id, state)
-        
+
         return state
 
     async def unfinalize_workflow(self, pipeline_id):
         """
         Unfinalize a workflow by removing the finalized flag.
-        
+
         Args:
             pipeline_id: The pipeline key
-            
+
         Returns:
             dict: The updated state
         """
         state = self.read_state(pipeline_id)
-        
+
         # Remove finalization
         if "finalize" in state:
             del state["finalize"]
-        
+
         state["updated"] = datetime.now().isoformat()
-        
+
         # Save state
         self.write_state(pipeline_id, state)
-        
+
         return state
 
 
@@ -1260,13 +1261,14 @@ def get_button_style(button_type="default"):
     if button_type == "warning":
         return "background-color: var(--pico-primary-background); color: #f66;"
     elif button_type == "primary":
-        return "background-color: var(--pico-primary-background); color: #4CAF50;" 
+        return "background-color: var(--pico-primary-background); color: #4CAF50;"
     # etc.
+
 
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
     profile_id = db.get("last_profile_id")
-    
+
     if profile_id is None:
         logger.debug("No last_profile_id found. Finding first available profile.")
         first_profiles = profiles(order_by='id', limit=1)
@@ -1276,7 +1278,7 @@ def get_current_profile_id():
             logger.debug(f"Set default profile ID to {profile_id}")
         else:
             logger.warning("No profiles found in the database")
-            
+
     return profile_id
 
 
@@ -1365,9 +1367,9 @@ class BaseCrud:
             action_details = f"The {self.name} item '{item_name}' was removed."
             prompt = action_details
             self.send_message(prompt, verbatim=True)
-            
+
             # Add a trigger to refresh the profile menu
-            response = HTMLResponse("") 
+            response = HTMLResponse("")
             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
             return response
         except Exception as e:
@@ -1390,15 +1392,15 @@ class BaseCrud:
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
             self.send_message(action_details, verbatim=True)
-                
+
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-            
+
             # Convert FT object to HTML string using to_xml
             html_content = to_xml(rendered_profile)
             logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
-            
+
             return HTMLResponse(html_content)
         except Exception as e:
             error_msg = f"Error toggling item: {str(e)}"
@@ -1427,9 +1429,9 @@ class BaseCrud:
             prompt = action_details
             self.send_message(prompt, verbatim=True)
             logger.debug(f"{self.name.capitalize()} order updated successfully")
-            
+
             # Add a trigger to refresh the profile menu
-            response = HTMLResponse("") 
+            response = HTMLResponse("")
             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
             return response
         except json.JSONDecodeError as e:
@@ -1498,15 +1500,15 @@ class BaseCrud:
             prompt = action_details
             self.send_message(prompt, verbatim=True)
             logger.debug(f"Updated {self.name} item {item_id}")
-            
+
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-            
+
             # Convert FT object to HTML string using to_xml
             html_content = to_xml(rendered_profile)
             logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
-            
+
             return HTMLResponse(html_content)
         except Exception as e:
             error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
@@ -1547,7 +1549,7 @@ class ProfileApp(BaseCrud):
 
     def render_item(self, profile):
         return render_profile(profile)
-        
+
     async def insert_item(self, request):
         """Override the BaseCrud insert_item to also refresh the profile menu"""
         try:
@@ -1558,25 +1560,25 @@ class ProfileApp(BaseCrud):
             if not new_item_data:
                 logger.debug("[DEBUG] No new_item_data, returning empty")
                 return ''
-                
+
             # Create the new profile
             new_profile = await self.create_item(**new_item_data)
             logger.debug(f"[DEBUG] Created new profile: {new_profile}")
             profile_name = getattr(new_profile, self.item_name_field, 'Profile')
-            
+
             # Log the action
             action_details = f"A new {self.name} '{profile_name}' was added."
             prompt = action_details
             self.send_message(prompt, verbatim=True)
-            
+
             # Render the new profile item
             rendered_profile = self.render_item(new_profile)
             logger.debug(f"[DEBUG] Rendered profile: {rendered_profile}")
-            
+
             # Combine the rendered profile with an HTMX trigger to refresh the menu
             response = HTMLResponse(str(to_xml(rendered_profile)))
             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            
+
             return response
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
@@ -1598,11 +1600,11 @@ class ProfileApp(BaseCrud):
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
             self.send_message(action_details, verbatim=True)
-                
+
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-            
+
             # Add a trigger to refresh the profile menu
             response = HTMLResponse(str(to_xml(rendered_profile)))
             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
@@ -1637,16 +1639,16 @@ class ProfileApp(BaseCrud):
             prompt = action_details
             self.send_message(prompt, verbatim=True)
             logger.debug(f"Updated {self.name} item {item_id}")
-            
+
             # Get the profile HTML representation
             rendered_profile = self.render_item(updated_item)
             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-            
+
             # Add a trigger to refresh the profile menu if the name field was updated
             response = HTMLResponse(str(to_xml(rendered_profile)))
             if 'name' in change_dict:
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            
+
             return response
         except Exception as e:
             error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
@@ -1837,6 +1839,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         "pk": "pkey"
     }
 )
+
 
 class Chat:
     def __init__(self, app, id_suffix=""):
@@ -2124,13 +2127,13 @@ populate_initial_data()
 
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
-    
+
     This function scans the 'plugins' directory and imports each .py file
     as a module. It skips files:
     - Starting with '__' (like __init__.py)
     - Starting with 'xx_' or 'XX_' (indicating experimental/in-progress plugins)
     - Containing parentheses (like "tasks (Copy).py")
-    
+
     Returns:
         dict: Mapping of module names to imported module objects
     """
@@ -2152,34 +2155,34 @@ def discover_plugin_files():
         if '(' in filename or ')' in filename:
             logger.debug(f"Skipping file with parentheses: {filename}")
             continue
-            
+
         # Skip files prefixed with xx_ or XX_ (experimental plugins)
         if filename.lower().startswith('xx_'):
             logger.debug(f"Skipping experimental plugin: {filename}")
             continue
-            
+
         if filename.endswith('.py') and not filename.startswith('__'):
             # Extract the module name, removing numeric prefix if present
             base_name = filename[:-3]  # Remove .py extension
-            
+
             # Store both the clean name (for the module) and original name (for imports)
             # Pattern: match digits and underscore at the beginning (like "01_tasks")
             import re
             clean_name = re.sub(r'^\d+_', '', base_name)
             original_name = base_name
-            
+
             logger.debug(f"Module name: {clean_name} (from {original_name})")
-            
+
             try:
                 # Import using the original filename
                 module = importlib.import_module(f'plugins.{original_name}')
-                
+
                 # But store it using the clean name (without numeric prefix)
                 plugin_modules[clean_name] = module
-                
+
                 # Attach the original name to the module for reference if needed
                 module._original_filename = original_name
-                
+
                 logger.debug(f"Successfully imported module: {clean_name} from {original_name}")
             except ImportError as e:
                 logger.error(f"Error importing plugin module {original_name}: {str(e)}")
@@ -2190,15 +2193,15 @@ def discover_plugin_files():
 
 def find_plugin_classes(plugin_modules):
     """Find plugin-compatible classes within imported modules.
-    
+
     Identifies plugin classes that have a 'landing' method
     and the required attributes or properties. Supports:
     - Workflow plugins with NAME/APP_NAME and DISPLAY_NAME attributes
     - CRUD UI plugins with name/DISPLAY_NAME properties
-    
+
     Args:
         plugin_modules (dict): Mapping of module names to module objects
-        
+
     Returns:
         list: List of tuples (module_name, class_name, class_object) for each plugin class
     """
@@ -2218,18 +2221,18 @@ def find_plugin_classes(plugin_modules):
                 if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
                     # Check for direct attributes (workflow plugins)
                     has_name_attribute = (
-                        hasattr(obj, 'NAME') or 
+                        hasattr(obj, 'NAME') or
                         hasattr(obj, 'APP_NAME')  # Some plugins use APP_NAME instead
                     )
                     has_display_name = hasattr(obj, 'DISPLAY_NAME')
                     has_attributes = has_name_attribute and has_display_name
-                    
+
                     # Check for properties via class dictionary (CRUD UI plugins)
                     has_properties = False
                     if 'DISPLAY_NAME' in dir(obj) and not has_attributes:
                         # For classes that use property decorators like CrudUI
                         has_properties = True
-                    
+
                     if has_attributes or has_properties:
                         plugin_classes.append((module_name, name, obj))
                         plugin_type = 'property-based' if has_properties else 'attribute-based'
@@ -2317,7 +2320,7 @@ async def clear_db(request):
     # Get the current workflow name and display name
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
-    
+
     # Get the display name for the current workflow if available
     if menux and menux in plugin_instances:
         instance = plugin_instances.get(menux)
@@ -2325,37 +2328,37 @@ async def clear_db(request):
             workflow_display_name = instance.DISPLAY_NAME
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-    
+
     # Clear all standard database keys except for navigation state
     last_app_choice = db.get("last_app_choice")
     last_visited_url = db.get("last_visited_url")
-    
+
     keys = list(db.keys())
     for key in keys:
         del db[key]
     logger.debug(f"{workflow_display_name} DictLikeDB cleared")
-    
+
     # Restore navigation state
     if last_app_choice:
         db["last_app_choice"] = last_app_choice
     if last_visited_url:
         db["last_visited_url"] = last_visited_url
-    
+
     # Clear ALL pipeline records - reset any filters first
     # This is crucial to ensure we're not filtering records when fetching to delete
     if hasattr(pipulate.table, 'xtra'):
         # Reset any filters by passing an empty dict to xtra
         pipulate.table.xtra()
-    
+
     records = list(pipulate.table())
     logger.debug(f"Found {len(records)} records to delete")
     for record in records:
         pipulate.table.delete(record.pkey)
     logger.debug(f"{workflow_display_name} table cleared")
-    
+
     db["temp_message"] = f"{workflow_display_name} cleared. Next ID will be 01."
     logger.debug(f"{workflow_display_name} DictLikeDB cleared for debugging")
-    
+
     # Create a response with an empty datalist and a refresh header
     response = Div(
         # Empty datalist with out-of-band swap to clear all options
@@ -2364,7 +2367,7 @@ async def clear_db(request):
         P(f"{workflow_display_name} cleared."),
         cls="clear-message"
     )
-    
+
     # Convert to HTTPResponse to add the refresh header
     html_response = HTMLResponse(str(response))
     html_response.headers["HX-Refresh"] = "true"
@@ -2385,17 +2388,16 @@ def get_profile_name():
 
 
 async def home(request):
-    fig("HOME")
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
     menux = normalize_menu_path(path)
     logger.debug(f"Selected explore item: {menux}")
     db["last_app_choice"] = menux
     db["last_visited_url"] = request.url.path
-    
+
     # Replace this block with the helper function
     current_profile_id = get_current_profile_id()
-    
+
     menux = db.get("last_app_choice", "App")
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
@@ -2416,7 +2418,7 @@ async def home(request):
 def create_nav_group():
     # Create the initial nav menu
     nav = create_nav_menu()
-    
+
     # Add a hidden event listener to refresh the profile dropdown
     refresh_listener = Div(
         id="profile-menu-refresh-listener",
@@ -2426,7 +2428,7 @@ def create_nav_group():
         hx_swap="outerHTML",
         style="display: none;"
     )
-    
+
     nav_group_style = ("display: flex; ""align-items: center; ""position: relative;")
     return Group(nav, refresh_listener, style=nav_group_style)
 
@@ -2450,7 +2452,7 @@ def create_filler_item():
 def create_profile_menu(selected_profile_id, selected_profile_name):
     # Use our helper instead of passing in selected_profile_id
     selected_profile_id = get_current_profile_id()
-    
+
     def get_selected_item_style(is_selected):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
@@ -2461,7 +2463,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         item_style = get_selected_item_style(is_selected)
         menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
     return Details(
-        Summary(f"{profile_app.name.upper()}: {selected_profile_name}", 
+        Summary(f"{profile_app.name.upper()}: {selected_profile_name}",
                 id="profile-id"),
         Ul(*menu_items, style="padding-left: 0;"),
         cls="dropdown",
@@ -2473,27 +2475,26 @@ def normalize_menu_path(path):
     """Convert empty paths to 'home' and return the path otherwise."""
     return "home" if path == "" else path
 
+
 def create_app_menu(menux):
     menu_items = []
     for item in MENU_ITEMS:
         # Skip profile app in Apps menu
         if item == profile_app.name:
             continue
-        
+
         # Normalize both the current selection and menu item for comparison
         norm_menux = normalize_menu_path(menux)
         norm_item = normalize_menu_path(item)
-        
+
         is_selected = norm_item == norm_menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
-    
+
     return Details(Summary(f"APP: {endpoint_name(menux)}", id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
 
 
 async def create_outer_container(current_profile_id, menux):
-    fig(menux)
-
     nav_group = create_nav_group()
 
     # Default layout
@@ -2520,7 +2521,6 @@ async def create_outer_container(current_profile_id, menux):
 
 
 async def create_grid_left(menux, render_items=None):
-    fig(menux)
     if menux == profile_app.name:
         return await profile_render()
     elif menux in plugin_instances:
@@ -2604,7 +2604,7 @@ def create_poke_button():
     # Get current workflow name from the app choice
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
-    
+
     # Get the display name for the current workflow if available
     if menux and menux in plugin_instances:
         instance = plugin_instances.get(menux)
@@ -2612,7 +2612,7 @@ def create_poke_button():
             workflow_display_name = instance.DISPLAY_NAME
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-    
+
     return Div(
         A(
             f"Clear {workflow_display_name}",
@@ -2712,8 +2712,6 @@ async def profile_render():
             });
         """),
     )
-
-
 
 
 @rt("/sse")
@@ -2903,6 +2901,11 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 def run_server_with_watchdog():
     fig("SERVER RESTART")
+    print("\n" * 30)
+    # Insert Alice
+    with open('static/alice.txt', 'r') as file:
+        print(file.read())
+    print("\n" * 30)
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
@@ -2921,3 +2924,9 @@ def run_server_with_watchdog():
 
 if __name__ == "__main__":
     run_server_with_watchdog()
+
+
+# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
+# isort server.py
+# vulture server.py
+# pylint --disable=all --enable=redefined-outer-name server.py
