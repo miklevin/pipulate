@@ -264,7 +264,7 @@ def process_files_with_prompt(files, prompt_template, model="michaelborck/refule
             if is_direct_prompt:
                 # For direct prompt, just escape any double quotes
                 escaped_prompt = prompt_template.replace('"', '\\"')
-                cmd = f"python iterate_ollama.py --dir \"{os.path.dirname(file_path)}\" --filter \"{file_id}\" --prompt \"{escaped_prompt}\" --model \"{model}\""
+                cmd = f"python iterate_ai.py --dir \"{os.path.dirname(file_path)}\" --filter \"{file_id}\" --prompt \"{escaped_prompt}\" --model \"{model}\""
             else:
                 # For template mode, we need to escape the template for shell use
                 # 1. Escape double quotes
@@ -272,7 +272,7 @@ def process_files_with_prompt(files, prompt_template, model="michaelborck/refule
                 # 2. Replace actual newlines with the escape sequence \n
                 escaped_template = escaped_template.replace('\n', '\\n')
                 
-                cmd = f"python iterate_ollama.py --dir \"{os.path.dirname(file_path)}\" --filter \"{file_id}\" --template \"{escaped_template}\" --model \"{model}\""
+                cmd = f"python iterate_ai.py --dir \"{os.path.dirname(file_path)}\" --filter \"{file_id}\" --template \"{escaped_template}\" --model \"{model}\""
             
             if output_file != "ollama_responses.json":
                 cmd += f" --output \"{output_file}\""
@@ -310,7 +310,7 @@ def test_template_format():
     print(f"Escaped for command line: {escaped}")
     
     # Create a shell-compatible command
-    cmd = f'python iterate_ollama.py --template "{escaped}"'
+    cmd = f'python iterate_ai.py --template "{escaped}"'
     print(f"Command: {cmd}")
     
     # In Python, when this command runs through subprocess, argparse will get
