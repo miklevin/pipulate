@@ -35,30 +35,41 @@ class RoadmapPlugin:
                 var diagramEl = document.getElementById("{unique_id}");
                 if (!diagramEl) return;
                 
-                // A more complete project roadmap diagram
+                // Updated project roadmap based on user's list
                 var diagram = `
                 gantt
-                    title Project Roadmap
-                    dateFormat  YYYY-MM-DD
-                    section Phase 1
-                    Requirements Analysis    :done, a1, 2025-01-01, 30d
-                    Design & Architecture    :done, a2, after a1, 45d
-                    section Phase 2
-                    Core Development         :active, b1, after a2, 60d
-                    Testing & QA             :b2, after b1, 30d
-                    section Phase 3
-                    Deployment               :c1, after b2, 15d
-                    User Training            :c2, after c1, 20d
-                    section Phase 4
-                    Maintenance              :d1, after c2, 90d
-                    Future Enhancements      :d2, after c1, 90d
+                    title Pipulate Development Roadmap
+                    dateFormat YYYY-MM-DD
+                    axisFormat %b %d
+                    
+                    section Database
+                    Dev/Test/Prod DB        :active, db1, 2025-05-01, 30d
+                    Delete Exp Tables       :db2, after db1, 20d
+                    
+                    section Web Data
+                    Save HTML & DOM         :web1, 2025-05-15, 28d
+                    Botify CSV Export       :web2, after web1, 25d
+                    
+                    section AI Capabilities
+                    LLM Inspection          :ai1, 2025-06-01, 35d
+                    Vector Memory           :ai2, after ai1, 28d
+                    Graph Memory            :ai3, after ai2, 24d
+                    Key/Value Store         :ai4, after ai3, 22d
+                    
+                    section UI & Controls
+                    Web Form Fields         :ui1, 2025-07-01, 32d
+                    Anywidgets Support      :ui2, after ui1, 30d
+                    
+                    section Automation
+                    MCP Server              :auto1, 2025-08-01, 35d
+                    LLM as MCP Client       :auto2, after auto1, 30d
                 `;
                 
-                // Load Mermaid.js from CDN
+                // Load Mermaid.js from local static file
                 var script = document.createElement('script');
                 script.src = "/static/mermaid.min.js";
                 script.onload = function() {{
-                    console.log("Mermaid loaded from CDN");
+                    console.log("Mermaid loaded from local static");
                     
                     // Create a wrapper div with mermaid class
                     var mermaidWrapper = document.createElement('div');
@@ -72,7 +83,22 @@ class RoadmapPlugin:
                     mermaid.initialize({{ 
                         startOnLoad: true,
                         theme: 'default',
-                        securityLevel: 'loose'
+                        securityLevel: 'loose',
+                        gantt: {{
+                            titleTopMargin: 30,
+                            barHeight: 35,
+                            barGap: 10,
+                            topPadding: 75,
+                            bottomPadding: 50,
+                            leftPadding: 145,
+                            gridLineStartPadding: 35,
+                            fontSize: 14,
+                            fontFamily: "Arial, sans-serif",
+                            numberSectionStyles: 5,
+                            axisFormat: '%m/%d',
+                            sectionHeight: 45,
+                            useWidth: 1200
+                        }}
                     }});
                     
                     // Render the diagram
@@ -94,7 +120,7 @@ class RoadmapPlugin:
         
         return Div(
             H2("Project Roadmap"),
-            P("Current development timeline and milestones:"),
+            P("Planned development timeline for Pipulate features:"),
             mermaid_diagram,
             load_script
         )
