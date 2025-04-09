@@ -8,19 +8,60 @@ logger = logging.getLogger(__name__)
 class RoadmapPlugin:
     NAME = "roadmap"
     DISPLAY_NAME = "Roadmap"
-    ENDPOINT_MESSAGE = "This is a simple plugin example."
+    ENDPOINT_MESSAGE = "Here's the current project roadmap."
+    
+    # Define the Mermaid diagram as a class property
+    ROADMAP_DIAGRAM = """
+    gantt
+        title Pipulate Development Roadmap
+        dateFormat YYYY-MM-DD
+        axisFormat %b %d
+        
+        section Database
+        Dev/Test/Prod DB        :active, db1, 2025-05-01, 30d
+        Delete Exp Tables       :db2, after db1, 20d
+        
+        section Web Data
+        Save HTML & DOM         :web1, 2025-05-15, 28d
+        Botify CSV Export       :web2, after web1, 25d
+        
+        section AI Capabilities
+        LLM Inspection          :ai1, 2025-06-01, 35d
+        Vector Memory           :ai2, after ai1, 28d
+        Graph Memory            :ai3, after ai2, 24d
+        Key/Value Store         :ai4, after ai3, 22d
+        
+        section UI & Controls
+        Web Form Fields         :ui1, 2025-07-01, 32d
+        Anywidgets Support      :ui2, after ui1, 30d
+        
+        section Automation
+        MCP Server              :auto1, 2025-08-01, 35d
+        LLM as MCP Client       :auto2, after auto1, 30d
+    """
     
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"RoadmapPlugin initialized with NAME: {self.NAME}")
-    
-    async def landing(self, request):
-        """Activates plugin import."""
-        logger.debug("RoadmapPlugin.landing method called")
+        self.pipulate = pipulate
+        self._has_streamed = False  # Flag to track if we've already streamed
     
     async def render(self, render_items=None):
         """Always appears in create_grid_left."""
         # Generate unique IDs
         unique_id = f"mermaid-{int(time.time() * 1000)}"
+        
+        # Send the diagram to the chat, but only once per session
+        if hasattr(self, 'pipulate') and self.pipulate and not self._has_streamed:
+            diagram_message = f"```mermaid\n{self.ROADMAP_DIAGRAM}\n```"
+            await self.pipulate.stream(
+                f"Here's the current project roadmap:\n{diagram_message}", 
+                verbatim=False,
+                role="system",
+                spaces_before=1,
+                spaces_after=1
+            )
+            self._has_streamed = True  # Set flag to prevent repeated streaming
+            logger.debug("Roadmap streamed to chat")
         
         # Create the mermaid diagram container - leave empty for now
         mermaid_diagram = Div(
@@ -35,35 +76,8 @@ class RoadmapPlugin:
                 var diagramEl = document.getElementById("{unique_id}");
                 if (!diagramEl) return;
                 
-                // Updated project roadmap based on user's list
-                var diagram = `
-                gantt
-                    title Pipulate Development Roadmap
-                    dateFormat YYYY-MM-DD
-                    axisFormat %b %d
-                    
-                    section Database
-                    Dev/Test/Prod DB        :active, db1, 2025-05-01, 30d
-                    Delete Exp Tables       :db2, after db1, 20d
-                    
-                    section Web Data
-                    Save HTML & DOM         :web1, 2025-05-15, 28d
-                    Botify CSV Export       :web2, after web1, 25d
-                    
-                    section AI Capabilities
-                    LLM Inspection          :ai1, 2025-06-01, 35d
-                    Vector Memory           :ai2, after ai1, 28d
-                    Graph Memory            :ai3, after ai2, 24d
-                    Key/Value Store         :ai4, after ai3, 22d
-                    
-                    section UI & Controls
-                    Web Form Fields         :ui1, 2025-07-01, 32d
-                    Anywidgets Support      :ui2, after ui1, 30d
-                    
-                    section Automation
-                    MCP Server              :auto1, 2025-08-01, 35d
-                    LLM as MCP Client       :auto2, after auto1, 30d
-                `;
+                // Use the diagram from class property
+                var diagram = `{self.ROADMAP_DIAGRAM}`;
                 
                 // Load Mermaid.js from local static file
                 var script = document.createElement('script');

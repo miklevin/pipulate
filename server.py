@@ -2191,8 +2191,9 @@ def discover_plugin_files():
 def find_plugin_classes(plugin_modules):
     """Find plugin-compatible classes within imported modules.
     
-    A plugin-compatible class is defined as a class that has a 'landing' method.
-    This function examines each imported module and identifies suitable plugin classes.
+    Identifies two types of plugin classes:
+    1. Workflow Plugins: Classes with a 'landing' method 
+    2. Simple Plugins: Classes with a 'render' method and appropriate plugin markers
     
     Args:
         plugin_modules (dict): Mapping of module names to module objects
@@ -2212,10 +2213,24 @@ def find_plugin_classes(plugin_modules):
             if inspect.isclass(obj):
                 logger.debug(f"Class found: {module_name}.{name}")
 
-                # Check if it has the right methods that make it plugin-like
+                # Check for plugin-like properties based on different plugin types
+                is_plugin = False
+                plugin_type = None
+                
+                # Option 1: Traditional workflow plugin with landing method
                 if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
+                    is_plugin = True
+                    plugin_type = "workflow"
+                
+                # Option 2: Simple plugin with just a render method and proper attributes
+                elif (hasattr(obj, 'render') and callable(getattr(obj, 'render')) and 
+                      hasattr(obj, 'NAME') and hasattr(obj, 'DISPLAY_NAME')):
+                    is_plugin = True
+                    plugin_type = "simple"
+                    
+                if is_plugin:
                     plugin_classes.append((module_name, name, obj))
-                    logger.debug(f"Found plugin-like class with landing method: {module_name}.{name}")
+                    logger.debug(f"Found {plugin_type} plugin: {module_name}.{name}")
 
     logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
     return plugin_classes
