@@ -45,7 +45,7 @@ class RoadmapPlugin:
         self.pipulate = pipulate
         self._has_streamed = False  # Flag to track if we've already streamed
     
-    async def render(self, render_items=None):
+    async def landing(self, render_items=None):
         """Always appears in create_grid_left."""
         # Generate unique IDs
         unique_id = f"mermaid-{int(time.time() * 1000)}"

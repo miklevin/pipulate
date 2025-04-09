@@ -2191,9 +2191,10 @@ def discover_plugin_files():
 def find_plugin_classes(plugin_modules):
     """Find plugin-compatible classes within imported modules.
     
-    Identifies two types of plugin classes:
-    1. Workflow Plugins: Classes with a 'landing' method 
-    2. Simple Plugins: Classes with a 'render' method and appropriate plugin markers
+    Identifies plugin classes that have a 'landing' method
+    and the required attributes or properties. Supports:
+    - Workflow plugins with NAME/APP_NAME and DISPLAY_NAME attributes
+    - CRUD UI plugins with name/DISPLAY_NAME properties
     
     Args:
         plugin_modules (dict): Mapping of module names to module objects
@@ -2213,24 +2214,27 @@ def find_plugin_classes(plugin_modules):
             if inspect.isclass(obj):
                 logger.debug(f"Class found: {module_name}.{name}")
 
-                # Check for plugin-like properties based on different plugin types
-                is_plugin = False
-                plugin_type = None
-                
-                # Option 1: Traditional workflow plugin with landing method
+                # Check if the class has a landing method
                 if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
-                    is_plugin = True
-                    plugin_type = "workflow"
-                
-                # Option 2: Simple plugin with just a render method and proper attributes
-                elif (hasattr(obj, 'render') and callable(getattr(obj, 'render')) and 
-                      hasattr(obj, 'NAME') and hasattr(obj, 'DISPLAY_NAME')):
-                    is_plugin = True
-                    plugin_type = "simple"
+                    # Check for direct attributes (workflow plugins)
+                    has_name_attribute = (
+                        hasattr(obj, 'NAME') or 
+                        hasattr(obj, 'APP_NAME')  # Some plugins use APP_NAME instead
+                    )
+                    has_display_name = hasattr(obj, 'DISPLAY_NAME')
+                    has_attributes = has_name_attribute and has_display_name
                     
-                if is_plugin:
-                    plugin_classes.append((module_name, name, obj))
-                    logger.debug(f"Found {plugin_type} plugin: {module_name}.{name}")
+                    # Check for properties via class dictionary (CRUD UI plugins)
+                    has_properties = False
+                    if 'DISPLAY_NAME' in dir(obj) and not has_attributes:
+                        # For classes that use property decorators like CrudUI
+                        has_properties = True
+                    
+                    if has_attributes or has_properties:
+                        plugin_classes.append((module_name, name, obj))
+                        plugin_type = 'property-based' if has_properties else 'attribute-based'
+                        name_attr = 'APP_NAME' if hasattr(obj, 'APP_NAME') else 'NAME'
+                        logger.debug(f"Found plugin: {module_name}.{name} ({plugin_type}, using {name_attr})")
 
     logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
     return plugin_classes
