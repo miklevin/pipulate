@@ -4,6 +4,7 @@ import inspect
 import os
 import sys
 import re
+import asyncio
 
 import fastlite
 from fasthtml.common import *
@@ -164,9 +165,6 @@ class CrudUI(PluginIdentityManager):
 
         # Later usage
         current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-
-        # For chat functionality
-        self.pipulate.stream("Message to chat")
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""

@@ -1311,11 +1311,30 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         self.pipulate_instance = pipulate_instance
-        # For now, directly use stream with create_task as it's proven to work reliably
-        # TODO: In the future, update this to use the OrderedMessageQueue once that's fully tested
-        self.send_message = lambda message, verbatim=True: asyncio.create_task(
-            self.pipulate_instance.stream(message, verbatim=verbatim, spaces_after=1)
-        )
+        # Create a safer version of send_message
+        import asyncio
+        import inspect
+        
+        def safe_send_message(message, verbatim=True):
+            if not self.pipulate_instance:
+                return
+                
+            try:
+                stream_method = self.pipulate_instance.stream
+                if inspect.iscoroutinefunction(stream_method):
+                    return asyncio.create_task(
+                        stream_method(message, verbatim=verbatim, spaces_after=1)
+                    )
+                else:
+                    # Not async, but needs to be called directly
+                    return stream_method(message, verbatim=verbatim, spaces_after=1)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error in send_message: {e}")
+                return None
+                
+        self.send_message = safe_send_message
 
     def register_routes(self, rt):
         rt(f'/{self.name}', methods=['POST'])(self.insert_item)
@@ -2267,7 +2286,20 @@ def get_endpoint_message(workflow_name):
         # Use our new helper to format links
         message = instance.ENDPOINT_MESSAGE
         if hasattr(pipulate, 'format_links_in_text'):
-            message = pipulate.format_links_in_text(message)
+            try:
+                # Check if it's an async method and handle appropriately
+                import inspect
+                if inspect.iscoroutinefunction(pipulate.format_links_in_text):
+                    import asyncio
+                    # Create a non-blocking task
+                    asyncio.create_task(pipulate.format_links_in_text(message))
+                    return message
+                else:
+                    # Call directly if it's a regular function
+                    return pipulate.format_links_in_text(message)
+            except Exception as e:
+                logger.warning(f"Error formatting links in message: {e}")
+                return message
         return message
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."  # Default message
 
@@ -2288,6 +2320,12 @@ for module_name, class_name, workflow_class in discovered_classes:
             logger.warning(f"Issue with workflow {module_name}.{class_name} - continuing anyway")
             # Optional: Log error type separately if needed
             logger.debug(f"Error type: {e.__class__.__name__}")
+            
+            # If it's a coroutine that wasn't awaited, create a task for it
+            import inspect
+            if inspect.iscoroutine(e):
+                import asyncio
+                asyncio.create_task(e)
 
 # Use the registry to set friendly names and endpoint messages
 for workflow_name, workflow_instance in plugin_instances.items():
