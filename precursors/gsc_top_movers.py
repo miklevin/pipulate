@@ -378,31 +378,31 @@ def main():
     api_calls_made = 0
     cache_loads_made = 0
     all_data_loaded = True
-
+    
     for target_date in dates_to_fetch:
         date_str = target_date.strftime('%Y-%m-%d')
         cache_filename = os.path.join(CACHE_DIR, f"gsc_data_{date_str}.csv")
         cache_exists = os.path.exists(cache_filename)
-
+        
         df_day = get_gsc_data_for_day(gsc_service, SITE_URL, target_date)
-
+        
         # Track which source was used
         if cache_exists and not df_day.empty:
             cache_loads_made += 1
         elif not df_day.empty:
             api_calls_made += 1
-
+            
         # Even if df_day is empty, store it to represent the day
         daily_dataframes[target_date] = df_day
-
+        
         # Check if loading/fetching failed *and* cache doesn't exist
         if df_day.empty and not cache_exists:
-            print(f"⚠️ Warning: Data could not be fetched or loaded for {date_str}. Trend analysis might be incomplete.")
-            all_data_loaded = False
+             print(f"⚠️ Warning: Data could not be fetched or loaded for {date_str}. Trend analysis might be incomplete.")
+             all_data_loaded = False
 
     if not all_data_loaded:
-        print("\n⚠️ Warning: Data loading was incomplete. Proceeding with available data.")
-
+         print("\n⚠️ Warning: Data loading was incomplete. Proceeding with available data.")
+    
     print(f"\n📊 Data source summary: {cache_loads_made} days loaded from cache, {api_calls_made} days fetched from API")
 
     # --- ADD TREND ANALYSIS STEP ---
@@ -417,17 +417,17 @@ def main():
         pd.set_option('display.width', None)
         pd.set_option('display.expand_frame_repr', False)
         pd.set_option('display.max_colwidth', None)
-
+        
         # Create a simplified display dataframe with cleaner formatting
         display_df = trend_results_df.copy()
-
+        
         # Process the dataframe for display
         # 1. Extract page path from full URL
         if 'page' in display_df.columns:
             display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '', regex=True)
             # Further trim endings
             display_df['page'] = display_df['page'].str.replace(r'/$', '', regex=True)
-
+            
         # 2. Convert time series lists to more compact string representations
         for col in ['impressions_ts', 'clicks_ts', 'position_ts']:
             if col in display_df.columns:
@@ -435,14 +435,14 @@ def main():
                 display_df[col] = display_df[col].apply(
                     lambda x: '[' + ','.join([str(int(i)) if isinstance(i, (int, float)) and not pd.isna(i) else '-' for i in x]) + ']'
                 )
-
+                
         # 3. Format slope values to 1 decimal place
         for col in ['impressions_slope', 'clicks_slope', 'position_slope']:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(
                     lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
                 )
-
+                
         print("\n--- Top 15 by Impression Increase ---")
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15)
         print(top_impressions.to_string(index=False))
@@ -451,10 +451,52 @@ def main():
         # Ensure we're working with original numeric values for sorting
         numeric_df = trend_results_df.copy()
         numeric_df = numeric_df.dropna(subset=['position_slope'])
-        # Sort by position_slope (lowest/most negative is best improvement)
+        # Sort by position_slope (lowest/most negative is best improvement) 
         top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(15).index
         # Display using the formatted display dataframe
         print(display_df.loc[top_positions_idx].to_string(index=False))
+
+        # --- ADD NEW SECTION: Top Performers by Combined Score ---
+        print("\n--- Top 15 High-Impact Queries (Best Position + Most Impressions) ---")
+        # Get the most recent day in each time series
+        latest_data_df = trend_results_df.copy()
+        
+        # Extract the most recent values from the time series lists
+        def get_latest_nonzero_value(ts_list, default=None):
+            """Get the latest non-zero (or non-nan) value in a time series list."""
+            if not isinstance(ts_list, list):
+                return default
+            for value in reversed(ts_list):  # Start from the most recent
+                if isinstance(value, (int, float)) and not pd.isna(value) and value > 0:
+                    return value
+            return default
+            
+        latest_data_df['latest_position'] = latest_data_df['position_ts'].apply(
+            lambda x: get_latest_nonzero_value(x, default=100)
+        )
+        latest_data_df['latest_impressions'] = latest_data_df['impressions_ts'].apply(
+            lambda x: get_latest_nonzero_value(x, default=0)
+        )
+        
+        # Calculate combined score: impressions / position (higher score is better)
+        # This prioritizes high impressions and low positions
+        latest_data_df['impact_score'] = latest_data_df.apply(
+            lambda row: row['latest_impressions'] / max(row['latest_position'], 0.1) 
+            if pd.notnull(row['latest_position']) and row['latest_position'] > 0
+            else 0,
+            axis=1
+        )
+        
+        # Sort by the combined score and get top 15
+        top_impact_idx = latest_data_df.sort_values('impact_score', ascending=False).head(15).index
+        
+        # Add the score to the display dataframe
+        display_df['latest_position'] = latest_data_df['latest_position'].round(1)
+        display_df['latest_impressions'] = latest_data_df['latest_impressions'].astype(int)
+        display_df['impact_score'] = latest_data_df['impact_score'].round(1)
+        
+        # Display the top impact queries
+        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
         print("\n--- DataFrame Info ---")
         trend_results_df.info()
