@@ -387,25 +387,49 @@ def main():
         # Configure pandas display settings for better table formatting
         pd.set_option('display.max_rows', 30)
         pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)  # Allow unlimited width
-        pd.set_option('display.expand_frame_repr', False)  # Don't wrap to multiple lines
-        pd.set_option('display.max_colwidth', None)  # Don't truncate column content
+        pd.set_option('display.width', None)
+        pd.set_option('display.expand_frame_repr', False)
+        pd.set_option('display.max_colwidth', None)
         
-        # Create a copy of the dataframe with shortened URL paths for display
+        # Create a simplified display dataframe with cleaner formatting
         display_df = trend_results_df.copy()
-        # Shorten URLs for better display
-        if 'page' in display_df.columns:
-            display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '~/f/', regex=True)
         
-        print("\n--- Trend Analysis Results (Top 15 by Impression Increase) ---")
-        print(display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15).to_string())
+        # Process the dataframe for display
+        # 1. Extract page path from full URL
+        if 'page' in display_df.columns:
+            display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '', regex=True)
+            # Further trim endings
+            display_df['page'] = display_df['page'].str.replace(r'/$', '', regex=True)
+            
+        # 2. Convert time series lists to more compact string representations
+        for col in ['impressions_ts', 'clicks_ts', 'position_ts']:
+            if col in display_df.columns:
+                # Format time series values more compactly
+                display_df[col] = display_df[col].apply(
+                    lambda x: '[' + ','.join([str(int(i)) if isinstance(i, (int, float)) and not pd.isna(i) else '-' for i in x]) + ']'
+                )
+                
+        # 3. Format slope values to 1 decimal place
+        for col in ['impressions_slope', 'clicks_slope', 'position_slope']:
+            if col in display_df.columns:
+                display_df[col] = display_df[col].apply(
+                    lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
+                )
+                
+        print("\n--- Top 15 by Impression Increase ---")
+        top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15)
+        print(top_impressions.to_string(index=False))
 
-        print("\n--- Trend Analysis Results (Top 15 by Position Improvement - Lower is Better) ---")
-        # Filter out NaN slopes for position before sorting
-        pos_trends = display_df.dropna(subset=['position_slope'])
-        print(pos_trends.sort_values('position_slope', ascending=True, na_position='last').head(15).to_string())
+        print("\n--- Top 15 by Position Improvement (Lower is Better) ---")
+        # Ensure we're working with original numeric values for sorting
+        numeric_df = trend_results_df.copy()
+        numeric_df = numeric_df.dropna(subset=['position_slope'])
+        # Sort by position_slope (lowest/most negative is best improvement) 
+        top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(15).index
+        # Display using the formatted display dataframe
+        print(display_df.loc[top_positions_idx].to_string(index=False))
 
-        print("\n--- DataFrame Info (Trend Analysis) ---")
+        print("\n--- DataFrame Info ---")
         trend_results_df.info()
 
         # Save the final trend analysis results using the original dataframe (with full URLs)
