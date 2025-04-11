@@ -20,6 +20,7 @@ import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+
 # Need scipy for linregress OR numpy for polyfit - we'll use polyfit here
 # from scipy.stats import linregress
 
@@ -72,6 +73,7 @@ def authenticate_gsc():
         print(f"Error during GSC authentication: {e}")
         sys.exit(1)
 
+
 def check_date_has_data(service, site_url, check_date):
     """Checks if GSC has any performance data for the given site and date."""
     date_str = check_date.strftime('%Y-%m-%d')
@@ -89,6 +91,7 @@ def check_date_has_data(service, site_url, check_date):
     except Exception as e:
         print(f"\nUnexpected error checking date {date_str}: {e}")
         return False
+
 
 def find_most_recent_gsc_data_date(service, site_url):
     """Iterates backward to find the latest date with GSC data."""
@@ -109,15 +112,16 @@ def find_most_recent_gsc_data_date(service, site_url):
             days_checked += 1
             time.sleep(API_CHECK_DELAY)
     if not most_recent_data_date:
-        last_checked_date = current_date + timedelta(days=1) # Date where check stopped
+        last_checked_date = current_date + timedelta(days=1)  # Date where check stopped
         print(f"\nWarning: Could not find data within {MAX_DAYS_TO_CHECK} checked days (back to {last_checked_date}).")
     return most_recent_data_date
+
 
 def fetch_all_gsc_data(service, site_url, request_body):
     """Fetches all available data rows for a given GSC query, handling pagination."""
     all_rows = []
     start_row = request_body.get('startRow', 0)
-    row_limit = request_body.get('rowLimit', 25000) # Use max GSC limit
+    row_limit = request_body.get('rowLimit', 25000)  # Use max GSC limit
     page_count = 0
     print(f"\nFetching data with dimensions: {request_body.get('dimensions', [])} for {request_body.get('startDate')}")
     while True:
@@ -129,8 +133,10 @@ def fetch_all_gsc_data(service, site_url, request_body):
                 siteUrl=site_url, body=request_body).execute()
             current_rows = response.get('rows', [])
             if not current_rows:
-                if page_count == 1: print("No data found for this query.")
-                else: print("✓ No more data.")
+                if page_count == 1:
+                    print("No data found for this query.")
+                else:
+                    print("✓ No more data.")
                 break
             print(f"✓ Retrieved {len(current_rows)} rows.")
             all_rows.extend(current_rows)
@@ -141,19 +147,20 @@ def fetch_all_gsc_data(service, site_url, request_body):
             time.sleep(API_CHECK_DELAY)
         except HttpError as e:
             print(f"\nAPI Error fetching page {page_count}: {e.resp.status} {e.resp.reason}")
-            return [] # Return empty list on error
+            return []  # Return empty list on error
         except Exception as e:
             print(f"\nUnexpected error fetching page {page_count}: {e}")
             return []
     print(f"✓ Finished fetching {request_body.get('startDate')}. Total rows: {len(all_rows)}")
     return all_rows
 
+
 def process_gsc_data_to_dataframe(gsc_data_list, data_date):
     """Converts raw GSC data list into a processed Pandas DataFrame."""
     if not gsc_data_list:
         # Keep this print statement for clarity during processing
         # print(f"No data to process into DataFrame for {data_date}.")
-        return pd.DataFrame() # Return empty DF if no raw data
+        return pd.DataFrame()  # Return empty DF if no raw data
     df = pd.DataFrame(gsc_data_list)
     if 'keys' in df.columns and not df['keys'].empty:
         try:
@@ -168,10 +175,12 @@ def process_gsc_data_to_dataframe(gsc_data_list, data_date):
             df[col] = pd.to_numeric(df[col], errors='coerce')
         # else: # No need to print this repeatedly if a metric is consistently missing
             # print(f"Note: Metric column '{col}' not found for {data_date}.")
-    if 'ctr' in df.columns: df['ctr'] = df['ctr'] * 100
+    if 'ctr' in df.columns:
+        df['ctr'] = df['ctr'] * 100
     # Don't print success here, wait until after combining DFs if needed
     # print(f"✓ Processed data for {data_date} into DataFrame ({len(df)} rows).")
     return df
+
 
 def get_gsc_data_for_day(service, site_url, data_date):
     """Fetches GSC data for a specific day, using cache if available."""
@@ -179,17 +188,17 @@ def get_gsc_data_for_day(service, site_url, data_date):
     cache_filename = os.path.join(CACHE_DIR, f"gsc_data_{date_str}.csv")
     if os.path.exists(cache_filename):
         try:
-            print(f"✓ Loading data for {date_str} from cache: {cache_filename}")
+            print(f"📂 CACHE: Loading data for {date_str} from cache: {cache_filename}")
             df = pd.read_csv(cache_filename, dtype={
                 'clicks': 'Int64', 'impressions': 'Int64', 'ctr': 'float64',
                 'position': 'float64', 'query': 'object', 'page': 'object'
             }, parse_dates=False)
             if 'ctr' in df.columns and not df['ctr'].empty and df['ctr'].max() <= 1.0:
-                 df['ctr'] = df['ctr'] * 100
+                df['ctr'] = df['ctr'] * 100
             return df
         except Exception as e:
-            print(f"Warning: Could not load cache file {cache_filename}. Error: {e}. Re-fetching.")
-    print(f"Fetching data for {date_str} from GSC API...")
+            print(f"⚠️ Warning: Could not load cache file {cache_filename}. Error: {e}. Re-fetching.")
+    print(f"🔄 API: Fetching data for {date_str} from GSC API...")
     request = {
         'startDate': date_str, 'endDate': date_str,
         'dimensions': ['query', 'page'],
@@ -201,12 +210,13 @@ def get_gsc_data_for_day(service, site_url, data_date):
         try:
             os.makedirs(CACHE_DIR, exist_ok=True)
             df.to_csv(cache_filename, index=False)
-            print(f"✓ Saved data for {date_str} to cache: {cache_filename}")
+            print(f"💾 Saved data for {date_str} to cache: {cache_filename}")
         except Exception as e:
-            print(f"Warning: Could not save data for {date_str} to cache. Error: {e}")
+            print(f"⚠️ Warning: Could not save data for {date_str} to cache. Error: {e}")
     return df
 
 # --- New Function for Trend Analysis ---
+
 
 def analyze_trends(daily_dataframes_dict):
     """
@@ -231,8 +241,8 @@ def analyze_trends(daily_dataframes_dict):
     dfs_to_concat = []
     for date, df in daily_dataframes_dict.items():
         if not df.empty:
-            df_copy = df.copy() # Work on a copy
-            df_copy['date'] = pd.to_datetime(date) # Ensure date is datetime object
+            df_copy = df.copy()  # Work on a copy
+            df_copy['date'] = pd.to_datetime(date)  # Ensure date is datetime object
             dfs_to_concat.append(df_copy)
 
     if not dfs_to_concat:
@@ -255,35 +265,35 @@ def analyze_trends(daily_dataframes_dict):
         # Convert the groupby result to a DataFrame if it's a Series
         if isinstance(group, pd.Series):
             group = group.to_frame().T
-        
+
         # Ensure date is in datetime format
         if 'date' in group.columns:
             group['date'] = pd.to_datetime(group['date'])
             group = group.set_index('date')
-        
+
         # Create a complete date range
         full_date_index = pd.to_datetime(dates)
-        
+
         # Create empty results dictionary
         results = {}
-        
+
         # Handle each metric
         for metric in metrics:
             # Default values in case metric is missing
             results[f'{metric}_ts'] = [0] * num_days  # Default time series
             results[f'{metric}_slope'] = np.nan       # Default slope
-            
+
             # Skip processing if metric is not in the group's columns
             if metric not in group.columns:
                 continue
-                
+
             # Get metric values for each date (align with date index)
             metric_by_date = {}
             for _, row in group.reset_index().iterrows():
                 if 'date' in row and pd.notnull(row['date']) and metric in row and pd.notnull(row[metric]):
                     dt = pd.to_datetime(row['date'])
                     metric_by_date[dt] = row[metric]
-            
+
             # Create time series array aligned with full date range
             ts_values = []
             for dt in full_date_index:
@@ -298,15 +308,15 @@ def analyze_trends(daily_dataframes_dict):
                 else:
                     # For missing dates: 0 for counts, NaN for position
                     ts_values.append(0 if metric in ['impressions', 'clicks'] else np.nan)
-            
+
             results[f'{metric}_ts'] = ts_values
-            
+
             # Calculate regression slope if we have enough valid data points
             x = np.arange(num_days)
             y = np.array(ts_values)
             valid_mask = ~np.isnan(y)
             valid_count = np.sum(valid_mask)
-            
+
             if valid_count >= 2:  # Need at least two points for regression
                 try:
                     # Extract valid x and y values
@@ -319,7 +329,7 @@ def analyze_trends(daily_dataframes_dict):
                     # Handle computation errors
                     print(f"Warning: Slope calculation error for metric {metric}: {e}")
                     results[f'{metric}_slope'] = np.nan
-        
+
         return pd.Series(results)
     # --- End of inner function ---
 
@@ -333,13 +343,13 @@ def analyze_trends(daily_dataframes_dict):
         print(f"✓ Trend analysis complete. Found {len(analysis_results)} unique page/query combinations.")
     except Exception as e:
         print(f"Error during groupby/apply operation for trend analysis: {e}")
-        return pd.DataFrame() # Return empty DF on error
+        return pd.DataFrame()  # Return empty DF on error
 
     # Optional: Round slopes for cleaner display
     for metric in metrics:
         col_name = f'{metric}_slope'
         if col_name in analysis_results.columns:
-             analysis_results[col_name] = analysis_results[col_name].round(2)
+            analysis_results[col_name] = analysis_results[col_name].round(2)
 
     return analysis_results
 
@@ -365,18 +375,35 @@ def main():
 
     # 4. Fetch/load daily data
     daily_dataframes = {}
+    api_calls_made = 0
+    cache_loads_made = 0
     all_data_loaded = True
+
     for target_date in dates_to_fetch:
+        date_str = target_date.strftime('%Y-%m-%d')
+        cache_filename = os.path.join(CACHE_DIR, f"gsc_data_{date_str}.csv")
+        cache_exists = os.path.exists(cache_filename)
+
         df_day = get_gsc_data_for_day(gsc_service, SITE_URL, target_date)
+
+        # Track which source was used
+        if cache_exists and not df_day.empty:
+            cache_loads_made += 1
+        elif not df_day.empty:
+            api_calls_made += 1
+
         # Even if df_day is empty, store it to represent the day
         daily_dataframes[target_date] = df_day
+
         # Check if loading/fetching failed *and* cache doesn't exist
-        if df_day.empty and not os.path.exists(os.path.join(CACHE_DIR, f"gsc_data_{target_date.strftime('%Y-%m-%d')}.csv")):
-             print(f"Warning: Data could not be fetched or loaded for {target_date.strftime('%Y-%m-%d')}. Trend analysis might be incomplete.")
-             all_data_loaded = False
+        if df_day.empty and not cache_exists:
+            print(f"⚠️ Warning: Data could not be fetched or loaded for {date_str}. Trend analysis might be incomplete.")
+            all_data_loaded = False
 
     if not all_data_loaded:
-         print("\nWarning: Data loading was incomplete. Proceeding with available data.")
+        print("\n⚠️ Warning: Data loading was incomplete. Proceeding with available data.")
+
+    print(f"\n📊 Data source summary: {cache_loads_made} days loaded from cache, {api_calls_made} days fetched from API")
 
     # --- ADD TREND ANALYSIS STEP ---
     # 5. Perform Trend Analysis
@@ -390,17 +417,17 @@ def main():
         pd.set_option('display.width', None)
         pd.set_option('display.expand_frame_repr', False)
         pd.set_option('display.max_colwidth', None)
-        
+
         # Create a simplified display dataframe with cleaner formatting
         display_df = trend_results_df.copy()
-        
+
         # Process the dataframe for display
         # 1. Extract page path from full URL
         if 'page' in display_df.columns:
             display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '', regex=True)
             # Further trim endings
             display_df['page'] = display_df['page'].str.replace(r'/$', '', regex=True)
-            
+
         # 2. Convert time series lists to more compact string representations
         for col in ['impressions_ts', 'clicks_ts', 'position_ts']:
             if col in display_df.columns:
@@ -408,14 +435,14 @@ def main():
                 display_df[col] = display_df[col].apply(
                     lambda x: '[' + ','.join([str(int(i)) if isinstance(i, (int, float)) and not pd.isna(i) else '-' for i in x]) + ']'
                 )
-                
+
         # 3. Format slope values to 1 decimal place
         for col in ['impressions_slope', 'clicks_slope', 'position_slope']:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(
                     lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
                 )
-                
+
         print("\n--- Top 15 by Impression Increase ---")
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15)
         print(top_impressions.to_string(index=False))
@@ -424,7 +451,7 @@ def main():
         # Ensure we're working with original numeric values for sorting
         numeric_df = trend_results_df.copy()
         numeric_df = numeric_df.dropna(subset=['position_slope'])
-        # Sort by position_slope (lowest/most negative is best improvement) 
+        # Sort by position_slope (lowest/most negative is best improvement)
         top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(15).index
         # Display using the formatted display dataframe
         print(display_df.loc[top_positions_idx].to_string(index=False))
