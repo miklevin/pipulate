@@ -327,7 +327,9 @@ def analyze_trends(daily_dataframes_dict):
     # Apply the analysis function to each group
     # Handle potential errors during apply (e.g., unexpected data types)
     try:
-        analysis_results = combined_df.groupby(['page', 'query'], observed=True, dropna=False).apply(analyze_single_group).reset_index()
+        # Using include_groups=False to avoid deprecation warning
+        analysis_results = combined_df.groupby(['page', 'query'], observed=True, dropna=False).apply(
+            analyze_single_group, include_groups=False).reset_index()
         print(f"✓ Trend analysis complete. Found {len(analysis_results)} unique page/query combinations.")
     except Exception as e:
         print(f"Error during groupby/apply operation for trend analysis: {e}")
@@ -382,22 +384,31 @@ def main():
 
     # 6. Display Trend Analysis Results
     if not trend_results_df.empty:
-        print("\n--- Trend Analysis Results (Top 15 by Impression Increase) ---")
+        # Configure pandas display settings for better table formatting
         pd.set_option('display.max_rows', 30)
         pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', 150) # Wider display for more columns
-        pd.set_option('display.max_colwidth', 40) # Truncate long strings slightly
-        print(trend_results_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15))
+        pd.set_option('display.width', None)  # Allow unlimited width
+        pd.set_option('display.expand_frame_repr', False)  # Don't wrap to multiple lines
+        pd.set_option('display.max_colwidth', None)  # Don't truncate column content
+        
+        # Create a copy of the dataframe with shortened URL paths for display
+        display_df = trend_results_df.copy()
+        # Shorten URLs for better display
+        if 'page' in display_df.columns:
+            display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '~/f/', regex=True)
+        
+        print("\n--- Trend Analysis Results (Top 15 by Impression Increase) ---")
+        print(display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15).to_string())
 
         print("\n--- Trend Analysis Results (Top 15 by Position Improvement - Lower is Better) ---")
         # Filter out NaN slopes for position before sorting
-        pos_trends = trend_results_df.dropna(subset=['position_slope'])
-        print(pos_trends.sort_values('position_slope', ascending=True, na_position='last').head(15))
+        pos_trends = display_df.dropna(subset=['position_slope'])
+        print(pos_trends.sort_values('position_slope', ascending=True, na_position='last').head(15).to_string())
 
         print("\n--- DataFrame Info (Trend Analysis) ---")
         trend_results_df.info()
 
-        # Save the final trend analysis results
+        # Save the final trend analysis results using the original dataframe (with full URLs)
         final_output_filename = os.path.join(SCRIPT_DIR, f"gsc_trend_analysis_{dates_to_fetch[0].strftime('%Y%m%d')}_to_{dates_to_fetch[-1].strftime('%Y%m%d')}.csv")
         try:
             trend_results_df.to_csv(final_output_filename, index=False)
