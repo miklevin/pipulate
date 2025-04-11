@@ -4,7 +4,6 @@ import inspect
 import os
 import sys
 import re
-import asyncio
 
 import fastlite
 from fasthtml.common import *

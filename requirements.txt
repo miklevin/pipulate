@@ -23,3 +23,6 @@ python_fasthtml
 requests
 rich
 watchdog
+
+google-api-python-client
+google-auth

@@ -130,53 +130,61 @@
           chmod +x .venv/bin/stop
         '';
 
-        # Define the development shell for Linux systems (including WSL)
-        linuxDevShell = pkgs.mkShell {
-          # Include common packages and conditionally add CUDA if available
-          buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
-          shellHook = ''
-            # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
-            export VIRTUAL_ENV="$(pwd)/.venv"
-            export PATH="$VIRTUAL_ENV/bin:$PATH"
-            # Customize the prompt to show we're in a Nix environment
-            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
-            export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
+        # Base shell hook that just sets up the environment without any output
+        baseEnvSetup = pkgs: ''
+          # Set up the Python virtual environment
+          test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
+          export VIRTUAL_ENV="$(pwd)/.venv"
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
+          export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
-            # Set up CUDA if available
-            if command -v nvidia-smi &> /dev/null; then
-              echo "CUDA hardware detected."
-              export CUDA_HOME=${pkgs.cudatoolkit}
-              export PATH=$CUDA_HOME/bin:$PATH
-              export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-            else
-              echo "No CUDA hardware detected."
-            fi
+          # Set up CUDA env vars if available (no output)
+          if command -v nvidia-smi &> /dev/null; then
+            export CUDA_HOME=${pkgs.cudatoolkit}
+            export PATH=$CUDA_HOME/bin:$PATH
+            export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+          fi
+        '';
 
-            # Run our setup script
-            ${runScript}/bin/run-script
-          '';
+        # Function to create shells for each OS
+        mkShells = pkgs: {
+          # Default shell with the full interactive setup
+          default = pkgs.mkShell {
+            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
+            shellHook = ''
+              ${baseEnvSetup pkgs}
+              
+              # Set up CUDA if available (with output)
+              if command -v nvidia-smi &> /dev/null; then
+                echo "CUDA hardware detected."
+              else
+                echo "No CUDA hardware detected."
+              fi
+              
+              # Run the full interactive script
+              ${runScript}/bin/run-script
+            '';
+          };
+          
+          # Quiet shell for AI assistants and scripting
+          quiet = pkgs.mkShell {
+            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
+            shellHook = ''
+              ${baseEnvSetup pkgs}
+              # Minimal confirmation, can be removed for zero output
+              echo "Quiet Nix environment activated."
+            '';
+          };
         };
 
-        # Define the development shell for macOS systems
-        darwinDevShell = pkgs.mkShell {
-          buildInputs = commonPackages;
-          shellHook = ''
-            # Set up the Python virtual environment
-            test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
-            export VIRTUAL_ENV="$(pwd)/.venv"
-            export PATH="$VIRTUAL_ENV/bin:$PATH"
-            # Customize the prompt to show we're in a Nix environment
-            # export PS1='$(printf "\033[01;34m(nix) \033[00m\033[01;32m[%s@%s:%s]$\033[00m " "\u" "\h" "\w")'
-            export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
-
-            # Run our setup script
-            ${runScript}/bin/run-script
-          '';
-        };
+        # Get the shells for the current OS
+        shells = mkShells pkgs;
 
       in {
-        # Choose the appropriate development shell based on the OS
-        devShell = if isLinux then linuxDevShell else darwinDevShell;  # Ensure multi-OS support
+        # Multiple devShells for different use cases
+        devShells = shells;
+        
+        # The default devShell (when just running 'nix develop')
+        devShell = shells.default;
       });
 }

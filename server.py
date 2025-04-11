@@ -2938,11 +2938,11 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 def run_server_with_watchdog():
     fig("SERVER RESTART")
-    print("\n" * 30)
+    # print("\n" * 30)
     # Insert Alice
     with open('static/alice.txt', 'r') as file:
         print(file.read())
-    print("\n" * 30)
+    # print("\n" * 30)
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
