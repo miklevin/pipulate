@@ -49,6 +49,9 @@ API_CHECK_DELAY = 0.5
 # Number of consecutive days of data to fetch (ending on the most recent date)
 NUM_DAYS_TO_FETCH = 4
 
+# Number of top results to display in each category
+TOP_N = 20
+
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
 
@@ -443,21 +446,21 @@ def main():
                     lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
                 )
                 
-        print("\n--- Top 15 by Impression Increase ---")
-        top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(15)
+        print(f"\n--- Top {TOP_N} by Impression Increase ---")
+        top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
         print(top_impressions.to_string(index=False))
 
-        print("\n--- Top 15 by Position Improvement (Lower is Better) ---")
+        print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
         # Ensure we're working with original numeric values for sorting
         numeric_df = trend_results_df.copy()
         numeric_df = numeric_df.dropna(subset=['position_slope'])
         # Sort by position_slope (lowest/most negative is best improvement) 
-        top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(15).index
+        top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(TOP_N).index
         # Display using the formatted display dataframe
         print(display_df.loc[top_positions_idx].to_string(index=False))
 
         # --- ADD NEW SECTION: Top Performers by Combined Score ---
-        print("\n--- Top 15 High-Impact Queries (Best Position + Most Impressions) ---")
+        print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
         # Get the most recent day in each time series
         latest_data_df = trend_results_df.copy()
         
@@ -487,16 +490,27 @@ def main():
             axis=1
         )
         
-        # Sort by the combined score and get top 15
-        top_impact_idx = latest_data_df.sort_values('impact_score', ascending=False).head(15).index
+        # Sort by the combined score and get top N
+        top_impact_idx = latest_data_df.sort_values('impact_score', ascending=False).head(TOP_N).index
         
         # Add the score to the display dataframe
         display_df['latest_position'] = latest_data_df['latest_position'].round(1)
         display_df['latest_impressions'] = latest_data_df['latest_impressions'].astype(int)
         display_df['impact_score'] = latest_data_df['impact_score'].round(1)
         
-        # Display the top impact queries
-        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+        # Truncate long queries for display
+        def truncate_query(query, max_length=50):
+            """Truncate query string if longer than max_length."""
+            if len(query) <= max_length:
+                return query
+            return query[:max_length-3] + "..."
+        
+        # Create a display version with truncated queries
+        display_df_truncated = display_df.copy()
+        display_df_truncated['query'] = display_df_truncated['query'].apply(truncate_query)
+        
+        # Display the top impact queries with truncated query text
+        print(display_df_truncated.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
         print("\n--- DataFrame Info ---")
         trend_results_df.info()
