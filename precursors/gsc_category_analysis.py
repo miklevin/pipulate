@@ -239,9 +239,16 @@ def print_tree(hierarchy, posts_df):
         title = posts_df[posts_df['url'] == url]['title'].iloc[0]
         title = title[:60] + "..." if len(title) > 60 else title
         post_num = post_numbers.get(url, '?')
-        print(f"{prefix}#{post_num}: {title}")
-        # Keep the same tree structure for URL, just indent it more
-        url_prefix = prefix.replace("└──", "└── ").replace("├──", "├── ")
+        
+        # For the last item in a list, we need to use ├── for the title to maintain the line for the URL
+        if prefix.endswith("└── "):
+            title_prefix = prefix.replace("└── ", "├── ")
+            url_prefix = prefix
+        else:
+            title_prefix = prefix
+            url_prefix = prefix
+        
+        print(f"{title_prefix}#{post_num}: {title}")
         print(f"{url_prefix}    {url}")
 
     # Print L1 clusters and their hierarchy
