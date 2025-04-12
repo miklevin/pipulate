@@ -24,6 +24,40 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 
+# --- Configuration ---
+
+# GSC Property URL (e.g., "sc-domain:example.com" or "https://www.example.com/")
+SITE_URL = "sc-domain:mikelev.in"
+# Base URL of your website (used to convert absolute GSC URLs to relative paths)
+BASE_URL = "https://mikelev.in"
+
+# --- Topology Parameters ---
+# These parameters affect how the site hierarchy is structured
+
+# Maximum number of L1 (top-level) categories
+# Higher values create a flatter structure, lower values push more into L2
+MAX_L1_CATEGORIES = 10
+
+# Minimum impressions required for a cluster to be considered for L1
+# Higher values push low-traffic topics into L2/L3
+MIN_IMPRESSIONS_FOR_L1 = 50
+
+# K-means clustering parameters
+NUM_CLUSTERS = 20        # Initial number of clusters to create
+MIN_CLUSTER_SIZE = 3     # Minimum posts required to form a cluster
+MAX_KEYWORDS_PER_CLUSTER = 5  # Number of keywords to represent each cluster
+
+# Keyword relationship thresholds
+KEYWORD_SIMILARITY_THRESHOLD = 0.3  # Minimum similarity to consider keywords related
+MIN_KEYWORD_FREQUENCY = 2    # Minimum times a keyword must appear to be considered
+MAX_KEYWORD_NGRAM = 3       # Maximum words in a keyword phrase
+
+# Display parameters
+MAX_TITLE_LENGTH = 60       # Truncate titles longer than this
+INDENT_SPACES = 4           # Number of spaces for each tree level
+
+# --- End Configuration ---
+
 # Configuration
 JEKYLL_ROOT = os.path.join(os.path.dirname(__file__), '../../MikeLev.in')
 POSTS_DIR = os.path.join(JEKYLL_ROOT, '_posts')
@@ -159,29 +193,29 @@ def cluster_content(posts_df, gsc_df):
     return pd.DataFrame(cluster_data)
 
 def suggest_hierarchy(clusters_df):
-    """Suggest hierarchical organization based on clusters."""
+    """Suggest a hierarchical organization of clusters.
+    
+    Args:
+        clusters_df: DataFrame with columns: id, urls, size, keywords, impressions
+    
+    Returns:
+        Dictionary mapping level numbers to lists of cluster dictionaries
+    """
+    levels = defaultdict(list)
+    
     # Sort clusters by impressions (descending)
     sorted_clusters = clusters_df.sort_values('impressions', ascending=False)
     
-    # Initialize levels
-    levels = {
-        1: [],  # Top level categories
-        2: [],  # Second level
-        3: []   # Third level
-    }
-    
-    # Assign clusters to levels based on size and impressions
+    # Assign clusters to levels based on impressions and size
     for _, cluster in sorted_clusters.iterrows():
-        if cluster['impressions'] >= MIN_IMPRESSIONS_FOR_PRIORITY:
-            if len(levels[1]) < 10:  # Keep top level limited
-                levels[1].append(cluster)
+        cluster_dict = cluster.to_dict()  # Convert Series to dict
+        if cluster['impressions'] >= MIN_IMPRESSIONS_FOR_L1:
+            if len(levels[1]) < MAX_L1_CATEGORIES:
+                levels[1].append(cluster_dict)
             else:
-                levels[2].append(cluster)
+                levels[2].append(cluster_dict)
         else:
-            if cluster['size'] >= MIN_POSTS_PER_CATEGORY:
-                levels[2].append(cluster)
-            else:
-                levels[3].append(cluster)
+            levels[2].append(cluster_dict)
     
     return levels
 
@@ -197,16 +231,15 @@ def print_post(url, prefix, indent, posts_df, post_numbers):
     4. Each level's indentation is 4 spaces
     5. URLs are indented 4 spaces after their tree character
     """
-    # Find matching post
     matching_posts = posts_df[posts_df['url'] == url]
     if matching_posts.empty:
-        return False  # Skip this post entirely
+        return False
     
     title = matching_posts['title'].iloc[0]
     if title is None:
-        title = "Untitled Post"  # Handle None titles
+        title = "Untitled Post"
     else:
-        title = str(title)[:60] + "..." if len(str(title)) > 60 else str(title)
+        title = str(title)[:MAX_TITLE_LENGTH] + "..." if len(str(title)) > MAX_TITLE_LENGTH else str(title)
     
     post_num = post_numbers.get(url, '?')
     
