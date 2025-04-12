@@ -323,25 +323,24 @@ def print_tree(hierarchy, posts_df):
     orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
     
     if orphaned_l2s or orphaned_l3s:
-        # Remove extra newline by removing the \n from the string
-        print("├── [Uncategorized]")  # Changed from "\n├──" to just "├──"
+        print("└── [Uncategorized]")  # Changed from ├── to └── since it's the last section
         if orphaned_l2s:
-            print("│   ├── [L2 Clusters]")
+            print("    └── [L2 Clusters]")  # Changed from ├── to └── since we don't have L3s
             for i, l2 in enumerate(orphaned_l2s):
-                is_last = (i == len(orphaned_l2s) - 1) and not orphaned_l3s
-                prefix = "│   │   └── " if is_last else "│   │   ├── "
+                is_last = (i == len(orphaned_l2s) - 1)
+                prefix = "        └── " if is_last else "        ├── "  # Adjusted indentation
                 name = " & ".join(l2['keywords'][:2])
                 print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
         
         if orphaned_l3s:
-            print("│   └── [L3 Clusters]")
+            print("    └── [L3 Clusters]")
             for i, l3 in enumerate(orphaned_l3s):
                 is_last = (i == len(orphaned_l3s) - 1)
-                prefix = "│       └── " if is_last else "│       ├── "
+                prefix = "        └── " if is_last else "        ├── "  # Consistent indentation
                 name = " & ".join(l3['keywords'][:2])
                 print(f"{prefix}{name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
         
-        print("└──")
+        # Remove the extra └── at the end since the section is properly terminated
 
     # Print coverage statistics
     total_urls = set()
