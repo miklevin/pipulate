@@ -255,7 +255,8 @@ def print_tree(hierarchy, posts_df):
     for i, l1 in enumerate(l1_clusters):
         is_last_l1 = (i == len(l1_clusters) - 1)
         l1_prefix = "└── " if is_last_l1 else "├── "
-        l1_indent = "    " if is_last_l1 else "│   "
+        # Always use │ for child indentation, even for last L1
+        l1_indent = "│   "
 
         # Print L1 cluster
         name = " & ".join(l1['keywords'][:2])
@@ -321,22 +322,24 @@ def print_tree(hierarchy, posts_df):
     orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
     
     if orphaned_l2s or orphaned_l3s:
-        print("\n└── [Uncategorized]")
+        print("\n├── [Uncategorized]")
         if orphaned_l2s:
-            print("    ├── [L2 Clusters]")
+            print("│   ├── [L2 Clusters]")
             for i, l2 in enumerate(orphaned_l2s):
                 is_last = (i == len(orphaned_l2s) - 1) and not orphaned_l3s
-                prefix = "    │   └── " if is_last else "    │   ├── "
+                prefix = "│   │   └── " if is_last else "│   │   ├── "
                 name = " & ".join(l2['keywords'][:2])
                 print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
         
         if orphaned_l3s:
-            print("    └── [L3 Clusters]")
+            print("│   └── [L3 Clusters]")
             for i, l3 in enumerate(orphaned_l3s):
                 is_last = (i == len(orphaned_l3s) - 1)
-                prefix = "        └── " if is_last else "        ├── "
+                prefix = "│       └── " if is_last else "│       ├── "
                 name = " & ".join(l3['keywords'][:2])
                 print(f"{prefix}{name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
+        
+        print("└──")
 
     # Print coverage statistics
     total_urls = set()
