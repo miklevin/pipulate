@@ -317,8 +317,8 @@ def print_tree(hierarchy, posts_df):
         l2_to_l3[l2_id].sort(key=lambda x: x[1], reverse=True)
 
     # Print L1 clusters and their hierarchy
-    for i, l1 in enumerate(l1_clusters):
-        is_last_l1 = (i == len(l1_clusters) - 1)
+    for l1_num, l1 in enumerate(l1_clusters, 1):
+        is_last_l1 = (l1_num == len(l1_clusters))
         # Use ├── for last L1 since we have Uncategorized section after it
         l1_prefix = "├── "
         # Always use │ for child indentation
@@ -327,7 +327,7 @@ def print_tree(hierarchy, posts_df):
         # Print L1 cluster
         name = " & ".join(l1['keywords'][:2])
         name = name[:50] + "..." if len(name) > 50 else name
-        print(f"{l1_prefix}[L1] {name} ({l1['size']} posts, {l1['impressions']:,} impressions)")
+        print(f"{l1_prefix}[L1.{l1_num:02d}] {name} ({l1['size']} posts, {l1['impressions']:,} impressions)")
 
         # Get L2s for this L1
         l2_children = l1_to_l2.get(l1['id'], [])
@@ -348,15 +348,15 @@ def print_tree(hierarchy, posts_df):
             print_post(url, post_prefix, l1_indent + "    ", posts_df, post_numbers)
 
         # Print L2 clusters and their content
-        for k, (l2, _) in enumerate(l2_children):
-            is_last_l2 = (k == len(l2_children) - 1)
+        for l2_num, (l2, _) in enumerate(l2_children, 1):
+            is_last_l2 = (l2_num == len(l2_children))
             l2_prefix = l1_indent + ("└── " if is_last_l2 else "├── ")
             l2_indent = l1_indent + ("    " if is_last_l2 else "│   ")
 
             # Print L2 cluster
             name = " & ".join(l2['keywords'][:2])
             name = name[:50] + "..." if len(name) > 50 else name
-            print(f"{l2_prefix}[L2] {name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
+            print(f"{l2_prefix}[L2.{l1_num:02d}.{l2_num:02d}] {name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
 
             # Get L3s for this L2
             l3_children = l2_to_l3.get(l2['id'], [])
@@ -386,7 +386,7 @@ def print_tree(hierarchy, posts_df):
                 # Print L3 cluster
                 name = " & ".join(l3['keywords'][:2])
                 name = name[:50] + "..." if len(name) > 50 else name
-                print(f"{l3_prefix}[L3] {name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
+                print(f"{l3_prefix}[L3.{l1_num:02d}.{l2_num:02d}.{n+1:02d}] {name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
 
                 # Print L3's posts
                 for p, url in enumerate(l3['urls']):  # Removed [:3] to show all posts
@@ -406,7 +406,7 @@ def print_tree(hierarchy, posts_df):
                 is_last = (i == len(orphaned_l2s) - 1)
                 prefix = "        └── " if is_last else "        ├── "
                 name = " & ".join(l2['keywords'][:2])
-                print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
+                print(f"{prefix}[L2.U.{i+1:02d}] {name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
                 
                 # Print all posts for each orphaned L2 cluster
                 valid_urls = []
@@ -429,7 +429,7 @@ def print_tree(hierarchy, posts_df):
                 is_last = (i == len(orphaned_l3s) - 1)
                 prefix = "        └── " if is_last else "        ├── "
                 name = " & ".join(l3['keywords'][:2])
-                print(f"{prefix}{name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
+                print(f"{prefix}[L3.U.{i+1:02d}] {name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
                 
                 # Print all posts for each orphaned L3 cluster
                 for j, url in enumerate(l3['urls']):  # Removed [:3] to show all posts
