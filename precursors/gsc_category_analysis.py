@@ -200,13 +200,12 @@ def print_post(url, prefix, indent, posts_df, post_numbers):
     
     post_num = post_numbers.get(url, '?')
     
-    # For the last item in a list, we need to use ├── for the title to maintain the line for the URL
+    # For the last item in a list, we need to use ├── for the title and └── for the URL
     if prefix.endswith("└── "):
         title_prefix = prefix.replace("└── ", "├── ")
-        url_prefix = prefix
+        url_prefix = prefix  # Keep └── for URL
     else:
-        title_prefix = prefix
-        url_prefix = prefix
+        title_prefix = url_prefix = prefix
     
     print(f"{title_prefix}#{post_num}: {title}")
     print(f"{url_prefix}    {url}")
@@ -363,12 +362,10 @@ def print_tree(hierarchy, posts_df):
                     is_last_post = (j == len(valid_urls) - 1)
                     post_prefix = "        │   " if not is_last else "            "
                     if is_last_post:
-                        title_prefix = post_prefix + "├── "
-                        url_prefix = post_prefix + "└── "
+                        post_prefix += "└── "  # Last post gets └── for both title and URL
                     else:
-                        title_prefix = url_prefix = post_prefix + "├── "
-                    
-                    print_post(url, title_prefix, url_prefix, posts_df, post_numbers)
+                        post_prefix += "├── "
+                    print_post(url, post_prefix, post_prefix + "    ", posts_df, post_numbers)
         
         if orphaned_l3s:
             print("    └── [L3 Clusters]")
@@ -383,12 +380,10 @@ def print_tree(hierarchy, posts_df):
                     is_last_post = (j == len(l3['urls']) - 1)
                     post_prefix = "        │   " if not is_last else "            "
                     if is_last_post:
-                        title_prefix = post_prefix + "├── "
-                        url_prefix = post_prefix + "└── "
+                        post_prefix += "└── "  # Last post gets └── for both title and URL
                     else:
-                        title_prefix = url_prefix = post_prefix + "├── "
-                    
-                    print_post(url, title_prefix, url_prefix, posts_df, post_numbers)
+                        post_prefix += "├── "
+                    print_post(url, post_prefix, post_prefix + "    ", posts_df, post_numbers)
 
     # Print coverage statistics
     total_urls = set()
