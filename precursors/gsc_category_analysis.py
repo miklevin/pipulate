@@ -195,94 +195,141 @@ def print_tree(hierarchy, posts_df):
     sorted_posts = posts_df.sort_values('date', ascending=False)
     post_numbers = {row['url']: idx + 1 for idx, row in sorted_posts.iterrows()}
 
-    # First, establish L1-L2 relationships based on keyword similarity
+    # Get clusters for each level
     l1_clusters = hierarchy.get(1, [])
     l2_clusters = hierarchy.get(2, [])
     l3_clusters = hierarchy.get(3, [])
 
-    # Track which L2s are assigned to L1s
+    # Track assigned clusters
     assigned_l2_ids = set()
+    assigned_l3_ids = set()
 
-    # For each L1 cluster, find related L2s based on keyword overlap
-    l1_children = defaultdict(list)
+    # Build relationship maps based on keyword overlap
+    def calculate_overlap(parent_keywords, child_keywords):
+        parent_set = set(k.lower() for k in parent_keywords)
+        child_set = set(k.lower() for k in child_keywords)
+        return len(parent_set & child_set)
+
+    # Map L1 to L2 relationships
+    l1_to_l2 = defaultdict(list)
     for l1 in l1_clusters:
-        l1_keywords = set(k.lower() for k in l1['keywords'])
         for l2 in l2_clusters:
-            l2_keywords = set(k.lower() for k in l2['keywords'])
-            # Calculate similarity score based on keyword overlap
-            overlap = len(l1_keywords & l2_keywords)
-            if overlap > 0:  # If there's any keyword overlap
-                l1_children[l1['id']].append((l2, overlap))
-                assigned_l2_ids.add(l2['id'])  # Track this L2 as assigned
-    
-    # Sort L2s by overlap score within each L1
-    for l1_id in l1_children:
-        l1_children[l1_id].sort(key=lambda x: x[1], reverse=True)
+            overlap = calculate_overlap(l1['keywords'], l2['keywords'])
+            if overlap > 0:
+                l1_to_l2[l1['id']].append((l2, overlap))
+                assigned_l2_ids.add(l2['id'])
 
-    # Print L1 clusters and their related L2s
+    # Map L2 to L3 relationships
+    l2_to_l3 = defaultdict(list)
+    for l2 in l2_clusters:
+        for l3 in l3_clusters:
+            overlap = calculate_overlap(l2['keywords'], l3['keywords'])
+            if overlap > 0:
+                l2_to_l3[l2['id']].append((l3, overlap))
+                assigned_l3_ids.add(l3['id'])
+
+    # Sort relationships by overlap score
+    for l1_id in l1_to_l2:
+        l1_to_l2[l1_id].sort(key=lambda x: x[1], reverse=True)
+    for l2_id in l2_to_l3:
+        l2_to_l3[l2_id].sort(key=lambda x: x[1], reverse=True)
+
+    def print_post(url, prefix, indent):
+        """Helper to print a post with consistent indentation."""
+        title = posts_df[posts_df['url'] == url]['title'].iloc[0]
+        title = title[:60] + "..." if len(title) > 60 else title
+        post_num = post_numbers.get(url, '?')
+        print(f"{prefix}#{post_num}: {title}")
+        # Keep the same tree structure for URL, just indent it more
+        url_prefix = prefix.replace("└──", "└── ").replace("├──", "├── ")
+        print(f"{url_prefix}    {url}")
+
+    # Print L1 clusters and their hierarchy
     for i, l1 in enumerate(l1_clusters):
         is_last_l1 = (i == len(l1_clusters) - 1)
         l1_prefix = "└── " if is_last_l1 else "├── "
-        l1_child_prefix = "    " if is_last_l1 else "│   "
+        l1_indent = "    " if is_last_l1 else "│   "
 
-        # Format L1 cluster name
+        # Print L1 cluster
         name = " & ".join(l1['keywords'][:2])
         name = name[:50] + "..." if len(name) > 50 else name
-        
         print(f"{l1_prefix}[L1] {name} ({l1['size']} posts, {l1['impressions']:,} impressions)")
 
-        # Print top posts under L1
-        related_l2s = l1_children.get(l1['id'], [])
+        # Get L2s for this L1
+        l2_children = l1_to_l2.get(l1['id'], [])
+        
+        # Get L1's direct posts (not in any L2)
         l1_posts = [url for url in l1['urls'] if url not in 
-                   [url for l2, _ in related_l2s for url in l2['urls']]]
+                   [url for l2, _ in l2_children for url in l2['urls']]]
 
+        # Print L1's direct posts
         for j, url in enumerate(l1_posts[:3]):
-            is_last_post = (j == len(l1_posts[:3]) - 1) and not related_l2s
-            post_prefix = l1_child_prefix + ("└── " if is_last_post else "├── ")
-            
-            # Get post title and number
-            title = posts_df[posts_df['url'] == url]['title'].iloc[0]
-            title = title[:60] + "..." if len(title) > 60 else title
-            post_num = post_numbers.get(url, '?')
-            
-            print(f"{post_prefix}#{post_num}: {title}")
-            print(f"{l1_child_prefix}{'    '}{url}")
+            is_last_post = (j == len(l1_posts[:3]) - 1) and not l2_children
+            post_prefix = l1_indent + ("└── " if is_last_post else "├── ")
+            print_post(url, post_prefix, l1_indent + "    ")
 
-        # Print related L2 clusters
-        for k, (l2, overlap) in enumerate(related_l2s):
-            is_last_l2 = (k == len(related_l2s) - 1)
-            l2_prefix = l1_child_prefix + ("└── " if is_last_l2 else "├── ")
-            l2_child_prefix = l1_child_prefix + ("    " if is_last_l2 else "│   ")
+        # Print L2 clusters and their content
+        for k, (l2, _) in enumerate(l2_children):
+            is_last_l2 = (k == len(l2_children) - 1)
+            l2_prefix = l1_indent + ("└── " if is_last_l2 else "├── ")
+            l2_indent = l1_indent + ("    " if is_last_l2 else "│   ")
 
-            # Format L2 cluster name
+            # Print L2 cluster
             name = " & ".join(l2['keywords'][:2])
             name = name[:50] + "..." if len(name) > 50 else name
-            
             print(f"{l2_prefix}[L2] {name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
 
-            # Print top posts under L2
-            for m, url in enumerate(l2['urls'][:3]):
-                is_last_post = (m == len(l2['urls'][:3]) - 1)
-                post_prefix = l2_child_prefix + ("└── " if is_last_post else "├── ")
-                
-                # Get post title and number
-                title = posts_df[posts_df['url'] == url]['title'].iloc[0]
-                title = title[:60] + "..." if len(title) > 60 else title
-                post_num = post_numbers.get(url, '?')
-                
-                print(f"{post_prefix}#{post_num}: {title}")
-                print(f"{l2_child_prefix}{'    '}{url}")
+            # Get L3s for this L2
+            l3_children = l2_to_l3.get(l2['id'], [])
+            
+            # Get L2's direct posts (not in any L3)
+            l2_posts = [url for url in l2['urls'] if url not in 
+                       [url for l3, _ in l3_children for url in l3['urls']]]
 
-    # Find orphaned L2s (those not assigned to any L1)
+            # Print L2's direct posts
+            for m, url in enumerate(l2_posts[:3]):
+                is_last_post = (m == len(l2_posts[:3]) - 1) and not l3_children
+                post_prefix = l2_indent + ("└── " if is_last_post else "├── ")
+                print_post(url, post_prefix, l2_indent + "    ")
+
+            # Print L3 clusters and their content
+            for n, (l3, _) in enumerate(l3_children):
+                is_last_l3 = (n == len(l3_children) - 1)
+                l3_prefix = l2_indent + ("└── " if is_last_l3 else "├── ")
+                l3_indent = l2_indent + ("    " if is_last_l3 else "│   ")
+
+                # Print L3 cluster
+                name = " & ".join(l3['keywords'][:2])
+                name = name[:50] + "..." if len(name) > 50 else name
+                print(f"{l3_prefix}[L3] {name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
+
+                # Print L3's posts
+                for p, url in enumerate(l3['urls'][:3]):
+                    is_last_post = (p == len(l3['urls'][:3]) - 1)
+                    post_prefix = l3_indent + ("└── " if is_last_post else "├── ")
+                    print_post(url, post_prefix, l3_indent + "    ")
+
+    # Print orphaned clusters
     orphaned_l2s = [l2 for l2 in l2_clusters if l2['id'] not in assigned_l2_ids]
+    orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
     
-    if orphaned_l2s:
-        print("\n└── [Uncategorized L2s]")
-        for i, l2 in enumerate(orphaned_l2s):
-            is_last = (i == len(orphaned_l2s) - 1)
-            prefix = "    └── " if is_last else "    ├── "
-            name = " & ".join(l2['keywords'][:2])
-            print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
+    if orphaned_l2s or orphaned_l3s:
+        print("\n└── [Uncategorized]")
+        if orphaned_l2s:
+            print("    ├── [L2 Clusters]")
+            for i, l2 in enumerate(orphaned_l2s):
+                is_last = (i == len(orphaned_l2s) - 1) and not orphaned_l3s
+                prefix = "    │   └── " if is_last else "    │   ├── "
+                name = " & ".join(l2['keywords'][:2])
+                print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
+        
+        if orphaned_l3s:
+            print("    └── [L3 Clusters]")
+            for i, l3 in enumerate(orphaned_l3s):
+                is_last = (i == len(orphaned_l3s) - 1)
+                prefix = "        └── " if is_last else "        ├── "
+                name = " & ".join(l3['keywords'][:2])
+                print(f"{prefix}{name} ({l3['size']} posts, {l3['impressions']:,} impressions)")
 
     # Print coverage statistics
     total_urls = set()
