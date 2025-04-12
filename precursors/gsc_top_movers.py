@@ -50,7 +50,7 @@ API_CHECK_DELAY = 0.5
 NUM_DAYS_TO_FETCH = 4
 
 # Number of top results to display in each category
-TOP_N = 20
+TOP_N = 100
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
