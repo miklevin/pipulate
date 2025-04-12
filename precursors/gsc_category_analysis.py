@@ -186,7 +186,17 @@ def suggest_hierarchy(clusters_df):
     return levels
 
 def print_post(url, prefix, indent, posts_df, post_numbers):
-    """Helper to print a post with consistent indentation."""
+    """Helper to print a post with consistent indentation.
+    
+    Tree Formatting Rules:
+    1. Regular list items use ├── for both title and URL lines
+    2. For items that terminate a list:
+       - The title line uses ├── to maintain the vertical line for the URL
+       - The URL line uses └── to properly terminate the list
+    3. Vertical lines (│) must be continuous throughout the tree
+    4. Each level's indentation is 4 spaces
+    5. URLs are indented 4 spaces after their tree character
+    """
     # Find matching post
     matching_posts = posts_df[posts_df['url'] == url]
     if matching_posts.empty:
@@ -200,19 +210,32 @@ def print_post(url, prefix, indent, posts_df, post_numbers):
     
     post_num = post_numbers.get(url, '?')
     
-    # For the last item in a list, we need to use ├── for the title and └── for the URL
+    # Tree Character Rules:
+    # - If this is a list terminator (prefix ends with └──)
+    #   - Title line gets ├── to maintain vertical line for URL
+    #   - URL line keeps └── to terminate the list
+    # - Otherwise, both lines use the same prefix (├── for continuation)
     if prefix.endswith("└── "):
-        title_prefix = prefix.replace("└── ", "├── ")
-        url_prefix = prefix  # Keep └── for URL
+        title_prefix = prefix.replace("└── ", "├── ")  # Keep vertical line for URL
+        url_prefix = prefix  # Keep terminator for URL
     else:
-        title_prefix = url_prefix = prefix
+        title_prefix = url_prefix = prefix  # Same prefix for both lines
     
     print(f"{title_prefix}#{post_num}: {title}")
     print(f"{url_prefix}    {url}")
     return True
 
 def print_tree(hierarchy, posts_df):
-    """Print hierarchy in tree format with proper nesting and article numbers."""
+    """Print hierarchy in tree format with proper nesting and article numbers.
+    
+    Tree Structure Rules:
+    1. Each level is indented 4 spaces from its parent
+    2. Vertical lines (│) must be continuous for all child items
+    3. Last item in a list uses └── to terminate
+    4. Penultimate items must use ├── to maintain vertical lines
+    5. URLs are always children of their titles
+    6. Missing/invalid posts are filtered out entirely
+    """
     print("\nSite Hierarchy Tree")
     print("==================\n")
     print(".")  # Root node
