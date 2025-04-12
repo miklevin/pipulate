@@ -185,6 +185,33 @@ def suggest_hierarchy(clusters_df):
     
     return levels
 
+def print_post(url, prefix, indent, posts_df, post_numbers):
+    """Helper to print a post with consistent indentation."""
+    # Find matching post
+    matching_posts = posts_df[posts_df['url'] == url]
+    if matching_posts.empty:
+        return False  # Skip this post entirely
+    
+    title = matching_posts['title'].iloc[0]
+    if title is None:
+        title = "Untitled Post"  # Handle None titles
+    else:
+        title = str(title)[:60] + "..." if len(str(title)) > 60 else str(title)
+    
+    post_num = post_numbers.get(url, '?')
+    
+    # For the last item in a list, we need to use ├── for the title to maintain the line for the URL
+    if prefix.endswith("└── "):
+        title_prefix = prefix.replace("└── ", "├── ")
+        url_prefix = prefix
+    else:
+        title_prefix = prefix
+        url_prefix = prefix
+    
+    print(f"{title_prefix}#{post_num}: {title}")
+    print(f"{url_prefix}    {url}")
+    return True
+
 def print_tree(hierarchy, posts_df):
     """Print hierarchy in tree format with proper nesting and article numbers."""
     print("\nSite Hierarchy Tree")
@@ -234,30 +261,6 @@ def print_tree(hierarchy, posts_df):
     for l2_id in l2_to_l3:
         l2_to_l3[l2_id].sort(key=lambda x: x[1], reverse=True)
 
-    def print_post(url, prefix, indent):
-        """Helper to print a post with consistent indentation."""
-        # Find matching post
-        matching_posts = posts_df[posts_df['url'] == url]
-        if matching_posts.empty:
-            # Handle missing post gracefully
-            title = "MISSING POST"
-            post_num = "?"
-        else:
-            title = matching_posts['title'].iloc[0]
-            title = title[:60] + "..." if len(title) > 60 else title
-            post_num = post_numbers.get(url, '?')
-        
-        # For the last item in a list, we need to use ├── for the title to maintain the line for the URL
-        if prefix.endswith("└── "):
-            title_prefix = prefix.replace("└── ", "├── ")
-            url_prefix = prefix
-        else:
-            title_prefix = prefix
-            url_prefix = prefix
-        
-        print(f"{title_prefix}#{post_num}: {title}")
-        print(f"{url_prefix}    {url}")
-
     # Print L1 clusters and their hierarchy
     for i, l1 in enumerate(l1_clusters):
         is_last_l1 = (i == len(l1_clusters) - 1)
@@ -279,10 +282,15 @@ def print_tree(hierarchy, posts_df):
                    [url for l2, _ in l2_children for url in l2['urls']]]
 
         # Print L1's direct posts
-        for j, url in enumerate(l1_posts):  # Removed [:3] to show all posts
-            is_last_post = (j == len(l1_posts) - 1) and not l2_children
+        valid_l1_posts = []
+        for url in l1_posts:
+            if url in posts_df['url'].values:
+                valid_l1_posts.append(url)
+        
+        for j, url in enumerate(valid_l1_posts):
+            is_last_post = (j == len(valid_l1_posts) - 1) and not l2_children
             post_prefix = l1_indent + ("└── " if is_last_post else "├── ")
-            print_post(url, post_prefix, l1_indent + "    ")
+            print_post(url, post_prefix, l1_indent + "    ", posts_df, post_numbers)
 
         # Print L2 clusters and their content
         for k, (l2, _) in enumerate(l2_children):
@@ -303,10 +311,16 @@ def print_tree(hierarchy, posts_df):
                        [url for l3, _ in l3_children for url in l3['urls']]]
 
             # Print L2's direct posts
-            for m, url in enumerate(l2_posts):  # Removed [:3] to show all posts
-                is_last_post = (m == len(l2_posts) - 1) and not l3_children
+            valid_l2_posts = []
+            for url in l2_posts:
+                if url in posts_df['url'].values:
+                    valid_l2_posts.append(url)
+
+            # Print L2's direct posts
+            for m, url in enumerate(valid_l2_posts):
+                is_last_post = (m == len(valid_l2_posts) - 1) and not l3_children
                 post_prefix = l2_indent + ("└── " if is_last_post else "├── ")
-                print_post(url, post_prefix, l2_indent + "    ")
+                print_post(url, post_prefix, l2_indent + "    ", posts_df, post_numbers)
 
             # Print L3 clusters and their content
             for n, (l3, _) in enumerate(l3_children):
@@ -323,7 +337,7 @@ def print_tree(hierarchy, posts_df):
                 for p, url in enumerate(l3['urls']):  # Removed [:3] to show all posts
                     is_last_post = (p == len(l3['urls']) - 1)
                     post_prefix = l3_indent + ("└── " if is_last_post else "├── ")
-                    print_post(url, post_prefix, l3_indent + "    ")
+                    print_post(url, post_prefix, l3_indent + "    ", posts_df, post_numbers)
 
     # Print orphaned clusters
     orphaned_l2s = [l2 for l2 in l2_clusters if l2['id'] not in assigned_l2_ids]
@@ -340,21 +354,21 @@ def print_tree(hierarchy, posts_df):
                 print(f"{prefix}{name} ({l2['size']} posts, {l2['impressions']:,} impressions)")
                 
                 # Print all posts for each orphaned L2 cluster
-                for j, url in enumerate(l2['urls']):  # Removed [:3] to show all posts
-                    is_last_post = (j == len(l2['urls']) - 1)
+                valid_urls = []
+                for url in l2['urls']:
+                    if url in posts_df['url'].values:
+                        valid_urls.append(url)
+                
+                for j, url in enumerate(valid_urls):
+                    is_last_post = (j == len(valid_urls) - 1)
                     post_prefix = "        │   " if not is_last else "            "
-                    # Use ├── for the title line of the last post to maintain the line for its URL
                     if is_last_post:
                         title_prefix = post_prefix + "├── "
                         url_prefix = post_prefix + "└── "
                     else:
                         title_prefix = url_prefix = post_prefix + "├── "
                     
-                    title = posts_df[posts_df['url'] == url]['title'].iloc[0]
-                    title = title[:60] + "..." if len(title) > 60 else title
-                    post_num = post_numbers.get(url, '?')
-                    print(f"{title_prefix}#{post_num}: {title}")
-                    print(f"{url_prefix}    {url}")
+                    print_post(url, title_prefix, url_prefix, posts_df, post_numbers)
         
         if orphaned_l3s:
             print("    └── [L3 Clusters]")
@@ -368,18 +382,13 @@ def print_tree(hierarchy, posts_df):
                 for j, url in enumerate(l3['urls']):  # Removed [:3] to show all posts
                     is_last_post = (j == len(l3['urls']) - 1)
                     post_prefix = "        │   " if not is_last else "            "
-                    # Use ├── for the title line of the last post to maintain the line for its URL
                     if is_last_post:
                         title_prefix = post_prefix + "├── "
                         url_prefix = post_prefix + "└── "
                     else:
                         title_prefix = url_prefix = post_prefix + "├── "
                     
-                    title = posts_df[posts_df['url'] == url]['title'].iloc[0]
-                    title = title[:60] + "..." if len(title) > 60 else title
-                    post_num = post_numbers.get(url, '?')
-                    print(f"{title_prefix}#{post_num}: {title}")
-                    print(f"{url_prefix}    {url}")
+                    print_post(url, title_prefix, url_prefix, posts_df, post_numbers)
 
     # Print coverage statistics
     total_urls = set()
