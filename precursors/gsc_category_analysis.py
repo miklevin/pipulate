@@ -336,12 +336,18 @@ def print_tree(hierarchy, posts_df):
                 for j, url in enumerate(l2['urls'][:3]):
                     is_last_post = (j == len(l2['urls'][:3]) - 1)
                     post_prefix = "        │   " if not is_last else "            "
-                    post_prefix += "└── " if is_last_post else "├── "
+                    # Use ├── for the title line of the last post to maintain the line for its URL
+                    if is_last_post:
+                        title_prefix = post_prefix + "├── "
+                        url_prefix = post_prefix + "└── "
+                    else:
+                        title_prefix = url_prefix = post_prefix + "├── "
+                    
                     title = posts_df[posts_df['url'] == url]['title'].iloc[0]
                     title = title[:60] + "..." if len(title) > 60 else title
                     post_num = post_numbers.get(url, '?')
-                    print(f"{post_prefix}#{post_num}: {title}")
-                    print(f"{post_prefix}    {url}")
+                    print(f"{title_prefix}#{post_num}: {title}")
+                    print(f"{url_prefix}    {url}")
         
         if orphaned_l3s:
             print("    └── [L3 Clusters]")
@@ -355,12 +361,18 @@ def print_tree(hierarchy, posts_df):
                 for j, url in enumerate(l3['urls'][:3]):
                     is_last_post = (j == len(l3['urls'][:3]) - 1)
                     post_prefix = "        │   " if not is_last else "            "
-                    post_prefix += "└── " if is_last_post else "├── "
+                    # Use ├── for the title line of the last post to maintain the line for its URL
+                    if is_last_post:
+                        title_prefix = post_prefix + "├── "
+                        url_prefix = post_prefix + "└── "
+                    else:
+                        title_prefix = url_prefix = post_prefix + "├── "
+                    
                     title = posts_df[posts_df['url'] == url]['title'].iloc[0]
                     title = title[:60] + "..." if len(title) > 60 else title
                     post_num = post_numbers.get(url, '?')
-                    print(f"{post_prefix}#{post_num}: {title}")
-                    print(f"{post_prefix}    {url}")
+                    print(f"{title_prefix}#{post_num}: {title}")
+                    print(f"{url_prefix}    {url}")
 
     # Print coverage statistics
     total_urls = set()
