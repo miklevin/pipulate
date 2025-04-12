@@ -36,7 +36,7 @@ BASE_URL = "https://mikelev.in"
 
 # Maximum number of L1 (top-level) categories
 # Higher values create a flatter structure, lower values push more into L2
-MAX_L1_CATEGORIES = 10
+MAX_L1_CATEGORIES = 20
 
 # Minimum impressions required for a cluster to be considered for L1
 # Higher values push low-traffic topics into L2/L3
@@ -454,6 +454,160 @@ def print_tree(hierarchy, posts_df):
     unassigned = len(posts_df) - len(total_urls)
     print(f"Unassigned posts: {unassigned} ({unassigned/len(posts_df)*100:.1f}%)")
 
+def evaluate_topology(hierarchy, posts_df):
+    """Score a topology based on key metrics.
+    
+    Scoring Criteria:
+    1. Coverage: % of posts assigned to categories (-1 for each unassigned)
+    2. Balance: Standard deviation of posts per category (lower is better)
+    3. Coherence: Average keyword similarity within categories (higher is better)
+    4. Depth: Ratio of L1 to L2 categories (prefer more L1s)
+    5. Traffic: % of total impressions in L1 categories (higher is better)
+    """
+    total_posts = len(posts_df)
+    total_impressions = sum(cluster['impressions'] for level in hierarchy.values() 
+                          for cluster in level)
+    
+    # Coverage score (0-100)
+    assigned_posts = len(set(url for level in hierarchy.values() 
+                           for cluster in level for url in cluster['urls']))
+    coverage_score = (assigned_posts / total_posts) * 100
+    
+    # Balance score (0-100)
+    posts_per_category = [len(cluster['urls']) for level in hierarchy.values() 
+                         for cluster in level]
+    balance_score = 100 - (np.std(posts_per_category) * 10)  # Lower std = higher score
+    
+    # Coherence score (0-100)
+    coherence_scores = []
+    for level in hierarchy.values():
+        for cluster in level:
+            keywords = [k.lower() for k in cluster['keywords']]
+            if len(keywords) > 1:
+                similarities = []
+                for i in range(len(keywords)):
+                    for j in range(i + 1, len(keywords)):
+                        similarity = len(set(keywords[i].split()) & 
+                                      set(keywords[j].split())) / \
+                                  len(set(keywords[i].split()) | 
+                                      set(keywords[j].split()))
+                        similarities.append(similarity)
+                if similarities:
+                    coherence_scores.append(np.mean(similarities))
+    coherence_score = np.mean(coherence_scores) * 100 if coherence_scores else 0
+    
+    # Depth score (0-100)
+    l1_count = len(hierarchy.get(1, []))
+    l2_count = len(hierarchy.get(2, []))
+    depth_score = (l1_count / (l1_count + l2_count)) * 100 if l1_count + l2_count > 0 else 0
+    
+    # Traffic score (0-100)
+    l1_impressions = sum(cluster['impressions'] for cluster in hierarchy.get(1, []))
+    traffic_score = (l1_impressions / total_impressions) * 100 if total_impressions > 0 else 0
+    
+    # Weighted total score (0-100)
+    weights = {
+        'coverage': 0.3,
+        'balance': 0.2,
+        'coherence': 0.2,
+        'depth': 0.1,
+        'traffic': 0.2
+    }
+    
+    total_score = (
+        coverage_score * weights['coverage'] +
+        balance_score * weights['balance'] +
+        coherence_score * weights['coherence'] +
+        depth_score * weights['depth'] +
+        traffic_score * weights['traffic']
+    )
+    
+    return {
+        'total_score': total_score,
+        'coverage_score': coverage_score,
+        'balance_score': balance_score,
+        'coherence_score': coherence_score,
+        'depth_score': depth_score,
+        'traffic_score': traffic_score,
+        'l1_count': l1_count,
+        'l2_count': l2_count,
+        'assigned_posts': assigned_posts,
+        'total_posts': total_posts
+    }
+
+def optimize_parameters(posts_df, gsc_df):
+    """Find optimal parameters through grid search."""
+    param_ranges = {
+        'MAX_L1_CATEGORIES': range(10, 31, 5),      # 10 to 30 step 5
+        'MIN_IMPRESSIONS_FOR_L1': range(25, 76, 25), # 25 to 75 step 25
+        'NUM_CLUSTERS': range(15, 31, 5),           # 15 to 30 step 5
+        'KEYWORD_SIMILARITY_THRESHOLD': [0.2, 0.3, 0.4, 0.5]
+    }
+    
+    best_score = 0
+    best_params = None
+    best_hierarchy = None
+    results = []
+    
+    total_combinations = (
+        len(param_ranges['MAX_L1_CATEGORIES']) *
+        len(param_ranges['MIN_IMPRESSIONS_FOR_L1']) *
+        len(param_ranges['NUM_CLUSTERS']) *
+        len(param_ranges['KEYWORD_SIMILARITY_THRESHOLD'])
+    )
+    
+    print(f"\nOptimizing parameters ({total_combinations} combinations)...")
+    combination_count = 0
+    
+    for max_l1 in param_ranges['MAX_L1_CATEGORIES']:
+        for min_imp in param_ranges['MIN_IMPRESSIONS_FOR_L1']:
+            for num_clusters in param_ranges['NUM_CLUSTERS']:
+                for sim_threshold in param_ranges['KEYWORD_SIMILARITY_THRESHOLD']:
+                    combination_count += 1
+                    print(f"\rTesting combination {combination_count}/{total_combinations}", end="")
+                    
+                    # Set parameters
+                    global MAX_L1_CATEGORIES, MIN_IMPRESSIONS_FOR_L1, NUM_CLUSTERS, KEYWORD_SIMILARITY_THRESHOLD
+                    MAX_L1_CATEGORIES = max_l1
+                    MIN_IMPRESSIONS_FOR_L1 = min_imp
+                    NUM_CLUSTERS = num_clusters
+                    KEYWORD_SIMILARITY_THRESHOLD = sim_threshold
+                    
+                    # Generate and evaluate topology
+                    clusters_df = cluster_content(posts_df, gsc_df)
+                    hierarchy = suggest_hierarchy(clusters_df)
+                    scores = evaluate_topology(hierarchy, posts_df)
+                    
+                    results.append({
+                        'params': {
+                            'MAX_L1_CATEGORIES': max_l1,
+                            'MIN_IMPRESSIONS_FOR_L1': min_imp,
+                            'NUM_CLUSTERS': num_clusters,
+                            'KEYWORD_SIMILARITY_THRESHOLD': sim_threshold
+                        },
+                        'scores': scores
+                    })
+                    
+                    if scores['total_score'] > best_score:
+                        best_score = scores['total_score']
+                        best_params = results[-1]['params']
+                        best_hierarchy = hierarchy
+    
+    print("\n\nOptimization Results")
+    print("===================")
+    print("\nBest Parameters:")
+    for param, value in best_params.items():
+        print(f"{param}: {value}")
+    
+    print("\nBest Scores:")
+    for metric, score in results[-1]['scores'].items():
+        if isinstance(score, (int, float)):
+            print(f"{metric}: {score:.1f}")
+        else:
+            print(f"{metric}: {score}")
+    
+    return best_params, best_hierarchy
+
 def main():
     """Main execution function."""
     print("Loading GSC keyword data...")
@@ -464,27 +618,19 @@ def main():
     posts_df = extract_yaml_front_matter()
     print(f"Processed {len(posts_df)} Jekyll posts")
     
-    print("\nClustering content...")
-    clusters_df = cluster_content(posts_df, gsc_df)
-    print(f"Identified {len(clusters_df)} potential categories")
+    # Add parameter optimization
+    print("\nOptimizing topology parameters...")
+    best_params, best_hierarchy = optimize_parameters(posts_df, gsc_df)
     
-    print("\nSuggesting hierarchy...")
-    hierarchy = suggest_hierarchy(clusters_df)
+    # Use best parameters for final output
+    global MAX_L1_CATEGORIES, MIN_IMPRESSIONS_FOR_L1, NUM_CLUSTERS, KEYWORD_SIMILARITY_THRESHOLD
+    MAX_L1_CATEGORIES = best_params['MAX_L1_CATEGORIES']
+    MIN_IMPRESSIONS_FOR_L1 = best_params['MIN_IMPRESSIONS_FOR_L1']
+    NUM_CLUSTERS = best_params['NUM_CLUSTERS']
+    KEYWORD_SIMILARITY_THRESHOLD = best_params['KEYWORD_SIMILARITY_THRESHOLD']
     
-    # Print tree visualization
-    print_tree(hierarchy, posts_df)
-    
-    # Print summary stats
-    print("\nSummary Statistics")
-    print("=================")
-    total_impressions = sum(cluster['impressions'] for level in hierarchy.values() for cluster in level)
-    print(f"Total Categories: {sum(len(clusters) for clusters in hierarchy.values())}")
-    print(f"Total Posts: {len(posts_df)}")
-    print(f"Total Impressions: {total_impressions:,}")
-    for level, clusters in sorted(hierarchy.items()):
-        level_impressions = sum(cluster['impressions'] for cluster in clusters)
-        print(f"Level {level}: {len(clusters)} categories, {level_impressions:,} impressions " + 
-              f"({level_impressions/total_impressions*100:.1f}% of total)")
+    print("\nGenerating final topology with optimized parameters...")
+    print_tree(best_hierarchy, posts_df)
 
 if __name__ == "__main__":
     main() 
