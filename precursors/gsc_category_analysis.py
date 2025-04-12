@@ -254,8 +254,9 @@ def print_tree(hierarchy, posts_df):
     # Print L1 clusters and their hierarchy
     for i, l1 in enumerate(l1_clusters):
         is_last_l1 = (i == len(l1_clusters) - 1)
-        l1_prefix = "└── " if is_last_l1 else "├── "
-        # Always use │ for child indentation, even for last L1
+        # Use ├── for last L1 since we have Uncategorized section after it
+        l1_prefix = "├── "
+        # Always use │ for child indentation
         l1_indent = "│   "
 
         # Print L1 cluster
@@ -322,7 +323,8 @@ def print_tree(hierarchy, posts_df):
     orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
     
     if orphaned_l2s or orphaned_l3s:
-        print("\n├── [Uncategorized]")
+        # Remove extra newline by removing the \n from the string
+        print("├── [Uncategorized]")  # Changed from "\n├──" to just "├──"
         if orphaned_l2s:
             print("│   ├── [L2 Clusters]")
             for i, l2 in enumerate(orphaned_l2s):
