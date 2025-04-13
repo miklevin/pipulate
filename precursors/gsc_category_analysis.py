@@ -537,8 +537,69 @@ def evaluate_topology(hierarchy, posts_df):
         'total_posts': total_posts
     }
 
+def get_data_hash(posts_df, gsc_df):
+    """Generate a hash of the input data to detect changes."""
+    posts_hash = pd.util.hash_pandas_object(posts_df).sum()
+    gsc_hash = pd.util.hash_pandas_object(gsc_df).sum()
+    return f"{posts_hash}_{gsc_hash}"
+
+def load_cached_params():
+    """Load cached parameters if they exist."""
+    cache_file = os.path.join(os.path.dirname(__file__), 'category_params.json')
+    if os.path.exists(cache_file):
+        with open(cache_file) as f:
+            cache = json.load(f)
+        return cache
+    return None
+
+def save_cached_params(cache_data):
+    """Save parameters to cache file."""
+    cache_file = os.path.join(os.path.dirname(__file__), 'category_params.json')
+    with open(cache_file, 'w') as f:
+        json.dump(cache_data, f, indent=2)
+
 def optimize_parameters(posts_df, gsc_df):
     """Find optimal parameters through grid search."""
+    # Declare globals at the start of function
+    global MAX_L1_CATEGORIES, MIN_IMPRESSIONS_FOR_L1, NUM_CLUSTERS, KEYWORD_SIMILARITY_THRESHOLD
+    
+    # Generate hash of input data
+    data_hash = get_data_hash(posts_df, gsc_df)
+    
+    # Try to load cached parameters
+    cache = load_cached_params()
+    if cache and cache.get('data_hash') == data_hash:
+        print("\nUsing cached parameters from previous optimization...")
+        best_params = cache['best_params']
+        
+        # Set parameters
+        MAX_L1_CATEGORIES = best_params['MAX_L1_CATEGORIES']
+        MIN_IMPRESSIONS_FOR_L1 = best_params['MIN_IMPRESSIONS_FOR_L1']
+        NUM_CLUSTERS = best_params['NUM_CLUSTERS']
+        KEYWORD_SIMILARITY_THRESHOLD = best_params['KEYWORD_SIMILARITY_THRESHOLD']
+        
+        # Generate hierarchy with cached parameters
+        clusters_df = cluster_content(posts_df, gsc_df)
+        hierarchy = suggest_hierarchy(clusters_df)
+        
+        # Print cached scores
+        print("\nCached Optimization Results")
+        print("===================")
+        print("\nBest Parameters:")
+        for param, value in best_params.items():
+            print(f"{param}: {value}")
+        
+        print("\nBest Scores:")
+        for metric, score in cache['scores'].items():
+            if isinstance(score, (int, float)):
+                print(f"{metric}: {score:.1f}")
+            else:
+                print(f"{metric}: {score}")
+        
+        return best_params, hierarchy
+    
+    print("\nNo valid cache found, running full parameter optimization...")
+    
     param_ranges = {
         'MAX_L1_CATEGORIES': range(10, 31, 5),      # 10 to 30 step 5
         'MIN_IMPRESSIONS_FOR_L1': range(25, 76, 25), # 25 to 75 step 25
@@ -549,6 +610,7 @@ def optimize_parameters(posts_df, gsc_df):
     best_score = 0
     best_params = None
     best_hierarchy = None
+    best_scores = None
     results = []
     
     total_combinations = (
@@ -569,7 +631,6 @@ def optimize_parameters(posts_df, gsc_df):
                     print(f"\rTesting combination {combination_count}/{total_combinations}", end="")
                     
                     # Set parameters
-                    global MAX_L1_CATEGORIES, MIN_IMPRESSIONS_FOR_L1, NUM_CLUSTERS, KEYWORD_SIMILARITY_THRESHOLD
                     MAX_L1_CATEGORIES = max_l1
                     MIN_IMPRESSIONS_FOR_L1 = min_imp
                     NUM_CLUSTERS = num_clusters
@@ -593,6 +654,7 @@ def optimize_parameters(posts_df, gsc_df):
                     if scores['total_score'] > best_score:
                         best_score = scores['total_score']
                         best_params = results[-1]['params']
+                        best_scores = scores
                         best_hierarchy = hierarchy
     
     print("\n\nOptimization Results")
@@ -602,11 +664,19 @@ def optimize_parameters(posts_df, gsc_df):
         print(f"{param}: {value}")
     
     print("\nBest Scores:")
-    for metric, score in results[-1]['scores'].items():
+    for metric, score in best_scores.items():
         if isinstance(score, (int, float)):
             print(f"{metric}: {score:.1f}")
         else:
             print(f"{metric}: {score}")
+    
+    # Save results to cache
+    cache_data = {
+        'data_hash': data_hash,
+        'best_params': best_params,
+        'scores': best_scores
+    }
+    save_cached_params(cache_data)
     
     return best_params, best_hierarchy
 
