@@ -47,10 +47,10 @@ MAX_DAYS_TO_CHECK = 10
 API_CHECK_DELAY = 0.5
 
 # Number of consecutive days of data to fetch (ending on the most recent date)
-NUM_DAYS_TO_FETCH = 4
+NUM_DAYS_TO_FETCH = 6
 
 # Number of top results to display in each category
-TOP_N = 100
+TOP_N = 200
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
@@ -509,6 +509,57 @@ def main():
         # Display the top impact queries with truncated query text
         print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
+        # Add analysis prompt with dynamic variables
+        start_date = dates_to_fetch[0].strftime('%B %-d')
+        end_date = dates_to_fetch[-1].strftime('%-d, %Y')
+        print(f"""
+--- Copy Everything Below This Line ---
+
+--- Top {TOP_N} by Impression Increase ---""")
+        print(top_impressions.to_string(index=False))
+
+        print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
+        print(display_df.loc[top_positions_idx].to_string(index=False))
+
+        print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
+        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+
+        print(f"""
+--- Analysis Prompt ---
+Analyze the Google Search Console trend analysis output previously provided for the site `{SITE_URL}` (covering the period {start_date}-{end_date}). Based *only* on that data, provide a prioritized list of actionable traffic growth suggestions.
+
+Your goal is to identify the highest-impact opportunities revealed by the trends, including both broad strategic directions and specific content pieces. Structure your response to cover the following areas, ensuring each point includes specific examples from the data (pages, queries, metrics) and concrete recommended actions:
+
+1.  **Top Movers Opportunities:**
+    * Identify the most promising opportunities among pages/queries showing strong positive impression growth.
+    * Specifically highlight queries gaining significant impressions *and* improving in position simultaneously.
+    * Recommend specific actions (e.g., optimize page X for query Y, expand content on topic Z) to capitalize on this momentum.
+
+2.  **Position Improvement Momentum:**
+    * Which pages making significant ranking jumps (large negative `position_slope`) represent the best targets for further optimization to secure or improve those gains?
+    * Are there thematic patterns among the fastest climbers that suggest broader content opportunities?
+    * Recommend actions to consolidate these ranking improvements.
+
+3.  **High-Impact & Unrealized Potential Optimization:**
+    * Based on the "High-Impact Queries" list, which content currently delivers the most value and how can it be reinforced or expanded?
+    * Identify the **top 1-3 individual page/query pairs** representing the largest "unrealized potential" (high impressions but poor ranking). Clearly state the page, query, impressions, and position for these top examples.
+    * **Critically, based *specifically* on analyzing this unrealized potential data, identify and recommend the single most promising *new article topic* to pursue to capture this untapped traffic.** Justify why this specific topic is the best choice over other unrealized potential candidates.
+    * Recommend specific optimization strategies for these high-potential items (e.g., create the new targeted article, significantly enhance/rewrite existing page, technical SEO review, consolidate competing pages).
+
+4.  **Prioritized Strategic Recommendations:**
+    * Synthesize the findings from the above points.
+    * What are the top 2-3 overarching strategic priorities? Ensure these recommendations explicitly cover **both broad themes** (like refining generalist pages such as `grok-better-than`, or amplifying existing winners like `open-source-seo-software`) **AND the specific, standout individual topic opportunity** (like the best new article topic identified in point 3). Justify these priorities with data trends.
+
+5.  **Recommendation Summary Table:**
+    * Conclude your response with a summary table consolidating the most important actionable recommendations derived from your analysis in sections 1-4.
+    * Use the following columns: `Page URL`, `Query`, `Key Observation`, `Recommendation`, `Priority`.
+    * Populate this table with the key page/query specific recommendations and assign a priority (High, Medium, Low) based on potential impact as revealed by the data.
+
+Please ensure recommendations are concrete and directly linked to the patterns observed in the provided GSC trend data output.
+
+--- End Copy Here ---
+
+""")
         print("\n--- DataFrame Info ---")
         trend_results_df.info()
 
