@@ -50,7 +50,7 @@ API_CHECK_DELAY = 0.5
 NUM_DAYS_TO_FETCH = 6
 
 # Number of top results to display in each category
-TOP_N = 50
+TOP_N = 200
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
@@ -528,6 +528,8 @@ def main():
         end_date = dates_to_fetch[-1].strftime('%-d, %Y')
         print(f"""
 --- Analysis Prompt ---
+[Analysis Parameters: Top {TOP_N} Results Per Category, {NUM_DAYS_TO_FETCH}-Day Trend Period]
+
 Analyze the Google Search Console trend analysis output previously provided for the site `{SITE_URL}` (covering the period {start_date}-{end_date}). Based *only* on that data, provide a prioritized list of actionable traffic growth suggestions and loss mitigation strategies.
 
 Your goal is to identify both opportunities and risks revealed by the trends, including broad strategic directions and specific content pieces. Structure your response to cover the following areas, ensuring each point includes specific examples from the data (pages, queries, metrics) and concrete recommended actions:
@@ -582,8 +584,10 @@ Please ensure all recommendations are concrete and directly linked to the patter
         trend_results_df.info()
 
         # Save the final trend analysis results using the original dataframe (with full URLs)
-        final_output_filename = os.path.join(SCRIPT_DIR, f"gsc_trend_analysis_{dates_to_fetch[0].strftime('%Y%m%d')}_to_{dates_to_fetch[-1].strftime('%Y%m%d')}.csv")
+        final_output_filename = os.path.join(CACHE_DIR, f"gsc_trend_analysis_{dates_to_fetch[0].strftime('%Y%m%d')}_to_{dates_to_fetch[-1].strftime('%Y%m%d')}.csv")
         try:
+            # Ensure cache directory exists
+            os.makedirs(CACHE_DIR, exist_ok=True)
             trend_results_df.to_csv(final_output_filename, index=False)
             print(f"\n✓ Saved final trend analysis to: {final_output_filename}")
         except Exception as e:

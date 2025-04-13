@@ -5,6 +5,7 @@ import logging
 import argparse
 import random
 import sys
+import yaml
 from datetime import datetime
 
 # Configure logging
@@ -77,10 +78,41 @@ def save_responses(responses):
         logging.error(f"Failed to save responses: {e}")
 
 def read_file_content(file_path):
-    """Read content from a file."""
+    """Read content from a file, with special handling for markdown files with YAML front matter.
+    
+    Args:
+        file_path (str): Path to the file to read
+        
+    Returns:
+        dict: For markdown files with front matter, returns {"front_matter": dict, "content": str, "full_content": str}
+             For other files, returns {"content": str, "full_content": str}
+    """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
+            full_content = f.read()
+            
+        # Check if this is a markdown file with YAML front matter
+        if file_path.endswith(('.md', '.markdown')) and full_content.startswith('---'):
+            # Split on the first two '---' markers
+            parts = full_content.split('---', 2)
+            if len(parts) >= 3:
+                try:
+                    # Try to parse YAML front matter
+                    front_matter = yaml.safe_load(parts[1])
+                    main_content = parts[2].strip()
+                    return {
+                        "front_matter": front_matter,
+                        "content": main_content,
+                        "full_content": full_content
+                    }
+                except Exception as e:
+                    logging.warning(f"Failed to parse YAML front matter in {file_path}: {e}")
+            
+        # For all other cases, return the full content
+        return {
+            "content": full_content,
+            "full_content": full_content
+        }
     except Exception as e:
         logging.error(f"Failed to read file {file_path}: {e}")
         return None
@@ -227,10 +259,10 @@ def process_files_with_prompt(files, prompt_template, model="michaelborck/refule
         # Create prompt with file content or use direct prompt
         if is_direct_prompt:
             # Use direct prompt but still include content
-            prompt = f"{prompt_template}\n\n{content}"
+            prompt = f"{prompt_template}\n\n{content['full_content']}"
             logging.info("Using direct prompt with appended file content")
         else:
-            prompt = prompt_template.format(content=content, filename=file_id)
+            prompt = prompt_template.format(content=content['full_content'], filename=file_id)
         
         # Call Ollama
         logging.info(f"Calling model {model} for file {file_id}")
