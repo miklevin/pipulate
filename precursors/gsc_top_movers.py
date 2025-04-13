@@ -50,7 +50,7 @@ API_CHECK_DELAY = 0.5
 NUM_DAYS_TO_FETCH = 6
 
 # Number of top results to display in each category
-TOP_N = 200
+TOP_N = 50
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
@@ -458,6 +458,10 @@ def main():
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
         print(top_impressions.to_string(index=False))
 
+        print(f"\n--- Top {TOP_N} by Impression Decrease ---")
+        bottom_impressions = display_df.sort_values('impressions_slope', ascending=True, na_position='last').head(TOP_N)
+        print(bottom_impressions.to_string(index=False))
+
         print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
         # Ensure we're working with original numeric values for sorting
         numeric_df = trend_results_df.copy()
@@ -467,7 +471,11 @@ def main():
         # Display using the formatted display dataframe
         print(display_df.loc[top_positions_idx].to_string(index=False))
 
-        # --- ADD NEW SECTION: Top Performers by Combined Score ---
+        print(f"\n--- Top {TOP_N} by Position Decline (Higher is Worse) ---")
+        bottom_positions_idx = numeric_df.sort_values('position_slope', ascending=False).head(TOP_N).index
+        print(display_df.loc[bottom_positions_idx].to_string(index=False))
+
+        # --- ADD NEW SECTION: Top and Bottom Performers by Combined Score ---
         print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
         # Get the most recent day in each time series
         latest_data_df = trend_results_df.copy()
@@ -498,16 +506,20 @@ def main():
             axis=1
         )
         
-        # Sort by the combined score and get top N
+        # Sort by the combined score and get top/bottom N
         top_impact_idx = latest_data_df.sort_values('impact_score', ascending=False).head(TOP_N).index
+        bottom_impact_idx = latest_data_df[latest_data_df['impact_score'] > 0].sort_values('impact_score', ascending=True).head(TOP_N).index
         
         # Add the score to the display dataframe
         display_df['latest_position'] = latest_data_df['latest_position'].round(1)
         display_df['latest_impressions'] = latest_data_df['latest_impressions'].astype(int)
         display_df['impact_score'] = latest_data_df['impact_score'].round(1)
         
-        # Display the top impact queries with truncated query text
+        # Display the top and bottom impact queries
         print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+
+        print(f"\n--- Bottom {TOP_N} Low-Impact Queries (Poor Position + Few Impressions) ---")
+        print(display_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
         # Add analysis prompt with dynamic variables
         start_date = dates_to_fetch[0].strftime('%B %-d')
@@ -518,11 +530,20 @@ def main():
 --- Top {TOP_N} by Impression Increase ---""")
         print(top_impressions.to_string(index=False))
 
+        print(f"\n--- Top {TOP_N} by Impression Decrease ---")
+        print(bottom_impressions.to_string(index=False))
+
         print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
         print(display_df.loc[top_positions_idx].to_string(index=False))
 
+        print(f"\n--- Top {TOP_N} by Position Decline (Higher is Worse) ---")
+        print(display_df.loc[bottom_positions_idx].to_string(index=False))
+
         print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
         print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+
+        print(f"\n--- Bottom {TOP_N} Low-Impact Queries (Poor Position + Few Impressions) ---")
+        print(display_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
         print(f"""
 --- Analysis Prompt ---
