@@ -316,13 +316,18 @@ def print_tree(hierarchy, posts_df):
     for l2_id in l2_to_l3:
         l2_to_l3[l2_id].sort(key=lambda x: x[1], reverse=True)
 
+    # Check if we have any orphaned clusters
+    orphaned_l2s = [l2 for l2 in l2_clusters if l2['id'] not in assigned_l2_ids]
+    orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
+    has_orphaned = bool(orphaned_l2s or orphaned_l3s)
+
     # Print L1 clusters and their hierarchy
     for l1_num, l1 in enumerate(l1_clusters, 1):
         is_last_l1 = (l1_num == len(l1_clusters))
-        # Use ├── for last L1 since we have Uncategorized section after it
-        l1_prefix = "├── "
-        # Always use │ for child indentation
-        l1_indent = "│   "
+        # Use └── for last L1 if there are no orphaned clusters
+        l1_prefix = "└── " if (is_last_l1 and not has_orphaned) else "├── "
+        # Use spaces instead of │ for child indentation if this is the last L1
+        l1_indent = "    " if (is_last_l1 and not has_orphaned) else "│   "
 
         # Print L1 cluster
         name = " & ".join(l1['keywords'][:2])
@@ -394,11 +399,8 @@ def print_tree(hierarchy, posts_df):
                     post_prefix = l3_indent + ("└── " if is_last_post else "├── ")
                     print_post(url, post_prefix, l3_indent + "    ", posts_df, post_numbers)
 
-    # Print orphaned clusters
-    orphaned_l2s = [l2 for l2 in l2_clusters if l2['id'] not in assigned_l2_ids]
-    orphaned_l3s = [l3 for l3 in l3_clusters if l3['id'] not in assigned_l3_ids]
-    
-    if orphaned_l2s or orphaned_l3s:
+    # Print orphaned clusters if any exist
+    if has_orphaned:
         print("└── [Uncategorized]")
         if orphaned_l2s:
             print("    └── [L2 Clusters]")
