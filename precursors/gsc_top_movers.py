@@ -431,6 +431,14 @@ def main():
             # Further trim endings
             display_df['page'] = display_df['page'].str.replace(r'/$', '', regex=True)
             
+        # 1.5 Truncate long queries (moved earlier and shortened to 40 chars)
+        def truncate_query(query, max_length=40):
+            """Truncate query string if longer than max_length."""
+            if not query or len(query) <= max_length:
+                return query
+            return query[:max_length-3] + "..."
+        display_df['query'] = display_df['query'].apply(truncate_query)
+            
         # 2. Convert time series lists to more compact string representations
         for col in ['impressions_ts', 'clicks_ts', 'position_ts']:
             if col in display_df.columns:
@@ -498,19 +506,8 @@ def main():
         display_df['latest_impressions'] = latest_data_df['latest_impressions'].astype(int)
         display_df['impact_score'] = latest_data_df['impact_score'].round(1)
         
-        # Truncate long queries for display
-        def truncate_query(query, max_length=50):
-            """Truncate query string if longer than max_length."""
-            if len(query) <= max_length:
-                return query
-            return query[:max_length-3] + "..."
-        
-        # Create a display version with truncated queries
-        display_df_truncated = display_df.copy()
-        display_df_truncated['query'] = display_df_truncated['query'].apply(truncate_query)
-        
         # Display the top impact queries with truncated query text
-        print(display_df_truncated.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
 
         print("\n--- DataFrame Info ---")
         trend_results_df.info()
