@@ -454,7 +454,10 @@ def main():
                     lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
                 )
                 
-        print(f"\n--- Top {TOP_N} by Impression Increase ---")
+        print(f"""
+--- Copy Everything Below This Line ---
+
+--- Top {TOP_N} by Impression Increase ---""")
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
         print(top_impressions.to_string(index=False))
 
@@ -475,7 +478,6 @@ def main():
         bottom_positions_idx = numeric_df.sort_values('position_slope', ascending=False).head(TOP_N).index
         print(display_df.loc[bottom_positions_idx].to_string(index=False))
 
-        # --- ADD NEW SECTION: Top and Bottom Performers by Combined Score ---
         print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
         # Get the most recent day in each time series
         latest_data_df = trend_results_df.copy()
@@ -525,62 +527,57 @@ def main():
         start_date = dates_to_fetch[0].strftime('%B %-d')
         end_date = dates_to_fetch[-1].strftime('%-d, %Y')
         print(f"""
---- Copy Everything Below This Line ---
-
---- Top {TOP_N} by Impression Increase ---""")
-        print(top_impressions.to_string(index=False))
-
-        print(f"\n--- Top {TOP_N} by Impression Decrease ---")
-        print(bottom_impressions.to_string(index=False))
-
-        print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
-        print(display_df.loc[top_positions_idx].to_string(index=False))
-
-        print(f"\n--- Top {TOP_N} by Position Decline (Higher is Worse) ---")
-        print(display_df.loc[bottom_positions_idx].to_string(index=False))
-
-        print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
-        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
-
-        print(f"\n--- Bottom {TOP_N} Low-Impact Queries (Poor Position + Few Impressions) ---")
-        print(display_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
-
-        print(f"""
 --- Analysis Prompt ---
-Analyze the Google Search Console trend analysis output previously provided for the site `{SITE_URL}` (covering the period {start_date}-{end_date}). Based *only* on that data, provide a prioritized list of actionable traffic growth suggestions.
+Analyze the Google Search Console trend analysis output previously provided for the site `{SITE_URL}` (covering the period {start_date}-{end_date}). Based *only* on that data, provide a prioritized list of actionable traffic growth suggestions and loss mitigation strategies.
 
-Your goal is to identify the highest-impact opportunities revealed by the trends, including both broad strategic directions and specific content pieces. Structure your response to cover the following areas, ensuring each point includes specific examples from the data (pages, queries, metrics) and concrete recommended actions:
+Your goal is to identify both opportunities and risks revealed by the trends, including broad strategic directions and specific content pieces. Structure your response to cover the following areas, ensuring each point includes specific examples from the data (pages, queries, metrics) and concrete recommended actions:
 
-1.  **Top Movers Opportunities:**
+1.  **Top Movers Analysis (Gains & Losses):**
     * Identify the most promising opportunities among pages/queries showing strong positive impression growth.
-    * Specifically highlight queries gaining significant impressions *and* improving in position simultaneously.
-    * Recommend specific actions (e.g., optimize page X for query Y, expand content on topic Z) to capitalize on this momentum.
+    * Highlight queries gaining significant impressions *and* improving in position simultaneously.
+    * **Critically analyze pages/queries showing concerning drops in impressions.** What patterns emerge among the declining content?
+    * Recommend specific actions to both capitalize on growth and mitigate concerning losses.
 
-2.  **Position Improvement Momentum:**
-    * Which pages making significant ranking jumps (large negative `position_slope`) represent the best targets for further optimization to secure or improve those gains?
-    * Are there thematic patterns among the fastest climbers that suggest broader content opportunities?
-    * Recommend actions to consolidate these ranking improvements.
+2.  **Position Changes Analysis:**
+    * Which pages making significant ranking jumps (large negative `position_slope`) represent the best targets for further optimization?
+    * **Identify content experiencing concerning ranking declines (large positive `position_slope`).** Are there common characteristics among declining pages?
+    * Are there thematic patterns among both the fastest climbers and steepest decliners that suggest broader content opportunities or risks?
+    * Recommend actions to both consolidate ranking improvements and stop/reverse ranking slides.
 
-3.  **High-Impact & Unrealized Potential Optimization:**
-    * Based on the "High-Impact Queries" list, which content currently delivers the most value and how can it be reinforced or expanded?
-    * Identify the **top 1-3 individual page/query pairs** representing the largest "unrealized potential" (high impressions but poor ranking). Clearly state the page, query, impressions, and position for these top examples.
-    * **Critically, based *specifically* on analyzing this unrealized potential data, identify and recommend the single most promising *new article topic* to pursue to capture this untapped traffic.** Justify why this specific topic is the best choice over other unrealized potential candidates.
-    * Recommend specific optimization strategies for these high-potential items (e.g., create the new targeted article, significantly enhance/rewrite existing page, technical SEO review, consolidate competing pages).
+3.  **High-Impact & Problem Area Analysis:**
+    * Based on the "High-Impact Queries" list, which content currently delivers the most value and how can it be reinforced?
+    * **Examine the "Low-Impact Queries" list to identify previously better-performing content that may need intervention.**
+    * Identify the **top 1-3 individual page/query pairs** representing:
+        a) The largest "unrealized potential" (high impressions but poor ranking)
+        b) **The most concerning "performance deterioration" (significant drops in both impressions and position)**
+    * For each identified pair, clearly state the page, query, metrics, and trend direction.
+    * **Critically, based on analyzing both opportunity and problem areas, identify and recommend:**
+        a) The single most promising *new article topic* to pursue
+        b) The single most important *existing content piece to rescue/improve*
+    * Justify why these specific pieces deserve prioritization over other candidates.
 
 4.  **Prioritized Strategic Recommendations:**
-    * Synthesize the findings from the above points.
-    * What are the top 2-3 overarching strategic priorities? Ensure these recommendations explicitly cover **both broad themes** (like refining generalist pages such as `grok-better-than`, or amplifying existing winners like `open-source-seo-software`) **AND the specific, standout individual topic opportunity** (like the best new article topic identified in point 3). Justify these priorities with data trends.
+    * Synthesize the findings from the above points, balancing growth opportunities with risk mitigation.
+    * What are the top 2-3 overarching strategic priorities? Ensure these recommendations explicitly cover:
+        a) **Defensive priorities** (stopping losses, rescuing declining content)
+        b) **Growth priorities** (both broad themes and specific new content opportunities)
+    * Justify these priorities with clear data trends from both positive and negative movement tables.
 
 5.  **Recommendation Summary Table:**
-    * Conclude your response with a summary table consolidating the most important actionable recommendations derived from your analysis in sections 1-4.
-    * Use the following columns: `Page URL`, `Query`, `Key Observation`, `Recommendation`, `Priority`.
-    * Populate this table with the key page/query specific recommendations and assign a priority (High, Medium, Low) based on potential impact as revealed by the data.
+    * Conclude your response with a summary table consolidating the most important actionable recommendations.
+    * Use the following columns: `Page URL`, `Query`, `Current Trend`, `Key Observation`, `Recommended Action`, `Priority`.
+    * Include both growth opportunities and problem areas requiring intervention.
+    * Assign priority (High, Medium, Low) based on both potential impact and urgency of intervention as revealed by the trend data.
+    * Ensure the table captures recommendations for:
+        a) Content showing positive momentum to amplify
+        b) **Content showing concerning declines to address**
+        c) New content opportunities to pursue
+        d) Technical or structural improvements suggested by the patterns
 
-Please ensure recommendations are concrete and directly linked to the patterns observed in the provided GSC trend data output.
+Please ensure all recommendations are concrete and directly linked to the patterns observed in the provided GSC trend data output, including both positive and negative trends.""")
 
---- End Copy Here ---
+        print("\n--- End Copy Here ---\n")
 
-""")
         print("\n--- DataFrame Info ---")
         trend_results_df.info()
 
