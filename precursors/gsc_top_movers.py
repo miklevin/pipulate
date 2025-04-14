@@ -47,10 +47,10 @@ MAX_DAYS_TO_CHECK = 10
 API_CHECK_DELAY = 0.5
 
 # Number of consecutive days of data to fetch (ending on the most recent date)
-NUM_DAYS_TO_FETCH = 6
+NUM_DAYS_TO_FETCH = 3
 
 # Number of top results to display in each category
-TOP_N = 200
+TOP_N = 20
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
@@ -430,53 +430,76 @@ def main():
             display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '', regex=True)
             # Further trim endings
             display_df['page'] = display_df['page'].str.replace(r'/$', '', regex=True)
+            # Pad page column for alignment
+            max_page_len = display_df['page'].str.len().max()
+            display_df['page'] = display_df['page'].str.ljust(max_page_len)
             
-        # 1.5 Truncate long queries (moved earlier and shortened to 40 chars)
-        def truncate_query(query, max_length=40):
-            """Truncate query string if longer than max_length."""
-            if not query or len(query) <= max_length:
-                return query
-            return query[:max_length-3] + "..."
-        display_df['query'] = display_df['query'].apply(truncate_query)
+        # 1.5 Truncate and pad queries
+        def truncate_and_pad_query(query, max_length=40):
+            """Truncate query string if longer than max_length and pad for alignment."""
+            if not query:
+                return " " * max_length
+            if len(query) > max_length:
+                return query[:max_length-3] + "...".ljust(3)
+            return query.ljust(max_length)
+        display_df['query'] = display_df['query'].apply(lambda x: truncate_and_pad_query(x))
             
-        # 2. Convert time series lists to more compact string representations
+        # 2. Convert time series lists to more compact string representations with padding
         for col in ['impressions_ts', 'clicks_ts', 'position_ts']:
             if col in display_df.columns:
-                # Format time series values more compactly
+                # Format time series values with consistent width
                 display_df[col] = display_df[col].apply(
-                    lambda x: '[' + ','.join([str(int(i)) if isinstance(i, (int, float)) and not pd.isna(i) else '-' for i in x]) + ']'
+                    lambda x: '[' + ','.join([str(int(i)).rjust(3) if isinstance(i, (int, float)) and not pd.isna(i) else '  -' for i in x]) + ']'
                 )
                 
-        # 3. Format slope values to 1 decimal place
+        # 3. Format slope values with consistent decimal places and padding
         for col in ['impressions_slope', 'clicks_slope', 'position_slope']:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(
-                    lambda x: f"{x:.1f}" if pd.notnull(x) else "-"
+                    lambda x: f"{x:8.1f}" if pd.notnull(x) else "       -"
                 )
                 
-        print(f"""
---- Copy Everything Below This Line ---
+        # Function to print markdown table header
+        def print_markdown_header(columns):
+            # Print header row
+            print("| " + " | ".join(columns) + " |")
+            # Print separator with alignment indicators
+            alignments = []
+            for col in columns:
+                if any(x in col.lower() for x in ['slope', 'score', 'position', 'impressions']):
+                    alignments.append("---:")  # Right align numbers
+                else:
+                    alignments.append(":---")  # Left align text
+            print("|" + "|".join(alignments) + "|")
 
---- Top {TOP_N} by Impression Increase ---""")
+        print("\n--- Copy Everything Below This Line ---\n")
+        
+        print("### Top 20 by Impression Increase")
+        columns = ['Page', 'Query', 'Impressions TS', 'Impressions Slope', 'Clicks TS', 'Clicks Slope', 'Position TS', 'Position Slope']
+        print_markdown_header(columns)
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
-        print(top_impressions.to_string(index=False))
+        for _, row in top_impressions.iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['impressions_ts']} | {row['impressions_slope']} | {row['clicks_ts']} | {row['clicks_slope']} | {row['position_ts']} | {row['position_slope']} |")
 
-        print(f"\n--- Top {TOP_N} by Impression Decrease ---")
+        print("\n### Top 20 by Impression Decrease")
+        print_markdown_header(columns)
         bottom_impressions = display_df.sort_values('impressions_slope', ascending=True, na_position='last').head(TOP_N)
-        print(bottom_impressions.to_string(index=False))
+        for _, row in bottom_impressions.iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['impressions_ts']} | {row['impressions_slope']} | {row['clicks_ts']} | {row['clicks_slope']} | {row['position_ts']} | {row['position_slope']} |")
 
-        print(f"\n--- Top {TOP_N} by Position Improvement (Lower is Better) ---")
-        # Ensure we're working with original numeric values for sorting
+        print("\n### Top 20 by Position Improvement (Lower is Better)")
+        print_markdown_header(columns)
         numeric_df = trend_results_df.copy()
         numeric_df = numeric_df.dropna(subset=['position_slope'])
-        # Sort by position_slope (lowest/most negative is best improvement) 
         top_positions_idx = numeric_df.sort_values('position_slope', ascending=True).head(TOP_N).index
-        # Display using the formatted display dataframe
-        print(display_df.loc[top_positions_idx].to_string(index=False))
+        for _, row in display_df.loc[top_positions_idx].iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['impressions_ts']} | {row['impressions_slope']} | {row['clicks_ts']} | {row['clicks_slope']} | {row['position_ts']} | {row['position_slope']} |")
 
-        print(f"\n--- Top {TOP_N} by Position Decline (Higher is Worse) ---")
+        print("\n### Top 20 by Position Decline (Higher is Worse)")
+        print_markdown_header(columns)
         bottom_positions_idx = numeric_df.sort_values('position_slope', ascending=False).head(TOP_N).index
-        print(display_df.loc[bottom_positions_idx].to_string(index=False))
+        for _, row in display_df.loc[bottom_positions_idx].iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['impressions_ts']} | {row['impressions_slope']} | {row['clicks_ts']} | {row['clicks_slope']} | {row['position_ts']} | {row['position_slope']} |")
 
         print(f"\n--- Top {TOP_N} High-Impact Queries (Best Position + Most Impressions) ---")
         # Get the most recent day in each time series
@@ -518,16 +541,25 @@ def main():
         display_df['impact_score'] = latest_data_df['impact_score'].round(1)
         
         # Display the top and bottom impact queries
-        print(display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+        print("\n### Top 20 High-Impact Queries (Best Position + Most Impressions)")
+        impact_columns = ['Page', 'Query', 'Latest Position', 'Latest Impressions', 'Impact Score', 'Impressions TS', 'Position TS']
+        print_markdown_header(impact_columns)
+        
+        # Format the high impact queries
+        for _, row in display_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['latest_position']:8.1f} | {row['latest_impressions']:8d} | {row['impact_score']:8.1f} | {row['impressions_ts']} | {row['position_ts']} |")
 
-        print(f"\n--- Bottom {TOP_N} Low-Impact Queries (Poor Position + Few Impressions) ---")
-        print(display_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].to_string(index=False))
+        print("\n### Bottom 20 Low-Impact Queries (Poor Position + Few Impressions)")
+        print_markdown_header(impact_columns)
+        for _, row in display_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']].iterrows():
+            print(f"| {row['page']} | {row['query']} | {row['latest_position']:8.1f} | {row['latest_impressions']:8d} | {row['impact_score']:8.1f} | {row['impressions_ts']} | {row['position_ts']} |")
 
         # Add analysis prompt with dynamic variables
         start_date = dates_to_fetch[0].strftime('%B %-d')
         end_date = dates_to_fetch[-1].strftime('%-d, %Y')
+        
         print(f"""
---- Analysis Prompt ---
+### Analysis Prompt
 [Analysis Parameters: Top {TOP_N} Results Per Category, {NUM_DAYS_TO_FETCH}-Day Trend Period]
 
 Analyze the Google Search Console trend analysis output previously provided for the site `{SITE_URL}` (covering the period {start_date}-{end_date}). Based *only* on that data, provide a prioritized list of actionable traffic growth suggestions and loss mitigation strategies.
