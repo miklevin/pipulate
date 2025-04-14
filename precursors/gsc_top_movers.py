@@ -485,17 +485,6 @@ def main():
             for col, width in zip(columns, widths):
                 header_cells.append(col.ljust(width))
             print("| " + " | ".join(header_cells) + " |")
-            
-            # Print separator with alignment indicators and matching widths
-            separators = []
-            for col, width in zip(columns, widths):
-                if any(x in col.lower() for x in ['slope', 'score', 'position', 'impressions']):
-                    # Right align numbers - fill width with hyphens
-                    separators.append("-" * (width-1) + ":")  # Right align numbers
-                else:
-                    # Center align text - fill width with hyphens
-                    separators.append(":" + "-" * (width-2) + ":")  # Center align text
-            print("|" + "|".join(separators) + "|")
 
         # Function to truncate and pad query for all tables
         def truncate_and_pad_query(query, max_length=40):
