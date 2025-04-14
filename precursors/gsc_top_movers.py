@@ -354,6 +354,43 @@ def analyze_trends(daily_dataframes_dict):
         if col_name in analysis_results.columns:
             analysis_results[col_name] = analysis_results[col_name].round(2)
 
+    # Calculate latest values from time series
+    def get_latest_non_zero(series):
+        """Get the latest non-zero value from a time series list."""
+        try:
+            # Convert string representation back to list if needed
+            if isinstance(series, str):
+                series = eval(series)
+            # Return first non-zero value from reversed list, or 0 if none found
+            for val in reversed(series):
+                if val and val > 0:
+                    return val
+            return 0
+        except:
+            return 0
+
+    # Extract latest values for impact score calculation
+    analysis_results['latest_impressions'] = analysis_results['impressions_ts'].apply(get_latest_non_zero)
+    analysis_results['latest_position'] = analysis_results['position_ts'].apply(get_latest_non_zero)
+
+    # Calculate impact score (higher impressions and better position = higher score)
+    # Normalize components to 0-1 range
+    max_impressions = analysis_results['latest_impressions'].max()
+    max_position = analysis_results['latest_position'].max()
+    
+    # Avoid division by zero
+    if max_impressions > 0 and max_position > 0:
+        # Position score is inverted (lower position is better)
+        analysis_results['impact_score'] = (
+            (analysis_results['latest_impressions'] / max_impressions) * 
+            (1 - (analysis_results['latest_position'] / max_position))
+        ) * 100  # Scale to 0-100
+        # Round impact scores
+        analysis_results['impact_score'] = analysis_results['impact_score'].round(1)
+    else:
+        # If no valid data, set impact scores to 0
+        analysis_results['impact_score'] = 0
+
     return analysis_results
 
 
@@ -421,10 +458,57 @@ def main():
         pd.set_option('display.expand_frame_repr', False)
         pd.set_option('display.max_colwidth', None)
         
-        # Create a simplified display dataframe with cleaner formatting
+        # Define column mappings
+        main_display_columns = ['Page', 'Query', 'Impressions TS', 'Impressions Slope', 'Clicks TS', 'Clicks Slope', 'Position TS', 'Position Slope']
+        main_df_columns = ['page', 'query', 'impressions_ts', 'impressions_slope', 'clicks_ts', 'clicks_slope', 'position_ts', 'position_slope']
+        
+        # Define impact table column mappings
+        impact_display_columns = ['Page', 'Query', 'Latest Position', 'Latest Impressions', 'Impact Score', 'Impressions TS', 'Position TS']
+        impact_df_columns = ['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']
+
+        # Calculate column widths based on data
+        def get_column_widths(df, display_columns, df_columns):
+            """Calculate required width for each column based on data and header."""
+            widths = []
+            for display_col, df_col in zip(display_columns, df_columns):
+                # Get maximum width of data in column
+                data_width = max(len(str(x)) for x in df[df_col])
+                # Compare with header width
+                widths.append(max(data_width, len(display_col)))
+            return widths
+
+        # Function to print markdown table header
+        def print_markdown_header(columns, widths):
+            """Print markdown table header with specified column widths."""
+            # Print header row with padded column names
+            header_cells = []
+            for col, width in zip(columns, widths):
+                header_cells.append(col.ljust(width))
+            print("| " + " | ".join(header_cells) + " |")
+            
+            # Print separator with alignment indicators and matching widths
+            separators = []
+            for col, width in zip(columns, widths):
+                if any(x in col.lower() for x in ['slope', 'score', 'position', 'impressions']):
+                    # Right align numbers - fill width with hyphens
+                    separators.append("-" * (width-1) + ":")  # Right align numbers
+                else:
+                    # Center align text - fill width with hyphens
+                    separators.append(":" + "-" * (width-2) + ":")  # Center align text
+            print("|" + "|".join(separators) + "|")
+
+        # Function to truncate and pad query for all tables
+        def truncate_and_pad_query(query, max_length=40):
+            """Truncate query string if longer than max_length and pad for alignment."""
+            if not query:
+                return " " * max_length
+            if len(query) > max_length:
+                return query[:max_length-3] + "...".ljust(3)
+            return query.ljust(max_length)
+
+        # Process the dataframe for display
         display_df = trend_results_df.copy()
         
-        # Process the dataframe for display
         # 1. Extract page path from full URL
         if 'page' in display_df.columns:
             display_df['page'] = display_df['page'].str.replace(r'https://mikelev.in/futureproof/', '', regex=True)
@@ -435,13 +519,6 @@ def main():
             display_df['page'] = display_df['page'].str.ljust(max_page_len)
             
         # 1.5 Truncate and pad queries
-        def truncate_and_pad_query(query, max_length=40):
-            """Truncate query string if longer than max_length and pad for alignment."""
-            if not query:
-                return " " * max_length
-            if len(query) > max_length:
-                return query[:max_length-3] + "...".ljust(3)
-            return query.ljust(max_length)
         display_df['query'] = display_df['query'].apply(lambda x: truncate_and_pad_query(x))
             
         # 2. Convert time series lists to more compact string representations with padding
@@ -458,43 +535,8 @@ def main():
                 display_df[col] = display_df[col].apply(
                     lambda x: f"{x:8.1f}" if pd.notnull(x) else "       -"
                 )
-                
-        # Function to print markdown table header
-        def print_markdown_header(columns, widths):
-            """Print markdown table header with specified column widths."""
-            # Print header row with padded column names
-            header_cells = []
-            for col, width in zip(columns, widths):
-                header_cells.append(col.ljust(width))
-            print("| " + " | ".join(header_cells) + " |")
-            
-            # Print separator with alignment indicators and matching widths
-            separators = []
-            for col, width in zip(columns, widths):
-                if any(x in col.lower() for x in ['slope', 'score', 'position', 'impressions']):
-                    separators.append("-" * (width-1) + ":")  # Right align numbers
-                else:
-                    separators.append(":" + "-" * (width-2) + ":")  # Center align text
-            print("|" + "|".join(separators) + "|")
 
-        # Calculate column widths based on data
-        def get_column_widths(df, display_columns, df_columns):
-            """Calculate required width for each column based on data and header."""
-            widths = []
-            for display_col, df_col in zip(display_columns, df_columns):
-                # Get maximum width of data in column
-                data_width = max(len(str(x)) for x in df[df_col])
-                # Compare with header width
-                widths.append(max(data_width, len(display_col)))
-            return widths
-
-        print("\n--- Copy Everything Below This Line ---\n")
-        
-        # Define column mappings
-        main_display_columns = ['Page', 'Query', 'Impressions TS', 'Impressions Slope', 'Clicks TS', 'Clicks Slope', 'Position TS', 'Position Slope']
-        main_df_columns = ['page', 'query', 'impressions_ts', 'impressions_slope', 'clicks_ts', 'clicks_slope', 'position_ts', 'position_slope']
-        
-        print("### Top 20 by Impression Increase")
+        print("\n### Top 20 by Impression Increase")
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
         widths = get_column_widths(top_impressions, main_display_columns, main_df_columns)
         print_markdown_header(main_display_columns, widths)
@@ -526,13 +568,16 @@ def main():
         for _, row in bottom_positions.iterrows():
             print(f"| {str(row['page']).ljust(widths[0])} | {str(row['query']).ljust(widths[1])} | {str(row['impressions_ts']).rjust(widths[2])} | {str(row['impressions_slope']).rjust(widths[3])} | {str(row['clicks_ts']).rjust(widths[4])} | {str(row['clicks_slope']).rjust(widths[5])} | {str(row['position_ts']).rjust(widths[6])} | {str(row['position_slope']).rjust(widths[7])} |")
 
-        # Define column mappings for impact tables
-        impact_display_columns = ['Page', 'Query', 'Latest Position', 'Latest Impressions', 'Impact Score', 'Impressions TS', 'Position TS']
-        impact_df_columns = ['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']
-        
         print("\n### Top 20 High-Impact Queries (Best Position + Most Impressions)")
+        # Create a display version of the impact table data
+        impact_display_df = display_df.copy()
+        # Format numeric columns for the impact tables
+        impact_display_df['latest_position'] = impact_display_df['latest_position'].apply(lambda x: f"{x:8.1f}")
+        impact_display_df['latest_impressions'] = impact_display_df['latest_impressions'].apply(lambda x: f"{x:8d}")
+        impact_display_df['impact_score'] = impact_display_df['impact_score'].apply(lambda x: f"{x:8.1f}")
+        
         top_impact_idx = trend_results_df.sort_values('impact_score', ascending=False).head(TOP_N).index
-        top_impact = trend_results_df.loc[top_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']]
+        top_impact = impact_display_df.loc[top_impact_idx]
         widths = get_column_widths(top_impact, impact_display_columns, impact_df_columns)
         print_markdown_header(impact_display_columns, widths)
         for _, row in top_impact.iterrows():
@@ -540,7 +585,7 @@ def main():
 
         print("\n### Bottom 20 Low-Impact Queries (Poor Position + Few Impressions)")
         bottom_impact_idx = trend_results_df[trend_results_df['impact_score'] > 0].sort_values('impact_score', ascending=True).head(TOP_N).index
-        bottom_impact = trend_results_df.loc[bottom_impact_idx][['page', 'query', 'latest_position', 'latest_impressions', 'impact_score', 'impressions_ts', 'position_ts']]
+        bottom_impact = impact_display_df.loc[bottom_impact_idx]
         widths = get_column_widths(bottom_impact, impact_display_columns, impact_df_columns)
         print_markdown_header(impact_display_columns, widths)
         for _, row in bottom_impact.iterrows():
