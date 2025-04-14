@@ -320,7 +320,7 @@ def analyze_trends(daily_dataframes_dict):
             valid_mask = ~np.isnan(y)
             valid_count = np.sum(valid_mask)
 
-            if valid_count >= 2:  # Need at least two points for regression
+            if valid_count >= 2:  # Two or more points for regression
                 try:
                     # Extract valid x and y values
                     x_valid = x[valid_mask]
@@ -332,6 +332,21 @@ def analyze_trends(daily_dataframes_dict):
                     # Handle computation errors
                     print(f"Warning: Slope calculation error for metric {metric}: {e}")
                     results[f'{metric}_slope'] = np.nan
+            elif valid_count == 1:  # Only one valid point
+                # For position, we'll use 0 slope if we only have one point
+                # This indicates no change rather than unknown
+                if metric == 'position':
+                    results[f'{metric}_slope'] = 0.0
+                else:
+                    results[f'{metric}_slope'] = np.nan
+            else:  # No valid points
+                results[f'{metric}_slope'] = np.nan
+
+            # Format slope for display
+            if pd.notnull(results[f'{metric}_slope']):
+                results[f'{metric}_slope'] = f"{results[f'{metric}_slope']:8.1f}"
+            else:
+                results[f'{metric}_slope'] = "       -"
 
         return pd.Series(results)
     # --- End of inner function ---
@@ -519,11 +534,7 @@ def main():
                 )
                 
         # 3. Format slope values with consistent decimal places and padding
-        for col in ['impressions_slope', 'clicks_slope', 'position_slope']:
-            if col in display_df.columns:
-                display_df[col] = display_df[col].apply(
-                    lambda x: f"{x:8.1f}" if pd.notnull(x) else "       -"
-                )
+        # Note: Slopes are already formatted in analyze_trends, so we don't need to format them again here
 
         print("\n### Top 20 by Impression Increase")
         top_impressions = display_df.sort_values('impressions_slope', ascending=False, na_position='last').head(TOP_N)
