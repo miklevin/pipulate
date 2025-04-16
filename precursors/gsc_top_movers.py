@@ -41,16 +41,16 @@ SCOPES = ['https://www.googleapis.com/auth/webmasters']
 START_OFFSET_DAYS = 2
 
 # Maximum number of past days to check before giving up
-MAX_DAYS_TO_CHECK = 10
+MAX_DAYS_TO_CHECK = 31
 
 # Delay between API checks (in seconds) to respect rate limits
 API_CHECK_DELAY = 0.5
 
 # Number of consecutive days of data to fetch (ending on the most recent date)
-NUM_DAYS_TO_FETCH = 3
+NUM_DAYS_TO_FETCH = 24
 
 # Number of top results to display in each category
-TOP_N = 20
+TOP_N = 100
 
 # Directory to store/load cached daily GSC data CSV files
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'gsc_cache')
