@@ -7,6 +7,31 @@ import yaml  # Add YAML for front matter parsing
 import re  # Add regex for front matter extraction
 from typing import Dict, List, Optional, Union
 
+# ============================================================================
+# USER CONFIGURATION: Files to include in context
+# ============================================================================
+# Edit this list to specify which files should be included in the context.
+# Each file will be processed and its content will be made available to the AI.
+# Files are processed in order, and token counts are tracked to stay within limits.
+#
+# Simply add or remove file paths, one per line. The backslash at the start
+# allows for clean multi-line string formatting.
+
+FILES_TO_INCLUDE = """\
+README.md
+flake.nix
+server.py
+plugins/20_hello_workflow.py
+training/hello_workflow.md
+plugins/30_tasks.py
+training/tasks.md
+.cursorrules
+""".splitlines()[:-1]  # Remove the last empty line
+
+# ============================================================================
+# END USER CONFIGURATION
+# ============================================================================
+
 def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens):
     """Print a structured view of the prompt components in markdown format."""
     print("\n=== Prompt Structure ===")
@@ -440,17 +465,8 @@ Identify posts that could serve as:
 This analysis will be used to optimize the site's information architecture.
 """
 
-# List of files to include in context
-file_list = """\
-README.md
-flake.nix
-server.py
-plugins/20_hello_workflow.py
-training/hello_workflow.md
-plugins/30_tasks.py
-training/tasks.md
-.cursorrules
-""".splitlines()
+# Replace the old file_list definition with the new FILES_TO_INCLUDE
+file_list = FILES_TO_INCLUDE
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
     """Count the number of tokens in a text string."""
