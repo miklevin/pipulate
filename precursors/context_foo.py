@@ -5,6 +5,7 @@ import tiktoken  # Add tiktoken import
 import gzip  # Add gzip for compression
 import yaml  # Add YAML for front matter parsing
 import re  # Add regex for front matter extraction
+from typing import Dict, List, Optional, Union
 
 # -------------------------------------------------------------------------
 # NOTE TO USERS:
@@ -22,6 +23,21 @@ import re  # Add regex for front matter extraction
 # analysis of large bodies of text, particularly entire Jekyll _posts folders.
 # -------------------------------------------------------------------------
 
+# --- XML Support Functions ---
+def wrap_in_xml(content: str, tag_name: str, attributes: Optional[Dict[str, str]] = None) -> str:
+    """Wrap content in XML tags with optional attributes."""
+    attrs = " ".join(f'{k}="{v}"' for k, v in (attributes or {}).items())
+    return f"<{tag_name}{' ' + attrs if attrs else ''}>\n{content}\n</{tag_name}>"
+
+def create_xml_element(tag_name: str, content: Union[str, List[str]], attributes: Optional[Dict[str, str]] = None) -> str:
+    """Create an XML element with optional attributes and content."""
+    if isinstance(content, list):
+        content = "\n".join(content)
+    return wrap_in_xml(content, tag_name, attributes)
+
+def create_xml_list(items: List[str], tag_name: str = "item") -> str:
+    """Create an XML list from a list of items."""
+    return "\n".join(f"<{tag_name}>{item}</{tag_name}>" for item in items)
 
 # --- Configuration for context building ---
 # Edit these values as needed
@@ -45,103 +61,111 @@ prompt_templates = [
     # Template 0: General Codebase Analysis
     {
         "name": "General Codebase Analysis",
-        "pre_prompt": """
-# Context for Understanding Pipulate
-
+        "pre_prompt": create_xml_element("context", [
+            create_xml_element("system_info", """
 This codebase uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages.
 Key things to know:
 - Always run `nix develop` before any commands in a new terminal
 - FastHTML objects must be converted with to_xml() before returning responses
 - The project is organized as a server with plugin-based workflows
-
-Edit this prompt to provide specific context for the current session.
-""",
-        "post_prompt": """
+"""),
+            create_xml_element("key_points", [
+                "<point>Always run `nix develop` before any commands in a new terminal</point>",
+                "<point>FastHTML objects must be converted with to_xml() before returning responses</point>",
+                "<point>The project is organized as a server with plugin-based workflows</point>"
+            ])
+        ]),
+        "post_prompt": create_xml_element("analysis_request", [
+            create_xml_element("introduction", """
 Now that you've reviewed the codebase context, I'd love your insights and analysis!
 
 Dear AI Assistant:
 I've provided you with the core architecture of a Python web application that takes an interesting approach to modern web development. I'd appreciate your thoughtful analysis on any of these aspects:
-
-1. Technical Architecture Analysis
-- How does this hybrid Nix+virtualenv approach compare to other deployment patterns?
-- What are the tradeoffs of using HTMX with server-side state vs traditional SPAs?
-- How does the plugin system architecture enable extensibility?
-
-2. Pattern Recognition & Insights  
-- What patterns emerge from the codebase that surprise you?
-- How does this approach to web development differ from current trends?
-- What potential scaling challenges or opportunities do you see?
-
-3. Forward-Looking Perspective
-- How does this architecture align with or diverge from emerging web development patterns?
-- What suggestions would you make for future evolution of the system?
-- How might this approach need to adapt as web technologies advance?
-
-Feel free to focus on whatever aspects you find most interesting or noteworthy. I'm particularly interested in insights about:
-- The interplay between modern and traditional web development approaches
-- Architectural decisions that stand out as novel or counterintuitive
-- Potential implications for developer experience and system maintenance
-
-Share your most interesting observations and help me see this codebase through your analytical lens!
-"""
+"""),
+            create_xml_element("analysis_areas", [
+                create_xml_element("area", [
+                    "<title>Technical Architecture Analysis</title>",
+                    "<questions>",
+                    "<question>How does this hybrid Nix+virtualenv approach compare to other deployment patterns?</question>",
+                    "<question>What are the tradeoffs of using HTMX with server-side state vs traditional SPAs?</question>",
+                    "<question>How does the plugin system architecture enable extensibility?</question>",
+                    "</questions>"
+                ]),
+                create_xml_element("area", [
+                    "<title>Pattern Recognition & Insights</title>",
+                    "<questions>",
+                    "<question>What patterns emerge from the codebase that surprise you?</question>",
+                    "<question>How does this approach to web development differ from current trends?</question>",
+                    "<question>What potential scaling challenges or opportunities do you see?</question>",
+                    "</questions>"
+                ]),
+                create_xml_element("area", [
+                    "<title>Forward-Looking Perspective</title>",
+                    "<questions>",
+                    "<question>How does this architecture align with or diverge from emerging web development patterns?</question>",
+                    "<question>What suggestions would you make for future evolution of the system?</question>",
+                    "<question>How might this approach need to adapt as web technologies advance?</question>",
+                    "</questions>"
+                ])
+            ]),
+            create_xml_element("focus_areas", [
+                "<area>The interplay between modern and traditional web development approaches</area>",
+                "<area>Architectural decisions that stand out as novel or counterintuitive</area>",
+                "<area>Potential implications for developer experience and system maintenance</area>"
+            ])
+        ])
     },
     # Template 1: MCP Integration Challenge
     {
         "name": "MCP Integration Challenge",
-        "pre_prompt": """
-# Context for Understanding Pipulate's MCP Integration Challenge
-
+        "pre_prompt": create_xml_element("context", [
+            create_xml_element("system_info", """
 This codebase uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages.
 I'm looking to enhance the Pipulate application by integrating the Model Context Protocol (MCP) to empower
 the local Ollama-powered LLM to execute actions directly rather than just generating text about them.
-
-Key points about the current system:
-- The app uses local Ollama models via HTTP API calls in the chat_with_llm() function
-- The Pipulate class serves as a central coordinator for plugins and functionality
-- Plugins are discovered and registered dynamically, with two types:
-  1. CRUD-based plugins for data management
-  2. Workflow-based plugins for linear processes
-- FastHTML objects must be converted with to_xml() before returning responses
-
-The MCP integration should maintain these architectural principles while giving the local LLM agency.
-""",
-        "post_prompt": """
-Now that you've reviewed the codebase context, I need your help designing a Model Context Protocol (MCP) integration for Pipulate.
-
-# MCP Integration Challenge
-
-Design an implementation that transforms Pipulate into an MCP client, allowing its local Ollama LLM to execute actions directly rather than just generating text instructions. Even though local LLMs aren't as powerful as frontier models, they can be effective when given the right tools.
-
-## Core Requirements
-
-1. **Direct Task Execution**: Enable the LLM to perform actions within Pipulate by calling relevant functions exposed as MCP tools.
-   * Example: User says "Add 'Research MCP non-HTTP options' to my tasks" → LLM identifies and calls the `tasks_create_record` tool 
-   * Example: "Mark task ID 12 as done" → LLM updates the appropriate record
-
-2. **Workflow Step Execution**: Allow the LLM to run specific workflow steps through MCP.
-   * Example: "Run step 2 of hello_workflow using data from step 1" → LLM invokes the appropriate function
-
-3. **External Tool Integration**: Support interaction with any system or service exposed via an MCP server (internal or external).
-   * Example: If there's an external MCP server with a `get_stock_price` tool, enable the LLM to fetch data for use in workflows
-
-## Design Considerations
-
-* How would you modify the existing `chat_with_llm()` function to support MCP?
-* What changes to the plugin architecture would enable plugins to expose their functions as MCP tools?
-* How would you handle authentication and security for external MCP servers?
-* What's the user experience for granting the LLM permission to execute actions?
-
-## Deliverables
-
-Please provide:
-1. An architectural overview of the MCP integration
-2. Key code modifications to implement MCP client functionality
-3. A plugin interface extension that allows plugins to register MCP tools
-4. Sample code for converting an existing plugin (e.g., tasks.py) to expose MCP tools
-5. Security and error handling considerations
-
-Remember to maintain Pipulate's philosophy of local-first, simplicity, and direct observability while adding this functionality.
-"""
+"""),
+            create_xml_element("key_points", [
+                "<point>The app uses local Ollama models via HTTP API calls in the chat_with_llm() function</point>",
+                "<point>The Pipulate class serves as a central coordinator for plugins and functionality</point>",
+                "<point>Plugins are discovered and registered dynamically, with two types: CRUD-based and workflow-based</point>",
+                "<point>FastHTML objects must be converted with to_xml() before returning responses</point>"
+            ])
+        ]),
+        "post_prompt": create_xml_element("mcp_challenge", [
+            create_xml_element("requirements", [
+                create_xml_element("requirement", [
+                    "<title>Direct Task Execution</title>",
+                    "<description>Enable the LLM to perform actions within Pipulate by calling relevant functions exposed as MCP tools.</description>",
+                    "<examples>",
+                    "<example>User says 'Add Research MCP non-HTTP options to my tasks' → LLM identifies and calls the tasks_create_record tool</example>",
+                    "<example>'Mark task ID 12 as done' → LLM updates the appropriate record</example>",
+                    "</examples>"
+                ]),
+                create_xml_element("requirement", [
+                    "<title>Workflow Step Execution</title>",
+                    "<description>Allow the LLM to run specific workflow steps through MCP.</description>",
+                    "<example>'Run step 2 of hello_workflow using data from step 1' → LLM invokes the appropriate function</example>"
+                ]),
+                create_xml_element("requirement", [
+                    "<title>External Tool Integration</title>",
+                    "<description>Support interaction with any system or service exposed via an MCP server.</description>",
+                    "<example>If there's an external MCP server with a get_stock_price tool, enable the LLM to fetch data for use in workflows</example>"
+                ])
+            ]),
+            create_xml_element("design_considerations", [
+                "<consideration>How would you modify the existing chat_with_llm() function to support MCP?</consideration>",
+                "<consideration>What changes to the plugin architecture would enable plugins to expose their functions as MCP tools?</consideration>",
+                "<consideration>How would you handle authentication and security for external MCP servers?</consideration>",
+                "<consideration>What's the user experience for granting the LLM permission to execute actions?</consideration>"
+            ]),
+            create_xml_element("deliverables", [
+                "<deliverable>An architectural overview of the MCP integration</deliverable>",
+                "<deliverable>Key code modifications to implement MCP client functionality</deliverable>",
+                "<deliverable>A plugin interface extension that allows plugins to register MCP tools</deliverable>",
+                "<deliverable>Sample code for converting an existing plugin to expose MCP tools</deliverable>",
+                "<deliverable>Security and error handling considerations</deliverable>"
+            ])
+        ])
     },
     # Template 2: Next Action Analysis
     {
@@ -234,20 +258,20 @@ while keeping in mind how it contributes to building Chip's memory and capabilit
 ]
 
 # Blog analysis prompts
-BLOG_PRE_PROMPT = """
-# Blog Content Analysis Task
-
+BLOG_PRE_PROMPT = create_xml_element("blog_analysis", [
+    create_xml_element("task_description", """
 You are analyzing a large collection of blog posts to help organize and optimize the site's information architecture.
 This content is being provided in chunks due to size. For each chunk:
-
-1. Identify main topics and themes
-2. Note potential hub posts that could serve as navigation centers
-3. Track chronological development of ideas
-4. Map relationships between posts
-5. Consider optimal click-depth organization
-
-Focus on finding natural topic clusters and hierarchy patterns.
-"""
+"""),
+    create_xml_element("analysis_requirements", [
+        "<requirement>Identify main topics and themes</requirement>",
+        "<requirement>Note potential hub posts that could serve as navigation centers</requirement>",
+        "<requirement>Track chronological development of ideas</requirement>",
+        "<requirement>Map relationships between posts</requirement>",
+        "<requirement>Consider optimal click-depth organization</requirement>"
+    ]),
+    create_xml_element("focus", "Focus on finding natural topic clusters and hierarchy patterns.")
+])
 
 BLOG_POST_PROMPT = """
 Please analyze this content chunk with attention to:
@@ -272,9 +296,9 @@ file_list = """\
 README.md
 flake.nix
 server.py
-plugins/hello_workflow.py
+plugins/20_hello_workflow.py
 training/hello_workflow.md
-plugins/tasks.py
+plugins/30_tasks.py
 training/tasks.md
 .cursorrules
 """.splitlines()
@@ -411,35 +435,53 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                 if filename[:10] > end_date:
                     end_date = filename[:10]
                 
-                # Add file header with URL
-                lines.append(f"# {filename}")
-                lines.append(f"URL: {post_url}\n")
+                # Create XML structure for the file
+                file_xml = create_xml_element("file", [
+                    create_xml_element("metadata", [
+                        f"<filename>{filename}</filename>",
+                        f"<url>{post_url}</url>",
+                        create_xml_element("front_matter", [
+                            f"<title>{front_matter.get('title', '')}</title>",
+                            f"<description>{front_matter.get('description', '')}</description>"
+                        ]) if front_matter else "",
+                        f"<tokens>{file_tokens}</tokens>"
+                    ]),
+                    create_xml_element("content", post_content)
+                ])
                 
-                if front_matter:
-                    # Add relevant front matter fields
-                    if 'title' in front_matter:
-                        lines.append(f"Title: {front_matter['title']}")
-                    if 'description' in front_matter:
-                        lines.append(f"Description: {front_matter['description']}")
-                    lines.append("")  # Empty line after metadata
-                
-                lines.append(post_content)
-                lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
+                lines.append(file_xml)
                 print(f"Added {filename} ({format_token_count(file_tokens)})")
                 print(f"Total tokens so far: {format_token_count(total_tokens)}")
                 
         except Exception as e:
             print(f"Warning: Could not process {filepath}: {e}")
     
-    # Write chunk metadata at the top
-    metadata_lines = []
-    write_chunk_metadata(metadata_lines, chunk_num, total_chunks, current_files, 
-                        len(md_files), start_date, end_date, max_tokens, total_tokens)
-    lines = metadata_lines + lines
+    # Create XML structure for the chunk
+    chunk_xml = create_xml_element("chunk", [
+        create_xml_element("metadata", [
+            f"<chunk_number>{chunk_num}</chunk_number>",
+            f"<total_chunks>{total_chunks}</total_chunks>",
+            f"<files_processed>{len(current_files)}</files_processed>",
+            f"<total_files>{len(md_files)}</total_files>",
+            f"<date_range>{start_date} to {end_date}</date_range>",
+            f"<token_count>{total_tokens}</token_count>",
+            f"<max_tokens>{max_tokens}</max_tokens>",
+            f"<remaining_tokens>{max_tokens - total_tokens}</remaining_tokens>"
+        ]),
+        create_xml_element("purpose", [
+            "<purpose>Site topology & content analysis for:</purpose>",
+            "<item>Topic clustering</item>",
+            "<item>Information architecture</item>",
+            "<item>Hub-and-spoke organization</item>",
+            "<item>5-click depth distribution</item>",
+            "<item>Content summarization</item>"
+        ]),
+        create_xml_element("content", "\n".join(lines))
+    ])
     
     # Add blog post prompt if using --cat
     if args.cat and BLOG_POST_PROMPT and total_tokens + count_tokens(BLOG_POST_PROMPT, "gpt-4") <= max_tokens:
-        lines.append(BLOG_POST_PROMPT)
+        chunk_xml += "\n" + BLOG_POST_PROMPT
         total_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
     
     # Write to file
@@ -447,10 +489,10 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
     try:
         if compress:
             with gzip.open(chunk_filename, 'wt', encoding='utf-8') as outfile:
-                outfile.write("\n".join(lines))
+                outfile.write(chunk_xml)
         else:
             with open(chunk_filename, 'w', encoding='utf-8') as outfile:
-                outfile.write("\n".join(lines))
+                outfile.write(chunk_xml)
         print(f"\nSuccessfully created '{chunk_filename}'")
         
         # Copy to clipboard if this is the first chunk or forced single file
@@ -607,73 +649,80 @@ class AIAssistantManifest:
         self.token_counts["patterns"] += count_tokens(f"{pattern}: {explanation}", self.model)
         return self
     
-    def generate(self):
-        """Generate the manifest for the AI assistant."""
-        manifest = [
-            "# AI ASSISTANT MANIFEST",
-            "## You are about to receive the following context:",
-            ""
-        ]
+    def generate_xml(self):
+        """Generate the XML manifest for the AI assistant."""
+        manifest = ['<manifest>']
         
         # Files section with token counts
-        manifest.append("### Files:")
+        files_section = ['<files>']
         for file in self.files:
             path = file['path']
             content_tokens = self.token_counts["files"]["content"].get(path, 0)
-            token_info = f" [{format_token_count(content_tokens)}]" if content_tokens > 0 else " [not loaded]"
-            manifest.append(f"- `{path}`: {file['description']}{token_info}")
-            if file['key_components']:
-                manifest.append("  Key components:")
-                for component in file['key_components']:
-                    manifest.append(f"  - {component}")
-        manifest.append("")
+            token_info = f" tokens='{content_tokens}'" if content_tokens > 0 else ""
+            files_section.append(create_xml_element("file", [
+                f"<path>{path}</path>",
+                f"<description>{file['description']}</description>",
+                create_xml_element("key_components", [
+                    f"<component>{comp}</component>" for comp in file['key_components']
+                ]) if file['key_components'] else ""
+            ], {"tokens": str(content_tokens)} if content_tokens > 0 else None))
+        files_section.append('</files>')
+        manifest.append("\n".join(files_section))
         
         # Environment section
         if self.environment_info:
-            manifest.append("### Environment:")
+            env_section = ['<environment>']
             for env_type, details in self.environment_info.items():
-                manifest.append(f"- {env_type}: {details}")
-            manifest.append("")
+                env_section.append(create_xml_element("setting", [
+                    f"<type>{env_type}</type>",
+                    f"<details>{details}</details>"
+                ]))
+            env_section.append('</environment>')
+            manifest.append("\n".join(env_section))
         
         # Conventions section
         if self.conventions:
-            manifest.append("### Project Conventions:")
+            conv_section = ['<conventions>']
             for convention in self.conventions:
-                manifest.append(f"- {convention['name']}: {convention['description']}")
-            manifest.append("")
+                conv_section.append(create_xml_element("convention", [
+                    f"<name>{convention['name']}</name>",
+                    f"<description>{convention['description']}</description>"
+                ]))
+            conv_section.append('</conventions>')
+            manifest.append("\n".join(conv_section))
         
         # Critical patterns section
         if self.critical_patterns:
-            manifest.append("### Critical Patterns (Never Modify):")
+            patterns_section = ['<critical_patterns>']
             for pattern in self.critical_patterns:
-                manifest.append(f"- `{pattern['pattern']}`: {pattern['explanation']}")
-            manifest.append("")
-            
-        # Add token usage summary focusing on file content
-        manifest.append("### Token Usage Summary:")
-        manifest.append("File Tokens:")
-        manifest.append(f"  - Metadata: {format_token_count(self.token_counts['files']['metadata'])}")
-        for path, tokens in self.token_counts["files"]["content"].items():
-            manifest.append(f"  - {path}: {format_token_count(tokens)}")
-        manifest.append(f"  - Total File Content: {format_token_count(self.token_counts['total_content'])}")
+                patterns_section.append(create_xml_element("pattern", [
+                    f"<pattern>{pattern['pattern']}</pattern>",
+                    f"<explanation>{pattern['explanation']}</explanation>"
+                ]))
+            patterns_section.append('</critical_patterns>')
+            manifest.append("\n".join(patterns_section))
         
-        # Calculate total manifest tokens (including metadata but not showing the breakdown)
-        manifest_only_tokens = (
-            self.token_counts["manifest_structure"] +
-            self.token_counts["files"]["metadata"] +
-            self.token_counts["environment"] +
-            self.token_counts["conventions"] +
-            self.token_counts["patterns"]
-        )
-        manifest.append("")
-        manifest.append(f"Total tokens (including file content): {format_token_count(manifest_only_tokens + self.token_counts['total_content'])}")
-        manifest.append("")
-            
-        # Final instruction
-        manifest.append("Please analyze this context before responding to any queries or making modifications.")
+        # Token usage summary
+        token_section = ['<token_usage>']
+        token_section.append(create_xml_element("files", [
+            f"<metadata>{self.token_counts['files']['metadata']}</metadata>",
+            create_xml_element("content", [
+                create_xml_element("file", [
+                    f"<path>{path}</path>",
+                    f"<tokens>{tokens}</tokens>"
+                ]) for path, tokens in self.token_counts["files"]["content"].items()
+            ]),
+            f"<total>{self.token_counts['total_content']}</total>"
+        ]))
+        token_section.append('</token_usage>')
+        manifest.append("\n".join(token_section))
         
-        manifest_text = "\n".join(manifest)
-        return manifest_text
+        manifest.append('</manifest>')
+        return "\n".join(manifest)
+    
+    def generate(self):
+        """Generate the manifest for the AI assistant (legacy format)."""
+        return self.generate_xml()  # Default to XML format
 
 
 def create_pipulate_manifest():
@@ -888,73 +937,59 @@ if not args.concat_mode:
 
 # Add final token summary only if not in chunk mode
 if not args.concat_mode:
-    lines = []
-    lines.append("\n### TOTAL CONTEXT TOKEN USAGE ###")
-    if args.concat_mode:
-        lines.append(f"Files processed: {files_processed} of {total_files} found")
-        if files_processed < total_files:
-            lines.append(f"Remaining files: {total_files - files_processed}")
-            if files_processed < len(md_files):
-                lines.append(f"Next chunk will start with: {md_files[files_processed]}")
-        # Only include date range if we're in concat mode and have processed files
-        if 'md_files' in locals() and len(md_files) > 0:
-            try:
-                first_date = md_files[0][:10]
-                last_date = md_files[-1][:10]
-                lines.append(f"Date range processed: {first_date} to {last_date}")
-            except Exception as e:
-                print(f"Warning: Could not determine date range: {e}")
-    lines.append(f"Total context size: {format_token_count(total_tokens)}")
-    lines.append(f"Maximum allowed: {format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)")
-    lines.append(f"Remaining: {format_token_count(args.max_tokens - total_tokens)}")
-
-    # Write the summary to the output file
+    # Create the manifest and incorporate user's pre_prompt if not in concat mode
+    manifest = create_pipulate_manifest()
+    final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
+    
+    # Create XML structure for the entire output
+    output_xml = create_xml_element("context", [
+        create_xml_element("manifest", manifest),
+        create_xml_element("pre_prompt", pre_prompt),
+        create_xml_element("content", "\n".join(lines)),
+        create_xml_element("post_prompt", post_prompt),
+        create_xml_element("token_summary", [
+            f"<total_context_size>{format_token_count(total_tokens)}</total_context_size>",
+            f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
+            f"<remaining>{format_token_count(args.max_tokens - total_tokens)}</remaining>"
+        ])
+    ])
+    
+    # Write the complete XML output to the file
     try:
         with open(args.output, 'w', encoding='utf-8') as outfile:
-            outfile.write("\n".join(lines))
+            outfile.write(output_xml)
     except Exception as e:
-        print(f"Error writing summary to '{args.output}': {e}")
+        print(f"Error writing to '{args.output}': {e}")
 
 # --- Clipboard Handling ---
 print("\n--- Clipboard Instructions ---")
-# Skip clipboard handling if already done in process_chunk function
-if not args.cat and not args.single and (args.concat_mode and total_chunks > 1):
-    try:
-        import pyperclip
-        # In chunk mode, copy the first chunk
-        chunk_to_copy = get_chunk_filename(args.output, 1, total_chunks, args.compress)
-            
-        try:
-            with open(chunk_to_copy, 'r', encoding='utf-8') as infile:
-                content = infile.read()
-                pyperclip.copy(content)
-                print(f"Content from '{chunk_to_copy}' successfully copied to clipboard using pyperclip.")
-                print("You can now paste it.")
-        except Exception as e:
-            print(f"Error reading '{chunk_to_copy}' for clipboard: {e}")
-    except ImportError:
-        print("`pyperclip` library not found.")
-        print("To install it: pip install pyperclip")
-        print("Alternatively, use OS-specific commands below or manually copy from the output files.")
-    except Exception as e:
-        print(f"An error occurred while using pyperclip: {e}")
-        print("Try OS-specific commands or manually copy from the output files.")
+try:
+    import pyperclip
+    # Copy the complete XML content to clipboard
+    pyperclip.copy(output_xml)
+    print(f"Complete XML content successfully copied to clipboard using pyperclip.")
+    print("You can now paste it.")
+except ImportError:
+    print("`pyperclip` library not found.")
+    print("To install it: pip install pyperclip")
+    print("Alternatively, use OS-specific commands below or manually copy from the output files.")
+except Exception as e:
+    print(f"An error occurred while using pyperclip: {e}")
+    print("Try OS-specific commands or manually copy from the output files.")
 
-    # OS-specific clipboard instructions if pyperclip isn't available or failed
-    if 'pyperclip' not in sys.modules or 'content' not in locals():
-        if sys.platform == "darwin":  # macOS
-            print("\nOn macOS, you can try in your terminal:")
-            print(f"  cat {args.output} | pbcopy")
-        elif sys.platform == "win32":  # Windows
-            print("\nOn Windows, try in Command Prompt or PowerShell:")
-            print(f"  type {args.output} | clip")         # Command Prompt
-            print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
-        else:  # Linux (assuming X11 with xclip or xsel)
-            print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
-            print(f"  cat {args.output} | xclip -selection clipboard")
-            print("  # or")
-            print(f"  cat {args.output} | xsel --clipboard --input")
-else:
-    print("Content already copied to clipboard.")
+# OS-specific clipboard instructions if pyperclip isn't available or failed
+if 'pyperclip' not in sys.modules:
+    if sys.platform == "darwin":  # macOS
+        print("\nOn macOS, you can try in your terminal:")
+        print(f"  cat {args.output} | pbcopy")
+    elif sys.platform == "win32":  # Windows
+        print("\nOn Windows, try in Command Prompt or PowerShell:")
+        print(f"  type {args.output} | clip")         # Command Prompt
+        print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
+    else:  # Linux (assuming X11 with xclip or xsel)
+        print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
+        print(f"  cat {args.output} | xclip -selection clipboard")
+        print("  # or")
+        print(f"  cat {args.output} | xsel --clipboard --input")
 
 print("\nScript finished.")
