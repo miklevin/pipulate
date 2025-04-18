@@ -7,6 +7,155 @@ import yaml  # Add YAML for front matter parsing
 import re  # Add regex for front matter extraction
 from typing import Dict, List, Optional, Union
 
+def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens):
+    """Print a structured view of the prompt components in markdown format."""
+    print("\n=== Prompt Structure ===")
+    
+    print("\n--- Manifest ---")
+    # Convert XML manifest to markdown
+    manifest_lines = manifest.split('\n')
+    for line in manifest_lines:
+        try:
+            if '<file' in line:
+                # Extract file info more flexibly
+                path_start = line.find('path="') + 6
+                path_end = line.find('"', path_start)
+                if path_start > 5 and path_end > path_start:
+                    path = line[path_start:path_end]
+                    tokens = "0"
+                    tokens_start = line.find('tokens="')
+                    if tokens_start > -1:
+                        tokens_end = line.find('"', tokens_start + 8)
+                        if tokens_end > tokens_start:
+                            tokens = line[tokens_start + 8:tokens_end]
+                    print(f"- {path} ({format_token_count(int(tokens))})")
+            elif '<convention>' in line:
+                name_start = line.find('<name>') + 6
+                name_end = line.find('</name>')
+                desc_start = line.find('<description>') + 12
+                desc_end = line.find('</description>')
+                if all(pos > -1 for pos in [name_start, name_end, desc_start, desc_end]):
+                    name = line[name_start:name_end]
+                    desc = line[desc_start:desc_end]
+                    print(f"  • Convention: {name} - {desc}")
+            elif '<pattern>' in line:
+                pattern_start = line.find('<pattern>') + 9
+                pattern_end = line.find('</pattern>')
+                if pattern_start > 8 and pattern_end > pattern_start:
+                    pattern = line[pattern_start:pattern_end]
+                    print(f"  • Critical Pattern: {pattern}")
+        except Exception as e:
+            continue  # Skip lines that can't be parsed
+    
+    print("\n--- Pre-Prompt ---")
+    # Handle pre-prompt content
+    try:
+        if '<context>' in pre_prompt:
+            context_start = pre_prompt.find('<context>') + 8
+            context_end = pre_prompt.find('</context>')
+            if context_start > 7 and context_end > context_start:
+                context_content = pre_prompt[context_start:context_end]
+                
+                # Extract system info
+                if '<system_info>' in context_content:
+                    sys_start = context_content.find('<system_info>') + 12
+                    sys_end = context_content.find('</system_info>')
+                    if sys_start > 11 and sys_end > sys_start:
+                        print("System Information:")
+                        sys_content = context_content[sys_start:sys_end].strip()
+                        # Remove any remaining XML tags and clean up formatting
+                        sys_content = re.sub(r'<[^>]+>', '', sys_content)
+                        sys_content = sys_content.replace('>', '')  # Remove any remaining > characters
+                        print(f"  {sys_content}")
+                
+                # Extract key points
+                if '<key_points>' in context_content:
+                    points_start = context_content.find('<key_points>') + 11
+                    points_end = context_content.find('</key_points>')
+                    if points_start > 10 and points_end > points_start:
+                        points_content = context_content[points_start:points_end]
+                        print("\nKey Points:")
+                        for point in points_content.split('<point>'):
+                            if point.strip():
+                                point_end = point.find('</point>')
+                                if point_end > -1:
+                                    point_content = point[:point_end].strip()
+                                    # Remove any remaining XML tags
+                                    point_content = re.sub(r'<[^>]+>', '', point_content)
+                                    print(f"  • {point_content}")
+    except Exception as e:
+        print("  [Error parsing pre-prompt content]")
+    
+    print("\n--- Files Included ---")
+    for file in files:
+        print(f"• {file}")
+    
+    print("\n--- Post-Prompt ---")
+    # Handle post-prompt content
+    try:
+        if '<analysis_request>' in post_prompt:
+            analysis_start = post_prompt.find('<analysis_request>') + 17
+            analysis_end = post_prompt.find('</analysis_request>')
+            if analysis_start > 16 and analysis_end > analysis_start:
+                analysis_content = post_prompt[analysis_start:analysis_end]
+                
+                # Extract introduction
+                if '<introduction>' in analysis_content:
+                    intro_start = analysis_content.find('<introduction>') + 13
+                    intro_end = analysis_content.find('</introduction>')
+                    if intro_start > 12 and intro_end > intro_start:
+                        print("Introduction:")
+                        intro_content = analysis_content[intro_start:intro_end].strip()
+                        # Remove any remaining XML tags and clean up formatting
+                        intro_content = re.sub(r'<[^>]+>', '', intro_content)
+                        intro_content = intro_content.replace('>', '')  # Remove any remaining > characters
+                        print(f"  {intro_content}")
+                
+                # Extract analysis areas
+                if '<analysis_areas>' in analysis_content:
+                    areas_start = analysis_content.find('<analysis_areas>') + 15
+                    areas_end = analysis_content.find('</analysis_areas>')
+                    if areas_start > 14 and areas_end > areas_start:
+                        areas_content = analysis_content[areas_start:areas_end]
+                        print("\nAnalysis Areas:")
+                        for area in areas_content.split('<area>'):
+                            if area.strip():
+                                area_end = area.find('</area>')
+                                if area_end > -1:
+                                    area_content = area[:area_end]
+                                    if '<title>' in area_content:
+                                        title_start = area_content.find('<title>') + 7
+                                        title_end = area_content.find('</title>')
+                                        if title_start > 6 and title_end > title_start:
+                                            title = area_content[title_start:title_end].strip()
+                                            # Remove any remaining XML tags
+                                            title = re.sub(r'<[^>]+>', '', title)
+                                            print(f"  • {title}")
+                
+                # Extract focus areas
+                if '<focus_areas>' in analysis_content:
+                    focus_start = analysis_content.find('<focus_areas>') + 12
+                    focus_end = analysis_content.find('</focus_areas>')
+                    if focus_start > 11 and focus_end > focus_start:
+                        focus_content = analysis_content[focus_start:focus_end]
+                        print("\nFocus Areas:")
+                        for area in focus_content.split('<area>'):
+                            if area.strip():
+                                area_end = area.find('</area>')
+                                if area_end > -1:
+                                    area_content = area[:area_end].strip()
+                                    # Remove any remaining XML tags
+                                    area_content = re.sub(r'<[^>]+>', '', area_content)
+                                    print(f"  • {area_content}")
+    except Exception as e:
+        print("  [Error parsing post-prompt content]")
+    
+    print("\n--- Token Summary ---")
+    print(f"Total tokens: {format_token_count(total_tokens)}")
+    print(f"Maximum allowed: {format_token_count(max_tokens)}")
+    print(f"Remaining: {format_token_count(max_tokens - total_tokens)}")
+    print("\n=== End Prompt Structure ===\n")
+
 # -------------------------------------------------------------------------
 # NOTE TO USERS:
 # This script is obviously customized to my (Mike Levin's) specific purposes,
@@ -953,6 +1102,9 @@ if not args.concat_mode:
             f"<remaining>{format_token_count(args.max_tokens - total_tokens)}</remaining>"
         ])
     ])
+    
+    # Print structured output
+    print_structured_output(manifest, pre_prompt, file_list, post_prompt, total_tokens, args.max_tokens)
     
     # Write the complete XML output to the file
     try:
