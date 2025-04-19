@@ -597,6 +597,131 @@ class BotifyExport:
         # Return navigation controls
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
 
+    async def step_03(self, request):
+        """
+        Display the maximum safe click depth based on cumulative URL counts.
+        Shows both the calculated depth and detailed URL count information.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+
+        # Handle finalized state
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data:
+            return Div(
+                Card(f"🔒 {step.show}: {user_val}"),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+            )
+
+        # If step is complete and not being reverted, show revert control
+        if user_val and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+
+        # Get data from previous steps
+        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
+        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
+        org = step_01_data.get('org')
+        project = step_01_data.get('project')
+        analysis = step_02_data.get('analysis')
+
+        try:
+            api_token = self.read_api_token()
+            max_depth, safe_count, next_count = await self.calculate_max_safe_depth(org, project, analysis, api_token)
+            
+            if max_depth is None:
+                return P("Could not calculate maximum depth. Please check your API access and try again.", 
+                        style=pip.get_style("error"))
+
+            # Show the form with the calculated depth and detailed counts
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            # Format the counts with commas for readability
+            safe_count_fmt = f"{safe_count:,}" if safe_count is not None else "unknown"
+            
+            # Prepare the explanation text
+            if next_count is not None:
+                next_count_fmt = f"{next_count:,}"
+                explanation = (
+                    f"At depth {max_depth}, the export will include {safe_count_fmt} URLs.\n"
+                    f"Going to depth {max_depth + 1} would exceed the limit with {next_count_fmt} URLs."
+                )
+            else:
+                explanation = (
+                    f"The entire site can be exported with {safe_count_fmt} URLs.\n"
+                    f"This is under the 1 million URL limit."
+                )
+            
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    P(f"Based on URL counts, the maximum safe depth is: {max_depth}", 
+                      style="margin-bottom: 1rem;"),
+                    P(explanation,
+                      style="margin-bottom: 1rem;"),
+                    P("This depth ensures the export will contain fewer than 1 million URLs.", 
+                      style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        pip.wrap_with_inline_button(
+                            Input(
+                                type="hidden",
+                                name=step.done,
+                                value=str(max_depth)
+                            )
+                        ),
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+            
+        except Exception as e:
+            return P(f"Error calculating maximum depth: {str(e)}", style=pip.get_style("error"))
+
+    async def step_03_submit(self, request):
+        """Handle the submission of the maximum click depth step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Handle finalized state using helper
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+        
+        # Validate input using helper
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Update state using helper
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)
+        
+        # Check if we need finalize prompt
+        if pip.check_finalize_needed(step_index, steps):
+            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
+        
+        # Return navigation controls
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
         """
@@ -881,129 +1006,3 @@ class BotifyExport:
                 
         # If we never hit 1M, return the max depth and its cumulative count
         return max(sorted_depths), cumulative_sum, None
-
-    async def step_03(self, request):
-        """
-        Display the maximum safe click depth based on cumulative URL counts.
-        Shows both the calculated depth and detailed URL count information.
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-
-        # Handle finalized state
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data:
-            return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
-            )
-
-        # If step is complete and not being reverted, show revert control
-        if user_val and state.get("_revert_target") != step_id:
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
-
-        # Get data from previous steps
-        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
-        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
-        org = step_01_data.get('org')
-        project = step_01_data.get('project')
-        analysis = step_02_data.get('analysis')
-
-        try:
-            api_token = self.read_api_token()
-            max_depth, safe_count, next_count = await self.calculate_max_safe_depth(org, project, analysis, api_token)
-            
-            if max_depth is None:
-                return P("Could not calculate maximum depth. Please check your API access and try again.", 
-                        style=pip.get_style("error"))
-
-            # Show the form with the calculated depth and detailed counts
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            # Format the counts with commas for readability
-            safe_count_fmt = f"{safe_count:,}" if safe_count is not None else "unknown"
-            
-            # Prepare the explanation text
-            if next_count is not None:
-                next_count_fmt = f"{next_count:,}"
-                explanation = (
-                    f"At depth {max_depth}, the export will include {safe_count_fmt} URLs.\n"
-                    f"Going to depth {max_depth + 1} would exceed the limit with {next_count_fmt} URLs."
-                )
-            else:
-                explanation = (
-                    f"The entire site can be exported with {safe_count_fmt} URLs.\n"
-                    f"This is under the 1 million URL limit."
-                )
-            
-            return Div(
-                Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
-                    P(f"Based on URL counts, the maximum safe depth is: {max_depth}", 
-                      style="margin-bottom: 1rem;"),
-                    P(explanation,
-                      style="margin-bottom: 1rem;"),
-                    P("This depth ensures the export will contain fewer than 1 million URLs.", 
-                      style="font-size: 0.9em; color: #666;"),
-                    Form(
-                        pip.wrap_with_inline_button(
-                            Input(
-                                type="hidden",
-                                name=step.done,
-                                value=str(max_depth)
-                            )
-                        ),
-                        hx_post=f"/{app_name}/{step.id}_submit",
-                        hx_target=f"#{step.id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step.id
-            )
-            
-        except Exception as e:
-            return P(f"Error calculating maximum depth: {str(e)}", style=pip.get_style("error"))
-
-    async def step_03_submit(self, request):
-        """Handle the submission of the maximum click depth step."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Handle finalized state using helper
-        if step.done == 'finalized':
-            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
-
-        # Get form data
-        form = await request.form()
-        user_val = form.get(step.done, "")
-        
-        # Validate input using helper
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            return error_component
-
-        # Update state using helper
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
-
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)
-        
-        # Check if we need finalize prompt
-        if pip.check_finalize_needed(step_index, steps):
-            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
-        
-        # Return navigation controls
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
