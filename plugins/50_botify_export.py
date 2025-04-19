@@ -91,7 +91,7 @@ class BotifyExport:
 
         steps = [
             Step(id='step_01', done='url', show='Botify Project URL', refill=True),
-            Step(id='step_02', done='csv_data', show='CSV Export', refill=False),
+            Step(id='step_02', done='analysis', show='Analysis Selection', refill=True),
         ]
 
         # Defines routes for standard workflow method (do not change)
@@ -479,8 +479,9 @@ class BotifyExport:
 
     async def step_02(self, request):
         """
-        Display form for analysis slug selection, pre-filled with the most recent one.
-        Uses data from step_01 to fetch analyses but maintains the standard input field pattern.
+        Display form for analysis slug selection using a dropdown menu.
+        Pre-selects the most recent analysis if no previous selection exists,
+        otherwise maintains the user's previous selection.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
@@ -490,7 +491,7 @@ class BotifyExport:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
+        user_val = step_data.get(step.done, "")  # Previously selected analysis, if any
 
         # Handle finalized state
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
@@ -517,30 +518,33 @@ class BotifyExport:
             api_token = self.read_api_token()
             slugs = await self.fetch_analyses(org, project, api_token)
             
-            # Get the most recent slug or empty string if none found
-            display_value = slugs[0] if slugs else ""
+            if not slugs:
+                return P("No analyses found for this project", style=pip.get_style("error"))
             
-            # Show the input form with pre-filled value
+            # Determine selected value:
+            # - Use previous selection if it exists and we're reverting
+            # - Otherwise use the most recent analysis (first in list)
+            selected_value = user_val if user_val else slugs[0]
+            
+            # Show the form with dropdown
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            if slugs:
-                await self.message_queue.add(
-                    pip,
-                    f"Found latest analysis: {display_value}",
-                    verbatim=True
-                )
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: Enter {step.show}"),
+                    H4(f"{pip.fmt(step_id)}: Select {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
-                            Input(
-                                type="text",
+                            Select(
                                 name=step.done,
-                                value=display_value,
-                                placeholder="Analysis slug (e.g., 20240301)",
                                 required=True,
-                                autofocus=True
+                                autofocus=True,
+                                *[
+                                    Option(
+                                        slug,
+                                        value=slug,
+                                        selected=(slug == selected_value)
+                                    ) for slug in slugs
+                                ]
                             )
                         ),
                         hx_post=f"/{app_name}/{step.id}_submit",
@@ -552,29 +556,7 @@ class BotifyExport:
             )
 
         except Exception as e:
-            # On error, show the form with empty value
-            return Div(
-                Card(
-                    H4(f"{pip.fmt(step_id)}: Enter {step.show}"),
-                    P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error")),
-                    Form(
-                        pip.wrap_with_inline_button(
-                            Input(
-                                type="text",
-                                name=step.done,
-                                value="",
-                                placeholder="Analysis slug (e.g., 20240301)",
-                                required=True,
-                                autofocus=True
-                            )
-                        ),
-                        hx_post=f"/{app_name}/{step.id}_submit",
-                        hx_target=f"#{step.id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step.id
-            )
+            return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
     async def step_02_submit(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
