@@ -23,8 +23,6 @@ flake.nix
 server.py
 plugins/20_hello_workflow.py
 training/hello_workflow.md
-plugins/30_tasks.py
-training/tasks.md
 .cursorrules
 """.splitlines()[:-1]  # Remove the last empty line
 
