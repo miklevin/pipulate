@@ -409,22 +409,15 @@ class BotifyExport:
         """
         Handle POST submissions for the first step of the workflow.
         
-        This method processes form data submitted by the user, validates the input,
-        updates the workflow state, and provides UI feedback. It includes integration
-        points for optional Playwright automation to process the user's input.
-        
-        Processing flow:
-        1. Handle finalized state if applicable
-        2. Extract and validate form data
-        3. Process data (with optional Playwright automation)
-        4. Update state and provide feedback
-        5. Return navigation controls for the next step
+        This method processes and canonicalizes Botify URLs before storing them.
+        It automatically converts any valid Botify project URL into its canonical form
+        and stores both the canonical URL and the parsed components (org, project).
         
         Args:
             request: The HTTP request object containing form data
             
         Returns:
-            FastHTML components for navigation and the next step trigger
+            FastHTML components for navigation or error message
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -438,41 +431,49 @@ class BotifyExport:
 
         # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
+        user_val = form.get(step.done, "").strip()
         
-        # Validate input using helper
+        # Basic input validation
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
 
-        # ===== START PLAYWRIGHT AUTOMATION SECTION (FOR EXAMPLE) =====
-        # This is where you would add Playwright-specific logic for this step
-        # Example:
-        # async with async_playwright() as playwright:
-        #     browser = await playwright.chromium.launch()
-        #     context = await browser.new_context()
-        #     page = await context.new_page()
-        #     await page.goto("https://example.com")
-        #     # Perform actions based on user_val
-        #     # Extract data or validation results
-        #     await browser.close()
-        
-        # For now, just use the user input directly
-        processed_val = user_val
-        # ===== END PLAYWRIGHT AUTOMATION SECTION =====
-
-        # Update state using helper
-        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
-
-        # Send confirmation message - use the queue for ordered delivery
-        await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
-        
-        # Check if we need finalize prompt
-        if pip.check_finalize_needed(step_index, steps):
-            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
-        
-        # Return navigation controls
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
+        # Parse and canonicalize the Botify URL
+        try:
+            parsed_data = parse_botify_url(user_val)
+            
+            # Store the parsed data including the canonical URL
+            state = pip.read_state(pipeline_id)
+            if step_id not in state:
+                state[step_id] = {}
+            
+            # Store all components
+            state[step_id].update(parsed_data)
+            
+            # Ensure the 'done' field matches the Step namedtuple
+            state[step_id][step.done] = parsed_data['url']
+            
+            # Write the complete state back
+            pip.write_state(pipeline_id, state)
+            
+            # Send confirmation message showing the canonical form
+            await self.message_queue.add(
+                pip,
+                f"Successfully parsed Botify URL:\n"
+                f"Organization: {parsed_data['org']}\n"
+                f"Project: {parsed_data['project']}\n"
+                f"Canonical URL: {parsed_data['url']}",
+                verbatim=True
+            )
+            
+            # Return navigation controls with the canonical URL
+            return pip.create_step_navigation(step_id, step_index, steps, app_name, parsed_data['url'])
+            
+        except ValueError:
+            return P(
+                "Invalid Botify URL. Please provide a URL containing organization and project (e.g., https://app.botify.com/org/project/...)",
+                style=pip.get_style("error")
+            )
 
     async def step_02(self, request):
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
