@@ -862,22 +862,30 @@ class BotifyExport:
             return {}
 
     async def calculate_max_safe_depth(self, org, project, analysis, api_key):
-        """Calculate maximum depth that keeps cumulative URLs under 1M"""
+        """Calculate maximum depth that keeps cumulative URLs under 1M and return count details"""
         depth_distribution = await self.get_urls_by_depth(org, project, analysis, api_key)
         if not depth_distribution:
-            return None
+            return None, None, None
         
         cumulative_sum = 0
-        for depth in sorted(depth_distribution.keys()):
+        sorted_depths = sorted(depth_distribution.keys())
+        
+        for i, depth in enumerate(sorted_depths):
+            prev_sum = cumulative_sum
             cumulative_sum += depth_distribution[depth]
             if cumulative_sum >= 1_000_000:
-                return depth - 1  # Return last safe depth
-        return max(depth_distribution.keys())  # All depths are safe
+                safe_depth = depth - 1
+                safe_count = prev_sum
+                next_depth_count = cumulative_sum
+                return safe_depth, safe_count, next_depth_count
+                
+        # If we never hit 1M, return the max depth and its cumulative count
+        return max(sorted_depths), cumulative_sum, None
 
     async def step_03(self, request):
         """
         Display the maximum safe click depth based on cumulative URL counts.
-        Shows both the calculated depth and the cumulative URL count at that depth.
+        Shows both the calculated depth and detailed URL count information.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
@@ -913,19 +921,37 @@ class BotifyExport:
 
         try:
             api_token = self.read_api_token()
-            max_depth = await self.calculate_max_safe_depth(org, project, analysis, api_token)
+            max_depth, safe_count, next_count = await self.calculate_max_safe_depth(org, project, analysis, api_token)
             
             if max_depth is None:
                 return P("Could not calculate maximum depth. Please check your API access and try again.", 
                         style=pip.get_style("error"))
 
-            # Show the form with the calculated depth
+            # Show the form with the calculated depth and detailed counts
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            # Format the counts with commas for readability
+            safe_count_fmt = f"{safe_count:,}" if safe_count is not None else "unknown"
+            
+            # Prepare the explanation text
+            if next_count is not None:
+                next_count_fmt = f"{next_count:,}"
+                explanation = (
+                    f"At depth {max_depth}, the export will include {safe_count_fmt} URLs.\n"
+                    f"Going to depth {max_depth + 1} would exceed the limit with {next_count_fmt} URLs."
+                )
+            else:
+                explanation = (
+                    f"The entire site can be exported with {safe_count_fmt} URLs.\n"
+                    f"This is under the 1 million URL limit."
+                )
             
             return Div(
                 Card(
                     H4(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"Based on URL counts, the maximum safe depth is: {max_depth}", 
+                      style="margin-bottom: 1rem;"),
+                    P(explanation,
                       style="margin-bottom: 1rem;"),
                     P("This depth ensures the export will contain fewer than 1 million URLs.", 
                       style="font-size: 0.9em; color: #666;"),
