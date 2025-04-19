@@ -91,7 +91,7 @@ class BotifyExport:
 
         steps = [
             Step(id='step_01', done='url', show='Botify Project URL', refill=True),
-            Step(id='step_02', done='analysis', show='Analysis Selection', refill=True),
+            Step(id='step_02', done='analysis', show='Analysis Selection', refill=False),
         ]
 
         # Defines routes for standard workflow method (do not change)
