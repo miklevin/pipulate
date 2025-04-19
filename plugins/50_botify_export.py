@@ -92,6 +92,7 @@ class BotifyExport:
         steps = [
             Step(id='step_01', done='url', show='Botify Project URL', refill=True),
             Step(id='step_02', done='analysis', show='Analysis Selection', refill=False),
+            Step(id='step_03', done='depth', show='Maximum Click Depth', refill=False),
         ]
 
         # Defines routes for standard workflow method (do not change)
@@ -821,3 +822,162 @@ class BotifyExport:
                 return slugs
             except httpx.RequestError as e:
                 raise ValueError(f"Error fetching analyses: {e}")
+
+    async def get_urls_by_depth(self, org, project, analysis, api_key):
+        """
+        Fetches URL counts aggregated by depth from the Botify API.
+        Returns a dictionary {depth: count} or an empty {} on error.
+        """
+        api_url = f"https://api.botify.com/v1/projects/{org}/{project}/query"
+        headers = {"Authorization": f"Token {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "collections": [f"crawl.{analysis}"],
+            "query": {
+                "dimensions": [f"crawl.{analysis}.depth"],
+                "metrics": [{"field": f"crawl.{analysis}.count_urls_crawl"}],
+                "sort": [{"field": f"crawl.{analysis}.depth", "order": "asc"}]
+            }
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(api_url, headers=headers, json=payload, timeout=120.0)
+                response.raise_for_status()
+                
+                results = response.json().get("results", [])
+                depth_distribution = {}
+                
+                for row in results:
+                    if "dimensions" in row and len(row["dimensions"]) == 1 and \
+                       "metrics" in row and len(row["metrics"]) == 1:
+                        depth = row["dimensions"][0]
+                        count = row["metrics"][0]
+                        if isinstance(depth, int):
+                            depth_distribution[depth] = count
+                
+                return depth_distribution
+                
+        except Exception as e:
+            logger.error(f"Error fetching URL depths: {str(e)}")
+            return {}
+
+    async def calculate_max_safe_depth(self, org, project, analysis, api_key):
+        """Calculate maximum depth that keeps cumulative URLs under 1M"""
+        depth_distribution = await self.get_urls_by_depth(org, project, analysis, api_key)
+        if not depth_distribution:
+            return None
+        
+        cumulative_sum = 0
+        for depth in sorted(depth_distribution.keys()):
+            cumulative_sum += depth_distribution[depth]
+            if cumulative_sum >= 1_000_000:
+                return depth - 1  # Return last safe depth
+        return max(depth_distribution.keys())  # All depths are safe
+
+    async def step_03(self, request):
+        """
+        Display the maximum safe click depth based on cumulative URL counts.
+        Shows both the calculated depth and the cumulative URL count at that depth.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+
+        # Handle finalized state
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data:
+            return Div(
+                Card(f"🔒 {step.show}: {user_val}"),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+            )
+
+        # If step is complete and not being reverted, show revert control
+        if user_val and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+
+        # Get data from previous steps
+        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
+        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
+        org = step_01_data.get('org')
+        project = step_01_data.get('project')
+        analysis = step_02_data.get('analysis')
+
+        try:
+            api_token = self.read_api_token()
+            max_depth = await self.calculate_max_safe_depth(org, project, analysis, api_token)
+            
+            if max_depth is None:
+                return P("Could not calculate maximum depth. Please check your API access and try again.", 
+                        style=pip.get_style("error"))
+
+            # Show the form with the calculated depth
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    P(f"Based on URL counts, the maximum safe depth is: {max_depth}", 
+                      style="margin-bottom: 1rem;"),
+                    P("This depth ensures the export will contain fewer than 1 million URLs.", 
+                      style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        pip.wrap_with_inline_button(
+                            Input(
+                                type="hidden",
+                                name=step.done,
+                                value=str(max_depth)
+                            )
+                        ),
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+            
+        except Exception as e:
+            return P(f"Error calculating maximum depth: {str(e)}", style=pip.get_style("error"))
+
+    async def step_03_submit(self, request):
+        """Handle the submission of the maximum click depth step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Handle finalized state using helper
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+        
+        # Validate input using helper
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Update state using helper
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)
+        
+        # Check if we need finalize prompt
+        if pip.check_finalize_needed(step_index, steps):
+            await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
+        
+        # Return navigation controls
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
