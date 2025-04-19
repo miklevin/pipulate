@@ -29,6 +29,16 @@ training/tasks.md
 """.splitlines()[:-1]  # Remove the last empty line
 
 # ============================================================================
+# ARTICLE MODE CONFIGURATION
+# ============================================================================
+# Set these values to enable article analysis mode.
+# When enabled, the script will include the specified article in the context
+# and use specialized prompts for article analysis.
+
+ARTICLE_MODE = False  # Set to True to enable article analysis mode
+ARTICLE_PATH = "/home/mike/repos/MikeLev.in/_posts/your-article.md"  # Path to the article
+
+# ============================================================================
 # END USER CONFIGURATION
 # ============================================================================
 
@@ -289,145 +299,65 @@ I've provided you with the core architecture of a Python web application that ta
             ])
         ])
     },
-    # Template 1: MCP Integration Challenge
+    # Template 1: Article Analysis Mode
     {
-        "name": "MCP Integration Challenge",
+        "name": "Article Analysis Mode",
         "pre_prompt": create_xml_element("context", [
             create_xml_element("system_info", """
-This codebase uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages.
-I'm looking to enhance the Pipulate application by integrating the Model Context Protocol (MCP) to empower
-the local Ollama-powered LLM to execute actions directly rather than just generating text about them.
+You are about to review a codebase in preparation for implementing changes requested in an article.
+Please study and understand the codebase thoroughly, as you will need this context
+to provide meaningful implementation suggestions based on the article's requirements.
+
+Key things to know about this codebase:
+- It uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages
+- Always run `nix develop` before any commands in a new terminal
+- FastHTML objects must be converted with to_xml() before returning responses
+- The project is organized as a server with plugin-based workflows
 """),
             create_xml_element("key_points", [
-                "<point>The app uses local Ollama models via HTTP API calls in the chat_with_llm() function</point>",
-                "<point>The Pipulate class serves as a central coordinator for plugins and functionality</point>",
-                "<point>Plugins are discovered and registered dynamically, with two types: CRUD-based and workflow-based</point>",
-                "<point>FastHTML objects must be converted with to_xml() before returning responses</point>"
+                "<point>Focus on understanding how the codebase currently implements related functionality</point>",
+                "<point>Note any existing patterns that could be leveraged for the requested changes</point>",
+                "<point>Consider how the requested changes would integrate with the current architecture</point>"
             ])
         ]),
-        "post_prompt": create_xml_element("mcp_challenge", [
-            create_xml_element("requirements", [
-                create_xml_element("requirement", [
-                    "<title>Direct Task Execution</title>",
-                    "<description>Enable the LLM to perform actions within Pipulate by calling relevant functions exposed as MCP tools.</description>",
-                    "<examples>",
-                    "<example>User says 'Add Research MCP non-HTTP options to my tasks' → LLM identifies and calls the tasks_create_record tool</example>",
-                    "<example>'Mark task ID 12 as done' → LLM updates the appropriate record</example>",
-                    "</examples>"
+        "post_prompt": create_xml_element("implementation_request", [
+            create_xml_element("introduction", """
+Now that you understand the codebase, please review the article's requirements and provide
+specific implementation suggestions. Focus on how to modify the codebase to meet these requirements
+while maintaining its architectural integrity and existing patterns.
+"""),
+            create_xml_element("implementation_areas", [
+                create_xml_element("area", [
+                    "<title>Required Changes</title>",
+                    "<questions>",
+                    "<question>What specific code changes are needed to implement the article's requirements?</question>",
+                    "<question>Which existing components need to be modified or extended?</question>",
+                    "<question>What new components or patterns need to be introduced?</question>",
+                    "</questions>"
                 ]),
-                create_xml_element("requirement", [
-                    "<title>Workflow Step Execution</title>",
-                    "<description>Allow the LLM to run specific workflow steps through MCP.</description>",
-                    "<example>'Run step 2 of hello_workflow using data from step 1' → LLM invokes the appropriate function</example>"
+                create_xml_element("area", [
+                    "<title>Integration Strategy</title>",
+                    "<questions>",
+                    "<question>How should these changes be integrated with existing functionality?</question>",
+                    "<question>What existing patterns or conventions should be followed?</question>",
+                    "<question>How can we ensure backward compatibility?</question>",
+                    "</questions>"
                 ]),
-                create_xml_element("requirement", [
-                    "<title>External Tool Integration</title>",
-                    "<description>Support interaction with any system or service exposed via an MCP server.</description>",
-                    "<example>If there's an external MCP server with a get_stock_price tool, enable the LLM to fetch data for use in workflows</example>"
+                create_xml_element("area", [
+                    "<title>Implementation Plan</title>",
+                    "<questions>",
+                    "<question>What's the recommended order for implementing these changes?</question>",
+                    "<question>What are the key milestones or checkpoints?</question>",
+                    "<question>What potential challenges or risks need to be addressed?</question>",
+                    "</questions>"
                 ])
             ]),
-            create_xml_element("design_considerations", [
-                "<consideration>How would you modify the existing chat_with_llm() function to support MCP?</consideration>",
-                "<consideration>What changes to the plugin architecture would enable plugins to expose their functions as MCP tools?</consideration>",
-                "<consideration>How would you handle authentication and security for external MCP servers?</consideration>",
-                "<consideration>What's the user experience for granting the LLM permission to execute actions?</consideration>"
-            ]),
-            create_xml_element("deliverables", [
-                "<deliverable>An architectural overview of the MCP integration</deliverable>",
-                "<deliverable>Key code modifications to implement MCP client functionality</deliverable>",
-                "<deliverable>A plugin interface extension that allows plugins to register MCP tools</deliverable>",
-                "<deliverable>Sample code for converting an existing plugin to expose MCP tools</deliverable>",
-                "<deliverable>Security and error handling considerations</deliverable>"
+            create_xml_element("focus_areas", [
+                "<area>Practical implementation of the article's requirements</area>",
+                "<area>Maintenance of codebase integrity and patterns</area>",
+                "<area>Clear, actionable implementation steps</area>"
             ])
         ])
-    },
-    # Template 2: Next Action Analysis
-    {
-        "name": "Next Action Analysis",
-        "pre_prompt": """
-# Context for Determining Next Actions in Pipulate
-
-You are Chip O'Theseus, a local AI assistant helping to evolve the Pipulate project. Your role is to analyze
-the current state of the codebase and project goals to identify and prioritize the next most important actions.
-
-Key principles to consider:
-1. Avoid rabbit holes while maintaining ambitious goals
-2. Keep focus on the critical path
-3. Balance immediate needs with architectural vision
-4. Maintain the local-first, simplicity-focused philosophy
-
-Current high-priority areas:
-- Browser automation (both standard library and Playwright)
-- CSV data handling and visualization
-- MCP integration for local LLM agency
-- Todo list management and task prioritization
-- Local memory and persistence systems:
-  * Vector embeddings for semantic search
-  * Vector database for efficient retrieval
-  * Key/value store for persistent memory
-  * RAG implementation for enhanced context
-
-The goal is to identify clear, actionable next steps that:
-- Deliver immediate value
-- Build toward larger architectural goals
-- Avoid unnecessary complexity
-- Maintain project momentum
-- Enable progressive memory enhancement
-
-Memory Considerations:
-1. Short-term: Task context and immediate goals
-2. Medium-term: Project evolution and decision history
-3. Long-term: Architectural decisions and core principles
-4. Semantic: Related concepts and contextual understanding
-""",
-        "post_prompt": """
-Now that you've reviewed the codebase context, help me identify and prioritize the next actions for Pipulate.
-
-# Next Action Analysis
-
-1. **Current State Assessment**
-   - What's the most recently completed work?
-   - What immediate opportunities exist for building on that work?
-   - What critical paths are currently blocked?
-   - What memory systems are already in place?
-
-2. **Priority Analysis**
-   - What's the smallest, most impactful next step?
-   - Which tasks would unblock other important work?
-   - What potential rabbit holes should we avoid?
-   - Which memory enhancements would provide immediate value?
-
-3. **Implementation Path**
-   - What's the simplest way to implement the next step?
-   - How can we maintain quality while avoiding over-engineering?
-   - What existing code can we leverage?
-   - How can we integrate memory systems incrementally?
-
-4. **Memory Architecture**
-   - Which embedding model best suits our needs?
-   - What vector database would be most appropriate?
-   - How should we structure the key/value store?
-   - What RAG implementation aligns with our goals?
-
-5. **Recommendations**
-   Please provide:
-   - A clear "do this next" recommendation
-   - Rationale for why this is the best next step
-   - Specific implementation suggestions
-   - Estimated impact vs. effort
-   - Potential pitfalls to watch for
-   - Memory system implications
-
-Remember:
-- The journey of 1000 miles starts with the first step
-- Keep it simple and observable
-- Avoid wheel-spinning and rabbit holes
-- Build toward the vision of Chip O'Theseus
-- Memory is key to continuous improvement
-
-Help me maintain forward momentum by identifying the clearest, most valuable next action,
-while keeping in mind how it contributes to building Chip's memory and capabilities.
-"""
     }
 ]
 
@@ -685,6 +615,8 @@ parser.add_argument('-l', '--list', action='store_true', help='List available te
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT - TOKEN_BUFFER:,}, Gemini 1.5 Pro limit minus buffer)')
+parser.add_argument('--article-mode', action='store_true', help='Enable article analysis mode')
+parser.add_argument('--article-path', type=str, help='Path to the article for analysis')
 parser.add_argument('--cat', action='store_true',
                     help='Shortcut for concat mode with blog posts, outputs a single file')
 parser.add_argument('--concat-mode', action='store_true', 
@@ -701,6 +633,18 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
                     help='Set token limit based on model (default: claude)')
 
 args = parser.parse_args()
+
+# Handle article mode
+if args.article_mode:
+    if args.article_path:
+        ARTICLE_PATH = args.article_path
+    if not os.path.exists(ARTICLE_PATH):
+        print(f"Error: Article file not found at {ARTICLE_PATH}")
+        sys.exit(1)
+    # Add article to files list
+    FILES_TO_INCLUDE.append(ARTICLE_PATH)
+    # Use article analysis template
+    args.template = 1  # Use the article analysis template
 
 # If --cat is used, set concat mode and blog posts directory
 if args.cat:
