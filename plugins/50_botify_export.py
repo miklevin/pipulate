@@ -2,6 +2,8 @@ import asyncio
 from collections import namedtuple
 from datetime import datetime
 from urllib.parse import urlparse
+import httpx
+from pathlib import Path
 
 from fasthtml.common import *
 from loguru import logger
@@ -476,6 +478,10 @@ class BotifyExport:
             )
 
     async def step_02(self, request):
+        """
+        Display form for analysis slug selection, pre-filled with the most recent one.
+        Uses data from step_01 to fetch analyses but maintains the standard input field pattern.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -486,34 +492,7 @@ class BotifyExport:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
 
-        if step.done == 'finalized':
-            finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-            if "finalized" in finalize_data:
-                return Card(
-                    H3("Pipeline Finalized"),
-                    P("All steps are locked."),
-                    Form(
-                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
-                        hx_post=f"/{app_name}/unfinalize",
-                        hx_target=f"#{app_name}-container",
-                        hx_swap="outerHTML"
-                    )
-                )
-            else:
-                return Div(
-                    Card(
-                        H3("Finalize Pipeline"),
-                        P("You can finalize this pipeline or go back to fix something."),
-                        Form(
-                            Button("Finalize All Steps", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/finalize",
-                            hx_target=f"#{app_name}-container",
-                            hx_swap="outerHTML"
-                        )
-                    ),
-                    id=step_id
-                )
-
+        # Handle finalized state
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
@@ -521,25 +500,70 @@ class BotifyExport:
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
             )
 
+        # If step is complete and not being reverted, show revert control
         if user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
-        else:
-            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
 
+        # Get data from step_01
+        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
+        org = step_01_data.get('org')
+        project = step_01_data.get('project')
+
+        try:
+            # Read API token and fetch analyses
+            api_token = self.read_api_token()
+            slugs = await self.fetch_analyses(org, project, api_token)
+            
+            # Get the most recent slug or empty string if none found
+            display_value = slugs[0] if slugs else ""
+            
+            # Show the input form with pre-filled value
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            if slugs:
+                await self.message_queue.add(
+                    pip,
+                    f"Found latest analysis: {display_value}",
+                    verbatim=True
+                )
+            
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    H4(f"{pip.fmt(step_id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
                                 type="text",
                                 name=step.done,
                                 value=display_value,
-                                placeholder=f"Enter {step.show}",
+                                placeholder="Analysis slug (e.g., 20240301)",
+                                required=True,
+                                autofocus=True
+                            )
+                        ),
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+
+        except Exception as e:
+            # On error, show the form with empty value
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: Enter {step.show}"),
+                    P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error")),
+                    Form(
+                        pip.wrap_with_inline_button(
+                            Input(
+                                type="text",
+                                name=step.done,
+                                value="",
+                                placeholder="Analysis slug (e.g., 20240301)",
                                 required=True,
                                 autofocus=True
                             )
@@ -785,3 +809,33 @@ class BotifyExport:
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
+
+    def read_api_token(self):
+        """Read Botify API token from local file."""
+        try:
+            token_file = Path("botify_token.txt")
+            if not token_file.exists():
+                raise FileNotFoundError("botify_token.txt not found")
+            
+            token = token_file.read_text().splitlines()[0].strip()
+            return token
+        except Exception as e:
+            raise ValueError(f"Error reading API token: {e}")
+
+    async def fetch_analyses(self, org, project, api_token):
+        """Fetch analysis slugs for a given project from Botify API."""
+        url = f"https://api.botify.com/v1/analyses/{org}/{project}/light"
+        headers = {"Authorization": f"Token {api_token}"}
+        slugs = []
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                while url:
+                    response = await client.get(url, headers=headers)
+                    response.raise_for_status()
+                    data = response.json()
+                    slugs.extend(a['slug'] for a in data.get('results', []))
+                    url = data.get('next')
+                return slugs
+            except httpx.RequestError as e:
+                raise ValueError(f"Error fetching analyses: {e}")
