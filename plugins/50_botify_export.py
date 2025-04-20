@@ -190,7 +190,7 @@ class BotifyExport:
                 H2(title),
                 # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
                 P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
-                P("Clear the field and submit to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
+                # P("Clear the field and submit to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
@@ -772,20 +772,35 @@ class BotifyExport:
                 try:
                     rel_path = Path(local_file).relative_to(Path.cwd())
                     tree_path = self.format_path_as_tree(rel_path)
-                    download_msg = f"🔒 {step.show}: CSV file downloaded to:\n{tree_path}"
+                    return Div(
+                        Card(
+                            H4(f"🔒 {step.show}: CSV file downloaded to:"),
+                            Pre(tree_path, style="margin-bottom: 1rem; white-space: pre;")
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                    )
                 except ValueError:
                     # Fallback if relative_to fails
                     tree_path = self.format_path_as_tree(local_file)
-                    download_msg = f"🔒 {step.show}: CSV file downloaded to:\n{tree_path}"
+                    return Div(
+                        Card(
+                            H4(f"🔒 {step.show}: CSV file downloaded to:"),
+                            Pre(tree_path, style="margin-bottom: 1rem; white-space: pre;")
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                    )
             elif download_url:
                 download_msg = f"🔒 {step.show}: Ready for download"
+                return Div(
+                    Card(download_msg),
+                    Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                )
             else:
                 download_msg = f"🔒 {step.show}: Job ID {user_val.split('/')[-1] if user_val else 'Unknown'}"
-                
-            return Div(
-                Card(download_msg),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
-            )
+                return Div(
+                    Card(download_msg),
+                    Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                )
 
         # If step is complete and not being reverted, show revert control with download info
         if user_val and state.get("_revert_target") != step_id:
