@@ -1644,7 +1644,8 @@ class BotifyExport:
                     "font-size: 0.9rem;"
                 )
             ),
-            id=f"{step_id}-content"
+            id=f"{step_id}-content",
+            style="margin-bottom: 2vh;"
         )
         
         # Use the consistent structure for all return paths to maintain chain reaction
