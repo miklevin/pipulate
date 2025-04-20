@@ -990,13 +990,14 @@ class BotifyExport:
                         style="margin-top: 1rem;"
                     )
                 ),
-                Div(id=next_step_id),
-                id=step.id,
+                # No navigation that would trigger chain reactions
+                cls="polling-status no-chain-reaction",
                 hx_get=f"/{app_name}/download_job_status",
                 hx_trigger="load, every 2s",
                 hx_target=f"#{step.id}",
                 hx_swap="outerHTML",
-                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                id=step.id
             )
         elif existing_files:
             # Found existing files on disk but not in registry
@@ -1247,9 +1248,10 @@ class BotifyExport:
                     hx_trigger="load, every 2s",
                     hx_target=f"#{step_id}",
                     hx_swap="outerHTML",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                 ),
+                # No navigation or other divs that would trigger chain reactions
+                cls="polling-status no-chain-reaction",
                 id=step_id
             )
         
@@ -1347,7 +1349,9 @@ class BotifyExport:
                 return Div(
                     result_card,
                     download_button,
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    # Add class to indicate this is a terminal response
+                    # This DIV won't load any other steps automatically
+                    cls="terminal-response no-chain-reaction",
                     id=step_id
                 )
             else:
@@ -1361,13 +1365,15 @@ class BotifyExport:
                         P("Checking status automatically...", style="color: #666;"),
                         id="progress-container"
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id,
+                    # Only these HTMX attributes to continue polling - nothing else
+                    # This breaks the chain reaction by not having any next-step HTMX attributes
+                    cls="polling-status no-chain-reaction",
                     hx_get=f"/{app_name}/download_job_status",
                     hx_trigger="load, every 2s",
                     hx_target=f"#{step_id}",
                     hx_swap="outerHTML",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id
                 )
         
         except Exception as e:
@@ -2103,7 +2109,9 @@ class BotifyExport:
                     verbatim=True
                 )
                 
-                # Return the download button
+                # Return the download button - IMPORTANT: Break the HTMX chain reaction
+                # No hx_get or other HTMX attributes on this DIV
+                # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
                         H4("Export Status: Complete ✅"),
@@ -2116,8 +2124,9 @@ class BotifyExport:
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                         )
                     ),
-                    # Remove the navigation that would trigger finalize
-                    # When user clicks Download CSV, they'll get the full navigation
+                    # Add class to indicate this is a terminal response
+                    # This DIV won't load any other steps automatically
+                    cls="terminal-response no-chain-reaction",
                     id=step_id
                 )
             else:
@@ -2152,8 +2161,9 @@ class BotifyExport:
                             id="progress-container"
                         )
                     ),
-                    # Remove the navigation that would trigger finalize - just show status
-                    # This prevents automatic loading of finalize step when using polling
+                    # Only these HTMX attributes to continue polling - nothing else
+                    # This breaks the chain reaction by not having any next-step HTMX attributes
+                    cls="polling-status no-chain-reaction",
                     hx_get=f"/{app_name}/download_job_status",
                     hx_trigger="every 2s",
                     hx_target=f"#{step_id}",
@@ -2223,7 +2233,9 @@ class BotifyExport:
                     verbatim=True
                 )
                 
-                # Return the download button
+                # Return the download button - IMPORTANT: Break the HTMX chain reaction
+                # No hx_get or other HTMX attributes on this DIV
+                # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
                         H4("Export Status: Complete ✅"),
@@ -2236,8 +2248,9 @@ class BotifyExport:
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                         )
                     ),
-                    # Remove the navigation that would trigger finalize
-                    # When user clicks Download CSV, they will get the full navigation
+                    # Add class to indicate this is a terminal response
+                    # This DIV won't load any other steps automatically
+                    cls="terminal-response no-chain-reaction",
                     id=step_id
                 )
             else:
@@ -2257,8 +2270,9 @@ class BotifyExport:
                             id="progress-container"
                         )
                     ),
-                    # Remove the navigation that would trigger finalize - just show status
-                    # This prevents automatic loading of finalize step when using polling
+                    # Only these HTMX attributes to continue polling - nothing else
+                    # This breaks the chain reaction by not having any next-step HTMX attributes
+                    cls="polling-status no-chain-reaction",
                     hx_get=f"/{app_name}/download_job_status",
                     hx_trigger="every 2s",
                     hx_target=f"#{step_id}",
