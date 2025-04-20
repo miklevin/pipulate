@@ -837,13 +837,23 @@ class BotifyExport:
                         steps=steps
                     )
                     
-                    # Wrap both the revert control and tree in a Card for better visual cohesion
+                    # Add the formatted tree path after the revert control
+                    # This maintains the HTMX chain reaction structure
                     content_container = Div(
-                        Card(
-                            revert_control,
-                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; padding-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); font-size: 0.9rem;"),
+                        revert_control,
+                        Pre(
+                            tree_path,
+                            style=(
+                                "margin: 0.25rem 0 0 0; "
+                                "padding: 10px 10px; "
+                                "white-space: pre; "
+                                "text-align: left; "
+                                "border-top: 1px solid var(--pico-muted-border-color); "
+                                "font-size: 0.9rem;"
+                            )
                         ),
-                        id=f"{step_id}-content"
+                        id=f"{step_id}-content",
+                        style="padding: 0px 0px; margin-bottom: 2vh;"
                     )
                     
                 except ValueError:
@@ -865,13 +875,22 @@ class BotifyExport:
                         steps=steps
                     )
                     
-                    # Wrap both the revert control and tree in a Card for better visual cohesion
+                    # Add the formatted tree path after the revert control
                     content_container = Div(
-                        Card(
-                            revert_control,
-                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; padding-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); font-size: 0.9rem;"),
+                        revert_control,
+                        Pre(
+                            tree_path,
+                            style=(
+                                "margin: 0.25rem 0 0 0; "
+                                "padding: 10px 10px; "
+                                "white-space: pre; "
+                                "text-align: left; "
+                                "border-top: 1px solid var(--pico-muted-border-color); "
+                                "font-size: 0.9rem;"
+                            )
                         ),
-                        id=f"{step_id}-content"
+                        id=f"{step_id}-content",
+                        style="padding: 0px 0px; margin-bottom: 2vh;"
                     )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
