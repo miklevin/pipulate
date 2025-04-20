@@ -114,7 +114,7 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
         print(f"  [Error parsing token counts: {e}]")
     
     for file in files:
-        tokens_str = f" ({format_token_count(token_counts.get(file, 0))})" if file in token_counts else ""
+        tokens_str = f" ({token_counts.get(file, 0):,} tokens)" if file in token_counts else ""
         print(f"• {file}{tokens_str}")
     
     print("\n--- Post-Prompt ---")
