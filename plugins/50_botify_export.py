@@ -1431,7 +1431,7 @@ class BotifyExport:
                 return Div(
                     result_card,
                     download_button,
-                    pip.create_navigation_buttons(step_id, step_index, steps, app_name),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
                     id=step_id
                 )
             else:
@@ -1440,7 +1440,7 @@ class BotifyExport:
                     result_card,
                     P("Please check back in a few minutes for download options.", 
                       style="color: #666; margin-bottom: 1rem;"),
-                    pip.create_navigation_buttons(step_id, step_index, steps, app_name),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
                     id=step_id
                 )
             
