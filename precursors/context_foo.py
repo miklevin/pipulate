@@ -87,8 +87,35 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
         print("  [Error parsing pre-prompt content]")
     
     print("\n--- Files Included ---")
+    # Parse the manifest to get token counts for each file
+    token_counts = {}
+    try:
+        if '<token_usage>' in manifest:
+            token_usage_start = manifest.find('<token_usage>') + 12
+            token_usage_end = manifest.find('</token_usage>')
+            token_usage = manifest[token_usage_start:token_usage_end]
+            
+            if '<files>' in token_usage:
+                files_start = token_usage.find('<files>') + 7
+                files_end = token_usage.find('</files>', files_start)
+                files_section = token_usage[files_start:files_end]
+                
+                if '<content>' in files_section:
+                    content_start = files_section.find('<content>') + 9
+                    content_end = files_section.find('</content>')
+                    content_section = files_section[content_start:content_end]
+                    
+                    # Extract file paths and token counts
+                    file_pattern = r'<file>.*?<path>(.*?)</path>.*?<tokens>(.*?)</tokens>.*?</file>'
+                    for match in re.finditer(file_pattern, content_section, re.DOTALL):
+                        path, tokens = match.groups()
+                        token_counts[path.strip()] = int(tokens.strip())
+    except Exception as e:
+        print(f"  [Error parsing token counts: {e}]")
+    
     for file in files:
-        print(f"• {file}")
+        tokens_str = f" ({format_token_count(token_counts.get(file, 0))})" if file in token_counts else ""
+        print(f"• {file}{tokens_str}")
     
     print("\n--- Post-Prompt ---")
     # Handle post-prompt content
@@ -118,6 +145,60 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
                     if areas_start > 14 and areas_end > areas_start:
                         areas_content = analysis_content[areas_start:areas_end]
                         print("\nAnalysis Areas:")
+                        for area in areas_content.split('<area>'):
+                            if area.strip():
+                                area_end = area.find('</area>')
+                                if area_end > -1:
+                                    area_content = area[:area_end]
+                                    if '<title>' in area_content:
+                                        title_start = area_content.find('<title>') + 7
+                                        title_end = area_content.find('</title>')
+                                        if title_start > 6 and title_end > title_start:
+                                            title = area_content[title_start:title_end].strip()
+                                            # Remove any remaining XML tags
+                                            title = re.sub(r'<[^>]+>', '', title)
+                                            print(f"  • {title}")
+                
+                # Extract focus areas
+                if '<focus_areas>' in analysis_content:
+                    focus_start = analysis_content.find('<focus_areas>') + 12
+                    focus_end = analysis_content.find('</focus_areas>')
+                    if focus_start > 11 and focus_end > focus_start:
+                        focus_content = analysis_content[focus_start:focus_end]
+                        print("\nFocus Areas:")
+                        for area in focus_content.split('<area>'):
+                            if area.strip():
+                                area_end = area.find('</area>')
+                                if area_end > -1:
+                                    area_content = area[:area_end].strip()
+                                    # Remove any remaining XML tags
+                                    area_content = re.sub(r'<[^>]+>', '', area_content)
+                                    print(f"  • {area_content}")
+        elif '<implementation_request>' in post_prompt:
+            analysis_start = post_prompt.find('<implementation_request>') + 23
+            analysis_end = post_prompt.find('</implementation_request>')
+            if analysis_start > 22 and analysis_end > analysis_start:
+                analysis_content = post_prompt[analysis_start:analysis_end]
+                
+                # Extract introduction
+                if '<introduction>' in analysis_content:
+                    intro_start = analysis_content.find('<introduction>') + 13
+                    intro_end = analysis_content.find('</introduction>')
+                    if intro_start > 12 and intro_end > intro_start:
+                        print("Introduction:")
+                        intro_content = analysis_content[intro_start:intro_end].strip()
+                        # Remove any remaining XML tags and clean up formatting
+                        intro_content = re.sub(r'<[^>]+>', '', intro_content)
+                        intro_content = intro_content.replace('>', '')  # Remove any remaining > characters
+                        print(f"  {intro_content}")
+                
+                # Extract implementation areas
+                if '<implementation_areas>' in analysis_content:
+                    areas_start = analysis_content.find('<implementation_areas>') + 21
+                    areas_end = analysis_content.find('</implementation_areas>')
+                    if areas_start > 20 and areas_end > areas_start:
+                        areas_content = analysis_content[areas_start:areas_end]
+                        print("\nImplementation Areas:")
                         for area in areas_content.split('<area>'):
                             if area.strip():
                                 area_end = area.find('</area>')
@@ -599,6 +680,16 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
 
 args = parser.parse_args()
 
+# List available templates if requested
+if args.list:
+    print("Available prompt templates:")
+    for i, template in enumerate(prompt_templates):
+        print(f"{i}: {template['name']}")
+    sys.exit(0)
+
+# Get the file list
+final_file_list = file_list.copy()  # Start with the default list
+
 # Handle article mode
 if args.article_mode:
     if args.article_path:
@@ -606,8 +697,9 @@ if args.article_mode:
     if not os.path.exists(ARTICLE_PATH):
         print(f"Error: Article file not found at {ARTICLE_PATH}")
         sys.exit(1)
-    # Add article to files list
-    FILES_TO_INCLUDE.append(ARTICLE_PATH)
+    # Add article to files list if not already present
+    if ARTICLE_PATH not in final_file_list:
+        final_file_list.append(ARTICLE_PATH)
     # Use article analysis template
     args.template = 1  # Use the article analysis template
 
@@ -631,12 +723,6 @@ if args.single or args.cat:
     elif args.model == 'gpt4':
         args.max_tokens = GPT_4_TURBO_LIMIT - TOKEN_BUFFER
     print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
-
-if args.list:
-    print("Available prompt templates:")
-    for i, template in enumerate(prompt_templates):
-        print(f"{i}: {template['name']}")
-    sys.exit(0)
 
 # Set the template index and output filename
 template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
@@ -732,14 +818,14 @@ class AIAssistantManifest:
         for file in self.files:
             path = file['path']
             content_tokens = self.token_counts["files"]["content"].get(path, 0)
-            token_info = f" tokens='{content_tokens}'" if content_tokens > 0 else ""
             files_section.append(create_xml_element("file", [
                 f"<path>{path}</path>",
                 f"<description>{file['description']}</description>",
                 create_xml_element("key_components", [
                     f"<component>{comp}</component>" for comp in file['key_components']
-                ]) if file['key_components'] else ""
-            ], {"tokens": str(content_tokens)} if content_tokens > 0 else None))
+                ]) if file['key_components'] else "",
+                f"<tokens>{content_tokens}</tokens>"
+            ]))
         files_section.append('</files>')
         manifest.append("\n".join(files_section))
         
@@ -798,25 +884,28 @@ class AIAssistantManifest:
         """Generate the manifest for the AI assistant (legacy format)."""
         return self.generate_xml()  # Default to XML format
 
-
-def create_pipulate_manifest():
+def create_pipulate_manifest(file_paths):
     """Create a manifest specific to the Pipulate project."""
     manifest = AIAssistantManifest()
     
-    # Track total tokens to respect limit
+    # Track total tokens and processed files to respect limit and avoid duplicates
     total_tokens = 0
     max_tokens = args.max_tokens
+    processed_files = set()
+    result_files = []
     
     # Define the environment
     manifest.set_environment("Runtime", "Python 3.12 in a Nix-managed virtualenv (.venv)")
     manifest.set_environment("Package Management", "Hybrid approach using Nix flakes for system dependencies + pip for Python packages")
     
     # Register key files with their contents
-    for relative_path in file_list:
+    for relative_path in file_paths:
         relative_path = relative_path.strip()
-        if not relative_path:
+        if not relative_path or relative_path in processed_files:
             continue
             
+        processed_files.add(relative_path)
+        result_files.append(relative_path)
         full_path = os.path.join(repo_root, relative_path)
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
@@ -881,80 +970,78 @@ def create_pipulate_manifest():
             "Proper pattern for returning FastHTML content with HTMX triggers"
         )
     
-    return manifest.generate()
-
+    return manifest.generate(), result_files, total_tokens
 
 # --- Core Logic to Create foo.txt ---
 lines = []
+total_tokens = 0
 
-# Create the manifest and incorporate user's pre_prompt if not in concat mode
 if not args.concat_mode:
-    manifest = create_pipulate_manifest()
+    # Create the manifest and incorporate user's pre_prompt
+    manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
+    manifest = manifest_xml
     final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
+    
+    # Add the pre-prompt and separator
     lines.append(final_pre_prompt)
     lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
     total_tokens = count_tokens(final_pre_prompt, "gpt-4")
     
     # Process each file in the manifest file list
-    for relative_path in file_list:
-        relative_path = relative_path.strip()
-        if not relative_path:
-            continue
-
+    for relative_path in processed_files:
         full_path = os.path.join(repo_root, relative_path)
         
-        if args.concat_mode:
-            # Simple concatenation mode like cat_foo.py
-            try:
-                with open(full_path, 'r', encoding='utf-8') as infile:
-                    content = infile.read()
-                    file_tokens = count_tokens(content, "gpt-4")
-                    
-                    # Check token limit
-                    if total_tokens + file_tokens > args.max_tokens:
-                        print(f"Warning: Skipping {relative_path} as it would exceed the {args.max_tokens:,} token limit")
-                        continue
-                        
-                    total_tokens += file_tokens
-                    lines.append(f"# {relative_path}\n")
-                    lines.append(content)
-                    lines.append(f"\n# File token count: {format_token_count(file_tokens)}\n")
-                    print(f"Added {relative_path} ({format_token_count(file_tokens)})")
-                    print(f"Total tokens so far: {format_token_count(total_tokens)}")
-            except Exception as e:
-                print(f"Warning: Could not process {full_path}: {e}")
-        else:
-            # Original detailed mode with markers
-            start_marker = f"# <<< START FILE: {full_path} >>>"
-            end_marker = f"# <<< END FILE: {full_path} >>>"
-            
-            lines.append(start_marker)
-            try:
-                with open(full_path, 'r', encoding='utf-8') as infile:
-                    file_content = infile.read()
-                    file_tokens = count_tokens(file_content, "gpt-4")
-                    
-                    # Check token limit
-                    if total_tokens + file_tokens > args.max_tokens:
-                        error_message = f"# --- WARNING: File skipped, would exceed {args.max_tokens:,} token limit ---"
-                        print(f"Warning: {error_message}")
-                        lines.append(error_message)
-                    else:
-                        total_tokens += file_tokens
-                        token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-                        lines.append(file_content + token_info)
-                        print(f"Added {relative_path} ({format_token_count(file_tokens)})")
-                        print(f"Total tokens so far: {format_token_count(total_tokens)}")
-            except Exception as e:
-                error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-                print(f"Warning: {error_message}")
-                lines.append(error_message)
-            
-            lines.append(end_marker)
+        # Original detailed mode with markers
+        start_marker = f"# <<< START FILE: {full_path} >>>"
+        end_marker = f"# <<< END FILE: {full_path} >>>"
+        
+        lines.append(start_marker)
+        try:
+            with open(full_path, 'r', encoding='utf-8') as infile:
+                file_content = infile.read()
+                file_tokens = count_tokens(file_content, "gpt-4")
+                token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+                lines.append(file_content + token_info)
+        except Exception as e:
+            error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
+            print(f"Warning: {error_message}")
+            lines.append(error_message)
+        
+        lines.append(end_marker)
+        
+    # Add a separator and the post-prompt
+    lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
+    post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
+    if total_tokens + post_prompt_tokens <= args.max_tokens:
+        total_tokens += post_prompt_tokens
+        lines.append(post_prompt)
+    else:
+        print("Warning: Post-prompt skipped as it would exceed token limit")
+    
+    # Create XML structure for the entire output
+    output_xml = create_xml_element("context", [
+        create_xml_element("manifest", manifest),
+        create_xml_element("pre_prompt", pre_prompt),
+        create_xml_element("content", "\n".join(lines)),
+        create_xml_element("post_prompt", post_prompt),
+        create_xml_element("token_summary", [
+            f"<total_context_size>{format_token_count(total_tokens)}</total_context_size>",
+            f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
+            f"<remaining>{format_token_count(args.max_tokens - total_tokens)}</remaining>"
+        ])
+    ])
+    
+    # Print structured output
+    print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_tokens, args.max_tokens)
+    
+    # Write the complete XML output to the file
+    try:
+        with open(args.output, 'w', encoding='utf-8') as outfile:
+            outfile.write(output_xml)
+    except Exception as e:
+        print(f"Error writing to '{args.output}': {e}")
 else:
-    total_tokens = 0
-    files_processed = 0
-    # Process markdown files in target directory
+    # Process markdown files in target directory (concat mode)
     target_dir = args.directory
     try:
         # Get list of markdown files, sorted
@@ -994,58 +1081,21 @@ else:
             for chunk_num in range(1, total_chunks + 1):
                 start_idx = process_chunk(md_files, start_idx, chunk_num, total_chunks, 
                                        args.max_tokens, args.output, args.compress)
-        
     except Exception as e:
         print(f"Error accessing directory {target_dir}: {e}")
         sys.exit(1)
-
-# Add a separator and the post-prompt if not in concat mode
-if not args.concat_mode:
-    lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
-    post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
-    if total_tokens + post_prompt_tokens <= args.max_tokens:
-        total_tokens += post_prompt_tokens
-        lines.append(post_prompt)
-    else:
-        print("Warning: Post-prompt skipped as it would exceed token limit")
-
-# Add final token summary only if not in chunk mode
-if not args.concat_mode:
-    # Create the manifest and incorporate user's pre_prompt if not in concat mode
-    manifest = create_pipulate_manifest()
-    final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
-    
-    # Create XML structure for the entire output
-    output_xml = create_xml_element("context", [
-        create_xml_element("manifest", manifest),
-        create_xml_element("pre_prompt", pre_prompt),
-        create_xml_element("content", "\n".join(lines)),
-        create_xml_element("post_prompt", post_prompt),
-        create_xml_element("token_summary", [
-            f"<total_context_size>{format_token_count(total_tokens)}</total_context_size>",
-            f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
-            f"<remaining>{format_token_count(args.max_tokens - total_tokens)}</remaining>"
-        ])
-    ])
-    
-    # Print structured output
-    print_structured_output(manifest, pre_prompt, file_list, post_prompt, total_tokens, args.max_tokens)
-    
-    # Write the complete XML output to the file
-    try:
-        with open(args.output, 'w', encoding='utf-8') as outfile:
-            outfile.write(output_xml)
-    except Exception as e:
-        print(f"Error writing to '{args.output}': {e}")
 
 # --- Clipboard Handling ---
 print("\n--- Clipboard Instructions ---")
 try:
     import pyperclip
     # Copy the complete XML content to clipboard
-    pyperclip.copy(output_xml)
-    print(f"Complete XML content successfully copied to clipboard using pyperclip.")
-    print("You can now paste it.")
+    if 'output_xml' in locals():
+        pyperclip.copy(output_xml)
+        print(f"Complete XML content successfully copied to clipboard using pyperclip.")
+        print("You can now paste it.")
+    else:
+        print("No XML content available to copy to clipboard.")
 except ImportError:
     print("`pyperclip` library not found.")
     print("To install it: pip install pyperclip")
