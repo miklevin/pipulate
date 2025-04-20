@@ -58,3 +58,8 @@ details.dropdown summary + ul {
     background-color: var(--pico-dropdown-background-color);  /* Using the default PicoCSS variable with increased brightness */
     filter: brightness(1.75);  /* Makes the background color 20% brighter while maintaining the theme */
 }
+
+/* Article direct div children overflow handling */
+article > div:first-child {
+    overflow: auto;
+}
