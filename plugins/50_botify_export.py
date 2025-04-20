@@ -808,41 +808,53 @@ class BotifyExport:
             download_url = step_data.get('download_url')
             local_file = step_data.get('local_file')
             
+            # Create a consistent container that will preserve the HTMX chain reaction
+            content_container = Div(id=f"{step_id}-content")
+            
             # Display different message based on download status
             if local_file and Path(local_file).exists():
                 try:
                     rel_path = Path(local_file).relative_to(Path.cwd())
                     tree_path = self.format_path_as_tree(rel_path)
                     
-                    # Create custom content for revert control
-                    custom_content = Div(
-                        H4(f"{step.show}: CSV file downloaded (Job ID {job_id})"),
-                        Pre(tree_path, style="margin-bottom: 1rem; white-space: pre; text-align: left;"),
-                        style="width: 100%; text-align: left;"
-                    )
+                    # Display the tree path in a Pre component
+                    # Add this to the existing structure rather than replacing it
+                    display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
                     
+                    # Create the revert control with the regular message parameter
                     revert_control = pip.revert_control(
                         step_id=step_id, 
                         app_name=app_name, 
-                        custom_content=custom_content,
+                        message=display_msg, 
                         steps=steps
                     )
+                    
+                    # Add the formatted tree path after the revert control
+                    # This maintains the HTMX chain reaction structure
+                    content_container = Div(
+                        revert_control,
+                        Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+                        id=f"{step_id}-content"
+                    )
+                    
                 except ValueError:
                     # Fallback if relative_to fails
                     tree_path = self.format_path_as_tree(local_file)
                     
-                    # Create custom content for revert control
-                    custom_content = Div(
-                        H4(f"{step.show}: CSV file downloaded (Job ID {job_id})"),
-                        Pre(tree_path, style="margin-bottom: 1rem; white-space: pre; text-align: left;"),
-                        style="width: 100%; text-align: left;"
-                    )
-                    
+                    # Create the revert control with the regular message parameter
+                    display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
                     revert_control = pip.revert_control(
                         step_id=step_id, 
                         app_name=app_name, 
-                        custom_content=custom_content,
+                        message=display_msg, 
                         steps=steps
+                    )
+                    
+                    # Add the formatted tree path after the revert control
+                    content_container = Div(
+                        revert_control,
+                        Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+                        id=f"{step_id}-content"
                     )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
@@ -852,6 +864,7 @@ class BotifyExport:
                     message=display_msg, 
                     steps=steps
                 )
+                content_container = revert_control
             else:
                 # Poll the job status to check if it's complete
                 try:
@@ -887,6 +900,7 @@ class BotifyExport:
                     message=display_msg, 
                     steps=steps
                 )
+                content_container = revert_control
             
             # Add a download button if the file is ready but not yet downloaded
             if download_url and not (local_file and Path(local_file).exists()):
@@ -898,15 +912,19 @@ class BotifyExport:
                     hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                 )
                 
+                # Use a consistent structure to maintain the HTMX chain reaction
                 return Div(
-                    revert_control,
+                    content_container,
                     download_button,
+                    # This is the critical element that ensures the chain reaction continues
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
                 )
             
+            # Use a consistent structure for all return paths
             return Div(
-                revert_control,
+                content_container,
+                # This is the critical element that ensures the chain reaction continues
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
