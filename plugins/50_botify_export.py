@@ -1005,7 +1005,8 @@ class BotifyExport:
                         style="display: flex; gap: 1rem;"
                     )
                 ),
-                Div(id=next_step_id),
+                # Add this critical element to ensure the chain reaction continues to the finalize step
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load delay:100ms"),
                 id=step.id
             )
         elif completed_jobs:
@@ -1035,7 +1036,8 @@ class BotifyExport:
                         style="display: flex; gap: 1rem;"
                     )
                 ),
-                Div(id=next_step_id),
+                # Add this critical element to ensure the chain reaction continues to the finalize step
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load delay:100ms"),
                 id=step.id
             )
         elif processing_jobs:
@@ -1078,13 +1080,12 @@ class BotifyExport:
                         style="margin-top: 1rem;"
                     )
                 ),
-                # No navigation that would trigger chain reactions
-                cls="polling-status no-chain-reaction",
-                hx_get=f"/{app_name}/download_job_status",
-                hx_trigger="load, every 2s",
+                # Add this critical element to ensure the chain reaction continues to the finalize step
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load delay:100ms"),
+                hx_get=f"/{app_name}/check_export_status",
+                hx_trigger="load delay:2s",
                 hx_target=f"#{step.id}",
-                hx_swap="outerHTML",
-                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}',
                 id=step.id
             )
         elif existing_files:
@@ -1533,6 +1534,7 @@ class BotifyExport:
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         
         # Get form data
         form = await request.form()
@@ -1560,8 +1562,38 @@ class BotifyExport:
         # Send confirmation message
         await self.message_queue.add(pip, f"Using existing export file: {file_path}", verbatim=True)
         
-        # Return navigation controls
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, file_path)
+        # Format the tree path for display
+        rel_path = Path(file_path)
+        try:
+            rel_path = rel_path.relative_to(Path.cwd())
+        except ValueError:
+            # Already a relative path or outside CWD
+            pass
+        
+        tree_path = self.format_path_as_tree(rel_path)
+        display_msg = f"{step.show}: CSV file is ready"
+        
+        # Create a structure that maintains the chain reaction
+        revert_control = pip.revert_control(
+            step_id=step_id, 
+            app_name=app_name, 
+            message=display_msg, 
+            steps=steps
+        )
+        
+        content_container = Div(
+            revert_control,
+            Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+            id=f"{step_id}-content"
+        )
+        
+        # Use the consistent structure for all return paths to maintain chain reaction
+        return Div(
+            content_container,
+            # This is the critical element that ensures the chain reaction continues
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
 
     async def download_csv(self, request):
         """
@@ -1925,7 +1957,11 @@ class BotifyExport:
                     id=finalize_step.id
                 )
             else:
-                return Div(P("Nothing to finalize yet."), id=finalize_step.id)
+                # We still need an element with the finalize_step.id for consistency
+                return Card(
+                    P("Complete all previous steps before finalizing."),
+                    id=finalize_step.id
+                )
         # ───────── END GET REQUEST ─────────
         else:
             # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
