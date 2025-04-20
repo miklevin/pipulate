@@ -190,14 +190,15 @@ class BotifyExport:
                 H2(title),
                 # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
                 P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
+                P("Clear the field and submit to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Existing or new 🗝 here (refresh for auto)",
+                            placeholder="Existing or new 🗝 here (clear for auto)",
                             name="pipeline_id",
                             list="pipeline-ids",
                             type="search",
-                            required=True,
+                            required=False,  # Allow empty submissions
                             autofocus=True,
                             value=default_value,
                             _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
@@ -239,7 +240,14 @@ class BotifyExport:
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
-        user_input = form.get("pipeline_id", "untitled")
+        user_input = form.get("pipeline_id", "").strip()
+        
+        # If the pipeline_id is blank, return a response with HX-Refresh header
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
         
         # Get the context with plugin name and profile name
         context = pip.get_plugin_context(self)
