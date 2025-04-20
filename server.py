@@ -1065,6 +1065,21 @@ class Pipulate:
         Used in step_xx_submit methods to show appropriate finalization prompts
         after the user completes the last regular step in the workflow.
 
+        TODO (UI Enhancement):
+        Currently this method is designed for simple key-value pair presentation 
+        with the step value on the left and revert button on the right in a flex row.
+        As workflows become more complex, we need to support additional UI elements 
+        below this row (like directory trees, charts, or other rich components).
+        
+        Future enhancement should add a 'content' parameter that would:
+        1. Accept any FastHTML component to display below the revert row
+        2. Handle consistent styling and spacing
+        3. Maintain proper alignment of revert buttons across steps
+        4. Work consistently in both finalized and unfinalized states
+        
+        This would eliminate the need for workflow-specific spacing hacks and
+        provide a consistent pattern for adding rich content to steps.
+
         Args:
             step_index: Index of current step in steps list
             steps: The steps list

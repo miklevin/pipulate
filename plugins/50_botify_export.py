@@ -54,6 +54,36 @@ def parse_botify_url(url: str) -> dict:
 
 
 class BotifyExport:
+    """
+    Botify CSV Export Workflow
+    
+    This workflow helps users export data from Botify projects and download it as CSV files.
+    It demonstrates usage of rich UI components like directory trees alongside standard
+    form inputs and revert controls.
+    
+    Implementation Note on Tree Displays:
+    ------------------------------------
+    The tree display for file paths requires special handling to ensure proper alignment
+    with revert buttons while maintaining visual grouping. The current implementation
+    uses custom styling with negative margins and padding.
+    
+    In the future, this should be handled by an enhanced version of pip.revert_control
+    that could accept an additional content parameter:
+    
+    ```python
+    # Future implementation example
+    revert_control_advanced(
+        step_id=step_id,
+        app_name=app_name,
+        message=f"CSV file downloaded ({job_id})",
+        content=Pre(tree_path, style="padding: 10px;"),
+        steps=steps
+    )
+    ```
+    
+    This would standardize the pattern for displaying complex UI elements below
+    revert controls, eliminating the need for workflow-specific spacing adjustments.
+    """
     APP_NAME = "botify_csv"
     DISPLAY_NAME = "Botify CSV Export"
     ENDPOINT_MESSAGE = (
@@ -842,6 +872,12 @@ class BotifyExport:
                     # This maintains the HTMX chain reaction structure
                     # Style note: Negative top margin pulls tree closer to revert control,
                     # padding and border-top create visual separation while keeping them connected
+                    #
+                    # TODO: This pattern is used to accommodate complex UI elements (like tree paths)
+                    # below the standard revert button row. In the future, pip.revert_control() should
+                    # be enhanced to accept an additional 'content' parameter for elements to display
+                    # below the revert button row, which would eliminate the need for these custom
+                    # spacing adjustments while maintaining consistent button alignment.
                     content_container = Div(
                         revert_control,
                         Pre(
