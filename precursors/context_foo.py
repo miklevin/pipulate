@@ -994,7 +994,7 @@ if not args.concat_mode:
     
     # Process each file in the manifest file list
     for relative_path in processed_files:
-        full_path = os.path.join(repo_root, relative_path)
+        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
         
         # Original detailed mode with markers
         start_marker = f"# <<< START FILE: {full_path} >>>"
@@ -1023,21 +1023,41 @@ if not args.concat_mode:
     else:
         print("Warning: Post-prompt skipped as it would exceed token limit")
     
-    # Create XML structure for the entire output
+    # Calculate the file tokens from the processed files
+    files_tokens = 0
+    for relative_path in processed_files:
+        try:
+            full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                files_tokens += count_tokens(content, "gpt-4")
+        except Exception as e:
+            print(f"Warning: Could not count tokens for XML summary in {relative_path}: {e}")
+    
+    # Calculate total tokens as in print_structured_output
+    prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
+    total_combined_tokens = files_tokens + prompt_tokens
+    
+    # Debug information for XML token counting
+    print(f"\nXML Token Summary Debug:")
+    print(f"  Files tokens: {format_token_count(files_tokens)}")
+    print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
+    print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
+    
     output_xml = create_xml_element("context", [
         create_xml_element("manifest", manifest),
         create_xml_element("pre_prompt", pre_prompt),
         create_xml_element("content", "\n".join(lines)),
         create_xml_element("post_prompt", post_prompt),
         create_xml_element("token_summary", [
-            f"<total_context_size>{format_token_count(total_tokens)}</total_context_size>",
+            f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
             f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
-            f"<remaining>{format_token_count(args.max_tokens - total_tokens)}</remaining>"
+            f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
         ])
     ])
     
     # Print structured output
-    print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_tokens, args.max_tokens)
+    print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_combined_tokens, args.max_tokens)
     
     # Write the complete XML output to the file
     try:
