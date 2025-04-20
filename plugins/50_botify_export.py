@@ -63,26 +63,25 @@ class BotifyExport:
     
     Implementation Note on Tree Displays:
     ------------------------------------
-    The tree display for file paths requires special handling to ensure proper alignment
-    with revert buttons while maintaining visual grouping. The current implementation
-    uses custom styling with negative margins and padding.
+    The tree display for file paths uses the standardized pip.revert_control_advanced method,
+    which provides consistent styling and layout for displaying additional content below
+    the standard revert controls. This ensures proper alignment with revert buttons 
+    while maintaining visual grouping.
     
-    In the future, this should be handled by an enhanced version of pip.revert_control
-    that could accept an additional content parameter:
-    
+    Example usage:
     ```python
-    # Future implementation example
-    revert_control_advanced(
+    tree_display = pip.tree_display(tree_path)
+    content_container = pip.revert_control_advanced(
         step_id=step_id,
         app_name=app_name,
-        message=f"CSV file downloaded ({job_id})",
-        content=Pre(tree_path, style="padding: 10px;"),
+        message=display_msg,
+        content=tree_display,
         steps=steps
     )
     ```
     
-    This would standardize the pattern for displaying complex UI elements below
-    revert controls, eliminating the need for workflow-specific spacing adjustments.
+    This standardized pattern eliminates the need for workflow-specific spacing adjustments
+    and ensures consistent styling across the application.
     """
     APP_NAME = "botify_csv"
     DISPLAY_NAME = "Botify CSV Export"
@@ -802,22 +801,31 @@ class BotifyExport:
                 try:
                     rel_path = Path(local_file).relative_to(Path.cwd())
                     tree_path = self.format_path_as_tree(rel_path)
-                    # Style note: More compact spacing for finalized display without revert button
+                    
+                    # Use the new finalized_content helper
+                    tree_display = pip.tree_display(tree_path)
+                    finalized_card = pip.finalized_content(
+                        message=f"🔒 {step.show}: CSV file downloaded to:",
+                        content=tree_display
+                    )
+                    
                     return Div(
-                        Card(
-                            H4(f"🔒 {step.show}: CSV file downloaded to:"),
-                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; font-size: 0.9rem;")
-                        ),
+                        finalized_card,
                         Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                     )
                 except ValueError:
                     # Fallback if relative_to fails
                     tree_path = self.format_path_as_tree(local_file)
+                    
+                    # Use the new finalized_content helper
+                    tree_display = pip.tree_display(tree_path)
+                    finalized_card = pip.finalized_content(
+                        message=f"🔒 {step.show}: CSV file downloaded to:",
+                        content=tree_display
+                    )
+                    
                     return Div(
-                        Card(
-                            H4(f"🔒 {step.show}: CSV file downloaded to:"),
-                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; font-size: 0.9rem;")
-                        ),
+                        finalized_card,
                         Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                     )
             elif download_url:
@@ -861,75 +869,36 @@ class BotifyExport:
                     clean_job_id = self.clean_job_id_for_display(job_id)
                     
                     # Create the revert control with the shortened message parameter
-                    revert_control = pip.revert_control(
-                        step_id=step_id, 
-                        app_name=app_name, 
-                        message=display_msg, 
-                        steps=steps
-                    )
+                    display_msg = f"{step.show}: CSV file downloaded ({clean_job_id})"
                     
-                    # Add the formatted tree path after the revert control
-                    # This maintains the HTMX chain reaction structure
-                    # Style note: Negative top margin pulls tree closer to revert control,
-                    # padding and border-top create visual separation while keeping them connected
-                    #
-                    # TODO: This pattern is used to accommodate complex UI elements (like tree paths)
-                    # below the standard revert button row. In the future, pip.revert_control() should
-                    # be enhanced to accept an additional 'content' parameter for elements to display
-                    # below the revert button row, which would eliminate the need for these custom
-                    # spacing adjustments while maintaining consistent button alignment.
-                    content_container = Div(
-                        revert_control,
-                        Pre(
-                            tree_path,
-                            style=(
-                                "margin: -2vh 0 0 0; "
-                                "padding: 10px 10px; "
-                                "white-space: pre; "
-                                "text-align: left; "
-                                "border-top: 1px solid var(--pico-muted-border-color); "
-                                "font-size: 0.9rem;"
-                            )
-                        ),
-                        id=f"{step_id}-content",
-                        style="margin-bottom: 2vh;"
+                    # Use the new advanced control with tree content
+                    tree_display = pip.tree_display(tree_path)
+                    content_container = pip.revert_control_advanced(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=display_msg,
+                        content=tree_display,
+                        steps=steps
                     )
                     
                 except ValueError:
                     # Fallback if relative_to fails
                     tree_path = self.format_path_as_tree(local_file)
                     
-                    # Create the revert control with the regular message parameter
-                    display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
-                    
                     # Get a cleaner job ID for display (without the full filename)
                     clean_job_id = self.clean_job_id_for_display(job_id)
                     
                     # Create the revert control with the shortened message parameter
                     display_msg = f"{step.show}: CSV file downloaded ({clean_job_id})"
-                    revert_control = pip.revert_control(
-                        step_id=step_id, 
-                        app_name=app_name, 
-                        message=display_msg, 
-                        steps=steps
-                    )
                     
-                    # Add the formatted tree path after the revert control
-                    content_container = Div(
-                        revert_control,
-                        Pre(
-                            tree_path,
-                            style=(
-                                "margin: -2vh 0 0 0; "
-                                "padding: 10px 10px; "
-                                "white-space: pre; "
-                                "text-align: left; "
-                                "border-top: 1px solid var(--pico-muted-border-color); "
-                                "font-size: 0.9rem;"
-                            )
-                        ),
-                        id=f"{step_id}-content",
-                        style="margin-bottom: 2vh;"
+                    # Use the advanced revert control with tree content
+                    tree_display = pip.tree_display(tree_path)
+                    content_container = pip.revert_control_advanced(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=display_msg,
+                        content=tree_display,
+                        steps=steps
                     )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
@@ -1662,29 +1631,14 @@ class BotifyExport:
         tree_path = self.format_path_as_tree(rel_path)
         display_msg = f"{step.show}: CSV file is ready"
         
-        # Create a structure that maintains the chain reaction
-        revert_control = pip.revert_control(
-            step_id=step_id, 
-            app_name=app_name, 
-            message=display_msg, 
+        # Use the advanced revert control with tree content
+        tree_display = pip.tree_display(tree_path)
+        content_container = pip.revert_control_advanced(
+            step_id=step_id,
+            app_name=app_name,
+            message=display_msg,
+            content=tree_display,
             steps=steps
-        )
-        
-        content_container = Div(
-            revert_control,
-            Pre(
-                tree_path,
-                style=(
-                    "margin: -2vh 0 0 0; "
-                    "padding: 10px 10px; "
-                    "white-space: pre; "
-                    "text-align: left; "
-                    "border-top: 1px solid var(--pico-muted-border-color); "
-                    "font-size: 0.9rem;"
-                )
-            ),
-            id=f"{step_id}-content",
-            style="margin-bottom: 2vh;"
         )
         
         # Use the consistent structure for all return paths to maintain chain reaction

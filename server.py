@@ -306,6 +306,10 @@ class Pipulate:
     WARNING_BUTTON_STYLE = None  # Now using cls="secondary outline" instead
     PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
+    
+    # Content style constants
+    CONTENT_STYLE = "margin-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); padding-top: 0.5rem;"
+    TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 0.9rem;"
 
     # Button labels
     UNLOCK_BUTTON_LABEL = "Unlock 🔓"  # Global label for unlock/unfinalize buttons
@@ -723,6 +727,103 @@ class Pipulate:
                 style="flex: 0;"
             ),
             style="display: flex; align-items: center; justify-content: space-between;"
+        )
+
+    def revert_control_advanced(
+        self,
+        step_id: str,
+        app_name: str,
+        steps: list,
+        message: str = None,
+        content=None,
+        target_id: str = None,
+        revert_label: str = None,
+        content_style=None
+    ):
+        """
+        Enhanced revert control with support for additional content below the control row.
+        
+        This method extends the standard revert_control to support rich UI elements
+        such as directory trees, charts, or other visualizations that should appear
+        below the standard revert button row, while maintaining consistent button
+        alignment across steps.
+        
+        Args:
+            step_id: The ID of the step to revert to
+            app_name: The workflow app name
+            steps: List of Step namedtuples defining the workflow
+            message: Optional message to display (defaults to step_id)
+            content: FastHTML component to display below the revert row
+            target_id: Optional target for HTMX updates
+            revert_label: Optional custom label for the revert button
+            content_style: Optional custom style for the content container
+            
+        Returns:
+            Div: A FastHTML container with revert control and additional content
+        """
+        # First get the standard revert control structure
+        revert_row = self.revert_control(
+            step_id=step_id,
+            app_name=app_name,
+            steps=steps,
+            message=message,
+            target_id=target_id,
+            revert_label=revert_label
+        )
+        
+        # If no additional content or in finalized state, just return the standard control
+        if content is None or revert_row is None:
+            return revert_row
+        
+        # Use the content style constant as the default
+        applied_style = content_style or self.CONTENT_STYLE
+        
+        # Create a container with the revert row and content
+        return Div(
+            revert_row,
+            Div(
+                content,
+                style=applied_style,
+                id=f"{step_id}-content-inner"
+            ),
+            id=f"{step_id}-content",
+            style="margin-bottom: 1rem;"
+        )
+
+    def finalized_content(
+        self,
+        message: str,
+        content=None,
+        heading_tag=H4,
+        content_style=None
+    ):
+        """
+        Create a finalized step display with optional additional content.
+        
+        This is the companion to revert_control_advanced for finalized workflows,
+        providing consistent styling for both states.
+        
+        Args:
+            message: Message to display (typically including a 🔒 lock icon)
+            content: FastHTML component to display below the message
+            heading_tag: The tag to use for the message (default: H4)
+            content_style: Optional custom style for the content container
+            
+        Returns:
+            Card: A FastHTML Card component for the finalized state
+        """
+        if content is None:
+            return Card(message)
+        
+        # Default content style for finalized state
+        default_style = "margin-top: 0.25rem; padding: 0.25rem 0;"
+        
+        return Card(
+            heading_tag(message),
+            Div(
+                content,
+                style=content_style or default_style
+            )
         )
 
     def wrap_with_inline_button(
@@ -1208,6 +1309,26 @@ class Pipulate:
         self.write_state(pipeline_id, state)
 
         return state
+
+    def tree_display(
+        self,
+        tree_content,
+        style=None
+    ):
+        """
+        Create a standardized tree display component for file paths or hierarchical data.
+        
+        Args:
+            tree_content: String content to display in the tree format
+            style: Optional custom style to override default tree styling
+            
+        Returns:
+            Pre: A FastHTML Pre component with tree display styling
+        """
+        return Pre(
+            tree_content,
+            style=style or self.TREE_CONTENT_STYLE
+        )
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
