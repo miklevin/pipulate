@@ -772,6 +772,7 @@ class BotifyExport:
                 try:
                     rel_path = Path(local_file).relative_to(Path.cwd())
                     tree_path = self.format_path_as_tree(rel_path)
+                    # Style note: More compact spacing for finalized display without revert button
                     return Div(
                         Card(
                             H4(f"🔒 {step.show}: CSV file downloaded to:"),
@@ -839,6 +840,8 @@ class BotifyExport:
                     
                     # Add the formatted tree path after the revert control
                     # This maintains the HTMX chain reaction structure
+                    # Style note: Negative top margin pulls tree closer to revert control,
+                    # padding and border-top create visual separation while keeping them connected
                     content_container = Div(
                         revert_control,
                         Pre(
@@ -853,7 +856,7 @@ class BotifyExport:
                             )
                         ),
                         id=f"{step_id}-content",
-                        style="padding: 0px 0px; margin-bottom: 2vh;"
+                        style="margin-bottom: 2vh;"
                     )
                     
                 except ValueError:
@@ -890,7 +893,7 @@ class BotifyExport:
                             )
                         ),
                         id=f"{step_id}-content",
-                        style="padding: 0px 0px; margin-bottom: 2vh;"
+                        style="margin-bottom: 2vh;"
                     )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
@@ -2704,10 +2707,14 @@ class BotifyExport:
 
     def format_path_as_tree(self, path_str):
         """
-        Format a file path as a proper hierarchical ASCII tree with single path
+        Format a file path as a proper hierarchical ASCII tree with single path.
+        
+        This tree visualization is used in various places in the UI to show 
+        download locations. The styling of the tree display is carefully tuned
+        in each context where it appears.
         """
         path = Path(path_str)
-        
+            
         # Get the parts of the path
         parts = list(path.parts)
         
