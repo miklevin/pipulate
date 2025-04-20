@@ -802,8 +802,9 @@ class BotifyExport:
                     Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                 )
 
-        # If step is complete and not being reverted, show revert control with download info
-        if user_val and state.get("_revert_target") != step_id:
+        # Check if step is complete and either not being reverted, or has the preserve flag
+        # The _preserve_completed flag ensures the step stays in completed state after unfinalization
+        if user_val and (state.get("_revert_target") != step_id or step_data.get("_preserve_completed")):
             job_id = user_val.split("/")[-1] if user_val else "Unknown"
             download_url = step_data.get('download_url')
             local_file = step_data.get('local_file')
@@ -1998,6 +1999,16 @@ class BotifyExport:
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         
+        # Before unfinalizing, check if Step 4 is completed and preserve its state
+        state = pip.read_state(pipeline_id)
+        step_04_data = pip.get_step_data(pipeline_id, "step_04", {})
+        step_04 = next((s for s in steps if s.id == "step_04"), None)
+        
+        if step_04 and step_04_data.get(step_04.done):
+            # Add a flag to indicate Step 4 should stay in completed state
+            state["step_04"]["_preserve_completed"] = True
+            pip.write_state(pipeline_id, state)
+        
         # Update state using DRY helper
         await pip.unfinalize_workflow(pipeline_id)
         
@@ -2082,12 +2093,27 @@ class BotifyExport:
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
             return P("Error: No step specified", style=pip.get_style("error"))
+        
+        # Clear steps from the specified step forward
         await pip.clear_steps_from(pipeline_id, step_id, steps)
+        
+        # Update state with revert target
         state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
+        
+        # When reverting to step_04 or any earlier step, clear the _preserve_completed flag
+        # from step_04 to ensure it shows the interactive UI instead of the completed state
+        if step_id == "step_04" or self.steps_indices.get(step_id, 0) < self.steps_indices.get("step_04", 99):
+            if "step_04" in state and "_preserve_completed" in state["step_04"]:
+                del state["step_04"]["_preserve_completed"]
+        
         pip.write_state(pipeline_id, state)
+        
+        # Send a state message
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
+        
+        # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
 
     def read_api_token(self):
