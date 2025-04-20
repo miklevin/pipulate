@@ -167,19 +167,19 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Create full key options for the datalist
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
         
-        return Container(  # Get used to this return signature of FastHTML & HTMX
+        return Container(
             Card(
                 H2(title),
-                # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
                 P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
+                # P("Clear the field and Enter to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Existing or new 🗝 here (refresh for auto)",
+                            placeholder="Existing or new 🗝 here (Enter for auto)",
                             name="pipeline_id",
                             list="pipeline-ids",
                             type="search",
-                            required=True,
+                            required=False,
                             autofocus=True,
                             value=default_value,
                             _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
@@ -221,7 +221,14 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
-        user_input = form.get("pipeline_id", "untitled")
+        user_input = form.get("pipeline_id", "").strip()
+        
+        # If the pipeline_id is blank, return a response with HX-Refresh header
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
         
         # Get the context with plugin name and profile name
         context = pip.get_plugin_context(self)
