@@ -810,9 +810,48 @@ class BotifyExport:
             
             # Display different message based on download status
             if local_file and Path(local_file).exists():
-                display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
+                try:
+                    rel_path = Path(local_file).relative_to(Path.cwd())
+                    tree_path = self.format_path_as_tree(rel_path)
+                    
+                    # Create custom content for revert control
+                    custom_content = Div(
+                        H4(f"{step.show}: CSV file downloaded (Job ID {job_id})"),
+                        Pre(tree_path, style="margin-bottom: 1rem; white-space: pre; text-align: left;"),
+                        style="width: 100%; text-align: left;"
+                    )
+                    
+                    revert_control = pip.revert_control(
+                        step_id=step_id, 
+                        app_name=app_name, 
+                        custom_content=custom_content,
+                        steps=steps
+                    )
+                except ValueError:
+                    # Fallback if relative_to fails
+                    tree_path = self.format_path_as_tree(local_file)
+                    
+                    # Create custom content for revert control
+                    custom_content = Div(
+                        H4(f"{step.show}: CSV file downloaded (Job ID {job_id})"),
+                        Pre(tree_path, style="margin-bottom: 1rem; white-space: pre; text-align: left;"),
+                        style="width: 100%; text-align: left;"
+                    )
+                    
+                    revert_control = pip.revert_control(
+                        step_id=step_id, 
+                        app_name=app_name, 
+                        custom_content=custom_content,
+                        steps=steps
+                    )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
+                revert_control = pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=display_msg, 
+                    steps=steps
+                )
             else:
                 # Poll the job status to check if it's complete
                 try:
@@ -841,13 +880,13 @@ class BotifyExport:
                         display_msg = f"{step.show}: Processing (Job ID {job_id})"
                 except Exception:
                     display_msg = f"{step.show}: Job ID {job_id}"
-            
-            revert_control = pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=display_msg, 
-                steps=steps
-            )
+                
+                revert_control = pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=display_msg, 
+                    steps=steps
+                )
             
             # Add a download button if the file is ready but not yet downloaded
             if download_url and not (local_file and Path(local_file).exists()):
