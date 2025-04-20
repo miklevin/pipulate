@@ -138,12 +138,6 @@ class BotifyExport:
                 "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                 "complete": f"{step.show} complete. Continue to next step."
             }
-            
-        # Customize the message for step_04
-        self.step_messages["step_04"] = {
-            "input": "Step 4: Configure your CSV export with additional fields to include.",
-            "complete": "CSV export configuration complete. Continue to next step."
-        }
 
         # Add a finalize step to the workflow (do not change)
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
@@ -1198,7 +1192,6 @@ class BotifyExport:
                 
         # If we never hit 1M, return the max depth and its cumulative count
         return max(sorted_depths), cumulative_sum, None
-
     async def create_download_directory(self, org, project, analysis):
         """Create a nested directory structure for downloads"""
         download_path = Path("downloads") / org / project / analysis
@@ -1754,3 +1747,4 @@ class BotifyExport:
                 ),
                 id=step_id
             )
+
