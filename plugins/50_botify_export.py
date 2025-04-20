@@ -49,7 +49,7 @@ def parse_botify_url(url: str) -> dict:
 
 
 class BotifyExport:
-    APP_NAME = "botfify_csv"
+    APP_NAME = "botify_csv"
     DISPLAY_NAME = "Botify CSV Export"
     ENDPOINT_MESSAGE = (
         "This workflow helps you export data from Botify projects. "
