@@ -4,6 +4,8 @@ from datetime import datetime
 from urllib.parse import urlparse
 import httpx
 from pathlib import Path
+import json
+import os
 
 from fasthtml.common import *
 from loguru import logger
@@ -32,6 +34,9 @@ There are two types of apps in Pipulate:
 
 CRUD is DRY and Workflows are WET! Get ready to get WET!
 """
+
+# Path to the export registry file
+EXPORT_REGISTRY_FILE = Path("downloads/export_registry.json")
 
 # This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
@@ -123,6 +128,8 @@ class BotifyExport:
         app.route(f"/{app_name}/download_progress")(self.download_progress)
         app.route(f"/{app_name}/use_existing_export", methods=["POST"])(self.use_existing_export)
         app.route(f"/{app_name}/step_04/new")(self.step_04_new)
+        app.route(f"/{app_name}/check_export_status", methods=["POST"])(self.check_export_status)
+        app.route(f"/{app_name}/download_ready_export", methods=["POST"])(self.download_ready_export)
 
         # Define messages for finalize (you can change these)
         self.step_messages = {
@@ -786,6 +793,17 @@ class BotifyExport:
                         state[step_id]['status'] = 'DONE'
                         pip.write_state(pipeline_id, state)
                         
+                        # Also update the registry
+                        if 'org' in step_data and 'project' in step_data and 'analysis' in step_data and 'depth' in step_data:
+                            self.update_export_job(
+                                step_data['org'], 
+                                step_data['project'], 
+                                step_data['analysis'], 
+                                step_data['depth'],
+                                job_id,
+                                {'status': 'DONE', 'download_url': download_url}
+                            )
+                        
                         display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
                     else:
                         display_msg = f"{step.show}: Processing (Job ID {job_id})"
@@ -837,22 +855,159 @@ class BotifyExport:
             return P("Missing required data from previous steps. Please complete all steps first.", 
                     style=pip.get_style("error"))
 
+        # Check for existing jobs in the registry
+        existing_jobs = self.find_export_jobs(org, project, analysis, depth)
+        completed_jobs = [job for job in existing_jobs if job['status'] == 'DONE' and job.get('download_url')]
+        processing_jobs = [job for job in existing_jobs if job['status'] == 'PROCESSING']
+        
+        # Check if any processing jobs are actually done
+        if processing_jobs:
+            api_token = self.read_api_token()
+            for job in processing_jobs:
+                job_url = job['job_url']
+                job_id = job['job_id']
+                try:
+                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token)
+                    if is_complete and download_url:
+                        self.update_export_job(
+                            org, project, analysis, depth, job_id,
+                            {'status': 'DONE', 'download_url': download_url}
+                        )
+                        completed_jobs.append({**job, 'status': 'DONE', 'download_url': download_url})
+                        processing_jobs.remove(job)
+                except Exception as e:
+                    logger.error(f"Error checking job status: {e}")
+        
+        # Look for completed jobs with local files
+        downloaded_jobs = []
+        for job in completed_jobs:
+            if job.get('local_file') and Path(job['local_file']).exists():
+                downloaded_jobs.append(job)
+        
         # Check if an export with these parameters already exists
         existing_path = Path("downloads") / org / project / analysis
         existing_files = list(existing_path.glob(f"*depth_{depth}*.csv")) if existing_path.exists() else []
         
-        if existing_files:
-            existing_file = existing_files[0]
-            await self.message_queue.add(pip, f"Found existing export: {existing_file.name}", verbatim=True)
+        if downloaded_jobs:
+            # We have a downloaded job - offer to use it
+            job = downloaded_jobs[0]
+            local_file = job['local_file']
+            file_path = Path(local_file)
+            
+            await self.message_queue.add(pip, f"Found existing downloaded export: {file_path.name}", verbatim=True)
             
             return Div(
                 Card(
                     H4(f"{pip.fmt(step_id)}: {step.show}"),
-                    P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} already exists:", 
+                    P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} has already been downloaded:", 
+                      style="margin-bottom: 0.5rem;"),
+                    P(f"File: {file_path.name}", style="margin-bottom: 1rem;"),
+                    P(f"Path: {file_path}", style="margin-bottom: 1rem;"),
+                    Div(
+                        Button("Use Existing Download", type="button", cls="primary", 
+                               hx_post=f"/{app_name}/use_existing_export",
+                               hx_target=f"#{step.id}",
+                               hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{file_path}"}}'
+                        ),
+                        Button("Create New Export", type="button", 
+                               hx_get=f"/{app_name}/{step.id}/new",
+                               hx_target=f"#{step.id}"
+                        ),
+                        style="display: flex; gap: 1rem;"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+        elif completed_jobs:
+            # We have a completed job but no download - offer to download it
+            job = completed_jobs[0]
+            job_id = job['job_id']
+            download_url = job['download_url']
+            
+            await self.message_queue.add(pip, f"Found existing completed export (Job ID: {job_id})", verbatim=True)
+            
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is ready to download:", 
+                      style="margin-bottom: 1rem;"),
+                    P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                    Div(
+                        Button("Download Ready Export", type="button", cls="primary", 
+                               hx_post=f"/{app_name}/download_ready_export",
+                               hx_target=f"#{step.id}",
+                               hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "download_url": "{download_url}"}}'
+                        ),
+                        Button("Create New Export", type="button", 
+                               hx_get=f"/{app_name}/{step.id}/new",
+                               hx_target=f"#{step.id}"
+                        ),
+                        style="display: flex; gap: 1rem;"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+        elif processing_jobs:
+            # We have a processing job - show its status
+            job = processing_jobs[0]
+            job_id = job['job_id']
+            job_url = job['job_url']
+            created = job.get('created', 'Unknown')
+            
+            # Try to parse the timestamp
+            try:
+                created_dt = datetime.fromisoformat(created)
+                created_str = created_dt.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                created_str = created
+            
+            await self.message_queue.add(
+                pip, 
+                f"Found existing export job in progress (Job ID: {job_id}, Started: {created_str})", 
+                verbatim=True
+            )
+            
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is already processing:", 
+                      style="margin-bottom: 1rem;"),
+                    P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                    P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
+                    Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
+                    P("The export job is still processing. Please wait for it to complete.", 
+                      style="color: #666; margin-bottom: 1rem;"),
+                    Div(
+                        Button("Check Status", type="button", cls="primary", 
+                               hx_post=f"/{app_name}/check_export_status",
+                               hx_target=f"#{step.id}",
+                               hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "job_url": "{job_url}"}}'
+                        ),
+                        Button("Create New Export", type="button", 
+                               hx_get=f"/{app_name}/{step.id}/new",
+                               hx_target=f"#{step.id}"
+                        ),
+                        style="display: flex; gap: 1rem;"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+        elif existing_files:
+            # Found existing files on disk but not in registry
+            existing_file = existing_files[0]
+            await self.message_queue.add(pip, f"Found existing export file: {existing_file.name}", verbatim=True)
+            
+            return Div(
+                Card(
+                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    P(f"An export file for project '{project}', analysis '{analysis}' at depth {depth} was found on disk:", 
                       style="margin-bottom: 0.5rem;"),
                     P(f"File: {existing_file.name}", style="margin-bottom: 1rem;"),
                     Div(
-                        Button("Use Existing Export", type="button", cls="primary", 
+                        Button("Use Existing File", type="button", cls="primary", 
                                hx_post=f"/{app_name}/use_existing_export",
                                hx_target=f"#{step.id}",
                                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{existing_file}"}}'
@@ -907,6 +1062,696 @@ class BotifyExport:
             Div(id=next_step_id),
             id=step.id
         )
+
+    async def step_04_submit(self, request):
+        """Handle the submission of the CSV export options and start the export job"""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Handle finalized state using helper
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+
+        # Get form data
+        form = await request.form()
+        include_title = form.get("include_title") == "true"
+        include_meta_desc = form.get("include_meta_desc") == "true"
+        include_h1 = form.get("include_h1") == "true"
+        
+        # Get data from previous steps
+        state = pip.read_state(pipeline_id)
+        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
+        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
+        step_03_data = pip.get_step_data(pipeline_id, "step_03", {})
+        
+        org = step_01_data.get('org')
+        project = step_01_data.get('project')
+        analysis = step_02_data.get('analysis')
+        depth = step_03_data.get('depth')
+        
+        # Check if we have all required data
+        if not all([org, project, analysis, depth]):
+            return P("Missing required data from previous steps.", style=pip.get_style("error"))
+        
+        # Check if there's already an export job with these parameters
+        existing_jobs = self.find_export_jobs(org, project, analysis, depth)
+        completed_jobs = [job for job in existing_jobs if job['status'] == 'DONE' and job.get('download_url')]
+        processing_jobs = [job for job in existing_jobs if job['status'] == 'PROCESSING']
+        
+        # Check if any processing jobs have completed
+        if processing_jobs:
+            api_token = self.read_api_token()
+            for job in processing_jobs[:]:  # Use a copy for iteration
+                job_url = job['job_url']
+                job_id = job['job_id']
+                try:
+                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token)
+                    if is_complete and download_url:
+                        # Update the job status in the registry
+                        self.update_export_job(
+                            org, project, analysis, depth, job_id,
+                            {'status': 'DONE', 'download_url': download_url}
+                        )
+                        # Move from processing to completed
+                        job_with_url = {**job, 'status': 'DONE', 'download_url': download_url}
+                        completed_jobs.append(job_with_url)
+                        processing_jobs.remove(job)
+                except Exception as e:
+                    logger.error(f"Error checking job status: {e}")
+        
+        # If there's a completed job, offer to download it instead of starting a new one
+        if completed_jobs:
+            job = completed_jobs[0]
+            job_id = job['job_id']
+            download_url = job['download_url']
+            
+            # Update the state with the existing job information
+            if step_id not in state:
+                state[step_id] = {}
+            
+            state[step_id].update({
+                'job_url': job['job_url'],
+                'job_id': job_id,
+                'org': org,
+                'project': project,
+                'analysis': analysis,
+                'depth': depth,
+                'download_url': download_url,
+                'status': 'DONE',
+                'include_fields': {
+                    'title': include_title,
+                    'meta_desc': include_meta_desc,
+                    'h1': include_h1
+                }
+            })
+            
+            # Store the job URL as the "done" field
+            state[step_id][step.done] = job['job_url']
+            
+            # Write the state
+            pip.write_state(pipeline_id, state)
+            
+            # Send message about reusing the existing export
+            await self.message_queue.add(
+                pip, 
+                f"Using existing export job (ID: {job_id}).\n"
+                f"This job has already completed and is ready for download.", 
+                verbatim=True
+            )
+            
+            # Create response UI for the existing job
+            return Div(
+                Card(
+                    H4(f"Export Status: Complete ✅"),
+                    P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                    P(f"The export with your requested parameters is ready for download.", 
+                      style="margin-bottom: 1rem;"),
+                    Form(
+                        Button("Download CSV", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/download_csv",
+                        hx_target=f"#{step_id}",
+                        hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                    )
+                ),
+                pip.create_step_navigation(step_id, step_index, steps, app_name, job['job_url']),
+                id=step_id
+            )
+        
+        # If there's a processing job, show its status instead of starting a new one
+        if processing_jobs:
+            job = processing_jobs[0]
+            job_id = job['job_id']
+            job_url = job['job_url']
+            
+            # Update the state with the existing job information
+            if step_id not in state:
+                state[step_id] = {}
+            
+            state[step_id].update({
+                'job_url': job_url,
+                'job_id': job_id,
+                'org': org,
+                'project': project,
+                'analysis': analysis,
+                'depth': depth,
+                'status': 'PROCESSING',
+                'include_fields': {
+                    'title': include_title,
+                    'meta_desc': include_meta_desc,
+                    'h1': include_h1
+                }
+            })
+            
+            # Store the job URL as the "done" field
+            state[step_id][step.done] = job_url
+            
+            # Write the state
+            pip.write_state(pipeline_id, state)
+            
+            # Send message about the existing processing job
+            created = job.get('created', 'Unknown')
+            try:
+                created_dt = datetime.fromisoformat(created)
+                created_str = created_dt.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                created_str = created
+                
+            await self.message_queue.add(
+                pip, 
+                f"Using existing export job (ID: {job_id}).\n"
+                f"This job is still processing (started: {created_str}).", 
+                verbatim=True
+            )
+            
+            # Create response UI for the processing job
+            return Div(
+                Card(
+                    H4(f"Export Status: Processing ⏳"),
+                    P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                    P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
+                    Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
+                    P("The export job is still processing. Please check back later.", 
+                      style="color: #666; margin-bottom: 1rem;"),
+                    Form(
+                        Button("Check Status", type="submit", cls="secondary"),
+                        hx_post=f"/{app_name}/check_export_status",
+                        hx_target=f"#{step_id}",
+                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                    )
+                ),
+                pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                id=step_id
+            )
+        
+        # No existing jobs - start a new one
+        try:
+            # Prepare fields to include
+            include_fields = {
+                'title': include_title,
+                'meta_desc': include_meta_desc,
+                'h1': include_h1
+            }
+            
+            # Read API token
+            api_token = self.read_api_token()
+            
+            # Create download directory
+            download_dir = await self.create_download_directory(org, project, analysis)
+            
+            # Initiate the export job
+            job_url, error = await self.initiate_export_job(
+                org, project, analysis, depth, include_fields, api_token
+            )
+            
+            if error:
+                return P(f"Error initiating export: {error}", style=pip.get_style("error"))
+            
+            # Extract job ID for display
+            job_id = job_url.split("/")[-1]
+            
+            # Register the export job in the registry
+            self.register_export_job(org, project, analysis, depth, job_url, job_id)
+            
+            # Do a quick poll to see if the job completed very quickly
+            is_complete, download_url, poll_error = await self.poll_job_status(job_url, api_token)
+            
+            # Update the registry if the job completed right away
+            if is_complete and download_url:
+                self.update_export_job(
+                    org, project, analysis, depth, job_id,
+                    {'status': 'DONE', 'download_url': download_url}
+                )
+            
+            # Store job info in state
+            if step_id not in state:
+                state[step_id] = {}
+            
+            state[step_id].update({
+                'job_url': job_url,
+                'job_id': job_id,
+                'org': org,
+                'project': project,
+                'analysis': analysis,
+                'depth': depth,
+                'download_url': download_url if is_complete else None,
+                'status': 'DONE' if is_complete else 'PROCESSING',
+                'download_path': str(download_dir),
+                'include_fields': include_fields
+            })
+            
+            # Store the job URL as the "done" field
+            state[step_id][step.done] = job_url
+            
+            # Write the complete state back
+            pip.write_state(pipeline_id, state)
+            
+            # Prepare status message
+            if is_complete:
+                status_msg = f"Export completed! Job ID: {job_id}\nThe export is ready for download."
+            else:
+                status_msg = f"Export job started with Job ID: {job_id}\nThe export is processing and may take several minutes."
+            
+            # Send message
+            await self.message_queue.add(pip, status_msg, verbatim=True)
+            
+            # Create response UI
+            status_display = "Complete ✅" if is_complete else "Processing ⏳"
+            
+            result_card = Card(
+                H4(f"Export Status: {status_display}"),
+                P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
+                P(f"Including fields: " + 
+                  ", ".join([k for k, v in include_fields.items() if v]),
+                  style="margin-bottom: 1rem;")
+            )
+            
+            if is_complete:
+                # If the job completed right away, show download button
+                download_button = Form(
+                    Button("Download CSV", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/download_csv",
+                    hx_target=f"#{step_id}",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                )
+                return Div(
+                    result_card,
+                    download_button,
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    id=step_id
+                )
+            else:
+                # Otherwise show processing message
+                return Div(
+                    result_card,
+                    P("Please check back in a few minutes for download options.", 
+                      style="color: #666; margin-bottom: 1rem;"),
+                    Form(
+                        Button("Check Status", type="submit", cls="secondary"),
+                        hx_post=f"/{app_name}/check_export_status",
+                        hx_target=f"#{step_id}",
+                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                    ),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    id=step_id
+                )
+            
+        except Exception as e:
+            logger.error(f"Error in export submission: {str(e)}")
+            return P(f"An error occurred: {str(e)}", style=pip.get_style("error"))
+
+    async def step_04_new(self, request):
+        """Handle request to create a new export instead of using existing one"""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Get data from previous steps
+        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
+        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
+        step_03_data = pip.get_step_data(pipeline_id, "step_03", {})
+        
+        org = step_01_data.get('org')
+        project = step_01_data.get('project')
+        analysis = step_02_data.get('analysis')
+        depth = step_03_data.get('depth')
+        
+        # Create the field selection form for new export
+        return Div(
+            Card(
+                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P(f"Export URLs up to depth {depth} from the {analysis} analysis.", 
+                  style="margin-bottom: 1rem;"),
+                P("Select additional fields to include in the export:", 
+                  style="margin-bottom: 0.5rem;"),
+                Form(
+                    Div(
+                        Label(
+                            Input(type="checkbox", name="include_title", value="true", checked=True),
+                            " Include page titles",
+                            style="display: block; margin-bottom: 0.5rem;"
+                        ),
+                        Label(
+                            Input(type="checkbox", name="include_meta_desc", value="true", checked=True),
+                            " Include meta descriptions",
+                            style="display: block; margin-bottom: 0.5rem;"
+                        ),
+                        Label(
+                            Input(type="checkbox", name="include_h1", value="true", checked=True),
+                            " Include H1 headings",
+                            style="display: block; margin-bottom: 1rem;"
+                        ),
+                        style="margin-bottom: 1.5rem;"
+                    ),
+                    Button("Start Export", type="submit", cls="primary"),
+                    P("Note: Large exports may take several minutes to process.", 
+                      style="font-size: 0.8em; color: #666; margin-top: 0.5rem;"),
+                    hx_post=f"/{app_name}/{step.id}_submit",
+                    hx_target=f"#{step.id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step.id
+        )
+
+    async def use_existing_export(self, request):
+        """
+        Use an existing export file instead of creating a new one
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        file_path = form.get("file_path")
+        
+        if not all([pipeline_id, file_path]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Update state with existing file information
+        state = pip.read_state(pipeline_id)
+        if step_id not in state:
+            state[step_id] = {}
+        
+        state[step_id].update({
+            'local_file': file_path,
+            'status': 'DONE',
+            'is_existing_file': True
+        })
+        
+        # Set a dummy URL in the done field since we need something there
+        state[step_id][step.done] = f"existing://{file_path}"
+        pip.write_state(pipeline_id, state)
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"Using existing export file: {file_path}", verbatim=True)
+        
+        # Return navigation controls
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, file_path)
+
+    async def download_csv(self, request):
+        """
+        Handle downloading the CSV file from a completed export job
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        
+        if not pipeline_id:
+            return P("Missing pipeline_id parameter", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Extract necessary information
+        download_url = step_data.get('download_url')
+        org = step_data.get('org')
+        project = step_data.get('project')
+        analysis = step_data.get('analysis')
+        depth = step_data.get('depth', '0')
+        job_id = step_data.get('job_id', 'unknown')
+        
+        if not download_url:
+            # Check if the job is complete and get the download URL
+            try:
+                job_url = step_data.get(step.done)
+                if not job_url:
+                    return P("No job URL found", style=pip.get_style("error"))
+                    
+                api_token = self.read_api_token()
+                is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+                
+                if not is_complete or not download_url:
+                    return Div(
+                        P("Export job is still processing. Please try again in a few minutes.", style="margin-bottom: 1rem;"),
+                        Progress(value="60", max="100", style="width: 100%;"),
+                        P(f"Error: {error}" if error else "", style=pip.get_style("error"))
+                    )
+                    
+                # Update state with download URL
+                state[step_id]['download_url'] = download_url
+                state[step_id]['status'] = 'DONE'
+                pip.write_state(pipeline_id, state)
+            except Exception as e:
+                return P(f"Error checking job status: {str(e)}", style=pip.get_style("error"))
+        
+        # Create the download directory
+        try:
+            download_dir = await self.create_download_directory(org, project, analysis)
+            
+            # Generate filename based on depth and fields included
+            include_fields = step_data.get('include_fields', {})
+            fields_suffix = "_".join(k for k, v in include_fields.items() if v)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv"
+            
+            local_file_path = download_dir / filename
+            
+            # Start downloading with progress feedback
+            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
+            
+            # Show download progress
+            return Div(
+                Card(
+                    H4("Downloading CSV File"),
+                    P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
+                    Progress(value="10", max="100", style="width: 100%;"),
+                    P("Please wait, this may take a few minutes for large files...", 
+                      style="font-size: 0.9em; color: #666;")
+                ),
+                hx_get=f"/{app_name}/download_progress",
+                hx_trigger="load",
+                hx_target=f"#{step_id}",
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
+                id=step_id
+            )
+        except Exception as e:
+            return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
+
+    async def download_progress(self, request):
+        """
+        Handle the actual file download and show progress
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        
+        # Get request data
+        pipeline_id = request.query_params.get("pipeline_id")
+        download_url = request.query_params.get("download_url")
+        local_file = request.query_params.get("local_file")
+        
+        if not all([pipeline_id, download_url, local_file]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        local_file_path = Path(local_file)
+        
+        try:
+            # Perform the actual download
+            api_token = self.read_api_token()
+            headers = {"Authorization": f"Token {api_token}"}
+            
+            # Create parent directories if they don't exist
+            local_file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Download the file using httpx with streaming
+            async with httpx.AsyncClient() as client:
+                async with client.stream("GET", download_url, headers=headers, follow_redirects=True) as response:
+                    response.raise_for_status()
+                    
+                    # Get content length if available
+                    total_size = int(response.headers.get('content-length', 0))
+                    
+                    # Open file for writing
+                    with open(local_file_path, 'wb') as f:
+                        async for chunk in response.aiter_bytes(chunk_size=8192):
+                            f.write(chunk)
+            
+            # Check if file needs to be unzipped
+            if local_file_path.suffix.lower() in ('.zip', '.gz'):
+                await self.message_queue.add(pip, f"Extracting {local_file_path}", verbatim=True)
+                
+                extracted_path = None
+                # Unzip the file (implementation depends on file type)
+                if local_file_path.suffix.lower() == '.zip':
+                    import zipfile
+                    
+                    with zipfile.ZipFile(local_file_path, 'r') as zip_ref:
+                        # Get the first CSV file in the archive
+                        csv_files = [f for f in zip_ref.namelist() if f.lower().endswith('.csv')]
+                        if not csv_files:
+                            return P("No CSV files found in the downloaded ZIP archive", style=pip.get_style("error"))
+                        
+                        # Extract the CSV file
+                        csv_file = csv_files[0]
+                        extracted_path = local_file_path.parent / csv_file
+                        zip_ref.extract(csv_file, local_file_path.parent)
+                
+                elif local_file_path.suffix.lower() == '.gz':
+                    import gzip
+                    import shutil
+                    
+                    # Assume it's a .csv.gz file and create a .csv file
+                    extracted_path = local_file_path.with_suffix('')
+                    with gzip.open(local_file_path, 'rb') as f_in:
+                        with open(extracted_path, 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                
+                # Update the local file path to the extracted file if available
+                if extracted_path:
+                    local_file_path = extracted_path
+            
+            # Update state with local file path
+            state = pip.read_state(pipeline_id)
+            step_data = pip.get_step_data(pipeline_id, step_id, {})
+            
+            job_id = step_data.get('job_id')
+            org = step_data.get('org')
+            project = step_data.get('project')
+            analysis = step_data.get('analysis')
+            depth = step_data.get('depth')
+            
+            state[step_id]['local_file'] = str(local_file_path)
+            pip.write_state(pipeline_id, state)
+            
+            # Update the registry if we have a job_id
+            if job_id and all([org, project, analysis, depth]):
+                self.update_export_job(
+                    org, project, analysis, depth, job_id,
+                    {'local_file': str(local_file_path)}
+                )
+            
+            # Get file information
+            file_size_bytes = local_file_path.stat().st_size
+            file_size_mb = file_size_bytes / (1024 * 1024)
+            
+            # Send success message
+            await self.message_queue.add(
+                pip, 
+                f"Successfully downloaded and prepared CSV file:\n"
+                f"Path: {local_file_path}\n"
+                f"Size: {file_size_mb:.2f} MB", 
+                verbatim=True
+            )
+            
+            # Return success UI with file information
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: CSV downloaded ({file_size_mb:.2f} MB)", 
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        except Exception as e:
+            return Div(
+                Card(
+                    H4("Download Error"),
+                    P(f"Error downloading CSV file: {str(e)}", style=pip.get_style("error")),
+                    P(f"Download URL: {download_url}"),
+                    P(f"Target file: {local_file_path}"),
+                    Button("Try Again", type="button", cls="primary",
+                           hx_post=f"/{app_name}/download_csv",
+                           hx_target=f"#{step_id}",
+                           hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
+                ),
+                id=step_id
+            )
+
+    def get_export_key(self, org, project, analysis, depth):
+        """Generate a unique key for an export configuration"""
+        return f"{org}_{project}_{analysis}_depth_{depth}"
+
+    def load_export_registry(self):
+        """Load the export registry from file"""
+        try:
+            if EXPORT_REGISTRY_FILE.exists():
+                with open(EXPORT_REGISTRY_FILE, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading export registry: {e}")
+            return {}
+
+    def save_export_registry(self, registry):
+        """Save the export registry to file"""
+        try:
+            # Create directory if it doesn't exist
+            EXPORT_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(EXPORT_REGISTRY_FILE, 'w') as f:
+                json.dump(registry, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving export registry: {e}")
+
+    def register_export_job(self, org, project, analysis, depth, job_url, job_id):
+        """Register a new export job in the registry"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        
+        # Check if this export already exists
+        if export_key not in registry:
+            registry[export_key] = []
+        
+        # Add the new job
+        registry[export_key].append({
+            'job_url': job_url,
+            'job_id': job_id,
+            'status': 'PROCESSING',
+            'created': datetime.now().isoformat(),
+            'updated': datetime.now().isoformat(),
+            'download_url': None,
+            'local_file': None
+        })
+        
+        self.save_export_registry(registry)
+        return export_key
+
+    def update_export_job(self, org, project, analysis, depth, job_id, updates):
+        """Update an existing export job in the registry"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        
+        if export_key not in registry:
+            logger.error(f"Export key {export_key} not found in registry")
+            return False
+        
+        for job in registry[export_key]:
+            if job['job_id'] == job_id:
+                job.update(updates)
+                job['updated'] = datetime.now().isoformat()
+                self.save_export_registry(registry)
+                return True
+        
+        logger.error(f"Job ID {job_id} not found for export key {export_key}")
+        return False
+
+    def find_export_jobs(self, org, project, analysis, depth):
+        """Find all export jobs for a specific configuration"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        
+        return registry.get(export_key, [])
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
@@ -1192,6 +2037,201 @@ class BotifyExport:
                 
         # If we never hit 1M, return the max depth and its cumulative count
         return max(sorted_depths), cumulative_sum, None
+
+    async def check_export_status(self, request):
+        """
+        Check the status of an export job and update the UI
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        job_url = form.get("job_url")
+        job_id = form.get("job_id")
+        
+        if not all([pipeline_id, job_url, job_id]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Check if the job is complete
+        try:
+            api_token = self.read_api_token()
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            
+            if is_complete and download_url:
+                # Update the state with the download URL
+                state[step_id]['download_url'] = download_url
+                state[step_id]['status'] = 'DONE'
+                pip.write_state(pipeline_id, state)
+                
+                # Update the registry
+                org = step_data.get('org')
+                project = step_data.get('project')
+                analysis = step_data.get('analysis')
+                depth = step_data.get('depth')
+                
+                if all([org, project, analysis, depth]):
+                    self.update_export_job(
+                        org, project, analysis, depth, job_id,
+                        {'status': 'DONE', 'download_url': download_url}
+                    )
+                
+                # Send success message
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job completed! Job ID: {job_id}\n"
+                    f"The export is ready for download.", 
+                    verbatim=True
+                )
+                
+                # Return the download button
+                return Div(
+                    Card(
+                        H4("Export Status: Complete ✅"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
+                        Form(
+                            Button("Download CSV", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/download_csv",
+                            hx_target=f"#{step_id}",
+                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                        )
+                    ),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    id=step_id
+                )
+            else:
+                # Job is still processing
+                created = step_data.get('created', state[step_id].get('created', 'Unknown'))
+                try:
+                    created_dt = datetime.fromisoformat(created)
+                    created_str = created_dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    created_str = created
+                
+                # Send message about still processing
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job is still processing (Job ID: {job_id}).\n"
+                    f"Please check back later.", 
+                    verbatim=True
+                )
+                
+                return Div(
+                    Card(
+                        H4("Export Status: Processing ⏳"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
+                        Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
+                        P("The export job is still processing. Please check back later.", 
+                          style="color: #666; margin-bottom: 1rem;"),
+                        Form(
+                            Button("Check Status Again", type="submit", cls="secondary"),
+                            hx_post=f"/{app_name}/check_export_status",
+                            hx_target=f"#{step_id}",
+                            hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                        )
+                    ),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    id=step_id
+                )
+                
+        except Exception as e:
+            logger.error(f"Error checking job status: {str(e)}")
+            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
+
+    async def download_ready_export(self, request):
+        """
+        Handle downloading an existing export job
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        job_id = form.get("job_id")
+        download_url = form.get("download_url")
+        
+        if not all([pipeline_id, job_id, download_url]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Extract necessary information from state
+        org = step_data.get('org')
+        project = step_data.get('project')
+        analysis = step_data.get('analysis')
+        depth = step_data.get('depth', '0')
+        
+        # Update state with the download URL if it's not already set
+        if step_id not in state:
+            state[step_id] = {}
+        
+        state[step_id].update({
+            'job_id': job_id,
+            'download_url': download_url,
+            'status': 'DONE',
+            'org': org,
+            'project': project,
+            'analysis': analysis,
+            'depth': depth
+        })
+        
+        # Set a dummy job URL if none exists
+        if step.done not in state[step_id]:
+            state[step_id][step.done] = f"existing://{job_id}"
+            
+        pip.write_state(pipeline_id, state)
+        
+        # Show download progress UI
+        try:
+            # Create download directory
+            download_dir = await self.create_download_directory(org, project, analysis)
+            
+            # Generate filename
+            include_fields = step_data.get('include_fields', {})
+            fields_suffix = "_".join(k for k, v in include_fields.items() if v) or "url_only"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv"
+            
+            local_file_path = download_dir / filename
+            
+            # Start downloading with progress feedback
+            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
+            
+            # Show download progress
+            return Div(
+                Card(
+                    H4("Downloading CSV File"),
+                    P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
+                    Progress(value="10", max="100", style="width: 100%;"),
+                    P("Please wait, this may take a few minutes for large files...", 
+                      style="font-size: 0.9em; color: #666;")
+                ),
+                hx_get=f"/{app_name}/download_progress",
+                hx_trigger="load",
+                hx_target=f"#{step_id}",
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
+                id=step_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error preparing download: {str(e)}")
+            return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
+
     async def create_download_directory(self, org, project, analysis):
         """Create a nested directory structure for downloads"""
         download_path = Path("downloads") / org / project / analysis
@@ -1314,437 +2354,4 @@ class BotifyExport:
         except Exception as e:
             logger.error(f"Error polling job status: {str(e)}")
             return False, None, f"Error polling job status: {str(e)}"
-
-    async def step_04_submit(self, request):
-        """Handle the submission of the CSV export options and start the export job"""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Handle finalized state using helper
-        if step.done == 'finalized':
-            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
-
-        # Get form data
-        form = await request.form()
-        include_title = form.get("include_title") == "true"
-        include_meta_desc = form.get("include_meta_desc") == "true"
-        include_h1 = form.get("include_h1") == "true"
-        
-        # Get data from previous steps
-        state = pip.read_state(pipeline_id)
-        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
-        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
-        step_03_data = pip.get_step_data(pipeline_id, "step_03", {})
-        
-        org = step_01_data.get('org')
-        project = step_01_data.get('project')
-        analysis = step_02_data.get('analysis')
-        depth = step_03_data.get('depth')
-        
-        # Check if we have all required data
-        if not all([org, project, analysis, depth]):
-            return P("Missing required data from previous steps.", style=pip.get_style("error"))
-        
-        # Prepare fields to include
-        include_fields = {
-            'title': include_title,
-            'meta_desc': include_meta_desc,
-            'h1': include_h1
-        }
-        
-        try:
-            # Read API token
-            api_token = self.read_api_token()
-            
-            # Create download directory
-            download_dir = await self.create_download_directory(org, project, analysis)
-            
-            # Initiate the export job
-            job_url, error = await self.initiate_export_job(
-                org, project, analysis, depth, include_fields, api_token
-            )
-            
-            if error:
-                return P(f"Error initiating export: {error}", style=pip.get_style("error"))
-            
-            # Extract job ID for display
-            job_id = job_url.split("/")[-1]
-            
-            # Do a quick poll to see if the job completed very quickly
-            is_complete, download_url, poll_error = await self.poll_job_status(job_url, api_token)
-            
-            # Store job info in state
-            if step_id not in state:
-                state[step_id] = {}
-            
-            state[step_id].update({
-                'job_url': job_url,
-                'job_id': job_id,
-                'org': org,
-                'project': project,
-                'analysis': analysis,
-                'depth': depth,
-                'download_url': download_url if is_complete else None,
-                'status': 'DONE' if is_complete else 'PROCESSING',
-                'download_path': str(download_dir),
-                'include_fields': include_fields
-            })
-            
-            # Store the job URL as the "done" field
-            state[step_id][step.done] = job_url
-            
-            # Write the complete state back
-            pip.write_state(pipeline_id, state)
-            
-            # Prepare status message
-            if is_complete:
-                status_msg = f"Export completed! Job ID: {job_id}\nDownload URL: {download_url}"
-            else:
-                status_msg = f"Export job started with Job ID: {job_id}\nThe export is processing and may take several minutes."
-            
-            # Send message
-            await self.message_queue.add(pip, status_msg, verbatim=True)
-            
-            # Create response UI
-            status_display = "Complete ✅" if is_complete else "Processing ⏳"
-            
-            result_card = Card(
-                H4(f"Export Status: {status_display}"),
-                P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
-                P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
-                P(f"Including fields: " + 
-                  ", ".join([k for k, v in include_fields.items() if v]),
-                  style="margin-bottom: 1rem;")
-            )
-            
-            if is_complete:
-                # If the job completed right away, show download button
-                download_button = Form(
-                    Button("Download CSV", type="submit", cls="primary"),
-                    hx_post=f"/{app_name}/download_csv",
-                    hx_target=f"#{step_id}",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
-                )
-                return Div(
-                    result_card,
-                    download_button,
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
-                )
-            else:
-                # Otherwise show processing message
-                return Div(
-                    result_card,
-                    P("Please check back in a few minutes for download options.", 
-                      style="color: #666; margin-bottom: 1rem;"),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
-                )
-            
-        except Exception as e:
-            logger.error(f"Error in export submission: {str(e)}")
-            return P(f"An error occurred: {str(e)}", style=pip.get_style("error"))
-
-    async def step_04_new(self, request):
-        """Handle request to create a new export instead of using existing one"""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Get data from previous steps
-        step_01_data = pip.get_step_data(pipeline_id, "step_01", {})
-        step_02_data = pip.get_step_data(pipeline_id, "step_02", {})
-        step_03_data = pip.get_step_data(pipeline_id, "step_03", {})
-        
-        org = step_01_data.get('org')
-        project = step_01_data.get('project')
-        analysis = step_02_data.get('analysis')
-        depth = step_03_data.get('depth')
-        
-        # Create the field selection form for new export
-        return Div(
-            Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P(f"Export URLs up to depth {depth} from the {analysis} analysis.", 
-                  style="margin-bottom: 1rem;"),
-                P("Select additional fields to include in the export:", 
-                  style="margin-bottom: 0.5rem;"),
-                Form(
-                    Div(
-                        Label(
-                            Input(type="checkbox", name="include_title", value="true", checked=True),
-                            " Include page titles",
-                            style="display: block; margin-bottom: 0.5rem;"
-                        ),
-                        Label(
-                            Input(type="checkbox", name="include_meta_desc", value="true", checked=True),
-                            " Include meta descriptions",
-                            style="display: block; margin-bottom: 0.5rem;"
-                        ),
-                        Label(
-                            Input(type="checkbox", name="include_h1", value="true", checked=True),
-                            " Include H1 headings",
-                            style="display: block; margin-bottom: 1rem;"
-                        ),
-                        style="margin-bottom: 1.5rem;"
-                    ),
-                    Button("Start Export", type="submit", cls="primary"),
-                    P("Note: Large exports may take several minutes to process.", 
-                      style="font-size: 0.8em; color: #666; margin-top: 0.5rem;"),
-                    hx_post=f"/{app_name}/{step.id}_submit",
-                    hx_target=f"#{step.id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step.id
-        )
-
-    async def use_existing_export(self, request):
-        """
-        Use an existing export file instead of creating a new one
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        
-        # Get form data
-        form = await request.form()
-        pipeline_id = form.get("pipeline_id")
-        file_path = form.get("file_path")
-        
-        if not all([pipeline_id, file_path]):
-            return P("Missing required parameters", style=pip.get_style("error"))
-        
-        # Update state with existing file information
-        state = pip.read_state(pipeline_id)
-        if step_id not in state:
-            state[step_id] = {}
-        
-        state[step_id].update({
-            'local_file': file_path,
-            'status': 'DONE',
-            'is_existing_file': True
-        })
-        
-        # Set a dummy URL in the done field since we need something there
-        state[step_id][step.done] = f"existing://{file_path}"
-        pip.write_state(pipeline_id, state)
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"Using existing export file: {file_path}", verbatim=True)
-        
-        # Return navigation controls
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, file_path)
-
-    async def download_csv(self, request):
-        """
-        Handle downloading the CSV file from a completed export job
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        
-        # Get form data
-        form = await request.form()
-        pipeline_id = form.get("pipeline_id")
-        
-        if not pipeline_id:
-            return P("Missing pipeline_id parameter", style=pip.get_style("error"))
-        
-        # Get state data
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        
-        # Extract necessary information
-        download_url = step_data.get('download_url')
-        org = step_data.get('org')
-        project = step_data.get('project')
-        analysis = step_data.get('analysis')
-        depth = step_data.get('depth', '0')
-        job_id = step_data.get('job_id', 'unknown')
-        
-        if not download_url:
-            # Check if the job is complete and get the download URL
-            try:
-                job_url = step_data.get(step.done)
-                if not job_url:
-                    return P("No job URL found", style=pip.get_style("error"))
-                    
-                api_token = self.read_api_token()
-                is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
-                
-                if not is_complete or not download_url:
-                    return Div(
-                        P("Export job is still processing. Please try again in a few minutes.", style="margin-bottom: 1rem;"),
-                        Progress(value="60", max="100", style="width: 100%;"),
-                        P(f"Error: {error}" if error else "", style=pip.get_style("error"))
-                    )
-                    
-                # Update state with download URL
-                state[step_id]['download_url'] = download_url
-                state[step_id]['status'] = 'DONE'
-                pip.write_state(pipeline_id, state)
-            except Exception as e:
-                return P(f"Error checking job status: {str(e)}", style=pip.get_style("error"))
-        
-        # Create the download directory
-        try:
-            download_dir = await self.create_download_directory(org, project, analysis)
-            
-            # Generate filename based on depth and fields included
-            include_fields = step_data.get('include_fields', {})
-            fields_suffix = "_".join(k for k, v in include_fields.items() if v)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv"
-            
-            local_file_path = download_dir / filename
-            
-            # Start downloading with progress feedback
-            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
-            
-            # Show download progress
-            return Div(
-                Card(
-                    H4("Downloading CSV File"),
-                    P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
-                    Progress(value="10", max="100", style="width: 100%;"),
-                    P("Please wait, this may take a few minutes for large files...", 
-                      style="font-size: 0.9em; color: #666;")
-                ),
-                hx_get=f"/{app_name}/download_progress",
-                hx_trigger="load",
-                hx_target=f"#{step_id}",
-                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
-                id=step_id
-            )
-        except Exception as e:
-            return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
-
-    async def download_progress(self, request):
-        """
-        Handle the actual file download and show progress
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        
-        # Get request data
-        pipeline_id = request.query_params.get("pipeline_id")
-        download_url = request.query_params.get("download_url")
-        local_file = request.query_params.get("local_file")
-        
-        if not all([pipeline_id, download_url, local_file]):
-            return P("Missing required parameters", style=pip.get_style("error"))
-        
-        local_file_path = Path(local_file)
-        
-        try:
-            # Perform the actual download
-            api_token = self.read_api_token()
-            headers = {"Authorization": f"Token {api_token}"}
-            
-            # Create parent directories if they don't exist
-            local_file_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Download the file using httpx with streaming
-            async with httpx.AsyncClient() as client:
-                async with client.stream("GET", download_url, headers=headers, follow_redirects=True) as response:
-                    response.raise_for_status()
-                    
-                    # Get content length if available
-                    total_size = int(response.headers.get('content-length', 0))
-                    
-                    # Open file for writing
-                    with open(local_file_path, 'wb') as f:
-                        async for chunk in response.aiter_bytes(chunk_size=8192):
-                            f.write(chunk)
-            
-            # Check if file needs to be unzipped
-            if local_file_path.suffix.lower() in ('.zip', '.gz'):
-                await self.message_queue.add(pip, f"Extracting {local_file_path}", verbatim=True)
-                
-                extracted_path = None
-                # Unzip the file (implementation depends on file type)
-                if local_file_path.suffix.lower() == '.zip':
-                    import zipfile
-                    
-                    with zipfile.ZipFile(local_file_path, 'r') as zip_ref:
-                        # Get the first CSV file in the archive
-                        csv_files = [f for f in zip_ref.namelist() if f.lower().endswith('.csv')]
-                        if not csv_files:
-                            return P("No CSV files found in the downloaded ZIP archive", style=pip.get_style("error"))
-                        
-                        # Extract the CSV file
-                        csv_file = csv_files[0]
-                        extracted_path = local_file_path.parent / csv_file
-                        zip_ref.extract(csv_file, local_file_path.parent)
-                
-                elif local_file_path.suffix.lower() == '.gz':
-                    import gzip
-                    import shutil
-                    
-                    # Assume it's a .csv.gz file and create a .csv file
-                    extracted_path = local_file_path.with_suffix('')
-                    with gzip.open(local_file_path, 'rb') as f_in:
-                        with open(extracted_path, 'wb') as f_out:
-                            shutil.copyfileobj(f_in, f_out)
-                
-                # Update the local file path to the extracted file if available
-                if extracted_path:
-                    local_file_path = extracted_path
-            
-            # Update state with local file path
-            state = pip.read_state(pipeline_id)
-            state[step_id]['local_file'] = str(local_file_path)
-            pip.write_state(pipeline_id, state)
-            
-            # Get file information
-            file_size_bytes = local_file_path.stat().st_size
-            file_size_mb = file_size_bytes / (1024 * 1024)
-            
-            # Send success message
-            await self.message_queue.add(
-                pip, 
-                f"Successfully downloaded and prepared CSV file:\n"
-                f"Path: {local_file_path}\n"
-                f"Size: {file_size_mb:.2f} MB", 
-                verbatim=True
-            )
-            
-            # Return success UI with file information
-            return Div(
-                pip.revert_control(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f"{step.show}: CSV downloaded ({file_size_mb:.2f} MB)", 
-                    steps=steps
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        
-        except Exception as e:
-            return Div(
-                Card(
-                    H4("Download Error"),
-                    P(f"Error downloading CSV file: {str(e)}", style=pip.get_style("error")),
-                    P(f"Download URL: {download_url}"),
-                    P(f"Target file: {local_file_path}"),
-                    Button("Try Again", type="button", cls="primary",
-                           hx_post=f"/{app_name}/download_csv",
-                           hx_target=f"#{step_id}",
-                           hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
-                ),
-                id=step_id
-            )
 
