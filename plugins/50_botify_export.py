@@ -2502,7 +2502,7 @@ class BotifyExport:
 
     def format_path_as_tree(self, path_str):
         """
-        Format a file path as a simple ASCII tree
+        Format a file path as a proper hierarchical ASCII tree
         """
         path = Path(path_str)
         
@@ -2512,18 +2512,26 @@ class BotifyExport:
         # Build the tree visualization
         tree_lines = []
         
-        # Root or drive
+        # Root or first part
         if parts and parts[0] == '/':
             tree_lines.append('/')
             parts = parts[1:]
         elif len(parts) > 0:
             tree_lines.append(parts[0])
             parts = parts[1:]
-            
-        # Add branches for each directory
+        
+        # Track the current level of indentation
+        indent = ""
+        
+        # Add nested branches for each directory level
         for i, part in enumerate(parts):
-            prefix = '└── ' if i == len(parts) - 1 else '├── '
-            tree_lines.append(f"{prefix}{part}")
+            if i == len(parts) - 1:
+                # Last part uses a different branch character
+                tree_lines.append(f"{indent}└── {part}")
+            else:
+                tree_lines.append(f"{indent}├── {part}")
+                # Increase indentation for next level
+                indent += "│   "
             
         return '\n'.join(tree_lines)
 
