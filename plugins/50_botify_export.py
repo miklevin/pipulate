@@ -977,9 +977,11 @@ class BotifyExport:
                       style="margin-bottom: 1rem;"),
                     P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                    Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
-                    P("The export job is still processing. Please wait for it to complete.", 
-                      style="color: #666; margin-bottom: 1rem;"),
+                    Div(
+                        Button("Please wait…", aria_busy="true", cls="outline", disabled="true"),
+                        P("Checking status automatically...", style="color: #666;"),
+                        id="progress-container"
+                    ),
                     Div(
                         Button("Check Status", type="button", cls="primary", 
                                hx_post=f"/{app_name}/check_export_status",
@@ -1234,18 +1236,18 @@ class BotifyExport:
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                     Div(
-                        Progress(),  # PicoCSS indeterminate progress bar
+                        Button("Please wait…", aria_busy="true", cls="outline", disabled="true"),
                         P("Checking status automatically...", style="color: #666;"),
                         id="progress-container"
-                    ),
-                    hx_get=f"/{app_name}/download_job_status",
-                    hx_trigger="load, every 2s",
-                    hx_target=f"#{step_id}",
-                    hx_swap="outerHTML",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
+                    )
                 ),
-                id=step_id
+                hx_get=f"/{app_name}/download_job_status",
+                hx_trigger="load, every 2s",
+                hx_target=f"#{step_id}",
+                hx_swap="outerHTML",
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                id=step_id,
+                *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
             )
         
         # No existing jobs - start a new one
@@ -1349,16 +1351,18 @@ class BotifyExport:
                 # Otherwise show processing message with automatic polling
                 return Div(
                     result_card,
-                    P("Please check back in a few minutes for download options.", 
-                      style="color: #666; margin-bottom: 1rem;"),
-                    Form(
-                        Button("Check Status", type="submit", cls="secondary"),
-                        hx_post=f"/{app_name}/check_export_status",
-                        hx_target=f"#{step_id}",
-                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                    Div(
+                        Button("Please wait…", aria_busy="true", cls="outline", disabled="true"),
+                        P("Checking status automatically...", style="color: #666;"),
+                        id="progress-container"
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load, every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id,
+                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
                 )
             
         except Exception as e:
@@ -2132,18 +2136,19 @@ class BotifyExport:
                         H4("Export Status: Processing ⏳"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                        Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
-                        P("The export job is still processing. Please check back later.", 
-                          style="color: #666; margin-bottom: 1rem;"),
-                        Form(
-                            Button("Check Status Again", type="submit", cls="secondary"),
-                            hx_post=f"/{app_name}/check_export_status",
-                            hx_target=f"#{step_id}",
-                            hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                        Div(
+                            Button("Please wait…", aria_busy="true", cls="outline", disabled="true"),
+                            P("Checking status automatically...", style="color: #666;"),
+                            id="progress-container"
                         )
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load, every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id,
+                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
                 )
                 
         except Exception as e:
@@ -2235,8 +2240,8 @@ class BotifyExport:
                         P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
                         P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
                         Div(
-                            Progress(),  # PicoCSS indeterminate progress bar
-                            P("Checking status...", style="color: #666;"),
+                            Button("Please wait…", aria_busy="true", cls="outline", disabled="true"),
+                            P("Checking status automatically...", style="color: #666;"),
                             id="progress-container"
                         )
                     ),
