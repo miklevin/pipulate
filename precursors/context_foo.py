@@ -47,42 +47,6 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
     """Print a structured view of the prompt components in markdown format."""
     print("\n=== Prompt Structure ===")
     
-    print("\n--- Manifest ---")
-    # Convert XML manifest to markdown
-    manifest_lines = manifest.split('\n')
-    for line in manifest_lines:
-        try:
-            if '<file' in line:
-                # Extract file info more flexibly
-                path_start = line.find('path="') + 6
-                path_end = line.find('"', path_start)
-                if path_start > 5 and path_end > path_start:
-                    path = line[path_start:path_end]
-                    tokens = "0"
-                    tokens_start = line.find('tokens="')
-                    if tokens_start > -1:
-                        tokens_end = line.find('"', tokens_start + 8)
-                        if tokens_end > tokens_start:
-                            tokens = line[tokens_start + 8:tokens_end]
-                    print(f"- {path} ({format_token_count(int(tokens))})")
-            elif '<convention>' in line:
-                name_start = line.find('<name>') + 6
-                name_end = line.find('</name>')
-                desc_start = line.find('<description>') + 12
-                desc_end = line.find('</description>')
-                if all(pos > -1 for pos in [name_start, name_end, desc_start, desc_end]):
-                    name = line[name_start:name_end]
-                    desc = line[desc_start:desc_end]
-                    print(f"  • Convention: {name} - {desc}")
-            elif '<pattern>' in line:
-                pattern_start = line.find('<pattern>') + 9
-                pattern_end = line.find('</pattern>')
-                if pattern_start > 8 and pattern_end > pattern_start:
-                    pattern = line[pattern_start:pattern_end]
-                    print(f"  • Critical Pattern: {pattern}")
-        except Exception as e:
-            continue  # Skip lines that can't be parsed
-    
     print("\n--- Pre-Prompt ---")
     # Handle pre-prompt content
     try:
