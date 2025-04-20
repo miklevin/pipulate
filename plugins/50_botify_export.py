@@ -775,7 +775,7 @@ class BotifyExport:
                     return Div(
                         Card(
                             H4(f"🔒 {step.show}: CSV file downloaded to:"),
-                            Pre(tree_path, style="margin-bottom: 1rem; white-space: pre;")
+                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; font-size: 0.9rem;")
                         ),
                         Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                     )
@@ -785,7 +785,7 @@ class BotifyExport:
                     return Div(
                         Card(
                             H4(f"🔒 {step.show}: CSV file downloaded to:"),
-                            Pre(tree_path, style="margin-bottom: 1rem; white-space: pre;")
+                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; font-size: 0.9rem;")
                         ),
                         Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                     )
@@ -796,7 +796,11 @@ class BotifyExport:
                     Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
                 )
             else:
-                download_msg = f"🔒 {step.show}: Job ID {user_val.split('/')[-1] if user_val else 'Unknown'}"
+                # Get a cleaner job ID for display
+                job_id = user_val.split('/')[-1] if user_val else "Unknown"
+                clean_job_id = self.clean_job_id_for_display(job_id)
+                
+                download_msg = f"🔒 {step.show}: Job ID {clean_job_id}"
                 return Div(
                     Card(download_msg),
                     Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
@@ -822,7 +826,10 @@ class BotifyExport:
                     # Add this to the existing structure rather than replacing it
                     display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
                     
-                    # Create the revert control with the regular message parameter
+                    # Get a cleaner job ID for display (without the full filename)
+                    clean_job_id = self.clean_job_id_for_display(job_id)
+                    
+                    # Create the revert control with the shortened message parameter
                     revert_control = pip.revert_control(
                         step_id=step_id, 
                         app_name=app_name, 
@@ -830,11 +837,12 @@ class BotifyExport:
                         steps=steps
                     )
                     
-                    # Add the formatted tree path after the revert control
-                    # This maintains the HTMX chain reaction structure
+                    # Wrap both the revert control and tree in a Card for better visual cohesion
                     content_container = Div(
-                        revert_control,
-                        Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+                        Card(
+                            revert_control,
+                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; padding-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); font-size: 0.9rem;"),
+                        ),
                         id=f"{step_id}-content"
                     )
                     
@@ -844,6 +852,12 @@ class BotifyExport:
                     
                     # Create the revert control with the regular message parameter
                     display_msg = f"{step.show}: CSV file downloaded (Job ID {job_id})"
+                    
+                    # Get a cleaner job ID for display (without the full filename)
+                    clean_job_id = self.clean_job_id_for_display(job_id)
+                    
+                    # Create the revert control with the shortened message parameter
+                    display_msg = f"{step.show}: CSV file downloaded ({clean_job_id})"
                     revert_control = pip.revert_control(
                         step_id=step_id, 
                         app_name=app_name, 
@@ -851,14 +865,21 @@ class BotifyExport:
                         steps=steps
                     )
                     
-                    # Add the formatted tree path after the revert control
+                    # Wrap both the revert control and tree in a Card for better visual cohesion
                     content_container = Div(
-                        revert_control,
-                        Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+                        Card(
+                            revert_control,
+                            Pre(tree_path, style="margin: 0.25rem 0 0 0; white-space: pre; text-align: left; padding-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); font-size: 0.9rem;"),
+                        ),
                         id=f"{step_id}-content"
                     )
             elif download_url:
                 display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
+                
+                # Get a cleaner job ID for display
+                clean_job_id = self.clean_job_id_for_display(job_id)
+                
+                display_msg = f"{step.show}: Ready for download ({clean_job_id})"
                 revert_control = pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
@@ -889,11 +910,20 @@ class BotifyExport:
                                 {'status': 'DONE', 'download_url': download_url}
                             )
                         
-                        display_msg = f"{step.show}: Ready for download (Job ID {job_id})"
+                        # Get a cleaner job ID for display
+                        clean_job_id = self.clean_job_id_for_display(job_id)
+                        
+                        display_msg = f"{step.show}: Ready for download ({clean_job_id})"
                     else:
-                        display_msg = f"{step.show}: Processing (Job ID {job_id})"
+                        # Get a cleaner job ID for display
+                        clean_job_id = self.clean_job_id_for_display(job_id)
+                        
+                        display_msg = f"{step.show}: Processing ({clean_job_id})"
                 except Exception:
-                    display_msg = f"{step.show}: Job ID {job_id}"
+                    # Get a cleaner job ID for display
+                    clean_job_id = self.clean_job_id_for_display(job_id)
+                    
+                    display_msg = f"{step.show}: Job ID {clean_job_id}"
                 
                 revert_control = pip.revert_control(
                     step_id=step_id, 
@@ -2672,4 +2702,27 @@ class BotifyExport:
             indent += "    "
             
         return '\n'.join(tree_lines)
+
+    def clean_job_id_for_display(self, job_id):
+        """
+        Clean and shorten a job ID for display in the UI.
+        Removes the depth and field information to show only the project details.
+        
+        Args:
+            job_id: The raw job ID, typically a filename
+            
+        Returns:
+            str: A cleaned, possibly truncated job ID
+        """
+        if not job_id or job_id == "Unknown":
+            return "Unknown"
+            
+        # Extract the part before "_depth_" which typically contains org/project info
+        clean_id = job_id.split('_depth_')[0] if '_depth_' in job_id else job_id
+        
+        # Truncate if too long
+        if len(clean_id) > 30:
+            clean_id = clean_id[:27] + "..."
+            
+        return clean_id
 
