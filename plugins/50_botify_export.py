@@ -1179,7 +1179,8 @@ class BotifyExport:
                         hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                     )
                 ),
-                pip.create_step_navigation(step_id, step_index, steps, app_name, job['job_url']),
+                # Remove the navigation that would trigger finalize
+                # When user clicks Download CSV, they'll get the full navigation
                 id=step_id
             )
         
@@ -2115,7 +2116,8 @@ class BotifyExport:
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                         )
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    # Remove the navigation that would trigger finalize
+                    # When user clicks Download CSV, they'll get the full navigation
                     id=step_id
                 )
             else:
@@ -2150,13 +2152,14 @@ class BotifyExport:
                             id="progress-container"
                         )
                     ),
+                    # Remove the navigation that would trigger finalize - just show status
+                    # This prevents automatic loading of finalize step when using polling
                     hx_get=f"/{app_name}/download_job_status",
                     hx_trigger="every 2s",
                     hx_target=f"#{step_id}",
                     hx_swap="outerHTML",
                     hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id,
-                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
+                    id=step_id
                 )
                 
         except Exception as e:
@@ -2233,7 +2236,8 @@ class BotifyExport:
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                         )
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    # Remove the navigation that would trigger finalize
+                    # When user clicks Download CSV, they will get the full navigation
                     id=step_id
                 )
             else:
@@ -2253,13 +2257,14 @@ class BotifyExport:
                             id="progress-container"
                         )
                     ),
+                    # Remove the navigation that would trigger finalize - just show status
+                    # This prevents automatic loading of finalize step when using polling
                     hx_get=f"/{app_name}/download_job_status",
                     hx_trigger="every 2s",
                     hx_target=f"#{step_id}",
                     hx_swap="outerHTML",
                     hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id,
-                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
+                    id=step_id
                 )
                 
         except Exception as e:
