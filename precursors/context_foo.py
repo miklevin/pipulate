@@ -232,9 +232,14 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
         print("  [Error parsing post-prompt content]")
     
     print("\n--- Token Summary ---")
-    print(f"Total tokens: {format_token_count(total_tokens)}")
+    # Calculate total tokens including all files and prompt content
+    files_tokens = sum(token_counts.get(file, 0) for file in files)
+    prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
+    total_combined_tokens = files_tokens + prompt_tokens
+    
+    print(f"Total tokens: {format_token_count(total_combined_tokens)}")
     print(f"Maximum allowed: {format_token_count(max_tokens)}")
-    print(f"Remaining: {format_token_count(max_tokens - total_tokens)}")
+    print(f"Remaining: {format_token_count(max_tokens - total_combined_tokens)}")
     print("\n=== End Prompt Structure ===\n")
 
 # -------------------------------------------------------------------------
