@@ -977,24 +977,26 @@ class BotifyExport:
                       style="margin-bottom: 1rem;"),
                     P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                    Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
-                    P("The export job is still processing. Please wait for it to complete.", 
-                      style="color: #666; margin-bottom: 1rem;"),
                     Div(
-                        Button("Check Status", type="button", cls="primary", 
-                               hx_post=f"/{app_name}/check_export_status",
-                               hx_target=f"#{step.id}",
-                               hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "job_url": "{job_url}"}}'
-                        ),
+                        Progress(),  # PicoCSS indeterminate progress bar
+                        P("Checking status automatically...", style="color: #666;"),
+                        id="progress-container"
+                    ),
+                    Div(
                         Button("Create New Export", type="button", 
                                hx_get=f"/{app_name}/{step.id}/new",
                                hx_target=f"#{step.id}"
                         ),
-                        style="display: flex; gap: 1rem;"
+                        style="margin-top: 1rem;"
                     )
                 ),
                 Div(id=next_step_id),
-                id=step.id
+                id=step.id,
+                hx_get=f"/{app_name}/download_job_status",
+                hx_trigger="load, every 2s",
+                hx_target=f"#{step.id}",
+                hx_swap="outerHTML",
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
             )
         elif existing_files:
             # Found existing files on disk but not in registry
@@ -1348,21 +1350,25 @@ class BotifyExport:
                     id=step_id
                 )
             else:
-                # Otherwise show processing message
+                # Otherwise show processing message with automatic polling
                 return Div(
                     result_card,
-                    P("Please check back in a few minutes for download options.", 
+                    P("Status updating automatically...", 
                       style="color: #666; margin-bottom: 1rem;"),
-                    Form(
-                        Button("Check Status", type="submit", cls="secondary"),
-                        hx_post=f"/{app_name}/check_export_status",
-                        hx_target=f"#{step_id}",
-                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                    Div(
+                        Progress(),  # PicoCSS indeterminate progress bar
+                        P("Checking status automatically...", style="color: #666;"),
+                        id="progress-container"
                     ),
                     pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
+                    id=step_id,
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load, every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
                 )
-            
+        
         except Exception as e:
             logger.error(f"Error in export submission: {str(e)}")
             return P(f"An error occurred: {str(e)}", style=pip.get_style("error"))
@@ -2125,27 +2131,32 @@ class BotifyExport:
                 await self.message_queue.add(
                     pip, 
                     f"Export job is still processing (Job ID: {job_id}).\n"
-                    f"Please check back later.", 
+                    f"Status will update automatically.", 
                     verbatim=True
                 )
+                
+                # Return the UI with automatic polling instead of "Check Status Again" button
+                include_fields = step_data.get('include_fields', {})
+                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
                 
                 return Div(
                     Card(
                         H4("Export Status: Processing ⏳"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                        Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
-                        P("The export job is still processing. Please check back later.", 
-                          style="color: #666; margin-bottom: 1rem;"),
-                        Form(
-                            Button("Check Status Again", type="submit", cls="secondary"),
-                            hx_post=f"/{app_name}/check_export_status",
-                            hx_target=f"#{step_id}",
-                            hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
+                        Div(
+                            Progress(),  # PicoCSS indeterminate progress bar
+                            P("Checking status automatically...", style="color: #666;"),
+                            id="progress-container"
                         )
                     ),
-                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
-                    id=step_id
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id,
+                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
                 )
                 
         except Exception as e:
