@@ -844,7 +844,7 @@ class BotifyExport:
                         Pre(
                             tree_path,
                             style=(
-                                "margin: 0.25rem 0 0 0; "
+                                "margin: -2vh 0 0 0; "
                                 "padding: 10px 10px; "
                                 "white-space: pre; "
                                 "text-align: left; "
@@ -881,7 +881,7 @@ class BotifyExport:
                         Pre(
                             tree_path,
                             style=(
-                                "margin: 0.25rem 0 0 0; "
+                                "margin: -2vh 0 0 0; "
                                 "padding: 10px 10px; "
                                 "white-space: pre; "
                                 "text-align: left; "
@@ -1633,7 +1633,17 @@ class BotifyExport:
         
         content_container = Div(
             revert_control,
-            Pre(tree_path, style="margin: 0.5rem 0 1rem 0; white-space: pre; text-align: left;"),
+            Pre(
+                tree_path,
+                style=(
+                    "margin: -2vh 0 0 0; "
+                    "padding: 10px 10px; "
+                    "white-space: pre; "
+                    "text-align: left; "
+                    "border-top: 1px solid var(--pico-muted-border-color); "
+                    "font-size: 0.9rem;"
+                )
+            ),
             id=f"{step_id}-content"
         )
         
