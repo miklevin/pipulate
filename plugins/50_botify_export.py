@@ -760,7 +760,15 @@ class BotifyExport:
             local_file = step_data.get('local_file')
             
             if local_file and Path(local_file).exists():
-                download_msg = f"🔒 {step.show}: CSV file downloaded to {local_file}"
+                # Get just the relative path for display
+                try:
+                    rel_path = Path(local_file).relative_to(Path.cwd())
+                    tree_path = self.format_path_as_tree(rel_path)
+                    download_msg = f"🔒 {step.show}: CSV file downloaded to:\n{tree_path}"
+                except ValueError:
+                    # Fallback if relative_to fails
+                    tree_path = self.format_path_as_tree(local_file)
+                    download_msg = f"🔒 {step.show}: CSV file downloaded to:\n{tree_path}"
             elif download_url:
                 download_msg = f"🔒 {step.show}: Ready for download"
             else:
@@ -902,8 +910,8 @@ class BotifyExport:
                     H4(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} has already been downloaded:", 
                       style="margin-bottom: 0.5rem;"),
-                    P(f"File: {file_path.name}", style="margin-bottom: 1rem;"),
-                    P(f"Path: {file_path}", style="margin-bottom: 1rem;"),
+                    P(f"Path:", style="margin-bottom: 0.5rem;"),
+                    Pre(self.format_path_as_tree(file_path), style="margin-bottom: 1rem; white-space: pre;"),
                     Div(
                         Button("Use Existing Download", type="button", cls="primary", 
                                hx_post=f"/{app_name}/use_existing_export",
@@ -2491,4 +2499,31 @@ class BotifyExport:
         except Exception as e:
             logger.error(f"Error polling job status: {str(e)}")
             return False, None, f"Error polling job status: {str(e)}"
+
+    def format_path_as_tree(self, path_str):
+        """
+        Format a file path as a simple ASCII tree
+        """
+        path = Path(path_str)
+        
+        # Get the parts of the path
+        parts = list(path.parts)
+        
+        # Build the tree visualization
+        tree_lines = []
+        
+        # Root or drive
+        if parts and parts[0] == '/':
+            tree_lines.append('/')
+            parts = parts[1:]
+        elif len(parts) > 0:
+            tree_lines.append(parts[0])
+            parts = parts[1:]
+            
+        # Add branches for each directory
+        for i, part in enumerate(parts):
+            prefix = '└── ' if i == len(parts) - 1 else '├── '
+            tree_lines.append(f"{prefix}{part}")
+            
+        return '\n'.join(tree_lines)
 
