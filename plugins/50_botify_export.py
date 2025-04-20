@@ -126,6 +126,7 @@ class BotifyExport:
         # Add routes for CSV export functionality
         app.route(f"/{app_name}/download_csv", methods=["POST"])(self.download_csv)
         app.route(f"/{app_name}/download_progress")(self.download_progress)
+        app.route(f"/{app_name}/download_job_status")(self.download_job_status)
         app.route(f"/{app_name}/use_existing_export", methods=["POST"])(self.use_existing_export)
         app.route(f"/{app_name}/step_04/new")(self.step_04_new)
         app.route(f"/{app_name}/check_export_status", methods=["POST"])(self.check_export_status)
@@ -1232,17 +1233,18 @@ class BotifyExport:
                     H4(f"Export Status: Processing ⏳"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                    Progress(value="60", max="100", style="width: 100%; margin-bottom: 1rem;"),
-                    P("The export job is still processing. Please check back later.", 
-                      style="color: #666; margin-bottom: 1rem;"),
-                    Form(
-                        Button("Check Status", type="submit", cls="secondary"),
-                        hx_post=f"/{app_name}/check_export_status",
-                        hx_target=f"#{step_id}",
-                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}", "job_id": "{job_id}"}}'
-                    )
+                    Div(
+                        Progress(),  # PicoCSS indeterminate progress bar
+                        P("Checking status automatically...", style="color: #666;"),
+                        id="progress-container"
+                    ),
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load, every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
                 ),
-                pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
                 id=step_id
             )
         
@@ -1344,7 +1346,7 @@ class BotifyExport:
                     id=step_id
                 )
             else:
-                # Otherwise show processing message
+                # Otherwise show processing message with automatic polling
                 return Div(
                     result_card,
                     P("Please check back in a few minutes for download options.", 
@@ -2142,6 +2144,109 @@ class BotifyExport:
                     ),
                     pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
                     id=step_id
+                )
+                
+        except Exception as e:
+            logger.error(f"Error checking job status: {str(e)}")
+            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
+
+    async def download_job_status(self, request):
+        """
+        Endpoint for automatic polling of job status
+        This is called via HTMX's hx-trigger="every 2s" to check export job status
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        
+        # Get query parameters from the GET request
+        pipeline_id = request.query_params.get("pipeline_id")
+        
+        if not pipeline_id:
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Get job information from state
+        job_url = step_data.get('job_url')
+        job_id = step_data.get('job_id')
+        org = step_data.get('org')
+        project = step_data.get('project')
+        analysis = step_data.get('analysis')
+        depth = step_data.get('depth')
+        
+        if not all([job_url, job_id]):
+            return P("Job information not found in state", style=pip.get_style("error"))
+        
+        # Check if the job is complete
+        try:
+            api_token = self.read_api_token()
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            
+            if is_complete and download_url:
+                # Update the state with the download URL
+                state[step_id]['download_url'] = download_url
+                state[step_id]['status'] = 'DONE'
+                pip.write_state(pipeline_id, state)
+                
+                # Update the registry
+                if all([org, project, analysis, depth]):
+                    self.update_export_job(
+                        org, project, analysis, depth, job_id,
+                        {'status': 'DONE', 'download_url': download_url}
+                    )
+                
+                # Send success message
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job completed! Job ID: {job_id}\n"
+                    f"The export is ready for download.", 
+                    verbatim=True
+                )
+                
+                # Return the download button
+                return Div(
+                    Card(
+                        H4("Export Status: Complete ✅"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
+                        Form(
+                            Button("Download CSV", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/download_csv",
+                            hx_target=f"#{step_id}",
+                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                        )
+                    ),
+                    pip.create_step_navigation(step_id, step_index, steps, app_name, job_url),
+                    id=step_id
+                )
+            else:
+                # Job is still processing - show indeterminate progress bar with automatic polling
+                include_fields = step_data.get('include_fields', {})
+                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
+                
+                return Div(
+                    Card(
+                        H4("Export Status: Processing ⏳"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
+                        P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
+                        Div(
+                            Progress(),  # PicoCSS indeterminate progress bar
+                            P("Checking status...", style="color: #666;"),
+                            id="progress-container"
+                        )
+                    ),
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="every 2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id,
+                    *pip.create_step_navigation(step_id, step_index, steps, app_name, job_url)
                 )
                 
         except Exception as e:
