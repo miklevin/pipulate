@@ -310,14 +310,7 @@ class HelloFlow:  # <-- CHANGE THIS to your new WorkFlow name
         # Use the Pipulate helper method to create the updated datalist
         updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
         
-        # Get placeholders for all steps
-        placeholders = pip.run_all_cells(app_name, steps)
-        return Div(
-            # Add updated datalist that includes all existing keys plus the current one
-            updated_datalist,
-            *placeholders, 
-            id=f"{app_name}-container"
-        )
+        return pip.rebuild(app_name, steps)
 
     async def step_01(self, request):
         """
