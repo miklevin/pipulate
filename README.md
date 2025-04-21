@@ -154,22 +154,22 @@ Pipulate features a distinct architecture designed for its local-first, simple, 
 This diagram illustrates the high-level components and their interactions:
 
 ```
-             ┌─────────────┐ Like Electron, but full Linux subsystem 
-             │   Browser   │ in a folder for macOS and Windows (WSL)
-             └─────┬───────┘
-                   │ HTTP/WS
-                   ▼
-┌───────────────────────────────────────┐
-│           Nix Flake Shell             │ - In-app LLM (where it belongs)
-│  ┌───────────────┐  ┌──────────────┐  │ - 100% reproducible
-│  │   FastHTML    │  │    Ollama    │  │ - 100% local
-│  │   HTMX App    │  │  Local LLM   │  │ - 100% multi-OS    
-│  └───────┬───────┘  └──────────────┘  │
-│          │                            │
-│    ┌─────▼─────┐     ┌────────────┐   │
-│    │MiniDataAPI│◄───►│ SQLite DB  │   │
-│    └───────────┘     └────────────┘   │
-└───────────────────────────────────────┘
+                 ┌─────────────┐ Like Electron, but full Linux subsystem 
+                 │   Browser   │ in a folder for macOS and Windows (WSL)
+                 └─────┬───────┘
+                       │ HTTP/WS
+                       ▼
+    ┌───────────────────────────────────────┐
+    │           Nix Flake Shell             │ - In-app LLM (where it belongs)
+    │  ┌───────────────┐  ┌──────────────┐  │ - 100% reproducible
+    │  │   FastHTML    │  │    Ollama    │  │ - 100% local
+    │  │   HTMX App    │  │  Local LLM   │  │ - 100% multi-OS    
+    │  └───────┬───────┘  └──────────────┘  │
+    │          │                            │
+    │    ┌─────▼─────┐     ┌────────────┐   │
+    │    │MiniDataAPI│◄───►│ SQLite DB  │   │
+    │    └───────────┘     └────────────┘   │
+    └───────────────────────────────────────┘
 ```
 
 ### Integrated Data Science Environment
@@ -177,19 +177,19 @@ This diagram illustrates the high-level components and their interactions:
 Jupyter Notebooks run alongside the FastHTML server, allowing developers to prototype workflows in a familiar environment before porting them to Pipulate's step-based interface for end-users. The same Python virtual environment (`.venv`) is shared, and ad-hoc package installation is supported.
 
 ```
-  ┌──────────────────┐    ┌──────────────────┐
-  │   Jupyter Lab    │    │    FastHTML      │
-  │   Notebooks      │    │     Server       │
-  │ ┌──────────┐     │    │  ┌──────────┐    │
-  │ │ Cell 1   │     │    │  │ Step 1   │    │
-  │ │          │     │--->│  │          │    │
-  │ └──────────┘     │    │  └──────────┘    │
-  │ ┌──────────┐     │    │  ┌──────────┐    │
-  │ │ Cell 2   │     │    │  │ Step 2   │    │
-  │ │          │     │--->│  │          │    │
-  │ └──────────┘     │    │  └──────────┘    │
-  │  localhost:8888  │    │  localhost:5001  │
-  └──────────────────┘    └──────────────────┘
+      ┌──────────────────┐    ┌──────────────────┐
+      │   Jupyter Lab    │    │    FastHTML      │
+      │   Notebooks      │    │     Server       │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 1   │     │    │  │ Step 1   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │ ┌──────────┐     │    │  ┌──────────┐    │
+      │ │ Cell 2   │     │    │  │ Step 2   │    │
+      │ │          │     │--->│  │          │    │
+      │ └──────────┘     │    │  └──────────┘    │
+      │  localhost:8888  │    │  localhost:5001  │
+      └──────────────────┘    └──────────────────┘
 ```
 
 ### Local-First & Single-Tenant Details
@@ -202,15 +202,15 @@ Pipulate manages all state server-side within the local environment, avoiding cl
 
 ```
       ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
-      │          Web Browser          │
+          │          Web Browser          │
       │                               │ - No mysterious client-side state
-      │    ┌────────────────────┐     │ - No full-stack framework churn
+          │    ┌────────────────────┐     │ - No full-stack framework churn
       │    │   Server Console   │     │ - No complex ORM or SQL layers
       │    │     & Web Logs     │     │ - No external message queues
       │    └─────────┬──────────┘     │ - No build step required
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
-      │    │  Server-Side State  │    │ 
+          │    │  Server-Side State  │    │ 
       │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
       │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
       └───────────────────────────────┘
@@ -226,13 +226,13 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
 ```
                     HTMX+Python enables a world-class
                    Python front-end Web Development environment.
-                         ┌─────────────────────┐
-                         │    Navigation Bar   │  - No template language (like Jinja2)
-                         ├─────────┬───────────┤  - HTML elements are Python functions
+                             ┌─────────────────────┐
+                             │    Navigation Bar   │  - No template language (like Jinja2)
+                             ├─────────┬───────────┤  - HTML elements are Python functions
   Simple Python back-end │  Main   │   Chat    │  - Minimal custom JavaScript
   HTMX "paints" HTML into│  Area   │ Interface │  - No React/Vue/Angular overhead
   the DOM on demand──────►         │           │  - No virtual DOM, JSX, Redux, etc.
-                         └─────────┴───────────┘
+                             └─────────┴───────────┘
 ```
 
 ### Pipeline Workflows
@@ -261,22 +261,22 @@ Integration with a local Ollama instance provides AI capabilities without extern
 * **Tool Calling:** Can interpret structured JSON from the LLM to execute functions.
 
 ```
-               ┌──────────────────┐
+                   ┌──────────────────┐
                │   Local Ollama   │ - No API keys needed
                │      Server      │ - Completely private processing
-               └────────┬─────────┘
+                   └────────┬─────────┘
                         │ Streaming via WebSocket
-                        ▼
-               ┌──────────────────┐
+                            ▼
+                   ┌──────────────────┐
                │   Pipulate App   │ - Monitors WS for JSON/commands
                │(WebSocket Client)│ - Parses responses in real-time
-               └────────┬─────────┘
+                   └────────┬─────────┘
                         │ In-memory or DB backed
-                        ▼
-               ┌──────────────────┐
+                            ▼
+                   ┌──────────────────┐
                │     Bounded      │ - Manages context window (~128k)
                │   Chat History   │ - Enables RAG / tool integration
-               └──────────────────┘
+                   └──────────────────┘
 ```
 
 ### Multi-OS & CUDA Support (Nix)
@@ -284,13 +284,13 @@ Integration with a local Ollama instance provides AI capabilities without extern
 Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via WSL), optionally leveraging CUDA GPUs if detected.
 
 ```
-               ┌──────────────────┐
+                   ┌──────────────────┐
                │  Linux / macOS   │ - Write code once, run anywhere
                │  Windows (WSL)   │ - Consistent dev environment via Nix
-               └────────┬─────────┘
+                   └────────┬─────────┘
                         │ Nix manages dependencies
-                        ▼
-               ┌──────────────────┐
+                            ▼
+                   ┌──────────────────┐
                │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
                │   (if present)   │ - Uses GPU for LLM acceleration
                └──────────────────┘   - Falls back to CPU if no CUDA
@@ -301,16 +301,16 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
 The application interface is organized into distinct areas:
 
 ```
-┌─────────────────────────────┐
+    ┌─────────────────────────────┐
 │        Navigation           │ (Profiles, Apps, Search)
-├───────────────┬─────────────┤
-│               │             │
+    ├───────────────┬─────────────┤
+    │               │             │
 │    Main Area  │    Chat     │ (Workflow/App UI)
 │   (Pipeline)  │  Interface  │ (LLM Interaction)
-│               │             │
-├───────────────┴─────────────┤
+    │               │             │
+    ├───────────────┴─────────────┤
 │        Poke Button          │ (Quick Action)
-└─────────────────────────────┘
+    └─────────────────────────────┘
 ```
 
 <details>
@@ -318,31 +318,31 @@ The application interface is organized into distinct areas:
 
 ```
 home (Root Component)
-|
-+-- create_outer_container
     |
-    +-- create_nav_group
-    |   |
-    |   +-- create_nav_menu
-    |       |
-    |       +-- create_profile_menu
-    |       +-- create_app_menu
-    |
-    +-- create_grid_left
+    +-- create_outer_container
         |
-        +-- create_notebook_interface (Displays steps/cells)
+        +-- create_nav_group
+        |   |
+        |   +-- create_nav_menu
+        |       |
+        |       +-- create_profile_menu
+        |       +-- create_app_menu
+        |
+        +-- create_grid_left
             |
-            +-- render_notebook_cells()
+        +-- create_notebook_interface (Displays steps/cells)
                 |
-                +-- render_notebook_cell(step_01)
-                +-- render_notebook_cell(step_02)
-                +-- ...
-    |
-    +-- create_chat_interface
+                +-- render_notebook_cells()
+                    |
+                    +-- render_notebook_cell(step_01)
+                    +-- render_notebook_cell(step_02)
+                    +-- ...
         |
-        +-- mk_chat_input_group
-    |
-    +-- create_poke_button
+        +-- create_chat_interface
+            |
+            +-- mk_chat_input_group
+        |
+        +-- create_poke_button
 ```
 
 </details>

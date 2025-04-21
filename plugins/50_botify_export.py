@@ -83,6 +83,7 @@ class BotifyExport:
     )
     TRAINING_PROMPT = "botify_export.md"
     PRESERVE_REFILL = True
+    USE_TREE_DISPLAY = False  # Toggle between tree and box display
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
@@ -1760,13 +1761,23 @@ class BotifyExport:
 
     def format_path_as_tree(self, path_str):
         """
-        Format a file path as a proper hierarchical ASCII tree with single path.
+        Format a file path as either a hierarchical ASCII tree or a blue box.
         
-        This tree visualization is used in various places in the UI to show 
-        download locations. The styling of the tree display is carefully tuned
+        This visualization is used in various places in the UI to show 
+        download locations. The styling of the display is carefully tuned
         in each context where it appears.
+        
+        Args:
+            path_str: The path to format
+            
+        Returns:
+            str: Formatted path display (either tree or box style)
         """
         path = Path(path_str)
+        
+        if not self.USE_TREE_DISPLAY:
+            # Return a simple box display
+            return str(path)
             
         # Get the parts of the path
         parts = list(path.parts)

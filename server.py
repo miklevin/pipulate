@@ -628,39 +628,11 @@ class Pipulate:
         steps: list,
         message: str = None,
         target_id: str = None,
-        revert_label: str = None
+        revert_label: str = None,
+        remove_padding: bool = False  # New parameter to control article padding
     ):
         """
         Create a UI control for reverting to a previous workflow step.
-
-        This helper generates a consistent UI component for displaying completed
-        step data with an option to revert back to that step. It's a critical part
-        of the workflow navigation system that allows users to backtrack and modify
-        their previous inputs.
-
-        The component includes:
-        1. A card displaying the step's current value
-        2. A small revert button that triggers the revert action
-        3. HTMX attributes for handling the revert without page refresh
-
-        Used in step_xx methods to display completed steps with revert functionality.
-        The method checks if the workflow is finalized and avoids showing revert controls
-        for finalized workflows.
-
-        TODO (UI Enhancement):
-        Currently this method is designed for simple key-value pair presentation 
-        with the step value on the left and revert button on the right in a flex row.
-        As workflows become more complex, we need to support additional UI elements 
-        below this row (like directory trees, charts, or other rich components).
-        
-        Future enhancement should add a 'content' parameter that would:
-        1. Accept any FastHTML component to display below the revert row
-        2. Handle consistent styling and spacing
-        3. Maintain proper alignment of revert buttons across steps
-        4. Work consistently in both finalized and unfinalized states
-        
-        This would eliminate the need for workflow-specific spacing hacks and
-        provide a consistent pattern for adding rich content to steps.
 
         Args:
             step_id: The ID of the step to revert to
@@ -669,6 +641,7 @@ class Pipulate:
             message: Optional message to display (defaults to step_id)
             target_id: Optional target for HTMX updates (defaults to app container)
             revert_label: Optional custom label for the revert button
+            remove_padding: Whether to remove padding from the article (for advanced layout)
 
         Returns:
             Card: A FastHTML Card component with revert functionality
@@ -719,6 +692,18 @@ class Pipulate:
         if not message:
             return form
 
+        # Base style for the article
+        article_style = (
+            "display: flex; "
+            "align-items: center; "
+            "justify-content: space-between; "
+            "background-color: var(--pico-card-background-color);"
+        )
+        
+        # Add padding: 0 if remove_padding is True
+        if remove_padding:
+            article_style += " padding: 0;"
+
         return Card(
             Div(
                 message,
@@ -728,7 +713,7 @@ class Pipulate:
                 form,
                 style="flex: 0;"
             ),
-            style="display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);"
+            style=article_style
         )
 
     def revert_control_advanced(
@@ -744,33 +729,16 @@ class Pipulate:
     ):
         """
         Enhanced revert control with support for additional content below the control row.
-        
-        This method extends the standard revert_control to support rich UI elements
-        such as directory trees, charts, or other visualizations that should appear
-        below the standard revert button row, while maintaining consistent button
-        alignment across steps.
-        
-        Args:
-            step_id: The ID of the step to revert to
-            app_name: The workflow app name
-            steps: List of Step namedtuples defining the workflow
-            message: Optional message to display (defaults to step_id)
-            content: FastHTML component to display below the revert row
-            target_id: Optional target for HTMX updates
-            revert_label: Optional custom label for the revert button
-            content_style: Optional custom style for the content container
-            
-        Returns:
-            Div: A FastHTML container with revert control and additional content
         """
-        # First get the standard revert control structure
+        # Get the revert control with padding removed
         revert_row = self.revert_control(
             step_id=step_id,
             app_name=app_name,
             steps=steps,
             message=message,
             target_id=target_id,
-            revert_label=revert_label
+            revert_label=revert_label,
+            remove_padding=True  # Remove padding when used in advanced layout
         )
         
         # If no additional content or in finalized state, just return the standard control
@@ -782,14 +750,19 @@ class Pipulate:
         
         # Create a container with the revert row and content that looks like a single card
         return Div(
-            revert_row,
+            revert_row,  # No need for extra div wrapper now
             Div(
                 content,
                 style=applied_style,
                 id=f"{step_id}-content-inner"
             ),
             id=f"{step_id}-content",
-            style=self.CARD_STYLE
+            style=(
+                "background-color: var(--pico-card-background-color); "
+                "border-radius: var(--pico-border-radius); "
+                "margin-bottom: 2vh; "
+                "padding: 1rem;"  # Add consistent padding
+            )
         )
 
     def finalized_content(
@@ -826,7 +799,12 @@ class Pipulate:
                 content,
                 style=applied_style
             ),
-            style=self.CARD_STYLE
+            style=(
+                "background-color: var(--pico-card-background-color); "
+                "border-radius: var(--pico-border-radius); "
+                "margin-bottom: 2vh; "
+                "padding: 1rem;"  # Add consistent padding
+            )
         )
 
     def wrap_with_inline_button(
@@ -1313,25 +1291,47 @@ class Pipulate:
 
         return state
 
-    def tree_display(
-        self,
-        tree_content,
-        style=None
-    ):
+    def tree_display(self, content):
         """
-        Create a standardized tree display component for file paths or hierarchical data.
+        Create a styled display for file paths that can show either a tree or box format.
         
         Args:
-            tree_content: String content to display in the tree format
-            style: Optional custom style to override default tree styling
+            content: The content to display (either tree-formatted or plain path)
             
         Returns:
-            Pre: A FastHTML Pre component with tree display styling
+            Pre: A Pre component with appropriate styling
         """
-        return Pre(
-            tree_content,
-            style=style or self.TREE_CONTENT_STYLE
-        )
+        # Check if content is tree-formatted (contains newlines and tree characters)
+        is_tree = '\n' in content and ('└─' in content or '├─' in content)
+        
+        if is_tree:
+            # Tree display - use monospace font and preserve whitespace
+            return Pre(
+                content,
+                style=(
+                    "font-family: monospace; "
+                    "white-space: pre; "
+                    "margin: 0; "  # Remove margin to let container control spacing
+                    "padding: 0.5rem; "
+                    "border-radius: 4px; "
+                    "background-color: #f5f5f5;"
+                )
+            )
+        else:
+            # Box display - use a blue box with the path
+            return Pre(
+                content,
+                style=(
+                    "font-family: system-ui; "
+                    "white-space: pre-wrap; "
+                    "margin: 0; "  # Remove margin to let container control spacing
+                    "padding: 0.5rem 1rem; "
+                    "border-radius: 4px; "
+                    "background-color: #e3f2fd; "
+                    "color: #1976d2; "
+                    "border: 1px solid #bbdefb;"
+                )
+            )
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
