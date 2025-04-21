@@ -41,7 +41,6 @@
     * [The `fast_app` Helper](#the-fast_app-helper)
 * [Persistence & Monitoring](#persistence--monitoring)
 * [Final Thoughts](#final-thoughts)
-* [AI Training Prompts](#ai-training-prompts)
 * [Developer's Notes](#developers-notes)
     * [The Pipulate Workshop](#the-pipulate-workshop)
     * [Plugin Development Conventions](#plugin-development-conventions)
@@ -493,14 +492,6 @@ Remember the guiding principles:
 
 -----
 
-## AI Training Prompts
-
-*This section provides example Q\&A pairs primarily intended as built-in context for the integrated AI assistant, helping it understand the system and respond accurately to user queries.*
-
-*(Keep the existing Q\&A pairs here, ensuring they align with the revised text above)*
-
------
-
 ## Developer's Notes
 
 ### The Pipulate Workshop
@@ -573,4 +564,3 @@ Contributions are welcome\! Please adhere to the project's core philosophy:
 
 This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=./LICENSE) file for details.
 
-```
