@@ -11,28 +11,30 @@ from fasthtml.common import *
 from loguru import logger
 
 """
-Pipulate Workflow Template
+Export CSV from Botify
 
-After copy/pasting this file, edit this docstring first so that your
-AI coding assistant knows what you're trying to do.
+This workflow helps users export data from Botify projects and download it as CSV files.
+It provides a step-by-step interface for:
+1. Entering Botify project URL and API token
+2. Selecting analysis and depth level
+3. Choosing which fields to include in the export
+4. Downloading the resulting CSV file
 
-This file demonstrates the basic pattern for Pipulate Workflows:
-1. Define steps with optional transformations
-2. Each step collects or processes data
-3. Data flows from one step to the next
-4. Steps can be reverted and the workflow can be finalized
+The workflow handles the entire process from initiating the export job to downloading
+the completed file, with progress tracking and error handling throughout.
 
-To create your own Workflow:
-1. Copy this file and rename the class, APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE
-2. Create a [filename].md the training folder (no path needed) and set TRAINING_PROMPT to refer to it
-3. Define your own steps
-4. Implement custom validation and processing as needed
+Implementation Notes:
+- Uses Botify's API to initiate and monitor export jobs
+- Creates organized download directories by org/project/analysis
+- Tracks export history in a registry file
+- Provides real-time progress updates during downloads
+- Handles large file exports with proper error handling
 
-There are two types of apps in Pipulate:
-1. Workflows - Linear, step-based apps. The part you're looking at. WET.
-2. Apps - CRUD apps with a single table that inherit from BaseApp. DRY.
-
-CRUD is DRY and Workflows are WET! Get ready to get WET!
+To use this workflow:
+1. Enter a valid Botify project URL
+2. Select the analysis and depth level
+3. Choose which fields to include
+4. Wait for the export to complete and download
 """
 
 # Path to the export registry file
@@ -1859,11 +1861,17 @@ class BotifyExport:
             )
             
             # Return success UI with file information
+            # Format the directory path
+            dir_tree = self.format_path_as_tree(str(local_file_path.parent))
+            # Add the filename to the tree
+            tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
+            tree_display = pip.tree_display(tree_path)
             return Div(
-                pip.revert_control(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f"{step.show}: CSV downloaded ({file_size_mb:.2f} MB)", 
+                pip.revert_control_advanced(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show}: CSV downloaded ({file_size_mb:.2f} MB)",
+                    content=tree_display,
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
