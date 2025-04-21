@@ -1,3 +1,30 @@
+"""
+=============================================================================
+Botify CSV Export Workflow
+=============================================================================
+
+Core functionality for exporting Botify data to CSV files with:
+- Project URL validation
+- Analysis selection
+- Depth calculation
+- Field selection
+- Export job management
+- Download handling
+
+The workflow is organized into these main sections:
+1. Core Setup & Configuration
+2. Step Handlers (step_01 through step_04)
+3. Export Job Management
+4. File & Directory Management
+5. API Integration
+6. UI Helper Functions
+7. State Management
+"""
+
+# ============================================================================
+# 1. IMPORTS & CONFIGURATION
+# ============================================================================
+
 import asyncio
 from collections import namedtuple
 from datetime import datetime
@@ -10,50 +37,13 @@ import os
 from fasthtml.common import *
 from loguru import logger
 
-"""
-Export CSV from Botify
-
-This workflow helps users export data from Botify projects and download it as CSV files.
-It provides a step-by-step interface for:
-1. Entering Botify project URL and API token
-2. Selecting analysis and depth level
-3. Choosing which fields to include in the export
-4. Downloading the resulting CSV file
-
-The workflow handles the entire process from initiating the export job to downloading
-the completed file, with progress tracking and error handling throughout.
-
-Implementation Notes:
-- Uses Botify's API to initiate and monitor export jobs
-- Creates organized download directories by org/project/analysis
-- Tracks export history in a registry file
-- Provides real-time progress updates during downloads
-- Handles large file exports with proper error handling
-
-To use this workflow:
-1. Enter a valid Botify project URL
-2. Select the analysis and depth level
-3. Choose which fields to include
-4. Wait for the export to complete and download
-"""
-
-# Path to the export registry file
+# Core configuration
 EXPORT_REGISTRY_FILE = Path("downloads/export_registry.json")
-
-# This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
-
-def parse_botify_url(url: str) -> dict:
-    parsed = urlparse(url)
-    path_parts = parsed.path.strip('/').split('/')
-    if len(path_parts) < 2:
-        raise ValueError("Invalid Botify URL format")
-    org = path_parts[0]
-    project = path_parts[1]
-    base_url = f"https://{parsed.netloc}/{org}/{project}/"
-    return {"url": base_url, "org": org, "project": project}
-
+# ============================================================================
+# 2. CORE CLASS & INITIALIZATION
+# ============================================================================
 
 class BotifyExport:
     """
@@ -124,7 +114,6 @@ class BotifyExport:
         self.message_queue = pip.message_queue
 
         # Customize the steps, it's like one step per cell in the Notebook
-
         steps = [
             Step(id='step_01', done='url', show='Botify Project URL', refill=True),
             Step(id='step_02', done='analysis', show='Analysis Selection', refill=False),
@@ -181,6 +170,10 @@ class BotifyExport:
         # Add a finalize step to the workflow (do not change)
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+# ============================================================================
+# 3. WORKFLOW STEP HANDLERS
+# ============================================================================
 
     async def landing(self):
         """
@@ -369,23 +362,11 @@ class BotifyExport:
             id=f"{app_name}-container"
         )
 
+    # -----------------
+    # Step 1: Project URL
+    # -----------------
     async def step_01(self, request):
-        """
-        Handle GET requests for the first step of the workflow.
-        
-        This method generates the appropriate UI for step_01 based on its state:
-        - If workflow is finalized: Display locked content
-        - If step is completed: Show step data with revert option
-        - If step needs input: Show input form with suggestion if available
-        
-        The UI components use HTMX for interactive updates without page refresh.
-        
-        Args:
-            request: The HTTP request object
-            
-        Returns:
-            FastHTML components representing the step UI
-        """
+        """Handle project URL input"""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -532,6 +513,9 @@ class BotifyExport:
                 style=pip.get_style("error")
             )
 
+    # -----------------
+    # Step 2: Analysis Selection
+    # -----------------
     async def step_02(self, request):
         """
         Display form for analysis slug selection using a dropdown menu.
@@ -649,24 +633,22 @@ class BotifyExport:
         if not is_valid:
             return error_component
 
-        # ===== START POST-PROCESSING SECTION =====
-        # For now, just use the user input directly
-        processed_val = user_val
-        # ===== END POST-PROCESSING SECTION =====
-
         # Update state using helper
-        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
 
-        # Send confirmation message - use the queue for ordered delivery
-        await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)
         
         # Check if we need finalize prompt
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, "All steps complete! Please press the Finalize button below to save your data.", verbatim=True)
         
         # Return navigation controls
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
+        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
 
+    # -----------------
+    # Step 3: Maximum Click Depth
+    # -----------------
     async def step_03(self, request):
         """
         Display the maximum safe click depth based on cumulative URL counts.
@@ -793,10 +775,11 @@ class BotifyExport:
         # Return navigation controls
         return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
 
+    # -----------------
+    # Step 4: Export Configuration
+    # -----------------
     async def step_04(self, request):
-        """
-        Display the CSV export form with field selection options
-        """
+        """Display the CSV export form with field selection options"""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1401,7 +1384,7 @@ class BotifyExport:
             # Create response UI for the processing job
             return Div(
                 Card(
-                    H4(f"Export Status: Processing ⏳"),
+                    H4("Export Status: Processing ⏳"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                     Div(
@@ -1546,7 +1529,7 @@ class BotifyExport:
             return P(f"An error occurred: {str(e)}", style=pip.get_style("error"))
 
     async def step_04_new(self, request):
-        """Handle request to create a new export instead of using existing one"""
+        """Handle new export creation"""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1667,10 +1650,151 @@ class BotifyExport:
             id=step_id
         )
 
+# ============================================================================
+# 4. EXPORT JOB MANAGEMENT
+# ============================================================================
+
+    def get_export_key(self, org, project, analysis, depth):
+        """Generate unique export key"""
+        return f"{org}_{project}_{analysis}_depth_{depth}"
+
+    def load_export_registry(self):
+        """Load the export registry from file"""
+        try:
+            if EXPORT_REGISTRY_FILE.exists():
+                with open(EXPORT_REGISTRY_FILE, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading export registry: {e}")
+            return {}
+
+    def save_export_registry(self, registry):
+        """Save the export registry to file"""
+        try:
+            # Create directory if it doesn't exist
+            EXPORT_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(EXPORT_REGISTRY_FILE, 'w') as f:
+                json.dump(registry, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving export registry: {e}")
+
+    def register_export_job(self, org, project, analysis, depth, job_url, job_id):
+        """Register a new export job in the registry"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        
+        # Check if this export already exists
+        if export_key not in registry:
+            registry[export_key] = []
+        
+        # Add the new job
+        registry[export_key].append({
+            'job_url': job_url,
+            'job_id': job_id,
+            'status': 'PROCESSING',
+            'created': datetime.now().isoformat(),
+            'updated': datetime.now().isoformat(),
+            'download_url': None,
+            'local_file': None
+        })
+        
+        self.save_export_registry(registry)
+        return export_key
+
+    def update_export_job(self, org, project, analysis, depth, job_id, updates):
+        """Update an existing export job in the registry"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        
+        if export_key not in registry:
+            logger.error(f"Export key {export_key} not found in registry")
+            return False
+        
+        for job in registry[export_key]:
+            if job['job_id'] == job_id:
+                job.update(updates)
+                job['updated'] = datetime.now().isoformat()
+                self.save_export_registry(registry)
+                return True
+        
+        logger.error(f"Job ID {job_id} not found for export key {export_key}")
+        return False
+
+    def find_export_jobs(self, org, project, analysis, depth):
+        """Find all export jobs for a specific configuration"""
+        registry = self.load_export_registry()
+        export_key = self.get_export_key(org, project, analysis, depth)
+        return registry.get(export_key, [])
+
+    def find_downloaded_analyses(self, org, project):
+        """Find downloaded analyses for org/project"""
+        registry = self.load_export_registry()
+        downloaded_analyses = set()
+        
+        # Look for keys that match this org and project
+        for key in registry.keys():
+            if key.startswith(f"{org}_{project}_"):
+                # Extract analysis name from the key (format: org_project_analysis_depth_X)
+                parts = key.split('_')
+                if len(parts) >= 3:
+                    analysis = parts[2]
+                    # Check if any job for this analysis has been downloaded
+                    for job in registry[key]:
+                        if job.get('status') == 'DONE' and job.get('local_file'):
+                            downloaded_analyses.add(analysis)
+                            break
+        
+        return list(downloaded_analyses)
+
+# ============================================================================
+# 5. FILE & DIRECTORY MANAGEMENT
+# ============================================================================
+
+    async def create_download_directory(self, org, project, analysis):
+        """Create a nested directory structure for downloads"""
+        download_path = Path("downloads") / org / project / analysis
+        download_path.mkdir(parents=True, exist_ok=True)
+        return download_path
+
+    def format_path_as_tree(self, path_str):
+        """
+        Format a file path as a proper hierarchical ASCII tree with single path.
+        
+        This tree visualization is used in various places in the UI to show 
+        download locations. The styling of the tree display is carefully tuned
+        in each context where it appears.
+        """
+        path = Path(path_str)
+            
+        # Get the parts of the path
+        parts = list(path.parts)
+        
+        # Build the tree visualization
+        tree_lines = []
+        
+        # Root or first part
+        if parts and parts[0] == '/':
+            tree_lines.append('/')
+            parts = parts[1:]
+        elif len(parts) > 0:
+            tree_lines.append(parts[0])
+            parts = parts[1:]
+        
+        # Track the current level of indentation
+        indent = ""
+        
+        # Add nested branches for each directory level
+        for part in parts:
+            tree_lines.append(f"{indent}└─{part}")
+            # Increase indentation for next level, using spaces to align
+            indent += "    "
+            
+        return '\n'.join(tree_lines)
+
     async def download_csv(self, request):
-        """
-        Handle downloading the CSV file from a completed export job
-        """
+        """Handle CSV file download"""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1753,9 +1877,7 @@ class BotifyExport:
             return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
 
     async def download_progress(self, request):
-        """
-        Handle the actual file download and show progress
-        """
+        """Handle download progress tracking"""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1893,325 +2015,91 @@ class BotifyExport:
                 id=step_id
             )
 
-    def get_export_key(self, org, project, analysis, depth):
-        """Generate a unique key for an export configuration"""
-        return f"{org}_{project}_{analysis}_depth_{depth}"
-
-    def load_export_registry(self):
-        """Load the export registry from file"""
-        try:
-            if EXPORT_REGISTRY_FILE.exists():
-                with open(EXPORT_REGISTRY_FILE, 'r') as f:
-                    return json.load(f)
-            return {}
-        except Exception as e:
-            logger.error(f"Error loading export registry: {e}")
-            return {}
-
-    def save_export_registry(self, registry):
-        """Save the export registry to file"""
-        try:
-            # Create directory if it doesn't exist
-            EXPORT_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(EXPORT_REGISTRY_FILE, 'w') as f:
-                json.dump(registry, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error saving export registry: {e}")
-
-    def register_export_job(self, org, project, analysis, depth, job_url, job_id):
-        """Register a new export job in the registry"""
-        registry = self.load_export_registry()
-        export_key = self.get_export_key(org, project, analysis, depth)
+    async def download_ready_export(self, request):
+        """Handle ready export download"""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
         
-        # Check if this export already exists
-        if export_key not in registry:
-            registry[export_key] = []
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        job_id = form.get("job_id")
+        download_url = form.get("download_url")
         
-        # Add the new job
-        registry[export_key].append({
-            'job_url': job_url,
+        if not all([pipeline_id, job_id, download_url]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Extract necessary information from state
+        org = step_data.get('org')
+        project = step_data.get('project')
+        analysis = step_data.get('analysis')
+        depth = step_data.get('depth', '0')
+        
+        # Update state with the download URL if it's not already set
+        if step_id not in state:
+            state[step_id] = {}
+        
+        state[step_id].update({
             'job_id': job_id,
-            'status': 'PROCESSING',
-            'created': datetime.now().isoformat(),
-            'updated': datetime.now().isoformat(),
-            'download_url': None,
-            'local_file': None
+            'download_url': download_url,
+            'status': 'DONE',
+            'org': org,
+            'project': project,
+            'analysis': analysis,
+            'depth': depth
         })
         
-        self.save_export_registry(registry)
-        return export_key
-
-    def update_export_job(self, org, project, analysis, depth, job_id, updates):
-        """Update an existing export job in the registry"""
-        registry = self.load_export_registry()
-        export_key = self.get_export_key(org, project, analysis, depth)
-        
-        if export_key not in registry:
-            logger.error(f"Export key {export_key} not found in registry")
-            return False
-        
-        for job in registry[export_key]:
-            if job['job_id'] == job_id:
-                job.update(updates)
-                job['updated'] = datetime.now().isoformat()
-                self.save_export_registry(registry)
-                return True
-        
-        logger.error(f"Job ID {job_id} not found for export key {export_key}")
-        return False
-
-    def find_export_jobs(self, org, project, analysis, depth):
-        """Find all export jobs for a specific configuration"""
-        registry = self.load_export_registry()
-        export_key = self.get_export_key(org, project, analysis, depth)
-        
-        return registry.get(export_key, [])
-        
-    def find_downloaded_analyses(self, org, project):
-        """Find all analyses that have been downloaded for a specific org and project"""
-        registry = self.load_export_registry()
-        downloaded_analyses = set()
-        
-        # Look for keys that match this org and project
-        for key in registry.keys():
-            if key.startswith(f"{org}_{project}_"):
-                # Extract analysis name from the key (format: org_project_analysis_depth_X)
-                parts = key.split('_')
-                if len(parts) >= 3:
-                    analysis = parts[2]
-                    # Check if any job for this analysis has been downloaded
-                    for job in registry[key]:
-                        if job.get('status') == 'DONE' and job.get('local_file'):
-                            downloaded_analyses.add(analysis)
-                            break
-        
-        return list(downloaded_analyses)
-
-    # --- Finalization & Unfinalization ---
-    async def finalize(self, request):
-        """
-        Finalize the workflow, locking all steps from further changes.
-        
-        This method handles both GET requests (displaying finalization UI) and 
-        POST requests (performing the actual finalization). The UI portions
-        are intentionally kept WET to allow for full customization of the user
-        experience, while core state management is handled by DRY helper methods.
-        
-        Customization Points:
-        - GET response: The cards/UI shown before finalization
-        - Confirmation message: What the user sees after finalizing
-        - Any additional UI elements or messages
-        
-        Args:
-            request: The HTTP request object
+        # Set a dummy job URL if none exists
+        if step.done not in state[step_id]:
+            state[step_id][step.done] = f"existing://{job_id}"
             
-        Returns:
-            UI components for either the finalization prompt or confirmation
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        pipeline_id = db.get("pipeline_id", "unknown")
-        finalize_step = steps[-1]
-        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
-        logger.debug(f"Pipeline ID: {pipeline_id}")
-        logger.debug(f"Finalize step: {finalize_step}")
-        logger.debug(f"Finalize data: {finalize_data}")
-
-        # ───────── GET REQUEST: FINALIZATION UI (INTENTIONALLY WET) ─────────
-        if request.method == "GET":
-            if finalize_step.done in finalize_data:
-                logger.debug("Pipeline is already finalized")
-                return Card(
-                    H4("Workflow is locked."),
-                    # P(f"Pipeline is finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."),
-                    Form(
-                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
-                        hx_post=f"/{app_name}/unfinalize",
-                        hx_target=f"#{app_name}-container",
-                        hx_swap="outerHTML"
-                    ),
-                    id=finalize_step.id
-                )
-
-            # Check if all previous steps are complete
-            non_finalize_steps = steps[:-1]
-            all_steps_complete = all(
-                pip.get_step_data(pipeline_id, step.id, {}).get(step.done)
-                for step in non_finalize_steps
-            )
-            logger.debug(f"All steps complete: {all_steps_complete}")
-
-            if all_steps_complete:
-                return Card(
-                    H4("All steps complete. Finalize?"),
-                    P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
-                    # P("All data is saved. Lock it in?"),
-                    Form(
-                        Button("Finalize", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/finalize",
-                        hx_target=f"#{app_name}-container",
-                        hx_swap="outerHTML"
-                    ),
-                    id=finalize_step.id
-                )
-            else:
-                # We still need an element with the finalize_step.id for consistency
-                return Card(
-                    P("Complete all previous steps before finalizing."),
-                    id=finalize_step.id
-                )
-        # ───────── END GET REQUEST ─────────
-        else:
-            # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
-            # Update state using DRY helper
-            await pip.finalize_workflow(pipeline_id)
-            
-            # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
-            # Send a confirmation message 
-            await self.message_queue.add(pip, "Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
-            
-            # Return the updated UI
-            return pip.rebuild(app_name, steps)
-            # ───────── END CUSTOM FINALIZATION UI ─────────
-
-    async def unfinalize(self, request):
-        """
-        Unfinalize the workflow, allowing steps to be modified again.
-        
-        This method removes the finalization flag from the workflow state
-        and displays a confirmation message to the user. The core state
-        management is handled by a DRY helper method, while the UI generation
-        is intentionally kept WET for customization.
-        
-        Customization Points:
-        - Confirmation message: What the user sees after unfinalizing
-        - Any additional UI elements or actions
-        
-        Args:
-            request: The HTTP request object
-            
-        Returns:
-            UI components showing the workflow is unlocked
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Before unfinalizing, check if Step 4 is completed and preserve its state
-        state = pip.read_state(pipeline_id)
-        step_04_data = pip.get_step_data(pipeline_id, "step_04", {})
-        step_04 = next((s for s in steps if s.id == "step_04"), None)
-        
-        if step_04 and step_04_data.get(step_04.done):
-            # Add a flag to indicate Step 4 should stay in completed state
-            state["step_04"]["_preserve_completed"] = True
-            pip.write_state(pipeline_id, state)
-        
-        # Update state using DRY helper
-        await pip.unfinalize_workflow(pipeline_id)
-        
-        # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
-        # Send a message informing them they can revert to any step
-        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
-        
-        # Return the rebuilt UI
-        return pip.rebuild(app_name, steps)
-        # ───────── END CUSTOM UNFINALIZATION UI ─────────
-
-    def run_all_cells(self, steps, app_name):
-        """Generate placeholders for all steps through Pipulate helper."""
-        return self.pipulate.run_all_cells(app_name, steps)
-
-    async def jump_to_step(self, request):
-        """
-        Jump to a specific step in the workflow.
-        
-        This method updates the step_id in the database and rebuilds the UI
-        to show the workflow from the selected step.
-        
-        Args:
-            request: The HTTP request object containing the step_id
-            
-        Returns:
-            FastHTML components showing the workflow from the selected step
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        db["step_id"] = step_id
-        return pip.rebuild(app_name, steps)
-
-    async def get_suggestion(self, step_id, state):
-        """
-        Get a suggestion value for a step based on transform function.
-        
-        If the step has a transform function, use the previous step's output
-        to generate a suggested value. This enables data to flow naturally
-        from one step to the next, creating a connected workflow experience.
-        
-        Args:
-            step_id: The ID of the step to generate a suggestion for
-            state: The current workflow state
-            
-        Returns:
-            str: The suggested value or empty string if not applicable
-        """
-        pip, db, steps = self.pipulate, self.db, self.steps
-        # If a transform function exists, use the previous step's output.
-        step = next((s for s in steps if s.id == step_id), None)
-        if not step or not step.transform:
-            return ""
-        prev_index = self.steps_indices[step_id] - 1
-        if prev_index < 0:
-            return ""
-        prev_step_id = steps[prev_index].id
-        prev_step = steps[prev_index]
-        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
-        prev_word = prev_data.get(prev_step.done, "")
-        return step.transform(prev_word) if prev_word else ""
-
-    async def handle_revert(self, request):
-        """
-        Handle reverting to a previous step in the workflow.
-        
-        This method clears state data from the specified step forward,
-        marks the step as the revert target in the state, and rebuilds
-        the workflow UI. It allows users to go back and modify their
-        inputs at any point in the workflow process.
-        
-        Args:
-            request: The HTTP request object containing the step_id
-            
-        Returns:
-            FastHTML components representing the rebuilt workflow UI
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        pipeline_id = db.get("pipeline_id", "unknown")
-        if not step_id:
-            return P("Error: No step specified", style=pip.get_style("error"))
-        
-        # Clear steps from the specified step forward
-        await pip.clear_steps_from(pipeline_id, step_id, steps)
-        
-        # Update state with revert target
-        state = pip.read_state(pipeline_id)
-        state["_revert_target"] = step_id
-        
-        # When reverting to step_04 or any earlier step, clear the _preserve_completed flag
-        # from step_04 to ensure it shows the interactive UI instead of the completed state
-        if step_id == "step_04" or self.steps_indices.get(step_id, 0) < self.steps_indices.get("step_04", 99):
-            if "step_04" in state and "_preserve_completed" in state["step_04"]:
-                del state["step_04"]["_preserve_completed"]
-        
         pip.write_state(pipeline_id, state)
         
-        # Send a state message
-        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
-        await self.message_queue.add(pip, message, verbatim=True)
-        
-        # Return the rebuilt UI
-        return pip.rebuild(app_name, steps)
+        # Show download progress UI
+        try:
+            # Create download directory
+            download_dir = await self.create_download_directory(org, project, analysis)
+            
+            # Generate filename
+            include_fields = step_data.get('include_fields', {})
+            fields_suffix = "_".join(k for k, v in include_fields.items() if v) or "url_only"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv"
+            
+            local_file_path = download_dir / filename
+            
+            # Start downloading with progress feedback
+            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
+            
+            # Show download progress
+            return Div(
+                Card(
+                    H4("Downloading CSV File"),
+                    P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
+                    Progress(value="10", max="100", style="width: 100%;"),
+                    P("Please wait, this may take a few minutes for large files...", 
+                      style="font-size: 0.9em; color: #666;")
+                ),
+                hx_get=f"/{app_name}/download_progress",
+                hx_trigger="load",
+                hx_target=f"#{step_id}",
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
+                id=step_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error preparing download: {str(e)}")
+            return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
+
+# ============================================================================
+# 6. API INTEGRATION
+# ============================================================================
 
     def read_api_token(self):
         """Read Botify API token from local file."""
@@ -2301,326 +2189,6 @@ class BotifyExport:
                 
         # If we never hit 1M, return the max depth and its cumulative count
         return max(sorted_depths), cumulative_sum, None
-
-    async def check_export_status(self, request):
-        """
-        Check the status of an export job and update the UI
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        
-        # Get form data
-        form = await request.form()
-        pipeline_id = form.get("pipeline_id")
-        job_url = form.get("job_url")
-        job_id = form.get("job_id")
-        
-        if not all([pipeline_id, job_url, job_id]):
-            return P("Missing required parameters", style=pip.get_style("error"))
-        
-        # Get state data
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        
-        # Check if the job is complete
-        try:
-            api_token = self.read_api_token()
-            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
-            
-            if is_complete and download_url:
-                # Update the state with the download URL
-                state[step_id]['download_url'] = download_url
-                state[step_id]['status'] = 'DONE'
-                pip.write_state(pipeline_id, state)
-                
-                # Update the registry
-                org = step_data.get('org')
-                project = step_data.get('project')
-                analysis = step_data.get('analysis')
-                depth = step_data.get('depth')
-                
-                if all([org, project, analysis, depth]):
-                    self.update_export_job(
-                        org, project, analysis, depth, job_id,
-                        {'status': 'DONE', 'download_url': download_url}
-                    )
-                
-                # Send success message
-                await self.message_queue.add(
-                    pip, 
-                    f"Export job completed! Job ID: {job_id}\n"
-                    f"The export is ready for download.", 
-                    verbatim=True
-                )
-                
-                # Return the download button - IMPORTANT: Break the HTMX chain reaction
-                # No hx_get or other HTMX attributes on this DIV
-                # This is a "terminal" response that won't trigger other steps
-                return Div(
-                    Card(
-                        H4("Export Status: Complete ✅"),
-                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
-                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
-                        Form(
-                            Button("Download CSV", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/download_csv",
-                            hx_target=f"#{step_id}",
-                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
-                        )
-                    ),
-                    # Add class to indicate this is a terminal response
-                    # This DIV won't load any other steps automatically
-                    cls="terminal-response no-chain-reaction",
-                    id=step_id
-                )
-            else:
-                # Job is still processing
-                created = step_data.get('created', state[step_id].get('created', 'Unknown'))
-                try:
-                    created_dt = datetime.fromisoformat(created)
-                    created_str = created_dt.strftime("%Y-%m-%d %H:%M:%S")
-                except:
-                    created_str = created
-                
-                # Send message about still processing
-                await self.message_queue.add(
-                    pip, 
-                    f"Export job is still processing (Job ID: {job_id}).\n"
-                    f"Status will update automatically.", 
-                    verbatim=True
-                )
-                
-                # Return the UI with automatic polling instead of "Check Status Again" button
-                include_fields = step_data.get('include_fields', {})
-                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
-                
-                return Div(
-                    Card(
-                        H4("Export Status: Processing ⏳"),
-                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
-                        P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
-                        Div(
-                            Progress(),  # PicoCSS indeterminate progress bar
-                            P("Checking status automatically...", style="color: #666;"),
-                            id="progress-container"
-                        )
-                    ),
-                    # Only these HTMX attributes to continue polling - nothing else
-                    # This breaks the chain reaction by not having any next-step HTMX attributes
-                    cls="polling-status no-chain-reaction",
-                    hx_get=f"/{app_name}/download_job_status",
-                    hx_trigger="every 2s",
-                    hx_target=f"#{step_id}",
-                    hx_swap="outerHTML",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id
-                )
-                
-        except Exception as e:
-            logger.error(f"Error checking job status: {str(e)}")
-            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
-
-    async def download_job_status(self, request):
-        """
-        Endpoint for automatic polling of job status
-        This is called via HTMX's hx-trigger="every 2s" to check export job status
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        
-        # Get query parameters from the GET request
-        pipeline_id = request.query_params.get("pipeline_id")
-        
-        if not pipeline_id:
-            return P("Missing required parameters", style=pip.get_style("error"))
-        
-        # Get state data
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        
-        # Get job information from state
-        job_url = step_data.get('job_url')
-        job_id = step_data.get('job_id')
-        org = step_data.get('org')
-        project = step_data.get('project')
-        analysis = step_data.get('analysis')
-        depth = step_data.get('depth')
-        
-        if not all([job_url, job_id]):
-            return P("Job information not found in state", style=pip.get_style("error"))
-        
-        # Check if the job is complete
-        try:
-            api_token = self.read_api_token()
-            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
-            
-            if is_complete and download_url:
-                # Update the state with the download URL
-                state[step_id]['download_url'] = download_url
-                state[step_id]['status'] = 'DONE'
-                pip.write_state(pipeline_id, state)
-                
-                # Update the registry
-                if all([org, project, analysis, depth]):
-                    self.update_export_job(
-                        org, project, analysis, depth, job_id,
-                        {'status': 'DONE', 'download_url': download_url}
-                    )
-                
-                # Send success message
-                await self.message_queue.add(
-                    pip, 
-                    f"Export job completed! Job ID: {job_id}\n"
-                    f"The export is ready for download.", 
-                    verbatim=True
-                )
-                
-                # Return the download button - IMPORTANT: Break the HTMX chain reaction
-                # No hx_get or other HTMX attributes on this DIV
-                # This is a "terminal" response that won't trigger other steps
-                return Div(
-                    Card(
-                        H4("Export Status: Complete ✅"),
-                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
-                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
-                        Form(
-                            Button("Download CSV", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/download_csv",
-                            hx_target=f"#{step_id}",
-                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
-                        )
-                    ),
-                    # Add class to indicate this is a terminal response
-                    # This DIV won't load any other steps automatically
-                    cls="terminal-response no-chain-reaction",
-                    id=step_id
-                )
-            else:
-                # Job is still processing - show indeterminate progress bar with automatic polling
-                include_fields = step_data.get('include_fields', {})
-                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
-                
-                return Div(
-                    Card(
-                        H4("Export Status: Processing ⏳"),
-                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
-                        P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
-                        P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
-                        Div(
-                            Progress(),  # PicoCSS indeterminate progress bar
-                            P("Checking status...", style="color: #666;"),
-                            id="progress-container"
-                        )
-                    ),
-                    # Only these HTMX attributes to continue polling - nothing else
-                    # This breaks the chain reaction by not having any next-step HTMX attributes
-                    cls="polling-status no-chain-reaction",
-                    hx_get=f"/{app_name}/download_job_status",
-                    hx_trigger="every 2s",
-                    hx_target=f"#{step_id}",
-                    hx_swap="outerHTML",
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id
-                )
-                
-        except Exception as e:
-            logger.error(f"Error checking job status: {str(e)}")
-            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
-
-    async def download_ready_export(self, request):
-        """
-        Handle downloading an existing export job
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        
-        # Get form data
-        form = await request.form()
-        pipeline_id = form.get("pipeline_id")
-        job_id = form.get("job_id")
-        download_url = form.get("download_url")
-        
-        if not all([pipeline_id, job_id, download_url]):
-            return P("Missing required parameters", style=pip.get_style("error"))
-        
-        # Get state data
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        
-        # Extract necessary information from state
-        org = step_data.get('org')
-        project = step_data.get('project')
-        analysis = step_data.get('analysis')
-        depth = step_data.get('depth', '0')
-        
-        # Update state with the download URL if it's not already set
-        if step_id not in state:
-            state[step_id] = {}
-        
-        state[step_id].update({
-            'job_id': job_id,
-            'download_url': download_url,
-            'status': 'DONE',
-            'org': org,
-            'project': project,
-            'analysis': analysis,
-            'depth': depth
-        })
-        
-        # Set a dummy job URL if none exists
-        if step.done not in state[step_id]:
-            state[step_id][step.done] = f"existing://{job_id}"
-            
-        pip.write_state(pipeline_id, state)
-        
-        # Show download progress UI
-        try:
-            # Create download directory
-            download_dir = await self.create_download_directory(org, project, analysis)
-            
-            # Generate filename
-            include_fields = step_data.get('include_fields', {})
-            fields_suffix = "_".join(k for k, v in include_fields.items() if v) or "url_only"
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv"
-            
-            local_file_path = download_dir / filename
-            
-            # Start downloading with progress feedback
-            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
-            
-            # Show download progress
-            return Div(
-                Card(
-                    H4("Downloading CSV File"),
-                    P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
-                    Progress(value="10", max="100", style="width: 100%;"),
-                    P("Please wait, this may take a few minutes for large files...", 
-                      style="font-size: 0.9em; color: #666;")
-                ),
-                hx_get=f"/{app_name}/download_progress",
-                hx_trigger="load",
-                hx_target=f"#{step_id}",
-                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
-                id=step_id
-            )
-            
-        except Exception as e:
-            logger.error(f"Error preparing download: {str(e)}")
-            return P(f"Error preparing download: {str(e)}", style=pip.get_style("error"))
-
-    async def create_download_directory(self, org, project, analysis):
-        """Create a nested directory structure for downloads"""
-        download_path = Path("downloads") / org / project / analysis
-        download_path.mkdir(parents=True, exist_ok=True)
-        return download_path
 
     async def initiate_export_job(self, org, project, analysis, depth, include_fields, api_token):
         """
@@ -2739,40 +2307,9 @@ class BotifyExport:
             logger.error(f"Error polling job status: {str(e)}")
             return False, None, f"Error polling job status: {str(e)}"
 
-    def format_path_as_tree(self, path_str):
-        """
-        Format a file path as a proper hierarchical ASCII tree with single path.
-        
-        This tree visualization is used in various places in the UI to show 
-        download locations. The styling of the tree display is carefully tuned
-        in each context where it appears.
-        """
-        path = Path(path_str)
-            
-        # Get the parts of the path
-        parts = list(path.parts)
-        
-        # Build the tree visualization
-        tree_lines = []
-        
-        # Root or first part
-        if parts and parts[0] == '/':
-            tree_lines.append('/')
-            parts = parts[1:]
-        elif len(parts) > 0:
-            tree_lines.append(parts[0])
-            parts = parts[1:]
-        
-        # Track the current level of indentation
-        indent = ""
-        
-        # Add nested branches for each directory level
-        for part in parts:
-            tree_lines.append(f"{indent}└─{part}")
-            # Increase indentation for next level, using spaces to align
-            indent += "    "
-            
-        return '\n'.join(tree_lines)
+# ============================================================================
+# 7. UI HELPERS & UTILITIES
+# ============================================================================
 
     def clean_job_id_for_display(self, job_id):
         """
@@ -2797,3 +2334,471 @@ class BotifyExport:
             
         return clean_id
 
+    async def check_export_status(self, request):
+        """Check and display export status"""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
+        
+        # Get form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id")
+        job_url = form.get("job_url")
+        job_id = form.get("job_id")
+        
+        if not all([pipeline_id, job_url, job_id]):
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Check if the job is complete
+        try:
+            api_token = self.read_api_token()
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            
+            if is_complete and download_url:
+                # Update the state with the download URL
+                state[step_id]['download_url'] = download_url
+                state[step_id]['status'] = 'DONE'
+                pip.write_state(pipeline_id, state)
+                
+                # Update the registry
+                org = step_data.get('org')
+                project = step_data.get('project')
+                analysis = step_data.get('analysis')
+                depth = step_data.get('depth')
+                
+                if all([org, project, analysis, depth]):
+                    self.update_export_job(
+                        org, project, analysis, depth, job_id,
+                        {'status': 'DONE', 'download_url': download_url}
+                    )
+                
+                # Send success message
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job completed! Job ID: {job_id}\n"
+                    f"The export is ready for download.", 
+                    verbatim=True
+                )
+                
+                # Return the download button - IMPORTANT: Break the HTMX chain reaction
+                # No hx_get or other HTMX attributes on this DIV
+                # This is a "terminal" response that won't trigger other steps
+                return Div(
+                    Card(
+                        H4("Export Status: Complete ✅"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
+                        Form(
+                            Button("Download CSV", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/download_csv",
+                            hx_target=f"#{step_id}",
+                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                        )
+                    ),
+                    # Add class to indicate this is a terminal response
+                    # This DIV won't load any other steps automatically
+                    cls="terminal-response no-chain-reaction",
+                    id=step_id
+                )
+            else:
+                # Job is still processing
+                created = step_data.get('created', state[step_id].get('created', 'Unknown'))
+                try:
+                    created_dt = datetime.fromisoformat(created)
+                    created_str = created_dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    created_str = created
+                
+                # Send message about still processing
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job is still processing (Job ID: {job_id}).\n"
+                    f"Status will update automatically.", 
+                    verbatim=True
+                )
+                
+                # Return the UI with automatic polling instead of "Check Status Again" button
+                include_fields = step_data.get('include_fields', {})
+                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
+                
+                return Div(
+                    Card(
+                        H4("Export Status: Processing ⏳"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
+                        Div(
+                            Progress(),  # PicoCSS indeterminate progress bar
+                            P("Checking status automatically...", style="color: #666;"),
+                            id="progress-container"
+                        )
+                    ),
+                    # Only these HTMX attributes to continue polling - nothing else
+                    # This breaks the chain reaction by not having any next-step HTMX attributes
+                    cls="polling-status no-chain-reaction",
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load delay:2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}',
+                    id=step_id
+                )
+                
+        except Exception as e:
+            logger.error(f"Error checking job status: {str(e)}")
+            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
+
+    async def download_job_status(self, request):
+        """Handle job status updates"""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        
+        # Get query parameters from the GET request
+        pipeline_id = request.query_params.get("pipeline_id")
+        
+        if not pipeline_id:
+            return P("Missing required parameters", style=pip.get_style("error"))
+        
+        # Get state data
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Get job information from state
+        job_url = step_data.get('job_url')
+        job_id = step_data.get('job_id')
+        org = step_data.get('org')
+        project = step_data.get('project')
+        analysis = step_data.get('analysis')
+        depth = step_data.get('depth')
+        
+        if not all([job_url, job_id]):
+            return P("Job information not found in state", style=pip.get_style("error"))
+        
+        # Check if the job is complete
+        try:
+            api_token = self.read_api_token()
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            
+            if is_complete and download_url:
+                # Update the state with the download URL
+                state[step_id]['download_url'] = download_url
+                state[step_id]['status'] = 'DONE'
+                pip.write_state(pipeline_id, state)
+                
+                # Update the registry
+                if all([org, project, analysis, depth]):
+                    self.update_export_job(
+                        org, project, analysis, depth, job_id,
+                        {'status': 'DONE', 'download_url': download_url}
+                    )
+                
+                # Send success message
+                await self.message_queue.add(
+                    pip, 
+                    f"Export job completed! Job ID: {job_id}\n"
+                    f"The export is ready for download.", 
+                    verbatim=True
+                )
+                
+                # Return the download button - IMPORTANT: Break the HTMX chain reaction
+                # No hx_get or other HTMX attributes on this DIV
+                # This is a "terminal" response that won't trigger other steps
+                return Div(
+                    Card(
+                        H4("Export Status: Complete ✅"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
+                        Form(
+                            Button("Download CSV", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/download_csv",
+                            hx_target=f"#{step_id}",
+                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
+                        )
+                    ),
+                    # Add class to indicate this is a terminal response
+                    # This DIV won't load any other steps automatically
+                    cls="terminal-response no-chain-reaction",
+                    id=step_id
+                )
+            else:
+                # Job is still processing - show indeterminate progress bar with automatic polling
+                include_fields = step_data.get('include_fields', {})
+                fields_list = ", ".join([k for k, v in include_fields.items() if v]) or "URL only"
+                
+                return Div(
+                    Card(
+                        H4("Export Status: Processing ⏳"),
+                        P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
+                        P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
+                        P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
+                        Div(
+                            Progress(),  # PicoCSS indeterminate progress bar
+                            P("Checking status automatically...", style="color: #666;"),
+                            id="progress-container"
+                        )
+                    ),
+                    # Only these HTMX attributes to continue polling - nothing else
+                    # This breaks the chain reaction by not having any next-step HTMX attributes
+                    cls="polling-status no-chain-reaction",
+                    hx_get=f"/{app_name}/download_job_status",
+                    hx_trigger="load delay:2s",
+                    hx_target=f"#{step_id}",
+                    hx_swap="outerHTML",
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id
+                )
+                
+        except Exception as e:
+            logger.error(f"Error checking job status: {str(e)}")
+            return P(f"Error checking export status: {str(e)}", style=pip.get_style("error"))
+
+# ============================================================================
+# 8. STATE MANAGEMENT
+# ============================================================================
+
+    async def finalize(self, request):
+        """
+        Finalize the workflow, locking all steps from further changes.
+        
+        This method handles both GET requests (displaying finalization UI) and 
+        POST requests (performing the actual finalization). The UI portions
+        are intentionally kept WET to allow for full customization of the user
+        experience, while core state management is handled by DRY helper methods.
+        
+        Customization Points:
+        - GET response: The cards/UI shown before finalization
+        - Confirmation message: What the user sees after finalizing
+        - Any additional UI elements or messages
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components for either the finalization prompt or confirmation
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1]
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        logger.debug(f"Pipeline ID: {pipeline_id}")
+        logger.debug(f"Finalize step: {finalize_step}")
+        logger.debug(f"Finalize data: {finalize_data}")
+
+        # ───────── GET REQUEST: FINALIZATION UI (INTENTIONALLY WET) ─────────
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                logger.debug("Pipeline is already finalized")
+                return Card(
+                    H4("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize",
+                        hx_target=f"#{app_name}-container",
+                        hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+
+            # Check if all previous steps are complete
+            non_finalize_steps = steps[:-1]
+            all_steps_complete = all(
+                pip.get_step_data(pipeline_id, step.id, {}).get(step.done)
+                for step in non_finalize_steps
+            )
+            logger.debug(f"All steps complete: {all_steps_complete}")
+
+            if all_steps_complete:
+                return Card(
+                    H4("All steps complete. Finalize?"),
+                    P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        Button("Finalize", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/finalize",
+                        hx_target=f"#{app_name}-container",
+                        hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                return Div(P("Nothing to finalize yet."), id=finalize_step.id)
+        # ───────── END GET REQUEST ─────────
+        else:
+            # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
+            # Update state using DRY helper
+            await pip.finalize_workflow(pipeline_id)
+            
+            # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
+            # Send a confirmation message 
+            await self.message_queue.add(pip, "Workflow successfully finalized! Your data has been saved and locked.", verbatim=True)
+            
+            # Return the updated UI
+            return pip.rebuild(app_name, steps)
+            # ───────── END CUSTOM FINALIZATION UI ─────────
+
+    async def unfinalize(self, request):
+        """
+        Unfinalize the workflow, allowing steps to be modified again.
+        
+        This method removes the finalization flag from the workflow state
+        and displays a confirmation message to the user. The core state
+        management is handled by a DRY helper method, while the UI generation
+        is intentionally kept WET for customization.
+        
+        Customization Points:
+        - Confirmation message: What the user sees after unfinalizing
+        - Any additional UI elements or actions
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            UI components showing the workflow is unlocked
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Before unfinalizing, check if Step 4 is completed and preserve its state
+        state = pip.read_state(pipeline_id)
+        step_04_data = pip.get_step_data(pipeline_id, "step_04", {})
+        step_04 = next((s for s in steps if s.id == "step_04"), None)
+        
+        if step_04 and step_04_data.get(step_04.done):
+            # Add a flag to indicate Step 4 should stay in completed state after unfinalization
+            state["step_04"]["_preserve_completed"] = True
+            pip.write_state(pipeline_id, state)
+        
+        # Update state using DRY helper
+        await pip.unfinalize_workflow(pipeline_id)
+        
+        # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
+        # Send a message informing them they can revert to any step
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        
+        # Return the rebuilt UI
+        return pip.rebuild(app_name, steps)
+        # ───────── END CUSTOM UNFINALIZATION UI ─────────
+
+    async def handle_revert(self, request):
+        """
+        Handle reverting to a previous step in the workflow.
+        
+        This method clears state data from the specified step forward,
+        marks the step as the revert target in the state, and rebuilds
+        the workflow UI. It allows users to go back and modify their
+        inputs at any point in the workflow process.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components representing the rebuilt workflow UI
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id:
+            return P("Error: No step specified", style=pip.get_style("error"))
+        
+        # Clear steps from the specified step forward
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        
+        # Update state with revert target
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        
+        # When reverting to step_04 or any earlier step, clear the _preserve_completed flag
+        # from step_04 to ensure it shows the interactive UI instead of the completed state
+        if step_id == "step_04" or self.steps_indices.get(step_id, 0) < self.steps_indices.get("step_04", 99):
+            if "step_04" in state and "_preserve_completed" in state["step_04"]:
+                del state["step_04"]["_preserve_completed"]
+        
+        pip.write_state(pipeline_id, state)
+        
+        # Send a state message
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        
+        # Return the rebuilt UI
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        """
+        Get a suggestion value for a step based on transform function.
+        
+        If the step has a transform function, use the previous step's output
+        to generate a suggested value. This enables data to flow naturally
+        from one step to the next, creating a connected workflow experience.
+        
+        Args:
+            step_id: The ID of the step to generate a suggestion for
+            state: The current workflow state
+            
+        Returns:
+            str: The suggested value or empty string if not applicable
+        """
+        pip, db, steps = self.pipulate, self.db, self.steps
+        # If a transform function exists, use the previous step's output.
+        step = next((s for s in steps if s.id == step_id), None)
+        if not step or not step.transform:
+            return ""
+        prev_index = self.steps_indices[step_id] - 1
+        if prev_index < 0:
+            return ""
+        prev_step_id = steps[prev_index].id
+        prev_step = steps[prev_index]
+        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
+        prev_word = prev_data.get(prev_step.done, "")
+        return step.transform(prev_word) if prev_word else ""
+
+    async def jump_to_step(self, request):
+        """
+        Jump to a specific step in the workflow.
+        
+        This method updates the step_id in the database and rebuilds the UI
+        to show the workflow from the selected step.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components showing the workflow from the selected step
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        db["step_id"] = step_id
+        return pip.rebuild(app_name, steps)
+
+# ============================================================================
+# 9. UTILITY FUNCTIONS
+# ============================================================================
+
+def parse_botify_url(url: str) -> dict:
+    """
+    Parse and validate Botify URL.
+    
+    Args:
+        url: The Botify project URL to parse
+        
+    Returns:
+        dict: Contains url, org, and project information
+        
+    Raises:
+        ValueError: If URL format is invalid
+    """
+    parsed = urlparse(url)
+    path_parts = parsed.path.strip('/').split('/')
+    if len(path_parts) < 2:
+        raise ValueError("Invalid Botify URL format")
+    org = path_parts[0]
+    project = path_parts[1]
+    base_url = f"https://{parsed.netloc}/{org}/{project}/"
+    return {"url": base_url, "org": org, "project": project} 
