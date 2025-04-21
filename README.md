@@ -526,8 +526,6 @@ git commit -m "Feat: Promote workflow xx_my_flow.py to 30_my_flow.py"
 
 ## Roadmap
 
-*(Grouped for clarity)*
-
 **Core & Workflow Enhancements:**
 
   * Dev, Test, and Prod database switching
