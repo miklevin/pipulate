@@ -154,8 +154,6 @@ Pipulate features a distinct architecture designed for its local-first, simple, 
 
 This diagram illustrates the high-level components and their interactions:
 
-````
-
 ```
              ┌─────────────┐ Like Electron, but full Linux subsystem 
              │   Browser   │ in a folder for macOS and Windows (WSL)
@@ -175,13 +173,9 @@ This diagram illustrates the high-level components and their interactions:
 └───────────────────────────────────────┘
 ```
 
-```
-
 ### Integrated Data Science Environment
 
 Jupyter Notebooks run alongside the FastHTML server, allowing developers to prototype workflows in a familiar environment before porting them to Pipulate's step-based interface for end-users. The same Python virtual environment (`.venv`) is shared, and ad-hoc package installation is supported.
-
-```
 
 ```
   ┌──────────────────┐    ┌──────────────────┐
@@ -199,8 +193,6 @@ Jupyter Notebooks run alongside the FastHTML server, allowing developers to prot
   └──────────────────┘    └──────────────────┘
 ```
 
-```
-
 ### Local-First & Single-Tenant Details
 
 Pipulate manages all state server-side within the local environment, avoiding cloud dependencies. This approach offers:
@@ -208,8 +200,6 @@ Pipulate manages all state server-side within the local environment, avoiding cl
 * **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks (scraping, 24/7 AI processing) at minimal cost.
 * **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
 * **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged.
-
-```
 
 ```
       ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
@@ -227,16 +217,12 @@ Pipulate manages all state server-side within the local environment, avoiding cl
       └───────────────────────────────┘
 ```
 
-```
-
 ### Server-Rendered UI (HTMX)
 
 The UI is constructed primarily with server-rendered HTML fragments delivered via HTMX. This minimizes client-side JavaScript complexity.
 * FastHTML generates HTML components directly from Python.
 * HTMX handles partial page updates based on user interactions, requesting new HTML snippets from the server.
 * WebSockets and Server-Sent Events (SSE) provide real-time updates (e.g., for chat, live development reloading).
-
-```
 
 ```
                     HTMX+Python enables a world-class
@@ -250,16 +236,12 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
                          └─────────┴───────────┘
 ```
 
-```
-
 ### Pipeline Workflows
 
 Designed for porting notebook-style processes, workflows are sequences of steps where the state is managed explicitly at each stage and stored persistently (typically as a JSON blob in the `pipeline` table).
 * **Resumable & Interrupt-Safe:** Because each step's completion is recorded, workflows can be stopped and resumed.
 * **Explicit State Flow:** Data typically passes from one step's output (`done` field) to the next via the `transform` function, simplifying debugging.
 * **Good Training Data:** The structured input/output of each step creates valuable data for potentially fine-tuning models.
-
-```
 
 ```
   ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable steps
@@ -270,8 +252,6 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
     State Saved        State Saved        Finalized?
 ```
 
-```
-
 ### LLM Integration (Ollama)
 
 Integration with a local Ollama instance provides AI capabilities without external API calls:
@@ -280,8 +260,6 @@ Integration with a local Ollama instance provides AI capabilities without extern
 * **Streaming Support:** Real-time interaction via WebSockets.
 * **Bounded Context:** Manages conversation history effectively.
 * **Tool Calling:** Can interpret structured JSON from the LLM to execute functions.
-
-```
 
 ```
                ┌──────────────────┐
@@ -302,13 +280,9 @@ Integration with a local Ollama instance provides AI capabilities without extern
                └──────────────────┘
 ```
 
-```
-
 ### Multi-OS & CUDA Support (Nix)
 
 Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via WSL), optionally leveraging CUDA GPUs if detected.
-
-```
 
 ```
                ┌──────────────────┐
@@ -323,13 +297,9 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
                └──────────────────┘   - Falls back to CPU if no CUDA
 ```
 
-```
-
 ### UI Layout
 
 The application interface is organized into distinct areas:
-
-```
 
 ```
 ┌─────────────────────────────┐
@@ -344,12 +314,8 @@ The application interface is organized into distinct areas:
 └─────────────────────────────┘
 ```
 
-```
-
 <details>
 <summary>UI Component Hierarchy (Click to Expand)</summary>
-
-```
 
 ```
 home (Root Component)
@@ -380,7 +346,6 @@ home (Root Component)
     +-- create_poke_button
 ```
 
-````
 </details>
 
 ### Communication Channels
@@ -413,7 +378,7 @@ The project aims for a flat, understandable structure:
     ├── requirements.txt      # Python dependencies (managed by Nix)
     ├── server.py             # Main application entry point
     └── start/stop            # Scripts for managing Jupyter (if used)
-````
+```
 
 -----
 
