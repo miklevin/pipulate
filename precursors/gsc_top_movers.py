@@ -47,7 +47,7 @@ MAX_DAYS_TO_CHECK = 31
 API_CHECK_DELAY = 0.5
 
 # Number of consecutive days of data to fetch (ending on the most recent date)
-NUM_DAYS_TO_FETCH = 24
+NUM_DAYS_TO_FETCH = 4
 
 # Number of top results to display in each category
 TOP_N = 100
