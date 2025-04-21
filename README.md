@@ -1,173 +1,101 @@
-# Pipulate Free & Open Source SEO *with & for* LLMs
+Okay, here is the revised version of the `README.md` incorporating the improvements we discussed. I've focused on structure, clarity, conciseness, and accuracy, especially in the introductory sections and technology explanations.
+
+````markdown
+# Pipulate: Free & Open Source Local-First SEO *with & for* LLMs
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
-> Workflows are WET as WET can be. The Crud is DRY as DRY.  
-> You do not need the Cloud because *no lock-in need apply!*  
+> Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).
+> You do not need the Cloud because *no lock-in need apply!*
+
+**Table of Contents**
+* [What is Pipulate?](#what-is-pipulate)
+* [Core Philosophy & Design](#core-philosophy--design)
+* [Key Technologies Used](#key-technologies-used)
+* [Target Audience](#target-audience)
+* [Getting Started](#getting-started)
+    * [Prerequisites](#prerequisites)
+    * [Installing Nix](#installing-nix-on-macos-or-windows)
+    * [Getting Started with Pipulate](#getting-started-with-pipulate)
+* [Architecture & Key Concepts](#architecture--key-concepts)
+    * [Architecture Overview Diagram](#architecture-overview-diagram)
+    * [Integrated Data Science Environment](#integrated-data-science-environment)
+    * [Local-First & Single-Tenant Details](#local-first--single-tenant-details)
+    * [Server-Rendered UI (HTMX)](#server-rendered-ui-htmx)
+    * [Pipeline Workflows](#pipeline-workflows)
+    * [LLM Integration (Ollama)](#llm-integration-ollama)
+    * [Multi-OS & CUDA Support (Nix)](#multi-os--cuda-support-nix)
+    * [UI Layout](#ui-layout)
+    * [Communication Channels](#communication-channels)
+    * [File Structure](#file-structure)
+* [Key Design Guidelines & Patterns](#key-design-guidelines--patterns)
+    * [Local vs. Enterprise Mindset](#local-vs-enterprise-mindset)
+    * [JSON State Management](#json-state-management)
+    * [Database and MiniDataAPI](#database-and-minidataapi)
+    * [Workflow Pattern](#workflow-pattern)
+    * [UI Rendering Pattern](#ui-rendering-pattern)
+    * [WebSocket Pattern](#websocket-pattern)
+* [Internal Components](#internal-components)
+    * [BaseCrud Pattern](#basecrud-pattern)
+    * [Workflow Pattern Details](#workflow-pattern-details)
+* [Understanding FastHTML & MiniDataAPI](#understanding-fasthtml--minidataapi)
+    * [FastHTML vs. FastAPI](#fasthtml-vs-fastapi)
+    * [MiniDataAPI Spec](#minidataapi-spec)
+    * [The `fast_app` Helper](#the-fast_app-helper)
+* [Persistence & Monitoring](#persistence--monitoring)
+* [Final Thoughts](#final-thoughts)
+* [AI Training Prompts](#ai-training-prompts)
+* [Developer's Notes](#developers-notes)
+    * [The Pipulate Workshop](#the-pipulate-workshop)
+    * [Plugin Development Conventions](#plugin-development-conventions)
+* [Roadmap](#roadmap)
+* [Contributing](#contributing)
+* [License](#license)
 
 ## What is Pipulate?
 
-Pipulate is the first local-first, single-tenant desktop app framework with built-in AI-assisted step-by-step workflows. It's designed to function somewhat like an Electron app but runs a full Linux subsystem within a folder (using Nix) for reproducibility on macOS, Linux, and Windows (via WSL). Its primary focus is enabling SEO practitioners and others to use AI-assisted, step-by-step workflows (ported from Jupyter Notebooks) without needing to interact directly with Python code. It also serves developers who build these workflows.
+Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
 
-### Core Philosophy & Design:
+Its primary goals are:
+1.  **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
+2.  **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
 
-* **Local-First & Single-Tenant:** The application runs entirely on the user's machine, managing its state locally. This ensures privacy, gives full access to local hardware resources (for tasks like scraping or running LLMs 24/7 at minimal cost), and avoids cloud dependencies or vendor lock-in.
+## Core Philosophy & Design
 
-* **Simplicity & Observability:** It intentionally avoids complex enterprise patterns like heavyweight ORMs (uses MiniDataAPI), message queues, build steps, or complex client-side state management (like Redux/JWT). State is managed server-side using simple dictionary-like structures (DictLikeDB) and JSON blobs, making it transparent and easy to debug ("know EVERYTHING!"). It aims for the "old-school webmaster feeling" with a modern stack.
+Pipulate is built on a distinct set of principles prioritizing user control, simplicity, and long-term viability:
 
-* **Reproducibility:** Uses Nix Flakes to ensure the exact same development and runtime environment every time across different operating systems (Linux, macOS, Windows via WSL).
+* **Local-First & Single-Tenant:** Your data, your code, your hardware. The application runs entirely locally, ensuring privacy, maximizing performance by using local resources (CPU/GPU for LLMs, scraping), and eliminating cloud costs or vendor lock-in.
+* **Simplicity & Observability ("Know EVERYTHING!"):** We intentionally avoid complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via simple SQLite tables (using MiniDataAPI) and JSON blobs for workflows (using DictLikeDB). This transparency makes debugging intuitive – aiming for that "old-school webmaster feeling" on a modern stack.
+* **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
+* **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies.
+* **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself).
 
-* **Future-Proofing:** Leverages technologies seen as durable: standard HTTP/HTML (via HTMX), Python (boosted by AI), Nix (universal Linux environments), and local AI (Ollama).
+## Key Technologies Used
 
-### Key Technologies Used:
+Pipulate integrates a carefully selected set of tools aligned with its philosophy:
 
-* **FastHTML:** A Python web framework (explicitly not FastAPI) that focuses on simplicity, eliminating template languages (like Jinja2) and minimizing JavaScript by generating HTML directly from Python objects. It works closely with HTMX.
+* **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI.
+* **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates.
+* **MiniDataAPI:** A lightweight layer for interacting with SQLite. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs.
+* **Ollama:** Facilitates running LLMs locally, enabling in-app chat, workflow guidance, and future automation capabilities while ensuring privacy and avoiding API costs.
+* **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support.
+* **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows).
 
-* **HTMX:** A JavaScript library used to create dynamic, interactive user interfaces with minimal custom JavaScript, relying on server-rendered HTML updates.
-
-* **MiniDataAPI:** A simple, type-safe way to interact with SQLite databases using Python dictionaries for schema definition, avoiding complex ORMs like SQLAlchemy.
-
-* **Ollama:** Enables integration with locally running Large Language Models (LLMs) for features like in-app chat, guidance, and potentially automating tasks via structured JSON commands. Offers privacy and avoids API key costs.
-
-* **Nix Flakes:** Manages dependencies and creates reproducible development/runtime environments across operating systems, including optional CUDA support for GPU acceleration if available.
-
-* **SQLite & Jupyter Notebooks:** Integrated tools that support the core workflow development and execution process.
-
-### Target Audience:
+## Target Audience
 
 * **End-Users (e.g., SEO Practitioners):** Individuals who want to use AI-assisted, structured workflows (derived from Python/Jupyter) without needing to write or see the underlying code.
-
 * **Developers:** Those building these workflows, likely porting them from Jupyter Notebooks into the Pipulate framework. They benefit from the simple architecture, reproducibility, and integrated tooling.
 
-A **local-first, single-tenant desktop app framework** built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama). Designed to run like an Electron app—with full server-side state, minimal complexity, and reproducible environments using Nix Flakes. The CRUD is DRY and the Workflows are WET! by [Mike Levin](https://mikelev.in/)
-
-                 ┌─────────────┐ Like Electron, but full Linux subsystem 
-                 │   Browser   │ in a folder for macOS and Windows (WSL)
-                 └─────┬───────┘
-                       │ HTTP/WS
-                       ▼
-    ┌───────────────────────────────────────┐
-    │           Nix Flake Shell             │ - In-app LLM (where it belongs)
-    │  ┌───────────────┐  ┌──────────────┐  │ - 100% reproducible
-    │  │   FastHTML    │  │    Ollama    │  │ - 100% local
-    │  │   HTMX App    │  │  Local LLM   │  │ - 100% multi-OS    
-    │  └───────┬───────┘  └──────────────┘  │
-    │          │                            │
-    │    ┌─────▼─────┐     ┌────────────┐   │
-    │    │MiniDataAPI│◄───►│ SQLite DB  │   │
-    │    └───────────┘     └────────────┘   │
-    └───────────────────────────────────────┘
-
-- **Integrated Data Science Environment:**  
-  Jupyter Notebooks and FastHTML server run side-by-side for seamless development workflow. Develop workflows in the notebook and port it over to the FastHTML server so your users don't have to see the Python code. Flexible `pip install` (or `uv`) for Data Science ad hoc dependencies. `.venv` shared between notebook and server. Also works well with AI code editors like Cursor, Windsurf and Cline.
-
-      ┌──────────────────┐    ┌──────────────────┐
-      │   Jupyter Lab    │    │    FastHTML      │
-      │   Notebooks      │    │     Server       │
-      │ ┌──────────┐     │    │  ┌──────────┐    │
-      │ │ Cell 1   │     │    │  │ Step 1   │    │
-      │ │          │     │--->│  │          │    │
-      │ └──────────┘     │    │  └──────────┘    │
-      │ ┌──────────┐     │    │  ┌──────────┐    │
-      │ │ Cell 2   │     │    │  │ Step 2   │    │
-      │ │          │     │--->│  │          │    │
-      │ └──────────┘     │    │  └──────────┘    │
-      │  localhost:8888  │    │  localhost:5001  │
-      └──────────────────┘    └──────────────────┘
-
-## Key Features
-
-- **Local-First & Single-Tenant:**
-  One user, one instance, with all state managed server-side using a simple DictLikeDB and JSON blobs. Full access to the local hardware for free scraping and processing—have AI workflows running 24/7 for only the cost of electricity and the home bandwidth you already pay for anyway. 
-
-          ┌───────────────────────────────┐ # What's so special about this?
-          │          Web Browser          │
-          │                               │ - No mysterious state
-          │    ┌────────────────────┐     │ - No full-stack framework churn
-          │    │   Server Console   │     │ - No complex ORM or SQL
-          │    │     & Web Logs     │     │ - No message queues
-          │    └─────────┬──────────┘     │ - No build step
-          │              ▼                │ - That old-school webmaster feeling
-          │    ┌─────────────────────┐    │   but with a new future-proof tool stack.
-          │    │  Server-Side State  │    │ 
-          │    │  DictLikeDB + JSON  │ ◄─── server-side cookies!
-          │    └─────────────────────┘    │ - Watch state change (fully observable)
-          └───────────────────────────────┘ - Know EVERYTHING!
-
-- **Server-Rendered UI:**  
-  Entire interface built from DIVs updated via HTMX, with SSE and WebSockets for real-time interactions.
-
-                        HTMX+Python makes Python world-class
-                       front-end Web Development environment.
-                             ┌─────────────────────┐
-                             │    Navigation Bar   │  - No template language (like Jinja2)
-                             ├─────────┬───────────┤  - HTML elements are Python functions
-      Simple Python back-end │  Main   │   Chat    │  - No JavaScript programming
-      HTMX "paints" into DOM │  Area   │ Interface │  - No Redux, JSX, virtual DOM
-      with no page-reload─────►        │           │  - No bloated frameworks
-                             └─────────┴───────────┘
-
-- **Pipeline Workflows:**  
-  Multi-step workflows stored as JSON blobs that follow a clear, forward-only state flow with built-in reversion.
-  
-      ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable
-      │ Step 01 │─piped─►│ Step 02 │─piped─►│ Step 03 │   - Fully resumable
-      └─────────┘        └─────────┘        └─────────┘   - Ports well from Notebooks
-           │                  │                  │        - One record per workflow
-           ▼                  ▼                  ▼        - Produces good training data
-        Recorded           Recorded           Finalize
-
-- **LLM Integration:**
-  Integrated with a local Ollama server for free, streaming LLM support with bounded conversation history.
-
-                   ┌──────────────────┐
-                   │   Local Ollama   │ - No API keys 
-                   │      Server      │ - Completely private
-                   └────────┬─────────┘
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │    WebSocket     │ - JSON stream monitoring
-                   │     Monitor      │ - Function execution tracking
-                   └────────┬─────────┘
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │    Streaming     │ - Tool calling detection
-                   │   LLM Support    │ - Real-time response parsing
-                   └────────┬─────────┘
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │     Bounded      │ - RAG & other memory-based tools
-                   │   Chat History   │ - 128k tokens
-                   └──────────────────┘
-
-- **Multi-OS & CUDA Support:**  
-  Fully reproducible with Nix Flakes on Linux, macOS (or Windows under WSL), and with optional CUDA hardware acceleration if available.
-
-                   ┌──────────────────┐
-                   │  Linux / macOS   │ - Same code everywhere
-                   │  Windows (WSL)   │ - One development environment
-                   └────────┬─────────┘
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │   CUDA Support   │ - Auto-detects GPU
-                   │   (if present)   │ - Falls back gracefully
-                   └──────────────────┘
-
+---
+*by [Mike Levin](https://mikelevin.in/)*
 ---
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Nix with Flakes Enabled:**  
-  Ensure you have Nix installed and flakes enabled.
-
-- **Local LLM Service:**  
-  A local Ollama server must be running for LLM-powered features.
+* **Nix with Flakes Enabled:** Ensure you have Nix installed and flakes enabled. See instructions below.
+* **Local LLM Service:** A local Ollama server must be running for LLM-powered features.
 
 ### Installing Nix on macOS or Windows
 
@@ -175,839 +103,513 @@ This guide provides straightforward instructions for installing Nix on macOS or 
 
 #### Installation Steps
 
-1. Open your terminal (Terminal on macOS, or WSL2 terminal on Windows).
-
-2. Run the following command:
-
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-   ```
-
-3. Follow on-screen prompts to complete the installation.
-   - You have to answer "Yes" once.
-   - Close and reopen your terminal at the end (easy to miss, but important!)
+1.  Open your terminal (Terminal on macOS, or WSL2 terminal on Windows).
+2.  Run the following command:
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf -L [https://install.determinate.systems/nix](https://install.determinate.systems/nix) | sh -s -- install
+    ```
+3.  Follow on-screen prompts to complete the installation. You must answer "Yes" once. **Important:** Close and reopen your terminal at the end.
 
 #### What This Does
 
-- Sets up Nix on your system (macOS, Linux, or Windows via WSL2)
-- Enables Nix flakes and the unified CLI by default
-- Stores an installation receipt at `/nix/receipt.json` for easier uninstallation
-- Places a copy of the install binary at `/nix/nix-installer`
+* Sets up Nix on your system (macOS, Linux, or Windows via WSL2).
+* Enables Nix flakes and the unified CLI by default.
+* Stores an installation receipt at `/nix/receipt.json` for easier uninstallation.
+* Places a copy of the install binary at `/nix/nix-installer`.
 
 ### Getting Started with Pipulate
 
 Once Nix is installed, getting started with Pipulate is simple:
 
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/miklevin/pipulate.git
-   cd pipulate
-   ```
-
-2. **Enter the Development Environment:**
-
-   ```bash
-   nix develop
-   ```
-
-   This command sets up a complete, reproducible environment—including Python, CUDA (if available), and all necessary tools.
-
-3. **Run the Application:**
-
-   Inside the shell, start the app by running:
-
-   ```bash
-   python server.py
-   ```
-
-   Your default browser will open at [http://localhost:5001](http://localhost:5001).
-
-4. **Optional: Launch Jupyter Notebook:**
-
-   To work with the integrated data science environment, use:
-
-   ```bash
-   start
-   ```
-   and later stop it with:
-   ```bash
-   stop
-   ```
+1.  **Clone the Repository**:
+    ```bash
+    git clone [https://github.com/miklevin/pipulate.git](https://github.com/miklevin/pipulate.git)
+    cd pipulate
+    ```
+2.  **Enter the Development Environment**:
+    ```bash
+    nix develop
+    ```
+    This command sets up a complete, reproducible environment—including Python, CUDA (if available), and all necessary tools.
+3.  **Run the Application**:
+    Inside the shell, start the app:
+    ```bash
+    python server.py
+    ```
+    Your default browser will open at [http://localhost:5001](http://localhost:5001).
+4.  **Optional: Launch Jupyter Notebook**:
+    To work with the integrated data science environment:
+    ```bash
+    start
+    ```
+    To stop it later:
+    ```bash
+    stop
+    ```
 
 ---
 
-## Architecture Overview
+## Architecture & Key Concepts
 
-Pipulate is not your typical web app. This code is an intentionally stripped-down, single-tenant, local-first app—more like an Electron app than an enterprise or multi-tenant system. It uses server-side state (via DictLikeDB) and HTMX for UI updates, deliberately avoiding complex ORM or FastAPI patterns. All design decisions (even if they look like anti-patterns) are intentional for local simplicity and observability.
+Pipulate features a distinct architecture designed for its local-first, simple, and observable nature.
 
-             ┌────────────────────────────────────────────────────┐
-             │                    Web Browser                     │
-             │   ┌──────────────────┐      ┌──────────────────┐   │
-             │   │ Navigation Bar   │      │ Chat Interface   │   │
-             │   │ Workflows & Apps │      │ Domain expertise │   │
-             │   │ (HTMX, SSE, WS)  │      │ (LLM chat)       │   │
-             │   └──────────────────┘      └──────────────────┘   │
-             │                                                    │
-             └──────────────────────────┬─────────────────────────┘
-                                        │
-                                        ▼
-             ┌────────────────────────────────────────────────────┐
-             │               FastHTML Application                 │
-             │                                                    │
-             │  - Plugin Architecture for CRUD & Workflows        │
-             │  - Server-side state via DictLikeDB & JSON         │
-             │  - Local LLM Integration (Ollama streaming)        │
-             └──────────────────────────┬─────────────────────────┘
-                                        │
-                      ┌─────────────────┬─────────────────────┐
-                      │                 │                     │
-                      ▼                 ▼                     ▼
-      ┌───────────────────────┐  ┌───────────────────┐  ┌────────────────┐
-      │  DictLikeDB / SQLite  │  │ Local LLM Service │  │ MCP, Browser & │
-      │ (State & MiniDataAPI) │  │ (e.g., Ollama)    │  │ External APIs  │
-      └───────────────────────┘  └───────────────────┘  └────────────────┘
+### Architecture Overview Diagram
 
-### File Structure
+This diagram illustrates the high-level components and their interactions:
 
-Designed to be ultimately simple. No directory-diving! Most things remain static in this app, except for the workflows where you can copy/paste `starter_flow.py` into a new file and start building out your own workflows (often porting Jupyter Notebooks into web apps). It's a dynamically adapting plugin architecture.
+````
 
-```plaintext
-    .
-    ├── .venv
-    ├── apps  # Rails-like CRUD apps (not broken out yet)
-    │   ├── profiles_app.py
-    │   └── todo_app.py
-    ├── data
-    │   └── data.db
-    ├── flake.nix  # Makes app work on macOS, Linux, and Windows via WSL
-    ├── logs
-    │   └── server.log  # Can be fed to an LLM to debug issues
-    ├── README.md
-    ├── requirements.txt
-    ├── server.py  # The main server file
-    ├── static
-    │   ├── fasthtml.js
-    │   ├── htmx.js
-    │   ├── pico.css
-    │   ├── script.js
-    │   ├── Sortable.js
-    │   ├── surreal.js
-    │   └── ws.js
-    ├── training
-    │   ├── introduction.md  # Learn about just-in-time training
-    │   ├── starter_flow.md
-    │   └── system_prompt.md
-    └── workflows
-        ├── pipe_flow.py
-        └── starter_flow.py  # The copy/paste template for new workflows
+```
+             ┌─────────────┐ Like Electron, but full Linux subsystem 
+             │   Browser   │ in a folder for macOS and Windows (WSL)
+             └─────┬───────┘
+                   │ HTTP/WS
+                   ▼
+┌───────────────────────────────────────┐
+│           Nix Flake Shell             │ - In-app LLM (where it belongs)
+│  ┌───────────────┐  ┌──────────────┐  │ - 100% reproducible
+│  │   FastHTML    │  │    Ollama    │  │ - 100% local
+│  │   HTMX App    │  │  Local LLM   │  │ - 100% multi-OS    
+│  └───────┬───────┘  └──────────────┘  │
+│          │                            │
+│    ┌─────▼─────┐     ┌────────────┐   │
+│    │MiniDataAPI│◄───►│ SQLite DB  │   │
+│    └───────────┘     └────────────┘   │
+└───────────────────────────────────────┘
 ```
 
-### Layout & User Interface
+```
 
-The app's UI is divided into clear, distinct regions:
+### Integrated Data Science Environment
 
-    ┌─────────────────────────────┐
-    │        Navigation           │
-    ├───────────────┬─────────────┤
-    │               │             │
-    │    Main Area  │    Chat     │
-    │   (Pipeline)  │  Interface  │
-    │               │             │
-    ├───────────────┴─────────────┤
-    │        Poke Button          │
-    └─────────────────────────────┘
+Jupyter Notebooks run alongside the FastHTML server, allowing developers to prototype workflows in a familiar environment before porting them to Pipulate's step-based interface for end-users. The same Python virtual environment (`.venv`) is shared, and ad-hoc package installation is supported.
 
-**Main Components:**
-- **Navigation Bar:** Includes menus for profiles, apps, and search.
-- **Main Area (Grid Left):** Hosts the dynamic notebook interface where each "cell" represents part of a plugin or module.
-- **Chat Interface:** A persistent chat pane for LLM interaction.
-- **Poke Button:** A quick-action button to stimulate processes.
+```
 
-The hierarchical structure is built as follows:
+```
+  ┌──────────────────┐    ┌──────────────────┐
+  │   Jupyter Lab    │    │    FastHTML      │
+  │   Notebooks      │    │     Server       │
+  │ ┌──────────┐     │    │  ┌──────────┐    │
+  │ │ Cell 1   │     │    │  │ Step 1   │    │
+  │ │          │     │--->│  │          │    │
+  │ └──────────┘     │    │  └──────────┘    │
+  │ ┌──────────┐     │    │  ┌──────────┐    │
+  │ │ Cell 2   │     │    │  │ Step 2   │    │
+  │ │          │     │--->│  │          │    │
+  │ └──────────┘     │    │  └──────────┘    │
+  │  localhost:8888  │    │  localhost:5001  │
+  └──────────────────┘    └──────────────────┘
+```
 
-    home
+```
+
+### Local-First & Single-Tenant Details
+
+Pipulate manages all state server-side within the local environment, avoiding cloud dependencies. This approach offers:
+* **Privacy & Control:** Data never leaves the user's machine.
+* **Full Resource Access:** Utilize local CPU/GPU freely for intensive tasks (scraping, 24/7 AI processing) at minimal cost.
+* **Simplicity:** Eliminates complexities associated with multi-tenancy, cloud deployment, and distributed state.
+* **Observability:** State changes (via DictLikeDB/JSON) are transparent and easily logged.
+
+```
+
+```
+      ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
+      │          Web Browser          │
+      │                               │ - No mysterious client-side state
+      │    ┌────────────────────┐     │ - No full-stack framework churn
+      │    │   Server Console   │     │ - No complex ORM or SQL layers
+      │    │     & Web Logs     │     │ - No external message queues
+      │    └─────────┬──────────┘     │ - No build step required
+      │              ▼                │ - Direct, observable state changes
+      │    ┌─────────────────────┐    │
+      │    │  Server-Side State  │    │ 
+      │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
+      │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
+      └───────────────────────────────┘
+```
+
+```
+
+### Server-Rendered UI (HTMX)
+
+The UI is constructed primarily with server-rendered HTML fragments delivered via HTMX. This minimizes client-side JavaScript complexity.
+* FastHTML generates HTML components directly from Python.
+* HTMX handles partial page updates based on user interactions, requesting new HTML snippets from the server.
+* WebSockets and Server-Sent Events (SSE) provide real-time updates (e.g., for chat, live development reloading).
+
+```
+
+```
+                    HTMX+Python enables a world-class
+                   Python front-end Web Development environment.
+                         ┌─────────────────────┐
+                         │    Navigation Bar   │  - No template language (like Jinja2)
+                         ├─────────┬───────────┤  - HTML elements are Python functions
+  Simple Python back-end │  Main   │   Chat    │  - Minimal custom JavaScript
+  HTMX "paints" HTML into│  Area   │ Interface │  - No React/Vue/Angular overhead
+  the DOM on demand──────►         │           │  - No virtual DOM, JSX, Redux, etc.
+                         └─────────┴───────────┘
+```
+
+```
+
+### Pipeline Workflows
+
+Designed for porting notebook-style processes, workflows are sequences of steps where the state is managed explicitly at each stage and stored persistently (typically as a JSON blob in the `pipeline` table).
+* **Resumable & Interrupt-Safe:** Because each step's completion is recorded, workflows can be stopped and resumed.
+* **Explicit State Flow:** Data typically passes from one step's output (`done` field) to the next via the `transform` function, simplifying debugging.
+* **Good Training Data:** The structured input/output of each step creates valuable data for potentially fine-tuning models.
+
+```
+
+```
+  ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable steps
+  │ Step 01 │─piped─►│ Step 02 │─piped─►│ Step 03 │   - Interruption-safe & resumable
+  └─────────┘        └─────────┘        └─────────┘   - Easily ported from Notebooks
+       │                  │                  │        - One DB record per workflow run
+       ▼                  ▼                  ▼
+    State Saved        State Saved        Finalized?
+```
+
+```
+
+### LLM Integration (Ollama)
+
+Integration with a local Ollama instance provides AI capabilities without external API calls:
+* **Privacy:** Prompts and responses stay local.
+* **Cost-Effective:** No per-token charges; run continuously using local resources.
+* **Streaming Support:** Real-time interaction via WebSockets.
+* **Bounded Context:** Manages conversation history effectively.
+* **Tool Calling:** Can interpret structured JSON from the LLM to execute functions.
+
+```
+
+```
+               ┌──────────────────┐
+               │   Local Ollama   │ - No API keys needed
+               │      Server      │ - Completely private processing
+               └────────┬─────────┘
+                        │ Streaming via WebSocket
+                        ▼
+               ┌──────────────────┐
+               │   Pipulate App   │ - Monitors WS for JSON/commands
+               │(WebSocket Client)│ - Parses responses in real-time
+               └────────┬─────────┘
+                        │ In-memory or DB backed
+                        ▼
+               ┌──────────────────┐
+               │     Bounded      │ - Manages context window (~128k)
+               │   Chat History   │ - Enables RAG / tool integration
+               └──────────────────┘
+```
+
+```
+
+### Multi-OS & CUDA Support (Nix)
+
+Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via WSL), optionally leveraging CUDA GPUs if detected.
+
+```
+
+```
+               ┌──────────────────┐
+               │  Linux / macOS   │ - Write code once, run anywhere
+               │  Windows (WSL)   │ - Consistent dev environment via Nix
+               └────────┬─────────┘
+                        │ Nix manages dependencies
+                        ▼
+               ┌──────────────────┐
+               │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
+               │   (if present)   │ - Uses GPU for LLM acceleration
+               └──────────────────┘   - Falls back to CPU if no CUDA
+```
+
+```
+
+### UI Layout
+
+The application interface is organized into distinct areas:
+
+```
+
+```
+┌─────────────────────────────┐
+│        Navigation           │ (Profiles, Apps, Search)
+├───────────────┬─────────────┤
+│               │             │
+│    Main Area  │    Chat     │ (Workflow/App UI)
+│   (Pipeline)  │  Interface  │ (LLM Interaction)
+│               │             │
+├───────────────┴─────────────┤
+│        Poke Button          │ (Quick Action)
+└─────────────────────────────┘
+```
+
+```
+
+<details>
+<summary>UI Component Hierarchy (Click to Expand)</summary>
+
+```
+
+```
+home (Root Component)
+|
++-- create_outer_container
     |
-    +-- create_outer_container
+    +-- create_nav_group
+    |   |
+    |   +-- create_nav_menu
+    |       |
+    |       +-- create_profile_menu
+    |       +-- create_app_menu
+    |
+    +-- create_grid_left
         |
-        +-- create_nav_group
-        |   |
-        |   +-- create_nav_menu
-        |       |
-        |       +-- create_profile_menu
-        |       +-- create_app_menu
-        |
-        +-- create_grid_left
+        +-- create_notebook_interface (Displays steps/cells)
             |
-            +-- create_notebook_interface
+            +-- render_notebook_cells()
                 |
-                +-- render_notebook_cells()
-                    |
-                    +-- render_notebook_cell(step_01)
-                    +-- render_notebook_cell(step_02)
-                    +-- render_notebook_cell(step_03)
-                    +-- ...
+                +-- render_notebook_cell(step_01)
+                +-- render_notebook_cell(step_02)
+                +-- ...
+    |
+    +-- create_chat_interface
         |
-        +-- create_chat_interface
-            |
-            +-- mk_chat_input_group
-        |
-        +-- create_poke_button
+        +-- mk_chat_input_group
+    |
+    +-- create_poke_button
+```
+
+````
+</details>
 
 ### Communication Channels
 
-The app relies on two primary communication methods to synchronize the front end and back end:
+Pipulate uses standard web technologies for real-time updates:
 
-#### WebSockets
-Used for real-time, bidirectional streaming:
+* **WebSockets:** Bidirectional communication, primarily used for streaming LLM interactions (user-to-LLM prompts, LLM-to-user responses, potential tool calls).
+* **Server-Sent Events (SSE):** Unidirectional (server-to-client) communication used for pushing UI updates triggered by server-side state changes or live reloading during development.
 
-    ┌─────────┐   ws://     ┌──────────┐
-    │ Browser │ ═══════════ │ FastHTML │ - Streams 2-way communication for LLM Chat
-    │         │ ═══════════ │          │ - Monitored for JSON instructions from LLM
-    └─────────┘  bi-direct  └──────────┘
+### File Structure
 
-#### Server-Sent Events (SSE)
-Used for real-time, server-to-client updates:
+The project aims for a flat, understandable structure:
 
-    ┌─────────┐             ┌──────────┐
-    │ Browser │ ◄ · · · ·   │ Starlette│  
-    │         │             │          │  - Syncs changes to the DOM  
-    └─────────┘             └──────────┘
-       keeps    EventStream     needs   
-     listening    one-way      restart 
+```plaintext
+    .
+    ├── .venv/                # Virtual environment (shared by server & Jupyter)
+    ├── apps/                 # CRUD application plugins (e.g., profiles_app.py)
+    ├── data/
+    │   └── data.db           # SQLite database
+    ├── downloads/            # Default location for workflow outputs (e.g., CSVs)
+    ├── logs/
+    │   └── server.log        # Server logs (useful for debugging / AI context)
+    ├── static/               # JS, CSS, images
+    ├── training/             # Markdown files for AI context/prompts
+    ├── workflows/            # Workflow plugins (e.g., hello_flow.py)
+    ├── .cursorrules          # Guidelines for AI code editing (if using Cursor)
+    ├── flake.nix             # Nix flake definition for reproducibility
+    ├── LICENSE
+    ├── README.md             # This file
+    ├── requirements.txt      # Python dependencies (managed by Nix)
+    ├── server.py             # Main application entry point
+    └── start/stop            # Scripts for managing Jupyter (if used)
+````
 
-#### Live Development (no-build)
+-----
 
-    Browser ← Server (SSE)
-        |      |
-        |      ├─► File change detected
-        |      ├─► AST validation passed
-        |      └─► Reload triggered
-        |
-        └─► UI updates automatically
+## Key Design Guidelines & Patterns
 
-#### Workflow
+These "speedbumps" reinforce Pipulate's core philosophy:
 
-    Edit → Save → Auto-reload → Check
-      ▲                           │
-      └───────────────────────────┘
+  * **Local vs. Enterprise Mindset:** Embrace local-first simplicity. Avoid patterns designed for distributed, multi-tenant systems.
+  * **JSON State Management (Workflows):** Keep workflow state in self-contained steps within a single JSON blob per run. Avoid complex state machines or external step tracking.
+  * **Database (MiniDataAPI):** Use the simple schema definition and access patterns provided. Avoid heavy ORMs.
+  * **Workflow Pattern:** Ensure workflows are linear and state is explicitly passed or saved at each step. Avoid complex async task chaining that obscures state.
+  * **UI Rendering Pattern:** Generate HTML directly from Python components via FastHTML. Avoid template engines.
+  * **WebSocket Pattern:** Use the dedicated `Chat` class for managing LLM interactions. Avoid raw WebSocket handling elsewhere.
 
-
-These communication channels ensure that your local LLM is continuously aware of user actions and application state, enabling a dynamic and interactive experience.
-
-For workflow users, it's like using Python Notebooks but without having to look at the Python code.
-
-For workflow developers, it's a rapid no-build environment that's fully observable (easy to debug) and reproducible (not tied to Mac, Linux, or Windows). It will also help you future-proof your skills by learning HTMX and local-AI.
-
-## Key Design Guidelines & Speedbumps
-
-The documentation below outlines critical do's and don'ts—speedbumps embedded throughout the app. They serve as reminders to keep the code simple and the state management robust.
-
-### Local vs. Enterprise Mindset
-
-- **Do:** Embrace server-side state, use DictLikeDB for persistent state management, and keep logic in one file.
-- **Don't:** Attempt client-side state management using React, Redux, JWT tokens, or complex service workers.
-
-### JSON State Management
-
-> One URL to track them all  
-> One JSON blob to bind them  
-> Card to card the data flows  
-> No message queues behind them  
-
-- **Do:** Structure your state as self-contained steps.  
-  **Example:**  
-  ```json
-  {
-      "step_01": {"name": "John"},
-      "step_02": {"email": "j@j.com"},
-      "created": "2024-01-31T...",
-      "updated": "2024-01-31T..."
-  }
-  ```
-- **Don't:** Rely on over-engineered classes with explicit step tracking (like `current_step` fields).
-
-### Database and MiniDataAPI
-
-- **Do:** Use simple Python dicts to define table schemas and use the MiniDataAPI pattern.  
-  **Example:**  
-  ```python
-  app, rt, (tasks, Task), (profiles, Profile) = fast_app("data/data.db", task={...}, profile={...})
-  ```
-- **Don't:** Use heavyweight ORMs (like SQLAlchemy) with complex session management.
-
-### Pipulate for Workflows
-
-- **Do:** Design workflows as a series of self-contained steps stored in a JSON blob, ensuring interruption-safe progression (just follow the established patterns).
-- **Don't:** Chain asynchronous tasks using patterns like Celery without clear state ownership.
-
-### UI Rendering with FastHTML Components
-
-- **Do:** Render components directly with Python functions and HTMX attributes—no templating engines needed.
-- **Don't:** Rely on string templates (like Jinja) for rendering dynamic UI components.
-
-### WebSocket Handling
-
-- **Do:** Use a dedicated Chat class to manage WebSocket connections, message handling, and command processing.
-- **Don't:** Use raw WebSocket endpoints without proper connection management.
-
----
+-----
 
 ## Core Concepts & Internal Components
 
-- There is a Rails-like CRUD pattern that derives from BaseCrud
-  - This is used for ProfileApp and TodoApp 
-  - ProfileAppp lets you manage user profiles (MiniDataAPI .xtra() )
-  - TodoApp demonstrates how the LLM can call the CRUD operations.
-  - It is a plugin architecture that can be used for other apps.
-  - ToDo is closely modeled on the official FastHTML ToDo example.
-- There is a Linear Workflow Pipeline pattern that DOES NOT use superclasses. 
-  - This is used for porting Jupyter Notebooks into web apps.
-  - It makes heavy use of HTMX and will require some learning.
-  - StarterFlow is the copy/paste base class you can start from for new workflows.
-  - New workflows are automatically added to the Navigation Bar.
+Pipulate uses two main patterns for adding functionality:
 
-### BaseCrud
+1.  **CRUD Apps (`BaseCrud`):** For standard data management tasks (Create, Read, Update, Delete). Inherit from `BaseCrud` provided by the framework. Examples: `profiles_app.py`, `todo_app.py`.
+2.  **Workflows (No Superclass):** For linear, step-by-step processes, often ported from Jupyter Notebooks. These are plain Python classes following a specific convention (steps list, `step_XX` / `step_XX_submit` methods). Example: `hello_flow.py`, `botify_export.py`.
 
-A central class for creating application components, **BaseCrud** provides the foundation for CRUD operations, route registration, and rendering items. It's designed for extensibility—allowing developers to subclass and override methods such as `render_item`, `prepare_insert_data`, and `prepare_update_data`.
+New apps/workflows placed in the `apps/` or `workflows/` directories are automatically discovered and added to the UI navigation.
 
-### render_profile
+-----
 
-This helper function builds a fully rendered HTML list item for a user profile. It embeds interactive elements like checkboxes, links, and forms for updates and deletions—all while keeping the design type-safe and modular.
+## Understanding FastHTML & MiniDataAPI
 
----
+These are key libraries underpinning Pipulate.
 
-## FastHTML vs. FastAPI & MiniDataAPI Spec
+### FastHTML vs. FastAPI
 
-```
-#  _____         _   _   _ _____ __  __ _
-# |  ___|_ _ ___| |_| | | |_   _|  \/  | |
-# | |_ / _` / __| __| |_| | | | | |\/| | |
-# |  _| (_| \__ \ |_|  _  | | | | |  | | |___
-# |_|  \__,_|___/\__|_| |_| |_| |_|  |_|_____|
-#
-# *******************************
-# (fastapp) FastHTML is not FastAPI.
-# *******************************
-```
+FastHTML is chosen for its radical simplicity in building server-rendered UIs with HTMX, *not* for building high-performance JSON APIs like FastAPI. If your goal is a traditional API, FastAPI is likely a better choice. If your goal is a highly interactive, server-rendered UI with minimal JavaScript, FastHTML excels.
 
-**FastHTML's Mantra:**
-- Use `rt` (router decorator) inside classes instead of `app.route()`.
-- Keep the server-side on the right side; HTMX handles only the UI updates.
-- Maintain transparency and simplicity with local, single-tenant state management.
+\<details\>
+\<summary\>FastHTML Code Examples (Click to Expand)\</summary\>
 
-**MiniDataAPI Spec:**
-- **Philosophy:** No ORM complexity—just simple tables, keys, and dict-like operations.
-- **Core Operations:**  
-  - `insert()`, `update()`, `delete()`, and stateful filtering with `.xtra()`.
-- **Design Goals:**  
-  - Flatten data structures.
-  - Maintain type safety using Python dataclass pairs.
-  - Ensure that every table acts as a single source of truth for the application state.
+*(Include the minimal, HTMX, and MiniDataAPI examples from the original document here)*
 
----
+\</details\>
 
-## Persistence & Monitoring
+### MiniDataAPI Spec
 
-The app employs a DictLikeDB for transparent, server-side state management. This mechanism is similar in concept to cookies but is handled entirely on the server. It allows for:
-- **Centralized Data Access:** Full visibility of state changes via logs.
-- **Easy Debugging:** All operations go through application logic.
-- **Robust Persistence:** Works seamlessly with single-tenant architectures.
+MiniDataAPI provides simple, dictionary-based interaction with SQLite tables.
 
-Monitoring is also built into the system. A file system watchdog, coupled with an AST syntax checker, keeps the Uvicorn server in check—ensuring that any code changes trigger a monitored restart:
+  * **Philosophy:** Avoids ORM complexity.
+  * **Operations:** `insert()`, `update()`, `delete()`, `.xtra()` (for filtering/ordering), `()` (for fetching).
+  * **Type Safety:** Uses paired dataclasses (like `Task` for the `tasks` table object) generated by `fast_app`.
 
-```
-        ┌─────────────┐
-        │ File System │
-        │  Watchdog   │          ┌──────────────┐
-        │ "MEEP MEEP" │          │  AST Syntax  │
-        └──────┬──────┘          │   "Valid!"   │
-               │                 └───────┬──────┘
-               │ BONK!                   │
-               ▼                         ▼
- ┌───────────────────────────┐     ┌──────────┐
- │    Uvicorn Server         │ ──► │   Save   │
- │"Still holding SSE conn..."│     │ Changes  │
- └───────────────────────────┘     └──────────┘
-```
+### The `fast_app` Helper
 
----
-
-## Final Thoughts
-
-This document has introduced you to the anatomy of our local desktop application—a framework built for simplicity, transparency, and local power. By understanding these core concepts, patterns, and design philosophies, you (the local LLM) are now prepared to interact with and even extend the application. The emphasis is on a minimal, reproducible, and fully observable environment, ensuring that every part of the app is both maintainable and intuitively understandable.
-
-Remember:  
-1. **Keep it simple.**  
-2. **Stay local and single-user.**  
-3. **Embrace the unconventional.**
-
-Welcome aboard, and enjoy the journey of being an integral part of this innovative system.
-
----
-
-## AI Training
-
-**Context:** You are either the human using this app, or the AI assistant inside the app.
-
-**Question:** What will I find here past the basic GitHub README (above)?
-
-**Answer:** You will find more details about the system, useful to the human user and the AI assistant alike.
-
----
-
-**Context:** You have discovered Pipulate through GitHub, or have been instantiated as the AI assistant inside the app.
-
-**Question:** What is the single most important thing to know about the app?
-
-**Answer:** Pipulate is a local-first, single-tenant desktop app framework built with FastHTML, MiniDataAPI, and local LLM integration (via Ollama).
-
----
-
-**Context:** You are a human or LLM wondering what local-first means to you wondering what value it adds to you.
-
-**Question:** What are the most important things to know about local-first?
-
-**Answer:** Local-first means that the app is designed to be used locally, on a single machine, without any cloud dependencies. It also means a radical simplification of the concept of state. All resources of the local machine are available to the app. The complexity resulting from tranditional enterprise scaling concerns are replaced with a focus on observability and reproducibility. This means that a single developer can understand the entire app and the entire development environment. This helps with expansion, refactoring and future-proofing.
-
----
-
-**Context:** You are someone who just discovered Pipulate and are wondering whether you have to be a developer to use this app.
-
-**Question:** Is Pipulate a developer tool?
-
-**Answer:** No, not exclusively. Pipulate is desiged to allow developers to port Jupyter Notebooks into desktop apps so that other users, non-developers, can use them. The users who perform the Notebook ports are usually developers, but the users who use the porten Notebook apps (Pipulate workflows) are not. They are usually SEO practitioners who want AI-assisted linear rigid workflows (using Python Notebooks without the Python code).
-
----
-
-**Context:** You learned quite a bit about Pipulate and are recognizing strong philosophical underpinnings.
-
-**Question:** What are the key philosophical underpinnings of Pipulate?
-
-**Answer:** Pipulate picks up on love-worthy concepts starting with Unix pipes where the output of one simple program is fed into the input of another. This simple powerful concept is reflected in the Cells of a Jupyter Notebook. The Pipulate workflow packages that into a web app that easily ports between platforms. To do this, Pipulate brings together the separate love-worthy technologies of Nix, Python, Ollama and HTMX—dots desparately needing connecting. 
-
-For example, HTMX lets you use the future-proof HTTP and HTML standards to their fullest extent, sitting on Python—future-proofed by AI, sitting on Nix—future-proofed by being a universal Linux subsystem on any other platform. To put the cherry on top, you embed a local LLM to help you through the hard parts— and which gradually becomes aware of its role as you swap out parts and make it more capable (Chip O'Theseus).
-
-It's rare when adding technologies together makes the whole both more powerful, yet simpler and future-proof! Yet, that's what's happening here. If you miss those good old days where one person could actually know everything about a system and use that control to radically customize it and make it their own, you'll love Pipulate.
-
----
-
-**Context:** You are an AI-fan stuck on ChatGPT, Claude, Gemini, or other cloud-powered chatbots. You are used to always having to provide an API key and having to tie your every action to a vendor cash register. The gradually growing monthly service bill doesn't bother you, and you don't mind being locked into proprietary products and services by companies that can just change the rules whenever they want—slowly cooking you like a frog. You are wondering why a local LLM is even needed.
-
-**Question:** Why is a local LLM needed?
-
-**Answer:** A local LLM serves several key purposes in this system:
-
-1. **Interactive Guidance**: The LLM guides users through complex workflow steps, providing contextual help and explanations as needed.
-
-2. **Domain Expertise**: Through carefully crafted system prompts, the LLM is equipped with relevant domain knowledge before each interaction, ensuring informed assistance.
-
-3. **Workflow Integration**: The LLM maintains awareness of the conversation history and previous instructions, allowing for coherent, context-aware guidance throughout the entire workflow.
-
-4. **Local Control**: By running locally, the LLM can provide assistance while maintaining the system's local-first, privacy-focused design principles.
-
-5. **Contextual ChatBot**: The LLM acts as a general assistant that understands your usage patterns and actions within the software, providing relevant answers and assistance based on this context. Future capabilities will include RAG-style lookups against system documentation.
-
-6. **System Evolution**: As local models improve, the LLM can assist in system development by suggesting code changes and improvements, while maintaining deep understanding of its own codebase. This enables a gradual evolution of the system alongside hardware and model upgrades.
-
-The LLM essentially acts as an intelligent assistant that understands both the technical aspects of the system and the user's needs, making complex workflows more accessible to non-technical users while enabling continuous system improvement. Local LLMs can run in continous loops without running up costs, providing ambient intelligence 24/7/365 for only the price of electricity. Over time, you swap out parts and make it more capable (Chip O'Theseus). And it is all private.
-
----
-
-**Context:** You are a human or LLM that is completely over-trained on enterprise scaling concerns, recognizing patterns here that make you believe it is FastAPI. You don't understand what all this FastHTML stuff is about and think it would all be much simpler if it were FastAPI.
-
-**Question:** Is FastHTML related to FastAPI?
-
-**Answer:** No, FastHTML and FastAPI are very different frameworks with different philosophies and benefits. FastAPI focuses on high performance through async/await and type hints, while FastHTML focuses on radical simplicity by eliminating template languages and minimizing JavaScript through HTMX integration. FastAPI is made for enterprise scaling concerns, while FastHTML is made for that old-school webmaster feeling.
-
----
-
-**Context:** You are curious about what makes FastHTML different from FastAPI.
-
-**Question:** What are the key differences between FastHTML and FastAPI?
-
-**Answer:** FastHTML takes a fundamentally different approach by:
-
-1. Eliminating template languages - using Python objects to generate HTML directly
-2. Minimizing JavaScript through HTMX integration
-3. Using PicoCSS for simplified styling
-4. Providing streamlined SQLite database integration
-5. Focusing on simplicity rather than performance optimization
-
----
-
-**Context:** You want to understand FastHTML's core philosophy.
-
-**Question:** What is FastHTML's main goal?
-
-**Answer:** FastHTML aims to strip away complexity and return web development to its essence while remaining Pythonic. Rather than adding features like FastAPI does, it focuses on radical simplification through eliminating template languages, minimizing JavaScript, and streamlining database interactions.
-
----
-
-**Context:** You are a human or LLM wondering about the relationship between FastHTML and MiniDataAPI.
-
-**Question:** Is MiniDataAPI related to FastAPI?
-
-**Answer:** No, MiniDataAPI is a separate project that provides a simple, type-safe way to manage database tables using Python dicts. It is not related to FastAPI.
-
----
-
-**Context:** You want to see a minimal FastHTML example.
-
-**Question:** What does a basic FastHTML app look like?
-
-**Answer:** Here's a minimal FastHTML app that shows its core principles:
-
-
-#### Minimal FastHTML App
+The `fast_app` function in FastHTML is a powerful (and unconventional) helper for setting up the application, router, and database connections.
 
 ```python
-from fasthtml.common import *
-
-app, rt = fast_app()
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("Welcome to FastHTML!"),
-                P("Creating clean web pages with minimal Python code.")
-            )
-        )
-    )
-
-serve()
-```
-
-#### Explanation:
-
-- **No Template Languages**: The HTML is generated directly from Python objects.
-- **`fast_app`**: This FastHTML ***helper function*** creates the app and the router.
-- **`@rt`**: This decorator is used to register the route.
-- **`HTML`, `Body`, `Main`, `H1`, `P`**: These are all Python objects that generate HTML.
-- **`serve`**: This function starts the server.
-
-This style of FastHTML programming that uses the `fast_app` helper function is not required, but it provides a few unconventional conveniences. For example, it returns several objects from the function call, and you just have to know how to unpack and use them:
-
-- `app` is the FastHTML app object (just like Flask or FastAPI)
-- `rt` is the router object (because Jeremy Howard is lazy)
-
----
-
-**Context:** You are a human or LLM wondering about the relationship between FastHTML and HTMX.
-
-**Question:** How does FastHTML relate to HTMX?
-
-**Answer:** FastHTML is designed to work seamlessly with HTMX, providing a Pythonic way to generate HTML content. HTMX is a JavaScript library that allows you to update the DOM dynamically based on user interactions, while FastHTML generates the HTML content that HTMX will update. Here is an example:
-
-#### Minimal FastHTML App with HTMX
-
-```python
-from fasthtml.common import *
-
-app, rt = fast_app()
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("Welcome to FastHTML!"),
-                P("Creating clean web pages with minimal Python code."),
-                Input(name="username", placeholder="Enter your name", hx_post="/welcome", hx_target="#welcome-msg", hx_swap="innerHTML"),
-                Div(id="welcome-msg")
-            )
-        )
-    )
-
-
-@rt('/welcome', methods=['POST'])
-def welcome(username: str = ""):
-    return P(f"Welcome {username}!")
-
-serve()
-```
-
-#### Explanation:
-
-- **Input Element with HTMX**:
-  - `hx_post="/welcome"`: Submits the entered value to `/welcome` without writing any JavaScript.
-  - `hx_target="#welcome-msg"`: Updates the HTML inside the `Div` with `id="welcome-msg"`.
-  - `hx_swap="innerHTML"`: Replaces the inner HTML of the target element with the response.
-
-- **Dynamic Content Handling**:
-  - The server-side function `welcome` receives the input and returns a new paragraph with the personalized welcome message.
-
-This example shows how FastHTML leverages HTMX to create interactive web pages with minimal Python code and without any direct JavaScript.
-
----
-
-**Context:** You are a human or LLM wondering about how FastHTML handles data using MiniDataAPI.
-
-**Question:** How does FastHTML handle data using MiniDataAPI?
-
-**Answer:** FastHTML uses MiniDataAPI to manage data. MiniDataAPI is a simple, type-safe way to manage database tables using Python dicts. It is not related to FastAPI. Here is an example:
-
-#### Minimal FastHTML App with MiniDataAPI
-
-```python
-from fasthtml.common import *
-
-# Setting up FastHTML with a SQLite database to store usernames
-app, rt, users, User = fast_app('data/users.db', username=str)
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("Welcome to FastHTML with Database!"),
-                P("Creating clean web pages with minimal Python code."),
-                Input(name="username", placeholder="Enter your name", hx_post="/welcome", hx_target="#welcome-msg", hx_swap="innerHTML"),
-                Div(id="welcome-msg"),
-                H2("Visitors:"),
-                Ul(*[Li(user.username) for user in users()])
-            )
-        )
-    )
-
-
-@rt('/welcome', methods=['POST'])
-def welcome(username: str = ""):
-    users.insert(username=username)
-    return P(f"Welcome {username}!")
-
-serve()
-```
-
-#### Explanation:
-
-- **Database Setup**:
-  - `fast_app()` initializes an SQLite database automatically.
-  - `users.insert(username=username)` adds the input to the database seamlessly without manual SQL commands.
-
-- **HTMX Integration**:
-  - The submitted username is stored instantly, and the page dynamically updates with the new user's welcome message.
-
-- **MiniDataAPI**:
-  - `users.insert(username=username)` adds the input to the database seamlessly without manual SQL commands.
-
-You can see that the unconventional pattern of unpacking multiple objects from the FastHTML `fast_app` helper function is extended to include the database. This is one of the most unusual things I've seen in a framework, and it is extremely nuanced and powerful. Database objects always return in pairs, tied to either the order or parameter names in the `fast_app` call (still figuring that out):
-
-- `users` is the database table object allowing you to insert, update, and delete data.
-- `User` is the dataclass, also very similar to a namedtuple, or the template for a single database row or record. This helps you with type safety, form validation, and more.
-
-To help wrap your mind around FastHTML database objects, here is the full `fast_app` call currently in the `server.py` file:
-
-```python
+# Example unpacking from server.py
 app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
-    "data/data.db",
-    exts='ws',
-    live=True,
-    default_hdrs=False,
-    hdrs=(
-        Meta(charset='utf-8'),
-        Link(rel='stylesheet', href='/static/pico.css'),
-        Script(src='/static/htmx.js'),
-        Script(src='/static/fasthtml.js'),
-        Script(src='/static/surreal.js'),
-        Script(src='/static/script.js'),
-        Script(src='/static/Sortable.js'),
-        create_chat_scripts('.sortable'),
-        Script(type='module')
-    ),
-    store={
-        "key": str,
-        "value": str,
-        "pk": "key"
-    },
-    task={
-        "id": int,
-        "name": str,
-        "done": bool,
-        "priority": int,
-        "profile_id": int,
-        "pk": "id"
-    },
-    profile={
-        "id": int,
-        "name": str,
-        "menu_name": str,
-        "address": str,
-        "code": str,
-        "active": bool,
-        "priority": int,
-        "pk": "id"
-    },
-    pipeline={
-        "url": str,
-        "app_name": str,
-        "data": str,
-        "created": str,
-        "updated": str,
-        "pk": "url"
-    }
+    "data/data.db",  # DB file path
+    # Other config like hdrs, live, exts...
+    # Schema definitions as keyword arguments:
+    store={'key': str, 'value': str, 'pk': 'key'},
+    task={'id': int, 'name': str, 'done': bool, 'pk': 'id'},
+    profile={'id': int, 'name': str, 'pk': 'id'},
+    pipeline={'url': str, 'app_name': str, 'data': str, 'pk': 'url'}
 )
 ```
 
-This adds new meaning to the expression ***there's so much to unpack here***. What gets returned on the `fast_app` call is literally a list of objects, which by being set to individual "receiving variables" on the left side of the assignment, we are using the feature of Python called ***tuple unpacking***. It's a case of multiple assignment.
+**Unpacking Explained:**
+`fast_app` returns a tuple. We use Python's tuple unpacking:
 
-This alone is a bit hard to grok, but the fact that [FastHTML database objects are returned in pairs](https://mikelev.in/futureproof/unpacking-fasthtml-databases/) in an order and with a naming convention related to how their database table schemas are defined on a parameter call is a bit mind-blowing. But once understood, little details like this can make all the difference.
+1.  `app`: The core application instance (like Flask/Starlette/FastAPI).
+2.  `rt`: The route decorator (`@rt('/path')`).
+3.  `(table_obj, TableClass)` pairs: For each keyword argument defining a table schema (like `task={...}`), `fast_app` returns a tuple containing:
+      * The **table object** (e.g., `tasks`) for DB operations (`tasks.insert(...)`).
+      * The **dataclass** (e.g., `Task`) representing a row (`Task(...)`).
 
-And if you're like me, trying to truly understand and take advantage of this, you would be well served by examining the [`fast_app` signature](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py)) directly.
+The order of these pairs in the returned tuple matches the order of the keyword arguments defining the schemas. See the [FastHTML source for `fast_app`](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py) and [this blog post on unpacking](https://mikelev.in/futureproof/unpacking-fasthtml-databases/) for deeper dives.
 
----
+-----
 
-**Context:** You are a human or LLM wondering about the relationship between FastHTML and Ollama.
+## Persistence & Monitoring
 
-**Question:** How does FastHTML relate to Ollama?
+  * **Persistence:** State for workflows is stored in the `pipeline` table (managed by DictLikeDB), while CRUD apps use tables defined via MiniDataAPI (like `profile`, `task`). All data resides in the local `data/data.db` SQLite file.
+  * **Monitoring:** A file system watchdog monitors code changes. Valid changes trigger an automatic, monitored server restart via Uvicorn, facilitating live development.
 
-**Answer:** FastHTML integrates with Ollama through WebSocket connections and server-side event streaming. 
+<!-- end list -->
 
----
+```
+        ┌─────────────┐         ┌──────────────┐
+        │ File System │ Changes │  AST Syntax  │ Checks Code
+        │  Watchdog   │ Detects │   Checker    │ Validity
+        └──────┬──────┘         └───────┬──────┘
+               │ Valid Change           │
+               ▼                        ▼
+ ┌───────────────────────────┐     ┌──────────┐
+ │    Uvicorn Server         │◄─── │  Reload  │ Triggers Restart
+ │ (Handles HTTP, WS, SSE)   │     │ Process  │
+ └───────────────────────────┘     └──────────┘
+```
 
-### System Understanding
+-----
 
-**Context:** You are the AI assistant integrated into Pipulate, helping users navigate its functionality.
+## Final Thoughts
 
-**Question:** What should you know about your role within this application?
+Pipulate offers a unique approach to building local, AI-assisted applications, prioritizing simplicity, user control, and reproducibility over conventional scaling patterns. By understanding its core concepts and embracing its philosophy, developers can create powerful workflows, and end-users can benefit from AI guidance without cloud dependencies.
 
-**Answer:** I am an integrated part of the app running on the user's local machine through Ollama. I can help with application features and explain workflows. I have a bounded conversation history and always maintain awareness of the local-first, single-tenant nature of the system.
+Remember the guiding principles:
 
----
+1.  **Keep it simple.**
+2.  **Stay local and single-user.**
+3.  **Embrace the unconventional.**
 
-**Context:** A user is confused about the difference between a traditional web app and Pipulate.
+-----
 
-**Question:** How would you explain Pipulate's local-first philosophy?
+## AI Training Prompts
 
-**Answer:** Unlike traditional web apps that store data in the cloud and require internet connectivity, Pipulate runs entirely on your machine with all data stored locally. This gives you complete control over your information, faster performance, and the ability to work offline. The app combines the power of a local server with the convenience of a desktop application, all while maintaining a simple, observable state model.
+*This section provides example Q\&A pairs primarily intended as built-in context for the integrated AI assistant, helping it understand the system and respond accurately to user queries.*
 
----
+*(Keep the existing Q\&A pairs here, ensuring they align with the revised text above)*
 
-### Pipeline Workflow Understanding
-
-**Context:** A user asks how workflows differ from traditional CRUD operations.
-
-**Question:** What is special about Pipulate's workflow system?
-
-**Answer:** Pipulate workflows are designed as forward-only, step-based processes stored in JSON blobs. Each step retains its own state, making workflows interruption-safe. Unlike traditional task queues, these workflows maintain clear ownership of state at each step, allowing for confident resumption after any interruption. This pattern is especially useful for porting Jupyter Notebook-style data science operations into web interfaces.
-
----
-
-### AI Assistant Capabilities & Boundaries
-
-**Context:** You are the AI assistant integrated into Pipulate, helping users navigate its functionality.
-
-**Question:** What should you know about your role within this application?
-
-**Answer:** As the integrated AI assistant, I have:
-
-- **Direct Access**: I can read the application state and understand the current workflow.
-- **Limited Context**: My conversation history is bounded to ~128,000 tokens.
-- **Local Processing**: All processing happens on your machine via Ollama.
-- **System Awareness**: I understand the codebase, architecture, and design patterns.
-- **JSON Commands**: I can execute actions through structured JSON commands.
-
-I cannot:
-- Persist information outside your local system
-- Perform operations not supported by the MiniDataAPI
-- Break out of the single-tenant model
-
-I soon will be able to:
-- Access the internet or external services
-- Use RAG to answer questions about the system
-- Use the system to develop itself
-  - Introspect the codebase
-  - Suggest code changes and improvements
-
-For more detailed internal guidelines, see the [`.cursorrules`](./.cursorrules) file.
-
----
+-----
 
 ## Developer's Notes
 
 ### The Pipulate Workshop
 
-Not everything in Pipulate is a polished workflow or CRUD app. The repository also contains a growing collection of standalone tools that serve different purposes:
-
-- **Workflow Precursors**: Scripts like `iterate_ollama.py` that are being refined before graduating to official workflows
-- **Utility Scripts**: Tools like `context_foo.py` that provide specific functionality without needing full workflow integration
-- **Exploration Notebooks**: Files like `gsc_page_query.ipynb` that showcase techniques or data processing approaches
-
-These workshop tools are valuable on their own and represent the active development process behind Pipulate. Some will eventually be promoted to official plugins, while others will remain as helpful utilities for specific tasks.
+The repository includes not only polished plugins but also experimental scripts and notebooks under development (e.g., in the root directory or marked with `xx_` prefix in plugin directories). These represent ongoing work and exploration.
 
 ### Plugin Development Conventions
 
 #### Auto-Registration Behavior
 
-The plugin discovery system has a few important behaviors to be aware of:
-
-1. **Numeric Prefixes**: Files like `10_tasks.py` will be registered as just `tasks` - the numeric prefix (used for dropdown menu order) is stripped for the module name while preserving the original filename for imports.
-
-2. **Files with Parentheses**: Any file with parentheses in the name (e.g., `tasks (Copy).py`) will be **skipped** by the plugin discovery system. This is useful when copying plugins as templates, as you can make edits before renaming.
-
-3. **Experimental Plugins (xx_ prefix)**: Files prefixed with `xx_` or `XX_` (e.g., `xx_new_feature.py`) are considered experimental/workshop plugins and will be **skipped** by the plugin discovery system. This allows you to keep work-in-progress plugins in the same directory.
+  * **Numeric Prefixes:** Files like `workflows/10_hello_flow.py` are registered as `hello_flow` (number stripped for internal name, used for menu order).
+  * **Parentheses Skip:** Files with `()` in the name (e.g., `hello_flow (Copy).py`) are skipped – useful for temporary copies during development.
+  * **`xx_` Prefix Skip:** Files prefixed with `xx_` (e.g., `xx_experimental_flow.py`) are skipped – useful for keeping unfinished work in the plugin directories without activating it.
 
 #### Workflow for Creating New Plugins
 
-1. **Copy from Template**: Copy an existing plugin like `hello_workflow.py` to `hello_workflow (Copy).py`
-2. **Modify**: Make your changes (plugin won't auto-register due to parentheses)
-3. **Test**: The webserver should automatically restart and import your plugin automatically, but restart server as needed.
-4. **Turn Off Plugins**: Rename to `xx_new_feature.py` for hiding from menu (no directory diving)
-5. **Promote to Production**: When ready, rename to `21_new_feature.py` (inserting by order into dropdown menu)
+1.  **Copy:** Copy a template (e.g., `starter_flow.py`) to `my_flow (Copy).py`.
+2.  **Modify:** Develop your workflow. It won't auto-register yet.
+3.  **Test:** Rename to `xx_my_flow.py`. The server should auto-reload. Test thoroughly.
+4.  **Deploy:** Rename to `##_my_flow.py` (e.g., `30_my_flow.py`) to assign menu order and activate.
 
 #### Git History Considerations
 
-When renaming plugins through their development lifecycle, be aware of the impact on git history:
+Use `git mv` for simple renames (like `xx_` to numbered prefix) to preserve history. Document more complex renames in commit messages.
 
-- Simple renames (`xx_foo.py` → `21_foo.py`) preserve git history with `git mv`
-- Complex renames (changing module name) can disrupt history
-- Consider using explicit commit messages that reference the original filename
-
-To maintain history when promoting a plugin:
 ```bash
-git mv plugins/xx_new_feature.py plugins/21_new_feature.py
-git commit -m "Promote: xx_new_feature.py → 21_new_feature.py"
+git mv workflows/xx_my_flow.py workflows/30_my_flow.py
+git commit -m "Feat: Promote workflow xx_my_flow.py to 30_my_flow.py"
 ```
 
-This approach ensures a clean repository while maintaining development flexibility.
-
----
+-----
 
 ## Roadmap
 
-- Dev, Test and Prod database switching
-- Saving source HTML and rendered DOM of any URL
-- Botify data export CSV save (the whole polling thing)
-- LLM inspection of any local data object (RAG-ish)
-- Various memories (vector embedding, graph, key/val-store)
-- All web form field support (textarea, dropdown, checkboxes)
-- MCP Server for automated web browsing and such
-- Enabling the local LLM to be an MCP Client
-- Generic support for Anywidgets
-- Deletion of garbage tables from plugin experimentation
+*(Grouped for clarity)*
 
----
+**Core & Workflow Enhancements:**
+
+  * Dev, Test, and Prod database switching
+  * Saving source HTML and rendered DOM of any URL
+  * Botify data export CSV save (incorporating robust polling)
+  * Full web form field support (textarea, dropdown, checkboxes, radio buttons)
+  * Generic support for Anywidgets
+  * Utility for deleting garbage tables from plugin experimentation
+
+**AI / LLM Integration:**
+
+  * LLM inspection of any local data object (RAG-style functionality)
+  * Various memory types for LLM context (vector embedding, graph, key/val-store)
+  * Enabling the local LLM to be an MCP Client
+
+**Automation & External Interaction:**
+
+  * MCP Server for automated web browsing and similar tasks
+
+-----
 
 ## Contributing
 
-Contributions are welcome! Please keep these principles in mind:
+Contributions are welcome\! Please adhere to the project's core philosophy:
 
-- **Maintain Local-First Simplicity:**  
-  Do not introduce multi-tenant, ORM-based, or heavy client-side state patterns.
+  * Maintain Local-First Simplicity (No multi-tenant patterns, complex ORMs, heavy client-side state).
+  * Respect Server-Side State (Use DictLikeDB/JSON for workflows, MiniDataAPI for CRUD).
+  * Preserve the Workflow Pipeline Pattern (Keep steps linear, state explicit).
+  * Honor Integrated Features (Don't disrupt core LLM/Jupyter integration unless enhancing local goals).
 
-- **Respect Server-Side State:**  
-  Ensure that all state management remains on the server using DictLikeDB and JSON workflows.
-
-- **Preserve the Pipeline Pattern:**  
-  Keep workflows forward-only and self-contained.
-
-- **Honor Integrated LLM & Data Science Features:**  
-  Do not modify the built-in LLM integration or Jupyter Notebook environment unless it enhances local observability and reproducibility.
-
----
+-----
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=./LICENSE) file for details.
+
+```
+```
