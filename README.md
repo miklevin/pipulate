@@ -120,7 +120,7 @@ Once Nix is installed, getting started with Pipulate is simple:
 
 1.  **Clone the Repository**:
     ```bash
-    git clone [https://github.com/miklevin/pipulate.git](https://github.com/miklevin/pipulate.git)
+    git clone https://github.com/miklevin/pipulate.git
     cd pipulate
     ```
 2.  **Enter the Development Environment**:
