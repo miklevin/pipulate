@@ -308,8 +308,10 @@ class Pipulate:
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
     
     # Content style constants
-    CONTENT_STYLE = "margin-top: 0.5rem; border-top: 1px solid var(--pico-muted-border-color); padding-top: 0.5rem;"
-    TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 0.9rem;"
+    CONTENT_STYLE = "margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;"
+    TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 1.5vh;"
+    CARD_STYLE = "background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); margin-bottom: 2vh;"
+    FINALIZED_CONTENT_STYLE = "margin-top: 0.5vh; padding: 0.5vh 0;"
 
     # Button labels
     UNLOCK_BUTTON_LABEL = "Unlock 🔓"  # Global label for unlock/unfinalize buttons
@@ -726,7 +728,7 @@ class Pipulate:
                 form,
                 style="flex: 0;"
             ),
-            style="display: flex; align-items: center; justify-content: space-between;"
+            style="display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);"
         )
 
     def revert_control_advanced(
@@ -778,7 +780,7 @@ class Pipulate:
         # Use the content style constant as the default
         applied_style = content_style or self.CONTENT_STYLE
         
-        # Create a container with the revert row and content
+        # Create a container with the revert row and content that looks like a single card
         return Div(
             revert_row,
             Div(
@@ -787,7 +789,7 @@ class Pipulate:
                 id=f"{step_id}-content-inner"
             ),
             id=f"{step_id}-content",
-            style="margin-bottom: 1rem;"
+            style=self.CARD_STYLE
         )
 
     def finalized_content(
@@ -815,15 +817,16 @@ class Pipulate:
         if content is None:
             return Card(message)
         
-        # Default content style for finalized state
-        default_style = "margin-top: 0.25rem; padding: 0.25rem 0;"
+        # Use the finalized content style constant as the default
+        applied_style = content_style or self.FINALIZED_CONTENT_STYLE
         
         return Card(
             heading_tag(message),
             Div(
                 content,
-                style=content_style or default_style
-            )
+                style=applied_style
+            ),
+            style=self.CARD_STYLE
         )
 
     def wrap_with_inline_button(

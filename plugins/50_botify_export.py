@@ -223,7 +223,7 @@ class BotifyExport:
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Existing or new 🗝 here (clear for auto)",
+                            placeholder="Existing or new 🗝 here (Enter for auto)",
                             name="pipeline_id",
                             list="pipeline-ids",
                             type="search",
