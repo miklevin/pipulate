@@ -574,10 +574,26 @@ class BotifyExport:
             if not slugs:
                 return P("No analyses found for this project", style=pip.get_style("error"))
             
+            # Get downloaded analyses
+            downloaded_analyses = self.find_downloaded_analyses(org, project)
+            
+            # Organize analyses with downloaded ones first
+            prioritized_slugs = []
+            
+            # Add downloaded analyses first, maintaining their original order in the slug list
+            for slug in slugs:
+                if slug in downloaded_analyses:
+                    prioritized_slugs.append((slug, True))  # True = downloaded
+            
+            # Add remaining analyses
+            for slug in slugs:
+                if slug not in downloaded_analyses:
+                    prioritized_slugs.append((slug, False))  # False = not downloaded
+            
             # Determine selected value:
             # - Use previous selection if it exists and we're reverting
-            # - Otherwise use the most recent analysis (first in list)
-            selected_value = user_val if user_val else slugs[0]
+            # - Otherwise prioritize downloaded analyses, then use the most recent analysis
+            selected_value = user_val if user_val else (prioritized_slugs[0][0] if prioritized_slugs else "")
             
             # Show the form with dropdown
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
@@ -593,10 +609,10 @@ class BotifyExport:
                                 autofocus=True,
                                 *[
                                     Option(
-                                        slug,
+                                        f"{slug} {'(Downloaded)' if is_downloaded else ''}",
                                         value=slug,
                                         selected=(slug == selected_value)
-                                    ) for slug in slugs
+                                    ) for slug, is_downloaded in prioritized_slugs
                                 ]
                             )
                         ),
@@ -1943,6 +1959,26 @@ class BotifyExport:
         export_key = self.get_export_key(org, project, analysis, depth)
         
         return registry.get(export_key, [])
+        
+    def find_downloaded_analyses(self, org, project):
+        """Find all analyses that have been downloaded for a specific org and project"""
+        registry = self.load_export_registry()
+        downloaded_analyses = set()
+        
+        # Look for keys that match this org and project
+        for key in registry.keys():
+            if key.startswith(f"{org}_{project}_"):
+                # Extract analysis name from the key (format: org_project_analysis_depth_X)
+                parts = key.split('_')
+                if len(parts) >= 3:
+                    analysis = parts[2]
+                    # Check if any job for this analysis has been downloaded
+                    for job in registry[key]:
+                        if job.get('status') == 'DONE' and job.get('local_file'):
+                            downloaded_analyses.add(analysis)
+                            break
+        
+        return list(downloaded_analyses)
 
     # --- Finalization & Unfinalization ---
     async def finalize(self, request):
