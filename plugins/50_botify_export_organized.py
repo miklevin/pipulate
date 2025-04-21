@@ -175,6 +175,193 @@ class BotifyExport:
 # 3. WORKFLOW STEP HANDLERS
 # ============================================================================
 
+    async def landing(self):
+        """
+        Generate the landing page for the workflow.
+        
+        This method creates the initial UI that users see when they access the
+        workflow. It provides a form for entering or selecting a unique identifier
+        (pipeline ID) to start or resume a workflow. Key features:
+        
+        - Displays the workflow title and description
+        - Generates a default pipeline ID for new workflows
+        - Provides a datalist of existing workflow IDs
+        - Creates an HTMX-enabled form for workflow initialization
+        
+        Returns:
+            FastHTML container with the landing page UI components
+        """
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        
+        # Get plugin display name for the title
+        context = pip.get_plugin_context(self)
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        
+        # Generate a default key and get the prefix for the datalist
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        
+        # Get existing keys for the datalist
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() 
+                           if record.pkey.startswith(prefix)]
+        
+        # Create full key options for the datalist
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        
+        return Container(  # Get used to this return signature of FastHTML & HTMX
+            Card(
+                H2(title),
+                # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
+                P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
+                # P("Clear the field and submit to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)",
+                            name="pipeline_id",
+                            list="pipeline-ids",
+                            type="search",
+                            required=False,  # Allow empty submissions
+                            autofocus=True,
+                            value=default_value,
+                            _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑",
+                        button_class="secondary"
+                    ),
+                    # Use the helper method to create the initial datalist
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init",
+                    hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        """
+        Initialize the workflow and create the UI for all steps.
+        
+        This method handles the form submission from the landing page, setting up
+        the workflow pipeline. It performs several key operations:
+        
+        1. Generates or validates the pipeline ID
+        2. Initializes the workflow state
+        3. Provides user feedback about workflow status
+        4. Updates the datalist for returning to this workflow
+        5. Generates the HTMX-enabled placeholders for all steps
+        
+        The initialization process accommodates both new workflows and resuming
+        existing ones, with appropriate feedback for each situation.
+        
+        Args:
+            request: The HTTP request object containing the pipeline_id form field
+            
+        Returns:
+            FastHTML container with all workflow step placeholders
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        
+        # If the pipeline_id is blank, return a response with HX-Refresh header
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        
+        # Get the context with plugin name and profile name
+        context = pip.get_plugin_context(self)
+        plugin_name = context['plugin_name'] or app_name
+        profile_name = context['profile_name'] or "default"
+        
+        # ───────── PIPELINE ID GENERATION AND PARSING ─────────
+        # Create the expected prefix parts
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        # Determine pipeline ID based on user input
+        if user_input.startswith(expected_prefix):
+            # They provided the full composite key
+            pipeline_id = user_input
+            # Parse it to get the user part
+            parsed = pip.parse_pipeline_key(pipeline_id)
+            user_provided_id = parsed['user_part']
+        else:
+            # They provided just their part - generate a full key
+            _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{prefix}{user_provided_id}"
+        
+        db["pipeline_id"] = pipeline_id
+        logger.debug(f"Using pipeline ID: {pipeline_id}")
+        
+        # ───────── STATE INITIALIZATION AND WORKFLOW MESSAGES ─────────
+        # Initialize the pipeline state
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
+        if error:
+            return error
+
+        # After loading the state, check if all steps are complete
+        all_steps_complete = True
+        for step in steps[:-1]:  # Exclude finalize step
+            if step.id not in state or step.done not in state[step.id]:
+                all_steps_complete = False
+                break
+
+        # Check if workflow is finalized
+        is_finalized = "finalize" in state and "finalized" in state["finalize"]
+
+        # Add all messages to the ordered queue in sequence - they'll be delivered in order
+        # Add information about the workflow ID to conversation history
+        id_message = f"Workflow ID: {pipeline_id}"
+        await self.message_queue.add(pip, id_message, verbatim=True, spaces_before=0)
+        
+        # Add the return message
+        return_message = f"You can return to this workflow later by selecting '{pipeline_id}' from the dropdown menu."
+        await self.message_queue.add(pip, return_message, verbatim=True, spaces_before=0)
+
+        # Workflow status messages
+        if all_steps_complete:
+            if is_finalized:
+                await self.message_queue.add(pip, f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.", verbatim=True)
+            else:
+                await self.message_queue.add(pip, f"Workflow is complete but not finalized. Press Finalize to lock your data.", verbatim=True)
+        else:
+            # If it's a new workflow, add a brief explanation
+            if not any(step.id in state for step in self.steps):
+                await self.message_queue.add(pip, "Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
+
+        # ───────── UI GENERATION AND DATALIST UPDATES ─────────
+        # Update the datalist by adding this key immediately to the UI
+        # This ensures the key is available in the dropdown even after clearing the database
+        parsed = pip.parse_pipeline_key(pipeline_id)
+        prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
+        
+        # Get all existing keys for this workflow type
+        self.pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in self.pipeline() 
+                           if record.pkey.startswith(prefix)]
+        
+        # Make sure the current key is included, even if it's not in the database yet
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
+        
+        # Use the Pipulate helper method to create the updated datalist
+        updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
+        
+        # Get placeholders for all steps
+        placeholders = pip.run_all_cells(app_name, steps)
+        return Div(
+            # Add updated datalist that includes all existing keys plus the current one
+            updated_datalist,
+            *placeholders, 
+            id=f"{app_name}-container"
+        )
+
     # -----------------
     # Step 1: Project URL
     # -----------------
@@ -2540,6 +2727,54 @@ class BotifyExport:
         await self.message_queue.add(pip, message, verbatim=True)
         
         # Return the rebuilt UI
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        """
+        Get a suggestion value for a step based on transform function.
+        
+        If the step has a transform function, use the previous step's output
+        to generate a suggested value. This enables data to flow naturally
+        from one step to the next, creating a connected workflow experience.
+        
+        Args:
+            step_id: The ID of the step to generate a suggestion for
+            state: The current workflow state
+            
+        Returns:
+            str: The suggested value or empty string if not applicable
+        """
+        pip, db, steps = self.pipulate, self.db, self.steps
+        # If a transform function exists, use the previous step's output.
+        step = next((s for s in steps if s.id == step_id), None)
+        if not step or not step.transform:
+            return ""
+        prev_index = self.steps_indices[step_id] - 1
+        if prev_index < 0:
+            return ""
+        prev_step_id = steps[prev_index].id
+        prev_step = steps[prev_index]
+        prev_data = pip.get_step_data(db["pipeline_id"], prev_step_id, {})
+        prev_word = prev_data.get(prev_step.done, "")
+        return step.transform(prev_word) if prev_word else ""
+
+    async def jump_to_step(self, request):
+        """
+        Jump to a specific step in the workflow.
+        
+        This method updates the step_id in the database and rebuilds the UI
+        to show the workflow from the selected step.
+        
+        Args:
+            request: The HTTP request object containing the step_id
+            
+        Returns:
+            FastHTML components showing the workflow from the selected step
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        db["step_id"] = step_id
         return pip.rebuild(app_name, steps)
 
 # ============================================================================
