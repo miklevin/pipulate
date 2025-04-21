@@ -84,7 +84,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 * **Developers:** Those building these workflows, likely porting them from Jupyter Notebooks into the Pipulate framework. They benefit from the simple architecture, reproducibility, and integrated tooling.
 
 ---
-*by [Mike Levin](https://mikelevin.in/)*
+*by [Mike Levin](https://mikelev.in/)*
 ---
 
 ## Getting Started
