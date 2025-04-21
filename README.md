@@ -1,6 +1,3 @@
-Okay, here is the revised version of the `README.md` incorporating the improvements we discussed. I've focused on structure, clarity, conciseness, and accuracy, especially in the introductory sections and technology explanations.
-
-````markdown
 # Pipulate: Free & Open Source Local-First SEO *with & for* LLMs
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
@@ -611,5 +608,4 @@ Contributions are welcome\! Please adhere to the project's core philosophy:
 
 This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=./LICENSE) file for details.
 
-```
 ```
