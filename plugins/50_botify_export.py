@@ -1075,6 +1075,26 @@ class BotifyExport:
             job_id = job['job_id']
             download_url = job['download_url']
             
+            # Check if we have all required data for this job
+            job_has_complete_data = all([
+                step_data.get('org'),
+                step_data.get('project'),
+                step_data.get('analysis'),
+                step_data.get('depth')
+            ])
+            
+            # Determine appropriate buttons based on state
+            download_button = None
+            if job_has_complete_data:
+                download_button = Button("Download Ready Export", type="button", cls="primary", 
+                                      hx_post=f"/{app_name}/download_ready_export",
+                                      hx_target=f"#{step.id}",
+                                      hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "download_url": "{download_url}"}}'
+                                     )
+            
+            # Choose appropriate label based on data completeness
+            new_export_label = "Resume Export" if not job_has_complete_data else "Create New Export"
+            
             await self.message_queue.add(pip, f"Found existing completed export (Job ID: {job_id})", verbatim=True)
             
             return Div(
@@ -1084,12 +1104,9 @@ class BotifyExport:
                       style="margin-bottom: 1rem;"),
                     P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     Div(
-                        Button("Download Ready Export", type="button", cls="primary", 
-                               hx_post=f"/{app_name}/download_ready_export",
-                               hx_target=f"#{step.id}",
-                               hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "download_url": "{download_url}"}}'
-                        ),
-                        Button("Create New Export", type="button", 
+                        # Conditional rendering of download button
+                        download_button if download_button else "",
+                        Button(new_export_label, type="button", 
                                hx_get=f"/{app_name}/{step.id}/new",
                                hx_target=f"#{step.id}"
                         ),
@@ -2051,6 +2068,10 @@ class BotifyExport:
         project = step_data.get('project')
         analysis = step_data.get('analysis')
         depth = step_data.get('depth', '0')
+        
+        # Validate required data
+        if not all([org, project, analysis, depth]):
+            return P("Missing required data from previous steps", style=pip.get_style("error"))
         
         # Update state with the download URL if it's not already set
         if step_id not in state:
