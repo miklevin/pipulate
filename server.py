@@ -716,21 +716,43 @@ class Pipulate:
             style=article_style
         )
 
-    def revert_control_advanced(
+    def widget_container(
         self,
         step_id: str,
         app_name: str,
         steps: list,
         message: str = None,
-        content=None,
+        widget=None,
         target_id: str = None,
         revert_label: str = None,
-        content_style=None
+        widget_style=None
     ):
         """
-        Enhanced revert control with support for additional content below the control row.
+        Create a standardized container for widgets, visualizations, or any dynamic content.
+        
+        This is the core pattern for displaying rich content below workflow steps while
+        maintaining consistent styling and proper DOM targeting for dynamic updates.
+        
+        The container provides:
+        1. Consistent padding/spacing with the revert controls
+        2. Unique DOM addressing for targeted updates
+        3. Support for both function-based widgets and AnyWidget components
+        4. Standard styling that can be overridden when needed
+        
+        Args:
+            step_id: The ID of the step this widget belongs to
+            app_name: The workflow app name
+            steps: List of Step namedtuples defining the workflow
+            message: Optional message to display in the revert control
+            widget: The widget/visualization to display (function result or AnyWidget)
+            target_id: Optional target for HTMX updates
+            revert_label: Optional custom label for the revert button
+            widget_style: Optional custom style for the widget container
+            
+        Returns:
+            Div: A FastHTML container with revert control and widget content
         """
-        # Get the revert control with padding removed
+        # Get the revert control with padding removed for proper alignment
         revert_row = self.revert_control(
             step_id=step_id,
             app_name=app_name,
@@ -738,32 +760,80 @@ class Pipulate:
             message=message,
             target_id=target_id,
             revert_label=revert_label,
-            remove_padding=True  # Remove padding when used in advanced layout
+            remove_padding=True  # Remove padding for alignment
         )
         
-        # If no additional content or in finalized state, just return the standard control
-        if content is None or revert_row is None:
+        # If no widget or in finalized state, just return the standard control
+        if widget is None or revert_row is None:
             return revert_row
         
         # Use the content style constant as the default
-        applied_style = content_style or self.CONTENT_STYLE
+        applied_style = widget_style or self.CONTENT_STYLE
         
-        # Create a container with the revert row and content that looks like a single card
+        # Create a container with the revert row and widget that looks like a single card
         return Div(
-            revert_row,  # No need for extra div wrapper now
+            revert_row,
             Div(
-                content,
+                widget,
                 style=applied_style,
-                id=f"{step_id}-content-inner"
+                # Unique ID for targeting dynamic updates
+                id=f"{step_id}-widget-{hash(str(widget))}"
             ),
             id=f"{step_id}-content",
             style=(
                 "background-color: var(--pico-card-background-color); "
                 "border-radius: var(--pico-border-radius); "
                 "margin-bottom: 2vh; "
-                "padding: 1rem;"  # Add consistent padding
+                "padding: 1rem;"
             )
         )
+
+    # Keep tree_display as a standard widget function that can be passed to widget_container
+    def tree_display(self, content):
+        """
+        Create a styled display for file paths that can show either a tree or box format.
+        
+        This is an example of a standard widget function that can be passed to widget_container.
+        It demonstrates the pattern for creating reusable, styled components that maintain
+        consistent spacing and styling when displayed in the workflow.
+        
+        Args:
+            content: The content to display (either tree-formatted or plain path)
+            
+        Returns:
+            Pre: A Pre component with appropriate styling
+        """
+        # Check if content is tree-formatted (contains newlines and tree characters)
+        is_tree = '\n' in content and ('└─' in content or '├─' in content)
+        
+        if is_tree:
+            # Tree display - use monospace font and preserve whitespace
+            return Pre(
+                content,
+                style=(
+                    "font-family: monospace; "
+                    "white-space: pre; "
+                    "margin: 0; "  # Remove margin to let container control spacing
+                    "padding: 0.5rem; "
+                    "border-radius: 4px; "
+                    "background-color: var(--pico-card-sectionning-background-color);"  # Use PicoCSS variable
+                )
+            )
+        else:
+            # Box display - use a blue box with the path
+            return Pre(
+                content,
+                style=(
+                    "font-family: system-ui; "
+                    "white-space: pre-wrap; "
+                    "margin: 0; "  # Remove margin to let container control spacing
+                    "padding: 0.5rem 1rem; "
+                    "border-radius: 4px; "
+                    "background-color: #e3f2fd; "
+                    "color: #1976d2; "
+                    "border: 1px solid #bbdefb;"
+                )
+            )
 
     def finalized_content(
         self,
@@ -1290,48 +1360,6 @@ class Pipulate:
         self.write_state(pipeline_id, state)
 
         return state
-
-    def tree_display(self, content):
-        """
-        Create a styled display for file paths that can show either a tree or box format.
-        
-        Args:
-            content: The content to display (either tree-formatted or plain path)
-            
-        Returns:
-            Pre: A Pre component with appropriate styling
-        """
-        # Check if content is tree-formatted (contains newlines and tree characters)
-        is_tree = '\n' in content and ('└─' in content or '├─' in content)
-        
-        if is_tree:
-            # Tree display - use monospace font and preserve whitespace
-            return Pre(
-                content,
-                style=(
-                    "font-family: monospace; "
-                    "white-space: pre; "
-                    "margin: 0; "  # Remove margin to let container control spacing
-                    "padding: 0.5rem; "
-                    "border-radius: 4px; "
-                    "background-color: #f5f5f5;"
-                )
-            )
-        else:
-            # Box display - use a blue box with the path
-            return Pre(
-                content,
-                style=(
-                    "font-family: system-ui; "
-                    "white-space: pre-wrap; "
-                    "margin: 0; "  # Remove margin to let container control spacing
-                    "padding: 0.5rem 1rem; "
-                    "border-radius: 4px; "
-                    "background-color: #e3f2fd; "
-                    "color: #1976d2; "
-                    "border: 1px solid #bbdefb;"
-                )
-            )
 
 
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:

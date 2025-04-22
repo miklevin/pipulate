@@ -55,7 +55,7 @@ class BotifyExport:
     
     Implementation Note on Tree Displays:
     ------------------------------------
-    The tree display for file paths uses the standardized pip.revert_control_advanced method,
+    The tree display for file paths uses the standardized pip.widget_container method,
     which provides consistent styling and layout for displaying additional content below
     the standard revert controls. This ensures proper alignment with revert buttons 
     while maintaining visual grouping.
@@ -63,11 +63,11 @@ class BotifyExport:
     Example usage:
     ```python
     tree_display = pip.tree_display(tree_path)
-    content_container = pip.revert_control_advanced(
+    content_container = pip.widget_container(
         step_id=step_id,
         app_name=app_name,
         message=display_msg,
-        content=tree_display,
+        widget=tree_display,
         steps=steps
     )
     ```
@@ -83,7 +83,7 @@ class BotifyExport:
     )
     TRAINING_PROMPT = "botify_export.md"
     PRESERVE_REFILL = True
-    USE_TREE_DISPLAY = False  # Toggle between tree and box display
+    USE_TREE_DISPLAY = True  # Toggle between tree and box display
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
@@ -875,11 +875,11 @@ class BotifyExport:
                     
                     # Use the new advanced control with tree content
                     tree_display = pip.tree_display(tree_path)
-                    content_container = pip.revert_control_advanced(
+                    content_container = pip.widget_container(
                         step_id=step_id,
                         app_name=app_name,
                         message=display_msg,
-                        content=tree_display,
+                        widget=tree_display,
                         steps=steps
                     )
                     
@@ -895,11 +895,11 @@ class BotifyExport:
                     
                     # Use the advanced revert control with tree content
                     tree_display = pip.tree_display(tree_path)
-                    content_container = pip.revert_control_advanced(
+                    content_container = pip.widget_container(
                         step_id=step_id,
                         app_name=app_name,
                         message=display_msg,
-                        content=tree_display,
+                        widget=tree_display,
                         steps=steps
                     )
             elif download_url:
@@ -1635,11 +1635,11 @@ class BotifyExport:
         
         # Use the advanced revert control with tree content
         tree_display = pip.tree_display(tree_path)
-        content_container = pip.revert_control_advanced(
+        content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
             message=display_msg,
-            content=tree_display,
+            widget=tree_display,
             steps=steps
         )
         
@@ -2000,11 +2000,11 @@ class BotifyExport:
             tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
             tree_display = pip.tree_display(tree_path)
             return Div(
-                pip.revert_control_advanced(
+                pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
                     message=f"{step.show}: CSV downloaded ({file_size_mb:.2f} MB)",
-                    content=tree_display,
+                    widget=tree_display,
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
