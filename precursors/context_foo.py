@@ -22,11 +22,9 @@ README.md
 flake.nix
 server.py
 plugins/20_hello_workflow.py
-training/hello_workflow.md
 plugins/50_botify_export.py
 .cursorrules
-/home/mike/repos/MikeLev.in/_posts/2025-04-19-export-botify-csv-api.md
-/home/mike/repos/pipulate/downloads/export_registry.json
+/home/mike/repos/MikeLev.in/_posts/2025-04-21-fasthtml-anywidget-host.md
 """.splitlines()[:-1]  # Remove the last empty line
 
 # ============================================================================
