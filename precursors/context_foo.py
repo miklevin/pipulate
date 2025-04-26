@@ -21,11 +21,16 @@ FILES_TO_INCLUDE = """\
 README.md
 flake.nix
 server.py
-plugins/20_hello_workflow.py
-plugins/50_botify_export.py
+plugins/60_widget_examples.py
+plugins/90_roadmap.py
 .cursorrules
-/home/mike/repos/MikeLev.in/_posts/2025-04-21-fasthtml-anywidget-host.md
+/home/mike/repos/MikeLev.in/index.md
+/home/mike/repos/MikeLev.in/_posts/2025-04-26-htmx-widgets-ai-implementation.md
+/home/mike/repos/MikeLev.in/_posts/2025-04-26-llm-architecture-ai-collaboration-coding-workflows.md
 """.splitlines()[:-1]  # Remove the last empty line
+
+# Example:
+# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/2025-04-25-htmx-workflow-widgets.md
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION
