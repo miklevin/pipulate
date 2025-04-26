@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const data = evt.detail;
     renderMarkdown(data.targetId, data.markdown);
   });
+  
+  // Set up HTMX event listener for rendering Mermaid diagrams
+  htmx.on('renderMermaid', function(evt) {
+    const data = evt.detail;
+    renderMermaid(data.targetId, data.diagram);
+  });
 });
 
 /**
@@ -93,6 +99,85 @@ function renderMarkdown(targetId, markdown) {
     targetElement.innerHTML = `
       <div style="color: red; padding: 1rem;">
         <h4>Markdown Error:</h4>
+        <pre>${error.toString()}</pre>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Render Mermaid diagram
+ *
+ * @param {string} targetId - ID of the DOM element containing the diagram
+ * @param {string} diagram - Mermaid diagram syntax
+ */
+function renderMermaid(targetId, diagram) {
+  console.log('Rendering Mermaid diagram in:', targetId);
+  
+  const targetElement = document.getElementById(targetId);
+  if (!targetElement) {
+    console.error(`Target element with ID '${targetId}' not found`);
+    return;
+  }
+
+  try {
+    // Check if mermaid is available
+    if (typeof mermaid === 'undefined') {
+      console.error('Mermaid library not loaded');
+      targetElement.innerHTML = `
+        <div style="color: red; padding: 1rem;">
+          <h4>Error:</h4>
+          <p>mermaid.min.js is not loaded. Please check the page headers.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Find or create a div with the mermaid class
+    let mermaidDiv = targetElement.querySelector('.mermaid');
+    if (!mermaidDiv) {
+      mermaidDiv = document.createElement('div');
+      mermaidDiv.className = 'mermaid';
+      targetElement.appendChild(mermaidDiv);
+    }
+    
+    // Set the diagram content
+    mermaidDiv.textContent = diagram;
+    
+    // Initialize Mermaid with configuration
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose',
+      flowchart: {
+        htmlLabels: true
+      }
+    });
+    
+    // Run Mermaid rendering on the specific element
+    try {
+      // Different versions of Mermaid have different APIs
+      if (typeof mermaid.run === 'function') {
+        // Newer versions
+        mermaid.run({ nodes: [mermaidDiv] });
+      } else {
+        // Older versions
+        mermaid.init(undefined, mermaidDiv);
+      }
+    } catch (renderError) {
+      console.error('Error during Mermaid rendering:', renderError);
+      mermaidDiv.innerHTML = `
+        <div style="color: red; padding: 1rem;">
+          <h4>Mermaid Rendering Error:</h4>
+          <pre>${renderError.toString()}</pre>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('General error in Mermaid rendering:', error);
+    targetElement.innerHTML = `
+      <div style="color: red; padding: 1rem;">
+        <h4>Mermaid Error:</h4>
         <pre>${error.toString()}</pre>
       </div>
     `;

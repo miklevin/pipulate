@@ -35,7 +35,7 @@ class WidgetExamples:
     1. Simple HTMX Widget - No JS execution
     2. Rich Table Widget - Using Python's Rich library
     3. JavaScript Execution Widget - Running JS in HTMX-injected content
-    4. Markdown Renderer - Client-side rendering using marked.js
+    4. Mermaid Diagram Renderer - Client-side rendering using mermaid.js
     
     Key Implementation Notes:
     - Widgets use pip.widget_container for consistent styling and DOM structure
@@ -319,27 +319,14 @@ button.onclick = function() {
 widget.appendChild(countDisplay);
 widget.appendChild(button);""",
             
-            'step_04': """# Simple Markdown Example
-
-## Basic Features
-- Bold and *italic* text
-- Simple lists
-- Code blocks
-
-## Example Code
-```
-function hello() {
-    return "Hello World";
-}
-```
-
-Simple table:
-| Item | Value |
-|------|-------|
-| One  | 1     |
-| Two  | 2     |
-
-That's it!"""
+            'step_04': """graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[Result 1]
+    D --> F[Result 2]
+    E --> G[End]
+    F --> G"""
         }
         
         # Return pre-populated example or empty string
@@ -582,24 +569,40 @@ That's it!"""
             console.print(table)
             html_output = console.export_html(inline_styles=True)
             
+            # Extract only the table part from the full HTML document if needed
+            # This is optional but helps remove any extra HTML elements that Rich adds
+            if "<body>" in html_output and "</body>" in html_output:
+                try:
+                    start = html_output.find("<body>") + len("<body>")
+                    end = html_output.find("</body>")
+                    html_output = html_output[start:end].strip()
+                except Exception as e:
+                    logger.debug(f"Error extracting body content: {e}")
+            
             # Wrap in a Div with raw HTML
             rich_table = Div(html_output, _raw=True)
             
             # Send confirmation message
             await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
             
-            # Return the widget container with the table
-            return Div(
-                pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show}: Table rendered from Python's Rich library",
-                    widget=rich_table,
-                    steps=steps
-                ),
+            # Create widget container with the rich_table
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: Table rendered from Python's Rich library",
+                widget=rich_table,
+                steps=steps
+            )
+            
+            # Create full response structure
+            response_content = Div(
+                content_container,
                 Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
                 id=step_id
             )
+            
+            # Convert the FastHTML object to HTML string using to_xml and wrap in HTMLResponse
+            return HTMLResponse(str(to_xml(response_content)))
         except Exception as e:
             logger.error(f"Error creating Rich table: {e}")
             return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
@@ -762,7 +765,7 @@ That's it!"""
 
     # --- Step 4: Markdown Renderer ---
     async def step_04(self, request):
-        """ Handles GET request for Step 4: Markdown Renderer. """
+        """ Handles GET request for Step 4: Mermaid Diagram Renderer. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -783,15 +786,15 @@ That's it!"""
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
-            # Create the markdown widget from the existing content
+            # Create the mermaid diagram widget from the existing content
             try:
-                widget_id = f"md-widget-{pipeline_id.split('-')[-1]}"
-                md_widget = self.create_markdown_widget(user_val, widget_id)
+                widget_id = f"mermaid-widget-{pipeline_id.split('-')[-1]}"
+                mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
                     message=f"{step.show} Configured",
-                    widget=md_widget,
+                    widget=mermaid_widget,
                     steps=steps
                 )
                 return Div(
@@ -800,7 +803,7 @@ That's it!"""
                 )
             except Exception as e:
                 # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating markdown widget: {str(e)}")
+                logger.error(f"Error creating mermaid widget: {str(e)}")
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
         
@@ -811,15 +814,15 @@ That's it!"""
         return Div(
             Card(
                 H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter Markdown content for the widget. Example is pre-populated."),
-                P("Supports standard Markdown syntax including tables, code blocks, and links.", 
+                P("Enter Mermaid diagram syntax for the widget. Example is pre-populated."),
+                P("Supports flowcharts, sequence diagrams, class diagrams, etc.", 
                   style="font-size: 0.8em; font-style: italic;"),
                 Form(
                     Div(
                         Textarea(
                             display_value,
                             name=step.done,
-                            placeholder="Enter Markdown content",
+                            placeholder="Enter Mermaid diagram syntax",
                             required=True,
                             rows=15,
                             style="width: 100%; font-family: monospace;"
@@ -860,51 +863,61 @@ That's it!"""
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
         
         # Generate unique widget ID for this step and pipeline
-        widget_id = f"md-widget-{pipeline_id}-{step_id}".replace("-", "_")
+        widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         
-        # Create the markdown widget
-        md_widget = Div(
+        # Create the mermaid diagram widget
+        mermaid_widget = Div(
             Div(
-                # Container to render the markdown
-                H5("Rendered Markdown:"),
-                Div(id=f"{widget_id}_output", style="padding: 1rem; background-color: #fff; border-radius: 4px; border: 1px solid #ddd;"),
-                # Display the markdown source
-                H5("Markdown Source:"),
+                # Display the mermaid source
+                H5("Mermaid Diagram Source:"),
                 Pre(
                     user_val,
                     style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; overflow-x: auto; font-family: monospace;"
+                ),
+                # Container to render the mermaid diagram
+                H5("Rendered Diagram:"),
+                Div(
+                    # This div with class="mermaid" will be targeted by the mermaid.js library
+                    Div(
+                        user_val,
+                        cls="mermaid",
+                        style="width: 100%; background-color: #fff; border-radius: 4px; padding: 1rem;"
+                    ),
+                    id=f"{widget_id}_output"
                 )
             ),
             id=widget_id
         )
         
-        # Create an HTMLResponse with the widget container
-        response = HTMLResponse(
-            to_xml(
-                Div(
-                    pip.widget_container(
-                        step_id=step_id,
-                        app_name=app_name,
-                        message=f"{step.show}: Client-side markdown rendering",
-                        widget=md_widget,
-                        steps=steps
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            )
+        # Create content container with the mermaid widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Client-side Mermaid diagram rendering",
+            widget=mermaid_widget,
+            steps=steps
         )
         
-        # Add HX-Trigger header to render the markdown
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Create an HTMLResponse with the content
+        response = HTMLResponse(str(to_xml(response_content)))
+        
+        # Add HX-Trigger header to initialize Mermaid rendering
         response.headers["HX-Trigger"] = json.dumps({
-            "renderMarkdown": {
+            "renderMermaid": {
                 "targetId": f"{widget_id}_output",
-                "markdown": user_val
+                "diagram": user_val
             }
         })
         
         # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Markdown rendered.", verbatim=True)
+        await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
         
         return response 
 
@@ -990,32 +1003,63 @@ That's it!"""
         
         return container
 
-    def create_markdown_widget(self, md_content, widget_id):
-        """Create a markdown widget container."""
+    def create_mermaid_widget(self, diagram_syntax, widget_id):
+        """Create a mermaid diagram widget container."""
+        # Create container for the widget
         container = Div(
             Div(
-                # Container to render the markdown
-                H5("Rendered Markdown:"),
-                Div(id=f"{widget_id}_output", style="padding: 1rem; background-color: #fff; border-radius: 4px; border: 1px solid #ddd; min-height: 100px;"),
-                # Display the markdown source
-                H5("Markdown Source:"),
+                # Display the mermaid source code
+                H5("Mermaid Diagram Source:"),
                 Pre(
-                    md_content,
+                    diagram_syntax,
                     style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; overflow-x: auto; font-family: monospace;"
+                ),
+                # Container to render the mermaid diagram
+                H5("Rendered Diagram:"),
+                Div(
+                    # This div with class="mermaid" will be targeted by the mermaid.js library
+                    Div(
+                        diagram_syntax,
+                        cls="mermaid",
+                        style="width: 100%; background-color: #fff; border-radius: 4px; padding: 1rem;"
+                    ),
+                    id=f"{widget_id}_output"
                 )
             ),
             id=widget_id
         )
         
-        # Create an HTMLResponse with the widget container
-        response = HTMLResponse(to_xml(container))
+        # Create a script to initialize and run mermaid on this container
+        init_script = Script(
+            f"""
+            (function() {{
+                // Initialize mermaid
+                if (typeof mermaid !== 'undefined') {{
+                    try {{
+                        mermaid.initialize({{ 
+                            startOnLoad: true,
+                            theme: 'default',
+                            securityLevel: 'loose',
+                            flowchart: {{
+                                htmlLabels: true
+                            }}
+                        }});
+                        
+                        // Find the mermaid div
+                        const mermaidDiv = document.querySelector('#{widget_id}_output .mermaid');
+                        if (mermaidDiv) {{
+                            // Render the diagram
+                            mermaid.init(undefined, mermaidDiv);
+                        }}
+                    }} catch(e) {{
+                        console.error("Mermaid rendering error:", e);
+                    }}
+                }} else {{
+                    console.error("Mermaid library not found. Make sure it's included in the page headers.");
+                }}
+            }})();
+            """,
+            type="text/javascript"
+        )
         
-        # Add HX-Trigger header to render the markdown
-        response.headers["HX-Trigger"] = json.dumps({
-            "renderMarkdown": {
-                "targetId": f"{widget_id}_output",
-                "markdown": md_content
-            }
-        })
-        
-        return container 
+        return Div(container, init_script) 
