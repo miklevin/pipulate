@@ -552,9 +552,11 @@ widget.appendChild(button);""",
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
 
         # Create a Rich table from the JSON data
-        table = Table(title="User Provided Data")
         try:
             data = json.loads(user_val)
+            
+            # Create a Rich table component
+            table = Table(title="User Provided Data")
             
             # Add columns
             for column in data[0].keys():
@@ -564,45 +566,37 @@ widget.appendChild(button);""",
             for row in data:
                 table.add_row(*[str(v) for v in row.values()])
             
-            # Capture the HTML using Rich's Console
-            console = Console(record=True)
+            # Render the table to HTML using Rich's built-in HTML export capability
+            # This creates a self-contained HTML fragment with inline styles
+            console = Console(record=True, width=100)
             console.print(table)
-            html_output = console.export_html(inline_styles=True)
+            html_fragment = console.export_html(inline_styles=True)
             
-            # Extract only the table part from the full HTML document if needed
-            # This is optional but helps remove any extra HTML elements that Rich adds
-            if "<body>" in html_output and "</body>" in html_output:
-                try:
-                    start = html_output.find("<body>") + len("<body>")
-                    end = html_output.find("</body>")
-                    html_output = html_output[start:end].strip()
-                except Exception as e:
-                    logger.debug(f"Error extracting body content: {e}")
-            
-            # Wrap in a Div with raw HTML
-            rich_table = Div(html_output, _raw=True)
+            # Create the widget container with raw HTML content
+            # Use NotStr to embed raw HTML content without escaping
+            from fastcore.xml import NotStr
+            rich_table_widget = Div(NotStr(html_fragment), _raw=True)
             
             # Send confirmation message
             await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
             
-            # Create widget container with the rich_table
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: Table rendered from Python's Rich library",
-                widget=rich_table,
-                steps=steps
-            )
+            # Create complete response with widget container
+            response = HTMLResponse(to_xml(
+                Div(
+                    pip.widget_container(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f"{step.show}: Table rendered from Python's Rich library",
+                        widget=rich_table_widget,
+                        steps=steps
+                    ),
+                    Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
+                    id=step_id
+                )
+            ))
             
-            # Create full response structure
-            response_content = Div(
-                content_container,
-                Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
-                id=step_id
-            )
+            return response
             
-            # Convert the FastHTML object to HTML string using to_xml and wrap in HTMLResponse
-            return HTMLResponse(str(to_xml(response_content)))
         except Exception as e:
             logger.error(f"Error creating Rich table: {e}")
             return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
@@ -954,18 +948,22 @@ widget.appendChild(button);""",
                 for row in data:
                     table.add_row(*[str(row.get(col, "")) for col in columns])
             else:
-                return Div(f"<div style='color: red;'>Unsupported data format</div>", _raw=True)
+                from fastcore.xml import NotStr
+                return Div(NotStr("<div style='color: red;'>Unsupported data format</div>"), _raw=True)
             
             # Capture the HTML using Rich's Console
-            console = Console(record=True)
+            console = Console(record=True, width=100)
             console.print(table)
-            html_output = console.export_html(inline_styles=True)
+            html_fragment = console.export_html(inline_styles=True)
             
-            # Wrap in a Div with raw HTML
-            return Div(html_output, _raw=True)
+            # Return Div with NotStr for raw HTML content
+            from fastcore.xml import NotStr
+            return Div(NotStr(html_fragment), _raw=True)
+            
         except Exception as e:
             logger.error(f"Error creating Rich table: {e}")
-            return Div(f"<div style='color: red;'>Error creating table: {str(e)}</div>", _raw=True)
+            from fastcore.xml import NotStr
+            return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
 
     def create_js_widget(self, code, widget_id):
         """Create a JavaScript widget with the provided code."""
