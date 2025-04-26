@@ -883,12 +883,87 @@ widget.appendChild(button);""",
             id=widget_id
         )
         
-        # Create content container with the mermaid widget
+        # Add initialization script for Mermaid with proper timing
+        init_script = Script(
+            f"""
+            (function() {{
+                // Give the DOM time to fully render before initializing Mermaid
+                setTimeout(function() {{
+                    if (typeof mermaid === 'undefined') {{
+                        console.error('Mermaid library not loaded');
+                        return;
+                    }}
+                    
+                    try {{
+                        // Initialize Mermaid with configuration
+                        mermaid.initialize({{ 
+                            startOnLoad: false,  // Important - don't auto-init
+                            theme: 'default',
+                            securityLevel: 'loose',
+                            flowchart: {{
+                                htmlLabels: true
+                            }}
+                        }});
+                        
+                        // Find all mermaid divs in this widget and render them
+                        const container = document.getElementById('{widget_id}');
+                        if (!container) return;
+                        
+                        const mermaidDivs = container.querySelectorAll('.mermaid');
+                        console.log('Found mermaid divs:', mermaidDivs.length);
+                        
+                        // First, try to clear any previous renderings
+                        mermaidDivs.forEach(div => {{
+                            // Store the original content
+                            if (!div.getAttribute('data-original')) {{
+                                div.setAttribute('data-original', div.textContent);
+                            }}
+                            // Reset to original state
+                            div.innerHTML = div.getAttribute('data-original');
+                            // Remove any SVG added by previous renderings
+                            const svgs = div.querySelectorAll('svg');
+                            svgs.forEach(svg => svg.remove());
+                        }});
+                        
+                        // Force a repaint before initializing
+                        void container.offsetWidth;
+                        
+                        // Render each mermaid div
+                        mermaidDivs.forEach(div => {{
+                            try {{
+                                if (typeof mermaid.run === 'function') {{
+                                    // Newer Mermaid API
+                                    mermaid.run({{ nodes: [div] }});
+                                }} else {{
+                                    // Older Mermaid API
+                                    mermaid.init(undefined, div);
+                                }}
+                                console.log('Mermaid rendering successful');
+                            }} catch (renderError) {{
+                                console.error('Error during Mermaid rendering:', renderError);
+                                div.innerHTML = `
+                                    <div style="color: red; padding: 1rem;">
+                                        <h4>Mermaid Rendering Error:</h4>
+                                        <pre>${{renderError.toString()}}</pre>
+                                    </div>
+                                `;
+                            }}
+                        }});
+                    }} catch (error) {{
+                        console.error('General error in Mermaid setup:', error);
+                    }}
+                }}, 300); // 300ms delay to ensure DOM is ready
+            }})();
+            """,
+            type="text/javascript"
+        )
+        
+        # Create content container with the mermaid widget and initialization script
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
             message=f"{step.show}: Client-side Mermaid diagram rendering",
-            widget=mermaid_widget,
+            widget=Div(mermaid_widget, init_script),
             steps=steps
         )
         
@@ -900,9 +975,10 @@ widget.appendChild(button);""",
         )
         
         # Create an HTMLResponse with the content
-        response = HTMLResponse(str(to_xml(response_content)))
+        response = HTMLResponse(to_xml(response_content))
         
         # Add HX-Trigger header to initialize Mermaid rendering
+        # This is a backup mechanism in case the inline script doesn't work
         response.headers["HX-Trigger"] = json.dumps({
             "renderMermaid": {
                 "targetId": f"{widget_id}_output",
@@ -913,7 +989,7 @@ widget.appendChild(button);""",
         # Send confirmation message
         await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
         
-        return response 
+        return response
 
     # --- Helper Methods (Widget Creation) ---
     
@@ -1031,30 +1107,46 @@ widget.appendChild(button);""",
         init_script = Script(
             f"""
             (function() {{
-                // Initialize mermaid
-                if (typeof mermaid !== 'undefined') {{
-                    try {{
-                        mermaid.initialize({{ 
-                            startOnLoad: true,
-                            theme: 'default',
-                            securityLevel: 'loose',
-                            flowchart: {{
-                                htmlLabels: true
+                // Give the DOM time to fully render before initializing Mermaid
+                setTimeout(function() {{
+                    // Initialize mermaid
+                    if (typeof mermaid !== 'undefined') {{
+                        try {{
+                            mermaid.initialize({{ 
+                                startOnLoad: false,  // Important - don't auto-init
+                                theme: 'default',
+                                securityLevel: 'loose',
+                                flowchart: {{
+                                    htmlLabels: true
+                                }}
+                            }});
+                            
+                            // Find all mermaid divs in this widget and render them
+                            const container = document.getElementById('{widget_id}');
+                            if (!container) return;
+                            
+                            const mermaidDiv = container.querySelector('.mermaid');
+                            if (mermaidDiv) {{
+                                // Force a repaint before initializing
+                                void container.offsetWidth;
+                                
+                                // Render the diagram
+                                if (typeof mermaid.run === 'function') {{
+                                    // Newer Mermaid API
+                                    mermaid.run({{ nodes: [mermaidDiv] }});
+                                }} else {{
+                                    // Older Mermaid API
+                                    mermaid.init(undefined, mermaidDiv);
+                                }}
+                                console.log('Mermaid rendering successful');
                             }}
-                        }});
-                        
-                        // Find the mermaid div
-                        const mermaidDiv = document.querySelector('#{widget_id}_output .mermaid');
-                        if (mermaidDiv) {{
-                            // Render the diagram
-                            mermaid.init(undefined, mermaidDiv);
+                        }} catch(e) {{
+                            console.error("Mermaid rendering error:", e);
                         }}
-                    }} catch(e) {{
-                        console.error("Mermaid rendering error:", e);
+                    }} else {{
+                        console.error("Mermaid library not found. Make sure it's included in the page headers.");
                     }}
-                }} else {{
-                    console.error("Mermaid library not found. Make sure it's included in the page headers.");
-                }}
+                }}, 300); // 300ms delay to ensure DOM is ready
             }})();
             """,
             type="text/javascript"
