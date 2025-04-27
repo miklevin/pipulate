@@ -375,6 +375,8 @@ countDisplay.textContent = count;
 
 const button = document.createElement('button');
 button.textContent = 'Increment Count';
+button.style.backgroundColor = '#9370DB';
+button.style.borderColor = '#9370DB';
 button.onclick = function() {
     count++;
     countDisplay.textContent = count;
@@ -803,7 +805,7 @@ for (let i = 0; i < 10; i++) {
                         "Re-run JavaScript", 
                         type="button", 
                         _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem;"
+                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
                     ),
                     id=widget_id
                 )
@@ -858,7 +860,7 @@ for (let i = 0; i < 10; i++) {
                         "Re-run JavaScript", 
                         type="button", 
                         _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem;"
+                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
                     ),
                     id=widget_id
                 )
@@ -971,7 +973,7 @@ for (let i = 0; i < 10; i++) {
                 "Re-run JavaScript", 
                 type="button", 
                 _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                style="margin-top: 1rem;"
+                style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
             ),
             id=widget_id
         )
@@ -1222,11 +1224,60 @@ for (let i = 0; i < 10; i++) {
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data:
-            return Div(
-                Card(f"🔒 {step.show}: <content locked>"),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        if "finalized" in finalize_data and user_val:
+            # Show the syntax highlighter in locked state
+            try:
+                # Check if user specified a language in format: ```language\ncode```
+                language = 'javascript'  # Default language
+                code_to_display = user_val
+                
+                if user_val.startswith('```'):
+                    # Try to extract language from markdown-style code block
+                    first_line = user_val.split('\n', 1)[0].strip()
+                    if len(first_line) > 3:
+                        detected_lang = first_line[3:].strip()
+                        if detected_lang:
+                            language = detected_lang
+                            # Remove the language specification line from the code
+                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
+                    
+                    # Remove trailing backticks if present
+                    if code_to_display.endswith('```'):
+                        code_to_display = code_to_display.rsplit('```', 1)[0]
+                
+                # Generate unique widget ID for this step and pipeline
+                widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                
+                # Use the helper method to create a prism widget with detected language
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
+                
+                # Create response with locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H4(f"🔒 {step.show} ({language})"),
+                                prism_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger header to initialize Prism highlighting
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initializePrism": {
+                        "targetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                logger.error(f"Error creating Prism widget in locked view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
@@ -1545,7 +1596,7 @@ for (let i = 0; i < 10; i++) {
                                 }});
                         }})();
                     """,
-                    style="margin-bottom: 10px;"
+                    style="margin-bottom: 10px; background-color: #9370DB; border-color: #9370DB;"
                 ),
                 # This pre/code structure is required for Prism.js
                 Pre(
