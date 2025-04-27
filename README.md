@@ -2,8 +2,8 @@
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
-> Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).
-> You do not need the Cloud because *no lock-in need apply!*
+> Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).  
+> You do not need the Cloud because *no lock-in need apply!*  
 
 **Table of Contents**
 * [What is Pipulate?](#what-is-pipulate)
