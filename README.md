@@ -202,15 +202,15 @@ Pipulate manages all state server-side within the local environment, avoiding cl
 
 ```
       ┌───────────────────────────────┐ # Benefits of Local-First Simplicity
-          │          Web Browser          │
+      │          Web Browser          │
       │                               │ - No mysterious client-side state
-          │    ┌────────────────────┐     │ - No full-stack framework churn
+      │    ┌────────────────────┐     │ - No full-stack framework churn
       │    │   Server Console   │     │ - No complex ORM or SQL layers
       │    │     & Web Logs     │     │ - No external message queues
       │    └─────────┬──────────┘     │ - No build step required
       │              ▼                │ - Direct, observable state changes
       │    ┌─────────────────────┐    │
-          │    │  Server-Side State  │    │ 
+      │    │  Server-Side State  │    │ 
       │    │  DictLikeDB + JSON  │ ◄─── (Conceptually like server-side cookies)
       │    └─────────────────────┘    │ - Enables the "Know EVERYTHING!" philosophy
       └───────────────────────────────┘
@@ -229,9 +229,9 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
                              ┌─────────────────────┐
                              │    Navigation Bar   │  - No template language (like Jinja2)
                              ├─────────┬───────────┤  - HTML elements are Python functions
-  Simple Python back-end │  Main   │   Chat    │  - Minimal custom JavaScript
-  HTMX "paints" HTML into│  Area   │ Interface │  - No React/Vue/Angular overhead
-  the DOM on demand──────►         │           │  - No virtual DOM, JSX, Redux, etc.
+  Simple Python back-end     │  Main   │   Chat    │  - Minimal custom JavaScript
+  HTMX "paints" HTML into    │  Area   │ Interface │  - No React/Vue/Angular overhead
+  the DOM on demand──────►   │         │           │  - No virtual DOM, JSX, Redux, etc.
                              └─────────┴───────────┘
 ```
 
@@ -262,20 +262,20 @@ Integration with a local Ollama instance provides AI capabilities without extern
 
 ```
                    ┌──────────────────┐
-               │   Local Ollama   │ - No API keys needed
-               │      Server      │ - Completely private processing
+                   │   Local Ollama   │ - No API keys needed
+                   │      Server      │ - Completely private processing
                    └────────┬─────────┘
-                        │ Streaming via WebSocket
+                            │ Streaming via WebSocket
                             ▼
                    ┌──────────────────┐
-               │   Pipulate App   │ - Monitors WS for JSON/commands
-               │(WebSocket Client)│ - Parses responses in real-time
+                   │   Pipulate App   │ - Monitors WS for JSON/commands
+                   │(WebSocket Client)│ - Parses responses in real-time
                    └────────┬─────────┘
-                        │ In-memory or DB backed
+                            │ In-memory or DB backed
                             ▼
                    ┌──────────────────┐
-               │     Bounded      │ - Manages context window (~128k)
-               │   Chat History   │ - Enables RAG / tool integration
+                   │     Bounded      │ - Manages context window (~128k)
+                   │   Chat History   │ - Enables RAG / tool integration
                    └──────────────────┘
 ```
 
@@ -285,15 +285,15 @@ Nix Flakes ensure a consistent environment across Linux, macOS, and Windows (via
 
 ```
                    ┌──────────────────┐
-               │  Linux / macOS   │ - Write code once, run anywhere
-               │  Windows (WSL)   │ - Consistent dev environment via Nix
+                   │  Linux / macOS   │ - Write code once, run anywhere
+                   │  Windows (WSL)   │ - Consistent dev environment via Nix
                    └────────┬─────────┘
-                        │ Nix manages dependencies
+                            │ Nix manages dependencies
                             ▼
                    ┌──────────────────┐
-               │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
-               │   (if present)   │ - Uses GPU for LLM acceleration
-               └──────────────────┘   - Falls back to CPU if no CUDA
+                   │   CUDA Support   │ - Auto-detects NVIDIA GPU w/ CUDA
+                   │   (if present)   │ - Uses GPU for LLM acceleration
+                   └──────────────────┘   - Falls back to CPU if no CUDA
 ```
 
 ### UI Layout
@@ -302,14 +302,14 @@ The application interface is organized into distinct areas:
 
 ```
     ┌─────────────────────────────┐
-│        Navigation           │ (Profiles, Apps, Search)
+    │        Navigation           │ (Profiles, Apps, Search)
     ├───────────────┬─────────────┤
     │               │             │
-│    Main Area  │    Chat     │ (Workflow/App UI)
-│   (Pipeline)  │  Interface  │ (LLM Interaction)
+    │    Main Area  │    Chat     │ (Workflow/App UI)
+    │   (Pipeline)  │  Interface  │ (LLM Interaction)
     │               │             │
     ├───────────────┴─────────────┤
-│        Poke Button          │ (Quick Action)
+    │        Poke Button          │ (Quick Action)
     └─────────────────────────────┘
 ```
 

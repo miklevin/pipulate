@@ -21,6 +21,30 @@ This workflow demonstrates various widget types that can be integrated into Pipu
 4. Markdown Renderer Widget: Client-side Markdown rendering using marked.js
 
 This serves as a reference implementation for creating visualization widgets in Pipulate.
+
+--- Design Pattern Note ---
+This workflow uses a "Combined Step" pattern where each step handles both:
+1. Data collection (input form)
+2. Widget rendering (visualization)
+
+In each step, user input is collected and immediately transformed into the 
+corresponding visualization in the same card upon submission. This approach:
+- Reduces the total number of workflow steps (4 instead of 8)
+- Creates a clear cause-effect relationship within each step
+- Simplifies navigation for the end user
+
+An alternative "Separated Step" pattern would:
+- Split each feature into separate input and display steps
+- Use one step for data collection, followed by a step for visualization
+- Result in 8 steps total (4 input steps + 4 display steps)
+- Potentially simplify each individual step's implementation
+- Allow for more focused step responsibilities
+
+When adapting this example for your own workflows, consider which pattern 
+best suits your needs:
+- Combined: When immediate visualization feedback is valuable
+- Separated: When data collection and visualization are distinct concerns
+             or when complex transformations occur between input and display
 """
 
 # Model for a workflow step (Do not change)
@@ -42,6 +66,34 @@ class WidgetExamples:
     - JavaScript widgets use unique IDs for targeting in the DOM
     - Client-side libraries are loaded in server.py's hdrs tuple
     - HX-Trigger headers are used for reliable JS execution in HTMX-injected content
+    
+    --- Design Pattern: Combined vs. Separated Steps ---
+    
+    Current Implementation: "Combined Step" Pattern
+    This workflow uses a pattern where each step handles both data collection
+    and visualization in the same step. When the user submits an input form,
+    the same card transforms to display the visualization widget.
+    
+    Key characteristics:
+    - Each step_XX_submit handler creates and returns the widget immediately
+    - Widgets are displayed in place of the input form after submission
+    - The revert control shows the widget until user chooses to revert
+    - This creates a compact 4-step workflow (plus finalize)
+    
+    Alternative Approach: "Separated Step" Pattern
+    A different design would separate input collection and visualization:
+    - One step for collecting input (e.g., step_01_data_input)
+    - Next step for displaying the widget (e.g., step_02_display_widget)
+    - This would result in 8 steps total (plus finalize)
+    - Each step would have simpler, more focused responsibility
+    
+    Implementation Considerations:
+    - When copying this example, you may want to separate complex input collection
+      and visualization into discrete steps for clarity and maintainability
+    - Use the transform parameter in the Step namedtuple to pass data between
+      separated input and visualization steps
+    - The current combined approach works well for simpler widgets where immediate
+      feedback is valuable to the user
     """
     # --- Workflow Configuration ---
     APP_NAME = "widgets"
@@ -354,7 +406,17 @@ widget.appendChild(button);""",
 
     # --- Step 1: Simple HTMX Widget ---
     async def step_01(self, request):
-        """ Handles GET request for Step 1: Simple HTMX Widget. """
+        """ 
+        Handles GET request for Step 1: Simple HTMX Widget.
+        
+        This method demonstrates the "Combined Step" pattern:
+        1. If the step is incomplete or being reverted to, shows an input form
+        2. If the step is complete, shows the widget with a revert control
+        3. If workflow is finalized, shows a locked version of the widget
+        
+        In a "Separated Step" pattern, this would only handle input collection,
+        and a separate step would display the widget.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -413,7 +475,18 @@ widget.appendChild(button);""",
             )
 
     async def step_01_submit(self, request):
-        """ Process the submission for Step 1. """
+        """ 
+        Process the submission for Step 1.
+        
+        In the "Combined Step" pattern, this method:
+        1. Validates the user input
+        2. Saves the input to the workflow state
+        3. Creates and returns the widget to display
+        4. Sets up navigation to the next step
+        
+        This immediate transformation from input to widget in the same step
+        creates a tight cause-effect relationship visible to the user.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -446,7 +519,13 @@ widget.appendChild(button);""",
 
     # --- Step 2: Rich Table Widget ---
     async def step_02(self, request):
-        """ Handles GET request for Step 2: Rich Table Widget. """
+        """ 
+        Handles GET request for Step 2: Rich Table Widget.
+        
+        This method follows the same "Combined Step" pattern as step_01.
+        Note that when displaying an existing widget, we recreate it from
+        the saved data rather than storing the rendered widget itself.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -522,7 +601,18 @@ widget.appendChild(button);""",
         )
 
     async def step_02_submit(self, request):
-        """ Process the submission for Step 2. """
+        """ 
+        Process the submission for Step 2.
+        
+        This method demonstrates advanced widget creation with Rich:
+        1. Parses and validates the JSON input
+        2. Creates a Rich table with the data
+        3. Captures the HTML output using Rich's export_html method
+        4. Embeds the raw HTML in a FastHTML component
+        
+        When using the "Combined Step" pattern with complex widgets, it's
+        important to handle errors gracefully to avoid breaking the workflow.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -836,7 +926,22 @@ widget.appendChild(button);""",
         )
 
     async def step_04_submit(self, request):
-        """ Process the submission for Step 4. """
+        """ 
+        Process the submission for Step 4.
+        
+        This method demonstrates client-side widget rendering:
+        1. Saves the Mermaid diagram syntax to state
+        2. Creates a container with the diagram source
+        3. Adds initialization JavaScript that runs when the content is inserted
+        4. Uses HX-Trigger header as a backup initialization method
+        
+        Client-side initialization is particularly challenging in HTMX applications
+        due to the timing of DOM updates. The implementation includes:
+        - Timeout delay to ensure DOM is fully updated
+        - Force repaint to prevent rendering glitches
+        - Support for different Mermaid API versions
+        - Comprehensive error handling
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -994,7 +1099,22 @@ widget.appendChild(button);""",
     # --- Helper Methods (Widget Creation) ---
     
     def create_rich_table(self, data_str):
-        """Create a Rich table from JSON string data."""
+        """
+        Create a Rich table from JSON string data.
+        
+        This helper method encapsulates the widget creation logic, which:
+        1. Makes the code more maintainable
+        2. Allows reuse in both step_02 and step_02_submit
+        3. Centralizes error handling
+        
+        When implementing complex widgets, consider using helper methods
+        like this to separate widget creation logic from workflow logic.
+        
+        Note on FastHTML raw HTML handling:
+        - Uses Div(NotStr(html_fragment), _raw=True) to embed raw HTML
+        - NotStr prevents string escaping during XML rendering
+        - _raw=True flag informs the component to accept unprocessed HTML
+        """
         try:
             # Try parsing as a list of lists first
             data = json.loads(data_str)
