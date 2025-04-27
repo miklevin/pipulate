@@ -51,28 +51,47 @@ document.addEventListener('DOMContentLoaded', function() {
  * @param {string} targetId - ID of the DOM element to pass to the code
  */
 function runJsWidget(widgetId, code, targetId) {
+  console.log(`Running JS widget: ${widgetId}, target: ${targetId}`);
+  
+  // Get the target element where the JS will execute
+  const targetElement = document.getElementById(targetId);
+  if (!targetElement) {
+    console.error(`Target element with ID '${targetId}' not found`);
+    return;
+  }
+  
+  // Clear the target element's content before execution
+  targetElement.innerHTML = '';
+  
   try {
-    // Create a function from the code string and execute it
-    const functionBody = `
-      "use strict";
-      // Provide the targetId to the code
-      const widget = document.getElementById('${widgetId}');
-      ${code}
-    `;
-    const executeCode = new Function(functionBody);
-    executeCode();
+    // Execute the code with the target element as the 'widget' variable
+    // Using an IIFE to create a proper scope
+    (function(widget) {
+      try {
+        // Use eval inside the function scope so 'widget' is properly bound
+        eval(code);
+      } catch (innerError) {
+        // Handle errors during execution
+        console.error('Error in JS execution:', innerError);
+        widget.innerHTML = `
+          <div style="color: red; padding: 1rem;">
+            <h4>JavaScript Error:</h4>
+            <pre>${innerError.toString()}</pre>
+          </div>
+        `;
+      }
+    })(targetElement);
+    
+    console.log(`JS executed successfully for target ${targetId}`);
   } catch (error) {
-    // Handle errors in the execution
+    // Handle any outer errors
     console.error('Error executing JavaScript widget:', error);
-    const targetElement = document.getElementById(targetId);
-    if (targetElement) {
-      targetElement.innerHTML = `
-        <div style="color: red; padding: 1rem;">
-          <h4>JavaScript Error:</h4>
-          <pre>${error.toString()}</pre>
-        </div>
-      `;
-    }
+    targetElement.innerHTML = `
+      <div style="color: red; padding: 1rem;">
+        <h4>JavaScript Error:</h4>
+        <pre>${error.toString()}</pre>
+      </div>
+    `;
   }
 }
 

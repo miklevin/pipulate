@@ -794,8 +794,28 @@ for (let i = 0; i < 10; i++) {
         if user_val and state.get("_revert_target") != step_id:
             # Create the JS widget from the existing code
             try:
-                widget_id = f"js-widget-{pipeline_id.split('-')[-1]}"
-                js_widget = self.create_js_widget(user_val, widget_id)
+                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+                target_id = f"{widget_id}_target"
+                
+                # Create a simple container with just the target element and re-run button
+                js_widget = Div(
+                    # Container that will be manipulated by the JS code
+                    P(
+                        "JavaScript will execute here...", 
+                        id=target_id, 
+                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+                    ),
+                    # Button to re-run the JavaScript
+                    Button(
+                        "Re-run JavaScript", 
+                        type="button", 
+                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                        style="margin-top: 1rem;"
+                    ),
+                    id=widget_id
+                )
+                
+                # Create content container with the widget
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
@@ -803,10 +823,28 @@ for (let i = 0; i < 10; i++) {
                     widget=js_widget,
                     steps=steps
                 )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                
+                # Create response with HX-Trigger
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
                 )
+                
+                # Add HX-Trigger header to execute the JS code
+                response.headers["HX-Trigger"] = json.dumps({
+                    "runJavaScript": {
+                        "widgetId": widget_id,
+                        "code": user_val,
+                        "targetId": target_id
+                    }
+                })
+                
+                return response
+                
             except Exception as e:
                 # If there's an error creating the widget, revert to input form
                 logger.error(f"Error creating JS widget: {str(e)}")
@@ -870,53 +908,51 @@ for (let i = 0; i < 10; i++) {
         
         # Generate unique widget ID for this step and pipeline
         widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+        target_id = f"{widget_id}_target"
         
-        # Create the JavaScript widget
+        # Create a simple container with just the target element and re-run button
         js_widget = Div(
-            Div(
-                # Container that will be manipulated by the JS code
-                P("This element will be modified by JavaScript...", id=f"{widget_id}_target", 
-                  style="padding: 1rem; background-color: #f0f0f0; border-radius: 4px;"),
-                # Display the code in a styled pre
-                H5("JavaScript Code:"),
-                Pre(
-                    user_val,
-                    style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; overflow-x: auto; font-family: monospace;"
-                ),
-                # Button to re-run the JavaScript
-                Button(
-                    "Re-run JavaScript", 
-                    type="button", 
-                    _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{widget_id}_target')",
-                    style="margin-top: 1rem;"
-                )
+            # Container that will be manipulated by the JS code
+            P(
+                "JavaScript will execute here...", 
+                id=target_id, 
+                style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+            ),
+            # Button to re-run the JavaScript
+            Button(
+                "Re-run JavaScript", 
+                type="button", 
+                _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                style="margin-top: 1rem;"
             ),
             id=widget_id
         )
         
-        # Create an HTMLResponse with the widget container
-        response = HTMLResponse(
-            to_xml(
-                Div(
-                    pip.widget_container(
-                        step_id=step_id,
-                        app_name=app_name,
-                        message=f"{step.show}: JavaScript execution example",
-                        widget=js_widget,
-                        steps=steps
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            )
+        # Create content container with the widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Interactive JavaScript example",
+            widget=js_widget,
+            steps=steps
         )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Create an HTMLResponse with the content
+        response = HTMLResponse(to_xml(response_content))
         
         # Add HX-Trigger header to execute the JS code
         response.headers["HX-Trigger"] = json.dumps({
             "runJavaScript": {
                 "widgetId": widget_id,
                 "code": user_val,
-                "targetId": f"{widget_id}_target"
+                "targetId": target_id
             }
         })
         
@@ -1304,42 +1340,6 @@ for (let i = 0; i < 10; i++) {
         except Exception as e:
             logger.error(f"Error creating pandas table: {e}")
             return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
-
-    def create_js_widget(self, code, widget_id):
-        """Create a JavaScript widget with the provided code."""
-        # Create a container for the widget
-        container = Div(
-            Div(
-                # Container that will be manipulated by the JS code
-                Div(id=f"{widget_id}_content", style="padding: 1rem; background-color: #f0f0f0; border-radius: 4px; min-height: 100px;"),
-                # Display the code in a styled pre
-                H5("JavaScript Code:"),
-                Pre(
-                    code,
-                    style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; overflow-x: auto; font-family: monospace;"
-                ),
-                # Button to re-run the JavaScript
-                Button(
-                    "Re-run JavaScript", 
-                    type="button", 
-                    _onclick=f"runJsWidget('{widget_id}', `{code}`, '{widget_id}_target')",
-                    style="margin-top: 1rem;"
-                )
-            ),
-            id=widget_id
-        )
-        
-        # Create an HTMLResponse so we can add HX-Trigger
-        response = HTMLResponse(to_xml(container))
-        
-        # Add HX-Trigger header to execute the JS code
-        response.headers["HX-Trigger"] = json.dumps({
-            "runJavaScript": {
-                "code": f"const widget = document.getElementById('{widget_id}_content'); {code}"
-            }
-        })
-        
-        return container
 
     def create_mermaid_widget(self, diagram_syntax, widget_id):
         """Create a mermaid diagram widget container."""
