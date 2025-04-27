@@ -36,7 +36,7 @@ corresponding visualization in the same card upon submission. This approach:
 An alternative "Separated Step" pattern would:
 - Split each feature into separate input and display steps
 - Use one step for data collection, followed by a step for visualization
-- Result in 8 steps total (4 input steps + 4 display steps)
+- Result in 8 steps total (plus finalize)
 - Potentially simplify each individual step's implementation
 - Allow for more focused step responsibilities
 
@@ -143,6 +143,12 @@ class WidgetExamples:
                 id='step_04',
                 done='markdown_content',
                 show='Markdown Renderer',
+                refill=True,
+            ),
+            Step(
+                id='step_05',
+                done='code_content',
+                show='Code Syntax Highlighter',
                 refill=True,
             ),
         ]
@@ -378,7 +384,23 @@ widget.appendChild(button);""",
     C --> E[Result 1]
     D --> F[Result 2]
     E --> G[End]
-    F --> G"""
+    F --> G""",
+            
+            'step_05': """function calculateFactorial(n) {
+    // Base case: factorial of 0 or 1 is 1
+    if (n <= 1) {
+        return 1;
+    }
+    
+    // Recursive case: n! = n * (n-1)!
+    return n * calculateFactorial(n - 1);
+}
+
+// Example usage
+for (let i = 0; i < 10; i++) {
+    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);
+}
+"""
         }
         
         # Return pre-populated example or empty string
@@ -689,7 +711,8 @@ widget.appendChild(button);""",
             
         except Exception as e:
             logger.error(f"Error creating Rich table: {e}")
-            return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
+            from fastcore.xml import NotStr
+            return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
 
     # --- Step 3: JavaScript Execution Widget ---
     async def step_03(self, request):
@@ -1096,6 +1119,156 @@ widget.appendChild(button);""",
         
         return response
 
+    # --- Step 5: Code Syntax Highlighter ---
+    async def step_05(self, request):
+        """ Handles GET request for Step 5: Code Syntax Highlighter. """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data:
+            return Div(
+                Card(f"🔒 {step.show}: <content locked>"),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            # Create the prism widget from the existing code
+            try:
+                widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                prism_widget = self.create_prism_widget(user_val, widget_id)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Configured",
+                    widget=prism_widget,
+                    steps=steps
+                )
+                
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger to initialize Prism highlighting
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initializePrism": {
+                        "targetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                # If there's an error creating the widget, revert to input form
+                logger.error(f"Error creating Prism widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
+        
+        # Show input form
+        display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P("Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated."),
+                P("The code will be displayed with syntax highlighting and a copy button.", 
+                  style="font-size: 0.8em; font-style: italic;"),
+                Form(
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter code for syntax highlighting",
+                            required=True,
+                            rows=15,
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Submit", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+
+    async def step_05_submit(self, request):
+        """ Process the submission for Step 5. """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Save the value to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        
+        # Generate unique widget ID for this step and pipeline
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        
+        # Create the Prism.js widget
+        prism_widget = self.create_prism_widget(user_val, widget_id)
+        
+        # Create content container with the prism widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Syntax highlighted code with copy functionality",
+            widget=prism_widget,
+            steps=steps
+        )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Create an HTMLResponse with the content
+        response = HTMLResponse(to_xml(response_content))
+        
+        # Add HX-Trigger header to initialize Prism highlighting
+        response.headers["HX-Trigger"] = json.dumps({
+            "initializePrism": {
+                "targetId": widget_id
+            }
+        })
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show} complete. Code highlighted with Prism.js", verbatim=True)
+        
+        return response
+
     # --- Helper Methods (Widget Creation) ---
     
     def create_rich_table(self, data_str):
@@ -1178,7 +1351,7 @@ widget.appendChild(button);""",
                 Button(
                     "Re-run JavaScript", 
                     type="button", 
-                    _onclick=f"const widget = document.getElementById('{widget_id}_content'); {code}",
+                    _onclick=f"runJsWidget('{widget_id}', `{code}`, '{widget_id}_target')",
                     style="margin-top: 1rem;"
                 )
             ),
@@ -1267,6 +1440,59 @@ widget.appendChild(button);""",
                         console.error("Mermaid library not found. Make sure it's included in the page headers.");
                     }}
                 }}, 300); // 300ms delay to ensure DOM is ready
+            }})();
+            """,
+            type="text/javascript"
+        )
+        
+        return Div(container, init_script)
+
+    def create_prism_widget(self, code, widget_id):
+        """Create a Prism.js syntax highlighting widget with copy functionality."""
+        # Create container for the widget
+        container = Div(
+            Div(
+                H5("Syntax Highlighted Code:"),
+                # This pre/code structure is required for Prism.js
+                Pre(
+                    Code(
+                        code,
+                        cls="language-javascript",  # Language class for Prism
+                        # Copy plugin data attributes
+                        data_prismjs_copy="Copy code",
+                        data_prismjs_copy_success="Copied!",
+                        data_prismjs_copy_error="Press Ctrl+C to copy"
+                    ),
+                    cls="line-numbers"  # Enable line numbers and toolbar
+                ),
+                style="margin-top: 1rem;"
+            ),
+            id=widget_id
+        )
+        
+        # Create script to initialize Prism with debugging
+        init_script = Script(
+            f"""
+            (function() {{
+                console.log('Prism widget loaded, ID: {widget_id}');
+                // Check if Prism is loaded
+                if (typeof Prism === 'undefined') {{
+                    console.error('Prism library not found');
+                    return;
+                }}
+                
+                console.log('Prism version:', Prism.version);
+                console.log('Available Prism plugins:', Object.keys(Prism.plugins || {{}}));
+                
+                // Attempt to manually trigger highlighting
+                setTimeout(function() {{
+                    try {{
+                        console.log('Manually triggering Prism highlighting for {widget_id}');
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }} catch(e) {{
+                        console.error('Error during manual Prism highlighting:', e);
+                    }}
+                }}, 300);
             }})();
             """,
             type="text/javascript"
