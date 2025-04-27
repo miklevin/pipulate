@@ -183,7 +183,7 @@ function renderMermaid(targetId, diagram) {
     // Initialize Mermaid with configuration
     mermaid.initialize({
       startOnLoad: true,
-      theme: 'default',
+      theme: 'dark',        // Use dark theme for better visibility
       securityLevel: 'loose',
       flowchart: {
         htmlLabels: true

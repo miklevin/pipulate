@@ -1024,17 +1024,46 @@ for (let i = 0; i < 10; i++) {
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data:
-            return Div(
-                Card(f"🔒 {step.show}: <content locked>"),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        if "finalized" in finalize_data and user_val:
+            # Show the diagram in locked state
+            try:
+                widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+                
+                # Create response with locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H4(f"🔒 {step.show}"),
+                                mermaid_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger to render the Mermaid diagram
+                response.headers["HX-Trigger"] = json.dumps({
+                    "renderMermaid": {
+                        "targetId": f"{widget_id}_output",
+                        "diagram": user_val
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                logger.error(f"Error creating mermaid widget in locked view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
             # Create the mermaid diagram widget from the existing content
             try:
-                widget_id = f"mermaid-widget-{pipeline_id.split('-')[-1]}"
+                widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
                 content_container = pip.widget_container(
                     step_id=step_id,
@@ -1043,10 +1072,26 @@ for (let i = 0; i < 10; i++) {
                     widget=mermaid_widget,
                     steps=steps
                 )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                
+                # Create response with HTMX trigger
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
                 )
+                
+                # Add HX-Trigger to render the Mermaid diagram
+                response.headers["HX-Trigger"] = json.dumps({
+                    "renderMermaid": {
+                        "targetId": f"{widget_id}_output",
+                        "diagram": user_val
+                    }
+                })
+                
+                return response
             except Exception as e:
                 # If there's an error creating the widget, revert to input form
                 logger.error(f"Error creating mermaid widget: {str(e)}")
@@ -1394,12 +1439,6 @@ for (let i = 0; i < 10; i++) {
         # Create container for the widget
         container = Div(
             Div(
-                # Display the mermaid source code
-                H5("Mermaid Diagram Source:"),
-                Pre(
-                    diagram_syntax,
-                    style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; overflow-x: auto; font-family: monospace;"
-                ),
                 # Container to render the mermaid diagram
                 H5("Rendered Diagram:"),
                 Div(
@@ -1407,7 +1446,7 @@ for (let i = 0; i < 10; i++) {
                     Div(
                         diagram_syntax,
                         cls="mermaid",
-                        style="width: 100%; background-color: #fff; border-radius: 4px; padding: 1rem;"
+                        style="width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;"
                     ),
                     id=f"{widget_id}_output"
                 )
@@ -1426,7 +1465,7 @@ for (let i = 0; i < 10; i++) {
                         try {{
                             mermaid.initialize({{ 
                                 startOnLoad: false,  // Important - don't auto-init
-                                theme: 'default',
+                                theme: 'dark',       // Use dark theme for better visibility
                                 securityLevel: 'loose',
                                 flowchart: {{
                                     htmlLabels: true
