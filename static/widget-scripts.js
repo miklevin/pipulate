@@ -24,6 +24,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const data = evt.detail;
     renderMermaid(data.targetId, data.diagram);
   });
+
+  // Initialize Prism.js for dynamically added content
+  document.body.addEventListener('initializePrism', function(evt) {
+    console.log('Prism initialization triggered');
+    const targetId = evt.detail?.targetId;
+    const targetElement = targetId ? document.getElementById(targetId) : document;
+    
+    if (targetElement && typeof Prism !== 'undefined') {
+      // Use setTimeout to ensure DOM is fully updated
+      setTimeout(() => {
+        console.log('Highlighting code in:', targetId || 'document');
+        Prism.highlightAllUnder(targetElement);
+      }, 100);
+    } else {
+      console.error('Prism library not loaded or target element not found');
+    }
+  });
 });
 
 /**
