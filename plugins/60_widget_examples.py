@@ -457,16 +457,36 @@ for (let i = 0; i < 10; i++) {
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data:
+        if "finalized" in finalize_data and user_val:
+            # Still show the widget but with a locked indicator
+            simple_widget = Pre(
+                user_val,
+                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+            )
             return Div(
-                Card(f"🔒 {step.show}: <content locked>"),
+                Card(
+                    H4(f"🔒 {step.show}"),
+                    simple_widget
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
+            # Create the simple widget from the existing data
+            simple_widget = Pre(
+                user_val,
+                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+            )
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=simple_widget,
+                steps=steps
+            )
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show} Configured", steps=steps),
+                content_container,
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
@@ -520,6 +540,7 @@ for (let i = 0; i < 10; i++) {
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
 
         # Get form data
         form = await request.form()
@@ -533,17 +554,33 @@ for (let i = 0; i < 10; i++) {
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
 
-        # Create a simple HTML widget with the user's content
-        simple_widget = Div(
+        # Create a simple widget with the user's content in a Pre tag to preserve formatting
+        simple_widget = Pre(
             user_val,
-            style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px;"
+            style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+        )
+        
+        # Create content container with the widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Simple text content provided",
+            widget=simple_widget,
+            steps=steps
+        )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
         )
         
         # Send confirmation message
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
 
-        # Return the widget container and trigger for next step
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, "Simple content provided")
+        # Return the HTMLResponse with the widget container
+        return HTMLResponse(to_xml(response_content))
 
     # --- Step 2: Pandas Table Widget ---
     async def step_02(self, request):
