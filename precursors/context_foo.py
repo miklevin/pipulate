@@ -23,6 +23,9 @@ flake.nix
 server.py
 plugins/60_widget_examples.py
 .cursorrules
+static/prism.min.js
+static/prism-copy-to-clipboard.min.js
+static/prism-line-numbers.min.js
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:

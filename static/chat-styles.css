@@ -63,3 +63,20 @@ details.dropdown summary + ul {
 article > div:first-child {
     overflow: auto;
 }
+
+/* Increase specificity for Prism syntax highlighting in dark mode */
+[data-theme="dark"] .token.keyword,
+[data-theme="dark"] .token.function,
+[data-theme="dark"] .token.string,
+[data-theme="dark"] .token.number,
+[data-theme="dark"] .token.comment,
+[data-theme="dark"] .token.punctuation {
+    color: inherit !important; /* First reset colors */
+}
+
+/* Then apply more specific rules with !important */
+[data-theme="dark"] .token.keyword { color: #c792ea !important; }
+[data-theme="dark"] .token.function { color: #82aaff !important; }
+[data-theme="dark"] .token.string { color: #c3e88d !important; }
+[data-theme="dark"] .token.number { color: #f78c6c !important; }
+[data-theme="dark"] .token.comment { color: #545454 !important; }

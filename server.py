@@ -1983,6 +1983,12 @@ def render_profile(profile):
         style="list-style-type: none;"
     )
 
+#        Link(rel='stylesheet', href='/static/prism-okaidia.min.css'),
+#        Link(rel='stylesheet', href='/static/prism-line-numbers.min.css'),
+
+#         Script(src='/static/prism.min.js'),
+#         Script(src='/static/prism-copy-to-clipboard.min.js'),
+#         Script(src='/static/prism-line-numbers.min.js'),
 
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     DB_FILENAME,
@@ -1992,8 +1998,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     hdrs=(
         Meta(charset='utf-8'),
         Link(rel='stylesheet', href='/static/pico.css'),
-        Link(rel='stylesheet', href='/static/prism-okaidia.min.css'),
-        Link(rel='stylesheet', href='/static/prism-line-numbers.min.css'),
+        Link(rel='stylesheet', href='/static/prism.css'),
         Script(src='/static/htmx.js'),
         Script(src='/static/fasthtml.js'),
         Script(src='/static/surreal.js'),
@@ -2001,9 +2006,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/Sortable.js'),
         Script(src='/static/mermaid.min.js'),
         Script(src='/static/marked.min.js'),
-        Script(src='/static/prism.min.js'),
-        Script(src='/static/prism-copy-to-clipboard.min.js'),
-        Script(src='/static/prism-line-numbers.min.js'),
+        Script(src='/static/prism.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         Script(type='module')
