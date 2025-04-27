@@ -155,6 +155,12 @@ class WidgetExamples:
                 show='Code Syntax Highlighter',
                 refill=True,
             ),
+            Step(
+                id='step_06',
+                done='markdown_content_step6',
+                show='Markdown Renderer (MarkedJS)',
+                refill=True,
+            ),
         ]
         
         # Standard workflow routes
@@ -1283,12 +1289,30 @@ for (let i = 0; i < 10; i++) {
         if user_val and state.get("_revert_target") != step_id:
             # Create the prism widget from the existing code
             try:
+                # Check if user specified a language in format: ```language\ncode```
+                language = 'javascript'  # Default language
+                code_to_display = user_val
+                
+                if user_val.startswith('```'):
+                    # Try to extract language from markdown-style code block
+                    first_line = user_val.split('\n', 1)[0].strip()
+                    if len(first_line) > 3:
+                        detected_lang = first_line[3:].strip()
+                        if detected_lang:
+                            language = detected_lang
+                            # Remove the language specification line from the code
+                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
+                    
+                    # Remove trailing backticks if present
+                    if code_to_display.endswith('```'):
+                        code_to_display = code_to_display.rsplit('```', 1)[0]
+                
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-                prism_widget = self.create_prism_widget(user_val, widget_id)
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
-                    message=f"{step.show} Configured",
+                    message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
                     widget=prism_widget,
                     steps=steps
                 )
@@ -1423,6 +1447,268 @@ for (let i = 0; i < 10; i++) {
         await self.message_queue.add(pip, f"{step.show} complete. Code syntax highlighted with {language}.", verbatim=True)
         
         return response
+
+    # --- Step 6: Markdown Renderer using marked.js
+    async def step_06(self, request):
+        """
+        Step 6 - Markdown Renderer using marked.js
+        
+        Allows the user to input markdown content that will be rendered
+        using the marked.js library for a Jupyter notebook-like experience.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_06"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            # Show the markdown renderer in locked state
+            try:
+                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                marked_widget = self.create_marked_widget(user_val, widget_id)
+                
+                # Create response with locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H4(f"🔒 {step.show}"),
+                                marked_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger to initialize Marked.js
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initMarked": {
+                        "widgetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                logger.error(f"Error creating Marked widget in locked view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            # Create the marked widget from the existing content
+            try:
+                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                marked_widget = self.create_marked_widget(user_val, widget_id)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Configured",
+                    widget=marked_widget,
+                    steps=steps
+                )
+                
+                # Create response with HTMX trigger
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger to initialize Marked.js
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initMarked": {
+                        "widgetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                # If there's an error creating the widget, revert to input form
+                logger.error(f"Error creating Marked widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
+        
+        # Show input form
+        display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P("Enter markdown content to be rendered. Example is pre-populated."),
+                P("The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.", 
+                  style="font-size: 0.8em; font-style: italic;"),
+                Form(
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter markdown content",
+                            required=True,
+                            rows=15,
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Submit", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+
+    async def step_06_submit(self, request):
+        """
+        Handle submission of markdown content in Step 6
+        
+        Takes the user's markdown input, creates a marked.js widget,
+        and returns it as part of the response with MarkedJS initialization.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_06"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Save the value to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        
+        # Generate unique widget ID for this step and pipeline
+        widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        
+        # Use the helper method to create a marked widget
+        marked_widget = self.create_marked_widget(user_val, widget_id)
+        
+        # Create content container with the marked widget and initialization
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Markdown rendered with Marked.js",
+            widget=marked_widget,
+            steps=steps
+        )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Create an HTMLResponse with the content
+        response = HTMLResponse(to_xml(response_content))
+        
+        # Add HX-Trigger header to initialize Marked.js
+        response.headers["HX-Trigger"] = json.dumps({
+            "initMarked": {
+                "widgetId": widget_id
+            }
+        })
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show} complete. Markdown rendered successfully.", verbatim=True)
+        
+        return response
+    
+    def create_marked_widget(self, markdown_content, widget_id):
+        """
+        Create a widget for rendering markdown content using marked.js
+        
+        Args:
+            markdown_content: The markdown text to render
+            widget_id: Unique ID for the widget
+            
+        Returns:
+            Div element containing the widget
+        """
+        # Create a container for the markdown content
+        widget = Div(
+            # Hidden div containing the raw markdown content
+            Div(
+                markdown_content,
+                id=f"{widget_id}_source",
+                style="display: none;"
+            ),
+            # Container where the rendered HTML will be inserted
+            Div(
+                id=f"{widget_id}_rendered",
+                cls="markdown-body p-3 border rounded bg-light"
+            ),
+            # JavaScript to initialize marked.js rendering
+            Script(f"""
+                document.addEventListener('htmx:afterOnLoad', function() {{
+                    // Function to render markdown
+                    function renderMarkdown() {{
+                        const source = document.getElementById('{widget_id}_source');
+                        const target = document.getElementById('{widget_id}_rendered');
+                        if (source && target) {{
+                            // Use marked.js to convert markdown to HTML
+                            const html = marked.parse(source.textContent);
+                            target.innerHTML = html;
+                            // Apply syntax highlighting to code blocks if Prism is available
+                            if (typeof Prism !== 'undefined') {{
+                                Prism.highlightAllUnder(target);
+                            }}
+                        }}
+                    }}
+                    
+                    // Check if marked.js is loaded
+                    if (typeof marked !== 'undefined') {{
+                        renderMarkdown();
+                    }} else {{
+                        console.error('marked.js is not loaded');
+                    }}
+                }});
+                
+                // Also listen for custom event from HX-Trigger
+                document.addEventListener('initMarked', function(event) {{
+                    if (event.detail.widgetId === '{widget_id}') {{
+                        setTimeout(function() {{
+                            const source = document.getElementById('{widget_id}_source');
+                            const target = document.getElementById('{widget_id}_rendered');
+                            if (source && target && typeof marked !== 'undefined') {{
+                                const html = marked.parse(source.textContent);
+                                target.innerHTML = html;
+                                // Apply syntax highlighting to code blocks if Prism is available
+                                if (typeof Prism !== 'undefined') {{
+                                    Prism.highlightAllUnder(target);
+                                }}
+                            }}
+                        }}, 100);
+                    }}
+                }});
+            """),
+            cls="marked-widget"
+        )
+        
+        return widget
 
     # --- Helper Methods (Widget Creation) ---
     
