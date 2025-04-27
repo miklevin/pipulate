@@ -232,4 +232,48 @@ function renderMermaid(targetId, diagram) {
       </div>
     `;
   }
-} 
+}
+
+/**
+ * Debounce utility - limits the rate at which a function can fire
+ * 
+ * @param {Function} func - The function to debounce
+ * @param {number} wait - The time to wait in milliseconds
+ * @returns {Function} - The debounced function
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/**
+ * Scroll to the bottom of the page smoothly
+ */
+function scrollToBottom() {
+  console.log("Scrolling to bottom...");
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: 'smooth'
+  });
+}
+
+// Create debounced version of the scroll function
+const debouncedScrollToBottom = debounce(scrollToBottom, 300);
+
+// Listen for HTMX settle events
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Setting up HTMX afterSettle listener for smooth scrolling");
+  
+  // Listen for the htmx:afterSettle event
+  document.body.addEventListener('htmx:afterSettle', function(evt) {
+    console.log('htmx:afterSettle triggered. Requesting debounced scroll.');
+    debouncedScrollToBottom();
+  });
+}); 
