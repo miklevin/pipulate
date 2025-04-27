@@ -59,7 +59,7 @@ class WidgetExamples:
     Widget Examples Workflow
     
     Demonstrates various widget types for Pipulate Workflows:
-    1. Simple HTMX Widget - No JS execution
+    1. Simple Text Widget - No JS execution
     2. Markdown Renderer (MarkedJS) - Client-side rendering using marked.js
     3. Mermaid Diagram Renderer - Client-side rendering using mermaid.js
     4. Pandas Table Widget - HTML table from DataFrame
@@ -129,19 +129,19 @@ class WidgetExamples:
             Step(
                 id='step_01',
                 done='simple_content',
-                show='Simple HTMX Widget',
+                show='Simple Text Widget',
                 refill=True,
             ),
             Step(
                 id='step_02',
-                done='markdown_content_step6',
+                done='markdown_content',
                 show='Markdown Renderer (MarkedJS)',
                 refill=True,
             ),
             Step(
                 id='step_03',
-                done='markdown_content',
-                show='Markdown Renderer',
+                done='mermaid_content',
+                show='Mermaid Diagram Renderer',
                 refill=True,
             ),
             Step(
@@ -356,14 +356,13 @@ class WidgetExamples:
         
         # Pre-populated examples for each widget type
         examples = {
-            'step_01': """Simple HTML content example:
+            'step_01': """Simple text content example:
 - Basic text formatting
-- No complex HTML tags
-- Plain content for demonstration
+- Preserves line breaks and formatting
+- Great for lists, paragraphs, descriptions, etc.
 - Easy to modify
 
-This is a sample widget that shows basic text content.
-It works well with the HTMX updates and keeps things simple.""",
+This is a sample widget that shows basic text content.""",
             
             'step_02': """# Markdown Example
 
@@ -471,10 +470,10 @@ widget.appendChild(button);"""
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
 
-    # --- Step 1: Simple HTMX Widget ---
+    # --- Step 1: Simple Text Widget ---
     async def step_01(self, request):
         """ 
-        Handles GET request for Step 1: Simple HTMX Widget.
+        Handles GET request for Step 1: Simple Text Widget.
         
         This method demonstrates the "Combined Step" pattern:
         1. If the step is incomplete or being reverted to, shows an input form
@@ -536,13 +535,13 @@ widget.appendChild(button);"""
             return Div(
                 Card(
                     H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                    P("Enter HTML content for the simple widget. Example is pre-populated."),
+                    P("Enter text content for the simple widget. Example is pre-populated."),
                     Form(
                         Div(
                             Textarea(
                                 display_value,
                                 name=step.done,
-                                placeholder="Enter HTML content for the widget",
+                                placeholder="Enter text content for the widget",
                                 required=True,
                                 rows=10,
                                 style="width: 100%; font-family: monospace;"
