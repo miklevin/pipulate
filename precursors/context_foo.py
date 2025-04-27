@@ -22,15 +22,14 @@ README.md
 flake.nix
 server.py
 plugins/60_widget_examples.py
-plugins/90_roadmap.py
 .cursorrules
-/home/mike/repos/MikeLev.in/index.md
 /home/mike/repos/MikeLev.in/_posts/2025-04-26-htmx-widgets-ai-implementation.md
 /home/mike/repos/MikeLev.in/_posts/2025-04-26-llm-architecture-ai-collaboration-coding-workflows.md
+/home/mike/repos/MikeLev.in/_posts/2025-04-26-fasthtml-htmx-javascript-rendering.md
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:
-# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/2025-04-25-htmx-workflow-widgets.md
+# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION
