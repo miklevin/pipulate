@@ -1998,7 +1998,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/script.js'),
         Script(src='/static/Sortable.js'),
         Script(src='/static/mermaid.min.js'),
-        Script(src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'),
+        Script(src='/static/marked.min.js'),
         Script(src='/static/widget-scripts.js'),
         create_chat_scripts('.sortable'),
         Script(type='module')
