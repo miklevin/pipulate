@@ -26,6 +26,7 @@ plugins/60_widget_examples.py
 /home/mike/repos/MikeLev.in/_posts/2025-04-26-htmx-widgets-ai-implementation.md
 /home/mike/repos/MikeLev.in/_posts/2025-04-26-llm-architecture-ai-collaboration-coding-workflows.md
 /home/mike/repos/MikeLev.in/_posts/2025-04-26-fasthtml-htmx-javascript-rendering.md
+/home/mike/repos/MikeLev.in/_posts/2025-04-27-local-javascript-download-script.md
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:

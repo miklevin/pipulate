@@ -1235,39 +1235,79 @@ for (let i = 0; i < 10; i++) {
         # Generate unique widget ID for this step and pipeline
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         
-        # Create the Prism.js widget
-        prism_widget = self.create_prism_widget(user_val, widget_id)
+        # Generate a unique ID for the hidden textarea
+        textarea_id = f"{widget_id}_raw_code"
         
-        # Create content container with the prism widget
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Syntax highlighted code with copy functionality",
-            widget=prism_widget,
-            steps=steps
+        # Create container for the widget
+        container = Div(
+            Div(
+                H5("Syntax Highlighted Code:"),
+                # Add a hidden textarea to hold the raw code (much safer than trying to escape it for JS)
+                Textarea(
+                    user_val,
+                    id=textarea_id,
+                    style="display: none;"  # Hide the textarea
+                ),
+                # Add a simple copy button that reads from the hidden textarea
+                Button(
+                    "Copy Code", 
+                    type="button",
+                    _onclick=f"""
+                        (function() {{
+                            const textarea = document.getElementById('{textarea_id}');
+                            navigator.clipboard.writeText(textarea.value)
+                                .then(() => {{
+                                    this.textContent = 'Copied!';
+                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
+                                }})
+                                .catch(err => {{
+                                    console.error('Failed to copy:', err);
+                                    this.textContent = 'Error';
+                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
+                                }});
+                        }})();
+                    """,
+                    style="margin-bottom: 10px;"
+                ),
+                # This pre/code structure is required for Prism.js
+                Pre(
+                    Code(
+                        user_val,
+                        cls="language-javascript"  # Language class for Prism
+                    ),
+                    cls="line-numbers"  # Enable line numbers
+                ),
+                style="margin-top: 1rem;"
+            ),
+            id=widget_id
         )
         
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
+        # Create script to initialize Prism with debugging
+        init_script = Script(
+            f"""
+            (function() {{
+                console.log('Prism widget loaded, ID: {widget_id}');
+                // Check if Prism is loaded
+                if (typeof Prism === 'undefined') {{
+                    console.error('Prism library not found');
+                    return;
+                }}
+                
+                // Attempt to manually trigger highlighting
+                setTimeout(function() {{
+                    try {{
+                        console.log('Manually triggering Prism highlighting for {widget_id}');
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }} catch(e) {{
+                        console.error('Error during manual Prism highlighting:', e);
+                    }}
+                }}, 300);
+            }})();
+            """,
+            type="text/javascript"
         )
         
-        # Create an HTMLResponse with the content
-        response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to initialize Prism highlighting
-        response.headers["HX-Trigger"] = json.dumps({
-            "initializePrism": {
-                "targetId": widget_id
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Code highlighted with Prism.js", verbatim=True)
-        
-        return response
+        return Div(container, init_script)
 
     # --- Helper Methods (Widget Creation) ---
     
@@ -1449,21 +1489,47 @@ for (let i = 0; i < 10; i++) {
 
     def create_prism_widget(self, code, widget_id):
         """Create a Prism.js syntax highlighting widget with copy functionality."""
+        # Generate a unique ID for the hidden textarea
+        textarea_id = f"{widget_id}_raw_code"
+        
         # Create container for the widget
         container = Div(
             Div(
                 H5("Syntax Highlighted Code:"),
+                # Add a hidden textarea to hold the raw code (much safer than trying to escape it for JS)
+                Textarea(
+                    code,
+                    id=textarea_id,
+                    style="display: none;"  # Hide the textarea
+                ),
+                # Add a simple copy button that reads from the hidden textarea
+                Button(
+                    "Copy Code", 
+                    type="button",
+                    _onclick=f"""
+                        (function() {{
+                            const textarea = document.getElementById('{textarea_id}');
+                            navigator.clipboard.writeText(textarea.value)
+                                .then(() => {{
+                                    this.textContent = 'Copied!';
+                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
+                                }})
+                                .catch(err => {{
+                                    console.error('Failed to copy:', err);
+                                    this.textContent = 'Error';
+                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
+                                }});
+                        }})();
+                    """,
+                    style="margin-bottom: 10px;"
+                ),
                 # This pre/code structure is required for Prism.js
                 Pre(
                     Code(
                         code,
-                        cls="language-javascript",  # Language class for Prism
-                        # Copy plugin data attributes
-                        data_prismjs_copy="Copy code",
-                        data_prismjs_copy_success="Copied!",
-                        data_prismjs_copy_error="Press Ctrl+C to copy"
+                        cls="language-javascript"  # Language class for Prism
                     ),
-                    cls="line-numbers"  # Enable line numbers and toolbar
+                    cls="line-numbers"  # Enable line numbers
                 ),
                 style="margin-top: 1rem;"
             ),
@@ -1480,9 +1546,6 @@ for (let i = 0; i < 10; i++) {
                     console.error('Prism library not found');
                     return;
                 }}
-                
-                console.log('Prism version:', Prism.version);
-                console.log('Available Prism plugins:', Object.keys(Prism.plugins || {{}}));
                 
                 // Attempt to manually trigger highlighting
                 setTimeout(function() {{
