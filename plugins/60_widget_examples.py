@@ -784,11 +784,59 @@ for (let i = 0; i < 10; i++) {
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data:
-            return Div(
-                Card(f"🔒 {step.show}: <content locked>"),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        if "finalized" in finalize_data and user_val:
+            # Show the widget in locked state
+            try:
+                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+                target_id = f"{widget_id}_target"
+                
+                # Create a JavaScript widget for locked view with re-run button
+                js_widget = Div(
+                    # Container that will be manipulated by the JS code
+                    P(
+                        "JavaScript will execute here...", 
+                        id=target_id, 
+                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+                    ),
+                    # Keep the Re-run button even in locked state
+                    Button(
+                        "Re-run JavaScript", 
+                        type="button", 
+                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                        style="margin-top: 1rem;"
+                    ),
+                    id=widget_id
+                )
+                
+                # Create response with content in locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H4(f"🔒 {step.show}"),
+                                js_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger header to execute the JS code, even in locked state
+                response.headers["HX-Trigger"] = json.dumps({
+                    "runJavaScript": {
+                        "widgetId": widget_id,
+                        "code": user_val,
+                        "targetId": target_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                logger.error(f"Error creating JS widget in locked view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
