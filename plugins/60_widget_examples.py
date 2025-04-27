@@ -1893,27 +1893,6 @@ widget.appendChild(button);"""
                     id=textarea_id,
                     style="display: none;"  # Hide the textarea
                 ),
-                # Add a simple copy button that reads from the hidden textarea
-                Button(
-                    "Copy Code", 
-                    type="button",
-                    _onclick=f"""
-                        (function() {{
-                            const textarea = document.getElementById('{textarea_id}');
-                            navigator.clipboard.writeText(textarea.value)
-                                .then(() => {{
-                                    this.textContent = 'Copied!';
-                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
-                                }})
-                                .catch(err => {{
-                                    console.error('Failed to copy:', err);
-                                    this.textContent = 'Error';
-                                    setTimeout(() => this.textContent = 'Copy Code', 2000);
-                                }});
-                        }})();
-                    """,
-                    style="margin-bottom: 10px; background-color: #9370DB; border-color: #9370DB;"
-                ),
                 # This pre/code structure is required for Prism.js
                 Pre(
                     Code(
