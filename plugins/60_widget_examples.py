@@ -414,6 +414,36 @@ widget.appendChild(button);""",
 for (let i = 0; i < 10; i++) {
     console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);
 }
+""",
+
+            'step_06': """# Markdown Example
+
+This is a **bold statement** about _markdown_.
+
+## Features demonstrated:
+
+1. Headings (h1, h2)
+2. Formatted text (**bold**, _italic_)
+3. Ordered lists
+4. Unordered lists
+   - Nested item 1
+   - Nested item 2
+5. Code blocks
+
+### Code Example
+
+```python
+def hello_world():
+    print("Hello from Markdown!")
+    for i in range(3):
+        print(f"Count: {i}")
+```
+
+> Blockquotes are also supported
+> - With nested lists
+> - And formatting
+
+[Learn more about Markdown](https://www.markdownguide.org/)
 """
         }
         
