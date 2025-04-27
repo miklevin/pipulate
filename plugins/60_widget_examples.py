@@ -60,10 +60,11 @@ class WidgetExamples:
     
     Demonstrates various widget types for Pipulate Workflows:
     1. Simple HTMX Widget - No JS execution
-    2. Pandas Table Widget - HTML table from DataFrame
-    3. JavaScript Execution Widget - Running JS in HTMX-injected content
-    4. Mermaid Diagram Renderer - Client-side rendering using mermaid.js
+    2. Markdown Renderer (MarkedJS) - Client-side rendering using marked.js
+    3. Mermaid Diagram Renderer - Client-side rendering using mermaid.js
+    4. Pandas Table Widget - HTML table from DataFrame
     5. Code Syntax Highlighter - Syntax highlighting with Prism.js
+    6. JavaScript Execution Widget - Running JS in HTMX-injected content
     
     Key Implementation Notes:
     - Widgets use pip.widget_container for consistent styling and DOM structure
@@ -82,13 +83,13 @@ class WidgetExamples:
     - Each step_XX_submit handler creates and returns the widget immediately
     - Widgets are displayed in place of the input form after submission
     - The revert control shows the widget until user chooses to revert
-    - This creates a compact 5-step workflow (plus finalize)
+    - This creates a compact 6-step workflow (plus finalize)
     
     Alternative Approach: "Separated Step" Pattern
     A different design would separate input collection and visualization:
     - One step for collecting input (e.g., step_01_data_input)
     - Next step for displaying the widget (e.g., step_02_display_widget)
-    - This would result in 10 steps total (plus finalize)
+    - This would result in 12 steps total (plus finalize)
     - Each step would have simpler, more focused responsibility
     
     Implementation Considerations:
@@ -133,20 +134,20 @@ class WidgetExamples:
             ),
             Step(
                 id='step_02',
-                done='table_data',
-                show='Pandas Table Widget',
+                done='markdown_content_step6',
+                show='Markdown Renderer (MarkedJS)',
                 refill=True,
             ),
             Step(
                 id='step_03',
-                done='js_content',
-                show='JavaScript Widget',
+                done='markdown_content',
+                show='Markdown Renderer',
                 refill=True,
             ),
             Step(
                 id='step_04',
-                done='markdown_content',
-                show='Markdown Renderer',
+                done='table_data',
+                show='Pandas Table Widget',
                 refill=True,
             ),
             Step(
@@ -157,8 +158,8 @@ class WidgetExamples:
             ),
             Step(
                 id='step_06',
-                done='markdown_content_step6',
-                show='Markdown Renderer (MarkedJS)',
+                done='js_content',
+                show='JavaScript Widget',
                 refill=True,
             ),
         ]
@@ -364,59 +365,7 @@ class WidgetExamples:
 This is a sample widget that shows basic text content.
 It works well with the HTMX updates and keeps things simple.""",
             
-            'step_02': """[
-    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},
-    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},
-    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},
-    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},
-    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}
-]""",
-            
-            'step_03': """// Simple counter example
-let count = 0;
-const countDisplay = document.createElement('div');
-countDisplay.style.fontSize = '24px';
-countDisplay.style.margin = '20px 0';
-countDisplay.textContent = count;
-
-const button = document.createElement('button');
-button.textContent = 'Increment Count';
-button.style.backgroundColor = '#9370DB';
-button.style.borderColor = '#9370DB';
-button.onclick = function() {
-    count++;
-    countDisplay.textContent = count;
-};
-
-widget.appendChild(countDisplay);
-widget.appendChild(button);""",
-            
-            'step_04': """graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action 1]
-    B -->|No| D[Action 2]
-    C --> E[Result 1]
-    D --> F[Result 2]
-    E --> G[End]
-    F --> G""",
-            
-            'step_05': """function calculateFactorial(n) {
-    // Base case: factorial of 0 or 1 is 1
-    if (n <= 1) {
-        return 1;
-    }
-    
-    // Recursive case: n! = n * (n-1)!
-    return n * calculateFactorial(n - 1);
-}
-
-// Example usage
-for (let i = 0; i < 10; i++) {
-    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);
-}
-""",
-
-            'step_06': """# Markdown Example
+            'step_02': """# Markdown Example
 
 This is a **bold statement** about _markdown_.
 
@@ -444,7 +393,59 @@ def hello_world():
 > - And formatting
 
 [Learn more about Markdown](https://www.markdownguide.org/)
-"""
+""",
+            
+            'step_03': """graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[Result 1]
+    D --> F[Result 2]
+    E --> G[End]
+    F --> G""",
+            
+            'step_04': """[
+    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},
+    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},
+    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},
+    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},
+    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}
+]""",
+            
+            'step_05': """function calculateFactorial(n) {
+    // Base case: factorial of 0 or 1 is 1
+    if (n <= 1) {
+        return 1;
+    }
+    
+    // Recursive case: n! = n * (n-1)!
+    return n * calculateFactorial(n - 1);
+}
+
+// Example usage
+for (let i = 0; i < 10; i++) {
+    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);
+}
+""",
+
+            'step_06': """// Simple counter example
+let count = 0;
+const countDisplay = document.createElement('div');
+countDisplay.style.fontSize = '24px';
+countDisplay.style.margin = '20px 0';
+countDisplay.textContent = count;
+
+const button = document.createElement('button');
+button.textContent = 'Increment Count';
+button.style.backgroundColor = '#9370DB';
+button.style.borderColor = '#9370DB';
+button.onclick = function() {
+    count++;
+    countDisplay.textContent = count;
+};
+
+widget.appendChild(countDisplay);
+widget.appendChild(button);"""
         }
         
         # Return pre-populated example or empty string
@@ -620,14 +621,13 @@ def hello_world():
         # Return the HTMLResponse with the widget container
         return HTMLResponse(to_xml(response_content))
 
-    # --- Step 2: Pandas Table Widget ---
+    # --- Step 2: Markdown Renderer using marked.js ---
     async def step_02(self, request):
-        """ 
-        Handles GET request for Step 2: Pandas Table Widget.
+        """
+        Step 2 - Markdown Renderer using marked.js
         
-        This method follows the same "Combined Step" pattern as step_01.
-        Note that when displaying an existing widget, we recreate it from
-        the saved data rather than storing the rendered widget itself.
+        Allows the user to input markdown content that will be rendered
+        using the marked.js library for a Jupyter notebook-like experience.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
@@ -642,18 +642,34 @@ def hello_world():
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and user_val:
+            # Show the markdown renderer in locked state
             try:
-                # Still show the widget but with a locked indicator
-                table_widget = self.create_pandas_table(user_val)
-                return Div(
-                    Card(
-                        H4(f"🔒 {step.show}"),
-                        table_widget
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                marked_widget = self.create_marked_widget(user_val, widget_id)
+                
+                # Create response with locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H4(f"🔒 {step.show}"),
+                                marked_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
                 )
+                
+                # Add HX-Trigger to initialize Marked.js
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initMarked": {
+                        "widgetId": widget_id
+                    }
+                })
+                
+                return response
             except Exception as e:
-                logger.error(f"Error creating table widget in finalized view: {str(e)}")
+                logger.error(f"Error creating Marked widget in locked view: {str(e)}")
                 return Div(
                     Card(f"🔒 {step.show}: <content locked>"),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -661,23 +677,39 @@ def hello_world():
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
-            # Create the table widget from the existing data
+            # Create the marked widget from the existing content
             try:
-                table_widget = self.create_pandas_table(user_val)
+                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                marked_widget = self.create_marked_widget(user_val, widget_id)
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
                     message=f"{step.show} Configured",
-                    widget=table_widget,
+                    widget=marked_widget,
                     steps=steps
                 )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                
+                # Create response with HTMX trigger
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                        )
+                    )
                 )
+                
+                # Add HX-Trigger to initialize Marked.js
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initMarked": {
+                        "widgetId": widget_id
+                    }
+                })
+                
+                return response
             except Exception as e:
                 # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating table widget: {str(e)}")
+                logger.error(f"Error creating Marked widget: {str(e)}")
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
         
@@ -688,17 +720,17 @@ def hello_world():
         return Div(
             Card(
                 H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter table data as JSON array of objects. Example is pre-populated."),
-                P("Format: [{\"column1\": value1, \"column2\": value2}, {...}, ...]", 
+                P("Enter markdown content to be rendered. Example is pre-populated."),
+                P("The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.", 
                   style="font-size: 0.8em; font-style: italic;"),
                 Form(
                     Div(
                         Textarea(
                             display_value,
                             name=step.done,
-                            placeholder="Enter JSON array of objects for the DataFrame",
+                            placeholder="Enter markdown content",
                             required=True,
-                            rows=10,
+                            rows=15,
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
@@ -716,265 +748,14 @@ def hello_world():
         )
 
     async def step_02_submit(self, request):
-        """ 
-        Process the submission for Step 2.
+        """
+        Handle submission of markdown content in Step 2
         
-        This method demonstrates using pandas to generate an HTML table:
-        1. Parses and validates the JSON input
-        2. Creates a pandas DataFrame from the data
-        3. Generates the HTML table using DataFrame.to_html()
-        4. Embeds the raw HTML in a FastHTML component
-        
-        When using the "Combined Step" pattern with complex widgets, it's
-        important to handle errors gracefully to avoid breaking the workflow.
+        Takes the user's markdown input, creates a marked.js widget,
+        and returns it as part of the response with MarkedJS initialization.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Get form data
-        form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            return error_component
-            
-        # Additional validation for JSON format
-        try:
-            json_data = json.loads(user_val)
-            if not isinstance(json_data, list) or not json_data:
-                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
-            if not all(isinstance(item, dict) for item in json_data):
-                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
-        except json.JSONDecodeError:
-            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
-
-        # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
-
-        # Create a pandas table from the JSON data
-        try:
-            data = json.loads(user_val)
-            
-            # Create a pandas DataFrame
-            df = pd.DataFrame(data)
-            
-            # Generate HTML table with styling
-            html_table = df.to_html(
-                index=False,            # Don't include DataFrame index
-                classes='table',        # Add a CSS class for styling
-                border=0,               # Remove default HTML border attribute
-                escape=True,            # Keep default HTML escaping for security
-                justify='left'          # Align text to left
-            )
-            
-            # Create a styled container for the table with responsive design
-            table_container = Div(
-                H5("Pandas DataFrame Table:"),
-                # Add the HTML table with NotStr to prevent escaping
-                Div(
-                    NotStr(html_table),
-                    style="overflow-x: auto; max-width: 100%;"
-                ),
-                style="margin-top: 1rem;"
-            )
-            
-            # Send confirmation message
-            await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
-            
-            # Create complete response with widget container
-            response = HTMLResponse(to_xml(
-                Div(
-                    pip.widget_container(
-                        step_id=step_id,
-                        app_name=app_name,
-                        message=f"{step.show}: Table rendered from pandas DataFrame",
-                        widget=table_container,
-                        steps=steps
-                    ),
-                    Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
-                    id=step_id
-                )
-            ))
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error creating pandas table: {e}")
-            return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
-
-    # --- Step 3: JavaScript Execution Widget ---
-    async def step_03(self, request):
-        """ Handles GET request for Step 3: JavaScript Widget. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Show the widget in locked state
-            try:
-                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-                target_id = f"{widget_id}_target"
-                
-                # Create a JavaScript widget for locked view with re-run button
-                js_widget = Div(
-                    # Container that will be manipulated by the JS code
-                    P(
-                        "JavaScript will execute here...", 
-                        id=target_id, 
-                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-                    ),
-                    # Keep the Re-run button even in locked state
-                    Button(
-                        "Re-run JavaScript", 
-                        type="button", 
-                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-                    ),
-                    id=widget_id
-                )
-                
-                # Create response with content in locked view
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            Card(
-                                H4(f"🔒 {step.show}"),
-                                js_widget
-                            ),
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger header to execute the JS code, even in locked state
-                response.headers["HX-Trigger"] = json.dumps({
-                    "runJavaScript": {
-                        "widgetId": widget_id,
-                        "code": user_val,
-                        "targetId": target_id
-                    }
-                })
-                
-                return response
-            except Exception as e:
-                logger.error(f"Error creating JS widget in locked view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
-            # Create the JS widget from the existing code
-            try:
-                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-                target_id = f"{widget_id}_target"
-                
-                # Create a simple container with just the target element and re-run button
-                js_widget = Div(
-                    # Container that will be manipulated by the JS code
-                    P(
-                        "JavaScript will execute here...", 
-                        id=target_id, 
-                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-                    ),
-                    # Button to re-run the JavaScript
-                    Button(
-                        "Re-run JavaScript", 
-                        type="button", 
-                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-                    ),
-                    id=widget_id
-                )
-                
-                # Create content container with the widget
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=js_widget,
-                    steps=steps
-                )
-                
-                # Create response with HX-Trigger
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            content_container,
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger header to execute the JS code
-                response.headers["HX-Trigger"] = json.dumps({
-                    "runJavaScript": {
-                        "widgetId": widget_id,
-                        "code": user_val,
-                        "targetId": target_id
-                    }
-                })
-                
-                return response
-                
-            except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating JS widget: {str(e)}")
-                state["_revert_target"] = step_id
-                pip.write_state(pipeline_id, state)
-        
-        # Show input form
-        display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter JavaScript code for the widget. Example is pre-populated."),
-                P("Use the 'widget' variable to access the container element.", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JavaScript code",
-                            required=True,
-                            rows=12,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Submit", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
-
-    async def step_03_submit(self, request):
-        """ Process the submission for Step 3. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
@@ -993,33 +774,17 @@ def hello_world():
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
         
         # Generate unique widget ID for this step and pipeline
-        widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-        target_id = f"{widget_id}_target"
+        widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         
-        # Create a simple container with just the target element and re-run button
-        js_widget = Div(
-            # Container that will be manipulated by the JS code
-            P(
-                "JavaScript will execute here...", 
-                id=target_id, 
-                style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-            ),
-            # Button to re-run the JavaScript
-            Button(
-                "Re-run JavaScript", 
-                type="button", 
-                _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-            ),
-            id=widget_id
-        )
+        # Use the helper method to create a marked widget
+        marked_widget = self.create_marked_widget(user_val, widget_id)
         
-        # Create content container with the widget
+        # Create content container with the marked widget and initialization
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show}: Interactive JavaScript example",
-            widget=js_widget,
+            message=f"{step.show}: Markdown rendered with Marked.js",
+            widget=marked_widget,
             steps=steps
         )
         
@@ -1033,25 +798,23 @@ def hello_world():
         # Create an HTMLResponse with the content
         response = HTMLResponse(to_xml(response_content))
         
-        # Add HX-Trigger header to execute the JS code
+        # Add HX-Trigger header to initialize Marked.js
         response.headers["HX-Trigger"] = json.dumps({
-            "runJavaScript": {
-                "widgetId": widget_id,
-                "code": user_val,
-                "targetId": target_id
+            "initMarked": {
+                "widgetId": widget_id
             }
         })
         
         # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. JavaScript executed.", verbatim=True)
+        await self.message_queue.add(pip, f"{step.show} complete. Markdown rendered successfully.", verbatim=True)
         
         return response
 
-    # --- Step 4: Markdown Renderer ---
-    async def step_04(self, request):
-        """ Handles GET request for Step 4: Mermaid Diagram Renderer. """
+    # --- Step 3: Mermaid Diagram Renderer ---
+    async def step_03(self, request):
+        """ Handles GET request for Step 3: Mermaid Diagram Renderer. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
+        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -1170,9 +933,9 @@ def hello_world():
             id=step_id
         )
 
-    async def step_04_submit(self, request):
+    async def step_03_submit(self, request):
         """ 
-        Process the submission for Step 4.
+        Process the submission for Step 3.
         
         This method demonstrates client-side widget rendering:
         1. Saves the Mermaid diagram syntax to state
@@ -1188,7 +951,7 @@ def hello_world():
         - Comprehensive error handling
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
+        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
@@ -1244,6 +1007,193 @@ def hello_world():
         await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
         
         return response
+
+    # --- Step 4: Pandas Table Widget ---
+    async def step_04(self, request):
+        """ 
+        Handles GET request for Step 4: Pandas Table Widget.
+        
+        This method follows the same "Combined Step" pattern as step_01.
+        Note that when displaying an existing widget, we recreate it from
+        the saved data rather than storing the rendered widget itself.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            try:
+                # Still show the widget but with a locked indicator
+                table_widget = self.create_pandas_table(user_val)
+                return Div(
+                    Card(
+                        H4(f"🔒 {step.show}"),
+                        table_widget
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            except Exception as e:
+                logger.error(f"Error creating table widget in finalized view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            # Create the table widget from the existing data
+            try:
+                table_widget = self.create_pandas_table(user_val)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Configured",
+                    widget=table_widget,
+                    steps=steps
+                )
+                return Div(
+                    content_container,
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            except Exception as e:
+                # If there's an error creating the widget, revert to input form
+                logger.error(f"Error creating table widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
+        
+        # Show input form
+        display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P("Enter table data as JSON array of objects. Example is pre-populated."),
+                P("Format: [{\"column1\": value1, \"column2\": value2}, {...}, ...]", 
+                  style="font-size: 0.8em; font-style: italic;"),
+                Form(
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter JSON array of objects for the DataFrame",
+                            required=True,
+                            rows=10,
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Submit", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+
+    async def step_04_submit(self, request):
+        """ 
+        Process the submission for Step 4.
+        
+        This method demonstrates using pandas to generate an HTML table:
+        1. Parses and validates the JSON input
+        2. Creates a pandas DataFrame from the data
+        3. Generates the HTML table using DataFrame.to_html()
+        4. Embeds the raw HTML in a FastHTML component
+        
+        When using the "Combined Step" pattern with complex widgets, it's
+        important to handle errors gracefully to avoid breaking the workflow.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+            
+        # Additional validation for JSON format
+        try:
+            json_data = json.loads(user_val)
+            if not isinstance(json_data, list) or not json_data:
+                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
+            if not all(isinstance(item, dict) for item in json_data):
+                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
+        except json.JSONDecodeError:
+            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
+
+        # Save the value to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Create a pandas table from the JSON data
+        try:
+            data = json.loads(user_val)
+            
+            # Create a pandas DataFrame
+            df = pd.DataFrame(data)
+            
+            # Generate HTML table with styling
+            html_table = df.to_html(
+                index=False,            # Don't include DataFrame index
+                classes='table',        # Add a CSS class for styling
+                border=0,               # Remove default HTML border attribute
+                escape=True,            # Keep default HTML escaping for security
+                justify='left'          # Align text to left
+            )
+            
+            # Create a styled container for the table with responsive design
+            table_container = Div(
+                H5("Pandas DataFrame Table:"),
+                # Add the HTML table with NotStr to prevent escaping
+                Div(
+                    NotStr(html_table),
+                    style="overflow-x: auto; max-width: 100%;"
+                ),
+                style="margin-top: 1rem;"
+            )
+            
+            # Send confirmation message
+            await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
+            
+            # Create complete response with widget container
+            response = HTMLResponse(to_xml(
+                Div(
+                    pip.widget_container(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f"{step.show}: Table rendered from pandas DataFrame",
+                        widget=table_container,
+                        steps=steps
+                    ),
+                    Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
+                    id=step_id
+                )
+            ))
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error creating pandas table: {e}")
+            return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
 
     # --- Step 5: Code Syntax Highlighter ---
     async def step_05(self, request):
@@ -1478,14 +1428,9 @@ def hello_world():
         
         return response
 
-    # --- Step 6: Markdown Renderer using marked.js
+    # --- Step 6: JavaScript Execution Widget ---
     async def step_06(self, request):
-        """
-        Step 6 - Markdown Renderer using marked.js
-        
-        Allows the user to input markdown content that will be rendered
-        using the marked.js library for a Jupyter notebook-like experience.
-        """
+        """ Handles GET request for Step 6: JavaScript Widget. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
@@ -1499,34 +1444,54 @@ def hello_world():
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and user_val:
-            # Show the markdown renderer in locked state
+            # Show the widget in locked state
             try:
-                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-                marked_widget = self.create_marked_widget(user_val, widget_id)
+                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+                target_id = f"{widget_id}_target"
                 
-                # Create response with locked view
+                # Create a JavaScript widget for locked view with re-run button
+                js_widget = Div(
+                    # Container that will be manipulated by the JS code
+                    P(
+                        "JavaScript will execute here...", 
+                        id=target_id, 
+                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+                    ),
+                    # Keep the Re-run button even in locked state
+                    Button(
+                        "Re-run JavaScript", 
+                        type="button", 
+                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
+                    ),
+                    id=widget_id
+                )
+                
+                # Create response with content in locked view
                 response = HTMLResponse(
                     to_xml(
                         Div(
                             Card(
                                 H4(f"🔒 {step.show}"),
-                                marked_widget
+                                js_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
                         )
                     )
                 )
                 
-                # Add HX-Trigger to initialize Marked.js
+                # Add HX-Trigger header to execute the JS code, even in locked state
                 response.headers["HX-Trigger"] = json.dumps({
-                    "initMarked": {
-                        "widgetId": widget_id
+                    "runJavaScript": {
+                        "widgetId": widget_id,
+                        "code": user_val,
+                        "targetId": target_id
                     }
                 })
                 
                 return response
             except Exception as e:
-                logger.error(f"Error creating Marked widget in locked view: {str(e)}")
+                logger.error(f"Error creating JS widget in locked view: {str(e)}")
                 return Div(
                     Card(f"🔒 {step.show}: <content locked>"),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -1534,19 +1499,39 @@ def hello_world():
             
         # Check if step is complete and not reverting
         if user_val and state.get("_revert_target") != step_id:
-            # Create the marked widget from the existing content
+            # Create the JS widget from the existing code
             try:
-                widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-                marked_widget = self.create_marked_widget(user_val, widget_id)
+                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+                target_id = f"{widget_id}_target"
+                
+                # Create a simple container with just the target element and re-run button
+                js_widget = Div(
+                    # Container that will be manipulated by the JS code
+                    P(
+                        "JavaScript will execute here...", 
+                        id=target_id, 
+                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+                    ),
+                    # Button to re-run the JavaScript
+                    Button(
+                        "Re-run JavaScript", 
+                        type="button", 
+                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
+                    ),
+                    id=widget_id
+                )
+                
+                # Create content container with the widget
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
                     message=f"{step.show} Configured",
-                    widget=marked_widget,
+                    widget=js_widget,
                     steps=steps
                 )
                 
-                # Create response with HTMX trigger
+                # Create response with HX-Trigger
                 response = HTMLResponse(
                     to_xml(
                         Div(
@@ -1556,17 +1541,20 @@ def hello_world():
                     )
                 )
                 
-                # Add HX-Trigger to initialize Marked.js
+                # Add HX-Trigger header to execute the JS code
                 response.headers["HX-Trigger"] = json.dumps({
-                    "initMarked": {
-                        "widgetId": widget_id
+                    "runJavaScript": {
+                        "widgetId": widget_id,
+                        "code": user_val,
+                        "targetId": target_id
                     }
                 })
                 
                 return response
+                
             except Exception as e:
                 # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating Marked widget: {str(e)}")
+                logger.error(f"Error creating JS widget: {str(e)}")
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
         
@@ -1577,17 +1565,17 @@ def hello_world():
         return Div(
             Card(
                 H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter markdown content to be rendered. Example is pre-populated."),
-                P("The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.", 
+                P("Enter JavaScript code for the widget. Example is pre-populated."),
+                P("Use the 'widget' variable to access the container element.", 
                   style="font-size: 0.8em; font-style: italic;"),
                 Form(
                     Div(
                         Textarea(
                             display_value,
                             name=step.done,
-                            placeholder="Enter markdown content",
+                            placeholder="Enter JavaScript code",
                             required=True,
-                            rows=15,
+                            rows=12,
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
@@ -1605,12 +1593,7 @@ def hello_world():
         )
 
     async def step_06_submit(self, request):
-        """
-        Handle submission of markdown content in Step 6
-        
-        Takes the user's markdown input, creates a marked.js widget,
-        and returns it as part of the response with MarkedJS initialization.
-        """
+        """ Process the submission for Step 6. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
@@ -1631,17 +1614,33 @@ def hello_world():
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
         
         # Generate unique widget ID for this step and pipeline
-        widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
+        target_id = f"{widget_id}_target"
         
-        # Use the helper method to create a marked widget
-        marked_widget = self.create_marked_widget(user_val, widget_id)
+        # Create a simple container with just the target element and re-run button
+        js_widget = Div(
+            # Container that will be manipulated by the JS code
+            P(
+                "JavaScript will execute here...", 
+                id=target_id, 
+                style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
+            ),
+            # Button to re-run the JavaScript
+            Button(
+                "Re-run JavaScript", 
+                type="button", 
+                _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
+                style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
+            ),
+            id=widget_id
+        )
         
-        # Create content container with the marked widget and initialization
+        # Create content container with the widget
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show}: Markdown rendered with Marked.js",
-            widget=marked_widget,
+            message=f"{step.show}: Interactive JavaScript example",
+            widget=js_widget,
             steps=steps
         )
         
@@ -1655,15 +1654,17 @@ def hello_world():
         # Create an HTMLResponse with the content
         response = HTMLResponse(to_xml(response_content))
         
-        # Add HX-Trigger header to initialize Marked.js
+        # Add HX-Trigger header to execute the JS code
         response.headers["HX-Trigger"] = json.dumps({
-            "initMarked": {
-                "widgetId": widget_id
+            "runJavaScript": {
+                "widgetId": widget_id,
+                "code": user_val,
+                "targetId": target_id
             }
         })
         
         # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Markdown rendered successfully.", verbatim=True)
+        await self.message_queue.add(pip, f"{step.show} complete. JavaScript executed.", verbatim=True)
         
         return response
     

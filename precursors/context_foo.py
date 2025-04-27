@@ -23,11 +23,6 @@ flake.nix
 server.py
 plugins/60_widget_examples.py
 .cursorrules
-/home/mike/repos/MikeLev.in/_posts/2025-04-26-htmx-widgets-ai-implementation.md
-/home/mike/repos/MikeLev.in/_posts/2025-04-26-llm-architecture-ai-collaboration-coding-workflows.md
-/home/mike/repos/MikeLev.in/_posts/2025-04-26-fasthtml-htmx-javascript-rendering.md
-/home/mike/repos/MikeLev.in/_posts/2025-04-27-local-javascript-download-script.md
-/home/mike/repos/MikeLev.in/_posts/2025-04-27-integrating-prismjs-pandas-html-table-widgets.md
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:
