@@ -70,6 +70,20 @@ function runJsWidget(widgetId, code, targetId) {
       try {
         // Use eval inside the function scope so 'widget' is properly bound
         eval(code);
+        
+        // After execution, find any buttons created and apply the purple styling
+        // This ensures consistent button styling even if not in the user's code
+        setTimeout(() => {
+          const buttons = widget.querySelectorAll('button');
+          buttons.forEach(button => {
+            // Skip buttons that already have explicit styling
+            if (!button.style.backgroundColor && !button.style.borderColor) {
+              button.style.backgroundColor = '#9370DB'; // Light purple
+              button.style.borderColor = '#9370DB';     // Light purple
+            }
+          });
+        }, 0);
+        
       } catch (innerError) {
         // Handle errors during execution
         console.error('Error in JS execution:', innerError);
