@@ -21,11 +21,16 @@ FILES_TO_INCLUDE = """\
 README.md
 flake.nix
 server.py
+plugins/20_hello_world.py
+plugins/50_botify_export.py
 plugins/60_widget_examples.py
 .cursorrules
 static/prism.min.js
 static/prism-copy-to-clipboard.min.js
 static/prism-line-numbers.min.js
+training/system_prompt.py
+training/hello_workflow.py
+training/botify_export.py
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:

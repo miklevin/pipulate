@@ -107,7 +107,7 @@ class WidgetExamples:
         "This workflow demonstrates various widget types for Pipulate. "
         "Enter an ID to start or resume your workflow."
     )
-    TRAINING_PROMPT = "Demonstrates various widget types in Pipulate Workflows"
+    TRAINING_PROMPT = "widget_examples.md"
     PRESERVE_REFILL = True
 
     # --- Initialization ---
