@@ -1983,12 +1983,8 @@ def render_profile(profile):
         style="list-style-type: none;"
     )
 
-#        Link(rel='stylesheet', href='/static/prism-okaidia.min.css'),
-#        Link(rel='stylesheet', href='/static/prism-line-numbers.min.css'),
-
-#         Script(src='/static/prism.min.js'),
-#         Script(src='/static/prism-copy-to-clipboard.min.js'),
-#         Script(src='/static/prism-line-numbers.min.js'),
+# The following is the default theme and plugins for Prism.js
+# https://prismjs.com/download.html#themes=prism-okaidia&languages=markup+css+clike+javascript+markdown+python&plugins=line-numbers+toolbar+copy-to-clipboard
 
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
     DB_FILENAME,
