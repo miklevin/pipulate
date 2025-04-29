@@ -1884,7 +1884,7 @@ class BotifyExport:
             local_file_path = download_dir / filename
             
             # Start downloading with progress feedback
-            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
+            await self.message_queue.add(pip, f"Starting download.", verbatim=True)
             
             # Show download progress
             return Div(
@@ -2107,7 +2107,7 @@ class BotifyExport:
             local_file_path = download_dir / filename
             
             # Start downloading with progress feedback
-            await self.message_queue.add(pip, f"Starting download from {download_url}", verbatim=True)
+            await self.message_queue.add(pip, f"Starting download.", verbatim=True)
             
             # Show download progress
             return Div(
