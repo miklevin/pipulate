@@ -424,7 +424,7 @@ class BotifyExport:
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
@@ -587,7 +587,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: Select {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: Select {step.show}"),
                     Form(
                         pip.wrap_with_inline_button(
                             Select(
@@ -716,7 +716,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"Based on URL counts, the maximum safe depth is: {max_depth}", 
                       style="margin-bottom: 1rem;"),
                     P(explanation,
@@ -1047,7 +1047,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} has already been downloaded:", 
                       style="margin-bottom: 0.5rem;"),
                     P(f"Path:", style="margin-bottom: 0.5rem;"),
@@ -1099,7 +1099,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is ready to download:", 
                       style="margin-bottom: 1rem;"),
                     P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
@@ -1139,7 +1139,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is already processing:", 
                       style="margin-bottom: 1rem;"),
                     P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
@@ -1172,7 +1172,7 @@ class BotifyExport:
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
                     P(f"An export file for project '{project}', analysis '{analysis}' at depth {depth} was found on disk:", 
                       style="margin-bottom: 0.5rem;"),
                     P(f"File: {existing_file.name}", style="margin-bottom: 1rem;"),
@@ -1198,7 +1198,7 @@ class BotifyExport:
         # Create the field selection form
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P(f"Export URLs up to depth {depth} from the {analysis} analysis.", 
                   style="margin-bottom: 1rem;"),
                 P("Select additional fields to include in the export:", 
@@ -1335,7 +1335,7 @@ class BotifyExport:
             # Create response UI for the existing job
             return Div(
                 Card(
-                    H4(f"Export Status: Complete ✅"),
+                    H3(f"Export Status: Complete ✅"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"The export with your requested parameters is ready for download.", 
                       style="margin-bottom: 1rem;"),
@@ -1402,7 +1402,7 @@ class BotifyExport:
             # Create response UI for the processing job
             return Div(
                 Card(
-                    H4("Export Status: Processing ⏳"),
+                    H3("Export Status: Processing ⏳"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                     Div(
@@ -1496,7 +1496,7 @@ class BotifyExport:
             status_display = "Complete ✅" if is_complete else "Processing ⏳"
             
             result_card = Card(
-                H4(f"Export Status: {status_display}"),
+                H3(f"Export Status: {status_display}"),
                 P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                 P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
                 P(f"Including fields: " + 
@@ -1568,7 +1568,7 @@ class BotifyExport:
         # Create the field selection form for new export
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P(f"Export URLs up to depth {depth} from the {analysis} analysis.", 
                   style="margin-bottom: 1rem;"),
                 P("Select additional fields to include in the export:", 
@@ -1889,7 +1889,7 @@ class BotifyExport:
             # Show download progress
             return Div(
                 Card(
-                    H4("Downloading CSV File"),
+                    H3("Downloading CSV File"),
                     P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
                     Progress(value="10", max="100", style="width: 100%;"),
                     P("Please wait, this may take a few minutes for large files...", 
@@ -2031,7 +2031,7 @@ class BotifyExport:
         except Exception as e:
             return Div(
                 Card(
-                    H4("Download Error"),
+                    H3("Download Error"),
                     P(f"Error downloading CSV file: {str(e)}", style=pip.get_style("error")),
                     P(f"Download URL: {download_url}"),
                     P(f"Target file: {local_file_path}"),
@@ -2112,7 +2112,7 @@ class BotifyExport:
             # Show download progress
             return Div(
                 Card(
-                    H4("Downloading CSV File"),
+                    H3("Downloading CSV File"),
                     P(f"Downloading export to {local_file_path}", style="margin-bottom: 1rem;"),
                     Progress(value="10", max="100", style="width: 100%;"),
                     P("Please wait, this may take a few minutes for large files...", 
@@ -2423,7 +2423,7 @@ class BotifyExport:
                 # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
-                        H4("Export Status: Complete ✅"),
+                        H3("Export Status: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
@@ -2461,7 +2461,7 @@ class BotifyExport:
                 
                 return Div(
                     Card(
-                        H4("Export Status: Processing ⏳"),
+                        H3("Export Status: Processing ⏳"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                         Div(
@@ -2544,7 +2544,7 @@ class BotifyExport:
                 # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
-                        H4("Export Status: Complete ✅"),
+                        H3("Export Status: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
@@ -2566,7 +2566,7 @@ class BotifyExport:
                 
                 return Div(
                     Card(
-                        H4("Export Status: Processing ⏳"),
+                        H3("Export Status: Processing ⏳"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
                         P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
@@ -2628,7 +2628,7 @@ class BotifyExport:
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
                 return Card(
-                    H4("Workflow is locked."),
+                    H3("Workflow is locked."),
                     Form(
                         Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize",
@@ -2648,7 +2648,7 @@ class BotifyExport:
 
             if all_steps_complete:
                 return Card(
-                    H4("All steps complete. Finalize?"),
+                    H3("All steps complete. Finalize?"),
                     P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                     Form(
                         Button("Finalize", type="submit", cls="primary"),
