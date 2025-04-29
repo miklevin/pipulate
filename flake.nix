@@ -120,7 +120,7 @@
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
           tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
-          echo "If no tab opens, visit http://localhost:8888"
+          echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
           EOF
@@ -138,24 +138,7 @@
           cat << EOF > .venv/bin/run-server
           #!/bin/sh
           echo "Starting $APP_NAME server..."
-          
-          # Kill existing server tmux session
-          tmux kill-session -t server 2>/dev/null || true
-          
-          # Start the server
-          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
-          
-          # Wait a moment for the server to initialize
-          sleep 2
-          
-          # Open the server in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:5001 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:5001 >/dev/null 2>&1 &
-          fi
-          
-          echo "Server started! View logs with: tmux attach -t server"
+          python server.py
           EOF
           chmod +x .venv/bin/run-server
           
@@ -170,15 +153,16 @@
           # Start JupyterLab
           tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
-          # Wait a moment for JupyterLab to initialize
-          sleep 2
-          
-          # Open JupyterLab in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:8888 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:8888 >/dev/null 2>&1 &
-          fi
+          # Wait for JupyterLab to start
+          echo "JupyterLab is starting..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8888 > /dev/null; then
+              echo "JupyterLab is ready!"
+              break
+            fi
+            sleep 1
+            echo -n "."
+          done
           
           echo "JupyterLab started! View logs with: tmux attach -t jupyter"
           EOF
@@ -187,75 +171,81 @@
           # Create a run-all script to restart both servers
           cat << EOF > .venv/bin/run-all
           #!/bin/sh
-          echo "Restarting all services..."
+          echo "JupyterLab will start in the background."
           
           # Kill existing tmux sessions
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux kill-session -t server 2>/dev/null || true
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
           tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
-          # Wait a moment for JupyterLab to initialize
-          sleep 2
+          # Wait for JupyterLab to start
+          echo "JupyterLab is starting..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8888 > /dev/null; then
+              echo "JupyterLab is ready!"
+              break
+            fi
+            sleep 1
+            echo -n "."
+          done
           
-          # Open JupyterLab in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:8888 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:8888 >/dev/null 2>&1 &
-          fi
+          echo "JupyterLab started in the background. View logs with: tmux attach -t jupyter"
+          echo "Starting $APP_NAME server in the foreground..."
           
-          # Start the server
-          echo "Starting $APP_NAME server..."
-          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
+          # Open FastHTML in the browser
+          (
+            # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
+            sleep 2
+            if command -v xdg-open >/dev/null 2>&1; then
+              xdg-open http://localhost:5001 >/dev/null 2>&1 &
+            elif command -v open >/dev/null 2>&1; then
+              open http://localhost:5001 >/dev/null 2>&1 &
+            fi
+          ) &
           
-          # Wait a moment for the server to initialize
-          sleep 2
-          
-          # Open the server in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:5001 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:5001 >/dev/null 2>&1 &
-          fi
-          
-          echo "All services restarted!"
+          # Run server in foreground
+          python server.py
           EOF
           chmod +x .venv/bin/run-all
           
-          # Add run-all to PATH
+          # Add convenience scripts to PATH
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           
-          # Automatically start JupyterLab and server
+          # Automatically start JupyterLab in background and server in foreground
           # Start JupyterLab in a tmux session
           tmux kill-session -t jupyter 2>/dev/null || true
           tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
-          # Wait a moment for JupyterLab to initialize
-          sleep 3
+          # Wait for JupyterLab to start
+          echo "JupyterLab is starting..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8888 > /dev/null; then
+              echo "JupyterLab is ready!"
+              break
+            fi
+            sleep 1
+            echo -n "."
+          done
           
-          # Open JupyterLab in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:8888 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:8888 >/dev/null 2>&1 &
-          fi
+          # Start the server in foreground
+          echo "Starting $APP_NAME server in the foreground..."
+          echo "Press Ctrl+C to stop the server."
           
-          # Start the server in a tmux session
-          tmux kill-session -t server 2>/dev/null || true
-          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
+          # Open FastHTML in the browser
+          (
+            # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
+            sleep 2
+            if command -v xdg-open >/dev/null 2>&1; then
+              xdg-open http://localhost:5001 >/dev/null 2>&1 &
+            elif command -v open >/dev/null 2>&1; then
+              open http://localhost:5001 >/dev/null 2>&1 &
+            fi
+          ) &
           
-          # Wait a moment for the server to initialize
-          sleep 3
-          
-          # Open the server in the browser
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://localhost:5001 >/dev/null 2>&1 &
-          elif command -v open >/dev/null 2>&1; then
-            open http://localhost:5001 >/dev/null 2>&1 &
-          fi
+          # Run server in foreground
+          python server.py
         '';
 
         # Base shell hook that just sets up the environment without any output
