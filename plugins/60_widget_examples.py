@@ -307,7 +307,7 @@ class WidgetExamples:
             # Show locked view or finalize button
             if finalize_step.done in finalize_data:
                 return Card(
-                    H4("Workflow is locked."),
+                    H3("Workflow is locked."),
                     Form(
                         Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
@@ -319,7 +319,7 @@ class WidgetExamples:
                 all_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1])
                 if all_steps_complete:
                     return Card(
-                        H4("All steps complete. Finalize?"),
+                        H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                         Form(
                             Button("Finalize", type="submit", cls="primary"),
@@ -503,7 +503,7 @@ widget.appendChild(button);"""
             )
             return Div(
                 Card(
-                    H4(f"🔒 {step.show}"),
+                    H3(f"🔒 {step.show}"),
                     simple_widget
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -534,7 +534,7 @@ widget.appendChild(button);"""
             
             return Div(
                 Card(
-                    H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                     P("Enter text content for the simple widget. Example is pre-populated."),
                     Form(
                         Div(
@@ -651,7 +651,7 @@ widget.appendChild(button);"""
                     to_xml(
                         Div(
                             Card(
-                                H4(f"🔒 {step.show}"),
+                                H3(f"🔒 {step.show}"),
                                 marked_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -718,7 +718,7 @@ widget.appendChild(button);"""
         
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter markdown content to be rendered. Example is pre-populated."),
                 P("The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.", 
                   style="font-size: 0.8em; font-style: italic;"),
@@ -835,7 +835,7 @@ widget.appendChild(button);"""
                     to_xml(
                         Div(
                             Card(
-                                H4(f"🔒 {step.show}"),
+                                H3(f"🔒 {step.show}"),
                                 mermaid_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -904,7 +904,7 @@ widget.appendChild(button);"""
         
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter Mermaid diagram syntax for the widget. Example is pre-populated."),
                 P("Supports flowcharts, sequence diagrams, class diagrams, etc.", 
                   style="font-size: 0.8em; font-style: italic;"),
@@ -1034,7 +1034,7 @@ widget.appendChild(button);"""
                 table_widget = self.create_pandas_table(user_val)
                 return Div(
                     Card(
-                        H4(f"🔒 {step.show}"),
+                        H3(f"🔒 {step.show}"),
                         table_widget
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -1074,7 +1074,7 @@ widget.appendChild(button);"""
         
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter table data as JSON array of objects. Example is pre-populated."),
                 P("Format: [{\"column1\": value1, \"column2\": value2}, {...}, ...]", 
                   style="font-size: 0.8em; font-style: italic;"),
@@ -1241,7 +1241,7 @@ widget.appendChild(button);"""
                     to_xml(
                         Div(
                             Card(
-                                H4(f"🔒 {step.show} ({language})"),
+                                H3(f"🔒 {step.show} ({language})"),
                                 prism_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -1325,7 +1325,7 @@ widget.appendChild(button);"""
         
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated."),
                 P("The code will be displayed with syntax highlighting and a copy button.", 
                   style="font-size: 0.8em; font-style: italic;"),
@@ -1471,7 +1471,7 @@ widget.appendChild(button);"""
                     to_xml(
                         Div(
                             Card(
-                                H4(f"🔒 {step.show}"),
+                                H3(f"🔒 {step.show}"),
                                 js_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -1563,7 +1563,7 @@ widget.appendChild(button);"""
         
         return Div(
             Card(
-                H4(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter JavaScript code for the widget. Example is pre-populated."),
                 P("Use the 'widget' variable to access the container element.", 
                   style="font-size: 0.8em; font-style: italic;"),

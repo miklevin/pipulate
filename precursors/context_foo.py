@@ -21,17 +21,20 @@ FILES_TO_INCLUDE = """\
 README.md
 flake.nix
 server.py
-plugins/20_hello_world.py
+plugins/10_connect_with_botify.py
+plugins/20_hello_workflow.py
+plugins/30_tasks.py
+plugins/40_stream_simulator.py
 plugins/50_botify_export.py
 plugins/60_widget_examples.py
 .cursorrules
-static/prism.min.js
-static/prism-copy-to-clipboard.min.js
-static/prism-line-numbers.min.js
-training/system_prompt.py
-training/hello_workflow.py
-training/botify_export.py
 """.splitlines()[:-1]  # Remove the last empty line
+
+# /home/mike/repos/mikelev.in/flake.nix
+# /home/mike/repos/mikelev.in/Gemfile
+# /home/mike/repos/mikelev.in/_config.yml
+# /home/mike/repos/mikelev.in/_posts/2025-04-17-github-pages-logfiles.md
+# /home/mike/repos/MikeLev.in/_posts/2025-04-23-pfsense-firewall-secure-home-network-hosting-setup.md
 
 # Example:
 # python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/
