@@ -5,48 +5,8 @@
 > Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).  
 > You do not need the Cloud because *no lock-in need apply!*  
 
-**Table of Contents**
-* [What is Pipulate?](#what-is-pipulate)
-* [Core Philosophy & Design](#core-philosophy--design)
-* [Key Technologies Used](#key-technologies-used)
-* [Target Audience](#target-audience)
-* [Getting Started](#getting-started)
-    * [Installing Nix](#installing-nix)
-    * [Installing Pipulate](#installing-pipulate)
-    * [Running Pipulate](#running-pipulate)
-* [Architecture & Key Concepts](#architecture--key-concepts)
-    * [Architecture Overview Diagram](#architecture-overview-diagram)
-    * [Integrated Data Science Environment](#integrated-data-science-environment)
-    * [Local-First & Single-Tenant Details](#local-first--single-tenant-details)
-    * [Server-Rendered UI (HTMX)](#server-rendered-ui-htmx)
-    * [Pipeline Workflows](#pipeline-workflows)
-    * [LLM Integration (Ollama)](#llm-integration-ollama)
-    * [Multi-OS & CUDA Support (Nix)](#multi-os--cuda-support-nix)
-    * [UI Layout](#ui-layout)
-    * [Communication Channels](#communication-channels)
-    * [File Structure](#file-structure)
-* [Key Design Guidelines & Patterns](#key-design-guidelines--patterns)
-    * [Local vs. Enterprise Mindset](#local-vs-enterprise-mindset)
-    * [JSON State Management](#json-state-management)
-    * [Database and MiniDataAPI](#database-and-minidataapi)
-    * [Workflow Pattern](#workflow-pattern)
-    * [UI Rendering Pattern](#ui-rendering-pattern)
-    * [WebSocket Pattern](#websocket-pattern)
-* [Internal Components](#internal-components)
-    * [BaseCrud Pattern](#basecrud-pattern)
-    * [Workflow Pattern Details](#workflow-pattern-details)
-* [Understanding FastHTML & MiniDataAPI](#understanding-fasthtml--minidataapi)
-    * [FastHTML vs. FastAPI](#fasthtml-vs-fastapi)
-    * [MiniDataAPI Spec](#minidataapi-spec)
-    * [The `fast_app` Helper](#the-fast_app-helper)
-* [Persistence & Monitoring](#persistence--monitoring)
-* [Final Thoughts](#final-thoughts)
-* [Developer's Notes](#developers-notes)
-    * [The Pipulate Workshop](#the-pipulate-workshop)
-    * [Plugin Development Conventions](#plugin-development-conventions)
-* [Roadmap](#roadmap)
-* [Contributing](#contributing)
-* [License](#license)
+* TOC
+{:toc}
 
 ## What is Pipulate?
 
@@ -86,9 +46,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 *by [Mike Levin](https://mikelev.in/)*
 ---
 
-Okay, here is a simple installation guide for Pipulate based on the provided text:
-
-**How to Install Pipulate**
+## How to Install Pipulate
 
 This guide shows you how to install Pipulate using two commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu terminal.
 
