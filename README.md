@@ -5,9 +5,6 @@
 > Workflows are WET (explicit & step-by-step). CRUD is DRY (uses BaseApp).  
 > You do not need the Cloud because *no lock-in need apply!*  
 
-* TOC
-{:toc}
-
 ## What is Pipulate?
 
 Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
