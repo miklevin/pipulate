@@ -100,10 +100,15 @@
           if python -c "import numpy" 2>/dev/null; then
             echo "- numpy is importable (good to go!)"
             echo
-            echo "To start JupyterLab, type: start"
-            echo "To stop JupyterLab, type: stop"
+            echo "Starting JupyterLab and $APP_NAME server automatically..."
+            echo "Both will open in your browser..."
             echo
-            echo "To start the $APP_NAME server, type: python server.py"
+            echo "To view server logs: tmux attach -t server"
+            echo "To view JupyterLab logs: tmux attach -t jupyter"
+            echo "To stop all services: pkill tmux"
+            echo "To restart all services: run-all"
+            echo "To start only server: run-server"
+            echo "To start only JupyterLab: run-jupyter"
           else
             echo "Error: numpy could not be imported. Check your installation."
           fi
@@ -114,7 +119,7 @@
           #!/bin/sh
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter 'source .venv/bin/activate && jupyter lab --NotebookApp.token="" --NotebookApp.password="" --NotebookApp.disable_check_xsrf=True'
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -128,6 +133,129 @@
           echo "The tmux session 'jupyter' has been stopped."
           EOF
           chmod +x .venv/bin/stop
+          
+          # Create a run-server script
+          cat << EOF > .venv/bin/run-server
+          #!/bin/sh
+          echo "Starting $APP_NAME server..."
+          
+          # Kill existing server tmux session
+          tmux kill-session -t server 2>/dev/null || true
+          
+          # Start the server
+          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
+          
+          # Wait a moment for the server to initialize
+          sleep 2
+          
+          # Open the server in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:5001 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:5001 >/dev/null 2>&1 &
+          fi
+          
+          echo "Server started! View logs with: tmux attach -t server"
+          EOF
+          chmod +x .venv/bin/run-server
+          
+          # Create a run-jupyter script
+          cat << EOF > .venv/bin/run-jupyter
+          #!/bin/sh
+          echo "Starting JupyterLab..."
+          
+          # Kill existing jupyter tmux session
+          tmux kill-session -t jupyter 2>/dev/null || true
+          
+          # Start JupyterLab
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          
+          # Wait a moment for JupyterLab to initialize
+          sleep 2
+          
+          # Open JupyterLab in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:8888 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:8888 >/dev/null 2>&1 &
+          fi
+          
+          echo "JupyterLab started! View logs with: tmux attach -t jupyter"
+          EOF
+          chmod +x .venv/bin/run-jupyter
+          
+          # Create a run-all script to restart both servers
+          cat << EOF > .venv/bin/run-all
+          #!/bin/sh
+          echo "Restarting all services..."
+          
+          # Kill existing tmux sessions
+          tmux kill-session -t jupyter 2>/dev/null || true
+          tmux kill-session -t server 2>/dev/null || true
+          
+          # Start JupyterLab
+          echo "Starting JupyterLab..."
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          
+          # Wait a moment for JupyterLab to initialize
+          sleep 2
+          
+          # Open JupyterLab in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:8888 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:8888 >/dev/null 2>&1 &
+          fi
+          
+          # Start the server
+          echo "Starting $APP_NAME server..."
+          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
+          
+          # Wait a moment for the server to initialize
+          sleep 2
+          
+          # Open the server in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:5001 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:5001 >/dev/null 2>&1 &
+          fi
+          
+          echo "All services restarted!"
+          EOF
+          chmod +x .venv/bin/run-all
+          
+          # Add run-all to PATH
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
+          
+          # Automatically start JupyterLab and server
+          # Start JupyterLab in a tmux session
+          tmux kill-session -t jupyter 2>/dev/null || true
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          
+          # Wait a moment for JupyterLab to initialize
+          sleep 3
+          
+          # Open JupyterLab in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:8888 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:8888 >/dev/null 2>&1 &
+          fi
+          
+          # Start the server in a tmux session
+          tmux kill-session -t server 2>/dev/null || true
+          tmux new-session -d -s server "source .venv/bin/activate && python server.py"
+          
+          # Wait a moment for the server to initialize
+          sleep 3
+          
+          # Open the server in the browser
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://localhost:5001 >/dev/null 2>&1 &
+          elif command -v open >/dev/null 2>&1; then
+            open http://localhost:5001 >/dev/null 2>&1 &
+          fi
         '';
 
         # Base shell hook that just sets up the environment without any output
