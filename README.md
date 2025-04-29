@@ -11,9 +11,9 @@
 * [Key Technologies Used](#key-technologies-used)
 * [Target Audience](#target-audience)
 * [Getting Started](#getting-started)
-    * [Prerequisites](#prerequisites)
-    * [Installing Nix](#installing-nix-on-macos-or-windows)
-    * [Getting Started with Pipulate](#getting-started-with-pipulate)
+    * [Installing Nix](#installing-nix)
+    * [Installing Pipulate](#installing-pipulate)
+    * [Running Pipulate](#running-pipulate)
 * [Architecture & Key Concepts](#architecture--key-concepts)
     * [Architecture Overview Diagram](#architecture-overview-diagram)
     * [Integrated Data Science Environment](#integrated-data-science-environment)
@@ -86,62 +86,43 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 *by [Mike Levin](https://mikelev.in/)*
 ---
 
-## Getting Started
+Okay, here is a simple installation guide for Pipulate based on the provided text:
 
-### Prerequisites
+**How to Install Pipulate**
 
-* **Nix with Flakes Enabled:** Ensure you have Nix installed and flakes enabled. See instructions below.
-* **Local LLM Service:** A local Ollama server must be running for LLM-powered features.
+This guide shows you how to install Pipulate using two commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu terminal.
 
-### Installing Nix on macOS or Windows
+1.  **Install Nix:**
+    * Open your Terminal.
+    * Copy and paste this command, then press Enter:
+        ```shell
+        curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+        ```
+    * Follow any instructions on the screen (you might need to type "Yes").
+    * **Important:** After the installation finishes, **close your Terminal window completely and open a new one.**
 
-This guide provides straightforward instructions for installing Nix on macOS or Windows using the Determinate Systems installer.
+2.  **Install Pipulate:**
+    * In the **new** Terminal window you just opened, copy and paste this command, then press Enter:
+        ```shell
+        curl -L https://pipulate.com/install.sh | sh
+        ```
+    * This command downloads Pipulate, sets it up in a directory (usually `~/pipulate`), configures automatic updates, and starts the necessary services (like JupyterLab and the Pipulate server). This might take some time the first time you run it. It should automatically open browser tabs when ready.
 
-#### Installation Steps
+**That's it! Pipulate is installed.**
 
-1.  Open your terminal (Terminal on macOS, or WSL2 terminal on Windows).
-2.  Run the following command:
-    ```bash
-    curl --proto '=https' --tlsv1.2 -sSf -L [https://install.determinate.systems/nix](https://install.determinate.systems/nix) | sh -s -- install
+**How to Run Pipulate After Installation**
+
+1.  Open a Terminal.
+2.  Go to the Pipulate directory. Type:
+    ```shell
+    cd ~/pipulate
     ```
-3.  Follow on-screen prompts to complete the installation. You must answer "Yes" once. **Important:** Close and reopen your terminal at the end.
-
-#### What This Does
-
-* Sets up Nix on your system (macOS, Linux, or Windows via WSL2).
-* Enables Nix flakes and the unified CLI by default.
-* Stores an installation receipt at `/nix/receipt.json` for easier uninstallation.
-* Places a copy of the install binary at `/nix/nix-installer`.
-
-### Getting Started with Pipulate
-
-Once Nix is installed, getting started with Pipulate is simple:
-
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/miklevin/pipulate.git
-    cd pipulate
-    ```
-2.  **Enter the Development Environment**:
-    ```bash
+    *(If it was installed elsewhere, change `~/pipulate` to the correct path)*
+3.  Start Pipulate by typing:
+    ```shell
     nix develop
     ```
-    This command sets up a complete, reproducible environment—including Python, CUDA (if available), and all necessary tools.
-3.  **Run the Application**:
-    Inside the shell, start the app:
-    ```bash
-    python server.py
-    ```
-    Your default browser will open at [http://localhost:5001](http://localhost:5001).
-4.  **Optional: Launch Jupyter Notebook**:
-    To work with the integrated data science environment:
-    ```bash
-    start
-    ```
-    To stop it later:
-    ```bash
-    stop
-    ```
+    This command will check for updates automatically, start the Pipulate server and JupyterLab, and should open them in your web browser.
 
 ---
 
@@ -560,5 +541,5 @@ Contributions are welcome\! Please adhere to the project's core philosophy:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=./LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
