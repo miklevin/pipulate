@@ -2339,8 +2339,16 @@ def discover_plugin_files():
         logger.warning(f"Plugins directory not found: {plugins_dir}")
         return plugin_modules
 
+    # Custom sorting function to handle numeric prefixes correctly
+    def numeric_prefix_sort(filename):
+        import re
+        match = re.match(r'^(\d+)_', filename)
+        if match:
+            return int(match.group(1))  # Return numeric value for sorting
+        return float('inf')  # Non-prefixed files come last
+
     # Find all Python files in the plugins directory
-    sorted_files = sorted(os.listdir(plugins_dir))
+    sorted_files = sorted(os.listdir(plugins_dir), key=numeric_prefix_sort)
     for filename in sorted_files:
         logger.debug(f"Checking file: {filename}")
         # Skip files with parentheses (like "tasks (Copy).py")
