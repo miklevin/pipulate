@@ -14,17 +14,17 @@ A minimal starter template for creating step-based Pipulate workflows.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class BlankWorkflow:
+class PracticeWorkflow:
     """
-    Blank Workflow Template
+    Practice Workflow Template
     
     A minimal starting point for creating new workflows.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "blank"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Blank Workflow" # User-friendly name shown in the UI
+    APP_NAME = "practice"              # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Practice Workflow" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This is a blank workflow template. "
+        "This is a practice workflow template. "
         "Enter an ID to start or resume your workflow."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
@@ -48,6 +48,18 @@ class BlankWorkflow:
                 id='step_01',
                 done='placeholder',
                 show='Placeholder Step 1',
+                refill=True,
+            ),
+            Step(
+                id='step_02',
+                done='placeholder',
+                show='Placeholder Step 2',
+                refill=True,
+            ),
+            Step(
+                id='step_03',
+                done='placeholder',
+                show='Placeholder Step 3',
                 refill=True,
             ),
             # Add more steps as needed
@@ -309,6 +321,154 @@ class BlankWorkflow:
         """Process the submission for placeholder Step 1."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # For placeholder, we use a fixed value instead of form data
+        placeholder_value = "completed"
+
+        # Store state data
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return the revert control with chain reaction to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+    async def step_02(self, request):
+        """Handles GET request for placeholder Step 2."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            # Show a simple confirmation in finalized state
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P("Placeholder step completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Show completion message with revert control
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Show just a Proceed button
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Proceed", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_02_submit(self, request):
+        """Process the submission for placeholder Step 2."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # For placeholder, we use a fixed value instead of form data
+        placeholder_value = "completed"
+
+        # Store state data
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return the revert control with chain reaction to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+    async def step_03(self, request):
+        """Handles GET request for placeholder Step 3."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            # Show a simple confirmation in finalized state
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P("Placeholder step completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Show completion message with revert control
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Show just a Proceed button
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Proceed", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_03_submit(self, request):
+        """Process the submission for placeholder Step 3."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
