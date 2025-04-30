@@ -1,6 +1,7 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
+import re
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -46,9 +47,9 @@ class MultiExportWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Botify Project URL',
-                refill=False,
+                done='botify_project',        # Field to store the project data
+                show='Botify Project URL',    # User-friendly name
+                refill=True,                  # Allow refilling for better UX
             ),
             Step(
                 id='step_02',
@@ -280,19 +281,10 @@ class MultiExportWorkflow:
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1.
+        """Handles GET request for Botify URL input widget.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
+        Collects and validates a Botify project URL from the user.
+        Stores the extracted project data for use in subsequent steps.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -302,39 +294,80 @@ class MultiExportWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        
+        # CUSTOMIZE_VALUE_ACCESS
+        project_data_str = step_data.get(step.done, "")
+        import json
+        project_data = json.loads(project_data_str) if project_data_str else {}
+        project_url = project_data.get("url", "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+        if "finalized" in finalize_data and project_data:
+            # CUSTOMIZE_DISPLAY: Enhanced finalized state display
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    Div(
+                        P(f"Project: {project_data.get('project_name', '')}"),
+                        P(f"Group: {project_data.get('project_group', '')}"),
+                        Small(project_url, style="word-break: break-all;"),
+                        style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
+        if project_data and state.get("_revert_target") != step_id:
+            # CUSTOMIZE_COMPLETE: Enhanced completion display
+            project_name = project_data.get('project_name', '')
+            project_group = project_data.get('project_group', '')
+            username = project_data.get('username', '')
+
+            project_info = Div(
+                H4(f"Project: {project_name}"),
+                P(f"Group: {project_group}"),
+                P(f"Username: {username}"),
+                Small(project_url, style="word-break: break-all;"),
+                style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
+            )
+
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {project_url}",
+                    steps=steps
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
+            # CUSTOMIZE_FORM: Replace with URL input form
+            display_value = project_url if (step.refill and project_url) else ""
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step for entering a Botify project URL"),
+                    P("Enter a Botify project URL:"),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Input(
+                            type="url", 
+                            name="botify_url", 
+                            placeholder="https://app.botify.com/username/group/project", 
+                            value=display_value,
+                            required=True,
+                            pattern="https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*",
+                            style="width: 100%;"
+                        ),
+                        Small("Example: https://app.botify.com/username/group/project", style="display: block; margin-bottom: 10px;"),
+                        Div(
+                            Button("Submit", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -344,19 +377,9 @@ class MultiExportWorkflow:
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
+        """Process the submission for Botify URL input widget.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
+        Validates the URL, extracts project data, and stores it for downstream steps.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -366,40 +389,49 @@ class MultiExportWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
 
         # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
-        
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
-        
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
+        form = await request.form()
+        botify_url = form.get("botify_url", "").strip()
 
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
+        # CUSTOMIZE_VALIDATION: Validate the Botify URL
+        is_valid, message, project_data = self.validate_botify_url(botify_url)
 
-        # PRESERVE: Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
-        
+        if not is_valid:
+            return P(f"Error: {message}", style=pip.get_style("error"))
+
+        # CUSTOMIZE_DATA_PROCESSING: Convert to storable format 
+        import json
+        project_data_str = json.dumps(project_data)
+
+        # CUSTOMIZE_STATE_STORAGE: Save to state with JSON
+        await pip.update_step_state(pipeline_id, step_id, project_data_str, steps)
+        await self.message_queue.add(pip, f"{step.show} complete: {project_data['project_name']}", verbatim=True)
+
+        # CUSTOMIZE_WIDGET_DISPLAY: Create project info widget
+        project_name = project_data.get('project_name', '')
+        project_group = project_data.get('project_group', '') 
+        username = project_data.get('username', '')
+        project_url = project_data.get('url', '')
+
+        project_info = Div(
+            H4(f"Project: {project_name}"),
+            P(f"Group: {project_group}"),
+            P(f"Username: {username}"),
+            Small(project_url, style="word-break: break-all;"),
+            style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
+        )
+
         # PRESERVE: Return the revert control with chain reaction to next step
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {project_url}",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
-        
+
     async def step_02(self, request):
         """Handles GET request for placeholder Step 2.
         
@@ -762,3 +794,55 @@ class MultiExportWorkflow:
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
+
+    # --- Helper Methods ---
+    
+    def validate_botify_url(self, url):
+        """Validate a Botify project URL and extract project information.
+        
+        Returns:
+            tuple: (is_valid, message, extracted_data)
+                - is_valid (bool): Whether the URL is valid
+                - message (str): Validation message or error
+                - extracted_data (dict): Extracted project information
+        """
+        # Trim whitespace
+        url = url.strip()
+        
+        # Basic URL validation
+        if not url:
+            return False, "URL is required", {}
+        
+        try:
+            # Use a more flexible pattern that matches Botify URLs with different structures
+            if not url.startswith(("https://app.botify.com/", "https://analyze.botify.com/")):
+                return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
+            
+            # Extract the path and normalize it
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            path_parts = [p for p in parsed_url.path.split('/') if p]
+            
+            # Need at least two components (org and project)
+            if len(path_parts) < 2:
+                return False, "Invalid Botify URL: must contain at least organization and project", {}
+            
+            # Extract key information
+            username = path_parts[0]  # Organization
+            project_name = path_parts[1]  # Project
+            
+            # Create canonical form of the URL
+            canonical_url = f"https://app.botify.com/{username}/{project_name}"
+            
+            # Construct structured data
+            project_data = {
+                "url": canonical_url,
+                "username": username,
+                "project_name": project_name,
+                "project_id": f"{username}/{project_name}"
+            }
+            
+            return True, f"Valid Botify project: {project_name}", project_data
+        
+        except Exception as e:
+            return False, f"Error parsing URL: {str(e)}", {}
