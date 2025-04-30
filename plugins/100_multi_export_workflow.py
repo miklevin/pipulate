@@ -310,7 +310,6 @@ class MultiExportWorkflow:
                     H3(f"🔒 {step.show}"),
                     Div(
                         P(f"Project: {project_data.get('project_name', '')}"),
-                        P(f"Group: {project_data.get('project_group', '')}"),
                         Small(project_url, style="word-break: break-all;"),
                         style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
                     )
@@ -323,12 +322,10 @@ class MultiExportWorkflow:
         if project_data and state.get("_revert_target") != step_id:
             # CUSTOMIZE_COMPLETE: Enhanced completion display
             project_name = project_data.get('project_name', '')
-            project_group = project_data.get('project_group', '')
             username = project_data.get('username', '')
 
             project_info = Div(
                 H4(f"Project: {project_name}"),
-                P(f"Group: {project_group}"),
                 P(f"Username: {username}"),
                 Small(project_url, style="word-break: break-all;"),
                 style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
@@ -408,14 +405,10 @@ class MultiExportWorkflow:
 
         # CUSTOMIZE_WIDGET_DISPLAY: Create project info widget
         project_name = project_data.get('project_name', '')
-        project_group = project_data.get('project_group', '') 
-        username = project_data.get('username', '')
         project_url = project_data.get('url', '')
 
         project_info = Div(
             H4(f"Project: {project_name}"),
-            P(f"Group: {project_group}"),
-            P(f"Username: {username}"),
             Small(project_url, style="word-break: break-all;"),
             style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
         )
@@ -798,14 +791,7 @@ class MultiExportWorkflow:
     # --- Helper Methods ---
     
     def validate_botify_url(self, url):
-        """Validate a Botify project URL and extract project information.
-        
-        Returns:
-            tuple: (is_valid, message, extracted_data)
-                - is_valid (bool): Whether the URL is valid
-                - message (str): Validation message or error
-                - extracted_data (dict): Extracted project information
-        """
+        """Validate a Botify project URL and extract project information."""
         # Trim whitespace
         url = url.strip()
         
@@ -814,29 +800,26 @@ class MultiExportWorkflow:
             return False, "URL is required", {}
         
         try:
-            # Use a more flexible pattern that matches Botify URLs with different structures
+            # Use a more flexible pattern that matches Botify URLs
             if not url.startswith(("https://app.botify.com/", "https://analyze.botify.com/")):
                 return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
             
-            # Extract the path and normalize it
+            # Extract the path components
             from urllib.parse import urlparse
             parsed_url = urlparse(url)
             path_parts = [p for p in parsed_url.path.split('/') if p]
             
-            # Need at least two components (org and project)
+            # Need at least two components
             if len(path_parts) < 2:
                 return False, "Invalid Botify URL: must contain at least organization and project", {}
             
-            # Extract key information
-            username = path_parts[0]  # Organization
-            project_name = path_parts[1]  # Project
+            # Extract organization and project
+            username = path_parts[0]
+            project_name = path_parts[-1]  # Use last path component as project name
             
-            # Create canonical form of the URL
-            canonical_url = f"https://app.botify.com/{username}/{project_name}"
-            
-            # Construct structured data
+            # Create project data
             project_data = {
-                "url": canonical_url,
+                "url": url,  # Keep original URL
                 "username": username,
                 "project_name": project_name,
                 "project_id": f"{username}/{project_name}"
