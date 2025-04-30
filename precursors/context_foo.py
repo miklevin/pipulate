@@ -20,24 +20,27 @@ from typing import Dict, List, Optional, Union
 FILES_TO_INCLUDE = """\
 README.md
 flake.nix
+.cursorrules
 server.py
+/home/mike/repos/.cursor/rules/wet-workflows.mdc
+/home/mike/repos/.cursor/rules/nix-rules.mdc
 plugins/10_connect_with_botify.py
 plugins/20_hello_workflow.py
-plugins/30_tasks.py
-plugins/40_stream_simulator.py
 plugins/50_botify_export.py
 plugins/60_widget_examples.py
-.cursorrules
 """.splitlines()[:-1]  # Remove the last empty line
 
+# Example:
+# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/prompt.md
+
+# Jekyll Example:
+# FILES_TO_INCLUDE = """\
 # /home/mike/repos/mikelev.in/flake.nix
 # /home/mike/repos/mikelev.in/Gemfile
 # /home/mike/repos/mikelev.in/_config.yml
 # /home/mike/repos/mikelev.in/_posts/2025-04-17-github-pages-logfiles.md
 # /home/mike/repos/MikeLev.in/_posts/2025-04-23-pfsense-firewall-secure-home-network-hosting-setup.md
-
-# Example:
-# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/
+# """.splitlines()[:-1]  # Remove the last empty line
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION
@@ -563,6 +566,11 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
         filename = md_files[i]
         filepath = os.path.join(args.directory, filename)
         
+        # Check if file exists before trying to open it
+        if not os.path.exists(filepath):
+            print(f"ERROR: File not found: {filepath}")
+            sys.exit(1)  # Exit with error code
+        
         try:
             with open(filepath, 'r', encoding='utf-8') as infile:
                 content = infile.read()
@@ -609,8 +617,12 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
                 print(f"Added {filename} ({format_token_count(file_tokens)})")
                 print(f"Total tokens so far: {format_token_count(total_tokens)}")
                 
+        except UnicodeDecodeError as e:
+            print(f"ERROR: Could not decode {filepath}: {e}")
+            sys.exit(1)  # Exit with error code for encoding issues
         except Exception as e:
-            print(f"Warning: Could not process {filepath}: {e}")
+            print(f"ERROR: Could not process {filepath}: {e}")
+            sys.exit(1)  # Exit with error code for any other exceptions
     
     # Create XML structure for the chunk
     chunk_xml = create_xml_element("chunk", [
@@ -922,6 +934,12 @@ def create_pipulate_manifest(file_paths):
         processed_files.add(relative_path)
         result_files.append(relative_path)
         full_path = os.path.join(repo_root, relative_path)
+        
+        # Check if file exists before trying to open it
+        if not os.path.exists(full_path):
+            print(f"ERROR: File not found: {full_path}")
+            sys.exit(1)  # Exit with error code
+            
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -950,12 +968,12 @@ def create_pipulate_manifest(file_paths):
                 print(f"Added {relative_path} ({format_token_count(content_tokens)})")
                 print(f"Total tokens so far: {format_token_count(total_tokens)}")
                 
+        except UnicodeDecodeError as e:
+            print(f"ERROR: Could not decode {full_path}: {e}")
+            sys.exit(1)  # Exit with error code for encoding issues
         except Exception as e:
-            print(f"Warning: Could not read {full_path}: {e}")
-            manifest.add_file(
-                relative_path,
-                f"{os.path.basename(relative_path)} [not loaded: {str(e)}]"
-            )
+            print(f"ERROR: Could not read {full_path}: {e}")
+            sys.exit(1)  # Exit with error code for any other exceptions
     
     # Add conventions and patterns only if we have room
     remaining_tokens = max_tokens - total_tokens
@@ -1019,11 +1037,11 @@ if not args.concat_mode:
                 lines.append(file_content + token_info)
         except Exception as e:
             error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-            print(f"Warning: {error_message}")
-            lines.append(error_message)
+            print(f"ERROR: Could not read file {full_path}: {e}")
+            sys.exit(1)  # Exit with error code
         
         lines.append(end_marker)
-        
+    
     # Add a separator and the post-prompt
     lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
     post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
@@ -1042,7 +1060,8 @@ if not args.concat_mode:
                 content = f.read()
                 files_tokens += count_tokens(content, "gpt-4")
         except Exception as e:
-            print(f"Warning: Could not count tokens for XML summary in {relative_path}: {e}")
+            print(f"ERROR: Could not count tokens for {relative_path}: {e}")
+            sys.exit(1)  # Exit with error code
     
     # Calculate total tokens as in print_structured_output
     prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
