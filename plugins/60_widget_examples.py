@@ -164,8 +164,8 @@ class WidgetExamples:
             ),
             Step(
                 id='step_07',
-                done='simple_content_duplicate',
-                show='Simple Text Widget (Duplicate)',
+                done='placeholder',
+                show='Placeholder Step',
                 refill=True,
             ),
         ]
@@ -452,13 +452,9 @@ button.onclick = function() {
 widget.appendChild(countDisplay);
 widget.appendChild(button);""",
 
-            'step_07': """Simple text content example (duplicate):
-- Basic text formatting
-- Preserves line breaks and formatting
-- Great for lists, paragraphs, descriptions, etc.
-- Easy to modify
+            'step_07': """Placeholder step - no user content needed.
 
-This is a sample widget that shows basic text content (duplicated from step_01)."""
+This step serves as a placeholder for future widget types."""
         }
         
         # Return pre-populated example or empty string
@@ -1950,9 +1946,10 @@ This is a sample widget that shows basic text content (duplicated from step_01).
     # --- Step 7: Simple Text Widget (Duplicate) ---
     async def step_07(self, request):
         """ 
-        Handles GET request for Step 7: Simple Text Widget (Duplicate).
+        Handles GET request for Step 7: Placeholder Step.
         
-        This is a duplicate of step_01 to demonstrate adding a step to the workflow.
+        This is a minimal placeholder step with just a Proceed button.
+        It maintains the same workflow pattern but without collecting user data.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_07"
@@ -1962,36 +1959,28 @@ This is a sample widget that shows basic text content (duplicated from step_01).
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
+        placeholder_value = step_data.get(step.done, "placeholder_value")
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Still show the widget but with a locked indicator
-            simple_widget = Pre(
-                user_val,
-                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-            )
+        if "finalized" in finalize_data and placeholder_value:
+            # Show a simple confirmation in finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    simple_widget
+                    P("Placeholder step completed")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
-            # Create the simple widget from the existing data
-            simple_widget = Pre(
-                user_val,
-                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-            )
+        if placeholder_value and placeholder_value != "placeholder_value" and state.get("_revert_target") != step_id:
+            # Show completion message
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"{step.show} Configured",
-                widget=simple_widget,
+                message=f"{step.show} Completed",
+                widget=P("Placeholder step completed"),
                 steps=steps
             )
             return Div(
@@ -1999,29 +1988,17 @@ This is a sample widget that shows basic text content (duplicated from step_01).
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
-            # Show input form
-            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            # Show just a Proceed button
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
-                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                    P("Enter text content for the simple widget. Example is pre-populated."),
+                    H3(f"{pip.fmt(step_id)}: {step.show}"),
+                    P("This is a placeholder step. No input is required."),
                     Form(
                         Div(
-                            Textarea(
-                                display_value,
-                                name=step.done,
-                                placeholder="Enter text content for the widget",
-                                required=True,
-                                rows=10,
-                                style="width: 100%; font-family: monospace;"
-                            ),
-                            Div(
-                                Button("Submit", type="submit", cls="primary"),
-                                style="margin-top: 1vh; text-align: right;"
-                            ),
-                            style="width: 100%;"
+                            Button("Proceed", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit",
                         hx_target=f"#{step_id}"
@@ -2033,9 +2010,10 @@ This is a sample widget that shows basic text content (duplicated from step_01).
 
     async def step_07_submit(self, request):
         """ 
-        Process the submission for Step 7.
+        Process the submission for Step 7 (Placeholder).
         
-        This is a duplicate of step_01_submit to demonstrate adding a step to the workflow.
+        This is a simplified version that doesn't collect user input
+        but maintains the same workflow progression pattern.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_07"
@@ -2044,30 +2022,25 @@ This is a sample widget that shows basic text content (duplicated from step_01).
         pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
 
-        # Get form data
-        form = await request.form()
-        user_val = form.get(step.done, "")
+        # For placeholder, we use a fixed value instead of form data
+        placeholder_value = "completed"
 
-        # Validate input
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            return error_component
+        # Save the placeholder value to state
+        state = pip.read_state(pipeline_id)
+        if step_id not in state:
+            state[step_id] = {}
+        state[step_id][step.done] = placeholder_value
+        pip.write_state(pipeline_id, state)
 
-        # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
-
-        # Create a simple widget with the user's content in a Pre tag to preserve formatting
-        simple_widget = Pre(
-            user_val,
-            style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-        )
+        # Create a simple confirmation widget
+        placeholder_widget = P("Placeholder step completed")
         
         # Create content container with the widget
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show}: Simple text content provided",
-            widget=simple_widget,
+            message=f"{step.show} Completed",
+            widget=placeholder_widget,
             steps=steps
         )
         
