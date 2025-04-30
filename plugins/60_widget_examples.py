@@ -162,6 +162,12 @@ class WidgetExamples:
                 show='JavaScript Widget',
                 refill=True,
             ),
+            Step(
+                id='step_07',
+                done='simple_content_duplicate',
+                show='Simple Text Widget (Duplicate)',
+                refill=True,
+            ),
         ]
         
         # Standard workflow routes
@@ -444,7 +450,15 @@ button.onclick = function() {
 };
 
 widget.appendChild(countDisplay);
-widget.appendChild(button);"""
+widget.appendChild(button);""",
+
+            'step_07': """Simple text content example (duplicate):
+- Basic text formatting
+- Preserves line breaks and formatting
+- Great for lists, paragraphs, descriptions, etc.
+- Easy to modify
+
+This is a sample widget that shows basic text content (duplicated from step_01)."""
         }
         
         # Return pre-populated example or empty string
@@ -1931,4 +1945,141 @@ widget.appendChild(button);"""
             type="text/javascript"
         )
         
-        return Div(container, init_script) 
+        return Div(container, init_script)
+    
+    # --- Step 7: Simple Text Widget (Duplicate) ---
+    async def step_07(self, request):
+        """ 
+        Handles GET request for Step 7: Simple Text Widget (Duplicate).
+        
+        This is a duplicate of step_01 to demonstrate adding a step to the workflow.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_07"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            # Still show the widget but with a locked indicator
+            simple_widget = Pre(
+                user_val,
+                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+            )
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    simple_widget
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            # Create the simple widget from the existing data
+            simple_widget = Pre(
+                user_val,
+                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+            )
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=simple_widget,
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+        else:
+            # Show input form
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P("Enter text content for the simple widget. Example is pre-populated."),
+                    Form(
+                        Div(
+                            Textarea(
+                                display_value,
+                                name=step.done,
+                                placeholder="Enter text content for the widget",
+                                required=True,
+                                rows=10,
+                                style="width: 100%; font-family: monospace;"
+                            ),
+                            Div(
+                                Button("Submit", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_07_submit(self, request):
+        """ 
+        Process the submission for Step 7.
+        
+        This is a duplicate of step_01_submit to demonstrate adding a step to the workflow.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_07"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Save the value to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Create a simple widget with the user's content in a Pre tag to preserve formatting
+        simple_widget = Pre(
+            user_val,
+            style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+        )
+        
+        # Create content container with the widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Simple text content provided",
+            widget=simple_widget,
+            steps=steps
+        )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+
+        # Return the HTMLResponse with the widget container
+        return HTMLResponse(to_xml(response_content))
