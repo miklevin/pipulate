@@ -312,7 +312,7 @@ class MultiExportWorkflow:
                         P(f"Project: {project_data.get('project_name', '')}"),
                         P(f"Group: {project_data.get('project_group', '')}"),
                         Small(project_url, style="word-break: break-all;"),
-                        style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
+                        style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
                     )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -464,7 +464,7 @@ class MultiExportWorkflow:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    P("Placeholder step completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -585,7 +585,7 @@ class MultiExportWorkflow:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    P("Placeholder step completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -706,7 +706,7 @@ class MultiExportWorkflow:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    P("Placeholder step completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
