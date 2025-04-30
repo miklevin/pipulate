@@ -7,7 +7,6 @@ doesn't introduce new requirements *for* the codebase but rather documents *how*
 the codebase works and how developers (or AI assistants) should interact with it
 when adding or modifying workflow steps.
 
-```
 # PIPULATE WORKFLOW PROGRESSION GUIDE
 
 ## 1. EMPTY WORKFLOW (LANDING → FINALIZE)
@@ -193,7 +192,166 @@ Required Changes:
 4. Modify step_01's chain reaction to point to new_step
 5. Set new_step's chain reaction to point to step_02
 
+
+## 9. REFILL PARAMETER AND STATE FLOW BEHAVIOR
+
+┌─────────────────────────────────────────────────────────────┐
+│ REFILL=FALSE (Forward-Only Flow)                            │
+├─────────────────────────────────────────────────────────────┤
+│ 1. User completes steps: 01 → 02 → 03                       │
+│ 2. User reverts to step_01                                  │
+│ 3. Form shows with NO pre-filled values                     │
+│ 4. Step_02 and step_03 data completely cleared              │
+│ 5. Must fill each step again sequentially                   │
+└─────────────────────────────────────────────────────────────┘
+  vs.
+┌─────────────────────────────────────────────────────────────┐
+│ REFILL=TRUE (Iterative Flow)                                │
+├─────────────────────────────────────────────────────────────┤
+│ 1. User completes steps: 01 → 02 → 03                       │
+│ 2. User reverts to step_01                                  │
+│ 3. Form shows with PREVIOUS values pre-filled               │
+│ 4. Step_02 and step_03 data still cleared                   │
+│ 5. Previous inputs remembered but still must progress again │
+└─────────────────────────────────────────────────────────────┘
+
+For true "forward-only" workflows with strict dependencies between steps,
+use `refill=False` to reinforce that reverting means starting over from that point.
+
+## Important: The refill Parameter
+- For strict forward-only workflows (where changing a previous step should completely invalidate
+  subsequent steps), use `refill=False`
+- For more flexible workflows where users might iterate and refine inputs, use `refill=True`
+- This choice affects both the user experience and the conceptual integrity of the workflow
+
+# WIDGET RECIPE SYSTEM
+
+This section introduces the widget recipe system - a collection of step-by-step guides for transforming placeholder steps into specific functional widgets while maintaining all critical workflow patterns.
+
+## Overview of the Widget Recipe System
+
+The widget recipe system provides standardized patterns for converting placeholder steps into various widget types, such as:
+
+1. **Input Collection Widgets**:
+   - Text input widgets
+   - URL input widgets
+   - Selection/dropdown widgets
+   - Checkbox and radio button widgets
+
+2. **Data Display Widgets**:
+   - Pandas table widgets
+   - Markdown rendering widgets
+   - Mermaid diagram widgets
+   - Code syntax highlighting widgets
+
+3. **Operational Widgets**:
+   - API request widgets
+   - CSV download widgets
+   - Polling status widgets
+   - File upload widgets
+
+## How to Use Widget Recipes
+
+Widget recipes are designed to be applied to placeholder steps in your workflow. Each recipe follows this process:
+
+1. **Locate the Customization Points**:
+   Both placeholder GET and SUBMIT handlers contain clearly marked customization points:
+   ```
+   # CUSTOMIZE_STEP_DEFINITION
+   # CUSTOMIZE_FORM
+   # CUSTOMIZE_DISPLAY
+   # CUSTOMIZE_COMPLETE
+   # CUSTOMIZE_FORM_PROCESSING
+   # CUSTOMIZE_DATA_PROCESSING
+   # CUSTOMIZE_STATE_STORAGE
+   # CUSTOMIZE_WIDGET_DISPLAY
+   ```
+
+2. **Apply the Recipe Changes**: 
+   The recipe will provide specific code to insert at each customization point.
+
+3. **Preserve Critical Patterns**:
+   Each recipe maintains:
+   - Chain reaction mechanism
+   - Revert control functionality
+   - State management patterns
+   - Proper finalization handling
+
+## Recipe Format
+
+Each widget recipe follows a standard format:
+
 ```
+# Widget Name Recipe
+
+## Overview
+Brief description of what the widget does.
+
+## Implementation Phases
+Step-by-step implementation instructions:
+
+### Phase 1: Update Step Definition
+Code changes for the Step namedtuple.
+
+### Phase 2: Update GET Handler
+Code changes for the GET handler.
+
+### Phase 3: Update SUBMIT Handler
+Code changes for the SUBMIT handler.
+
+### Phase 4: Add Helper Methods (if needed)
+Any additional helper methods required.
+
+## Common Pitfalls
+Things to watch out for.
+
+## Related Widget Recipes
+Links to related recipes.
+```
+
+## Widget Recipe Documents
+
+Individual widget recipes are available in the `pipulate/training/widget_recipes/` directory:
+
+- `01_text_input_widget.md` - Basic text input field
+- `02_botify_url_widget.md` - URL validation widget
+- `03_dropdown_selection_widget.md` - Selection dropdown
+- `04_pandas_table_widget.md` - DataFrame display
+- `05_markdown_widget.md` - Markdown rendering
+- And more...
+
+## Widget Recipe Example: Basic Pandas Table Widget
+
+Here's a snippet from the Pandas table widget recipe to illustrate the pattern:
+
+```python
+# CUSTOMIZE_FORM: Replace with CSV input form
+return Div(
+    Card(
+        H3(f"{step.show}"),
+        P("Enter CSV data below to create a Pandas DataFrame:"),
+        Form(
+            TextArea(
+                display_value,
+                name=step.done,
+                placeholder="Paste CSV data here...",
+                rows=8,
+                required=True
+            ),
+            Div(
+                Button("Create Table", type="submit", cls="primary"),
+                style="margin-top: 1vh; text-align: right;"
+            ),
+            hx_post=f"/{app_name}/{step_id}_submit",
+            hx_target=f"#{step_id}"
+        )
+    ),
+    Div(id=next_step_id),
+    id=step_id
+)
+```
+
+For full recipes, refer to the individual widget recipe documents in the training folder.
 
 This guide illustrates the key progression patterns in Pipulate workflows, focusing on:
 
@@ -251,10 +409,10 @@ When adding a placeholder step to a Pipulate workflow, I followed a precise, min
 
 ```python
 Step(
-    id='step_XX',           # Use appropriate numbering
-    done='placeholder',     # Field to store completion state
-    show='Placeholder Step', # User-facing name
-    refill=True,            # Allow refilling on revert
+    id='step_XX',            # Use proper sequential numbering
+    done='placeholder',      # Simple state field name
+    show='Placeholder Step', # Descriptive UI text
+    refill=False,            # Use False for strict forward-only flow, True for iterative workflows
 ),
 ```
 
@@ -716,11 +874,11 @@ The placeholder step pattern is used to build the structure of a workflow with m
 1. **Step Definition**
 ```python
 Step(
-    id='step_XX',           # Unique identifier for this step
-    done='placeholder',     # Simple state field name
-    show='Step Name',       # User-friendly display name
-    refill=True,            # Whether input should be preserved on revert
-)
+    id='step_XX',            # Use proper sequential numbering
+    done='placeholder',      # Simple state field name
+    show='Placeholder Step', # Descriptive UI text
+    refill=False,            # Use False for strict forward-only flow, True for iterative workflows
+),
 ```
 
 2. **GET Handler**
@@ -932,7 +1090,7 @@ Based on the article's guidance and existing patterns, adding or inserting a new
         ```python
         steps = [
             # ... existing steps before ...
-            Step(id='step_new', done='new_field', show='New Step Label', refill=True, transform=None),
+            Step(id='step_new', done='new_field', show='New Step Label', refill=False, transform=None),
             # ... existing steps after ...
         ]
         ```

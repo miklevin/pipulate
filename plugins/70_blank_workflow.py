@@ -48,7 +48,7 @@ class BlankWorkflow:
                 id='step_01',
                 done='placeholder',
                 show='Placeholder Step 1',
-                refill=True,
+                refill=False,
             ),
             # Add more steps as needed
         ]
@@ -156,7 +156,7 @@ class BlankWorkflow:
 
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error: return error
-        
+
         await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
         
@@ -255,7 +255,20 @@ class BlankWorkflow:
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1."""
+        """Handles GET request for placeholder Step 1.
+        
+        Widget Conversion Points:
+        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
+        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
+        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
+        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
+        
+        Critical Elements to Preserve:
+        - Chain reaction with next_step_id
+        - Finalization state handling pattern
+        - Revert control mechanism
+        - Overall Div structure and ID patterns
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -264,16 +277,16 @@ class BlankWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
-            # Show a simple confirmation in finalized state
+            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
+                    P("Placeholder step completed")  # Replace with custom widget display
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -281,14 +294,14 @@ class BlankWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
-            # Show completion message with revert control
+            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # Show just a Proceed button
+            # CUSTOMIZE_FORM: Replace with your widget's input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -301,12 +314,25 @@ class BlankWorkflow:
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),
+                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
                 id=step_id
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1."""
+        """Process the submission for placeholder Step 1.
+        
+        Widget Conversion Points:
+        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
+        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
+        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
+        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
+        
+        Critical Elements to Preserve:
+        - Chain reaction with next_step_id
+        - Update step state pattern
+        - Message queue notification
+        - Revert control structure
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -314,14 +340,35 @@ class BlankWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"
+        # CUSTOMIZE_FORM_PROCESSING: Process form data
+        # form = await request.form()
+        # user_input = form.get(step.done, "")
+        
+        # CUSTOMIZE_VALIDATION: Validate user input
+        # if not user_input:
+        #     return P("Error: Input is required", style=pip.get_style("error"))
+        
+        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
+        # processed_value = user_input  # Apply any transformations here
 
-        # Store state data
+        # For placeholder, we use a fixed value instead of form data
+        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
+
+        # PRESERVE: Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # Return the revert control with chain reaction to next step
+        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
+        # widget = self.create_your_widget(processed_value)
+        # content_container = pip.widget_container(
+        #     step_id=step_id,
+        #     app_name=app_name,
+        #     message=f"{step.show}: Complete",
+        #     widget=widget,
+        #     steps=steps
+        # )
+        
+        # PRESERVE: Return the revert control with chain reaction to next step
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),

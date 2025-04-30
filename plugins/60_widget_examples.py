@@ -1941,7 +1941,7 @@ This step serves as a placeholder for future widget types."""
             type="text/javascript"
         )
         
-        return Div(container, init_script)
+        return Div(container, init_script) 
     
     # --- Step 7: Simple Text Widget (Duplicate) ---
     async def step_07(self, request):
