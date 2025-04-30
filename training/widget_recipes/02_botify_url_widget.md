@@ -1,10 +1,11 @@
 # Botify URL Input Widget Recipe
 
 ## Overview
-This recipe transforms a placeholder step into a widget that collects and validates Botify project URLs. It ensures the URL follows the Botify project pattern and extracts key project information.
+This recipe transforms a placeholder step into a widget that collects and validates Botify project URLs. It ensures the URL follows the Botify project pattern, always includes a trailing slash, and extracts key project information.
 
 ## Core Concepts
 - **URL Validation**: Ensure input is a valid Botify project URL
+- **URL Standardization**: Always ensure URLs end with a trailing slash
 - **Pattern Matching**: Extract project ID and components from URL
 - **Error Handling**: Clear validation feedback to users
 - **Data Storage**: Store structured project data for downstream steps
@@ -24,8 +25,6 @@ def validate_botify_url(self, url):
             - message (str): Validation message or error
             - extracted_data (dict): Extracted project information
     """
-    import re
-    
     # Trim whitespace
     url = url.strip()
     
@@ -33,31 +32,42 @@ def validate_botify_url(self, url):
     if not url:
         return False, "URL is required", {}
     
-    if not url.startswith(("https://app.botify.com/", "https://analyze.botify.com/")):
-        return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
+    try:
+        # Use a more flexible pattern that matches Botify URLs
+        if not url.startswith(("https://app.botify.com/", "https://analyze.botify.com/")):
+            return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
+        
+        # Ensure URL ends with a trailing slash
+        if not url.endswith('/'):
+            url = f"{url}/"
+        
+        # Extract the path components
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        path_parts = [p for p in parsed_url.path.split('/') if p]
+        
+        # Need at least two components
+        if len(path_parts) < 2:
+            return False, "Invalid Botify URL: must contain at least organization and project", {}
+        
+        # Extract organization and project
+        username = path_parts[0]
+        project_group = path_parts[1] if len(path_parts) > 2 else ""
+        project_name = path_parts[-1]  # Use last path component as project name
+        
+        # Create project data
+        project_data = {
+            "url": url,  # Keep original URL with trailing slash
+            "username": username,
+            "project_group": project_group,
+            "project_name": project_name,
+            "project_id": f"{username}/{project_name}" if not project_group else f"{username}/{project_group}/{project_name}"
+        }
+        
+        return True, f"Valid Botify project: {project_name}", project_data
     
-    # Extract project components using regex
-    pattern = r"https://(app|analyze)\.botify\.com/(?P<username>[^/]+)/(?P<project_group>[^/]+)/(?P<project_name>[^/]+)"
-    match = re.match(pattern, url)
-    
-    if not match:
-        return False, "Invalid Botify project URL format", {}
-    
-    # Extract key information
-    username = match.group("username")
-    project_group = match.group("project_group")  
-    project_name = match.group("project_name")
-    
-    # Construct structured data
-    project_data = {
-        "url": url,
-        "username": username,
-        "project_group": project_group,
-        "project_name": project_name,
-        "project_id": f"{username}/{project_group}/{project_name}"
-    }
-    
-    return True, f"Valid Botify project: {project_name}", project_data
+    except Exception as e:
+        return False, f"Error parsing URL: {str(e)}", {}
 ```
 
 ### Phase 2: Update Step Definition
@@ -98,7 +108,7 @@ return Div(
             P(f"Project: {project_data.get('project_name', '')}"),
             P(f"Group: {project_data.get('project_group', '')}"),
             Small(project_url, style="word-break: break-all;"),
-            style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
+            style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
         )
     ),
     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -119,11 +129,10 @@ project_info = Div(
 )
 
 return Div(
-    pip.widget_container(
-        step_id=step_id,
-        app_name=app_name,
-        message=f"{step.show}: {project_name}",
-        widget=project_info,
+    pip.revert_control(
+        step_id=step_id, 
+        app_name=app_name, 
+        message=f"{step.show}: {project_url}",
         steps=steps
     ),
     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -132,6 +141,8 @@ return Div(
 
 # CUSTOMIZE_FORM: Replace with URL input form
 display_value = project_url if (step.refill and project_url) else ""
+await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+
 return Div(
     Card(
         H3(f"{step.show}"),
@@ -146,7 +157,8 @@ return Div(
                 pattern="https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*",
                 style="width: 100%;"
             ),
-            Small("Example: https://app.botify.com/username/group/project", style="display: block; margin-bottom: 10px;"),
+            Small("Example: https://app.botify.com/username/group/project/", style="display: block; margin-bottom: 10px;"),
+            Small("Note: A trailing slash will be added automatically if missing", style="display: block; color: #666; margin-bottom: 10px;"),
             Div(
                 Button("Submit", type="submit", cls="primary"),
                 style="margin-top: 1vh; text-align: right;"
@@ -155,7 +167,7 @@ return Div(
             hx_target=f"#{step_id}"
         )
     ),
-    Div(id=next_step_id),  # PRESERVE: Empty div for next step
+    Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
     id=step_id
 )
 ```
@@ -196,12 +208,12 @@ project_info = Div(
     style="padding: 10px; background: #f8f9fa; border-radius: 5px;"
 )
 
+# PRESERVE: Return the revert control with chain reaction to next step
 return Div(
-    pip.widget_container(
-        step_id=step_id,
-        app_name=app_name,
-        message=f"{step.show}: {project_name}",
-        widget=project_info,
+    pip.revert_control(
+        step_id=step_id, 
+        app_name=app_name, 
+        message=f"{step.show}: {project_url}",
         steps=steps
     ),
     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -226,13 +238,14 @@ project_name = project_data.get("project_name", "")
 project_id = project_data.get("project_id", "")
 username = project_data.get("username", "")
 project_group = project_data.get("project_group", "")
-project_url = project_data.get("url", "")
+project_url = project_data.get("url", "")  # Will always have trailing slash
 
 # Use in API calls or other operations
 ```
 
 ## Common Pitfalls
 - **URL Validation**: Always validate both format and accessibility
+- **URL Standardization**: Always ensure URLs end with a trailing slash
 - **JSON Serialization**: Remember to serialize/deserialize with JSON 
 - **Error Messaging**: Provide clear feedback on validation errors
 - **Pattern Matching**: Ensure regex patterns handle all valid URL formats
