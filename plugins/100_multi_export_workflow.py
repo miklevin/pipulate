@@ -804,6 +804,10 @@ class MultiExportWorkflow:
             if not url.startswith(("https://app.botify.com/", "https://analyze.botify.com/")):
                 return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
             
+            # Ensure URL ends with a trailing slash
+            if not url.endswith('/'):
+                url = f"{url}/"
+            
             # Extract the path components
             from urllib.parse import urlparse
             parsed_url = urlparse(url)
@@ -819,7 +823,7 @@ class MultiExportWorkflow:
             
             # Create project data
             project_data = {
-                "url": url,  # Keep original URL
+                "url": url,  # Keep original URL with trailing slash
                 "username": username,
                 "project_name": project_name,
                 "project_id": f"{username}/{project_name}"
