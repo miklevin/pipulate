@@ -24,10 +24,13 @@ flake.nix
 server.py
 /home/mike/repos/.cursor/rules/wet-workflows.mdc
 /home/mike/repos/.cursor/rules/nix-rules.mdc
+/home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
+/home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
 plugins/10_connect_with_botify.py
 plugins/20_hello_workflow.py
 plugins/50_botify_export.py
 plugins/60_widget_examples.py
+plugins/70_blank_workflow.py
 """.splitlines()[:-1]  # Remove the last empty line
 
 # Example:
