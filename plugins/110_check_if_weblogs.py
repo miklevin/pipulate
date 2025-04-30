@@ -15,18 +15,17 @@ A workflow for performing multiple CSV exports from Botify.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class MultiExportWorkflow:
+class CheckWeblogsWorkflow:
     """
     Multi-Export Workflow
     
     A workflow that handles multiple Botify data exports through a sequence of steps.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "multi_export"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Multi-Export Workflow" # User-friendly name shown in the UI
+    APP_NAME = "check_weblogs"              # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Check Weblogs" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This workflow performs multiple CSV exports from Botify. "
-        "Enter an ID to start or resume your workflow."
+        "This workflow checks if a Botify project has weblogs."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -53,8 +52,8 @@ class MultiExportWorkflow:
             ),
             Step(
                 id='step_02',
-                done='placeholder',
-                show='First CSV Export',
+                done='weblogs_check',         # Store the check result
+                show='Check Web Logs',        # User-friendly name
                 refill=False,
             ),
             Step(
@@ -426,20 +425,7 @@ class MultiExportWorkflow:
         )
 
     async def step_02(self, request):
-        """Handles GET request for placeholder Step 2.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        """
+        """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -448,62 +434,83 @@ class MultiExportWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        
+        # Get the check result if already completed
+        import json
+        check_result_str = step_data.get(step.done, "")
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+        if "finalized" in finalize_data and check_result:
+            # Show finalized state with check result
+            has_logs = check_result.get("has_logs", False)
+            status_text = "HAS web logs" if has_logs else "does NOT have web logs"
+            status_color = "green" if has_logs else "red"
+            
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
+                    Div(
+                        P(f"Project {project_name}", style="margin-bottom: 5px;"),
+                        P(f"Status: Project {status_text}", style=f"color: {status_color}; font-weight: bold;"),
+                        style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+        
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
+        if check_result and state.get("_revert_target") != step_id:
+            # Show completed state with check result
+            has_logs = check_result.get("has_logs", False)
+            status_text = "HAS web logs" if has_logs else "does NOT have web logs"
+            status_color = "green" if has_logs else "red"
+            
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Project {status_text}",
+                    steps=steps
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
+            # Show form to run the check
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step for the first CSV export"),
+                    P(f"Check if project '{project_name}' has web logs available"),
+                    P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Run Check", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id),  # Empty div for next step
                 id=step_id
             )
 
     async def step_02_submit(self, request):
-        """Process the submission for placeholder Step 2.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
-        """
+        """Process the check for Botify web logs."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -511,41 +518,57 @@ class MultiExportWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
         
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
         
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
-
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
-
-        # PRESERVE: Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
         
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
+        # Perform the check for web logs
+        has_logs, error_message = await self.check_if_project_has_logs(username, project_name)
         
-        # PRESERVE: Return the revert control with chain reaction to next step
+        if error_message:
+            return P(f"Error: {error_message}", style=pip.get_style("error"))
+        
+        # Store the check result
+        check_result = {
+            "has_logs": has_logs,
+            "project": project_name,
+            "username": username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Convert to JSON for storage
+        check_result_str = json.dumps(check_result)
+        
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+        
+        # Add message
+        status_text = "HAS" if has_logs else "does NOT have"
+        await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} web logs", verbatim=True)
+        
+        # Return result display
+        status_color = "green" if has_logs else "red"
+        
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: Project {status_text} web logs",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
-        
+
     async def step_03(self, request):
         """Handles GET request for placeholder Step 3.
         
@@ -832,3 +855,76 @@ class MultiExportWorkflow:
         
         except Exception as e:
             return False, f"Error parsing URL: {str(e)}", {}
+
+    async def check_if_project_has_logs(self, org_slug, project_slug):
+        """
+        Checks if a collection with ID 'logs' exists for the given org and project.
+        Returns (True, None) if found, (False, None) if not found, or (False, error_message) on error.
+        """
+        import httpx
+        import json
+        import os
+        
+        # Configuration - you might want to move these to class variables
+        TOKEN_FILE = "botify_token.txt"
+        TARGET_LOG_COLLECTION_ID = "logs"
+        
+        # Load API key - properly clean it
+        try:
+            if not os.path.exists(TOKEN_FILE):
+                return False, f"Token file '{TOKEN_FILE}' not found."
+            
+            with open(TOKEN_FILE) as f:
+                content = f.read().strip()
+                # Extract just the token (first line) and strip any comments
+                api_key = content.split('\n')[0].strip()
+                if not api_key:
+                    return False, f"Token file '{TOKEN_FILE}' is empty."
+        except Exception as e:
+            return False, f"Error loading API key: {e}"
+        
+        # Check parameters
+        if not org_slug or not project_slug:
+            return False, "Organization and project slugs are required."
+        
+        # Prepare request
+        collections_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/collections"
+        headers = {
+            "Authorization": f"Token {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Make request
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(collections_url, headers=headers, timeout=60.0)
+            
+            if response.status_code == 401:
+                return False, "Authentication failed (401). Check your API token."
+            elif response.status_code == 403:
+                return False, "Forbidden (403). You may not have access to this project or endpoint."
+            elif response.status_code == 404:
+                return False, "Project not found (404). Check org/project slugs."
+            
+            response.raise_for_status()  # Raise errors for other bad statuses
+            collections_data = response.json()
+            
+            if not isinstance(collections_data, list):
+                return False, "Unexpected API response format. Expected a list."
+            
+            # Check if logs collection exists
+            for collection in collections_data:
+                if isinstance(collection, dict) and collection.get('id') == TARGET_LOG_COLLECTION_ID:
+                    return True, None
+            
+            # Not found
+            return False, None
+            
+        except httpx.HTTPStatusError as e:
+            return False, f"API Error: {e.response.status_code}"
+        except httpx.RequestError as e:
+            return False, f"Network error: {e}"
+        except json.JSONDecodeError:
+            return False, "Could not decode the API response as JSON."
+        except Exception as e:
+            return False, f"An unexpected error occurred: {e}"
