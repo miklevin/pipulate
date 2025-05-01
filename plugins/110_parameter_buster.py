@@ -1374,20 +1374,24 @@ class ParameterBusterWorkflow:
         except Exception:
             return None
 
-    async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type):
+    async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type=None):
         """Generate a deterministic file path for a given data export.
         
         Args:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            data_type: Type of data (crawl, weblog, gsc)
+            data_type: Type of data (crawl, weblog, gsc) or None for base directory
             
         Returns:
-            String path to the file location
+            String path to either the file location or base directory
         """
         # Create base directory path
         base_dir = f"downloads/{username}/{project_name}/{analysis_slug}"
+        
+        # If no data_type specified, return the base directory path
+        if not data_type:
+            return base_dir
         
         # Map data types to filenames
         filenames = {
