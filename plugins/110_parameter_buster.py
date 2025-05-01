@@ -28,15 +28,18 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class ParameterBusterWorkflow:
     """
-    Multi-Export Workflow
+    Parameter Buster Workflow
     
-    A workflow that handles multiple Botify data exports through a sequence of steps.
+    A workflow that analyzes URLs with parameters to optimize for SEO performance.
+    Processes data from Botify crawls, web logs, and Search Console to identify 
+    URL parameter patterns that can be optimized for better crawl efficiency.
     """
     # --- Workflow Configuration ---
     APP_NAME = "param_buster"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Parameter Buster" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This workflow produces a PageWorkers Parameter Buster optimization."
+        "This workflow analyzes URL parameters from Botify, logs, and Search Console data "
+        "to produce optimization recommendations for better crawl efficiency."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -148,7 +151,13 @@ class ParameterBusterWorkflow:
         self.step_messages["step_03"] = {
             "input": f"{pip.fmt('step_03')}: Please check if the project has web logs available.",
             "complete": "Web logs check complete. Continue to next step."
-            }
+        }
+
+        # Add specific message for step_05 (Generate Optimization)
+        self.step_messages["step_05"] = {
+            "input": f"{pip.fmt('step_05')}: Please generate the parameter optimization.",
+            "complete": "Parameter optimization complete. Ready to finalize."
+        }
 
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
@@ -2071,11 +2080,13 @@ class ParameterBusterWorkflow:
                     # Download complete message
                     await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
 
-                    # Load into DataFrame and add column headers
+                    # Load the CSV file and apply column headers
                     df = pd.read_csv(crawl_filepath)
-                    # Add column headers
-                    df.columns = ["Full URL", "Compliant Main Reason", "Compliant Detailed Reason", "Count"]
-                    # Save to CSV with headers
+                    
+                    # Set readable, consistent column headers
+                    df.columns = ["Full URL", "Compliance Status", "Compliance Details", "Occurrence Count"]
+                    
+                    # Save back to CSV with proper headers
                     df.to_csv(crawl_filepath, index=False)
                     
                     # Create download info for storage
