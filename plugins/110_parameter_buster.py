@@ -1936,7 +1936,7 @@ class ParameterBusterWorkflow:
             "data_type": data_type
         }
 
-    async def poll_job_status(self, job_url, api_token, max_attempts=12):
+    async def poll_job_status(self, job_url, api_token, max_attempts=20):
         """
         Poll the job status URL to check for completion with improved error handling
         
@@ -1954,7 +1954,7 @@ class ParameterBusterWorkflow:
         import json
         
         attempt = 0
-        delay = 5  # Start with 5 second delay
+        delay = 2  # Start with 2 second delay (reduced from 5)
         
         while attempt < max_attempts:
             try:
@@ -2007,13 +2007,13 @@ class ParameterBusterWorkflow:
                     # Still processing
                     attempt += 1
                     await asyncio.sleep(delay)
-                    delay = min(delay * 1.5, 60)  # Exponential backoff, cap at 60 seconds
+                    delay = min(delay * 1.5, 20)  # Exponential backoff, but cap at 20 seconds (reduced from 60)
                     
             except httpx.RequestError as e:
                 # Network errors - retry with backoff
                 logging.error(f"Network error polling job status: {str(e)}")
                 attempt += 1
                 await asyncio.sleep(delay)
-                delay = min(delay * 2, 60)
+                delay = min(delay * 2, 20)  # Cap at 20 seconds (reduced from 60)
                 
         return False, "Maximum polling attempts reached"
