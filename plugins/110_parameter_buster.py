@@ -2049,14 +2049,26 @@ class ParameterBusterWorkflow:
                 # Make sure target directory exists
                 await self.ensure_directory_exists(crawl_filepath)
                 
-                # Download directly to the CSV file (don't assume it's zipped)
+                # Download and decompress the gzipped CSV file
                 try:
-                    async with httpx.AsyncClient() as client:
+                    # Create temporary gzipped file path
+                    gz_filepath = f"{crawl_filepath}.gz"
+                    
+                    # Step 1: Download the gzipped CSV file with increased timeout
+                    async with httpx.AsyncClient(timeout=300.0) as client:
                         async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
                             response.raise_for_status()
-                            with open(crawl_filepath, 'wb') as f:
+                            with open(gz_filepath, 'wb') as gz_file:
                                 async for chunk in response.aiter_bytes():
-                                    f.write(chunk)
+                                    gz_file.write(chunk)
+                    
+                    # Step 2: Decompress the .gz file to .csv
+                    with gzip.open(gz_filepath, "rb") as f_in:
+                        with open(crawl_filepath, "wb") as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    
+                    # Clean up the temporary gzipped file
+                    os.remove(gz_filepath)
                     
                     # Get info about the created file
                     _, file_info = await self.check_file_exists(crawl_filepath)
@@ -2079,8 +2091,11 @@ class ParameterBusterWorkflow:
                         "download_info": download_info
                     })
                     
+                except httpx.ReadTimeout as e:
+                    await self.message_queue.add(pip, f"❌ Timeout error during file download: {str(e)}", verbatim=True)
+                    raise
                 except Exception as e:
-                    await self.message_queue.add(pip, f"❌ Error downloading file: {str(e)}", verbatim=True)
+                    await self.message_queue.add(pip, f"❌ Error downloading or decompressing file: {str(e)}", verbatim=True)
                     raise
             
             # Final message for completed download
