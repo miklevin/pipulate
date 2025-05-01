@@ -1108,13 +1108,29 @@ class ParameterBusterWorkflow:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
+        # Get value using step.done to match the field name
+        placeholder_value = step_data.get(step.done, "")
+
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and step_data.get(step.done):
+        if "finalized" in finalize_data and placeholder_value:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("This step has been completed.")
+                    P("Placeholder step completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Complete",
+                    steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -1133,7 +1149,7 @@ class ParameterBusterWorkflow:
                     hx_target=f"#{step_id}"
                 )
             ),
-            Div(id=next_step_id),  # Note: No hx_trigger="load" here to prevent auto-progression
+            Div(id=next_step_id),
             id=step_id
         )
 
@@ -1146,11 +1162,8 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
 
-        # Use fixed value for placeholder
-        placeholder_value = "completed"
-
-        # Store in state
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)  # Ensure this updates the correct field
+        # Use fixed value for placeholder - IMPORTANT: Use step.done to match the field name
+        await pip.update_step_state(pipeline_id, step_id, "completed", steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # Return with revert control and chain reaction to next step
