@@ -1677,7 +1677,6 @@ class ParameterBusterWorkflow:
             # For weblog data, also need periods
             if not start_date or not end_date:
                 # Use default 30 day range if dates not provided
-                from datetime import datetime, timedelta
                 end_date = datetime.now().strftime("%Y-%m-%d")
                 start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
             
@@ -1749,11 +1748,6 @@ class ParameterBusterWorkflow:
         Returns:
             Tuple of (success, result_dict_or_error_message)
         """
-        import httpx
-        import asyncio
-        import logging
-        import json
-        import socket
         
         attempt = 0
         delay = 2  # Start with 2 second delay
@@ -1890,7 +1884,6 @@ class ParameterBusterWorkflow:
         
         # Get the current state
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        import json
         analysis_result_str = step_data.get(step.done, "")
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         
@@ -1930,8 +1923,6 @@ class ParameterBusterWorkflow:
                     raise ValueError("Cannot read API token")
                 
                 # Calculate period dates - use 30 days before analysis date
-                from datetime import timedelta  # Only import timedelta here
-
                 # Parse analysis date from slug (assuming format YYYYMMDD)
                 try:
                     analysis_date_obj = datetime.strptime(analysis_slug, "%Y%m%d")
@@ -1981,7 +1972,6 @@ class ParameterBusterWorkflow:
                     "Content-Type": "application/json"
                 }
                 
-                import logging
                 logging.info(f"Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}")
                 
                 async with httpx.AsyncClient() as client:
@@ -2075,6 +2065,14 @@ class ParameterBusterWorkflow:
                     
                     # Download complete message
                     await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+
+                    # Load into DataFrame and add column headers
+                    df = pd.read_csv(crawl_filepath)
+                    df.columns = ["url", "compliant_main_reason", "compliant_detailed_reason", "count"]
+                    # Add column headers
+                    df.columns = ["url", "compliant_main_reason", "compliant_detailed_reason", "count"]
+                    # Save to CSV with headers
+                    df.to_csv(crawl_filepath, index=False)
                     
                     # Create download info for storage
                     download_info = {
@@ -2118,7 +2116,6 @@ class ParameterBusterWorkflow:
             )
         
         except Exception as e:
-            import logging
             logging.exception(f"Error in step_02_process: {e}")
             
             # Return error message
@@ -2196,8 +2193,6 @@ class ParameterBusterWorkflow:
                         raise ValueError("Cannot read API token")
                     
                     # Calculate date range (30 days before analysis date)
-                    from datetime import timedelta
-                    
                     try:
                         analysis_date_obj = datetime.strptime(analysis_slug, "%Y%m%d")
                     except ValueError:
@@ -2252,9 +2247,7 @@ class ParameterBusterWorkflow:
                         "Content-Type": "application/json"
                     }
                     
-                    import logging
                     logging.info(f"Submitting logs export job with payload: {json.dumps(export_query, indent=2)}")
-                    
                     job_id = None
                     
                     async with httpx.AsyncClient() as client:
@@ -2417,7 +2410,6 @@ class ParameterBusterWorkflow:
             )
             
         except Exception as e:
-            import logging
             logging.exception(f"Error in step_03_process: {e}")
             
             # Return error message
