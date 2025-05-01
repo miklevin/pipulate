@@ -91,10 +91,10 @@ class ParameterBusterWorkflow:
                 refill=False,
             ),
             Step(
-                id='step_06',                # New placeholder step
-                done='placeholder',           # Simple state field name
-                show='Placeholder Step 6',    # Descriptive UI text
-                refill=False,                 # Use False for strict forward-only flow
+                id='step_06',
+                done='code_display',
+                show='Code Syntax Highlighter',
+                refill=True,
             ),
         ]
         
@@ -143,6 +143,10 @@ class ParameterBusterWorkflow:
             "step_02": {
                 "input": f"{pip.fmt('step_02')}: Please select an analysis for this project.",
                 "complete": "Analysis selection complete. Continue to next step."
+            },
+            "step_06": {
+                "input": f"{pip.fmt('step_06')}: Please enter JavaScript code for syntax highlighting.",
+                "complete": "Code syntax highlighting complete. Ready to finalize."
             }
         }
 
@@ -1262,7 +1266,7 @@ class ParameterBusterWorkflow:
             return P(f"Error generating optimization: {str(e)}", style=pip.get_style("error"))
 
     async def step_06(self, request):
-        """Handles GET request for the placeholder Step 6."""
+        """Handles GET request for the JavaScript Code Display Step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
@@ -1271,45 +1275,179 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
         
-        # Get value using step.done to match the field name
-        placeholder_value = step_data.get(step.done, "")
-
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            return Div(
-                pip.revert_control(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f"{step.show}: Complete",
+        if "finalized" in finalize_data and user_val:
+            # Show the syntax highlighter in locked state
+            try:
+                # Check if user specified a language in format: ```language\ncode```
+                language = 'javascript'  # Default language
+                code_to_display = user_val
+                
+                if user_val.startswith('```'):
+                    # Try to extract language from markdown-style code block
+                    first_line = user_val.split('\n', 1)[0].strip()
+                    if len(first_line) > 3:
+                        detected_lang = first_line[3:].strip()
+                        if detected_lang:
+                            language = detected_lang
+                            # Remove the language specification line from the code
+                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
+                    
+                    # Remove trailing backticks if present
+                    if code_to_display.endswith('```'):
+                        code_to_display = code_to_display.rsplit('```', 1)[0]
+                
+                # Generate unique widget ID for this step and pipeline
+                widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                
+                # Use the helper method to create a prism widget with detected language
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
+                
+                # Create response with locked view
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            Card(
+                                H3(f"🔒 {step.show} ({language})"),
+                                prism_widget
+                            ),
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                            id=step_id
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger header to initialize Prism highlighting
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initializePrism": {
+                        "targetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                logging.error(f"Error creating Prism widget in locked view: {str(e)}")
+                return Div(
+                    Card(
+                        H3(f"🔒 {step.show}"),
+                        P("Code display unavailable in locked view.")
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            # Create the prism widget from the existing code
+            try:
+                # Check if user specified a language in format: ```language\ncode```
+                language = 'javascript'  # Default language
+                code_to_display = user_val
+                
+                if user_val.startswith('```'):
+                    # Try to extract language from markdown-style code block
+                    first_line = user_val.split('\n', 1)[0].strip()
+                    if len(first_line) > 3:
+                        detected_lang = first_line[3:].strip()
+                        if detected_lang:
+                            language = detected_lang
+                            # Remove the language specification line from the code
+                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
+                    
+                    # Remove trailing backticks if present
+                    if code_to_display.endswith('```'):
+                        code_to_display = code_to_display.rsplit('```', 1)[0]
+                
+                widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
+                    widget=prism_widget,
                     steps=steps
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
+                )
+                
+                response = HTMLResponse(
+                    to_xml(
+                        Div(
+                            content_container,
+                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                            id=step_id
+                        )
+                    )
+                )
+                
+                # Add HX-Trigger to initialize Prism highlighting
+                response.headers["HX-Trigger"] = json.dumps({
+                    "initializePrism": {
+                        "targetId": widget_id
+                    }
+                })
+                
+                return response
+            except Exception as e:
+                # If there's an error creating the widget, revert to input form
+                logging.error(f"Error creating Prism widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
         
-        # Show input form with just a Proceed button
-        await self.message_queue.add(pip, f"{step.show}: Please proceed.", verbatim=True)
+        # Show input form - provide a default JavaScript code example
+        default_code = """// Example JavaScript for Parameter Buster
+function analyzeParameters(url) {
+    const urlObj = new URL(url);
+    const params = new URLSearchParams(urlObj.search);
+    const results = {};
+    
+    // Count parameters
+    results.paramCount = params.size;
+    
+    // List all parameters
+    results.paramList = [];
+    for (const [key, value] of params.entries()) {
+        results.paramList.push({
+            name: key,
+            value: value,
+            length: value.length
+        });
+    }
+    
+    return results;
+}
+
+// Usage example
+const testUrl = "https://example.com/page?id=123&source=google&campaign=spring2023";
+console.log(analyzeParameters(testUrl));"""
+
+        display_value = user_val if step.refill and user_val else default_code
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
         return Div(
             Card(
-                H3(f"{step.show}"),
-                P("This is a placeholder step. Click Proceed to continue."),
+                H3(f"{pip.fmt(step_id)}: {step.show}"),
+                P("Enter code to be highlighted with syntax coloring."),
+                P("You can prefix your code with ```language to specify a language (e.g. ```python).",
+                  style="font-size: 0.8em; font-style: italic;"),
                 Form(
-                    Button("Proceed", type="submit", cls="primary"),
-                    hx_post=f"/{app_name}/{step_id}_submit", 
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter code for syntax highlighting",
+                            required=True,
+                            rows=15,
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Submit", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
                     hx_target=f"#{step_id}"
                 )
             ),
@@ -1318,7 +1456,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_06_submit(self, request):
-        """Process the submission for placeholder Step 6."""
+        """Process the submission for the code syntax highlighting step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
@@ -1326,21 +1464,72 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
 
-        # Use fixed value for placeholder - IMPORTANT: Use step.done to match the field name
-        await pip.update_step_state(pipeline_id, step_id, "completed", steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "")
+
+        # Check if user specified a language in format: ```language\ncode```
+        language = 'javascript'  # Default language
+        code_to_display = user_val
         
-        # Return with revert control and chain reaction to next step
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: Complete",
-                steps=steps
-            ),
+        if user_val.startswith('```'):
+            # Try to extract language from markdown-style code block
+            first_line = user_val.split('\n', 1)[0].strip()
+            if len(first_line) > 3:
+                detected_lang = first_line[3:].strip()
+                if detected_lang:
+                    language = detected_lang
+                    # Remove the language specification line from the code
+                    code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
+            
+            # Remove trailing backticks if present
+            if code_to_display.endswith('```'):
+                code_to_display = code_to_display.rsplit('```', 1)[0]
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        # Save the value to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        
+        # Generate unique widget ID for this step and pipeline
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        
+        # Use the helper method to create a prism widget with detected language
+        prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
+        
+        # Create content container with the prism widget and initialization
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
+            widget=prism_widget,
+            steps=steps
+        )
+        
+        # Create full response structure
+        response_content = Div(
+            content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
+        
+        # Create an HTMLResponse with the content
+        response = HTMLResponse(to_xml(response_content))
+        
+        # Add HX-Trigger header to initialize Prism highlighting
+        response.headers["HX-Trigger"] = json.dumps({
+            "initializePrism": {
+                "targetId": widget_id
+            }
+        })
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"{step.show} complete. Code syntax highlighted with {language}.", verbatim=True)
+        
+        return response
 
     # --- Helper Methods ---
     
@@ -2895,3 +3084,64 @@ class ParameterBusterWorkflow:
         except Exception as e:
             logging.error(f"An unexpected error occurred loading the cache: {e}")
             return None
+
+    def create_prism_widget(self, code, widget_id, language='javascript'):
+        """Create a Prism.js syntax highlighting widget with copy functionality.
+        
+        Args:
+            code (str): The code to highlight
+            widget_id (str): Unique ID for the widget
+            language (str): The programming language for syntax highlighting (default: javascript)
+        """
+        # Generate a unique ID for the hidden textarea
+        textarea_id = f"{widget_id}_raw_code"
+        
+        # Create container for the widget
+        container = Div(
+            Div(
+                H5("Syntax Highlighted Code:"),
+                # Add a hidden textarea to hold the raw code (much safer than trying to escape it for JS)
+                Textarea(
+                    code,
+                    id=textarea_id,
+                    style="display: none;"  # Hide the textarea
+                ),
+                # This pre/code structure is required for Prism.js
+                Pre(
+                    Code(
+                        code,
+                        cls=f"language-{language}"  # Language class for Prism
+                    ),
+                    cls="line-numbers"  # Enable line numbers
+                ),
+                style="margin-top: 1rem;"
+            ),
+            id=widget_id
+        )
+        
+        # Create script to initialize Prism with debugging
+        init_script = Script(
+            f"""
+            (function() {{
+                console.log('Prism widget loaded, ID: {widget_id}');
+                // Check if Prism is loaded
+                if (typeof Prism === 'undefined') {{
+                    console.error('Prism library not found');
+                    return;
+                }}
+                
+                // Attempt to manually trigger highlighting
+                setTimeout(function() {{
+                    try {{
+                        console.log('Manually triggering Prism highlighting for {widget_id}');
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }} catch(e) {{
+                        console.error('Error during manual Prism highlighting:', e);
+                    }}
+                }}, 300);
+            }})();
+            """,
+            type="text/javascript"
+        )
+        
+        return Div(container, init_script)
