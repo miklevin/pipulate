@@ -923,6 +923,17 @@ class ParameterBusterWorkflow:
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
         
+        # Get analysis data from step_02
+        analysis_step_id = "step_02"
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_data_str = analysis_step_data.get("analysis_selection", "")
+        
+        if not analysis_data_str:
+            return P("Error: Analysis data not found. Please complete step 2 first.", style=pip.get_style("error"))
+        
+        analysis_data = json.loads(analysis_data_str)
+        analysis_slug = analysis_data.get("analysis_slug", "")
+        
         # Do the actual check
         has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
         
@@ -951,57 +962,91 @@ class ParameterBusterWorkflow:
         import asyncio
         
         if has_search_console:
-            # Note that we're no longer trying to return an immediate response
-            # Instead, we'll just simulate the process with messaging and then return at the end
+            # Determine file path for this export
+            gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, "gsc")
             
-            # Send immediate message
-            await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
-            await asyncio.sleep(1.0)  # Wait 1 second
+            # Check if file already exists
+            file_exists, file_info = await self.check_file_exists(gsc_filepath)
             
-            # Export initiated message
-            await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
-            await asyncio.sleep(1.0)  # Wait 1 second
-            
-            # Start polling message
-            await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
-            
-            # Simulate polling process (3 iterations for demo)
-            for i in range(3):
-                await asyncio.sleep(2.0)  # Wait 2 seconds between polls
-                await self.message_queue.add(pip, f"🔄 Still waiting for export... (poll {i+1}/3)", verbatim=True)
-            
-            # Export ready message
-            await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
-            await asyncio.sleep(1.0)  # Wait 1 second
-            
-            # Downloading message
-            await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
-            await asyncio.sleep(2.0)  # Wait 2 seconds
-            
-            # Download complete message
-            await self.message_queue.add(pip, "✓ Download complete, extracting data...", verbatim=True)
-            await asyncio.sleep(1.0)  # Wait 1 second
-            
-            # Processing complete message
-            await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
-            
-            # Create downloadable data directory info for storage
-            download_info = {
-                "has_file": True,
-                "file_path": f"data/{username}/{project_name}/search_console_data.csv",
-                "timestamp": datetime.now().isoformat(),
-                "size": "1.2MB"  # Simulated file size
-            }
-            
-            # Update the check result to include download info
-            check_result.update({
-                "download_complete": True,
-                "download_info": download_info
-            })
+            if file_exists:
+                # File already exists, skip the export
+                await self.message_queue.add(pip, f"✓ Found existing Search Console data from {file_info['created']}", verbatim=True)
+                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                
+                # Update check result with existing file info
+                check_result.update({
+                    "download_complete": True,
+                    "download_info": {
+                        "has_file": True,
+                        "file_path": gsc_filepath,
+                        "timestamp": file_info['created'],
+                        "size": file_info['size'],
+                        "cached": True
+                    }
+                })
+            else:
+                # Need to do the export and download
+                await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
+                await asyncio.sleep(1.0)  # Wait 1 second
+                
+                # Export initiated message
+                await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
+                await asyncio.sleep(1.0)  # Wait 1 second
+                
+                # Start polling message
+                await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+                
+                # Simulate polling process (3 iterations for demo)
+                for i in range(3):
+                    await asyncio.sleep(2.0)  # Wait 2 seconds between polls
+                    await self.message_queue.add(pip, f"🔄 Still waiting for export... (poll {i+1}/3)", verbatim=True)
+                
+                # Export ready message
+                await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+                await asyncio.sleep(1.0)  # Wait 1 second
+                
+                # Downloading message
+                await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
+                await asyncio.sleep(2.0)  # Wait 2 seconds
+                
+                # Create directory and simulate file creation
+                await self.ensure_directory_exists(gsc_filepath)
+                
+                # Create a demo CSV file
+                with open(gsc_filepath, "w") as f:
+                    f.write("page,impressions,clicks,ctr,position\n")
+                    f.write("https://example.com/,1000,50,5.0,12.3\n")
+                    f.write("https://example.com/page1,500,25,5.0,10.1\n")
+                    f.write("https://example.com/page2,250,10,4.0,15.7\n")
+                
+                # Get info about the created file
+                _, file_info = await self.check_file_exists(gsc_filepath)
+                
+                # Download complete message
+                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                await asyncio.sleep(1.0)  # Wait 1 second
+                
+                # Create downloadable data directory info for storage
+                download_info = {
+                    "has_file": True,
+                    "file_path": gsc_filepath,
+                    "timestamp": file_info['created'],
+                    "size": file_info['size'],
+                    "cached": False
+                }
+                
+                # Update the check result to include download info
+                check_result.update({
+                    "download_complete": True,
+                    "download_info": download_info
+                })
             
             # Update state with download info
             check_result_str = json.dumps(check_result)
             await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            
+            # Final processing message
+            await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
         
         # Final success message
         completed_message = "Download completed successfully!" if has_search_console else "No Search Console data available (skipping download)"
@@ -1308,3 +1353,76 @@ class ParameterBusterWorkflow:
             return token
         except Exception:
             return None
+
+    async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type):
+        """Generate a deterministic file path for a given data export.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            data_type: Type of data (crawl, weblog, gsc)
+            
+        Returns:
+            String path to the file location
+        """
+        # Create base directory path
+        base_dir = f"downloads/{username}/{project_name}/{analysis_slug}"
+        
+        # Map data types to filenames
+        filenames = {
+            "crawl": "crawl.csv",
+            "weblog": "weblog.csv", 
+            "gsc": "gsc.csv"
+        }
+        
+        if data_type not in filenames:
+            raise ValueError(f"Unknown data type: {data_type}")
+        
+        # Get the filename for this data type
+        filename = filenames[data_type]
+        
+        # Return the full path
+        return f"{base_dir}/{filename}"
+
+    async def check_file_exists(self, filepath):
+        """Check if a file exists and is non-empty.
+        
+        Args:
+            filepath: Path to check
+            
+        Returns:
+            (bool, dict): Tuple of (exists, file_info)
+        """
+        import os
+        import time
+        
+        # Check if the file exists
+        if not os.path.exists(filepath):
+            return False, {}
+        
+        # Get file stats
+        stats = os.stat(filepath)
+        
+        # Only consider it valid if it has content
+        if stats.st_size == 0:
+            return False, {}
+        
+        # Return file info
+        file_info = {
+            "path": filepath,
+            "size": f"{stats.st_size / 1024:.1f} KB",
+            "created": time.ctime(stats.st_ctime)
+        }
+        
+        return True, file_info
+
+    async def ensure_directory_exists(self, filepath):
+        """Ensure the directory for a file exists.
+        
+        Args:
+            filepath: Path to the file
+        """
+        import os
+        directory = os.path.dirname(filepath)
+        os.makedirs(directory, exist_ok=True)
