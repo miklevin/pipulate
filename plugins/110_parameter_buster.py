@@ -1512,6 +1512,11 @@ class ParameterBusterWorkflow:
                     
                     # Download complete message
                     await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+
+                    # Load into DataFrame skipping first row to chop off sep=,
+                    df = pd.read_csv(gsc_filepath, skiprows=1)
+                    # Save right back out with no index
+                    df.to_csv(gsc_filepath, index=False)
                     
                     # Create downloadable data directory info for storage
                     download_info = {
