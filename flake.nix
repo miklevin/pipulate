@@ -138,6 +138,8 @@
           cat << EOF > .venv/bin/run-server
           #!/bin/sh
           echo "Starting $APP_NAME server..."
+          # Kill any running server instances first
+          pkill -f "python server.py" || true
           python server.py
           EOF
           chmod +x .venv/bin/run-server
@@ -175,6 +177,9 @@
           
           # Kill existing tmux sessions
           tmux kill-session -t jupyter 2>/dev/null || true
+          
+          # Kill any running server instances
+          pkill -f "python server.py" || true
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
@@ -229,6 +234,9 @@
             echo -n "."
           done
           
+          # Kill any running server instances
+          pkill -f "python server.py" || true
+          
           # Start the server in foreground
           echo "Starting $APP_NAME server in the foreground..."
           echo "Press Ctrl+C to stop the server."
@@ -270,6 +278,9 @@
           default = pkgs.mkShell {
             buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
             shellHook = ''
+              # Kill any running server instances first
+              pkill -f "python server.py" || true
+              
               ${baseEnvSetup pkgs}
               
               # Set up CUDA if available (with output)
@@ -288,6 +299,9 @@
           quiet = pkgs.mkShell {
             buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
             shellHook = ''
+              # Kill any running server instances first
+              pkill -f "python server.py" || true
+              
               ${baseEnvSetup pkgs}
               # Minimal confirmation, can be removed for zero output
               echo "Quiet Nix environment activated."
