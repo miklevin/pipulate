@@ -51,6 +51,12 @@ class ParameterBusterWorkflow:
                 refill=True,                  # Allow refilling for better UX
             ),
             Step(
+                id='step_new',                # Changed from step_01_5 to step_new
+                done='placeholder',           # Simple placeholder data field
+                show='Project Details',       # User-friendly display name
+                refill=False,                 # No need to refill this placeholder
+            ),
+            Step(
                 id='step_02',
                 done='weblogs_check',         # Store the check result
                 show='Check Web Logs',        # User-friendly name
@@ -103,6 +109,10 @@ class ParameterBusterWorkflow:
             "finalize": {
                 "ready": "All steps complete. Ready to finalize workflow.",
                 "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_new": {  # Updated from step_01_5
+                "input": f"{pip.fmt('step_new')}: Project details.",
+                "complete": "Project details reviewed. Continue to next step."
             }
         }
 
@@ -430,6 +440,118 @@ class ParameterBusterWorkflow:
                 step_id=step_id, 
                 app_name=app_name, 
                 message=f"{step.show}: {project_url}",
+                steps=steps
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    async def step_new(self, request):
+        """Handles GET request for placeholder step between steps 1 and 2."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_new"  # Updated from step_01_5
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")  # Get the value
+
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            # Display for finalized state
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P(f"Project: {project_name}", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Display for completed state
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {project_name}",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Display input form with just a Proceed button
+            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
+                                    f"Project details for {project_name}"), 
+                                    verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P(f"Project: {project_name}"),
+                    P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
+                    Form(
+                        Button("Continue", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),  # Empty div for next step - will be populated via chain reaction
+                id=step_id
+            )
+
+    async def step_new_submit(self, request):
+        """Process the submission for placeholder step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_new"  # Updated from step_01_5
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+
+        # Use fixed value for placeholder
+        placeholder_value = "acknowledged"
+
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete: {project_name}", verbatim=True)
+        
+        # Return with revert control and chain reaction to next step
+        return Div(
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {project_name}",
                 steps=steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
