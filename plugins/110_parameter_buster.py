@@ -51,13 +51,13 @@ class ParameterBusterWorkflow:
                 refill=True,                  # Allow refilling for better UX
             ),
             Step(
-                id='step_new',
+                id='step_02',                 # Changed from step_new to step_02
                 done='analysis_selection',    # Updated from 'placeholder' to be more meaningful
                 show='Select Analysis',       # Changed from 'Project Details' to match functionality
                 refill=False,
             ),
             Step(
-                id='step_03',                 # Changed from step_02 to step_03
+                id='step_03',                 
                 done='weblogs_check',         # Store the check result
                 show='Check Web Logs',        # User-friendly name
                 refill=False,
@@ -104,8 +104,8 @@ class ParameterBusterWorkflow:
                 "ready": "All steps complete. Ready to finalize workflow.",
                 "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             },
-            "step_new": {
-                "input": f"{pip.fmt('step_new')}: Please select an analysis for this project.",
+            "step_02": {                      # Changed from step_new to step_02
+                "input": f"{pip.fmt('step_02')}: Please select an analysis for this project.",
                 "complete": "Analysis selection complete. Continue to next step."
             }
         }
@@ -451,10 +451,10 @@ class ParameterBusterWorkflow:
             id=step_id
         )
 
-    async def step_new(self, request):
+    async def step_02(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_new"
+        step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -568,10 +568,10 @@ class ParameterBusterWorkflow:
             logging.exception(f"Error in {step_id}: {e}")
             return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
-    async def step_new_submit(self, request):
-        """Process the selected analysis slug for step_new."""
+    async def step_02_submit(self, request):
+        """Process the selected analysis slug for step_02."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_new"
+        step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
