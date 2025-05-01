@@ -879,7 +879,48 @@ class ParameterBusterWorkflow:
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
         
-        # Perform the check for search console data
+        # First, show a visual progress indicator
+        # We'll simply return the progress UI directly instead of trying to use Response
+        return Card(
+            H3(f"{step.show}"),
+            P(f"Checking if project '{project_name}' has Search Console data..."),
+            Progress(style="margin-top: 10px;"),  # Indeterminate progress bar
+            
+            # Add a script that will check again after a delay
+            Script("""
+            setTimeout(function() {
+                htmx.ajax('POST', '""" + f"/{app_name}/{step_id}_complete" + """', {
+                    target: '#""" + step_id + """',
+                    values: { 'delay_complete': 'true' }
+                });
+            }, 1500);
+            """),
+            id=step_id
+        )
+
+    async def step_04_complete(self, request):
+        """Handles completion after the progress indicator has been shown."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_04"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Get project data from step_01
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
+        
+        # Do the actual check
         has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
         
         if error_message:
@@ -903,7 +944,7 @@ class ParameterBusterWorkflow:
         status_text = "HAS" if has_search_console else "does NOT have"
         await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} Search Console data", verbatim=True)
         
-        # Return result display
+        # Return the completed display
         status_color = "green" if has_search_console else "red"
         
         return Div(
