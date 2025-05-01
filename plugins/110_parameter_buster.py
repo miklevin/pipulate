@@ -93,6 +93,9 @@ class ParameterBusterWorkflow:
             routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
             routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
 
+        # Add the step_04_complete route
+        routes.append((f"/{app_name}/step_04_complete", self.step_04_complete, ["POST"]))
+
         # Register all routes with the FastHTML app
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
