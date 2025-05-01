@@ -12,6 +12,7 @@ import zipfile
 import socket
 import gzip
 import shutil
+import pandas as pd
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -1389,7 +1390,7 @@ class ParameterBusterWorkflow:
                 start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
                 
                 # Build BQLv2 export query
-                export_query = await self.build_search_console_exports(
+                export_query = await self.build_exports(
                     username, 
                     project_name, 
                     analysis_slug, 
@@ -1552,7 +1553,7 @@ class ParameterBusterWorkflow:
             # Add error message to queue
             await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
 
-    async def build_search_console_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
+    async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
         """Builds BQLv2 query objects and export job payloads."""
         
         if data_type == 'gsc':
