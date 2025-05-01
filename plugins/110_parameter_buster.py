@@ -662,7 +662,7 @@ class ParameterBusterWorkflow:
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime("%Y-%m-%d")
                 period_end = analysis_date_obj.strftime("%Y-%m-%d")
 
-                # Build BQLv2 export query with required metrics field
+                # Build simpler BQLv2 export query - just get basic data first
                 export_query = {
                     "job_type": "export",
                     "payload": {
@@ -671,7 +671,6 @@ class ParameterBusterWorkflow:
                         "connector": "direct_download",
                         "formatter": "csv",
                         "export_size": 10000,
-                        # Updated query with required metrics
                         "query": {
                             "collections": [
                                 f"crawl.{analysis_slug}"
@@ -763,44 +762,14 @@ class ParameterBusterWorkflow:
                 # Make sure target directory exists
                 await self.ensure_directory_exists(crawl_filepath)
                 
-                # Download the zip file to a temporary location
-                import os
-                import zipfile
-                
-                zip_path = f"{crawl_filepath}.zip"
+                # Download directly to the CSV file (don't assume it's zipped)
                 try:
                     async with httpx.AsyncClient() as client:
                         async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
                             response.raise_for_status()
-                            with open(zip_path, 'wb') as f:
+                            with open(crawl_filepath, 'wb') as f:
                                 async for chunk in response.aiter_bytes():
                                     f.write(chunk)
-                    
-                    # Extract the CSV from the zip
-                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        # Get the CSV file name (should be the only file or first file)
-                        csv_name = None
-                        for name in zip_ref.namelist():
-                            if name.endswith('.csv'):
-                                csv_name = name
-                                break
-                        
-                        if not csv_name:
-                            raise ValueError("No CSV file found in the downloaded zip")
-                        
-                        # Extract and rename to our target path
-                        zip_ref.extract(csv_name, os.path.dirname(crawl_filepath))
-                        extracted_path = os.path.join(os.path.dirname(crawl_filepath), csv_name)
-                        
-                        # Rename to our standardized file name if needed
-                        if extracted_path != crawl_filepath:
-                            if os.path.exists(crawl_filepath):
-                                os.remove(crawl_filepath)
-                            os.rename(extracted_path, crawl_filepath)
-                    
-                    # Clean up the zip file
-                    if os.path.exists(zip_path):
-                        os.remove(zip_path)
                     
                     # Get info about the created file
                     _, file_info = await self.check_file_exists(crawl_filepath)
@@ -824,7 +793,7 @@ class ParameterBusterWorkflow:
                     })
                     
                 except Exception as e:
-                    await self.message_queue.add(pip, f"❌ Error downloading or extracting file: {str(e)}", verbatim=True)
+                    await self.message_queue.add(pip, f"❌ Error downloading file: {str(e)}", verbatim=True)
                     raise
             
             # Final message for completed download
