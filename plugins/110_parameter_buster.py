@@ -88,6 +88,12 @@ class ParameterBusterWorkflow:
                 show='Generate Optimization',
                 refill=False,
             ),
+            Step(
+                id='step_06',                # New placeholder step
+                done='placeholder',           # Simple state field name
+                show='Placeholder Step 6',    # Descriptive UI text
+                refill=False,                 # Use False for strict forward-only flow
+            ),
         ]
         
         # Register standard workflow routes
@@ -98,6 +104,8 @@ class ParameterBusterWorkflow:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            (f"/{app_name}/step_06", self.step_06),  # Register route for step_06
+            (f"/{app_name}/step_06_submit", self.step_06_submit, ["POST"]),  # Register submit route
         ]
 
         # Register routes for each step
@@ -1078,6 +1086,74 @@ class ParameterBusterWorkflow:
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # Return with revert control and chain reaction to next step (finalize)
+        return Div(
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: Complete",
+                steps=steps
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    async def step_06(self, request):
+        """Handles GET request for the placeholder Step 6."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_06"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and step_data.get(step.done):
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P("This step has been completed.")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        # Show input form with just a Proceed button
+        await self.message_queue.add(pip, f"{step.show}: Please proceed.", verbatim=True)
+        
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                P("This is a placeholder step. Click Proceed to continue."),
+                Form(
+                    Button("Proceed", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/{step_id}_submit", 
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),  # Note: No hx_trigger="load" here to prevent auto-progression
+            id=step_id
+        )
+
+    async def step_06_submit(self, request):
+        """Process the submission for placeholder Step 6."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_06"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Use fixed value for placeholder
+        placeholder_value = "completed"
+
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)  # Ensure this updates the correct field
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return with revert control and chain reaction to next step
         return Div(
             pip.revert_control(
                 step_id=step_id, 
