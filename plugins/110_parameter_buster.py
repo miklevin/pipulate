@@ -57,7 +57,7 @@ class ParameterBusterWorkflow:
                 refill=False,
             ),
             Step(
-                id='step_02',
+                id='step_03',                 # Changed from step_02 to step_03
                 done='weblogs_check',         # Store the check result
                 show='Check Web Logs',        # User-friendly name
                 refill=False,
@@ -124,9 +124,19 @@ class ParameterBusterWorkflow:
             "complete": "Search Console check complete. Continue to next step."
         }
 
+        # Add specific message for step_03 (Check Web Logs)
+        self.step_messages["step_03"] = {
+            "input": f"{pip.fmt('step_03')}: Please check if the project has web logs available.",
+            "complete": "Web logs check complete. Continue to next step."
+        }
+
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+        # Make sure we don't have a step_02 message that conflicts with our renamed step
+        if "step_02" in self.step_messages:
+            del self.step_messages["step_02"]
 
     # --- Core Workflow Engine Methods ---
 
@@ -566,6 +576,11 @@ class ParameterBusterWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # The critical part is that we're not changing the code that determines next_step_id
+        # It's automatically calculated as:
+        # next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        # This will now correctly point to step_03 since that's the next step in the steps list
 
         # Get project data from previous step
         prev_step_id = "step_01"
@@ -616,10 +631,10 @@ class ParameterBusterWorkflow:
             id=step_id
         )
 
-    async def step_02(self, request):
+    async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_02"
+        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -701,10 +716,10 @@ class ParameterBusterWorkflow:
                 id=step_id
             )
 
-    async def step_02_submit(self, request):
+    async def step_03_submit(self, request):
         """Process the check for Botify web logs."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_02"
+        step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
