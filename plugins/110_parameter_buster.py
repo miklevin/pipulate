@@ -662,7 +662,7 @@ class ParameterBusterWorkflow:
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime("%Y-%m-%d")
                 period_end = analysis_date_obj.strftime("%Y-%m-%d")
 
-                # Build simpler BQLv2 export query - just get basic data first
+                # Build simplest BQLv2 export query that worked earlier
                 export_query = {
                     "job_type": "export",
                     "payload": {
@@ -681,7 +681,12 @@ class ParameterBusterWorkflow:
                                 ],
                                 "metrics": [
                                     {"function": "count", "args": [f"crawl.{analysis_slug}.url"]}
-                                ]
+                                ],
+                                # Just add the first filter condition as a test
+                                "filters": {
+                                    "field": f"crawl.{analysis_slug}.compliant.is_compliant",
+                                    "value": False
+                                }
                             }
                         }
                     }
