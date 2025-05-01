@@ -1,7 +1,7 @@
 import asyncio
-from collections import namedtuple
+from collections import namedtuple, Counter
 from datetime import datetime, timedelta
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import httpx
 import json
 import re
@@ -13,6 +13,8 @@ import socket
 import gzip
 import shutil
 import pandas as pd
+import pickle
+from pathlib import Path
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -2522,3 +2524,212 @@ class ParameterBusterWorkflow:
             
             # Return error message
             return P(f"Error: {str(e)}", style=pip.get_style("error"))
+
+    async def analyze_parameters(self, username, project_name, analysis_slug):
+        """Analyzes URL parameters from crawl, GSC, and web logs data.
+        
+        Args:
+            username: Organization username
+            project_name: Project name
+            analysis_slug: Analysis slug
+            
+        Returns:
+            Dictionary containing analysis results and cache data
+        """
+        # Get base directory path for this analysis
+        base_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
+        data_dir = Path(base_dir)
+        
+        # Define cache filename
+        cache_filename = "_param_scores_cache.pkl"
+        
+        # Try to load from cache first
+        logging.info("Attempting to load scores from cache...")
+        cached_scores_data = self.load_parameter_scores_from_cache(data_dir, cache_filename)
+        
+        if cached_scores_data is None:
+            logging.info("Cache not found or invalid, calculating scores from source files...")
+            scores_data = await self.calculate_and_cache_parameter_scores(
+                data_directory_path=data_dir,
+                cache_filename=cache_filename
+            )
+            if scores_data is None:
+                raise ValueError("Failed to calculate scores from source files")
+        else:
+            logging.info("Using cached scores data")
+            scores_data = cached_scores_data
+            
+        return scores_data
+
+    def load_csv_with_optional_skip(self, file_path):
+        """Loads a CSV file, handles 'sep=', errors gracefully."""
+        critical_columns = ['Full URL', 'URL']
+        try:
+            with open(file_path, "r", encoding='utf-8', errors='ignore') as f:
+                first_line = f.readline()
+            skip_rows = 1 if first_line.startswith("sep=") else 0
+            df = pd.read_csv(file_path, skiprows=skip_rows, on_bad_lines='warn', low_memory=False)
+            if not any(col in df.columns for col in critical_columns):
+                logging.warning(f"File {Path(file_path).name} loaded, but missing expected URL column ('Full URL' or 'URL').")
+                return pd.DataFrame({'URL': []})
+            return df
+        except Exception as e:
+            logging.error(f"Error loading CSV {Path(file_path).name}: {e}")
+            return pd.DataFrame({'URL': []})
+
+    def extract_query_params(self, url):
+        """Extracts query parameter keys from a URL string."""
+        if not isinstance(url, str): return []
+        try:
+            if url.startswith('//'): url = 'http:' + url
+            parsed = urlparse(url)
+            if not parsed.query: return []
+            params_dict = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=False, errors='ignore')
+            return list(params_dict.keys())
+        except ValueError: return []
+
+    def count_query_params(self, df, col_name_priority=["Full URL", "URL"]):
+        """Counts query parameters from the first valid URL column found in a DataFrame."""
+        counter = Counter()
+        url_col = next((col for col in col_name_priority if col in df.columns), None)
+        if url_col is None:
+            return counter
+        url_series = df[url_col].astype(str).dropna()
+        for url in url_series:
+            counter.update(self.extract_query_params(url))
+        return counter
+
+    async def calculate_and_cache_parameter_scores(
+        self,
+        data_directory_path,
+        logs_filename="weblogs.csv",
+        gsc_filename="gsc.csv",
+        crawl_filename="crawl.csv",
+        url_column_priority=["Full URL", "URL"],
+        cache_filename="_param_scores_cache.pkl"
+    ):
+        """Calculates and caches parameter scores from data files."""
+        data_dir = Path(data_directory_path)
+        if not data_dir.is_dir():
+            logging.error(f"Provided data directory path is not valid: {data_directory_path}")
+            return None
+
+        # Construct full paths
+        crawl_file_path = data_dir / crawl_filename
+        gsc_file_path = data_dir / gsc_filename
+        logs_file_path = data_dir / logs_filename
+
+        # Validate and Load Data
+        required_files_info = {crawl_filename: crawl_file_path, gsc_filename: gsc_file_path}
+        loaded_dfs = {}
+        logging.info(f"Loading data from directory: {data_directory_path}")
+        
+        for name, path in required_files_info.items():
+            logging.info(f"Loading: {name} (Required)")
+            if not path.is_file():
+                logging.error(f"Required file not found: {path}")
+                return None
+            df = self.load_csv_with_optional_skip(str(path))
+            if not any(col in df.columns for col in url_column_priority):
+                logging.error(f"No usable URL column in {name}")
+                return None
+            loaded_dfs[name] = df
+
+        # Handle optional web logs
+        df_weblogs = pd.DataFrame()
+        logs_status = "Not Found / Not Used"
+        if logs_file_path.is_file():
+            logging.info(f"Loading: {logs_filename} (Optional)")
+            df_weblogs = self.load_csv_with_optional_skip(str(logs_file_path))
+            if any(col in df_weblogs.columns for col in url_column_priority):
+                logs_status = "Loaded"
+                loaded_dfs[logs_filename] = df_weblogs
+            else:
+                logs_status = "Loaded but No URL Column"
+                df_weblogs = pd.DataFrame()
+        else:
+            logging.info(f"Optional file '{logs_filename}' not found.")
+
+        # Count Parameters
+        logging.info("Counting parameters...")
+        counter_crawl = self.count_query_params(loaded_dfs[crawl_filename], url_column_priority)
+        counter_gsc = self.count_query_params(loaded_dfs[gsc_filename], url_column_priority)
+        counter_weblogs = Counter()
+        if logs_status == "Loaded":
+            counter_weblogs = self.count_query_params(loaded_dfs[logs_filename], url_column_priority)
+
+        # Calculate Derived Scores
+        logging.info("Calculating parameter scores...")
+        all_params = set(counter_weblogs.keys()) | set(counter_crawl.keys())
+        if not all_params:
+            logging.warning("No parameters found in Weblogs or Crawl data to score.")
+            results_sorted = []
+        else:
+            results = []
+            for param in all_params:
+                wb_count = counter_weblogs.get(param, 0)
+                crawl_count = counter_crawl.get(param, 0)
+                gsc_count = counter_gsc.get(param, 0)
+                total_count = wb_count + crawl_count
+                score = total_count / (gsc_count + 1)
+                results.append((param, wb_count, crawl_count, gsc_count, total_count, score))
+            results_sorted = sorted(results, key=lambda x: x[5], reverse=True)
+
+        # Prepare Cache Data
+        cache_data = {
+            'results_sorted': results_sorted,
+            'counters': {
+                'weblogs': counter_weblogs,
+                'crawl': counter_crawl,
+                'gsc': counter_gsc
+            },
+            'metadata': {
+                'data_directory_path': str(data_dir),
+                'logs_filename': logs_filename,
+                'gsc_filename': gsc_filename,
+                'crawl_filename': crawl_filename,
+                'logs_status': logs_status,
+                'cache_timestamp': time.time()
+            }
+        }
+
+        # Save to Cache
+        cache_file_path = data_dir / cache_filename
+        logging.info(f"Saving scores and counters to cache file: {cache_file_path}")
+        try:
+            with open(cache_file_path, 'wb') as f:
+                pickle.dump(cache_data, f)
+            logging.info("Cache saved successfully.")
+        except Exception as e:
+            logging.error(f"Error saving cache file: {e}")
+
+        return cache_data
+
+    def load_parameter_scores_from_cache(self, data_directory_path, cache_filename="_param_scores_cache.pkl"):
+        """Loads scored parameter data from cache file."""
+        data_dir = Path(data_directory_path)
+        cache_file_path = data_dir / cache_filename
+
+        if not cache_file_path.is_file():
+            logging.info(f"Cache file not found at: {cache_file_path}")
+            return None
+
+        logging.info(f"Attempting to load scores data from cache: {cache_file_path}")
+        try:
+            with open(cache_file_path, 'rb') as f:
+                cache_data = pickle.load(f)
+            if (isinstance(cache_data, dict) and
+                'results_sorted' in cache_data and
+                'counters' in cache_data and
+                'metadata' in cache_data):
+                logging.info("Score cache loaded successfully.")
+                return cache_data
+            else:
+                logging.error("Invalid cache file format (missing 'results_sorted'?).")
+                return None
+        except (pickle.UnpicklingError, EOFError) as e:
+            logging.error(f"Error loading cache file (it might be corrupted): {e}")
+            return None
+        except Exception as e:
+            logging.error(f"An unexpected error occurred loading the cache: {e}")
+            return None
