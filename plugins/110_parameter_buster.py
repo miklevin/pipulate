@@ -58,18 +58,18 @@ class ParameterBusterWorkflow:
             ),
             Step(
                 id='step_03',
-                done='placeholder',           # Simple placeholder field
-                show='Parameter Settings',    # User-friendly name
+                done='search_console_check',  # Store the Search Console check result
+                show='Check Search Console',  # User-friendly name
                 refill=False,
             ),
             Step(
-                id='step_04',                 # Renamed from step_03
+                id='step_04',
                 done='analysis_check',        # Store the analysis slug
                 show='Analysis',              # Updated name from "Get Latest Analysis"
                 refill=False,
             ),
             Step(
-                id='step_05',                 # Renamed from step_04
+                id='step_05',
                 done='placeholder',
                 show='Third CSV Export',
                 refill=False,
@@ -113,10 +113,10 @@ class ParameterBusterWorkflow:
                 "complete": f"{step.show} complete. Continue to next step."
             }
 
-        # Add specific message for the new step (optional)
+        # Add specific message for the search console check step
         self.step_messages["step_03"] = {
-            "input": f"{pip.fmt('step_03')}: Configure your parameter settings.",
-            "complete": "Parameter settings completed. Continue to next step."
+            "input": f"{pip.fmt('step_03')}: Please check if the project has Search Console data.",
+            "complete": "Search Console check complete. Continue to next step."
         }
 
         # Add the finalize step internally
@@ -582,7 +582,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_03(self, request):
-        """Handles GET request for Parameter Settings placeholder step."""
+        """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -591,54 +591,83 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        
+        # Get the check result if already completed
+        import json
+        check_result_str = step_data.get(step.done, "")
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        
+        # Get project data from step_01
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Display for finalized state
+        if "finalized" in finalize_data and check_result:
+            # Show finalized state with check result
+            has_search_console = check_result.get("has_search_console", False)
+            status_text = "HAS Search Console data" if has_search_console else "does NOT have Search Console data"
+            status_color = "green" if has_search_console else "red"
+            
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Parameter settings completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
+                    Div(
+                        P(f"Project {project_name}", style="margin-bottom: 5px;"),
+                        P(f"Status: Project {status_text}", style=f"color: {status_color}; font-weight: bold;"),
+                        style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+        
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Display for completed state
+        if check_result and state.get("_revert_target") != step_id:
+            # Show completed state with check result
+            has_search_console = check_result.get("has_search_console", False)
+            status_text = "HAS Search Console data" if has_search_console else "does NOT have Search Console data"
+            status_color = "green" if has_search_console else "red"
+            
             return Div(
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: Complete",
+                    message=f"{step.show}: Project {status_text}",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # Display input form with just a Proceed button
+            # Show form to run the check
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("Configure parameter settings for optimization:"),
+                    P(f"Check if project '{project_name}' has Search Console data available"),
+                    P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Run Check", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # Empty div for next step - will be populated via chain reaction
+                Div(id=next_step_id),  # Empty div for next step
                 id=step_id
             )
 
     async def step_03_submit(self, request):
-        """Process the submission for Parameter Settings placeholder step."""
+        """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -646,19 +675,51 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Use fixed value for placeholder
-        placeholder_value = "completed"
-
-        # Store in state
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
         
-        # Return with revert control and chain reaction to next step
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
+        
+        # Perform the check for search console data
+        has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
+        
+        if error_message:
+            return P(f"Error: {error_message}", style=pip.get_style("error"))
+        
+        # Store the check result
+        check_result = {
+            "has_search_console": has_search_console,
+            "project": project_name,
+            "username": username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Convert to JSON for storage
+        check_result_str = json.dumps(check_result)
+        
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+        
+        # Add message
+        status_text = "HAS" if has_search_console else "does NOT have"
+        await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} Search Console data", verbatim=True)
+        
+        # Return result display
+        status_color = "green" if has_search_console else "red"
+        
         return Div(
             pip.revert_control(
                 step_id=step_id, 
                 app_name=app_name, 
-                message=f"{step.show}: Complete",
+                message=f"{step.show}: Project {status_text} Search Console data",
                 steps=steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
