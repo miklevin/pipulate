@@ -1,6 +1,7 @@
 import asyncio
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
+import httpx
 import re
 
 from fasthtml.common import * # type: ignore
@@ -568,7 +569,7 @@ class ParameterBusterWorkflow:
             return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
     async def step_02_submit(self, request):
-        """Process the selected analysis slug for step_02."""
+        """Process the selected analysis slug for step_02 and download crawl data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -576,11 +577,6 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # The critical part is that we're not changing the code that determines next_step_id
-        # It's automatically calculated as:
-        # next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        # This will now correctly point to step_03 since that's the next step in the steps list
-
         # Get project data from previous step
         prev_step_id = "step_01"
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
@@ -601,12 +597,16 @@ class ParameterBusterWorkflow:
         if not analysis_slug:
             return P("Error: No analysis selected", style=pip.get_style("error"))
         
-        # Store the analysis result
+        # First, show a progress indicator while we download the crawl data
+        await self.message_queue.add(pip, f"Selected analysis: {analysis_slug}. Starting crawl data download...", verbatim=True)
+        
+        # Store the initial analysis selection
         analysis_result = {
             "analysis_slug": analysis_slug,
             "project": project_name,
             "username": username,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "download_started": True
         }
         
         # Convert to JSON for storage
@@ -615,20 +615,243 @@ class ParameterBusterWorkflow:
         # Store in state
         await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
         
-        # Add message
-        await self.message_queue.add(pip, f"{step.show} complete: Selected analysis '{analysis_slug}'", verbatim=True)
+        # Start download process for crawl data
+        try:
+            # Determine file path for this export
+            crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, "crawl")
+            
+            # Check if file already exists
+            file_exists, file_info = await self.check_file_exists(crawl_filepath)
+            
+            if file_exists:
+                # File already exists, skip the export
+                await self.message_queue.add(pip, f"✓ Found existing crawl data from {file_info['created']}", verbatim=True)
+                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                
+                # Update analysis result with existing file info
+                analysis_result.update({
+                    "download_complete": True,
+                    "download_info": {
+                        "has_file": True,
+                        "file_path": crawl_filepath,
+                        "timestamp": file_info['created'],
+                        "size": file_info['size'],
+                        "cached": True
+                    }
+                })
+            else:
+                # Need to perform the export and download
+                await self.message_queue.add(pip, "🔄 Initiating crawl data export...", verbatim=True)
+                
+                # Get API token
+                api_token = self.read_api_token()
+                if not api_token:
+                    raise ValueError("Cannot read API token")
+                
+                # Calculate period dates - use 30 days before analysis date
+                from datetime import timedelta  # Only import timedelta here
+
+                # Parse analysis date from slug (assuming format YYYYMMDD)
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, "%Y%m%d")
+                except ValueError:
+                    # If not in expected format, use current date as fallback
+                    analysis_date_obj = datetime.now()
+
+                # Calculate period start (30 days before analysis date)
+                period_start = (analysis_date_obj - timedelta(days=30)).strftime("%Y-%m-%d")
+                period_end = analysis_date_obj.strftime("%Y-%m-%d")
+
+                # Build BQLv2 export query with required metrics field
+                export_query = {
+                    "job_type": "export",
+                    "payload": {
+                        "username": username,
+                        "project": project_name,
+                        "connector": "direct_download",
+                        "formatter": "csv",
+                        "export_size": 10000,
+                        # Updated query with required metrics
+                        "query": {
+                            "collections": [
+                                f"crawl.{analysis_slug}"
+                            ],
+                            "query": {
+                                "dimensions": [
+                                    f"crawl.{analysis_slug}.url"
+                                ],
+                                "metrics": [
+                                    {"function": "count", "args": [f"crawl.{analysis_slug}.url"]}
+                                ]
+                            }
+                        }
+                    }
+                }
+                
+                # Submit export job
+                job_url = "https://api.botify.com/v1/jobs"
+                headers = {
+                    "Authorization": f"Token {api_token}",
+                    "Content-Type": "application/json"
+                }
+                
+                import logging
+                logging.info(f"Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}")
+                
+                async with httpx.AsyncClient() as client:
+                    try:
+                        response = await client.post(
+                            job_url, 
+                            headers=headers, 
+                            json=export_query,
+                            timeout=60.0
+                        )
+                        
+                        # If there's an error, try to get more detailed error info
+                        if response.status_code >= 400:
+                            error_detail = "Unknown error"
+                            try:
+                                error_body = response.json()
+                                error_detail = json.dumps(error_body, indent=2)
+                                logging.error(f"API error details: {error_detail}")
+                            except Exception:
+                                error_detail = response.text[:500]
+                                logging.error(f"API error text: {error_detail}")
+                                
+                            response.raise_for_status()
+                            
+                        job_data = response.json()
+                        
+                        # Get job URL
+                        job_url_path = job_data.get('job_url')
+                        if not job_url_path:
+                            raise ValueError("Failed to get job URL from response")
+                            
+                        full_job_url = f"https://api.botify.com{job_url_path}"
+                        
+                        # Export initiated message
+                        await self.message_queue.add(pip, "✓ Crawl export job created successfully!", verbatim=True)
+                        await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+                    
+                    except httpx.HTTPStatusError as e:
+                        await self.message_queue.add(pip, f"❌ Export request failed: HTTP {e.response.status_code}", verbatim=True)
+                        raise
+                    except Exception as e:
+                        await self.message_queue.add(pip, f"❌ Export request failed: {str(e)}", verbatim=True)
+                        raise
+                
+                # Poll for completion
+                success, result = await self.poll_job_status(full_job_url, api_token)
+                
+                if not success:
+                    error_message = isinstance(result, str) and result or "Export job failed"
+                    await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
+                    raise ValueError(f"Export failed: {error_message}")
+                
+                # Export ready message
+                await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+                
+                # Download the file
+                download_url = result.get("download_url")
+                if not download_url:
+                    await self.message_queue.add(pip, "❌ No download URL found in job result", verbatim=True)
+                    raise ValueError("No download URL found in job result")
+                
+                # Downloading message
+                await self.message_queue.add(pip, "🔄 Downloading crawl data...", verbatim=True)
+                
+                # Make sure target directory exists
+                await self.ensure_directory_exists(crawl_filepath)
+                
+                # Download the zip file to a temporary location
+                import os
+                import zipfile
+                
+                zip_path = f"{crawl_filepath}.zip"
+                try:
+                    async with httpx.AsyncClient() as client:
+                        async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
+                            response.raise_for_status()
+                            with open(zip_path, 'wb') as f:
+                                async for chunk in response.aiter_bytes():
+                                    f.write(chunk)
+                    
+                    # Extract the CSV from the zip
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        # Get the CSV file name (should be the only file or first file)
+                        csv_name = None
+                        for name in zip_ref.namelist():
+                            if name.endswith('.csv'):
+                                csv_name = name
+                                break
+                        
+                        if not csv_name:
+                            raise ValueError("No CSV file found in the downloaded zip")
+                        
+                        # Extract and rename to our target path
+                        zip_ref.extract(csv_name, os.path.dirname(crawl_filepath))
+                        extracted_path = os.path.join(os.path.dirname(crawl_filepath), csv_name)
+                        
+                        # Rename to our standardized file name if needed
+                        if extracted_path != crawl_filepath:
+                            if os.path.exists(crawl_filepath):
+                                os.remove(crawl_filepath)
+                            os.rename(extracted_path, crawl_filepath)
+                    
+                    # Clean up the zip file
+                    if os.path.exists(zip_path):
+                        os.remove(zip_path)
+                    
+                    # Get info about the created file
+                    _, file_info = await self.check_file_exists(crawl_filepath)
+                    
+                    # Download complete message
+                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                    
+                    # Create download info for storage
+                    download_info = {
+                        "has_file": True,
+                        "file_path": crawl_filepath,
+                        "timestamp": file_info['created'],
+                        "size": file_info['size'],
+                        "cached": False
+                    }
+                    
+                    # Update analysis result with download info
+                    analysis_result.update({
+                        "download_complete": True,
+                        "download_info": download_info
+                    })
+                    
+                except Exception as e:
+                    await self.message_queue.add(pip, f"❌ Error downloading or extracting file: {str(e)}", verbatim=True)
+                    raise
+            
+            # Final message for completed download
+            await self.message_queue.add(pip, "✓ Crawl data ready for analysis!", verbatim=True)
+            
+            # Update state with complete analysis info including download results
+            analysis_result_str = json.dumps(analysis_result)
+            await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
+            
+            # Return the completed view
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {analysis_slug} (data downloaded)",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
         
-        # Return result display
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: {analysis_slug}",
-                steps=steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+        except Exception as e:
+            import logging
+            logging.exception(f"Error in step_02_submit: {e}")
+            
+            # Return error message
+            return P(f"Error: {str(e)}", style=pip.get_style("error"))
 
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
@@ -1390,7 +1613,7 @@ class ParameterBusterWorkflow:
                 start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
                 
                 # Build BQLv2 export query
-                export_query = await self.build_bqlv2_exports(
+                export_query = await self.build_search_console_exports(
                     username, 
                     project_name, 
                     analysis_slug, 
@@ -1553,7 +1776,7 @@ class ParameterBusterWorkflow:
             # Add error message to queue
             await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
 
-    async def build_bqlv2_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
+    async def build_search_console_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
         """Builds BQLv2 query objects and export job payloads."""
         
         if data_type == 'gsc':
