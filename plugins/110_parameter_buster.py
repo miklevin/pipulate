@@ -131,7 +131,7 @@ class ParameterBusterWorkflow:
         self.step_messages["step_03"] = {
             "input": f"{pip.fmt('step_03')}: Please check if the project has web logs available.",
             "complete": "Web logs check complete. Continue to next step."
-        }
+            }
 
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
@@ -859,7 +859,7 @@ class ParameterBusterWorkflow:
                 Div(id=next_step_id),  # Empty div for next step
                 id=step_id
             )
-
+            
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -1426,3 +1426,358 @@ class ParameterBusterWorkflow:
         import os
         directory = os.path.dirname(filepath)
         os.makedirs(directory, exist_ok=True)
+
+    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
+        """Process search console data in the background."""
+        import asyncio
+        import json
+        import httpx
+        import os
+        import zipfile
+        from datetime import datetime, timedelta
+        
+        try:
+            # Determine file path for this export
+            gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, "gsc")
+            
+            # Check if file already exists
+            file_exists, file_info = await self.check_file_exists(gsc_filepath)
+            
+            if file_exists:
+                # File already exists, skip the export
+                await self.message_queue.add(pip, f"✓ Found existing Search Console data from {file_info['created']}", verbatim=True)
+                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                
+                # Update check result with existing file info
+                check_result.update({
+                    "download_complete": True,
+                    "download_info": {
+                        "has_file": True,
+                        "file_path": gsc_filepath,
+                        "timestamp": file_info['created'],
+                        "size": file_info['size'],
+                        "cached": True
+                    }
+                })
+            else:
+                # Need to do the export and download
+                await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
+                
+                # Get API token
+                api_token = self.read_api_token()
+                if not api_token:
+                    raise ValueError("Cannot read API token")
+                
+                # Create export job payload for Search Console data
+                # Use last 30 days by default
+                end_date = datetime.now().strftime("%Y-%m-%d")
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+                
+                # Build BQLv2 export query
+                export_query = await self.build_bqlv2_exports(
+                    username, 
+                    project_name, 
+                    analysis_slug, 
+                    data_type='gsc',
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                
+                # Submit export job
+                job_url = "https://api.botify.com/v1/jobs"
+                headers = {
+                    "Authorization": f"Token {api_token}",
+                    "Content-Type": "application/json"
+                }
+                
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            job_url, 
+                            headers=headers, 
+                            json=export_query["export_job_payload"],
+                            timeout=60.0
+                        )
+                        response.raise_for_status()
+                        job_data = response.json()
+                        
+                        # Get job URL
+                        job_url_path = job_data.get('job_url')
+                        if not job_url_path:
+                            raise ValueError("Failed to get job URL from response")
+                            
+                        full_job_url = f"https://api.botify.com{job_url_path}"
+                        
+                        # Export initiated message
+                        await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
+                        
+                except Exception as e:
+                    await self.message_queue.add(pip, f"❌ Error creating export job: {str(e)}", verbatim=True)
+                    raise
+                
+                # Start polling message
+                await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+                
+                # Poll for completion with exponential backoff
+                success, result = await self.poll_job_status(full_job_url, api_token)
+                
+                if not success:
+                    error_message = isinstance(result, str) and result or "Export job failed"
+                    await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
+                    raise ValueError(f"Export failed: {error_message}")
+                
+                # Export ready message
+                await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+                
+                # Download the file
+                download_url = result.get("download_url")
+                if not download_url:
+                    await self.message_queue.add(pip, "❌ No download URL found in job result", verbatim=True)
+                    raise ValueError("No download URL found in job result")
+                
+                # Downloading message
+                await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
+                
+                # Make sure target directory exists
+                await self.ensure_directory_exists(gsc_filepath)
+                
+                # Download the zip file to a temporary location
+                zip_path = f"{gsc_filepath}.zip"
+                try:
+                    async with httpx.AsyncClient() as client:
+                        async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
+                            response.raise_for_status()
+                            with open(zip_path, 'wb') as f:
+                                async for chunk in response.aiter_bytes():
+                                    f.write(chunk)
+                
+                    # Extract the CSV from the zip
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        # Get the CSV file name (should be the only file or first file)
+                        csv_name = None
+                        for name in zip_ref.namelist():
+                            if name.endswith('.csv'):
+                                csv_name = name
+                                break
+                        
+                        if not csv_name:
+                            raise ValueError("No CSV file found in the downloaded zip")
+                        
+                        # Extract and rename to our target path
+                        zip_ref.extract(csv_name, os.path.dirname(gsc_filepath))
+                        extracted_path = os.path.join(os.path.dirname(gsc_filepath), csv_name)
+                        
+                        # Rename to our standardized file name if needed
+                        if extracted_path != gsc_filepath:
+                            if os.path.exists(gsc_filepath):
+                                os.remove(gsc_filepath)
+                            os.rename(extracted_path, gsc_filepath)
+                
+                    # Clean up the zip file
+                    if os.path.exists(zip_path):
+                        os.remove(zip_path)
+                
+                    # Get info about the created file
+                    _, file_info = await self.check_file_exists(gsc_filepath)
+                    
+                    # Download complete message
+                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                    
+                    # Create downloadable data directory info for storage
+                    download_info = {
+                        "has_file": True,
+                        "file_path": gsc_filepath,
+                        "timestamp": file_info['created'],
+                        "size": file_info['size'],
+                        "cached": False
+                    }
+                    
+                    # Update the check result to include download info
+                    check_result.update({
+                        "download_complete": True,
+                        "download_info": download_info
+                    })
+                    
+                except Exception as e:
+                    await self.message_queue.add(pip, f"❌ Error downloading or extracting file: {str(e)}", verbatim=True)
+                    raise
+                
+            # Final processing message
+            await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
+            
+            # Update state with download info
+            check_result_str = json.dumps(check_result)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            
+        except Exception as e:
+            import logging
+            logging.exception(f"Error in process_search_console_data: {e}")
+            
+            # Update check result with error
+            check_result.update({
+                "download_complete": True,  # Mark as complete even on error
+                "error": str(e)
+            })
+            check_result_str = json.dumps(check_result)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            
+            # Add error message to queue
+            await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
+
+    async def build_bqlv2_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
+        """Builds BQLv2 query objects and export job payloads."""
+
+        # Define BQLv2 components based on data_type
+        if data_type == 'crawl':
+            if not analysis_slug:
+                raise ValueError("analysis_slug is required for data_type 'crawl'")
+            
+            # For crawl data, we need specific fields from the crawl collection
+            collection = f"crawl.{analysis_slug}"
+            
+            # Define the BQL query for crawl data
+            bql_query = {
+                "collections": [collection],
+                "query": {
+                    "dimensions": [
+                        f"{collection}.url", 
+                        f"{collection}.http_code", 
+                        f"{collection}.metadata.title.content"
+                    ],
+                    "filters": {
+                        "field": f"{collection}.http_code", 
+                        "predicate": "eq", 
+                        "value": 200
+                    }
+                }
+            }
+            
+            # Define the lightweight check query
+            check_query_payload = {
+                "collections": [collection],
+                "query": {
+                    "dimensions": [],
+                    "metrics": [{"function": "count", "args": [f"{collection}.url"]}],
+                    "filters": {
+                        "field": f"{collection}.http_code", 
+                        "predicate": "eq", 
+                        "value": 200
+                    }
+                }
+            }
+
+        elif data_type == 'gsc':
+            # For Search Console data, we need to specify periods
+            if not start_date or not end_date:
+                # Use default 30 day range if dates not provided
+                from datetime import datetime, timedelta
+                end_date = datetime.now().strftime("%Y-%m-%d")
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            
+            # Define the BQL query for GSC data
+            bql_query = {
+                "collections": ["search_console"],
+                "periods": [[start_date, end_date]],
+                "query": {
+                    "dimensions": [
+                        "search_console.url",
+                        "search_console.period_0.keys.query",
+                        "search_console.period_0.keys.device",
+                        "search_console.period_0.keys.page"
+                    ],
+                    "metrics": [
+                        "search_console.period_0.count_impressions",
+                        "search_console.period_0.count_clicks",
+                        "search_console.period_0.avg_ctr",
+                        "search_console.period_0.avg_position"
+                    ],
+                    "filters": {
+                        "field": "search_console.period_0.count_impressions", 
+                        "predicate": "gt", 
+                        "value": 0
+                    },
+                    "sort": [{
+                        "field": "search_console.period_0.count_impressions",
+                        "order": "desc"
+                    }]
+                }
+            }
+            
+            # Define the lightweight check query for GSC data
+            check_query_payload = {
+                "collections": ["search_console"],
+                "periods": [[start_date, end_date]],
+                "query": {
+                    "dimensions": [],
+                    "metrics": [{"function": "count", "args": ["search_console.url"]}],
+                    "filters": {
+                        "field": "search_console.period_0.count_impressions", 
+                        "predicate": "gt", 
+                        "value": 0
+                    }
+                }
+            }
+
+        elif data_type == 'weblog':
+            # For weblog data, also need periods
+            if not start_date or not end_date:
+                # Use default 30 day range if dates not provided
+                from datetime import datetime, timedelta
+                end_date = datetime.now().strftime("%Y-%m-%d")
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            
+            # Define the BQL query for weblog data
+            bql_query = {
+                "collections": ["logs"],
+                "periods": [[start_date, end_date]],
+                "query": {
+                    "dimensions": ["logs.url"],
+                    "metrics": ["logs.all.count_visits"],
+                    "filters": {
+                        "field": "logs.all.count_visits", 
+                        "predicate": "gt", 
+                        "value": 0
+                    }
+                }
+            }
+            
+            # Define the lightweight check query for weblog data
+            check_query_payload = {
+                "collections": ["logs"],
+                "periods": [[start_date, end_date]],
+                "query": {
+                    "dimensions": [],
+                    "metrics": [{"function": "count", "args": ["logs.url"]}],
+                    "filters": {
+                        "field": "logs.all.count_visits", 
+                        "predicate": "gt", 
+                        "value": 0
+                    }
+                }
+            }
+
+        else:
+            raise ValueError(f"Unknown data type: {data_type}")
+
+        # Construct the export job payload - critical to follow correct nesting structure
+        export_job_payload = {
+            "job_type": "export",
+            "payload": {
+                "username": username,
+                "project": project_name,
+                "connector": "direct_download",
+                "formatter": "csv",
+                "export_size": 1000000,
+                "query": bql_query,
+                "formatter_config": {"print_header": True}
+            }
+        }
+
+        # Return all query components
+        return {
+            "check_query_payload": check_query_payload,
+            "check_url": f"/v1/projects/{username}/{project_name}/query",
+            "export_job_payload": export_job_payload,
+            "export_url": "/v1/jobs",
+            "data_type": data_type
+        }
