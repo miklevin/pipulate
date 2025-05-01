@@ -736,51 +736,125 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        
+        # Get the analysis result if already completed
+        import json
+        analysis_result_str = step_data.get(step.done, "")
+        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+        selected_slug = analysis_result.get("analysis_slug", "")
+        
+        # Get project data from step_01
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
+        
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+        
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Display for finalized state
+        if "finalized" in finalize_data and selected_slug:
+            # Show finalized state with analysis result
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
+                    Div(
+                        P(f"Project: {project_name}", style="margin-bottom: 5px;"),
+                        P(f"Selected Analysis: {selected_slug}", style="font-weight: bold;"),
+                        style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+        
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Display for completed state
+        if selected_slug and state.get("_revert_target") != step_id:
+            # Show completed state with analysis result
             return Div(
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: Complete",
+                    message=f"{step.show}: {selected_slug}",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-        else:
-            # Display input form with just a Proceed button
+        
+        # Display analysis selection dropdown
+        try:
+            # Read API token
+            api_token = self.read_api_token()
+            if not api_token:
+                return P("Error: Botify API token not found. Please connect with Botify first.", style=pip.get_style("error"))
+            
+            # Add logging for debugging 
+            import logging
+            logging.info(f"Getting analyses for {username}/{project_name}")
+            
+            # Fetch analysis slugs
+            slugs = await self.fetch_analyses(username, project_name, api_token)
+            logging.info(f"Got {len(slugs) if slugs else 0} analyses")
+            
+            if not slugs:
+                # Try with some error handling
+                try:
+                    import httpx
+                    url = f"https://api.botify.com/v1/analyses/{username}/{project_name}"
+                    headers = {"Authorization": f"Token {api_token}", "Content-Type": "application/json"}
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, headers=headers, timeout=60.0)
+                    logging.info(f"Raw API response: Status {response.status_code}")
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        logging.info(f"Response data keys: {response_data.keys() if response_data else 'None'}")
+                except Exception as e:
+                    logging.exception(f"Error in manual API call: {e}")
+                    
+                return P(f"Error: No analyses found for project {project_name}. Please check your API access.", style=pip.get_style("error"))
+            
+            # Determine selected value (first analysis if no previous selection)
+            selected_value = selected_slug if selected_slug else slugs[0]
+            
+            # Show the form with dropdown
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step for the third CSV export"),
+                    P(f"Select an analysis for project '{project_name}'"),
+                    P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Select(
+                            name="analysis_slug",
+                            required=True,
+                            autofocus=True,
+                            *[
+                                Option(
+                                    slug,
+                                    value=slug,
+                                    selected=(slug == selected_value)
+                                ) for slug in slugs
+                            ]
+                        ),
+                        Button("Select Analysis", type="submit", cls="primary", style="margin-top: 10px;"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id),  # Empty div for next step
                 id=step_id
             )
+            
+        except Exception as e:
+            import logging
+            logging.exception(f"Error in step_04: {e}")
+            return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
     async def step_04_submit(self, request):
         """Process the selected analysis slug."""
@@ -791,37 +865,51 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
+        # Get project data from previous step
+        prev_step_id = "step_01"
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get("botify_project", "")
         
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
+        if not prev_data_str:
+            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
         
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
-
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
-
-        # PRESERVE: Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        import json
+        project_data = json.loads(prev_data_str)
+        project_name = project_data.get("project_name", "")
+        username = project_data.get("username", "")
         
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
+        # Get the selected analysis slug from the form
+        form = await request.form()
+        analysis_slug = form.get("analysis_slug", "").strip()
         
-        # PRESERVE: Return the revert control with chain reaction to next step
+        if not analysis_slug:
+            return P("Error: No analysis selected", style=pip.get_style("error"))
+        
+        # Store the analysis result
+        analysis_result = {
+            "analysis_slug": analysis_slug,
+            "project": project_name,
+            "username": username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Convert to JSON for storage
+        analysis_result_str = json.dumps(analysis_result)
+        
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
+        
+        # Add message
+        await self.message_queue.add(pip, f"{step.show} complete: Selected analysis '{analysis_slug}'", verbatim=True)
+        
+        # Return result display
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {analysis_slug}",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
