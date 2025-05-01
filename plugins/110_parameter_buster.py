@@ -126,6 +126,9 @@ class ParameterBusterWorkflow:
         # Add the step_03_process route
         routes.append((f"/{app_name}/step_03_process", self.step_03_process, ["POST"]))
 
+        # Add the step_05_process route
+        routes.append((f"/{app_name}/step_05_process", self.step_05_process, ["POST"]))  # Add this line
+
         # Register all routes with the FastHTML app
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ["GET"]
@@ -1016,7 +1019,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_05(self, request):
-        """Handles GET request for placeholder Step 5."""
+        """Handles GET request for Parameter Optimization Generation."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
@@ -1025,54 +1028,88 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # Get the value
+        optimization_result = step_data.get(step.done, "")
+
+        # Get required data from previous steps
+        project_data = pip.get_step_data(pipeline_id, "step_01", {}).get("botify_project", "{}")
+        analysis_data = pip.get_step_data(pipeline_id, "step_02", {}).get("analysis_selection", "{}")
+        
+        try:
+            project_info = json.loads(project_data)
+            analysis_info = json.loads(analysis_data)
+        except json.JSONDecodeError:
+            return P("Error: Could not load project or analysis data", style=pip.get_style("error"))
+
+        username = project_info.get("username")
+        project_name = project_info.get("project_name")
+        analysis_slug = analysis_info.get("analysis_slug")
+
+        if not all([username, project_name, analysis_slug]):
+            return P("Error: Missing required project information", style=pip.get_style("error"))
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Display for finalized state
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Third CSV Export completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
+        if "finalized" in finalize_data and optimization_result:
+            try:
+                result_data = json.loads(optimization_result)
+                return Div(
+                    Card(
+                        H3(f"🔒 {step.show}"),
+                        P("Parameter optimization completed", style="margin-bottom: 10px;"),
+                        Div(
+                            P(f"Found {result_data.get('total_params', 0)} parameters to optimize"),
+                            P(f"Analysis completed on: {result_data.get('timestamp', 'unknown')}"),
+                            style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
+                        )
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            except json.JSONDecodeError:
+                return P("Error: Invalid optimization result data", style=pip.get_style("error"))
+
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Display for completed state
-            return Div(
-                pip.revert_control(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f"{step.show}: Complete",
-                    steps=steps
+        if optimization_result and state.get("_revert_target") != step_id:
+            try:
+                result_data = json.loads(optimization_result)
+                return Div(
+                    pip.revert_control(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f"{step.show}: {result_data.get('total_params', 0)} parameters found",
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            except json.JSONDecodeError:
+                return P("Error: Invalid optimization result data", style=pip.get_style("error"))
+
+        # Show the analysis form
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                P("Generate parameter optimization recommendations based on:", style="margin-bottom: 15px;"),
+                Ul(
+                    Li("Crawl data from Botify analysis"),
+                    Li("Search Console performance data"),
+                    Li("Web logs data (if available)"),
+                    style="margin-bottom: 15px;"
                 ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            # Display input form with just a Proceed button
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is the final step for Generating the Optimization:"),
-                    Form(
-                        Button("Proceed", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),  # Empty div for next step - will be populated via chain reaction
-                id=step_id
-            )
+                Form(
+                    Button("Generate Optimization", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
 
     async def step_05_submit(self, request):
-        """Process the submission for placeholder Step 5."""
+        """Process the parameter optimization generation."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
@@ -1080,24 +1117,149 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Use fixed value for placeholder
-        placeholder_value = "completed"
-
-        # Store in state
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # Return with revert control and chain reaction to next step (finalize)
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: Complete",
-                steps=steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        # First, return a progress indicator immediately
+        return Card(
+            H3(f"{step.show}"),
+            P("Analyzing parameters...", style="margin-bottom: 15px;"),
+            Progress(style="margin-top: 10px;"),
+            Script("""
+            setTimeout(function() {
+                htmx.ajax('POST', '""" + f"/{app_name}/step_05_process" + """', {
+                    target: '#""" + step_id + """',
+                    values: { 
+                        'pipeline_id': '""" + pipeline_id + """'
+                    }
+                });
+            }, 500);
+            """),
             id=step_id
         )
+
+    async def step_05_process(self, request):
+        """Process the actual parameter analysis in the background."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        
+        # Get pipeline_id from form data
+        form = await request.form()
+        pipeline_id = form.get("pipeline_id", "unknown")
+
+        # Get required data from previous steps
+        project_data = pip.get_step_data(pipeline_id, "step_01", {}).get("botify_project", "{}")
+        analysis_data = pip.get_step_data(pipeline_id, "step_02", {}).get("analysis_selection", "{}")
+        
+        try:
+            project_info = json.loads(project_data)
+            analysis_info = json.loads(analysis_data)
+        except json.JSONDecodeError:
+            return P("Error: Could not load project or analysis data", style=pip.get_style("error"))
+
+        username = project_info.get("username")
+        project_name = project_info.get("project_name")
+        analysis_slug = analysis_info.get("analysis_slug")
+
+        if not all([username, project_name, analysis_slug]):
+            return P("Error: Missing required project information", style=pip.get_style("error"))
+
+        try:
+            # Show detailed progress messages
+            await self.message_queue.add(pip, "🔄 Starting parameter analysis...", verbatim=True)
+            await self.message_queue.add(pip, "Step 1: Loading data files...", verbatim=True)
+            await asyncio.sleep(1)  # Add small delay to show progress
+
+            # Run the parameter analysis
+            scores_data = await self.analyze_parameters(username, project_name, analysis_slug)
+            
+            if not scores_data or 'results_sorted' not in scores_data:
+                raise ValueError("Failed to generate parameter analysis")
+
+            await self.message_queue.add(pip, "Step 2: Processing parameter frequencies...", verbatim=True)
+            await asyncio.sleep(1)  # Add small delay to show progress
+
+            results_sorted = scores_data['results_sorted']
+            
+            # Apply filtering criteria
+            GSC_LIMIT = 10
+            MIN_FREQ = 50
+            
+            await self.message_queue.add(pip, "Step 3: Applying optimization criteria...", verbatim=True)
+            await asyncio.sleep(1)  # Add small delay to show progress
+
+            filtered_params = [
+                item for item in results_sorted
+                if item[3] <= GSC_LIMIT and item[4] >= MIN_FREQ  # item[3] is gsc_count, item[4] is total_count
+            ]
+
+            await self.message_queue.add(pip, "Step 4: Generating final results...", verbatim=True)
+            await asyncio.sleep(1)  # Add small delay to show progress
+
+            # Create result summary
+            optimization_result = {
+                'timestamp': datetime.now().isoformat(),
+                'total_params': len(filtered_params),
+                'gsc_limit': GSC_LIMIT,
+                'min_frequency': MIN_FREQ,
+                'parameters': [
+                    {
+                        'name': param[0],
+                        'weblog_count': param[1],
+                        'crawl_count': param[2],
+                        'gsc_count': param[3],
+                        'total_count': param[4],
+                        'score': param[5]
+                    }
+                    for param in filtered_params[:10]  # Store top 10 for display
+                ]
+            }
+
+            # Store the optimization result
+            optimization_result_str = json.dumps(optimization_result)
+            await pip.update_step_state(pipeline_id, step_id, optimization_result_str, steps)
+
+            # Add success messages with detailed stats
+            await self.message_queue.add(pip, f"✓ Parameter analysis complete!", verbatim=True)
+            await self.message_queue.add(pip, f"Analysis Summary:", verbatim=True)
+            await self.message_queue.add(pip, f"  - Total parameters analyzed: {len(results_sorted)}", verbatim=True)
+            await self.message_queue.add(pip, f"  - Parameters meeting criteria: {len(filtered_params)}", verbatim=True)
+            await self.message_queue.add(pip, f"  - Criteria used:", verbatim=True)
+            await self.message_queue.add(pip, f"    • GSC hits ≤ {GSC_LIMIT}", verbatim=True)
+            await self.message_queue.add(pip, f"    • Total frequency ≥ {MIN_FREQ}", verbatim=True)
+            
+            # Show top 5 parameters with detailed stats
+            if filtered_params:
+                await self.message_queue.add(pip, f"\nTop 5 Parameters to Consider:", verbatim=True)
+                for param in filtered_params[:5]:
+                    await self.message_queue.add(pip, 
+                        f"  - {param[0]}:", verbatim=True
+                    )
+                    await self.message_queue.add(pip,
+                        f"    • Total occurrences: {param[4]:,}", verbatim=True
+                    )
+                    await self.message_queue.add(pip,
+                        f"    • GSC hits: {param[3]}", verbatim=True
+                    )
+                    await self.message_queue.add(pip,
+                        f"    • Score: {param[5]:.2f}", verbatim=True
+                    )
+
+            # Return the completed view
+            return Div(
+                pip.revert_control(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show}: {len(filtered_params)} parameters found",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+        except Exception as e:
+            logging.exception(f"Error in step_05_process: {e}")
+            return P(f"Error generating optimization: {str(e)}", style=pip.get_style("error"))
 
     async def step_06(self, request):
         """Handles GET request for the placeholder Step 6."""
