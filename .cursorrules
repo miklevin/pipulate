@@ -66,4 +66,19 @@
 ## Final Reminder
 Every design choice prioritizes local control, observability, and radical simplicity. The power comes from combining local LLMs, server-side state, and modern UI patterns into a cohesive, reproducible development environment.
 
+## Important Note on Workflow Identity
+
+Pipulate workflows have two separate identities:
+- The **filename** (`110_parameter_buster_workflow.py`) determines the URL/endpoint users access
+- The **APP_NAME** (`"parameter_buster"`) identifies the workflow in the database
+
+Keeping these different (as in the example above) allows you to improve user-facing URLs without breaking existing workflow data. Always maintain a consistent APP_NAME when you want to preserve existing workflow state data.
+
+## Workflow Filename vs APP_NAME Pattern
+- **Filename** determines user-facing URL/endpoint (`110_parameter_buster_workflow.py` → `/parameter_buster_workflow`)
+- **APP_NAME** determines database storage keys (`APP_NAME = "parameter_buster"` for DB records)
+- Keep them different to enable URL improvements without breaking stored data
+- When changing a workflow's URL (filename), maintain its APP_NAME to preserve existing data
+- Create new file versions while keeping same APP_NAME for data continuity during upgrades
+
 ---
