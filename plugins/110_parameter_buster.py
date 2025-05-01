@@ -910,43 +910,34 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # Get project data from step_01
+        # Get project and analysis data
         prev_step_id = "step_01"
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get("botify_project", "")
         
         if not prev_data_str:
-            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
+            return P("Error: Project data not found.", style=pip.get_style("error"))
         
         import json
         project_data = json.loads(prev_data_str)
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
         
-        # Get analysis data from step_02
         analysis_step_id = "step_02"
         analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
         analysis_data_str = analysis_step_data.get("analysis_selection", "")
         
         if not analysis_data_str:
-            return P("Error: Analysis data not found. Please complete step 2 first.", style=pip.get_style("error"))
+            return P("Error: Analysis data not found.", style=pip.get_style("error"))
         
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get("analysis_slug", "")
         
-        # Add debug logging - MOVED HERE after variables are defined
-        import logging
-        logging.info(f"step_04_complete starting for {username}/{project_name}, analysis: {analysis_slug}")
-        
-        # Do the actual check
+        # Do the check
         has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
         
         if error_message:
-            logging.error(f"Error checking for search console: {error_message}")
             return P(f"Error: {error_message}", style=pip.get_style("error"))
-        
-        # More debug info
-        logging.info(f"Search console check result: has_data={has_search_console}")
         
         # Store the check result
         check_result = {
@@ -956,28 +947,25 @@ class ParameterBusterWorkflow:
             "timestamp": datetime.now().isoformat()
         }
         
-        # If the project has search console data, process it
+        # If the project has search console data, process it SYNCHRONOUSLY
         if has_search_console:
-            logging.info(f"Starting process_search_console_data for {username}/{project_name}")
-            # Start a background task to process the data
-            import asyncio
-            asyncio.create_task(self.process_search_console_data(
+            await self.message_queue.add(pip, f"✓ Project has Search Console data, downloading...", verbatim=True)
+            
+            # Process data and wait for completion - key change here
+            await self.process_search_console_data(
                 pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result
-            ))
-            
-            # Progress indicator for real downloads
-            status_text = "HAS" if has_search_console else "does NOT have"
-            await self.message_queue.add(pip, f"✓ Check complete: Project {status_text} Search Console data", verbatim=True)
-            
-            if has_search_console:
-                await self.message_queue.add(pip, "🔄 Processing Search Console data in the background...", verbatim=True)
+            )
         else:
             # No search console data
             await self.message_queue.add(pip, f"Project does not have Search Console data (skipping download)", verbatim=True)
+            
+            # Store the check result
+            check_result_str = json.dumps(check_result)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
         
-        # Return the completed display with appropriate status regardless of background processing
-        status_color = "green" if has_search_console else "orange"
-        completed_message = "Check complete, data processing started" if has_search_console else "No Search Console data available"
+        # Return completed step
+        status_text = "HAS" if has_search_console else "does NOT have"
+        completed_message = "Data downloaded successfully" if has_search_console else "No Search Console data available"
         
         return Div(
             pip.revert_control(
