@@ -104,7 +104,7 @@ class ParameterBusterWorkflow:
                 "ready": "All steps complete. Ready to finalize workflow.",
                 "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             },
-            "step_02": {                      # Changed from step_new to step_02
+            "step_02": {
                 "input": f"{pip.fmt('step_02')}: Please select an analysis for this project.",
                 "complete": "Analysis selection complete. Continue to next step."
             }
@@ -133,10 +133,6 @@ class ParameterBusterWorkflow:
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
-
-        # Make sure we don't have a step_02 message that conflicts with our renamed step
-        if "step_02" in self.step_messages:
-            del self.step_messages["step_02"]
 
     # --- Core Workflow Engine Methods ---
 
