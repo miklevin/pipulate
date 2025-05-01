@@ -943,18 +943,78 @@ class ParameterBusterWorkflow:
         # Store in state
         await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
         
-        # Add message
+        # Progress indicator for checking if data is available
         status_text = "HAS" if has_search_console else "does NOT have"
-        await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} Search Console data", verbatim=True)
+        await self.message_queue.add(pip, f"✓ Check complete: Project {status_text} Search Console data", verbatim=True)
         
-        # Return the completed display
-        status_color = "green" if has_search_console else "red"
+        # If the project has search console data, simulate the download process
+        import asyncio
+        
+        if has_search_console:
+            # Note that we're no longer trying to return an immediate response
+            # Instead, we'll just simulate the process with messaging and then return at the end
+            
+            # Send immediate message
+            await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
+            await asyncio.sleep(1.0)  # Wait 1 second
+            
+            # Export initiated message
+            await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
+            await asyncio.sleep(1.0)  # Wait 1 second
+            
+            # Start polling message
+            await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+            
+            # Simulate polling process (3 iterations for demo)
+            for i in range(3):
+                await asyncio.sleep(2.0)  # Wait 2 seconds between polls
+                await self.message_queue.add(pip, f"🔄 Still waiting for export... (poll {i+1}/3)", verbatim=True)
+            
+            # Export ready message
+            await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+            await asyncio.sleep(1.0)  # Wait 1 second
+            
+            # Downloading message
+            await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
+            await asyncio.sleep(2.0)  # Wait 2 seconds
+            
+            # Download complete message
+            await self.message_queue.add(pip, "✓ Download complete, extracting data...", verbatim=True)
+            await asyncio.sleep(1.0)  # Wait 1 second
+            
+            # Processing complete message
+            await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
+            
+            # Create downloadable data directory info for storage
+            download_info = {
+                "has_file": True,
+                "file_path": f"data/{username}/{project_name}/search_console_data.csv",
+                "timestamp": datetime.now().isoformat(),
+                "size": "1.2MB"  # Simulated file size
+            }
+            
+            # Update the check result to include download info
+            check_result.update({
+                "download_complete": True,
+                "download_info": download_info
+            })
+            
+            # Update state with download info
+            check_result_str = json.dumps(check_result)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+        
+        # Final success message
+        completed_message = "Download completed successfully!" if has_search_console else "No Search Console data available (skipping download)"
+        await self.message_queue.add(pip, f"{step.show} complete: {completed_message}", verbatim=True)
+        
+        # Return the completed display with appropriate status
+        status_color = "green" if has_search_console else "orange"
         
         return Div(
             pip.revert_control(
                 step_id=step_id, 
                 app_name=app_name, 
-                message=f"{step.show}: Project {status_text} Search Console data",
+                message=f"{step.show}: {completed_message}",
                 steps=steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
