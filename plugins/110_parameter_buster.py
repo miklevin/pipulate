@@ -542,6 +542,14 @@ class ParameterBusterWorkflow:
             # Determine selected value (first analysis if no previous selection)
             selected_value = selected_slug if selected_slug else slugs[0]
             
+            # Check which analyses already have downloaded crawl data
+            downloaded_slugs = set()
+            for slug in slugs:
+                filepath = await self.get_deterministic_filepath(username, project_name, slug, "crawl")
+                exists, _ = await self.check_file_exists(filepath)
+                if exists:
+                    downloaded_slugs.add(slug)
+            
             # Show the form with dropdown
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
                                     f"Select an analysis for {project_name}"), 
@@ -559,7 +567,7 @@ class ParameterBusterWorkflow:
                             autofocus=True,
                             *[
                                 Option(
-                                    slug,
+                                    f"{slug} (Downloaded)" if slug in downloaded_slugs else slug,
                                     value=slug,
                                     selected=(slug == selected_value)
                                 ) for slug in slugs
