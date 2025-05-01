@@ -15,17 +15,17 @@ A workflow for performing multiple CSV exports from Botify.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class CheckWeblogsWorkflow:
+class ParameterBusterWorkflow:
     """
     Multi-Export Workflow
     
     A workflow that handles multiple Botify data exports through a sequence of steps.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "check_weblogs"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Check Weblogs" # User-friendly name shown in the UI
+    APP_NAME = "param_buster"              # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Parameter Buster" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This workflow checks if a Botify project has weblogs."
+        "This workflow produces a PageWorkers Parameter Buster optimization."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -59,7 +59,7 @@ class CheckWeblogsWorkflow:
             Step(
                 id='step_03',
                 done='analysis_check',        # Store the analysis slug
-                show='Get Latest Analysis',   # User-friendly name
+                show='Analysis',              # Updated name from "Get Latest Analysis"
                 refill=False,
             ),
             Step(
@@ -532,7 +532,7 @@ class CheckWeblogsWorkflow:
         username = project_data.get("username", "")
         
         # Perform the check for web logs
-        has_logs, error_message = await self.check_if_project_has_logs(username, project_name)
+        has_logs, error_message = await self.check_if_project_has_collection(username, project_name, "logs")
         
         if error_message:
             return P(f"Error: {error_message}", style=pip.get_style("error"))
@@ -923,18 +923,24 @@ class CheckWeblogsWorkflow:
         except Exception as e:
             return False, f"Error parsing URL: {str(e)}", {}
 
-    async def check_if_project_has_logs(self, org_slug, project_slug):
+    async def check_if_project_has_collection(self, org_slug, project_slug, collection_id="logs"):
         """
-        Checks if a collection with ID 'logs' exists for the given org and project.
-        Returns (True, None) if found, (False, None) if not found, or (False, error_message) on error.
+        Checks if a specific collection exists for the given org and project.
+        
+        Args:
+            org_slug: Organization slug
+            project_slug: Project slug
+            collection_id: ID of the collection to check for (default: "logs")
+            
+        Returns:
+            (True, None) if found, (False, None) if not found, or (False, error_message) on error.
         """
         import httpx
         import json
         import os
         
-        # Configuration - you might want to move these to class variables
+        # Configuration
         TOKEN_FILE = "botify_token.txt"
-        TARGET_LOG_COLLECTION_ID = "logs"
         
         # Load API key - properly clean it
         try:
@@ -979,9 +985,9 @@ class CheckWeblogsWorkflow:
             if not isinstance(collections_data, list):
                 return False, "Unexpected API response format. Expected a list."
             
-            # Check if logs collection exists
+            # Check if specified collection exists
             for collection in collections_data:
-                if isinstance(collection, dict) and collection.get('id') == TARGET_LOG_COLLECTION_ID:
+                if isinstance(collection, dict) and collection.get('id') == collection_id:
                     return True, None
             
             # Not found
