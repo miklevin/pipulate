@@ -1,8 +1,17 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 import httpx
+import json
 import re
+import logging
+import time
+import os
+import zipfile
+import socket
+import gzip
+import shutil
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -99,6 +108,9 @@ class ParameterBusterWorkflow:
 
         # Add the step_02_process route
         routes.append((f"/{app_name}/step_02_process", self.step_02_process, ["POST"]))
+
+        # Add the step_03_process route
+        routes.append((f"/{app_name}/step_03_process", self.step_03_process, ["POST"]))
 
         # Register all routes with the FastHTML app
         for path, handler, *methods in routes:
@@ -326,7 +338,6 @@ class ParameterBusterWorkflow:
         
         # CUSTOMIZE_VALUE_ACCESS
         project_data_str = step_data.get(step.done, "")
-        import json
         project_data = json.loads(project_data_str) if project_data_str else {}
         project_url = project_data.get("url", "")
 
@@ -425,7 +436,6 @@ class ParameterBusterWorkflow:
             return P(f"Error: {message}", style=pip.get_style("error"))
 
         # CUSTOMIZE_DATA_PROCESSING: Convert to storable format 
-        import json
         project_data_str = json.dumps(project_data)
 
         # CUSTOMIZE_STATE_STORAGE: Save to state with JSON
@@ -466,7 +476,6 @@ class ParameterBusterWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
         # Get the analysis result if already completed
-        import json
         analysis_result_str = step_data.get(step.done, "")
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         selected_slug = analysis_result.get("analysis_slug", "")
@@ -522,7 +531,6 @@ class ParameterBusterWorkflow:
                 return P("Error: Botify API token not found. Please connect with Botify first.", style=pip.get_style("error"))
             
             # Fetch analysis slugs
-            import logging
             logging.info(f"Getting analyses for {username}/{project_name}")
             
             slugs = await self.fetch_analyses(username, project_name, api_token)
@@ -567,7 +575,6 @@ class ParameterBusterWorkflow:
             )
             
         except Exception as e:
-            import logging
             logging.exception(f"Error in {step_id}: {e}")
             return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
@@ -588,7 +595,6 @@ class ParameterBusterWorkflow:
         if not prev_data_str:
             return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
         
-        import json
         project_data = json.loads(prev_data_str)
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
@@ -652,7 +658,6 @@ class ParameterBusterWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
         # Get the check result if already completed
-        import json
         check_result_str = step_data.get(step.done, "")
         check_result = json.loads(check_result_str) if check_result_str else {}
         
@@ -726,7 +731,7 @@ class ParameterBusterWorkflow:
             )
 
     async def step_03_submit(self, request):
-        """Process the check for Botify web logs."""
+        """Process the check for Botify web logs and download if available."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -742,46 +747,43 @@ class ParameterBusterWorkflow:
         if not prev_data_str:
             return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
         
-        import json
         project_data = json.loads(prev_data_str)
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
         
-        # Perform the check for web logs
-        has_logs, error_message = await self.check_if_project_has_collection(username, project_name, "logs")
+        # Get analysis data from step_02
+        analysis_step_id = "step_02"
+        analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+        analysis_data_str = analysis_step_data.get("analysis_selection", "")
         
-        if error_message:
-            return P(f"Error: {error_message}", style=pip.get_style("error"))
+        if not analysis_data_str:
+            return P("Error: Analysis data not found. Please complete step 2 first.", style=pip.get_style("error"))
         
-        # Store the check result
-        check_result = {
-            "has_logs": has_logs,
-            "project": project_name,
-            "username": username,
-            "timestamp": datetime.now().isoformat()
-        }
+        analysis_data = json.loads(analysis_data_str)
+        analysis_slug = analysis_data.get("analysis_slug", "")
         
-        # Convert to JSON for storage
-        check_result_str = json.dumps(check_result)
+        # First, show a progress indicator
+        await self.message_queue.add(pip, f"Checking if project '{project_name}' has web logs available...", verbatim=True)
         
-        # Store in state
-        await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
-        
-        # Add message
-        status_text = "HAS" if has_logs else "does NOT have"
-        await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} web logs", verbatim=True)
-        
-        # Return result display
-        status_color = "green" if has_logs else "red"
-        
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: Project {status_text} web logs",
-                steps=steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        # Return the progress indicator immediately
+        return Card(
+            H3(f"{step.show}"),
+            P(f"Checking if project '{project_name}' has web logs..."),
+            Progress(style="margin-top: 10px;"),  # Indeterminate progress bar
+            
+            # Add a script that will process in the background
+            Script("""
+            setTimeout(function() {
+                htmx.ajax('POST', '""" + f"/{app_name}/step_03_process" + """', {
+                    target: '#""" + step_id + """',
+                    values: { 
+                        'analysis_slug': '""" + analysis_slug + """',
+                        'username': '""" + username + """',
+                        'project_name': '""" + project_name + """'
+                    }
+                });
+            }, 500);
+            """),
             id=step_id
         )
 
@@ -797,7 +799,6 @@ class ParameterBusterWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
         # Get the check result if already completed
-        import json
         check_result_str = step_data.get(step.done, "")
         check_result = json.loads(check_result_str) if check_result_str else {}
         
@@ -887,7 +888,6 @@ class ParameterBusterWorkflow:
         if not prev_data_str:
             return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
         
-        import json
         project_data = json.loads(prev_data_str)
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
@@ -928,7 +928,6 @@ class ParameterBusterWorkflow:
         if not prev_data_str:
             return P("Error: Project data not found.", style=pip.get_style("error"))
         
-        import json
         project_data = json.loads(prev_data_str)
         project_name = project_data.get("project_name", "")
         username = project_data.get("username", "")
@@ -1089,7 +1088,6 @@ class ParameterBusterWorkflow:
                 return False, "URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)", {}
             
             # Extract the path components and clean the URL
-            from urllib.parse import urlparse
             parsed_url = urlparse(url)
             path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
             
@@ -1129,9 +1127,6 @@ class ParameterBusterWorkflow:
         Returns:
             (True, None) if found, (False, None) if not found, or (False, error_message) on error.
         """
-        import httpx
-        import json
-        import os
         
         # Configuration
         TOKEN_FILE = "botify_token.txt"
@@ -1208,9 +1203,6 @@ class ParameterBusterWorkflow:
         Returns:
             List of analysis slugs or empty list on error
         """
-        import httpx
-        import json
-        import logging
         
         # Validate inputs
         if not org or not project or not api_token:
@@ -1259,7 +1251,6 @@ class ParameterBusterWorkflow:
 
     def read_api_token(self):
         """Read the Botify API token from the token file."""
-        import os
         
         TOKEN_FILE = "botify_token.txt"
         
@@ -1316,8 +1307,6 @@ class ParameterBusterWorkflow:
         Returns:
             (bool, dict): Tuple of (exists, file_info)
         """
-        import os
-        import time
         
         # Check if the file exists
         if not os.path.exists(filepath):
@@ -1345,19 +1334,11 @@ class ParameterBusterWorkflow:
         Args:
             filepath: Path to the file
         """
-        import os
         directory = os.path.dirname(filepath)
         os.makedirs(directory, exist_ok=True)
 
     async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
-        import asyncio
-        import json
-        import httpx
-        import os
-        import zipfile
-        import logging
-        from datetime import datetime, timedelta
         
         # Add detailed logging
         logging.info(f"Starting real GSC data export for {username}/{project_name}/{analysis_slug}")
@@ -1570,7 +1551,6 @@ class ParameterBusterWorkflow:
             # For Search Console data, we need to specify periods
             if not start_date or not end_date:
                 # Use default 30 day range if dates not provided
-                from datetime import datetime, timedelta
                 end_date = datetime.now().strftime("%Y%m%d")  # Format as YYYYMMDD without dashes
                 start_date = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
             
@@ -1764,18 +1744,56 @@ class ParameterBusterWorkflow:
         import asyncio
         import logging
         import json
+        import socket
         
         attempt = 0
-        delay = 2  # Start with 2 second delay (reduced from 5)
+        delay = 2  # Start with 2 second delay
+        consecutive_network_errors = 0
+        
+        # Force full absolute URL with hostname
+        if not job_url.startswith('https://api.botify.com'):
+            # If it's a relative path starting with /
+            if job_url.startswith('/'):
+                job_url = f"https://api.botify.com{job_url}"
+            # If it's just a job ID
+            elif job_url.isdigit():
+                job_url = f"https://api.botify.com/v1/jobs/{job_url}"
+            # Otherwise assume it might be a path segment without leading /
+            else:
+                job_url = f"https://api.botify.com/{job_url}"
+        
+        # Extract job ID for backup approach
+        job_id = None
+        try:
+            parts = job_url.strip('/').split('/')
+            if 'jobs' in parts:
+                job_id_index = parts.index('jobs') + 1
+                if job_id_index < len(parts):
+                    job_id = parts[job_id_index]
+        except Exception:
+            pass
+            
+        logging.info(f"Starting polling for job: {job_url}" + (f" (ID: {job_id})" if job_id else ""))
         
         while attempt < max_attempts:
             try:
                 logging.info(f"Polling job status (attempt {attempt+1}/{max_attempts}): {job_url}")
                 
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(job_url, 
-                                              headers={"Authorization": f"Token {api_token}"},
-                                              timeout=30.0)
+                # If we have had network errors and we have a job ID, reconstruct the URL
+                if consecutive_network_errors >= 2 and job_id:
+                    alternative_url = f"https://api.botify.com/v1/jobs/{job_id}"
+                    if alternative_url != job_url:
+                        logging.info(f"Switching to direct job ID URL: {alternative_url}")
+                        job_url = alternative_url
+                
+                async with httpx.AsyncClient(timeout=45.0) as client:  # Increased timeout
+                    response = await client.get(
+                        job_url, 
+                        headers={"Authorization": f"Token {api_token}"}
+                    )
+                    
+                    # Successful request resets network error counter
+                    consecutive_network_errors = 0
                     
                     # Log the raw response for debugging
                     try:
@@ -1819,16 +1837,29 @@ class ParameterBusterWorkflow:
                     # Still processing
                     attempt += 1
                     await asyncio.sleep(delay)
-                    delay = min(delay * 1.5, 20)  # Exponential backoff, but cap at 20 seconds (reduced from 60)
+                    delay = min(delay * 1.5, 20)  # Exponential backoff, but cap at 20 seconds
                     
-            except httpx.RequestError as e:
+            except (httpx.RequestError, socket.gaierror, socket.timeout) as e:
                 # Network errors - retry with backoff
+                consecutive_network_errors += 1
                 logging.error(f"Network error polling job status: {str(e)}")
+                
+                # Try to extract job ID and rebuild URL no matter what on network errors
+                if job_id:
+                    job_url = f"https://api.botify.com/v1/jobs/{job_id}"
+                    logging.warning(f"Retry with direct job ID URL: {job_url}")
+                
                 attempt += 1
                 await asyncio.sleep(delay)
-                delay = min(delay * 2, 20)  # Cap at 20 seconds (reduced from 60)
+                delay = min(delay * 2, 30)  # Longer backoff for network errors, cap at 30 seconds
                 
-        return False, "Maximum polling attempts reached"
+            except Exception as e:
+                logging.exception(f"Unexpected error in polling: {str(e)}")
+                attempt += 1
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 30)
+                
+        return False, "Maximum polling attempts reached. The export job may still complete in the background."
 
     async def step_02_process(self, request):
         """Process the actual download after showing the progress indicator."""
@@ -2065,6 +2096,305 @@ class ParameterBusterWorkflow:
         except Exception as e:
             import logging
             logging.exception(f"Error in step_02_process: {e}")
+            
+            # Return error message
+            return P(f"Error: {str(e)}", style=pip.get_style("error"))
+
+    async def step_03_process(self, request):
+        """Process the web logs check and download if available."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Get form data
+        form = await request.form()
+        analysis_slug = form.get("analysis_slug", "").strip()
+        username = form.get("username", "").strip()
+        project_name = form.get("project_name", "").strip()
+        
+        if not all([analysis_slug, username, project_name]):
+            return P("Error: Missing required parameters", style=pip.get_style("error"))
+        
+        try:
+            # Perform the check for web logs
+            has_logs, error_message = await self.check_if_project_has_collection(username, project_name, "logs")
+            
+            if error_message:
+                return P(f"Error: {error_message}", style=pip.get_style("error"))
+            
+            # Store the check result
+            check_result = {
+                "has_logs": has_logs,
+                "project": project_name,
+                "username": username,
+                "analysis_slug": analysis_slug,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Add message
+            status_text = "HAS" if has_logs else "does NOT have"
+            await self.message_queue.add(pip, f"{step.show} complete: Project {status_text} web logs", verbatim=True)
+            
+            # If logs exist, download them
+            if has_logs:
+                # Determine file path
+                logs_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, "weblog")
+                
+                # Check if file already exists
+                file_exists, file_info = await self.check_file_exists(logs_filepath)
+                
+                if file_exists:
+                    # File already exists, skip the export
+                    await self.message_queue.add(pip, f"✓ Found existing web logs data from {file_info['created']}", verbatim=True)
+                    await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                    
+                    # Update check result with existing file info
+                    check_result.update({
+                        "download_complete": True,
+                        "download_info": {
+                            "has_file": True,
+                            "file_path": logs_filepath,
+                            "timestamp": file_info['created'],
+                            "size": file_info['size'],
+                            "cached": True
+                        }
+                    })
+                else:
+                    # Need to export and download web logs
+                    await self.message_queue.add(pip, "🔄 Initiating web logs export...", verbatim=True)
+                    
+                    # Get API token
+                    api_token = self.read_api_token()
+                    if not api_token:
+                        raise ValueError("Cannot read API token")
+                    
+                    # Calculate date range (30 days before analysis date)
+                    from datetime import timedelta
+                    
+                    try:
+                        analysis_date_obj = datetime.strptime(analysis_slug, "%Y%m%d")
+                    except ValueError:
+                        analysis_date_obj = datetime.now()
+                    
+                    date_end = analysis_date_obj.strftime("%Y-%m-%d")
+                    date_start = (analysis_date_obj - timedelta(days=30)).strftime("%Y-%m-%d")
+                    
+                    # Build logs export query following the provided model
+                    export_query = {
+                        "job_type": "logs_urls_export",
+                        "payload": {
+                            "query": {
+                                "filters": {
+                                    "field": "crawls.google.count",
+                                    "predicate": "gt",
+                                    "value": 0
+                                },
+                                "fields": [
+                                    "url",
+                                    "crawls.google.count"
+                                ],
+                                "sort": [
+                                    {
+                                        "crawls.google.count": {
+                                            "order": "desc"
+                                        }
+                                    }
+                                ]
+                            },
+                            "export_size": 1000000,
+                            "formatter": "csv",
+                            "connector": "direct_download",
+                            "formatter_config": {
+                                "print_header": True,
+                                "print_delimiter": True
+                            },
+                            "extra_config": {
+                                "compression": "zip"
+                            },
+                            "date_start": date_start,
+                            "date_end": date_end,
+                            "username": username,
+                            "project": project_name
+                        }
+                    }
+                    
+                    # Submit export job
+                    job_url = "https://api.botify.com/v1/jobs"
+                    headers = {
+                        "Authorization": f"Token {api_token}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    import logging
+                    logging.info(f"Submitting logs export job with payload: {json.dumps(export_query, indent=2)}")
+                    
+                    job_id = None
+                    
+                    async with httpx.AsyncClient() as client:
+                        try:
+                            response = await client.post(
+                                job_url, 
+                                headers=headers, 
+                                json=export_query,
+                                timeout=60.0
+                            )
+                            
+                            # If there's an error, try to get more detailed error info
+                            if response.status_code >= 400:
+                                error_detail = "Unknown error"
+                                try:
+                                    error_body = response.json()
+                                    error_detail = json.dumps(error_body, indent=2)
+                                    logging.error(f"API error details: {error_detail}")
+                                except Exception:
+                                    error_detail = response.text[:500]
+                                    logging.error(f"API error text: {error_detail}")
+                                    
+                                response.raise_for_status()
+                                
+                            job_data = response.json()
+                            
+                            # Get job URL and extract job ID directly
+                            job_url_path = job_data.get('job_url')
+                            if not job_url_path:
+                                raise ValueError("Failed to get job URL from response")
+                                
+                            # Extract job ID from URL path (e.g., /v1/jobs/12345 -> 12345)
+                            job_id = job_url_path.strip('/').split('/')[-1]
+                            if not job_id:
+                                raise ValueError("Failed to extract job ID from job URL")
+                                
+                            # Rather than use the relative URL, build the absolute URL with job ID
+                            full_job_url = f"https://api.botify.com/v1/jobs/{job_id}"
+                            
+                            # Export initiated message
+                            await self.message_queue.add(pip, f"✓ Web logs export job created successfully! (Job ID: {job_id})", verbatim=True)
+                            await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+                        
+                        except httpx.HTTPStatusError as e:
+                            await self.message_queue.add(pip, f"❌ Export request failed: HTTP {e.response.status_code}", verbatim=True)
+                            raise
+                        except Exception as e:
+                            await self.message_queue.add(pip, f"❌ Export request failed: {str(e)}", verbatim=True)
+                            raise
+                    
+                    # Poll for completion using the job ID approach if we have it
+                    if job_id:
+                        await self.message_queue.add(pip, f"Using job ID {job_id} for polling", verbatim=True)
+                        full_job_url = f"https://api.botify.com/v1/jobs/{job_id}"
+                        
+                    # Polling with direct absolute URL approach
+                    success, result = await self.poll_job_status(full_job_url, api_token)
+                    
+                    if not success:
+                        error_message = isinstance(result, str) and result or "Export job failed"
+                        await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
+                        raise ValueError(f"Export failed: {error_message}")
+                    
+                    # Export ready message
+                    await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+                    
+                    # Download the file
+                    download_url = result.get("download_url")
+                    if not download_url:
+                        await self.message_queue.add(pip, "❌ No download URL found in job result", verbatim=True)
+                        raise ValueError("No download URL found in job result")
+                    
+                    # Downloading message
+                    await self.message_queue.add(pip, "🔄 Downloading web logs data...", verbatim=True)
+                    
+                    # Make sure target directory exists
+                    await self.ensure_directory_exists(logs_filepath)
+                    
+                    # Download and extract zip/gzip file properly
+                    try:
+                        # Make a temporary file path for the compressed file
+                        compressed_path = f"{logs_filepath}.compressed"
+                        
+                        # Download the compressed file first
+                        async with httpx.AsyncClient() as client:
+                            async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
+                                response.raise_for_status()
+                                with open(compressed_path, 'wb') as f:
+                                    async for chunk in response.aiter_bytes():
+                                        f.write(chunk)
+                        
+                        # Check what kind of compressed file we have
+                        
+                        # Try to open as gzip first (safer approach)
+                        try:
+                            # Try to open and extract gzip
+                            with gzip.open(compressed_path, 'rb') as f_in:
+                                with open(logs_filepath, 'wb') as f_out:
+                                    shutil.copyfileobj(f_in, f_out)
+                            logging.info(f"Successfully extracted gzip file to {logs_filepath}")
+                            
+                        except gzip.BadGzipFile:
+                            # Not a gzip, try ZIP
+                            try:
+                                with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
+                                    # Get the first CSV file
+                                    csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
+                                    if not csv_files:
+                                        raise ValueError("No CSV files found in the zip archive")
+                                    
+                                    # Extract the CSV file to our target path
+                                    with zip_ref.open(csv_files[0]) as source:
+                                        with open(logs_filepath, 'wb') as target:
+                                            shutil.copyfileobj(source, target)
+                                logging.info(f"Successfully extracted zip file to {logs_filepath}")
+                                
+                            except zipfile.BadZipFile:
+                                # Not a zip either, just move the file as-is (it might be a direct CSV)
+                                shutil.copy(compressed_path, logs_filepath)
+                                logging.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
+                        
+                        # Clean up the compressed file
+                        if os.path.exists(compressed_path):
+                            os.remove(compressed_path)
+                        
+                        # Get info about the created file
+                        _, file_info = await self.check_file_exists(logs_filepath)
+                        
+                        # Download complete message
+                        await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                        
+                    except Exception as e:
+                        await self.message_queue.add(pip, f"❌ Error downloading file: {str(e)}", verbatim=True)
+                        raise
+                
+                # Final message
+                await self.message_queue.add(pip, "✓ Web logs data ready for analysis!", verbatim=True)
+            
+            # Convert to JSON for storage
+            check_result_str = json.dumps(check_result)
+            
+            # Store in state
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            
+            # Return result display
+            status_color = "green" if has_logs else "red"
+            download_message = ""
+            if has_logs:
+                download_message = " (data downloaded)"
+            
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Project {status_text} web logs{download_message}",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        except Exception as e:
+            import logging
+            logging.exception(f"Error in step_03_process: {e}")
             
             # Return error message
             return P(f"Error: {str(e)}", style=pip.get_style("error"))
