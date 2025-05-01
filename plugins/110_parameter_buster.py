@@ -63,7 +63,7 @@ class ParameterBusterWorkflow:
                 refill=False,
             ),
             Step(
-                id='step_03',
+                id='step_04',                 # Changed from step_03 to step_04
                 done='search_console_check',  # Store the Search Console check result
                 show='Check Search Console',  # User-friendly name
                 refill=False,
@@ -112,24 +112,21 @@ class ParameterBusterWorkflow:
 
         # Create default messages for each step
         for step in steps:
-            self.step_messages[step.id] = {
-                "input": f"{pip.fmt(step.id)}: Please complete {step.show}.",
-                "complete": f"{step.show} complete. Continue to next step."
-            }
+            if step.id not in self.step_messages:  # Only add if not already defined
+                self.step_messages[step.id] = {
+                    "input": f"{pip.fmt(step.id)}: Please complete {step.show}.",
+                    "complete": f"{step.show} complete. Continue to next step."
+                }
 
-        # Add specific message for the search console check step
-        self.step_messages["step_03"] = {
-            "input": f"{pip.fmt('step_03')}: Please check if the project has Search Console data.",
+        # Add specific message for step_04 (Search Console check)
+        self.step_messages["step_04"] = {
+            "input": f"{pip.fmt('step_04')}: Please check if the project has Search Console data.",
             "complete": "Search Console check complete. Continue to next step."
         }
 
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
-
-        # Remove step_04 specific message if it exists
-        if "step_04" in self.step_messages:
-            del self.step_messages["step_04"]
 
     # --- Core Workflow Engine Methods ---
 
@@ -764,10 +761,10 @@ class ParameterBusterWorkflow:
             id=step_id
         )
 
-    async def step_03(self, request):
+    async def step_04(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+        step_id = "step_04"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
@@ -849,10 +846,10 @@ class ParameterBusterWorkflow:
                 id=step_id
             )
 
-    async def step_03_submit(self, request):
+    async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+        step_id = "step_04"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
