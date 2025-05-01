@@ -58,12 +58,18 @@ class ParameterBusterWorkflow:
             ),
             Step(
                 id='step_03',
+                done='placeholder',           # Simple placeholder field
+                show='Parameter Settings',    # User-friendly name
+                refill=False,
+            ),
+            Step(
+                id='step_04',                 # Renamed from step_03
                 done='analysis_check',        # Store the analysis slug
                 show='Analysis',              # Updated name from "Get Latest Analysis"
                 refill=False,
             ),
             Step(
-                id='step_04',
+                id='step_05',                 # Renamed from step_04
                 done='placeholder',
                 show='Third CSV Export',
                 refill=False,
@@ -106,6 +112,12 @@ class ParameterBusterWorkflow:
                 "input": f"{pip.fmt(step.id)}: Please complete {step.show}.",
                 "complete": f"{step.show} complete. Continue to next step."
             }
+
+        # Add specific message for the new step (optional)
+        self.step_messages["step_03"] = {
+            "input": f"{pip.fmt('step_03')}: Configure your parameter settings.",
+            "complete": "Parameter settings completed. Continue to next step."
+        }
 
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
@@ -570,7 +582,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_03(self, request):
-        """Handles GET request for selecting an analysis slug."""
+        """Handles GET request for Parameter Settings placeholder step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -579,128 +591,54 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        
-        # Get the analysis result if already completed
-        import json
-        analysis_result_str = step_data.get(step.done, "")
-        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
-        selected_slug = analysis_result.get("analysis_slug", "")
-        
-        # Get project data from step_01
-        prev_step_id = "step_01"
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get("botify_project", "")
-        
-        if not prev_data_str:
-            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
-        
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get("project_name", "")
-        username = project_data.get("username", "")
+        placeholder_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and selected_slug:
-            # Show finalized state with analysis result
+        if "finalized" in finalize_data and placeholder_value:
+            # Display for finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    Div(
-                        P(f"Project: {project_name}", style="margin-bottom: 5px;"),
-                        P(f"Selected Analysis: {selected_slug}", style="font-weight: bold;"),
-                        style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
-                    )
+                    P("Parameter settings completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-        
+            
         # Check if step is complete and not being reverted to
-        if selected_slug and state.get("_revert_target") != step_id:
-            # Show completed state with analysis result
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Display for completed state
             return Div(
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: {selected_slug}",
+                    message=f"{step.show}: Complete",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-        
-        # Display analysis selection dropdown like in botify_export.py
-        try:
-            # Read API token
-            api_token = self.read_api_token()
-            if not api_token:
-                return P("Error: Botify API token not found. Please connect with Botify first.", style=pip.get_style("error"))
-            
-            # Add logging for debugging 
-            import logging
-            logging.info(f"Getting analyses for {username}/{project_name}")
-            
-            # Fetch analysis slugs
-            slugs = await self.fetch_analyses(username, project_name, api_token)
-            logging.info(f"Got {len(slugs) if slugs else 0} analyses")
-            
-            if not slugs:
-                # Try with some error handling
-                try:
-                    import httpx
-                    url = f"https://api.botify.com/v1/analyses/{username}/{project_name}"
-                    headers = {"Authorization": f"Token {api_token}", "Content-Type": "application/json"}
-                    async with httpx.AsyncClient() as client:
-                        response = await client.get(url, headers=headers, timeout=60.0)
-                    logging.info(f"Raw API response: Status {response.status_code}")
-                    if response.status_code == 200:
-                        response_data = response.json()
-                        logging.info(f"Response data keys: {response_data.keys() if response_data else 'None'}")
-                except Exception as e:
-                    logging.exception(f"Error in manual API call: {e}")
-                    
-                return P(f"Error: No analyses found for project {project_name}. Please check your API access.", style=pip.get_style("error"))
-            
-            # Determine selected value (first analysis if no previous selection)
-            selected_value = selected_slug if selected_slug else slugs[0]
-            
-            # Show the form with dropdown
+        else:
+            # Display input form with just a Proceed button
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P(f"Select an analysis for project '{project_name}'"),
-                    P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
+                    P("Configure parameter settings for optimization:"),
                     Form(
-                        Select(
-                            name="analysis_slug",
-                            required=True,
-                            autofocus=True,
-                            *[
-                                Option(
-                                    slug,
-                                    value=slug,
-                                    selected=(slug == selected_value)
-                                ) for slug in slugs
-                            ]
-                        ),
-                        Button("Select Analysis", type="submit", cls="primary", style="margin-top: 10px;"),
+                        Button("Proceed", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # Empty div for next step
+                Div(id=next_step_id),  # Empty div for next step - will be populated via chain reaction
                 id=step_id
             )
-            
-        except Exception as e:
-            import logging
-            logging.exception(f"Error in step_03: {e}")
-            return P(f"Error fetching analyses: {str(e)}", style=pip.get_style("error"))
 
     async def step_03_submit(self, request):
-        """Process the selected analysis slug."""
+        """Process the submission for Parameter Settings placeholder step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -708,49 +646,19 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Get project data from previous step
-        prev_step_id = "step_01"
-        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
-        prev_data_str = prev_step_data.get("botify_project", "")
-        
-        if not prev_data_str:
-            return P("Error: Project data not found. Please complete step 1 first.", style=pip.get_style("error"))
-        
-        import json
-        project_data = json.loads(prev_data_str)
-        project_name = project_data.get("project_name", "")
-        username = project_data.get("username", "")
-        
-        # Get the selected analysis slug from the form
-        form = await request.form()
-        analysis_slug = form.get("analysis_slug", "").strip()
-        
-        if not analysis_slug:
-            return P("Error: No analysis selected", style=pip.get_style("error"))
-        
-        # Store the analysis result
-        analysis_result = {
-            "analysis_slug": analysis_slug,
-            "project": project_name,
-            "username": username,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        # Convert to JSON for storage
-        analysis_result_str = json.dumps(analysis_result)
-        
+        # Use fixed value for placeholder
+        placeholder_value = "completed"
+
         # Store in state
-        await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # Add message
-        await self.message_queue.add(pip, f"{step.show} complete: Selected analysis '{analysis_slug}'", verbatim=True)
-        
-        # Return result display
+        # Return with revert control and chain reaction to next step
         return Div(
             pip.revert_control(
                 step_id=step_id, 
                 app_name=app_name, 
-                message=f"{step.show}: {analysis_slug}",
+                message=f"{step.show}: Complete",
                 steps=steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -758,20 +666,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_04(self, request):
-        """Handles GET request for placeholder Step 4.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        """
+        """Handles GET request for selecting an analysis slug."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -780,12 +675,12 @@ class ParameterBusterWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        placeholder_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+            # Display for finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
@@ -797,14 +692,19 @@ class ParameterBusterWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
+            # Display for completed state
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Complete",
+                    steps=steps
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
+            # Display input form with just a Proceed button
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -822,20 +722,7 @@ class ParameterBusterWorkflow:
             )
 
     async def step_04_submit(self, request):
-        """Process the submission for placeholder Step 4.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
-        """
+        """Process the selected analysis slug."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -874,6 +761,90 @@ class ParameterBusterWorkflow:
         # PRESERVE: Return the revert control with chain reaction to next step
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    async def step_05(self, request):
+        """Handles GET request for placeholder Step 5."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")  # Get the value
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            # Display for finalized state
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P("Third CSV Export completed", style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Display for completed state
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Complete",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Display input form with just a Proceed button
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is the final step for CSV export generation:"),
+                    Form(
+                        Button("Proceed", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),  # Empty div for next step - will be populated via chain reaction
+                id=step_id
+            )
+
+    async def step_05_submit(self, request):
+        """Process the submission for placeholder Step 5."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # Use fixed value for placeholder
+        placeholder_value = "completed"
+
+        # Store in state
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return with revert control and chain reaction to next step (finalize)
+        return Div(
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: Complete",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
