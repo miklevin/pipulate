@@ -2073,9 +2073,8 @@ class ParameterBusterWorkflow:
 
                     # Load into DataFrame and add column headers
                     df = pd.read_csv(crawl_filepath)
-                    df.columns = ["url", "compliant_main_reason", "compliant_detailed_reason", "count"]
                     # Add column headers
-                    df.columns = ["url", "compliant_main_reason", "compliant_detailed_reason", "count"]
+                    df.columns = ["Full URL", "Compliant Main Reason", "Compliant Detailed Reason", "Count"]
                     # Save to CSV with headers
                     df.to_csv(crawl_filepath, index=False)
                     
