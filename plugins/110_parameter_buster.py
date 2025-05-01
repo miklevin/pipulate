@@ -934,11 +934,19 @@ class ParameterBusterWorkflow:
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get("analysis_slug", "")
         
+        # Add debug logging - MOVED HERE after variables are defined
+        import logging
+        logging.info(f"step_04_complete starting for {username}/{project_name}, analysis: {analysis_slug}")
+        
         # Do the actual check
         has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
         
         if error_message:
+            logging.error(f"Error checking for search console: {error_message}")
             return P(f"Error: {error_message}", style=pip.get_style("error"))
+        
+        # More debug info
+        logging.info(f"Search console check result: has_data={has_search_console}")
         
         # Store the check result
         check_result = {
@@ -948,112 +956,28 @@ class ParameterBusterWorkflow:
             "timestamp": datetime.now().isoformat()
         }
         
-        # Convert to JSON for storage
-        check_result_str = json.dumps(check_result)
-        
-        # Store in state
-        await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
-        
-        # Progress indicator for checking if data is available
-        status_text = "HAS" if has_search_console else "does NOT have"
-        await self.message_queue.add(pip, f"✓ Check complete: Project {status_text} Search Console data", verbatim=True)
-        
-        # If the project has search console data, simulate the download process
-        import asyncio
-        
+        # If the project has search console data, process it
         if has_search_console:
-            # Determine file path for this export
-            gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, "gsc")
+            logging.info(f"Starting process_search_console_data for {username}/{project_name}")
+            # Start a background task to process the data
+            import asyncio
+            asyncio.create_task(self.process_search_console_data(
+                pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result
+            ))
             
-            # Check if file already exists
-            file_exists, file_info = await self.check_file_exists(gsc_filepath)
+            # Progress indicator for real downloads
+            status_text = "HAS" if has_search_console else "does NOT have"
+            await self.message_queue.add(pip, f"✓ Check complete: Project {status_text} Search Console data", verbatim=True)
             
-            if file_exists:
-                # File already exists, skip the export
-                await self.message_queue.add(pip, f"✓ Found existing Search Console data from {file_info['created']}", verbatim=True)
-                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
-                
-                # Update check result with existing file info
-                check_result.update({
-                    "download_complete": True,
-                    "download_info": {
-                        "has_file": True,
-                        "file_path": gsc_filepath,
-                        "timestamp": file_info['created'],
-                        "size": file_info['size'],
-                        "cached": True
-                    }
-                })
-            else:
-                # Need to do the export and download
-                await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
-                await asyncio.sleep(1.0)  # Wait 1 second
-                
-                # Export initiated message
-                await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
-                await asyncio.sleep(1.0)  # Wait 1 second
-                
-                # Start polling message
-                await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
-                
-                # Simulate polling process (3 iterations for demo)
-                for i in range(3):
-                    await asyncio.sleep(2.0)  # Wait 2 seconds between polls
-                    await self.message_queue.add(pip, f"🔄 Still waiting for export... (poll {i+1}/3)", verbatim=True)
-                
-                # Export ready message
-                await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
-                await asyncio.sleep(1.0)  # Wait 1 second
-                
-                # Downloading message
-                await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
-                await asyncio.sleep(2.0)  # Wait 2 seconds
-                
-                # Create directory and simulate file creation
-                await self.ensure_directory_exists(gsc_filepath)
-                
-                # Create a demo CSV file
-                with open(gsc_filepath, "w") as f:
-                    f.write("page,impressions,clicks,ctr,position\n")
-                    f.write("https://example.com/,1000,50,5.0,12.3\n")
-                    f.write("https://example.com/page1,500,25,5.0,10.1\n")
-                    f.write("https://example.com/page2,250,10,4.0,15.7\n")
-                
-                # Get info about the created file
-                _, file_info = await self.check_file_exists(gsc_filepath)
-                
-                # Download complete message
-                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                await asyncio.sleep(1.0)  # Wait 1 second
-                
-                # Create downloadable data directory info for storage
-                download_info = {
-                    "has_file": True,
-                    "file_path": gsc_filepath,
-                    "timestamp": file_info['created'],
-                    "size": file_info['size'],
-                    "cached": False
-                }
-                
-                # Update the check result to include download info
-                check_result.update({
-                    "download_complete": True,
-                    "download_info": download_info
-                })
-            
-            # Update state with download info
-            check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
-            
-            # Final processing message
-            await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
+            if has_search_console:
+                await self.message_queue.add(pip, "🔄 Processing Search Console data in the background...", verbatim=True)
+        else:
+            # No search console data
+            await self.message_queue.add(pip, f"Project does not have Search Console data (skipping download)", verbatim=True)
         
-        # Final success message
-        completed_message = "Download completed successfully!" if has_search_console else "No Search Console data available (skipping download)"
-        await self.message_queue.add(pip, f"{step.show} complete: {completed_message}", verbatim=True)
-        
-        # Return the completed display with appropriate status
+        # Return the completed display with appropriate status regardless of background processing
         status_color = "green" if has_search_console else "orange"
+        completed_message = "Check complete, data processing started" if has_search_console else "No Search Console data available"
         
         return Div(
             pip.revert_control(
@@ -1434,7 +1358,11 @@ class ParameterBusterWorkflow:
         import httpx
         import os
         import zipfile
+        import logging
         from datetime import datetime, timedelta
+        
+        # Add detailed logging
+        logging.info(f"Starting real GSC data export for {username}/{project_name}/{analysis_slug}")
         
         try:
             # Determine file path for this export
@@ -1491,6 +1419,9 @@ class ParameterBusterWorkflow:
                 }
                 
                 try:
+                    # Log the payload we're about to send
+                    logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
+                    
                     async with httpx.AsyncClient() as client:
                         response = await client.post(
                             job_url, 
@@ -1498,6 +1429,15 @@ class ParameterBusterWorkflow:
                             json=export_query["export_job_payload"],
                             timeout=60.0
                         )
+                        # Log the response status
+                        logging.info(f"Export job submission response status: {response.status_code}")
+                        
+                        try:
+                            # Try to log the response body
+                            logging.info(f"Export job response: {json.dumps(response.json(), indent=2)}")
+                        except:
+                            logging.info(f"Could not parse response as JSON. Raw: {response.text[:500]}")
+                        
                         response.raise_for_status()
                         job_data = response.json()
                         
@@ -1507,18 +1447,20 @@ class ParameterBusterWorkflow:
                             raise ValueError("Failed to get job URL from response")
                             
                         full_job_url = f"https://api.botify.com{job_url_path}"
+                        logging.info(f"Got job URL: {full_job_url}")
                         
                         # Export initiated message
                         await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
                         
                 except Exception as e:
+                    logging.exception(f"Error creating export job: {str(e)}")
                     await self.message_queue.add(pip, f"❌ Error creating export job: {str(e)}", verbatim=True)
                     raise
                 
                 # Start polling message
                 await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
                 
-                # Poll for completion with exponential backoff
+                # Poll for completion with improved error handling
                 success, result = await self.poll_job_status(full_job_url, api_token)
                 
                 if not success:
@@ -1607,10 +1549,9 @@ class ParameterBusterWorkflow:
             
             # Update state with download info
             check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
             
         except Exception as e:
-            import logging
             logging.exception(f"Error in process_search_console_data: {e}")
             
             # Update check result with error
@@ -1619,16 +1560,95 @@ class ParameterBusterWorkflow:
                 "error": str(e)
             })
             check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
             
             # Add error message to queue
             await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
 
     async def build_bqlv2_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
         """Builds BQLv2 query objects and export job payloads."""
-
-        # Define BQLv2 components based on data_type
-        if data_type == 'crawl':
+        
+        if data_type == 'gsc':
+            # For Search Console data, we need to specify periods
+            if not start_date or not end_date:
+                # Use default 30 day range if dates not provided
+                from datetime import datetime, timedelta
+                end_date = datetime.now().strftime("%Y%m%d")  # Format as YYYYMMDD without dashes
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
+            
+            # Build the export job payload using the correct structure from your example
+            export_job_payload = {
+                "job_type": "export",
+                "payload": {
+                    "query": {
+                        "collections": ["search_console"],
+                        "periods": [[start_date, end_date]],
+                        "query": {
+                            "dimensions": ["url"],
+                            "metrics": [
+                                {
+                                    "field": "search_console.period_0.count_impressions",
+                                    "name": "Impressions"
+                                },
+                                {
+                                    "field": "search_console.period_0.count_clicks",
+                                    "name": "Clicks"
+                                },
+                                {
+                                    "field": "search_console.period_0.ctr",
+                                    "name": "CTR"
+                                },
+                                {
+                                    "field": "search_console.period_0.avg_position",
+                                    "name": "Avg. Position"
+                                }
+                            ],
+                            "sort": [
+                                {
+                                    "type": "metrics",
+                                    "index": 0,
+                                    "order": "desc"
+                                }
+                            ]
+                        }
+                    },
+                    "export_size": 10000,
+                    "formatter": "csv",
+                    "connector": "direct_download",
+                    "formatter_config": {
+                        "print_header": True,
+                        "print_delimiter": True
+                    },
+                    "extra_config": {
+                        "compression": "zip"
+                    },
+                    "username": username,
+                    "project": project_name,
+                    "export_job_name": "Search Console Export"
+                }
+            }
+            
+            # Also simplify the check query
+            check_query_payload = {
+                "collections": ["search_console"],
+                "periods": [[start_date, end_date]],
+                "query": {
+                    "dimensions": [],
+                    "metrics": [{"function": "count", "args": ["search_console.url"]}]
+                }
+            }
+            
+            # Return all query components
+            return {
+                "check_query_payload": check_query_payload,
+                "check_url": f"/v1/projects/{username}/{project_name}/query",
+                "export_job_payload": export_job_payload,
+                "export_url": "/v1/jobs",
+                "data_type": data_type
+            }
+        
+        # Keep the rest of the method unchanged for other data types
+        elif data_type == 'crawl':
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             
@@ -1662,58 +1682,6 @@ class ParameterBusterWorkflow:
                         "field": f"{collection}.http_code", 
                         "predicate": "eq", 
                         "value": 200
-                    }
-                }
-            }
-
-        elif data_type == 'gsc':
-            # For Search Console data, we need to specify periods
-            if not start_date or not end_date:
-                # Use default 30 day range if dates not provided
-                from datetime import datetime, timedelta
-                end_date = datetime.now().strftime("%Y-%m-%d")
-                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-            
-            # Define the BQL query for GSC data
-            bql_query = {
-                "collections": ["search_console"],
-                "periods": [[start_date, end_date]],
-                "query": {
-                    "dimensions": [
-                        "search_console.url",
-                        "search_console.period_0.keys.query",
-                        "search_console.period_0.keys.device",
-                        "search_console.period_0.keys.page"
-                    ],
-                    "metrics": [
-                        "search_console.period_0.count_impressions",
-                        "search_console.period_0.count_clicks",
-                        "search_console.period_0.avg_ctr",
-                        "search_console.period_0.avg_position"
-                    ],
-                    "filters": {
-                        "field": "search_console.period_0.count_impressions", 
-                        "predicate": "gt", 
-                        "value": 0
-                    },
-                    "sort": [{
-                        "field": "search_console.period_0.count_impressions",
-                        "order": "desc"
-                    }]
-                }
-            }
-            
-            # Define the lightweight check query for GSC data
-            check_query_payload = {
-                "collections": ["search_console"],
-                "periods": [[start_date, end_date]],
-                "query": {
-                    "dimensions": [],
-                    "metrics": [{"function": "count", "args": ["search_console.url"]}],
-                    "filters": {
-                        "field": "search_console.period_0.count_impressions", 
-                        "predicate": "gt", 
-                        "value": 0
                     }
                 }
             }
@@ -1781,3 +1749,85 @@ class ParameterBusterWorkflow:
             "export_url": "/v1/jobs",
             "data_type": data_type
         }
+
+    async def poll_job_status(self, job_url, api_token, max_attempts=12):
+        """
+        Poll the job status URL to check for completion with improved error handling
+        
+        Args:
+            job_url: Full job URL to poll
+            api_token: Botify API token
+            max_attempts: Maximum number of polling attempts
+            
+        Returns:
+            Tuple of (success, result_dict_or_error_message)
+        """
+        import httpx
+        import asyncio
+        import logging
+        import json
+        
+        attempt = 0
+        delay = 5  # Start with 5 second delay
+        
+        while attempt < max_attempts:
+            try:
+                logging.info(f"Polling job status (attempt {attempt+1}/{max_attempts}): {job_url}")
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(job_url, 
+                                              headers={"Authorization": f"Token {api_token}"},
+                                              timeout=30.0)
+                    
+                    # Log the raw response for debugging
+                    try:
+                        response_json = response.json()
+                        logging.info(f"Poll response: {json.dumps(response_json, indent=2)}")
+                    except:
+                        logging.info(f"Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}")
+                    
+                    if response.status_code == 401:
+                        logging.error("Authentication error (401) during polling")
+                        return False, "Authentication failed. Please check your API token."
+                        
+                    # Handle other error codes
+                    if response.status_code >= 400:
+                        logging.error(f"Error response {response.status_code} during polling: {response.text}")
+                        return False, f"API error {response.status_code}: {response.text}"
+                        
+                    job_data = response.json()
+                    status = job_data.get('job_status')
+                    
+                    logging.info(f"Poll attempt {attempt+1}: status={status}")
+                    
+                    if status == 'DONE':
+                        # Capture all metadata
+                        results = job_data.get('results', {})
+                        return True, {
+                            "download_url": results.get("download_url"),
+                            "row_count": results.get("row_count"),
+                            "file_size": results.get("file_size"), 
+                            "filename": results.get("filename"),
+                            "expires_at": results.get("expires_at")
+                        }
+                        
+                    if status == 'FAILED':
+                        error_details = job_data.get('error', {})
+                        error_message = error_details.get('message', 'Unknown error')
+                        error_type = error_details.get('type', 'Unknown type')
+                        logging.error(f"Job failed with error type: {error_type}, message: {error_message}")
+                        return False, f"Export failed: {error_message} (Type: {error_type})"
+                        
+                    # Still processing
+                    attempt += 1
+                    await asyncio.sleep(delay)
+                    delay = min(delay * 1.5, 60)  # Exponential backoff, cap at 60 seconds
+                    
+            except httpx.RequestError as e:
+                # Network errors - retry with backoff
+                logging.error(f"Network error polling job status: {str(e)}")
+                attempt += 1
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 60)
+                
+        return False, "Maximum polling attempts reached"
