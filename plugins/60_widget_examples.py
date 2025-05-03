@@ -164,8 +164,14 @@ class WidgetExamples:
             ),
             Step(
                 id='step_07',
-                done='placeholder',
-                show='Placeholder Step',
+                done='counter_data',
+                show='Matplotlib Histogram',
+                refill=True,
+            ),
+            Step(
+                id='step_08',
+                done='new_placeholder',
+                show='New Placeholder Step',
                 refill=True,
             ),
         ]
@@ -198,7 +204,15 @@ class WidgetExamples:
                 "ready": "All steps complete. Ready to finalize workflow.",
                 "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             },
-            "new": "Please complete each step to explore different widget types."
+            "new": "Please complete each step to explore different widget types.",
+            "step_08": {
+                "input": f"{pip.fmt('step_08')}: Please complete New Placeholder Step.",
+                "complete": f"New Placeholder Step complete. Continue to next step."
+            },
+            "step_07": {
+                "input": f"{pip.fmt('step_07')}: Enter counter data for Matplotlib Histogram.",
+                "complete": f"Matplotlib Histogram complete. Continue to next step."
+            }
         }
 
         # Default messages for each step
@@ -452,7 +466,17 @@ button.onclick = function() {
 widget.appendChild(countDisplay);
 widget.appendChild(button);""",
 
-            'step_07': """Placeholder step - no user content needed.
+            'step_07': """{
+    "apples": 35,
+    "oranges": 42, 
+    "bananas": 28,
+    "grapes": 51,
+    "peaches": 22,
+    "plums": 18,
+    "mangoes": 39
+}""",
+
+            'step_08': """New placeholder step - no user content needed.
 
 This step serves as a placeholder for future widget types."""
         }
@@ -1946,10 +1970,9 @@ This step serves as a placeholder for future widget types."""
     # --- Step 7: Simple Text Widget (Duplicate) ---
     async def step_07(self, request):
         """ 
-        Handles GET request for Step 7: Placeholder Step.
+        Handles GET request for Step 7: Matplotlib Histogram Widget.
         
-        This is a minimal placeholder step with just a Proceed button.
-        It maintains the same workflow pattern but without collecting user data.
+        This step allows users to input counter data and visualizes it as a histogram.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_07"
@@ -1959,7 +1982,167 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "placeholder_value")
+        counter_data = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and counter_data:
+            # Show the histogram in locked state
+            try:
+                histogram_widget = self.create_matplotlib_histogram(counter_data)
+                return Div(
+                    Card(
+                        H3(f"🔒 {step.show}"),
+                        histogram_widget
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            except Exception as e:
+                logger.error(f"Error creating histogram in finalized view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            
+        # Check if step is complete and not reverting
+        if counter_data and state.get("_revert_target") != step_id:
+            # Create the histogram widget from the existing data
+            try:
+                histogram_widget = self.create_matplotlib_histogram(counter_data)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Configured",
+                    widget=histogram_widget,
+                    steps=steps
+                )
+                return Div(
+                    content_container,
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+                )
+            except Exception as e:
+                # If there's an error creating the widget, revert to input form
+                logger.error(f"Error creating histogram widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
+        
+        # Show input form
+        display_value = counter_data if step.refill and counter_data else await self.get_suggestion(step_id, state)
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P("Enter counter data as JSON object (keys and values):"),
+                P("Format: {\"category1\": count1, \"category2\": count2, ...}", 
+                  style="font-size: 0.8em; font-style: italic;"),
+                Form(
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter JSON object for Counter data",
+                            required=True,
+                            rows=10,
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Create Histogram", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+
+    async def step_07_submit(self, request):
+        """ 
+        Process the submission for Step 7 (Matplotlib Histogram).
+        
+        Takes counter data as input and creates a histogram visualization.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_07"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Get form data
+        form = await request.form()
+        counter_data = form.get(step.done, "").strip()
+
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(counter_data, step.show)
+        if not is_valid:
+            return error_component
+        
+        # Additional validation for JSON format
+        try:
+            import json
+            data = json.loads(counter_data)
+            if not isinstance(data, dict):
+                return P("Invalid JSON: Must be an object (dictionary) with keys and values", style=pip.get_style("error"))
+            if not data:
+                return P("Invalid data: Counter cannot be empty", style=pip.get_style("error"))
+        except json.JSONDecodeError:
+            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
+
+        # Save the counter data to state
+        await pip.update_step_state(pipeline_id, step_id, counter_data, steps)
+
+        # Create the matplotlib histogram widget
+        try:
+            histogram_widget = self.create_matplotlib_histogram(counter_data)
+            
+            # Create content container with the widget
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: Histogram created from Counter data",
+                widget=histogram_widget,
+                steps=steps
+            )
+            
+            # Create full response structure
+            response_content = Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+            # Send confirmation message
+            await self.message_queue.add(pip, f"{step.show} complete. Histogram created.", verbatim=True)
+
+            # Return the HTMLResponse with the widget container
+            return HTMLResponse(to_xml(response_content))
+            
+        except Exception as e:
+            logger.error(f"Error creating histogram visualization: {e}")
+            return P(f"Error creating histogram: {str(e)}", style=pip.get_style("error"))
+
+    # --- Step 8: New Placeholder Step ---
+    async def step_08(self, request):
+        """ 
+        Handles GET request for Step 8: New Placeholder Step.
+        
+        This is a minimal placeholder step with just a Proceed button.
+        It maintains the same workflow pattern but without collecting user data.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_08"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
@@ -1968,19 +2151,19 @@ This step serves as a placeholder for future widget types."""
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
+                    P("New placeholder step completed")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
             
         # Check if step is complete and not reverting
-        if placeholder_value and placeholder_value != "placeholder_value" and state.get("_revert_target") != step_id:
+        if placeholder_value and state.get("_revert_target") != step_id:
             # Show completion message
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
                 message=f"{step.show} Completed",
-                widget=P("Placeholder step completed"),
+                widget=P("New placeholder step completed"),
                 steps=steps
             )
             return Div(
@@ -1994,7 +2177,7 @@ This step serves as a placeholder for future widget types."""
             return Div(
                 Card(
                     H3(f"{pip.fmt(step_id)}: {step.show}"),
-                    P("This is a placeholder step. No input is required."),
+                    P("This is a new placeholder step. No input is required."),
                     Form(
                         Div(
                             Button("Proceed", type="submit", cls="primary"),
@@ -2008,15 +2191,15 @@ This step serves as a placeholder for future widget types."""
                 id=step_id
             )
 
-    async def step_07_submit(self, request):
+    async def step_08_submit(self, request):
         """ 
-        Process the submission for Step 7 (Placeholder).
+        Process the submission for Step 8 (New Placeholder).
         
         This is a simplified version that doesn't collect user input
         but maintains the same workflow progression pattern.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_07"
+        step_id = "step_08"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get("pipeline_id", "unknown")
@@ -2026,14 +2209,10 @@ This step serves as a placeholder for future widget types."""
         placeholder_value = "completed"
 
         # Save the placeholder value to state
-        state = pip.read_state(pipeline_id)
-        if step_id not in state:
-            state[step_id] = {}
-        state[step_id][step.done] = placeholder_value
-        pip.write_state(pipeline_id, state)
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
 
         # Create a simple confirmation widget
-        placeholder_widget = P("Placeholder step completed")
+        placeholder_widget = P("New placeholder step completed")
         
         # Create content container with the widget
         content_container = pip.widget_container(
@@ -2056,3 +2235,86 @@ This step serves as a placeholder for future widget types."""
 
         # Return the HTMLResponse with the widget container
         return HTMLResponse(to_xml(response_content))
+
+    # Add the helper method to create a matplotlib histogram
+    def create_matplotlib_histogram(self, data_str):
+        """
+        Create a matplotlib histogram visualization from JSON counter data.
+        
+        Args:
+            data_str: A JSON string representing counter data
+            
+        Returns:
+            A Div element containing the histogram image
+        """
+        try:
+            # Parse the JSON data
+            import json
+            from collections import Counter
+            
+            # Try to parse as a dict (direct Counter format)
+            data = json.loads(data_str)
+            
+            if not isinstance(data, dict):
+                return Div(NotStr("<div style='color: red;'>Error: Data must be a JSON object with keys and values</div>"), _raw=True)
+            
+            # Create a Counter from the data
+            counter = Counter(data)
+            
+            # Check if we have data to plot
+            if not counter:
+                return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
+            
+            # Generate the matplotlib figure
+            import matplotlib.pyplot as plt
+            from io import BytesIO
+            import base64
+            
+            # Create the figure
+            plt.figure(figsize=(10, 6))
+            
+            # Sort data by keys for better visualization
+            labels = sorted(counter.keys())
+            values = [counter[label] for label in labels]
+            
+            # Create the bar plot
+            plt.bar(labels, values, color='skyblue')
+            
+            # Add labels and title
+            plt.xlabel('Categories')
+            plt.ylabel('Counts')
+            plt.title('Histogram from Counter Data')
+            
+            # Add grid for better readability
+            plt.grid(axis='y', linestyle='--', alpha=0.7)
+            
+            # Rotate x-axis labels if there are many categories
+            if len(labels) > 5:
+                plt.xticks(rotation=45, ha='right')
+            
+            # Adjust layout
+            plt.tight_layout()
+            
+            # Save figure to a bytes buffer
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png')
+            plt.close()
+            
+            # Convert to base64 for embedding in HTML
+            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            # Create an HTML component with the image and some metadata
+            return Div(
+                H4("Histogram Visualization:"),
+                P(f"Data: {len(counter)} categories, {sum(counter.values())} total counts"),
+                Div(
+                    NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'),
+                    style="text-align: center; margin-top: 1rem;"
+                ),
+                style="overflow-x: auto;"
+            )
+        
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            return Div(NotStr(f"<div style='color: red;'>Error creating histogram: {str(e)}<br><pre>{tb}</pre></div>"), _raw=True)

@@ -16,6 +16,7 @@ jupyterlab
 jupyterlab-spellchecker
 jupytext
 loguru
+matplotlib
 nbstripout
 pandas
 pyfiglet
