@@ -16,26 +16,25 @@ from typing import Dict, List, Optional, Union
 # allows for clean multi-line string formatting.
 
 FILES_TO_INCLUDE = """\
-flake.nix
 server.py
+flake.nix
 requirements.txt
-static/chat-interface.js
-static/chat-scripts.js
-static/chat-styles.css
-static/widget-scripts.js
 plugins/20_hello_workflow.py
-plugins/30_tasks.py
 plugins/60_widget_examples.py
+plugins/70_blank_workflow.py
 plugins/80_practice_workflow.py
 """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 
 # README.md
-# flake.nix
 # .cursorrules
-# server.py
 # plugins/10_connect_with_botify.py
 # plugins/20_hello_workflow.py
+
+# static/chat-interface.js
+# static/chat-scripts.js
+# static/chat-styles.css
+# static/widget-scripts.js
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION
