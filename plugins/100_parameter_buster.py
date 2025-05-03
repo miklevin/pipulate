@@ -1155,6 +1155,20 @@ class ParameterBusterWorkflow:
                     style="margin-bottom: 15px;"
                 ),
                 Form(
+                    Div(
+                        Label("Number of Parameters to Show:", For="param_count"),
+                        Input(
+                            type="number", 
+                            name="param_count", 
+                            id="param_count", 
+                            value="40", 
+                            min="10", 
+                            max="100", 
+                            step="5",
+                            style="width: 100px;"
+                        ),
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
+                    ),
                     Button("Analyze Parameters", type="submit", cls="primary"),
                     hx_post=f"/{app_name}/{step_id}_submit",
                     hx_target=f"#{step_id}"
@@ -3582,7 +3596,7 @@ console.log(analyzeParameters(testUrl));"""
             plt.yticks(y_pos, top_params, fontsize=8, color='white')
             plt.xlabel('Occurrences (log scale)', color='white')
             plt.ylabel('Parameters', color='white')
-            plt.title('Top 30 Parameters by Data Source (Log Scale)', color='white')
+            plt.title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
             plt.tick_params(axis='both', colors='white')
             plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
             plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
