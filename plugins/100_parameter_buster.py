@@ -89,21 +89,21 @@ class ParameterBusterWorkflow:
                 refill=True,                  # Allow refilling for better UX
             ),
             Step(
-                id='step_02',                 # Changed from step_new to step_02
-                done='analysis_selection',    # Updated from 'placeholder' to be more meaningful
-                show='Select Analysis',       # Changed from 'Project Details' to match functionality
+                id='step_02',                 
+                done='analysis_selection',    
+                show='Download Crawl Analysis',  # Changed from "Select Analysis"
                 refill=False,
             ),
             Step(
                 id='step_03',                 
                 done='weblogs_check',         # Store the check result
-                show='Check Web Logs',        # User-friendly name
+                show='Download Web Logs',    # Changed from "Check Web Logs"
                 refill=False,
             ),
             Step(
-                id='step_04',                 # Changed from step_03 to step_04
+                id='step_04',                 
                 done='search_console_check',  # Store the Search Console check result
-                show='Check Search Console',  # User-friendly name
+                show='Download Search Console',  # Changed from "Check Search Console"
                 refill=False,
             ),
             Step(
@@ -163,8 +163,8 @@ class ParameterBusterWorkflow:
                 "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
             },
             "step_02": {
-                "input": f"{pip.fmt('step_02')}: Please select an analysis for this project.",
-                "complete": "Analysis selection complete. Continue to next step."
+                "input": f"{pip.fmt('step_02')}: Please select a crawl analysis for this project.",
+                "complete": "Crawl analysis download complete. Continue to next step."
             },
             "step_06": {
                 "input": f"{pip.fmt('step_06')}: Please enter JavaScript code for syntax highlighting.",
@@ -628,7 +628,7 @@ class ParameterBusterWorkflow:
                                 ) for slug in slugs
                             ]
                         ),
-                        Button("Select Analysis", type="submit", cls="primary", style="margin-top: 10px;"),
+                        Button("Download Crawl Analysis", type="submit", cls="primary", style="margin-top: 10px;"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -784,7 +784,7 @@ class ParameterBusterWorkflow:
                     P(f"Check if project '{project_name}' has web logs available"),
                     P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Run Check", type="submit", cls="primary"),
+                        Button("Download Web Logs", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -925,7 +925,7 @@ class ParameterBusterWorkflow:
                     P(f"Check if project '{project_name}' has Search Console data available"),
                     P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Run Check", type="submit", cls="primary"),
+                        Button("Download Search Console", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -1506,51 +1506,57 @@ class ParameterBusterWorkflow:
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
         
-        # Show input form - provide a default JavaScript code example
-        default_code = """// Example JavaScript for Parameter Buster
-function analyzeParameters(url) {
-    const urlObj = new URL(url);
-    const params = new URLSearchParams(urlObj.search);
-    const results = {};
-    
-    // Count parameters
-    results.paramCount = params.size;
-    
-    // List all parameters
-    results.paramList = [];
-    for (const [key, value] of params.entries()) {
-        results.paramList.push({
-            name: key,
-            value: value,
-            length: value.length
-        });
-    }
-    
-    return results;
-}
-
-// Usage example
-const testUrl = "https://example.com/page?id=123&source=google&campaign=spring2023";
-console.log(analyzeParameters(testUrl));"""
-
-        display_value = user_val if step.refill and user_val else default_code
+        # Show input form with numerical fields instead of code
+        # Use default values if available or set reasonable defaults
+        try:
+            values = json.loads(user_val) if user_val else {}
+            gsc_threshold = values.get("gsc_threshold", "50")
+            min_frequency = values.get("min_frequency", "100")
+        except json.JSONDecodeError:
+            gsc_threshold = "50"
+            min_frequency = "100"
+        
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
         return Div(
             Card(
                 H3(f"{pip.fmt(step_id)}: {step.show}"),
-                P("Enter code to be highlighted with syntax coloring."),
-                P("You can prefix your code with ```language to specify a language (e.g. ```python).",
-                  style="font-size: 0.8em; font-style: italic;"),
+                P("Set thresholds for parameter optimization:"),
                 Form(
                     Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter code for syntax highlighting",
-                            required=True,
-                            rows=15,
-                            style="width: 100%; font-family: monospace;"
+                        Div(
+                            Label(
+                                NotStr("<strong>GSC Threshold:</strong>"), 
+                                For="gsc_threshold"
+                            ),
+                            Input(
+                                type="number", 
+                                name="gsc_threshold", 
+                                id="gsc_threshold", 
+                                value=gsc_threshold, 
+                                min="1", 
+                                max="1000", 
+                                step="10",
+                                style="width: 100px;"
+                            ),
+                            style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
+                        ),
+                        Div(
+                            Label(
+                                NotStr("<strong>Minimum Frequency:</strong>"), 
+                                For="min_frequency"
+                            ),
+                            Input(
+                                type="number", 
+                                name="min_frequency", 
+                                id="min_frequency", 
+                                value=min_frequency, 
+                                min="1", 
+                                max="10000", 
+                                step="50",
+                                style="width: 100px;"
+                            ),
+                            style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                         ),
                         Div(
                             Button("Submit", type="submit", cls="primary"),
