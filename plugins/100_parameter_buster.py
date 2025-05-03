@@ -1669,7 +1669,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_06_submit(self, request):
-        """Process the submission for the code syntax highlighting step."""
+        """Process the submission for the parameter threshold settings."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_06"
         step_index = self.steps_indices[step_id]
@@ -1679,70 +1679,32 @@ class ParameterBusterWorkflow:
 
         # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Check if user specified a language in format: ```language\ncode```
-        language = 'javascript'  # Default language
-        code_to_display = user_val
+        gsc_threshold = form.get("gsc_threshold", "0")
+        min_frequency = form.get("min_frequency", "100000")
         
-        if user_val.startswith('```'):
-            # Try to extract language from markdown-style code block
-            first_line = user_val.split('\n', 1)[0].strip()
-            if len(first_line) > 3:
-                detected_lang = first_line[3:].strip()
-                if detected_lang:
-                    language = detected_lang
-                    # Remove the language specification line from the code
-                    code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-            
-            # Remove trailing backticks if present
-            if code_to_display.endswith('```'):
-                code_to_display = code_to_display.rsplit('```', 1)[0]
+        # Create a JSON object to store
+        threshold_data = {
+            "gsc_threshold": gsc_threshold,
+            "min_frequency": min_frequency
+        }
+        
+        # Convert to JSON string for storage
+        user_val = json.dumps(threshold_data)
 
-        # Validate input
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid:
-            return error_component
-
-        # Save the value to state
+        # Save the values to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
         
-        # Generate unique widget ID for this step and pipeline
-        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        
-        # Use the helper method to create a prism widget with detected language
-        prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-        
-        # Create content container with the prism widget and initialization
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
-            widget=prism_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
+        # Return the completed view
+        return Div(
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"Parameter Thresholds: GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency}",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
-        
-        # Create an HTMLResponse with the content
-        response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to initialize Prism highlighting
-        response.headers["HX-Trigger"] = json.dumps({
-            "initializePrism": {
-                "targetId": widget_id
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Code syntax highlighted with {language}.", verbatim=True)
-        
-        return response
 
     # --- Helper Methods ---
     
