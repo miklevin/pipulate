@@ -3404,8 +3404,19 @@ console.log(analyzeParameters(testUrl));"""
             # Reverse the order to have highest counts at the top
             top_params.reverse()
             
-            # Create figure with appropriate size
-            plt.figure(figsize=(10, 14))
+            # Create figure with appropriate size and set dark style
+            plt.figure(figsize=(10, 14), facecolor='#1e1e2e')
+            ax = plt.gca()
+            ax.set_facecolor('#1e1e2e')  # Dark background for the plot area
+            
+            # Set text colors to light for better visibility on dark background
+            plt.rcParams.update({
+                'text.color': 'white',
+                'axes.labelcolor': 'white',
+                'axes.edgecolor': '#555555',
+                'xtick.color': 'white',
+                'ytick.color': 'white',
+            })
             
             # Set up positions for the bars
             y_pos = np.arange(len(top_params))
@@ -3416,25 +3427,24 @@ console.log(analyzeParameters(testUrl));"""
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
             gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
             
-            # Create grouped bar chart with distinct colors
-            # Use stronger colors to ensure visibility
-            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#3498db', label='Web Logs')
-            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#2ecc71', label='Crawl Data')
-            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#e74c3c', label='Search Console')
+            # Create grouped bar chart with distinct colors - use more vibrant colors for dark theme
+            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs')
+            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#50fa7b', label='Crawl Data')
+            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#ff7b7b', label='Search Console')
             
             # Set y-axis labels and ticks - follow the same ordering as bars
             plt.yticks(y_pos, top_params, fontsize=8)
             
-            # Add labels and title
-            plt.xlabel('Occurrences')
-            plt.ylabel('Parameters')
-            plt.title('Top 30 Parameters by Data Source')
+            # Add labels and title with light color
+            plt.xlabel('Occurrences', color='white')
+            plt.ylabel('Parameters', color='white')
+            plt.title('Top 30 Parameters by Data Source', color='white')
             
             # Add legend and move to bottom right to avoid covering bars
-            plt.legend(loc='lower right')
+            plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
             
-            # Add grid for better readability
-            plt.grid(axis='x', linestyle='--', alpha=0.7)
+            # Add grid with lighter color for better readability on dark background
+            plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
             
             # Add value labels to the end of each bar
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
