@@ -409,8 +409,11 @@ class BotifyExport:
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                Card(
+                    H3(f"🔒 {step.show}: {user_val}")
+                ),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
 
         if user_val and state.get("_revert_target") != step_id:
@@ -537,8 +540,11 @@ class BotifyExport:
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                Card(
+                    H3(f"🔒 {step.show}: {user_val}")
+                ),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
 
         # If step is complete and not being reverted, show revert control
@@ -669,8 +675,11 @@ class BotifyExport:
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                Card(
+                    H3(f"🔒 {step.show}: {user_val}")
+                ),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
 
         # If step is complete and not being reverted, show revert control
@@ -1335,7 +1344,7 @@ class BotifyExport:
             # Create response UI for the existing job
             return Div(
                 Card(
-                    H3(f"Export Status: Complete ✅"),
+                    H3(f"🔒 {step.show}: Complete ✅"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"The export with your requested parameters is ready for download.", 
                       style="margin-bottom: 1rem;"),
@@ -1402,7 +1411,7 @@ class BotifyExport:
             # Create response UI for the processing job
             return Div(
                 Card(
-                    H3("Export Status: Processing ⏳"),
+                    H3(f"🔒 {step.show}: Complete ✅"),
                     P(f"Using existing export job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                     P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                     Div(
@@ -2423,7 +2432,7 @@ class BotifyExport:
                 # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
-                        H3("Export Status: Complete ✅"),
+                        H3(f"🔒 {step.show}: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
@@ -2461,7 +2470,7 @@ class BotifyExport:
                 
                 return Div(
                     Card(
-                        H3("Export Status: Processing ⏳"),
+                        H3(f"🔒 {step.show}: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Started: {created_str}", style="margin-bottom: 0.5rem;"),
                         Div(
@@ -2544,7 +2553,7 @@ class BotifyExport:
                 # This is a "terminal" response that won't trigger other steps
                 return Div(
                     Card(
-                        H3("Export Status: Complete ✅"),
+                        H3(f"🔒 {step.show}: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
@@ -2566,7 +2575,7 @@ class BotifyExport:
                 
                 return Div(
                     Card(
-                        H3("Export Status: Processing ⏳"),
+                        H3(f"🔒 {step.show}: Complete ✅"),
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"Exporting URLs up to depth {depth}", style="margin-bottom: 0.5rem;"),
                         P(f"Including fields: {fields_list}", style="margin-bottom: 1rem;"),
