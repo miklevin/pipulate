@@ -7,7 +7,7 @@ from loguru import logger
 
 """
 Pipulate Workflow Template
-A minimal starter template for creating step-based Pipulate workflows.
+A guide for creating multi-step workflows with proper chain reaction behavior.
 """
 
 # Model for a workflow step
@@ -18,10 +18,33 @@ class PracticeWorkflow:
     """
     Practice Workflow Template
     
-    A minimal starting point for creating new workflows.
+    A demonstration workflow showing how to extend from a simple single-step workflow 
+    (like 70_blank_workflow.py) to a multi-step workflow with proper HTMX chain reactions.
+    
+    ## Critical Chain Reaction Pattern
+    
+    Pipulate workflows use an explicit HTMX triggering pattern where:
+    
+    1. Each step must explicitly trigger the next step in the sequence when completed
+    2. This is done by returning a div with the next step's ID and hx_trigger="load"
+    3. Removing or altering this pattern will break the workflow progression
+    
+    ## Steps Progression Mechanism:
+    
+    1. init(): Creates placeholder for step_01 with hx_trigger="load"
+    2. step_01(): Loads and either:
+       - If incomplete: Shows the input form
+       - If complete: Shows completion state AND explicitly triggers step_02
+    3. step_01_submit(): Processes data and returns a view that:
+       - Shows the completion state for step_01
+       - EXPLICITLY triggers step_02 with <Div id="step_02" hx_get="/app/step_02" hx_trigger="load">
+    4. Each subsequent step follows the same pattern
+    5. The last step triggers the finalize step
+    
+    This explicit triggering is more reliable than depending on HTMX event bubbling.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "practice"              # Unique identifier for this workflow's routes and data
+    APP_NAME = "practice"           # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Practice Workflow" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
         "This is a practice workflow template. "
@@ -43,6 +66,11 @@ class PracticeWorkflow:
         self.message_queue = pip.message_queue
 
         # Define workflow steps
+        # SPLICING GUIDE: When adding new steps to a workflow:
+        # 1. Add each step in order in this list
+        # 2. Create corresponding step_XX and step_XX_submit methods
+        # 3. The chain reaction happens automatically as long as each step's 
+        #    completion state includes a div triggering the next step
         steps = [
             Step(
                 id='step_01',
@@ -65,7 +93,8 @@ class PracticeWorkflow:
             # Add more steps as needed
         ]
         
-        # Register standard workflow routes
+        # CRITICAL: Register standard workflow routes
+        # DO NOT MODIFY this routes registration pattern
         routes = [
             (f"/{app_name}", self.landing),
             (f"/{app_name}/init", self.init, ["POST"]),
@@ -75,7 +104,8 @@ class PracticeWorkflow:
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
         ]
 
-        # Register routes for each step
+        # CRITICAL: Register routes for each step
+        # This creates the endpoints that each step will call via HTMX
         self.steps = steps
         for step in steps:
             step_id = step.id
@@ -102,11 +132,15 @@ class PracticeWorkflow:
                 "complete": f"{step.show} complete. Continue to next step."
             }
 
-        # Add the finalize step internally
+        # CRITICAL: Add the finalize step internally
+        # The finalize step must be added after registering routes but before creating step indices
+        # It's included in the steps list but doesn't get its own routes
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     # --- Core Workflow Engine Methods ---
+    # DO NOT modify these methods when extending a workflow
+    # These handle the core mechanics for all workflows
 
     async def landing(self):
         """Renders the initial landing page with the key input form."""
@@ -140,7 +174,11 @@ class PracticeWorkflow:
         )
 
     async def init(self, request):
-        """Handles the key submission, initializes state, and renders the step UI placeholders."""
+        """Handles the key submission, initializes state, and renders the step UI placeholders.
+        
+        CRITICAL: This method starts the chain reaction by triggering the first step.
+        DO NOT modify the structure that adds the first step with hx_trigger="load".
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         user_input = form.get("pipeline_id", "").strip()
@@ -172,14 +210,24 @@ class PracticeWorkflow:
         await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
         
-        # Build UI starting with first step
+        # CRITICAL: Start the chain reaction with step_01
+        # This sets up the first div with hx_trigger="load" to kick off the chain
+        # All subsequent steps will be triggered in sequence by the completion of the previous step
         return Div(
             Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
             id=f"{app_name}-container"
         )
 
     async def finalize(self, request):
-        """Handles GET request to show Finalize button and POST request to lock the workflow."""
+        """Handles GET request to show Finalize button and POST request to lock the workflow.
+        
+        CRITICAL: This method MUST:
+        1. Check if all steps are complete and show the finalize button if so
+        2. Process finalization by locking the workflow
+        3. Handle the finalized state display
+        
+        DO NOT modify this method's structure when extending a workflow.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = steps[-1]
@@ -272,10 +320,19 @@ class PracticeWorkflow:
         # Rebuild the UI to start from the reverted step
         return pip.rebuild(app_name, steps)
 
-    # --- Placeholder Step Methods ---
+    # --- Step 1 Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1."""
+        """Handles GET request for Step 1.
+        
+        STEP PATTERN: Each step_XX method follows this pattern:
+        1. Check if workflow is finalized -> Show locked state
+        2. Check if step is complete -> Show completion with trigger to next step
+        3. Otherwise -> Show input form
+        
+        CRITICAL: When step is complete, return a div that EXPLICITLY triggers the next step 
+        with <Div id="next_step_id" hx_get="/app_name/next_step_id" hx_trigger="load">
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -290,11 +347,13 @@ class PracticeWorkflow:
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
             # Show a simple confirmation in finalized state
+            # CRITICAL: Include trigger to next step even in finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
                     P("Placeholder step completed")
                 ),
+                # CRITICAL: This explicit next step trigger ensures the chain reaction continues
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
@@ -302,13 +361,15 @@ class PracticeWorkflow:
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
             # Show completion message with revert control
+            # CRITICAL: Include trigger to next step in completed state
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                # CRITICAL: This explicit next step trigger ensures the chain reaction continues
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # Show just a Proceed button
+            # Show input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -317,16 +378,29 @@ class PracticeWorkflow:
                     P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
                         Button("Proceed", type="submit", cls="primary"),
+                        # CRITICAL: Form must target the current step_id to ensure proper replacement
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
+                # Empty next step placeholder - DO NOT add hx_trigger here!
+                # The next step will be triggered after form submission
                 Div(id=next_step_id),
                 id=step_id
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1."""
+        """Process the submission for Step 1.
+        
+        STEP PATTERN: Each step_XX_submit method follows this pattern:
+        1. Process and validate form data
+        2. Store state data with pip.update_step_state()
+        3. Return completion view WITH explicit trigger to next step
+        
+        CRITICAL: The return MUST include:
+        1. A Div with id="step_id" (preserve the original ID)
+        2. A Div that explicitly triggers the next step with hx_trigger="load"
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -341,61 +415,62 @@ class PracticeWorkflow:
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # Return the revert control with chain reaction to next step
+        # CRITICAL: Return the revert control WITH explicit trigger to next step
+        # This pattern MUST be followed to ensure proper workflow progression
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            # CRITICAL: This explicit trigger activates the next step!
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
+            id=step_id  # CRITICAL: Keep the original ID to ensure proper replacement
         )
         
+    # --- Step 2 Methods ---
+    # When adding new steps, copy this pattern for each step
+    # Use consistent naming: step_XX and step_XX_submit
+    
     async def step_02(self, request):
-        """Handles GET request for placeholder Step 2.
+        """Handles GET request for Step 2.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
+        COPY THIS PATTERN: When adding new steps, follow this exact structure to maintain
+        the chain reaction. The critical elements are:
         
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
+        1. Computing the proper next_step_id
+        2. Including the trigger to next step in completed states
+        3. Maintaining the step_id on the outer div
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        # CRITICAL: Compute the next step ID - points to finalize if this is the last step
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        placeholder_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    P("Placeholder step completed")
                 ),
+                # CRITICAL: Include trigger to next step even in finalized state
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                # CRITICAL: Include trigger to next step in completed state
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -408,115 +483,88 @@ class PracticeWorkflow:
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                # Empty placeholder - without trigger
+                Div(id=next_step_id),
                 id=step_id
             )
 
     async def step_02_submit(self, request):
-        """Process the submission for placeholder Step 2.
+        """Process the submission for Step 2.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
+        COPY THIS PATTERN: When adding steps, follow this same structure with:
+        1. Correct step_id and next_step_id calculation
+        2. Data processing appropriate to the step
+        3. Explicit trigger to the next step
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        # CRITICAL: Compute the next step ID - points to finalize if this is the last step
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
-        
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
-        
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
+        # Process form data - customize as needed for your step
+        placeholder_value = "completed"
 
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
-
-        # PRESERVE: Store state data
+        # Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
-        
-        # PRESERVE: Return the revert control with chain reaction to next step
+        # CRITICAL: Return completion view WITH explicit trigger to next step
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            # CRITICAL: This explicit trigger activates the next step!
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
         
+    # --- Step 3 Methods ---
+    # This demonstrates adding a third step using the same pattern
+    
     async def step_03(self, request):
-        """Handles GET request for placeholder Step 3.
+        """Handles GET request for Step 3.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
+        SPLICING GUIDE: This shows how to add a third step following the exact same pattern.
         
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
+        CRITICAL PATTERN:
+        1. Each step computes the correct next_step_id (or 'finalize' if last step)
+        2. Completed steps explicitly trigger the next step with hx_trigger="load"
+        3. Input forms target the current step's container for proper replacement
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        # For the last regular step, next_step_id will be 'finalize'
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        placeholder_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    P("Placeholder step completed")
                 ),
+                # Even the last step must trigger finalize when finalized
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                # CRITICAL: Last step must trigger the finalize step
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -529,63 +577,39 @@ class PracticeWorkflow:
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                # Empty placeholder without trigger
+                Div(id=next_step_id),
                 id=step_id
             )
 
     async def step_03_submit(self, request):
-        """Process the submission for placeholder Step 3.
+        """Process the submission for Step 3.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
+        TRANSITION TO FINALIZE:
+        This step demonstrates the transition to the finalize step.
+        The pattern is identical - the last step triggers finalize just like
+        any other step would trigger the next step in sequence.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        # CRITICAL: For the last step, next_step_id will be 'finalize'
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
-        
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
-        
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
+        # Process form data - customize as needed for your step
+        placeholder_value = "completed"
 
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
-
-        # PRESERVE: Store state data
+        # Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
-        
-        # PRESERVE: Return the revert control with chain reaction to next step
+        # CRITICAL: The last step must trigger the finalize step
+        # The pattern is identical to any other step transition
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            # CRITICAL: This triggers the finalize step!
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )

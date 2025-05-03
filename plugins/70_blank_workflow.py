@@ -321,17 +321,10 @@ class BlankWorkflow:
     async def step_01_submit(self, request):
         """Process the submission for placeholder Step 1.
         
-        Widget Conversion Points:
-        1. CUSTOMIZE_FORM_PROCESSING: Extract and validate form data
-        2. CUSTOMIZE_DATA_PROCESSING: Transform input data as needed
-        3. CUSTOMIZE_STATE_STORAGE: Save processed data to state
-        4. CUSTOMIZE_WIDGET_DISPLAY: Create widget for display in completion view
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Update step state pattern
-        - Message queue notification
-        - Revert control structure
+        Chain Reaction Pattern:
+        When a step completes, it MUST explicitly trigger the next step by including
+        a div for the next step with hx-trigger="load". While this may seem redundant,
+        it is more reliable than depending on HTMX event bubbling.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -339,36 +332,13 @@ class BlankWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-
-        # CUSTOMIZE_FORM_PROCESSING: Process form data
-        # form = await request.form()
-        # user_input = form.get(step.done, "")
         
-        # CUSTOMIZE_VALIDATION: Validate user input
-        # if not user_input:
-        #     return P("Error: Input is required", style=pip.get_style("error"))
-        
-        # CUSTOMIZE_DATA_PROCESSING: Process the data as needed
-        # processed_value = user_input  # Apply any transformations here
-
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"  # CUSTOMIZE_STATE_VALUE: Replace with processed form data
-
-        # PRESERVE: Store state data
+        # Process and save data...
+        placeholder_value = "completed"
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # CUSTOMIZE_WIDGET_DISPLAY: Create widget for completed state
-        # widget = self.create_your_widget(processed_value)
-        # content_container = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete",
-        #     widget=widget,
-        #     steps=steps
-        # )
-        
-        # PRESERVE: Return the revert control with chain reaction to next step
+        # CRITICAL: Return the completed view WITH explicit next step trigger
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
