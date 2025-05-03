@@ -1156,7 +1156,10 @@ class ParameterBusterWorkflow:
                 ),
                 Form(
                     Div(
-                        Label("Number of Parameters to Show:", For="param_count"),
+                        Label(
+                            NotStr("<strong>Number of Parameters to Show:</strong>"), 
+                            For="param_count"
+                        ),
                         Input(
                             type="number", 
                             name="param_count", 
@@ -1169,7 +1172,11 @@ class ParameterBusterWorkflow:
                         ),
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
-                    Button("Analyze Parameters", type="submit", cls="primary"),
+                    Button(
+                        NotStr("<strong>Analyze Parameters</strong>"), 
+                        type="submit", 
+                        cls="primary"
+                    ),
                     hx_post=f"/{app_name}/{step_id}_submit",
                     hx_target=f"#{step_id}"
                 )
