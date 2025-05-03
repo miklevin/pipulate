@@ -110,7 +110,7 @@ class ParameterBusterWorkflow:
                 id='step_05',
                 done='placeholder',
                 show='Analyze Parameters',
-                refill=False,
+                refill=True,
             ),
             Step(
                 id='step_06',
@@ -1062,6 +1062,15 @@ class ParameterBusterWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         optimization_result = step_data.get(step.done, "")
 
+        # Get param_count from the stored data if it exists
+        param_count = "40"  # Default value
+        if optimization_result:
+            try:
+                result_data = json.loads(optimization_result)
+                param_count = str(result_data.get("param_count", 40))
+            except json.JSONDecodeError:
+                pass
+
         # Get required data from previous steps
         project_data = pip.get_step_data(pipeline_id, "step_01", {}).get("botify_project", "{}")
         analysis_data = pip.get_step_data(pipeline_id, "step_02", {}).get("analysis_selection", "{}")
@@ -1141,7 +1150,7 @@ class ParameterBusterWorkflow:
                     id=step_id
                 )
 
-        # Show the analysis form (keep original implementation)
+        # Show the analysis form with the previously selected param_count if refilling
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
         return Div(
@@ -1164,7 +1173,7 @@ class ParameterBusterWorkflow:
                             type="number", 
                             name="param_count", 
                             id="param_count", 
-                            value="40", 
+                            value=param_count, 
                             min="10", 
                             max="100", 
                             step="5",
@@ -1200,6 +1209,10 @@ class ParameterBusterWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
+        # Get the param_count from the form
+        form = await request.form()
+        param_count = form.get("param_count", "40")
+        
         # First, return a progress indicator immediately
         return Card(
             H3(f"{step.show}"),
@@ -1210,7 +1223,8 @@ class ParameterBusterWorkflow:
                 htmx.ajax('POST', '""" + f"/{app_name}/step_05_process" + """', {
                     target: '#""" + step_id + """',
                     values: { 
-                        'pipeline_id': '""" + pipeline_id + """'
+                        'pipeline_id': '""" + pipeline_id + """',
+                        'param_count': '""" + param_count + """'
                     }
                 });
             }, 500);
@@ -1226,10 +1240,11 @@ class ParameterBusterWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         
-        # Get pipeline_id from form data
+        # Get pipeline_id and param_count from form data
         form = await request.form()
         pipeline_id = form.get("pipeline_id", "unknown")
-
+        param_count = int(form.get("param_count", "40"))
+        
         # Get required data from previous steps
         project_data = pip.get_step_data(pipeline_id, "step_01", {}).get("botify_project", "{}")
         analysis_data = pip.get_step_data(pipeline_id, "step_02", {}).get("analysis_selection", "{}")
@@ -1294,7 +1309,8 @@ class ParameterBusterWorkflow:
             parameter_summary = {
                 'timestamp': datetime.now().isoformat(),
                 'data_sources': {},
-                'cache_path': str(Path(data_dir) / cache_filename)
+                'cache_path': str(Path(data_dir) / cache_filename),
+                'param_count': param_count  # Store the param_count in the JSON data
             }
             
             # Process each data source for summary
@@ -3358,8 +3374,8 @@ console.log(analyzeParameters(testUrl));"""
         """
         Create a visualization of parameters from all three data sources.
         """
-        # Constants for visualization
-        TOP_PARAMS_COUNT = 40  # Control the number of parameters shown in both visualizations
+        # Initialize with default value
+        TOP_PARAMS_COUNT = 40
         
         # Import standard libraries
         import logging
@@ -3397,6 +3413,8 @@ console.log(analyzeParameters(testUrl));"""
                 summary_data = json.loads(summary_data_str)
                 total_params = summary_data.get('total_unique_parameters', 0)
                 data_sources = list(summary_data.get('data_sources', {}).keys())
+                # Get the param_count from the stored data
+                TOP_PARAMS_COUNT = summary_data.get('param_count', 40)
                 has_data = True
                 
                 add_debug(f"Data sources in summary: {data_sources}")
