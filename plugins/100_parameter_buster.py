@@ -130,6 +130,7 @@ class ParameterBusterWorkflow:
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
             (f"/{app_name}/step_06", self.step_06),  # Register route for step_06
             (f"/{app_name}/step_06_submit", self.step_06_submit, ["POST"]),  # Register submit route
+            (f"/{app_name}/parameter_preview", self.parameter_preview, ["POST"]),
         ]
 
         # Register routes for each step
@@ -1592,7 +1593,7 @@ class ParameterBusterWorkflow:
                 P("Set thresholds for parameter optimization:"),
                 Form(
                     Div(
-                        # GSC Threshold with slider
+                        # GSC Threshold with slider - now with HTMX for real-time updates
                         Div(
                             Label(
                                 NotStr("<strong>GSC Threshold:</strong>"), 
@@ -1608,7 +1609,12 @@ class ParameterBusterWorkflow:
                                 max="100", 
                                 step="1",
                                 style="flex-grow: 1; margin: 0 10px;",
-                                _oninput="document.getElementById('gsc_threshold').value = this.value"
+                                _oninput="document.getElementById('gsc_threshold').value = this.value",
+                                # Add HTMX to trigger real-time updates
+                                hx_post=f"/{app_name}/parameter_preview",
+                                hx_trigger="input changed delay:300ms",
+                                hx_target="#parameter-preview",
+                                hx_include="#gsc_threshold, #min_frequency"
                             ),
                             Input(
                                 type="number", 
@@ -1617,13 +1623,18 @@ class ParameterBusterWorkflow:
                                 value=gsc_threshold, 
                                 min="0", 
                                 max="100", 
-                                style="width: 150px;",  # Increased from 120px to 150px
-                                _oninput="document.getElementById('gsc_threshold_slider').value = this.value"
+                                style="width: 150px;",
+                                _oninput="document.getElementById('gsc_threshold_slider').value = this.value",
+                                # Add HTMX to trigger real-time updates
+                                hx_post=f"/{app_name}/parameter_preview",
+                                hx_trigger="input changed delay:300ms",
+                                hx_target="#parameter-preview",
+                                hx_include="#gsc_threshold, #min_frequency"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
                         
-                        # Minimum Frequency with slider
+                        # Minimum Frequency with slider - now with HTMX for real-time updates
                         Div(
                             Label(
                                 NotStr("<strong>Minimum Frequency:</strong>"), 
@@ -1639,7 +1650,12 @@ class ParameterBusterWorkflow:
                                 max="250000", 
                                 step="1000",
                                 style="flex-grow: 1; margin: 0 10px;",
-                                _oninput="document.getElementById('min_frequency').value = this.value"
+                                _oninput="document.getElementById('min_frequency').value = this.value",
+                                # Add HTMX to trigger real-time updates
+                                hx_post=f"/{app_name}/parameter_preview",
+                                hx_trigger="input changed delay:300ms",
+                                hx_target="#parameter-preview",
+                                hx_include="#gsc_threshold, #min_frequency"
                             ),
                             Input(
                                 type="number", 
@@ -1648,10 +1664,27 @@ class ParameterBusterWorkflow:
                                 value=min_frequency, 
                                 min="0", 
                                 max="250000", 
-                                style="width: 150px;",  # Increased from 120px to 150px
-                                _oninput="document.getElementById('min_frequency_slider').value = this.value"
+                                style="width: 150px;",
+                                _oninput="document.getElementById('min_frequency_slider').value = this.value",
+                                # Add HTMX to trigger real-time updates
+                                hx_post=f"/{app_name}/parameter_preview",
+                                hx_trigger="input changed delay:300ms",
+                                hx_target="#parameter-preview",
+                                hx_include="#gsc_threshold, #min_frequency"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
+                        ),
+                        
+                        # Parameter preview container
+                        Div(
+                            H4("Parameters That Would Be Optimized:"),
+                            Div(
+                                P("Adjust thresholds above to see which parameters would be optimized.", 
+                                  style="color: #888; font-style: italic;"),
+                                id="parameter-preview",
+                                style="max-height: 300px; overflow-y: auto; background: #111; border-radius: 5px; padding: 10px; margin-bottom: 15px;"
+                            ),
+                            style="margin-bottom: 20px;"
                         ),
                         
                         Div(
@@ -3785,3 +3818,110 @@ class ParameterBusterWorkflow:
                 NotStr(f"<div style='color: red; padding: 10px; background: #333; border-radius: 5px;'>{error_msg}</div>"), 
                 _raw=True
             )
+
+    async def parameter_preview(self, request):
+        """Process real-time parameter preview requests based on threshold settings."""
+        pip, db, app_name = self.pipulate, self.db, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Get form data from the request
+        form = await request.form()
+        gsc_threshold = int(form.get("gsc_threshold", "0"))
+        min_frequency = int(form.get("min_frequency", "100000"))
+        
+        # Get the parameter data from step_05
+        prev_step_data = pip.get_step_data(pipeline_id, "step_05", {})
+        prev_data_str = prev_step_data.get("placeholder", "")
+        
+        # Initialize empty list for output
+        matching_params = []
+        param_count = 0
+        total_frequency = 0
+        
+        try:
+            if prev_data_str:
+                summary_data = json.loads(prev_data_str)
+                cache_path = summary_data.get('cache_path')
+                
+                if cache_path and os.path.exists(cache_path):
+                    # Load raw counters from cache
+                    with open(cache_path, 'rb') as f:
+                        cache_data = pickle.load(f)
+                    
+                    raw_counters = cache_data.get('raw_counters', {})
+                    
+                    # Extract counters for each source
+                    weblogs_counter = None
+                    gsc_counter = None
+                    not_indexable_counter = None
+                    
+                    # Map sources to counter keys
+                    source_mapping = {
+                        'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
+                        'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
+                        'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
+                    }
+                    
+                    # Find the right counters
+                    for source, possible_keys in source_mapping.items():
+                        for key in possible_keys:
+                            if key in raw_counters:
+                                if source == 'weblogs':
+                                    weblogs_counter = raw_counters[key]
+                                elif source == 'gsc':
+                                    gsc_counter = raw_counters[key]
+                                elif source == 'not_indexable':
+                                    not_indexable_counter = raw_counters[key]
+                                break
+                    
+                    # Find parameters that meet our criteria
+                    if gsc_counter and (weblogs_counter or not_indexable_counter):
+                        # Combine weblogs and not_indexable counters
+                        combined_counter = Counter()
+                        if weblogs_counter:
+                            combined_counter.update(weblogs_counter)
+                        if not_indexable_counter:
+                            combined_counter.update(not_indexable_counter)
+                        
+                        # Apply our filtering criteria
+                        for param, count in combined_counter.most_common(20):  # Limit to top 20 for display
+                            param_gsc_count = gsc_counter.get(param, 0)
+                            
+                            # Check if this parameter meets our criteria
+                            if param_gsc_count <= gsc_threshold and count >= min_frequency:
+                                # Calculate score
+                                score = count / (param_gsc_count + 1)
+                                matching_params.append((param, count, param_gsc_count, score))
+                                param_count += 1
+                                total_frequency += count
+                        
+                        # Sort by score descending
+                        matching_params.sort(key=lambda x: x[3], reverse=True)
+        except Exception as e:
+            logging.error(f"Error in parameter preview: {str(e)}")
+            return Div(P(f"Error: {str(e)}", style="color: red;"))
+        
+        # Create the output UI
+        if matching_params:
+            return Div(
+                P(f"Found {param_count} parameters with total frequency of {total_frequency:,}"),
+                Table(
+                    Tr(
+                        Th("Parameter", style="text-align: left; color: cyan;"),
+                        Th("Frequency", style="text-align: right; color: #4fa8ff;"),
+                        Th("GSC", style="text-align: right; color: #50fa7b;"),
+                        Th("Score", style="text-align: right; color: yellow;")
+                    ),
+                    *[Tr(
+                        Td(param, style="color: cyan;"),
+                        Td(f"{count:,}", style="text-align: right; color: #4fa8ff;"),
+                        Td(f"{gsc_count:,}", style="text-align: right; color: #50fa7b;"),
+                        Td(f"{score:,.0f}", style="text-align: right; color: yellow; font-weight: bold;")
+                    ) for param, count, gsc_count, score in matching_params[:10]],  # Limit display to top 10
+                    style="width: 100%; border-collapse: collapse;"
+                ),
+                style="font-family: monospace;"
+            )
+        else:
+            return P("No parameters match these criteria. Try adjusting the thresholds.", 
+                    style="color: #ff5555; font-style: italic;")
