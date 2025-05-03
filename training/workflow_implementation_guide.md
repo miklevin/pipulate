@@ -238,9 +238,9 @@ return Div(
     Card(...), # Current step's content
     # CRITICAL: This inner Div triggers loading of the next step
     # DO NOT REMOVE OR MODIFY these attributes:
-    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-    id=step_id
-)
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
 ```
 
 ### Why This Pattern Is Essential
@@ -259,36 +259,36 @@ return Div(
 Such changes will appear to work in limited testing but will inevitably break more complex workflows.
 
 ### Breaking the Chain (Cautionary Pattern)
-The `no-chain-reaction` class should only be used in two specific scenarios:
+    The `no-chain-reaction` class should only be used in two specific scenarios:
 
-1. **Terminal responses** - For endpoints requiring explicit user action:
-```python
-return Div(
-    result_card,
-    download_button,
-    cls="terminal-response no-chain-reaction",
-    id=step_id
-)
-```
+    1. **Terminal responses** - For endpoints requiring explicit user action:
+    ```python
+    return Div(
+        result_card,
+        download_button,
+        cls="terminal-response no-chain-reaction",
+        id=step_id
+    )
+    ```
 
-2. **Polling states** - For continuous status checking without progression:
-```python
-return Div(
-    result_card,
-    progress_indicator,
-    cls="polling-status no-chain-reaction",
-    hx_get=f"/{app_name}/check_status",
-    hx_trigger="load, every 2s",
-    hx_target=f"#{step_id}",
-    id=step_id
-)
-```
+    2. **Polling states** - For continuous status checking without progression:
+    ```python
+    return Div(
+        result_card,
+        progress_indicator,
+        cls="polling-status no-chain-reaction",
+        hx_get=f"/{app_name}/check_status",
+        hx_trigger="load, every 2s",
+        hx_target=f"#{step_id}",
+        id=step_id
+    )
+    ```
 
 ### Best Practices
-- Always maintain the chain reaction pattern unless absolutely necessary
-- When breaking the chain, provide clear UI indicators of what's happening
-- Resume the chain reaction as soon as the exceptional condition is complete
-- Document any use of `no-chain-reaction` with explicit comments explaining why
+    - Always maintain the chain reaction pattern unless absolutely necessary
+    - When breaking the chain, provide clear UI indicators of what's happening
+    - Resume the chain reaction as soon as the exceptional condition is complete
+    - Document any use of `no-chain-reaction` with explicit comments explaining why
 
 # PLACEHOLDER STEP PATTERN
 
@@ -305,8 +305,8 @@ Placeholder steps are skeletal workflow steps that serve as preparation points f
 To add a placeholder step to an existing workflow:
 
 ### 1. Add the Step Definition
-```python
-Step(
+    ```python
+        Step(
     id='step_XX',            # Use proper sequential numbering
     done='placeholder',      # Simple state field name
     show='Placeholder Step', # Descriptive UI text
@@ -315,19 +315,19 @@ Step(
 ```
 
 ### 2. Create the GET Handler Method
-```python
-async def step_XX(self, request):
+    ```python
+    async def step_XX(self, request):
     """Handles GET request for placeholder step."""
-    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-    step_id = "step_XX"
-    step_index = self.steps_indices[step_id]
-    step = steps[step_index]
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-    pipeline_id = db.get("pipeline_id", "unknown")
-    state = pip.read_state(pipeline_id)
-    
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_XX"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        
     # Simple form with just a proceed button
-    return Div(
+        return Div(
         Card(
             H4(f"{step.show}"),
             P("Click Proceed to continue to the next step."),
@@ -340,10 +340,10 @@ async def step_XX(self, request):
             ),
         ),
         # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
-        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-        id=step_id
-    )
-```
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    ```
 
     2. **POST Handler Pattern**:
     ```python
@@ -506,22 +506,22 @@ async def step_XX(self, request):
     state = pip.read_state(pipeline_id)
     
     # Simple form with just a proceed button
-    return Div(
-        Card(
+        return Div(
+            Card(
             H4(f"{step.show}"),
             P("Click Proceed to continue to the next step."),
-            Form(
-                Button("Proceed", type="submit", cls="primary"),
+                Form(
+                    Button("Proceed", type="submit", cls="primary"),
                 Button("Revert", type="button", cls="secondary",
                        hx_post=f"/{app_name}/handle_revert",
                        hx_vals=f'{{"step_id": "{step_id}"}}'),
-                hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_post=f"/{app_name}/{step_id}_submit", 
             ),
         ),
         # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-        id=step_id
-    )
+            id=step_id
+        )
 ```
 
 ### 3. Create the POST Handler Method
@@ -534,7 +534,7 @@ async def step_XX_submit(self, request):
     step = steps[step_index]
     pipeline_id = db.get("pipeline_id", "unknown")
     next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
+    
     # Set a fixed completion value
     placeholder_value = "completed"
     
@@ -736,7 +736,7 @@ async def step_XX_submit(self, request):
     await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
     
     # Return with revert control and chain reaction to next step
-    return Div(
+        return Div(
         pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
         id=step_id

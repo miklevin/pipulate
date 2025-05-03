@@ -109,7 +109,7 @@ class ParameterBusterWorkflow:
             Step(
                 id='step_05',
                 done='placeholder',
-                show='Generate Optimization',
+                show='Analyze Parameters',
                 refill=False,
             ),
             Step(
@@ -192,10 +192,10 @@ class ParameterBusterWorkflow:
             "complete": "Web logs check complete. Continue to next step."
         }
 
-        # Add specific message for step_05 (Generate Optimization)
+        # Add specific message for step_05 (Analyze Parameters)
         self.step_messages["step_05"] = {
-            "input": f"{pip.fmt('step_05')}: Please generate the parameter optimization.",
-            "complete": "Parameter optimization complete. Ready to finalize."
+            "input": f"{pip.fmt('step_05')}: Please analyze the parameters.",
+            "complete": "Parameter analysis complete. Ready to finalize."
         }
 
         # Add the finalize step internally
@@ -1123,7 +1123,7 @@ class ParameterBusterWorkflow:
         return Div(
             Card(
                 H3(f"{step.show}"),
-                P("Generate parameter optimization recommendations based on:", style="margin-bottom: 15px;"),
+                P("Create counters for querystring parameters for each of the following:", style="margin-bottom: 15px;"),
                 Ul(
                     Li("Crawl data from Botify analysis"),
                     Li("Search Console performance data"),
@@ -1131,7 +1131,7 @@ class ParameterBusterWorkflow:
                     style="margin-bottom: 15px;"
                 ),
                 Form(
-                    Button("Generate Optimization", type="submit", cls="primary"),
+                    Button("Analyze Parameters", type="submit", cls="primary"),
                     hx_post=f"/{app_name}/{step_id}_submit",
                     hx_target=f"#{step_id}"
                 )
@@ -1174,7 +1174,7 @@ class ParameterBusterWorkflow:
         )
 
     async def step_05_process(self, request):
-        """Process the actual parameter analysis in the background."""
+        """Process parameter analysis using raw parameter counting and caching."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
@@ -1205,90 +1205,102 @@ class ParameterBusterWorkflow:
         try:
             # Show detailed progress messages
             await self.message_queue.add(pip, "🔄 Starting parameter analysis...", verbatim=True)
-            await self.message_queue.add(pip, "Step 1: Loading data files...", verbatim=True)
-            await asyncio.sleep(1)  # Add small delay to show progress
-
-            # Run the parameter analysis
-            scores_data = await self.analyze_parameters(username, project_name, analysis_slug)
             
-            if not scores_data or 'results_sorted' not in scores_data:
-                raise ValueError("Failed to generate parameter analysis")
-
-            await self.message_queue.add(pip, "Step 2: Processing parameter frequencies...", verbatim=True)
-            await asyncio.sleep(1)  # Add small delay to show progress
-
-            results_sorted = scores_data['results_sorted']
+            # Determine data directory
+            data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
+            cache_filename = "_raw_param_counters_cache.pkl"
             
-            # Apply filtering criteria
-            GSC_LIMIT = 10
-            MIN_FREQ = 50
-            
-            await self.message_queue.add(pip, "Step 3: Applying optimization criteria...", verbatim=True)
-            await asyncio.sleep(1)  # Add small delay to show progress
-
-            filtered_params = [
-                item for item in results_sorted
-                if item[3] <= GSC_LIMIT and item[4] >= MIN_FREQ  # item[3] is gsc_count, item[4] is total_count
-            ]
-
-            await self.message_queue.add(pip, "Step 4: Generating final results...", verbatim=True)
-            await asyncio.sleep(1)  # Add small delay to show progress
-
-            # Create result summary
-            optimization_result = {
-                'timestamp': datetime.now().isoformat(),
-                'total_params': len(filtered_params),
-                'gsc_limit': GSC_LIMIT,
-                'min_frequency': MIN_FREQ,
-                'parameters': [
-                    {
-                        'name': param[0],
-                        'weblog_count': param[1],
-                        'crawl_count': param[2],
-                        'gsc_count': param[3],
-                        'total_count': param[4],
-                        'score': param[5]
-                    }
-                    for param in filtered_params[:10]  # Store top 10 for display
-                ]
+            # Define which files to process with appropriate names
+            files_to_process = {
+                "not_indexable": "crawl.csv",  # Using the category name from your example
+                "gsc": "gsc.csv",
+                "weblogs": "weblog.csv"  # Match your example but use the actual filename
             }
-
-            # Store the optimization result
-            optimization_result_str = json.dumps(optimization_result)
-            await pip.update_step_state(pipeline_id, step_id, optimization_result_str, steps)
+            
+            await self.message_queue.add(pip, "Step 1: Attempting to load raw counters from cache...", verbatim=True)
+            cached_data = self.load_raw_counters_from_cache(data_dir, cache_filename)
+            
+            output_data = None  # Initialize
+            
+            if cached_data is not None:
+                await self.message_queue.add(pip, "✓ Cache loaded successfully.", verbatim=True)
+                output_data = cached_data
+                # Could add check here for configuration consistency
+            
+            # If cache wasn't loaded or needs recalculation
+            if output_data is None:
+                await self.message_queue.add(pip, "Step 2: Cache not found or invalid, calculating from source files...", verbatim=True)
+                output_data = await self.calculate_and_cache_raw_counters(
+                    data_directory_path=data_dir,
+                    input_files_config=files_to_process,
+                    cache_filename=cache_filename
+                )
+                
+                if output_data is None:
+                    raise ValueError("Failed to calculate counters from source files")
+                else:
+                    await self.message_queue.add(pip, "✓ Calculation and caching complete.", verbatim=True)
+            
+            # Prepare summary data about the raw counters
+            raw_counters = output_data.get('raw_counters', {})
+            file_statuses = output_data.get('metadata', {}).get('file_statuses', {})
+            
+            # Create summary information for storage and display
+            parameter_summary = {
+                'timestamp': datetime.now().isoformat(),
+                'data_sources': {},
+                'cache_path': str(Path(data_dir) / cache_filename)
+            }
+            
+            # Process each data source for summary
+            total_unique_params = set()
+            for source, counter in raw_counters.items():
+                unique_params = len(counter)
+                total_params = sum(counter.values())
+                status = file_statuses.get(source, "Unknown")
+                
+                parameter_summary['data_sources'][source] = {
+                    'unique_parameters': unique_params,
+                    'total_occurrences': total_params,
+                    'status': status,
+                    # Optional: Include top parameters if desired
+                    'top_parameters': [
+                        {'name': param, 'count': count}
+                        for param, count in counter.most_common(10)  # Store top 10
+                    ] if counter else []
+                }
+                
+                # Add to set of all unique parameters
+                total_unique_params.update(counter.keys())
+            
+            # Overall statistics
+            parameter_summary['total_unique_parameters'] = len(total_unique_params)
+            
+            # Store the parameter summary
+            summary_str = json.dumps(parameter_summary)
+            await pip.update_step_state(pipeline_id, step_id, summary_str, steps)
 
             # Add success messages with detailed stats
             await self.message_queue.add(pip, f"✓ Parameter analysis complete!", verbatim=True)
             await self.message_queue.add(pip, f"Analysis Summary:", verbatim=True)
-            await self.message_queue.add(pip, f"  - Total parameters analyzed: {len(results_sorted)}", verbatim=True)
-            await self.message_queue.add(pip, f"  - Parameters meeting criteria: {len(filtered_params)}", verbatim=True)
-            await self.message_queue.add(pip, f"  - Criteria used:", verbatim=True)
-            await self.message_queue.add(pip, f"    • GSC hits ≤ {GSC_LIMIT}", verbatim=True)
-            await self.message_queue.add(pip, f"    • Total frequency ≥ {MIN_FREQ}", verbatim=True)
+            await self.message_queue.add(pip, f"  - Total unique parameters: {len(total_unique_params):,}", verbatim=True)
             
-            # Show top 5 parameters with detailed stats
-            if filtered_params:
-                await self.message_queue.add(pip, f"\nTop 5 Parameters to Consider:", verbatim=True)
-                for param in filtered_params[:5]:
-                    await self.message_queue.add(pip, 
-                        f"  - {param[0]}:", verbatim=True
-                    )
-                    await self.message_queue.add(pip,
-                        f"    • Total occurrences: {param[4]:,}", verbatim=True
-                    )
-                    await self.message_queue.add(pip,
-                        f"    • GSC hits: {param[3]}", verbatim=True
-                    )
-                    await self.message_queue.add(pip,
-                        f"    • Score: {param[5]:.2f}", verbatim=True
-                    )
-
+            # Add details for each data source
+            for source, info in parameter_summary['data_sources'].items():
+                await self.message_queue.add(pip, f"  - {source.title()}:", verbatim=True)
+                await self.message_queue.add(pip, f"    • Unique parameters: {info['unique_parameters']:,}", verbatim=True)
+                await self.message_queue.add(pip, f"    • Total occurrences: {info['total_occurrences']:,}", verbatim=True)
+                await self.message_queue.add(pip, f"    • Status: {info['status']}", verbatim=True)
+            
+            # Show cache location
+            await self.message_queue.add(pip, f"\nRaw parameter counts cached at: {parameter_summary['cache_path']}", verbatim=True)
+            
             # Return the completed view
             return Div(
                 pip.revert_control(
                     step_id=step_id,
                     app_name=app_name,
-                    message=f"{step.show}: {len(filtered_params)} parameters found",
+                    message=f"{step.show}: {len(total_unique_params):,} unique parameters found",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -3190,3 +3202,104 @@ console.log(analyzeParameters(testUrl));"""
         )
         
         return Div(container, init_script)
+
+    def load_raw_counters_from_cache(self, data_directory_path, cache_filename="_raw_param_counters_cache.pkl"):
+        """Loads raw counters data from a cache file."""
+        data_dir = Path(data_directory_path)
+        cache_file_path = data_dir / cache_filename
+        if not cache_file_path.is_file():
+            return None
+
+        try:
+            with open(cache_file_path, 'rb') as f:
+                counters_data = pickle.load(f)
+            # Basic validation for the new structure
+            if (isinstance(counters_data, dict) and
+                'raw_counters' in counters_data and isinstance(counters_data['raw_counters'], dict) and
+                'metadata' in counters_data and isinstance(counters_data['metadata'], dict) and
+                counters_data['metadata'].get('cache_version', 0) >= 2.0): # Check version
+                return counters_data
+            else:
+                logging.error(f"Invalid or outdated cache file format in {cache_file_path}.")
+                return None
+        except (pickle.UnpicklingError, EOFError) as e:
+            logging.error(f"Error loading cache file (it might be corrupted): {cache_file_path} - {e}")
+            return None
+        except Exception as e:
+            logging.error(f"An unexpected error occurred loading the cache: {cache_file_path} - {e}")
+            return None
+
+    async def calculate_and_cache_raw_counters(self, data_directory_path, input_files_config, cache_filename="_raw_param_counters_cache.pkl"):
+        """
+        Loads specified CSV files, performs a raw count of query parameters for each,
+        and saves the counters to a cache file. Returns the counters and metadata.
+        """
+        data_dir = Path(data_directory_path)
+        if not data_dir.is_dir():
+            logging.error(f"Provided data directory path is not valid: {data_directory_path}")
+            return None
+
+        raw_counters = {}
+        file_statuses = {}
+        url_column_priority = ["Full URL", "URL"]
+
+        logging.info(f"Processing data from directory: {data_dir}")
+
+        for key, filename in input_files_config.items():
+            file_path = data_dir / filename
+            logging.info(f"Processing file: {filename} (as '{key}')")
+
+            # Check if file exists
+            if not file_path.is_file():
+                logging.warning(f"File not found: {file_path}")
+                raw_counters[key] = Counter()
+                file_statuses[key] = "File not found"
+                continue
+
+            # Use existing CSV loading method
+            try:
+                df = self.load_csv_with_optional_skip(str(file_path))
+                
+                if df.empty or not any(col in df.columns for col in url_column_priority):
+                    logging.warning(f"No usable URL column in {filename}")
+                    raw_counters[key] = Counter()
+                    file_statuses[key] = "No URL column"
+                    continue
+                    
+                # Count parameters
+                logging.info(f"Counting parameters in {filename}...")
+                file_counter = self.count_query_params(df, url_column_priority)
+                raw_counters[key] = file_counter
+                file_statuses[key] = f"Processed ({len(file_counter):,} unique params found)"
+                logging.info(f"Counted {len(file_counter):,} unique parameters in {filename}")
+            except Exception as e:
+                logging.exception(f"Error processing {filename}: {e}")
+                raw_counters[key] = Counter()
+                file_statuses[key] = f"Error: {str(e)}"
+
+        # Prepare Cache Data
+        counters_data = {
+            'raw_counters': raw_counters,
+            'metadata': {
+                'data_directory_path': str(data_dir.resolve()),
+                'input_files_config': input_files_config,
+                'file_statuses': file_statuses,
+                'cache_timestamp': time.time(),
+                'cache_version': 2.0  # New version for raw counts structure
+            }
+        }
+
+        # Save to Cache
+        cache_file_path = data_dir / cache_filename
+        logging.info(f"Saving raw counters to cache file: {cache_file_path}")
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(cache_file_path), exist_ok=True)
+            
+            with open(cache_file_path, 'wb') as f:
+                pickle.dump(counters_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            logging.info("Cache saved successfully.")
+        except Exception as e:
+            logging.error(f"Error saving cache file: {e}")
+
+        return counters_data
