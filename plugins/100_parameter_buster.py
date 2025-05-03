@@ -3480,7 +3480,7 @@ console.log(analyzeParameters(testUrl));"""
             ax = plt.gca()
             ax.set_facecolor('#1e1e2e')
             
-            # Generate positions for bars
+            # Generate positions for bars - keep original spacing
             y_pos = np.arange(len(top_params))
             width = 0.25
             
@@ -3496,34 +3496,45 @@ console.log(analyzeParameters(testUrl));"""
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
             
-            # Create grouped bar chart with distinct colors - make crawl bars wider for visibility
-            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs')
-            crawl_bars = plt.barh(y_pos, crawl_values, width * 1.2, color='#ff0000', label='Crawl Data')  # Slightly wider
-            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console')
+            # Create grouped bar chart - use thicker bars and distinct colors
+            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
+            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
+            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
+            
+            # Add subtle alternating row backgrounds to visually group the parameter sets
+            for i, p in enumerate(y_pos):
+                if i % 2 == 0:  # Every other row
+                    plt.axhspan(p - width*1.5, p + width*1.5, color='#2a2a3a', alpha=0.3)
             
             # Set labels, ticks and styling
             plt.yticks(y_pos, top_params, fontsize=8, color='white')
-            plt.xlabel('Occurrences (log scale)', color='white')  # Update to show it's log scale
+            plt.xlabel('Occurrences (log scale)', color='white')
             plt.ylabel('Parameters', color='white')
             plt.title('Top 30 Parameters by Data Source (Log Scale)', color='white')
             plt.tick_params(axis='both', colors='white')
             plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
             plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
             
-            # Add value labels with white text
+            # Add value labels showing zeros exactly at the axis line
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
+                # Show value for each bar, including zeros
                 if wb > 0:
-                    # Position text based on value to avoid overlapping in log scale
                     text_pos = wb * 1.1 if wb > 1000 else wb + 5
                     plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='white')
+                elif wb == 0:
+                    plt.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='white')
+                    
                 if cr > 0:
-                    # Always show crawl values with special positioning to ensure visibility
-                    # Use max function to make sure very small values still have visible labels
                     text_pos = max(cr * 1.5, 5)
                     plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='red', weight='bold')
+                elif cr == 0:
+                    plt.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='red')
+                    
                 if gs > 0:
                     text_pos = gs * 1.1 if gs > 100 else gs + 5
                     plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='white')
+                elif gs == 0:
+                    plt.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='white')
             
             # Adjust layout
             plt.tight_layout()
