@@ -3430,8 +3430,8 @@ console.log(analyzeParameters(testUrl));"""
             plt.ylabel('Parameters')
             plt.title('Top 30 Parameters by Data Source')
             
-            # Add legend
-            plt.legend(loc='upper right')
+            # Add legend and move to bottom right to avoid covering bars
+            plt.legend(loc='lower right')
             
             # Add grid for better readability
             plt.grid(axis='x', linestyle='--', alpha=0.7)
