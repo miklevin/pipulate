@@ -327,6 +327,7 @@ These "speedbumps" reinforce Pipulate's core philosophy:
   * **Workflow Pattern:** Ensure workflows are linear and state is explicitly passed or saved at each step. Avoid complex async task chaining that obscures state.
   * **UI Rendering Pattern:** Generate HTML directly from Python components via FastHTML. Avoid template engines.
   * **WebSocket Pattern:** Use the dedicated `Chat` class for managing LLM interactions. Avoid raw WebSocket handling elsewhere.
+  * **Workflow Progression Pattern:** Workflows use an explicit chain reaction pattern with `hx_trigger="load"` to manage step progression. This pattern must be preserved exactly as implemented. See the workflow documentation for details.
 
 -----
 

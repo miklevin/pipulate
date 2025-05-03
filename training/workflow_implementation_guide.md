@@ -1194,3 +1194,35 @@ This plan outlines the recommended process for adding a new workflow step (`step
 * **UI Glitches:** Issues with client-side rendering (Mermaid, Prism, custom JS). Mitigation: Use unique IDs, employ `HX-Trigger` headers, use browser dev tools for JS debugging.
 
 By carefully following the patterns established in the codebase and documented in the article and rules, you can reliably extend Pipulate workflows with new steps and widgets while maintaining the integrity of the system. Remember to leverage the placeholder pattern for complex additions.
+
+# Critical Pattern Warning
+
+When implementing workflows in Pipulate, one pattern is absolutely critical and must never be modified:
+
+## The Chain Reaction Pattern
+
+```python
+# In step_XX or step_XX_submit return statement
+return Div(
+    Card(...), # Current step's content
+    # CRITICAL: This inner Div triggers loading of the next step
+    # DO NOT REMOVE OR MODIFY these attributes:
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+### Why This Pattern Is Essential
+
+1. **Explicit Triggering**: The `hx_trigger="load"` attribute explicitly tells HTMX to load the next step immediately after this content is rendered
+2. **Direct Initialization**: This approach eliminates race conditions and timing issues that may occur with event bubbling
+3. **Reliable Implementation**: This pattern has been tested across the entire codebase and ensures consistent progression
+4. **Documented Standard**: All workflow examples follow this pattern, and it should be considered immutable
+
+### Dangerous Modifications to Avoid
+
+- **DO NOT** remove `hx_trigger="load"` even if it seems redundant
+- **DO NOT** attempt to replace explicit chain reaction with implicit event bubbling
+- **DO NOT** implement alternative flow mechanisms without extensive testing
+
+Such changes will appear to work in limited testing but will inevitably break more complex workflows.

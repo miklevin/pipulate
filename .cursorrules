@@ -81,4 +81,11 @@ Keeping these different (as in the example above) allows you to improve user-fac
 - When changing a workflow's URL (filename), maintain its APP_NAME to preserve existing data
 - Create new file versions while keeping same APP_NAME for data continuity during upgrades
 
+## Critical Implementation Patterns
+
+1. **HTMX Chain Reaction:**  
+   - The pattern `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")` must be preserved exactly
+   - Never remove the `hx_trigger="load"` attribute even if it seems redundant
+   - This explicit approach is the reliable standard for the application and alternative implicit approaches are not supported
+
 ---
