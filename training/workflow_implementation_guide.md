@@ -472,7 +472,186 @@ Let me create a Cursor rule that documents the pattern for placeholder steps in 
 # placeholder-step-pattern
 
 ## Overview
-The placeholder step pattern is used to build the structure of a workflow with minimal functionality before implementing full step logic. It's ideal for scaffolding workflows and maintaining correct progression patterns.
+Placeholder steps are skeletal workflow steps that serve as preparation points for inserting fully-functional steps later. They maintain the standard workflow progression pattern while collecting minimal or no user data.
+
+## When to Use Placeholder Steps
+- When planning a workflow's structure before implementing detailed functionality
+- When creating a step that will be replaced with more complex widgets later
+- When needing a "confirmation" or "review" step between functional steps
+- When creating a template for different widget types
+
+## Implementation Pattern
+To add a placeholder step to an existing workflow:
+
+### 1. Add the Step Definition
+```python
+Step(
+    id='step_XX',            # Use proper sequential numbering
+    done='placeholder',      # Simple state field name
+    show='Placeholder Step', # Descriptive UI text
+    refill=True,             # Usually True for consistency
+),
+```
+
+### 2. Create the GET Handler Method
+```python
+async def step_XX(self, request):
+    """Handles GET request for placeholder step."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    # Simple form with just a proceed button
+    return Div(
+        Card(
+            H4(f"{step.show}"),
+            P("Click Proceed to continue to the next step."),
+            Form(
+                Button("Proceed", type="submit", cls="primary"),
+                Button("Revert", type="button", cls="secondary",
+                       hx_post=f"/{app_name}/handle_revert",
+                       hx_vals=f'{{"step_id": "{step_id}"}}'),
+                hx_post=f"/{app_name}/{step_id}_submit",
+            ),
+        ),
+        # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+### 3. Create the POST Handler Method
+```python
+async def step_XX_submit(self, request):
+    """Process the submission for placeholder step."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    pipeline_id = db.get("pipeline_id", "unknown")
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+    # Set a fixed completion value
+    placeholder_value = "completed"
+    
+    # Update state and notify user
+    await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+    await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+    
+    # Return with revert control and chain reaction to next step
+    return Div(
+        pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+### 4. Add Suggestion for Step (Optional)
+In the `get_suggestion` method, add a simple text for the placeholder:
+```python
+'step_XX': """Placeholder step - no user content needed.
+
+This step serves as a placeholder for future functionality."""
+```
+
+## Critical Elements to Preserve
+1. **Chain Reaction Pattern**: 
+   ```python
+   # CRITICAL - DO NOT MODIFY OR REMOVE
+   Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+   ```
+   - The `id=next_step_id` identifies the container for the next step
+   - The `hx_get` attribute loads the next step's content
+   - The `hx_trigger="load"` attribute is REQUIRED for automatic progression
+   - NEVER remove `hx_trigger="load"` even if you think event bubbling would work
+   - This explicit triggering pattern is the standard throughout the codebase
+
+2. **Revert Button**: Always include for consistent user experience
+3. **Step Numbering**: Maintain proper sequential numbering
+4. **State Management**: Always store state even if minimal
+5. **Message Queue Updates**: Always notify of step completion
+
+## Common Implementation Pitfalls
+- **SERIOUS ERROR**: Removing `hx_trigger="load"` from the chain reaction div will break progression
+- **SERIOUS ERROR**: Using an empty div without the required attributes
+- **SERIOUS ERROR**: Using event bubbling or implicit triggering instead of explicit triggers
+- Using incorrect next_step_id calculation (especially for the last step)
+- Forgetting to update steps_indices after adding new steps
+- Not preserving the chain reaction pattern in both GET and POST handlers
+
+## Placement Considerations
+- **First Step**: If replacing the first step, ensure proper initialization
+- **Middle Step**: Ensure proper next_step_id and previous step chain reaction
+- **Last Step**: Properly handle transition to 'finalize' instead of next_step_id
+
+## Example
+See [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py) step_07 for a complete placeholder implementation.
+
+## Upgrading Later
+When ready to replace the placeholder with functional content:
+1. Keep the same step_id and step definition
+2. Add necessary form elements to collect data
+3. Enhance the submit handler to process the collected data
+4. Preserve the chain reaction pattern and revert functionality
+
+## Workflow Step Progression at a Glance
+
+```
+Empty Workflow                              Workflow With Multiple Steps
+┌───────────────┐                          ┌───────────────┐
+│ Landing Page  │                          │ Landing Page  │
+└───────┬───────┘                          └───────┬───────┘
+        │                                          │
+        ▼                                          ▼
+┌───────────────┐                          ┌───────────────┐
+│    Form UI    │                          │    Form UI    │
+│ (pipeline_id) │                          │ (pipeline_id) │
+└───────┬───────┘                          └───────┬───────┘
+        │                                          │
+        ▼                                          ▼
+┌───────────────┐                          ┌───────────────┐
+│ Init Response │                          │ Init Response │
+│  with step_01 │                          │  with step_01 │
+│ div(hx_trigger│                          │ div(hx_trigger│
+│    ="load")   │                          │    ="load")   │
+└───────┬───────┘                          └───────┬───────┘
+        │                                          │
+        │ Chain Reaction                           │ Chain Reaction
+        ▼                                          ▼
+┌───────────────┐                          ┌───────────────┐
+│   step_01     │                          │   step_01     │
+│   GET UI      │                          │   GET UI      │
+└───────┬───────┘                          └───────┬───────┘
+        │                                          │
+        │ User Clicks "Proceed"                    │ User Clicks "Proceed"
+        ▼                                          ▼
+┌───────────────┐                          ┌───────────────┐
+│   step_01     │                          │   step_01     │
+│  Submit UI    │                          │  Submit UI    │
+│  revert_ctrl  │                          │  revert_ctrl  │
+│ next_step div │                          │ next_step div │
+│(hx_trigger=   │                          │(hx_trigger=   │
+│    "load")    │                          │    "load")    │
+└───────┬───────┘                          └───────┬───────┘
+        │                                          │
+        │ Chain Reaction                           │ Chain Reaction
+        ▼                                          ▼
+┌───────────────┐                          ┌───────────────┐
+│   finalize    │                          │   step_02     │
+│      GET      │                          │     GET       │
+└───────────────┘                          └───────┬───────┘
+                                                   │
+                                                   │ More steps...
+                                                   ▼
+                                           ┌───────────────┐
+                                           │   finalize    │
+                                           │      GET      │
+                                           └───────────────┘
+```
 
 ## Key Components of a Placeholder Step
 
@@ -546,9 +725,9 @@ async def step_XX_submit(self, request):
     step_id = "step_XX"
     step_index = self.steps_indices[step_id]
     step = steps[step_index]
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
     pipeline_id = db.get("pipeline_id", "unknown")
-    
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
     # Set a fixed completion value
     placeholder_value = "completed"
     
@@ -562,259 +741,6 @@ async def step_XX_submit(self, request):
         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
         id=step_id
     )
-```
-
-## Workflow Step Progression at a Glance
-
-```
-Empty Workflow                              Workflow With Multiple Steps
-┌───────────────┐                          ┌───────────────┐
-│ Landing Page  │                          │ Landing Page  │
-└───────┬───────┘                          └───────┬───────┘
-        │                                          │
-        ▼                                          ▼
-┌───────────────┐                          ┌───────────────┐
-│    Form UI    │                          │    Form UI    │
-│ (pipeline_id) │                          │ (pipeline_id) │
-└───────┬───────┘                          └───────┬───────┘
-        │                                          │
-        ▼                                          ▼
-┌───────────────┐                          ┌───────────────┐
-│ Init Response │                          │ Init Response │
-│  with step_01 │                          │  with step_01 │
-│ div(hx_trigger│                          │ div(hx_trigger│
-│    ="load")   │                          │    ="load")   │
-└───────┬───────┘                          └───────┬───────┘
-        │                                          │
-        │ Chain Reaction                           │ Chain Reaction
-        ▼                                          ▼
-┌───────────────┐                          ┌───────────────┐
-│   step_01     │                          │   step_01     │
-│   GET UI      │                          │   GET UI      │
-└───────┬───────┘                          └───────┬───────┘
-        │                                          │
-        │ User Clicks "Proceed"                    │ User Clicks "Proceed"
-        ▼                                          ▼
-┌───────────────┐                          ┌───────────────┐
-│   step_01     │                          │   step_01     │
-│  Submit UI    │                          │  Submit UI    │
-│  revert_ctrl  │                          │  revert_ctrl  │
-│ next_step div │                          │ next_step div │
-│(hx_trigger=   │                          │(hx_trigger=   │
-│    "load")    │                          │    "load")    │
-└───────┬───────┘                          └───────┬───────┘
-        │                                          │
-        │ Chain Reaction                           │ Chain Reaction
-        ▼                                          ▼
-┌───────────────┐                          ┌───────────────┐
-│   finalize    │                          │   step_02     │
-│      GET      │                          │     GET       │
-└───────────────┘                          └───────┬───────┘
-                                                   │
-                                                   │ More steps...
-                                                   ▼
-                                           ┌───────────────┐
-                                           │   finalize    │
-                                           │      GET      │
-                                           └───────────────┘
-```
-
-## Critical Elements for Step Progression
-- **Chain Reaction Pattern**: Using `hx_trigger="load"` to automatically load the next step
-- **Proper Step Connections**: Each step must properly link to the next via the `next_step_id`
-- **Finalization Flow**: All paths must eventually lead to the finalize step
-- **Revert Controls**: Using `pip.revert_control()` consistently after step completion
-
-## Benefits of Placeholder Steps
-- Quickly build workflow structure with minimal implementation effort
-- Test progression logic before implementing complex functionality
-- Maintain consistent state management and navigation between steps
-- Ensure proper revert and finalize capabilities from the beginning
-
-## Common Pitfalls
-- Missing `hx_trigger="load"` in the chain reaction div
-- Forgetting to use `pip.revert_control()` for completed steps
-- Not handling the finalization state properly
-- Incorrect step indices in the steps_indices dictionary
-
-## Implementation Strategy
-When building workflows, consider starting with placeholder steps for all planned functionality, then incrementally replace each with full implementations while preserving the progression pattern.
-```
-
----
-
-This implementation plan focuses on how to **apply the principles outlined in the guide** when making changes, ensuring architectural integrity and adherence to existing patterns.
-
-## 1. Core Patterns Recap (From Article & Codebase)
-
-Before detailing changes, let's recap the essential patterns documented in the article and reflected in the codebase (`plugins/` files, `server.py`, `.cursorrules/`):
-
-1.  **Workflow Structure:**
-    * Workflows are Python classes within the `plugins/` directory.
-    * They define metadata (`APP_NAME`, `DISPLAY_NAME`, `ENDPOINT_MESSAGE`, `TRAINING_PROMPT`).
-    * Steps are defined sequentially in the `__init__` method using the `Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'])` structure.
-    * Each step requires corresponding GET (`step_XX`) and POST (`step_XX_submit`) handler methods.
-    * Core methods (`landing`, `init`, `finalize`, `unfinalize`, `handle_revert`, etc.) provide the workflow engine and should generally not be modified significantly.
-
-2.  **HTMX Chain Reaction:**
-    * This is the core mechanism for automatic step progression.
-    * It relies on returning a specific `Div` structure from step handlers:
-        ```python
-        # In step_XX or step_XX_submit return statement
-        return Div(
-            Card(...), # Current step's content or completion view
-            # CRITICAL: This inner Div triggers the loading of the next step
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id # Outer Div ID matches the current step
-        )
-        ```
-    * The `hx_trigger="load"` on the inner `Div` causes HTMX to immediately fetch the content for the `next_step_id` as soon as the current step's content is swapped into the DOM.
-    * Breaking this chain (using `no-chain-reaction` class) should only be done for specific cases like terminal responses or polling, as documented in `htmx-chain-reactions.mdc`.
-
-3.  **State Management:**
-    * Workflow state is stored per `pipeline_id` in the `pipeline` table (managed via `DictLikeDB` accessed through `self.pipeline` and `self.pipulate.table`).
-    * The `pipulate` instance (`self.pipulate` or `pip`) provides helper methods for safe state interaction:
-        * `pip.read_state(pipeline_id)`
-        * `pip.get_step_data(pipeline_id, step_id, default={})`
-        * `await pip.update_step_state(pipeline_id, step_id, value, steps)` (Recommended for saving primary step value)
-        * `pip.write_state(pipeline_id, state)` (Use carefully for bulk updates)
-        * `await pip.clear_steps_from(pipeline_id, step_id, steps)` (Used in `handle_revert`)
-        * `await pip.finalize_workflow(pipeline_id)` / `await pip.unfinalize_workflow(pipeline_id)`
-
-4.  **Placeholder Steps:**
-    * As detailed in `placeholder-step-pattern.mdc` and the article, these are minimal steps used for scaffolding.
-    * They implement the basic GET/POST handlers and maintain the chain reaction but collect no user data (usually just a "Proceed" button).
-    * They use a simple `done='placeholder'` state field.
-
-## 2. Required Changes (When Adding/Inserting Workflow Steps)
-
-Based on the article's guidance and existing patterns, adding or inserting a new step (let's call it `step_new`) involves these specific changes:
-
-1.  **Modify `__init__`:**
-    * **Define the `Step`:** Add a new `Step(...)` definition for `step_new` into the `steps` list at the correct sequential position.
-        ```python
-        steps = [
-            # ... existing steps before ...
-            Step(id='step_new', done='new_field', show='New Step Label', refill=False, transform=None),
-            # ... existing steps after ...
-        ]
-        ```
-    * **Update Indices:** Regenerate `self.steps_indices` *after* defining the complete `steps` list to ensure correct mapping.
-        ```python
-        # Add this *after* the steps list definition
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
-        ```
-    * **Register Routes:** Ensure the route registration loop runs *after* the `steps` list (including the new step) is finalized. This is already the standard structure, but verify.
-
-2.  **Modify Adjacent Steps' Chain Reactions:**
-    * **Preceding Step (`step_prev`):** Update the `Div` returned by `step_prev`'s GET and POST handlers. Its `id` should now be `step_new`, and `hx_get` should point to `/{app_name}/step_new`.
-        ```python
-        # In step_prev or step_prev_submit return statement
-        return Div(
-            Card(...), # step_prev content
-            # Update this Div:
-            Div(id="step_new", hx_get=f"/{app_name}/step_new", hx_trigger="load"),
-            id="step_prev"
-        )
-        ```
-    * **Subsequent Step (`step_next`):** No direct change needed here, but the new step must correctly point to it.
-
-3.  **Create New Step Handlers:**
-    * **`async def step_new(self, request):` (GET Handler)**
-        * Follow the standard pattern: get `pip`, `db`, `steps`, `app_name`, `step_id`, `step_index`, `step`, `pipeline_id`, `state`, `step_data`.
-        * Calculate `next_step_id` correctly (pointing to `step_next` or `'finalize'`).
-        * Check for finalized state and return locked view if necessary.
-        * Check for completion (`step.done` in `step_data`) and `_revert_target` to decide whether to show the completed view (using `pip.widget_container` or `pip.revert_control`) or the input form.
-        * If showing the form, get `display_value` (using `step.refill` and `get_suggestion` if needed).
-        * Add input prompt message using `self.message_queue.add(...)`.
-        * Return the `Div` containing the `Card` with the form/widget, the critical chain reaction `Div` pointing to `next_step_id`, and the outer `id=step_id`.
-    * **`async def step_new_submit(self, request):` (POST Handler)**
-        * Follow the standard pattern: get context variables.
-        * Process `await request.form()` to get `user_val`.
-        * Perform validation using `pip.validate_step_input` and potentially custom checks. Return error component on failure.
-        * Perform any necessary processing on `user_val` to get `processed_val`.
-        * Save state using `await pip.update_step_state(pipeline_id, step_id, processed_val, steps)`.
-        * Add completion message using `self.message_queue.add(...)`.
-        * Check if finalize is needed (`pip.check_finalize_needed(...)`) and add appropriate message.
-        * Return the navigation component using `pip.create_step_navigation(...)` which includes the revert control and the chain reaction `Div` for the next step.
-
-4.  **Update `step_messages` (Optional but Recommended):**
-    * Add entries for `step_new` in `self.step_messages` for clear UI feedback.
-
-5.  **Update `get_suggestion` (Optional):**
-    * If the new step's input can be derived from the previous step, update `get_suggestion` accordingly, potentially using the `transform` lambda defined in the `Step`.
-
-## 3. Integration Strategy (Following Patterns)
-
-Integrating new steps requires strict adherence to the established patterns documented in the article and codebase rules:
-
-* **WET Workflow Convention:** Embrace the explicitness. Copy, paste, and modify the standard GET/POST handler structure for new steps. Avoid creating complex abstractions *within* a single workflow's step logic. Refer to `wet-workflows.mdc`.
-* **HTMX Chain Reaction:** This is paramount. Double-check the `id`, `hx_get`, and `hx_trigger="load"` attributes in the returned `Div`s of *all* modified and new handlers. Ensure the `id` of the *inner* div matches the `next_step_id`, and the `hx_get` path is correct. Refer to `htmx-chain-reactions.mdc`.
-* **Pipulate Helpers:** Consistently use `self.pipulate` (or `pip`) methods for state (`read_state`, `get_step_data`, `update_step_state`), UI generation (`revert_control`, `widget_container`, `create_step_navigation`, `fmt`), and validation (`validate_step_input`). This ensures integration with the core engine.
-* **Placeholder Pattern:** For incremental development or complex steps, first implement a placeholder step following `placeholder-step-pattern.mdc`. This ensures the structure and connections are correct before adding complex logic or UI.
-* **Message Queue:** Use `self.message_queue.add(pip, ...)` for all user-facing status updates in the chat sidebar to ensure messages appear in the correct order, especially during asynchronous operations.
-* **Backward Compatibility:** Adhering to these patterns inherently maintains compatibility. The workflow engine relies on these structures. Deviations (like breaking the chain reaction incorrectly) are the primary risk to existing functionality. Modifying the *content* of steps is generally safe if the core patterns are preserved.
-
-## 4. Implementation Plan (Guide for Adding a Step)
-
-This plan outlines the recommended process for adding a new workflow step (`step_new`) between `step_prev` and `step_next`.
-
-1.  **Backup:** Create a copy of the workflow file (e.g., `xx_my_flow (backup).py`) before starting.
-2.  **Define Step:** Open the workflow file (e.g., `plugins/NN_my_flow.py`). Add the `Step(...)` definition for `step_new` in the `steps` list within `__init__` at the correct sequence.
-3.  **Update Indices:** Immediately after the `steps` list, ensure `self.steps_indices = {step.id: i for i, step in enumerate(steps)}` is present to recalculate indices.
-4.  **Update Preceding Step (`step_prev`):**
-    * Locate the `return Div(...)` statement in both `async def step_prev(...)` and `async def step_prev_submit(...)`.
-    * Find the inner chain reaction `Div`: `Div(id=step_next.id, hx_get=f"/{app_name}/{step_next.id}", hx_trigger="load")`.
-    * Change its `id` and `hx_get` path to point to `step_new`: `Div(id="step_new", hx_get=f"/{app_name}/step_new", hx_trigger="load")`.
-5.  **Create New GET Handler (`step_new`):**
-    * Copy the structure from an existing GET handler (like `step_prev`).
-    * Update `step_id = "step_new"`.
-    * Ensure `next_step_id` is calculated correctly (should point to `step_next.id` or `'finalize'`).
-    * Implement the logic for finalized, completed, and input states.
-    * **Crucially:** Ensure the returned `Div` has the *outer* `id="step_new"` and the *inner* chain reaction `Div` points correctly to `next_step_id`.
-    * *Checkpoint:* Run the workflow. Verify that after completing `step_prev`, `step_new`'s input form loads automatically. Check the HTML source for correct IDs and `hx_get` attributes.
-6.  **Create New POST Handler (`step_new_submit`):**
-    * Copy the structure from an existing POST handler.
-    * Update `step_id = "step_new"`.
-    * Implement form processing, validation, state saving (`update_step_state`), and user messages (`message_queue.add`).
-    * Return the standard navigation component using `pip.create_step_navigation(...)`. This function correctly includes the chain reaction `Div` pointing to `next_step_id`.
-    * *Checkpoint:* Run the workflow. Submit the `step_new` form. Verify the data is saved correctly (check logs/DB state). Verify the UI updates to the completed view for `step_new` and that `step_next` loads automatically.
-7.  **Update Messages/Suggestions (Optional):**
-    * Add entries to `self.step_messages` for `step_new`.
-    * Update `get_suggestion` if applicable.
-8.  **Testing:**
-    * Test the full workflow sequence.
-    * Test reverting *to* `step_new`.
-    * Test reverting *from* `step_new` back to `step_prev`.
-    * Test finalizing the workflow with `step_new` included.
-    * Test unfinalizing and reverting again.
-    * Test with invalid input in `step_new`.
-
-### Potential Challenges & Risks
-
-* **Broken Chain Reaction:** Forgetting `hx_trigger="load"` or having incorrect `id`/`hx_get` values. Mitigation: Carefully check the structure of returned `Div`s in logs or browser dev tools.
-* **State Errors:** Incorrectly saving data (e.g., wrong key in `step.done`) or failing to clear state on revert. Mitigation: Use `pip.update_step_state` for primary values. Log state before/after updates for debugging. Test revert thoroughly.
-* **Index Errors:** Forgetting to update `steps_indices` after modifying the `steps` list. Mitigation: Always place the index recalculation *after* the final `steps` list definition.
-* **Syntax Errors:** Preventing server restart. Mitigation: Rely on the built-in `check_syntax` and manually run `python plugins/NN_my_flow.py` if needed.
-* **UI Glitches:** Issues with client-side rendering (Mermaid, Prism, custom JS). Mitigation: Use unique IDs, employ `HX-Trigger` headers, use browser dev tools for JS debugging.
-
-By carefully following the patterns established in the codebase and documented in the article and rules, you can reliably extend Pipulate workflows with new steps and widgets while maintaining the integrity of the system. Remember to leverage the placeholder pattern for complex additions.
-
-# Critical Pattern Warning
-
-When implementing workflows in Pipulate, one pattern is absolutely critical and must never be modified:
-
-## The Chain Reaction Pattern
-
-```python
-# In step_XX or step_XX_submit return statement
-return Div(
-    Card(...), # Current step's content
-    # CRITICAL: This inner Div triggers loading of the next step
-    # DO NOT REMOVE OR MODIFY these attributes:
-    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-    id=step_id
-)
 ```
 
 ### Why This Pattern Is Essential
@@ -831,183 +757,3 @@ return Div(
 - **DO NOT** implement alternative flow mechanisms without extensive testing
 
 Such changes will appear to work in limited testing but will inevitably break more complex workflows.
-
-# WIDGET RECIPE SYSTEM
-
-This section introduces the widget recipe system - a collection of step-by-step guides for transforming placeholder steps into specific functional widgets while maintaining all critical workflow patterns.
-
-## Overview of the Widget Recipe System
-
-The widget recipe system provides standardized patterns for converting placeholder steps into various widget types, such as:
-
-1. **Input Collection Widgets**:
-   - Text input widgets
-   - URL input widgets
-   - Selection/dropdown widgets
-   - Checkbox and radio button widgets
-
-2. **Data Display Widgets**:
-   - Pandas table widgets
-   - Markdown rendering widgets
-   - Mermaid diagram widgets
-   - Code syntax highlighting widgets
-
-3. **Operational Widgets**:
-   - API request widgets
-   - CSV download widgets
-   - Polling status widgets
-   - File upload widgets
-
-## How to Use Widget Recipes
-
-Widget recipes are designed to be applied to placeholder steps in your workflow. Each recipe follows this process:
-
-1. **Locate the Customization Points**:
-   Both placeholder GET and SUBMIT handlers contain clearly marked customization points:
-   ```
-   # CUSTOMIZE_STEP_DEFINITION
-   # CUSTOMIZE_FORM
-   # CUSTOMIZE_DISPLAY
-   # CUSTOMIZE_COMPLETE
-   # CUSTOMIZE_FORM_PROCESSING
-   # CUSTOMIZE_DATA_PROCESSING
-   # CUSTOMIZE_STATE_STORAGE
-   # CUSTOMIZE_WIDGET_DISPLAY
-   ```
-
-2. **Apply the Recipe Changes**: 
-   The recipe will provide specific code to insert at each customization point.
-
-3. **Preserve Critical Patterns**:
-   Each recipe maintains:
-   - Chain reaction mechanism
-   - Revert control functionality
-   - State management patterns
-   - Proper finalization handling
-
-## Recipe Format
-
-Each widget recipe follows a standard format:
-
-I've analyzed the workflow implementation guide and have recommendations for enhancing it with a widget recipe system section that would fit well within the current structure. Here's how I would integrate it:
-
-```markdown
-# WIDGET RECIPE SYSTEM
-
-This section introduces the widget recipe system - a collection of step-by-step guides for transforming placeholder steps into specific functional widgets while maintaining all critical workflow patterns.
-
-## Overview of the Widget Recipe System
-
-The widget recipe system provides standardized patterns for converting placeholder steps into various widget types, such as:
-
-1. **Input Collection Widgets**:
-   - Text input widgets
-   - URL input widgets
-   - Selection/dropdown widgets
-   - Checkbox and radio button widgets
-
-2. **Data Display Widgets**:
-   - Pandas table widgets
-   - Markdown rendering widgets
-   - Mermaid diagram widgets
-   - Code syntax highlighting widgets
-
-3. **Operational Widgets**:
-   - API request widgets
-   - CSV download widgets
-   - Polling status widgets
-   - File upload widgets
-
-## How to Use Widget Recipes
-
-Widget recipes are designed to be applied to placeholder steps in your workflow. Each recipe follows this process:
-
-1. **Locate the Customization Points**:
-   Both placeholder GET and SUBMIT handlers contain clearly marked customization points:
-   ```
-   # CUSTOMIZE_STEP_DEFINITION
-   # CUSTOMIZE_FORM
-   # CUSTOMIZE_DISPLAY
-   # CUSTOMIZE_COMPLETE
-   # CUSTOMIZE_FORM_PROCESSING
-   # CUSTOMIZE_DATA_PROCESSING
-   # CUSTOMIZE_STATE_STORAGE
-   # CUSTOMIZE_WIDGET_DISPLAY
-   ```
-
-2. **Apply the Recipe Changes**: 
-   The recipe will provide specific code to insert at each customization point.
-
-3. **Preserve Critical Patterns**:
-   Each recipe maintains:
-   - Chain reaction mechanism
-   - Revert control functionality
-   - State management patterns
-   - Proper finalization handling
-
-## Recipe Format
-
-Each widget recipe follows a standard format:
-
-```
-# Widget Name Recipe
-
-## Overview
-Brief description of what the widget does.
-
-## Implementation Phases
-Step-by-step implementation instructions:
-
-### Phase 1: Update Step Definition
-Code changes for the Step namedtuple.
-
-### Phase 2: Update GET Handler
-Code changes for the GET handler.
-
-### Phase 3: Update SUBMIT Handler
-Code changes for the SUBMIT handler.
-
-### Phase 4: Add Helper Methods (if needed)
-Any additional helper methods required.
-
-## Common Pitfalls
-Things to watch out for.
-
-## Related Widget Recipes
-Links to related recipes.
-```
-
-## Widget Recipe Example: Basic Pandas Table Widget
-
-Here's a snippet from the Pandas table widget recipe to illustrate the pattern:
-
-```python
-# CUSTOMIZE_FORM: Replace with CSV input form
-return Div(
-    Card(
-        H3(f"{step.show}"),
-        P("Enter CSV data below to create a Pandas DataFrame:"),
-        Form(
-            TextArea(
-                display_value,
-                name=step.done,
-                placeholder="Paste CSV data here...",
-                rows=8,
-                required=True
-            ),
-            Div(
-                Button("Create Table", type="submit", cls="primary"),
-                style="margin-top: 1vh; text-align: right;"
-            ),
-            hx_post=f"/{app_name}/{step_id}_submit",
-            hx_target=f"#{step_id}"
-        )
-    ),
-    Div(id=next_step_id),
-    id=step_id
-)
-```
-
-For full recipes, refer to the individual widget recipe documents in the training folder.
-```
-
