@@ -18,6 +18,15 @@ from typing import Dict, List, Optional, Union
 FILES_TO_INCLUDE = """\
 flake.nix
 server.py
+requirements.txt
+static/chat-interface.js
+static/chat-scripts.js
+static/chat-styles.css
+static/widget-scripts.js
+plugins/20_hello_workflow.py
+plugins/30_tasks.py
+plugins/60_widget_examples.py
+plugins/80_practice_workflow.py
 """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 

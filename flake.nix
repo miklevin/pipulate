@@ -258,6 +258,22 @@
 
         # Base shell hook that just sets up the environment without any output
         baseEnvSetup = pkgs: ''
+          # Auto-update: Perform a git pull if this is a git repository
+          if [ -d .git ]; then
+            echo "Checking for updates..."
+            git fetch origin
+            LOCAL=$(git rev-parse HEAD)
+            REMOTE=$(git rev-parse @{u})
+            
+            if [ "$LOCAL" != "$REMOTE" ]; then
+              echo "Updates found. Pulling latest changes..."
+              git pull --ff-only
+              echo "Update complete!"
+            else
+              echo "Already up to date."
+            fi
+          fi
+          
           # Set up the Python virtual environment
           test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
           export VIRTUAL_ENV="$(pwd)/.venv"
