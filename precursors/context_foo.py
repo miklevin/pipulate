@@ -18,20 +18,23 @@ from typing import Dict, List, Optional, Union
 # allows for clean multi-line string formatting.
 
 FILES_TO_INCLUDE = """\
-README.md
-flake.nix
-.cursorrules
-server.py
-/home/mike/repos/.cursor/rules/wet-workflows.mdc
-/home/mike/repos/.cursor/rules/nix-rules.mdc
-/home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
-/home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
-plugins/10_connect_with_botify.py
-plugins/20_hello_workflow.py
-plugins/50_botify_export.py
-plugins/60_widget_examples.py
-plugins/70_blank_workflow.py
-""".splitlines()[:-1]  # Remove the last empty line
+test.txt
+""".strip().splitlines()  # Changed from [:-1] to handle empty lines properly
+
+# Example: 
+# README.md
+# flake.nix
+# .cursorrules
+# server.py
+# /home/mike/repos/.cursor/rules/wet-workflows.mdc
+# /home/mike/repos/.cursor/rules/nix-rules.mdc
+# /home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
+# /home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
+# plugins/10_connect_with_botify.py
+# plugins/20_hello_workflow.py
+# plugins/50_botify_export.py
+# plugins/60_widget_examples.py
+# plugins/70_blank_workflow.py
 
 # Example:
 # python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/prompt.md
@@ -462,7 +465,7 @@ Identify posts that could serve as:
 This analysis will be used to optimize the site's information architecture.
 """
 
-# Replace the old file_list definition with the new FILES_TO_INCLUDE
+# After the initialization of file_list, remove debug prints
 file_list = FILES_TO_INCLUDE
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
@@ -559,6 +562,23 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
     # Initialize date range
     start_date = end_date = md_files[start_idx][:10] if start_idx < len(md_files) else "Unknown"
     
+    # First, check if all files exist before processing
+    missing_files = []
+    for i in range(start_idx, len(md_files)):
+        filename = md_files[i]
+        filepath = os.path.join(args.directory, filename)
+        if not os.path.exists(filepath):
+            missing_files.append(filepath)
+    
+    # If any files are missing, raise an exception with clear details
+    if missing_files:
+        error_message = "The following files were not found:\n"
+        for missing_file in missing_files:
+            error_message += f"  - {missing_file}\n"
+        error_message += "\nPlease check that these files exist in the specified directory."
+        print(error_message)
+        sys.exit(1)
+    
     # Add blog pre-prompt if using --cat
     if args.cat and BLOG_PRE_PROMPT:
         lines.append(BLOG_PRE_PROMPT)
@@ -568,11 +588,6 @@ def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, outp
     for i in range(start_idx, len(md_files)):
         filename = md_files[i]
         filepath = os.path.join(args.directory, filename)
-        
-        # Check if file exists before trying to open it
-        if not os.path.exists(filepath):
-            print(f"ERROR: File not found: {filepath}")
-            sys.exit(1)  # Exit with error code
         
         try:
             with open(filepath, 'r', encoding='utf-8') as infile:
@@ -707,8 +722,15 @@ parser.add_argument('--single', action='store_true',
                     help=f'Force single file output with {SINGLE_FILE_LIMIT:,} token limit')
 parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
                     help='Set token limit based on model (default: claude)')
+parser.add_argument('--repo-root', type=str, default=repo_root,
+                    help=f'Repository root directory (default: {repo_root})')
 
 args = parser.parse_args()
+
+# Update repo_root if specified via command line
+if args.repo_root and args.repo_root != repo_root:
+    repo_root = args.repo_root
+    print(f"Repository root directory set to: {repo_root}")
 
 # List available templates if requested
 if args.list:
@@ -765,6 +787,25 @@ post_prompt = prompt_templates[template_index]["post_prompt"]
 print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
 print(f"Output will be written to: {output_filename}")
 
+# Add a clear message about file paths
+print("\nChecking files to include:")
+# For non-concat mode, show the files that will be checked
+if not args.concat_mode:
+    print("Files to be included from FILES_TO_INCLUDE:")
+    for file_path in final_file_list:
+        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
+        print(f"  - {file_path} -> {full_path}")
+    print("\nNOTE: If running from a subdirectory, remember that relative paths in FILES_TO_INCLUDE")
+    print("      are relative to the repository root, which is currently set to:")
+    print(f"      {repo_root}")
+    print("      Files not found will cause the program to exit with an error message.")
+# For concat mode, show directory being used
+else:
+    print(f"Directory being searched for markdown files: {args.directory}")
+    print("NOTE: Only .md files in this directory will be processed.")
+    print("      Files not found will cause the program to exit with an error message.")
+
+# Remove debug prints and duplicated code
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
     """
@@ -875,7 +916,7 @@ class AIAssistantManifest:
             conv_section = ['<conventions>']
             for convention in self.conventions:
                 conv_section.append(create_xml_element("convention", [
-                    f"<name>{convention['name']}</name>",
+                    f"<n>{convention['name']}</n>",
                     f"<description>{convention['description']}</description>"
                 ]))
             conv_section.append('</conventions>')
@@ -928,6 +969,26 @@ def create_pipulate_manifest(file_paths):
     manifest.set_environment("Runtime", "Python 3.12 in a Nix-managed virtualenv (.venv)")
     manifest.set_environment("Package Management", "Hybrid approach using Nix flakes for system dependencies + pip for Python packages")
     
+    # Check for missing files and collect them
+    missing_files = []
+    for relative_path in file_paths:
+        relative_path = relative_path.strip()
+        if not relative_path:
+            continue
+            
+        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+        if not os.path.exists(full_path):
+            missing_files.append(full_path)
+    
+    # If any files are missing, raise an exception with clear details
+    if missing_files:
+        error_message = "The following files were not found:\n"
+        for missing_file in missing_files:
+            error_message += f"  - {missing_file}\n"
+        error_message += "\nPlease check the file paths in FILES_TO_INCLUDE variable."
+        print(error_message)
+        sys.exit(1)
+    
     # Register key files with their contents
     for relative_path in file_paths:
         relative_path = relative_path.strip()
@@ -936,13 +997,8 @@ def create_pipulate_manifest(file_paths):
             
         processed_files.add(relative_path)
         result_files.append(relative_path)
-        full_path = os.path.join(repo_root, relative_path)
+        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
         
-        # Check if file exists before trying to open it
-        if not os.path.exists(full_path):
-            print(f"ERROR: File not found: {full_path}")
-            sys.exit(1)  # Exit with error code
-            
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -1013,6 +1069,23 @@ lines = []
 total_tokens = 0
 
 if not args.concat_mode:
+    # First, check if all files exist before processing
+    missing_files = []
+    for relative_path in final_file_list:
+        if relative_path.strip():
+            full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+            if not os.path.exists(full_path):
+                missing_files.append(full_path)
+    
+    # If any files are missing, show a clear error and exit
+    if missing_files:
+        error_message = "The following files were not found:\n"
+        for missing_file in missing_files:
+            error_message += f"  - {missing_file}\n"
+        error_message += "\nPlease check the file paths in FILES_TO_INCLUDE variable."
+        print(error_message)
+        sys.exit(1)  # Exit with error code
+    
     # Create the manifest and incorporate user's pre_prompt
     manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
     manifest = manifest_xml
@@ -1071,7 +1144,7 @@ if not args.concat_mode:
     total_combined_tokens = files_tokens + prompt_tokens
     
     # Debug information for XML token counting
-    print(f"\nXML Token Summary Debug:")
+    print(f"\nXML Token Summary:")
     print(f"  Files tokens: {format_token_count(files_tokens)}")
     print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
     print(f"  Total for XML: {format_token_count(total_combined_tokens)}")

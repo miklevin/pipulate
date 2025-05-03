@@ -41,7 +41,7 @@ class ParameterBusterWorkflow:
     DISPLAY_NAME = "Parameter Buster" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
         "This workflow analyzes URL parameters from Botify, logs, and Search Console data "
-        "to produce optimization recommendations for better crawl efficiency."
+        "to produce a PageWorkers optimization for better crawl efficiency."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -417,17 +417,17 @@ class ParameterBusterWorkflow:
                 Card(
                     H3(f"{step.show}"),
                     P("Enter a Botify project URL:"),
+                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/crawl", style="display: block; margin-bottom: 10px;"),
                     Form(
                         Input(
                             type="url", 
                             name="botify_url", 
-                            placeholder="https://app.botify.com/username/group/project", 
+                            placeholder="https://app.botify.com/org/project/", 
                             value=display_value,
                             required=True,
                             pattern="https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*",
                             style="width: 100%;"
                         ),
-                        Small("Example: https://app.botify.com/username/group/project", style="display: block; margin-bottom: 10px;"),
                         Div(
                             Button("Submit", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
