@@ -3594,13 +3594,17 @@ console.log(analyzeParameters(testUrl));"""
             plt.figure(figsize=(10, figure_height), facecolor='#1e1e2e', constrained_layout=False)
 
             # Create axes with specific dimensions to fill most of the figure
-            # This gives us direct control over the plot area
-            ax = plt.axes([0.2, 0.02, 0.75, 0.95])  # left, bottom, width, height in figure coordinates (0-1)
+            # Extend the right margin further to make more room for the value labels
+            ax = plt.axes([0.2, 0.02, 0.65, 0.95])  # Reduced width from 0.7 to 0.65 to make more space
             ax.set_facecolor('#1e1e2e')
 
             # Change all spines (the box around the plot) to white
             for spine in ax.spines.values():
                 spine.set_color('white')
+
+            # Remove the right and top spines completely
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
 
             # Generate positions for bars
             y_pos = np.arange(len(top_params))
@@ -3610,6 +3614,10 @@ console.log(analyzeParameters(testUrl));"""
             weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
             gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
+
+            # Calculate max value to help with layout
+            max_value = max([max(weblogs_values or [0]), max(crawl_values or [0]), max(gsc_values or [0])])
+            add_debug(f"Max value in data: {max_value}")
 
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
@@ -3631,25 +3639,31 @@ console.log(analyzeParameters(testUrl));"""
             ax.tick_params(axis='both', colors='white')
             ax.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
 
+            # Increase x-axis limit to make extra room for labels
+            # In log scale, we need to go beyond the max value
+            if max_value > 0:
+                # For log scale, use multiplication factor to ensure room for labels
+                ax.set_xlim(0, max_value * 2)
+
             # Add value labels with appropriate colors
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
                 # Web logs (blue)
                 if wb > 0:
-                    text_pos = wb * 1.1 if wb > 1000 else wb + 5
+                    text_pos = wb * 1.05  # Reduced offset factor
                     ax.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
                 elif wb == 0:
                     ax.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
                     
                 # Crawl data (red)
                 if cr > 0:
-                    text_pos = max(cr * 1.5, 5)
+                    text_pos = cr * 1.05  # Reduced offset factor
                     ax.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
                 elif cr == 0:
                     ax.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
                     
                 # Search console (green)
                 if gs > 0:
-                    text_pos = gs * 1.1 if gs > 100 else gs + 5
+                    text_pos = gs * 1.05  # Reduced offset factor
                     ax.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
                 elif gs == 0:
                     ax.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
