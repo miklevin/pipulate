@@ -3335,256 +3335,6 @@ console.log(analyzeParameters(testUrl));"""
     # Add this helper method to create a simple placeholder for parameter visualization
     def create_parameter_visualization_placeholder(self, summary_data_str=None):
         """
-        Create a matplotlib visualization of parameters from all three data sources with distinct colors.
-        """
-        # Import logging at module level to avoid issues
-        import logging
-        import matplotlib.pyplot as plt
-        from io import BytesIO
-        import base64
-        import numpy as np
-        import json
-        import os
-        from pathlib import Path
-        
-        # Debug collection
-        debug_info = []
-        def add_debug(msg):
-            debug_info.append(msg)
-            logging.info(msg)
-        
-        try:
-            add_debug("Starting parameter visualization")
-            
-            # Parse summary data if provided
-            has_data = False
-            total_params = 0
-            data_sources = []
-            
-            # Counters for each data source
-            source_counters = {
-                'weblogs': Counter(),
-                'gsc': Counter(),
-                'not_indexable': Counter()  # 'crawl' data
-            }
-            
-            if summary_data_str:
-                summary_data = json.loads(summary_data_str)
-                total_params = summary_data.get('total_unique_parameters', 0)
-                data_sources = list(summary_data.get('data_sources', {}).keys())
-                has_data = True
-                
-                add_debug(f"Data sources in summary: {data_sources}")
-                
-                # Get the raw counters from cache file
-                cache_path = summary_data.get('cache_path')
-                add_debug(f"Cache path: {cache_path}, exists: {os.path.exists(cache_path) if cache_path else False}")
-                
-                if cache_path and os.path.exists(cache_path):
-                    try:
-                        with open(cache_path, 'rb') as f:
-                            cache_data = pickle.load(f)
-                        
-                        raw_counters = cache_data.get('raw_counters', {})
-                        add_debug(f"Raw counter keys in cache: {list(raw_counters.keys())}")
-                        
-                        # Dump the first few entries of each counter for inspection
-                        for key, counter in raw_counters.items():
-                            top_items = list(counter.most_common(5))
-                            add_debug(f"Raw counter '{key}' has {len(counter)} items. Top 5: {top_items}")
-                        
-                        # Direct mapping of sources to counter keys
-                        source_mapping = {
-                            'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
-                            'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
-                            'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
-                        }
-                        
-                        # Map sources to keys
-                        for source, possible_keys in source_mapping.items():
-                            found = False
-                            for key in possible_keys:
-                                if key in raw_counters:
-                                    source_counters[source] = raw_counters[key]
-                                    add_debug(f"Mapped source '{source}' to cache key '{key}' with {len(raw_counters[key])} items")
-                                    found = True
-                                    break
-                            if not found:
-                                add_debug(f"No matching key found for source '{source}'")
-                    
-                    except Exception as e:
-                        add_debug(f"Error loading parameter data from cache: {e}")
-                    else:
-                        add_debug(f"Cache file not found or invalid")
-                    
-                    # If we couldn't get data from cache, use the summary data directly
-                    if all(len(counter) == 0 for counter in source_counters.values()) and has_data:
-                        add_debug("No counter data from cache, using summary data directly")
-                        
-                        for source, counter in source_counters.items():
-                            # Try to find a matching data source
-                            matching_source = None
-                            if source == 'weblogs':
-                                matching_source = next((s for s in data_sources if 'log' in s.lower()), None)
-                            elif source == 'gsc':
-                                matching_source = next((s for s in data_sources if 'gsc' in s.lower() or 'search' in s.lower()), None)
-                            elif source == 'not_indexable':
-                                matching_source = next((s for s in data_sources if 'crawl' in s.lower() or 'index' in s.lower() or 'not_' in s.lower()), None)
-                            
-                            if matching_source:
-                                add_debug(f"Found matching source '{matching_source}' for '{source}'")
-                                source_data = summary_data.get('data_sources', {}).get(matching_source, {})
-                                for param_data in source_data.get('top_parameters', []):
-                                    counter[param_data['name']] = param_data['count']
-                            else:
-                                add_debug(f"No matching source found for '{source}'")
-            
-            # Print counter sizes after loading
-            for source, counter in source_counters.items():
-                top_items = counter.most_common(5)
-                items_count = len(counter)
-                total_count = sum(counter.values())
-                add_debug(f"FINAL: Source '{source}' has {items_count} items with {total_count} total occurrences")
-                if top_items:
-                    add_debug(f"  Top 5 for {source}: {top_items}")
-            
-            # Force some test data if no crawl data found (for debugging)
-            if sum(source_counters['not_indexable'].values()) == 0:
-                add_debug("WARNING: No crawl data values found - adding test data!")
-                # Add test values for diagnostic purposes
-                test_param = "test_param"
-                if param_total_counts:
-                    test_param = next(iter(param_total_counts.keys()))
-                source_counters['not_indexable'][test_param] = 1000
-                add_debug(f"Added test value of 1000 for parameter '{test_param}' to crawl data")
-            
-            # Get union of all parameters across sources
-            all_params = set()
-            for counter in source_counters.values():
-                all_params.update(counter.keys())
-            
-            # Get top parameters across all sources by total frequency
-            param_total_counts = Counter()
-            for param in all_params:
-                total = sum(counter.get(param, 0) for counter in source_counters.values())
-                param_total_counts[param] = total
-            
-            # Get top 30 parameters
-            top_params = [param for param, _ in param_total_counts.most_common(30)]
-            top_params.reverse()
-            
-            add_debug(f"Top 5 parameters overall: {top_params[:5]}")
-            
-            # Create figure with dark style
-            plt.figure(figsize=(10, 14), facecolor='#1e1e2e')
-            ax = plt.gca()
-            ax.set_facecolor('#1e1e2e')
-            
-            # Generate positions for bars - keep original spacing
-            y_pos = np.arange(len(top_params))
-            width = 0.25
-            
-            # Prepare data for each source
-            weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
-            crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
-            gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
-            
-            # Log the final values being plotted
-            for i, param in enumerate(top_params[:5]):
-                add_debug(f"  Parameter '{param}': weblog={weblogs_values[i]}, crawl={crawl_values[i]}, gsc={gsc_values[i]}")
-            
-            # Use log scale to make small values more visible
-            ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
-            
-            # Create grouped bar chart - use thicker bars and distinct colors
-            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
-            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
-            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
-            
-            # Add subtle alternating row backgrounds to visually group the parameter sets
-            for i, p in enumerate(y_pos):
-                if i % 2 == 0:  # Every other row
-                    plt.axhspan(p - width*1.5, p + width*1.5, color='#2a2a3a', alpha=0.3)
-            
-            # Set labels, ticks and styling
-            plt.yticks(y_pos, top_params, fontsize=8, color='white')
-            plt.xlabel('Occurrences (log scale)', color='white')
-            plt.ylabel('Parameters', color='white')
-            plt.title('Top 30 Parameters by Data Source (Log Scale)', color='white')
-            plt.tick_params(axis='both', colors='white')
-            plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
-            plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
-            
-            # Add value labels matching their bar colors
-            for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
-                # Web logs (blue)
-                if wb > 0:
-                    text_pos = wb * 1.1 if wb > 1000 else wb + 5
-                    plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
-                elif wb == 0:
-                    plt.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
-                    
-                # Crawl data (red)
-                if cr > 0:
-                    text_pos = max(cr * 1.5, 5)
-                    plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
-                elif cr == 0:
-                    plt.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
-                    
-                # Search console (green)
-                if gs > 0:
-                    text_pos = gs * 1.1 if gs > 100 else gs + 5
-                    plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
-                elif gs == 0:
-                    plt.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
-            
-            # Adjust layout
-            plt.tight_layout()
-            
-            # Save figure to a bytes buffer
-            buffer = BytesIO()
-            plt.savefig(buffer, format='png', dpi=120)
-            plt.close()
-            
-            # Convert to base64 for embedding in HTML
-            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            
-            # Create an HTML component with the image and metadata and debug info
-            debug_section = ""
-            if debug_info:
-                debug_section = Div(
-                    H5("Debug Information:"),
-                    Pre("\n".join(debug_info), 
-                        style="background: #333; color: #eee; padding: 10px; border-radius: 5px; font-size: 0.8em; max-height: 300px; overflow-y: auto;"),
-                    style="margin-top: 1rem;"
-                )
-            
-            visualization = Div(
-                Div(
-                    H4("Parameter Analysis Summary:"),
-                    P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
-                    P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
-                    Div(
-                        NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
-                        style="text-align: center; margin-top: 1rem;"
-                    ),
-                    debug_section,
-                    style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
-                )
-            )
-            
-            return visualization
-            
-        except Exception as e:
-            logging.exception(f"Error creating parameter visualization: {e}")
-            error_msg = f"Error creating visualization: {str(e)}\n\nDebug info:\n" + "\n".join(debug_info)
-            return Div(
-                NotStr(f"<div style='color: red; padding: 10px; background: #333; border-radius: 5px;'>{error_msg}</div>"), 
-                _raw=True
-            )
-
-    def create_parameter_visualization_placeholder(self, summary_data_str=None):
-        """
         Create a visualization of parameters from all three data sources.
         """
         # Import standard libraries
@@ -3723,37 +3473,68 @@ console.log(analyzeParameters(testUrl));"""
             top_params = [param for param, _, _, _, _, _ in results_sorted[:30]]
             top_params.reverse()
             
-            # Create a rich table for "Potential Parameter Wins"
-            import rich.table
-            import rich.console
-            
-            table = rich.table.Table(title="Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)")
-            
-            table.add_column("Parameter", style="cyan")
-            table.add_column("Weblogs", style="bright_magenta", justify="right")
-            table.add_column("Not-Indexable", style="green", justify="right")
-            table.add_column("GSC", style="yellow", justify="right")
-            table.add_column("Total", style="bright_blue", justify="right")
-            table.add_column("Score", style="bright_red", justify="right")
+            # Create a custom HTML table for "Potential Parameter Wins" instead of using rich
+            table_html = '''
+            <style>
+                .param-table {
+                    font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
+                    border-collapse: collapse;
+                    width: 100%;
+                    background-color: black;
+                    color: white;
+                    margin-top: 1rem;
+                    margin-bottom: 1rem;
+                }
+                .param-table td {
+                    border: none;
+                    padding: 5px;
+                    text-align: left;
+                }
+                .param-table tr:nth-child(even) {
+                    background-color: #1a1a1a;
+                }
+                .param-table tr:first-child {
+                    text-align: center;
+                    background-color: #000;
+                    font-weight: bold;
+                    color: white;
+                }
+                .param-table tr.header {
+                    border-bottom: 1px solid white;
+                }
+                .param-name { color: cyan; }
+                .weblogs-val { color: magenta; text-align: right; }
+                .not-index-val { color: green; text-align: right; }
+                .gsc-val { color: yellow; text-align: right; }
+                .total-val { color: #4fa8ff; text-align: right; }
+                .score-val { color: #ff5050; text-align: right; font-weight: bold; }
+            </style>
+            <table class="param-table">
+                <tr><td colspan="6">Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</td></tr>
+                <tr class="header">
+                    <td style="border-right: solid white 1px"><span class="param-name">Parameter</span></td>
+                    <td style="border-right: solid white 1px"><span class="weblogs-val">Weblogs</span></td>
+                    <td style="border-right: solid white 1px"><span class="not-index-val">Not-Indexable</span></td>
+                    <td style="border-right: solid white 1px"><span class="gsc-val">GSC</span></td>
+                    <td style="border-right: solid white 1px"><span class="total-val">Total</span></td>
+                    <td><span class="score-val">Score</span></td>
+                </tr>
+            '''
             
             # Add the top 50 parameters to the table
             for param, wb, ni, gsc, total, score in results_sorted[:50]:
-                table.add_row(
-                    param,
-                    f"{wb:,}",
-                    f"{ni:,}",
-                    f"{gsc:,}",
-                    f"{total:,}",
-                    f"{score:,.0f}"  # score with commas, no decimals
-                )
+                table_html += f'''
+                <tr>
+                    <td style="border-right: solid white 1px"><span class="param-name">{param}</span></td>
+                    <td style="border-right: solid white 1px"><span class="weblogs-val">{wb:,}</span></td>
+                    <td style="border-right: solid white 1px"><span class="not-index-val">{ni:,}</span></td>
+                    <td style="border-right: solid white 1px"><span class="gsc-val">{gsc:,}</span></td>
+                    <td style="border-right: solid white 1px"><span class="total-val">{total:,}</span></td>
+                    <td><span class="score-val">{score:,.0f}</span></td>
+                </tr>
+                '''
             
-            # Convert table to HTML
-            console = rich.console.Console(width=100, record=True)
-            console.print(table)
-            table_html = console.export_html(inline_styles=True)
-            
-            # Extract just the table element (simple approach without BeautifulSoup)
-            table_html_part = table_html.split('<body')[1].split('</body>')[0].split('>', 1)[1].strip()
+            table_html += '</table>'
             
             # Create figure with dark style for the bar chart
             plt.figure(figsize=(10, 14), facecolor='#1e1e2e')
@@ -3825,7 +3606,7 @@ console.log(analyzeParameters(testUrl));"""
             # Convert to base64 for embedding in HTML
             img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
             
-            # Create an HTML component with the image, rich table, and debug info
+            # Create an HTML component with the image, styled table, and debug info
             # Hide debug section by default, only include as a collapsible section
             debug_section = ""
             if debug_info:
@@ -3850,7 +3631,7 @@ console.log(analyzeParameters(testUrl));"""
                     ),
                     
                     H4("Potential Parameter Wins"),
-                    NotStr(table_html_part),
+                    NotStr(table_html),
                     
                     debug_section,
                     style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
