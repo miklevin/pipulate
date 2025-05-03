@@ -3331,22 +3331,20 @@ console.log(analyzeParameters(testUrl));"""
     # Add this helper method to create a simple placeholder for parameter visualization
     def create_parameter_visualization_placeholder(self, summary_data_str=None):
         """
-        Create a simple placeholder for parameter visualization.
-        
-        This is a minimal implementation that will be expanded later
-        to include actual visualization of parameter data.
+        Create a visualization of the top 10 parameters from weblogs data.
         
         Args:
             summary_data_str: JSON string containing parameter summary data
         
         Returns:
-            A Div element with placeholder content
+            A Div element with the visualization
         """
         try:
             # Parse summary data if provided
             has_data = False
             total_params = 0
             data_sources = []
+            top_weblogs_params = []
             
             if summary_data_str:
                 import json
@@ -3354,25 +3352,123 @@ console.log(analyzeParameters(testUrl));"""
                 total_params = summary_data.get('total_unique_parameters', 0)
                 data_sources = list(summary_data.get('data_sources', {}).keys())
                 has_data = True
+                
+                # Get the raw counters from cache file
+                cache_path = summary_data.get('cache_path')
+                if cache_path and os.path.exists(cache_path):
+                    try:
+                        with open(cache_path, 'rb') as f:
+                            cache_data = pickle.load(f)
+                        
+                        # Extract the weblogs counter
+                        weblogs_counter = cache_data.get('raw_counters', {}).get('weblogs', Counter())
+                        
+                        # Get top 10 parameters
+                        top_weblogs_params = weblogs_counter.most_common(10)
+                    except Exception as e:
+                        logging.error(f"Error loading parameter data from cache: {e}")
+                        top_weblogs_params = []
             
-            # Create placeholder visualization
-            placeholder = Div(
-                Div(
-                    H4("Parameter Analysis Summary:"),
-                    P("This visualization will show parameter distributions across data sources."),
-                    P(f"Total unique parameters: {total_params}" if has_data else "No data available yet"),
-                    P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
+            # If we couldn't get the data from cache, try to use the summary data directly
+            if not top_weblogs_params and has_data:
+                weblog_data = summary_data.get('data_sources', {}).get('weblogs', {})
+                top_weblogs_params = [(item['name'], item['count']) 
+                                     for item in weblog_data.get('top_parameters', [])][:10]
+            
+            # Create the visualization
+            if top_weblogs_params:
+                # Find the maximum count for scaling
+                max_count = max(count for _, count in top_weblogs_params)
+                
+                # Generate HTML for bars
+                bars_html = ""
+                for param, count in top_weblogs_params:
+                    # Calculate percentage for bar width
+                    percentage = (count / max_count) * 100
+                    # Create a bar with label and tooltip
+                    bars_html += f"""
+                    <div class="param-bar-container" title="{param}: {count:,} occurrences">
+                        <div class="param-label">{param}</div>
+                        <div class="param-bar" style="width: {percentage}%;">{count:,}</div>
+                    </div>
+                    """
+                
+                # CSS for the visualization
+                chart_style = """
+                <style>
+                    .param-chart {
+                        font-family: sans-serif;
+                        margin: 20px 0;
+                    }
+                    .param-bar-container {
+                        margin: 6px 0;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .param-label {
+                        min-width: 100px;
+                        text-align: right;
+                        padding-right: 10px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-size: 0.9em;
+                    }
+                    .param-bar {
+                        background: var(--pico-primary);
+                        color: white;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                        font-size: 0.8em;
+                        transition: all 0.3s ease;
+                    }
+                    .param-bar-container:hover .param-bar {
+                        filter: brightness(1.1);
+                    }
+                    .params-title {
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: var(--pico-color);
+                    }
+                </style>
+                """
+                
+                # Assemble the visualization
+                chart_html = f"""
+                <div class="param-chart">
+                    <div class="params-title">Top 10 Parameters from Web Logs</div>
+                    {bars_html}
+                </div>
+                """
+                
+                visualization = Div(
                     Div(
-                        NotStr('<div style="width:100%; height:120px; background:#f5f5f5; border:1px dashed #ccc; border-radius:5px; display:flex; justify-content:center; align-items:center;">Parameter Visualization Placeholder</div>'),
-                        style="margin: 15px 0;"
-                    ),
-                    style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
+                        H4("Parameter Analysis Summary:"),
+                        P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
+                        P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
+                        NotStr(chart_style + chart_html),
+                        style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
+                    )
                 )
-            )
+                
+            else:
+                # Fallback visualization
+                visualization = Div(
+                    Div(
+                        H4("Parameter Analysis Summary:"),
+                        P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
+                        P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
+                        Div(
+                            NotStr('<div style="width:100%; height:120px; background:#f5f5f5; border:1px dashed #ccc; border-radius:5px; display:flex; justify-content:center; align-items:center;">No parameter data available for visualization</div>'),
+                            style="margin: 15px 0;"
+                        ),
+                        style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
+                    )
+                )
             
-            return placeholder
-        
+            return visualization
+            
         except Exception as e:
             import logging
-            logging.exception(f"Error creating parameter visualization placeholder: {e}")
-            return Div(NotStr(f"<div style='color: red;'>Error creating visualization placeholder: {str(e)}</div>"), _raw=True)
+            logging.exception(f"Error creating parameter visualization: {e}")
+            return Div(NotStr(f"<div style='color: red;'>Error creating visualization: {str(e)}</div>"), _raw=True)
