@@ -1593,86 +1593,89 @@ class ParameterBusterWorkflow:
                 P("Set thresholds for parameter optimization:"),
                 Form(
                     Div(
-                        # GSC Threshold with slider - now with HTMX for real-time updates
+                        # GSC Threshold with slider row
                         Div(
-                            Label(
-                                NotStr("<strong>GSC Threshold:</strong>"), 
-                                For="gsc_threshold",
-                                style="min-width: 180px;"
+                            Small("Lower to lower risk", style="color: #888; font-style: italic;"),
+                            Div(
+                                Label(
+                                    NotStr("<strong>GSC Threshold:</strong>"), 
+                                    For="gsc_threshold",
+                                    style="min-width: 180px;"
+                                ),
+                                Input(
+                                    type="range", 
+                                    name="gsc_threshold_slider", 
+                                    id="gsc_threshold_slider", 
+                                    value=gsc_threshold, 
+                                    min="0", 
+                                    max="100", 
+                                    step="1",
+                                    style="flex-grow: 1; margin: 0 10px;",
+                                    _oninput="document.getElementById('gsc_threshold').value = this.value",
+                                    hx_post=f"/{app_name}/parameter_preview",
+                                    hx_trigger="input changed delay:300ms",
+                                    hx_target="#parameter-preview",
+                                    hx_include="#gsc_threshold, #min_frequency"
+                                ),
+                                Input(
+                                    type="number", 
+                                    name="gsc_threshold", 
+                                    id="gsc_threshold", 
+                                    value=gsc_threshold, 
+                                    min="0", 
+                                    max="100", 
+                                    style="width: 150px;",
+                                    _oninput="document.getElementById('gsc_threshold_slider').value = this.value",
+                                    hx_post=f"/{app_name}/parameter_preview",
+                                    hx_trigger="input changed delay:300ms",
+                                    hx_target="#parameter-preview",
+                                    hx_include="#gsc_threshold, #min_frequency"
+                                ),
+                                style="display: flex; align-items: center; gap: 5px;"
                             ),
-                            Input(
-                                type="range", 
-                                name="gsc_threshold_slider", 
-                                id="gsc_threshold_slider", 
-                                value=gsc_threshold, 
-                                min="0", 
-                                max="100", 
-                                step="1",
-                                style="flex-grow: 1; margin: 0 10px;",
-                                _oninput="document.getElementById('gsc_threshold').value = this.value",
-                                # Add HTMX to trigger real-time updates
-                                hx_post=f"/{app_name}/parameter_preview",
-                                hx_trigger="input changed delay:300ms",
-                                hx_target="#parameter-preview",
-                                hx_include="#gsc_threshold, #min_frequency"
-                            ),
-                            Input(
-                                type="number", 
-                                name="gsc_threshold", 
-                                id="gsc_threshold", 
-                                value=gsc_threshold, 
-                                min="0", 
-                                max="100", 
-                                style="width: 150px;",
-                                _oninput="document.getElementById('gsc_threshold_slider').value = this.value",
-                                # Add HTMX to trigger real-time updates
-                                hx_post=f"/{app_name}/parameter_preview",
-                                hx_trigger="input changed delay:300ms",
-                                hx_target="#parameter-preview",
-                                hx_include="#gsc_threshold, #min_frequency"
-                            ),
-                            style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
                         
-                        # Minimum Frequency with slider - now with HTMX for real-time updates
+                        # Minimum Frequency with slider row
                         Div(
-                            Label(
-                                NotStr("<strong>Minimum Frequency:</strong>"), 
-                                For="min_frequency",
-                                style="min-width: 180px;"
+                            Small("Higher for the biggest offenders", style="color: #888; font-style: italic;"),
+                            Div(
+                                Label(
+                                    NotStr("<strong>Minimum Frequency:</strong>"), 
+                                    For="min_frequency",
+                                    style="min-width: 180px;"
+                                ),
+                                Input(
+                                    type="range", 
+                                    name="min_frequency_slider", 
+                                    id="min_frequency_slider", 
+                                    value=min_frequency, 
+                                    min="0", 
+                                    max="250000", 
+                                    step="1000",
+                                    style="flex-grow: 1; margin: 0 10px;",
+                                    _oninput="document.getElementById('min_frequency').value = this.value",
+                                    hx_post=f"/{app_name}/parameter_preview",
+                                    hx_trigger="input changed delay:300ms",
+                                    hx_target="#parameter-preview",
+                                    hx_include="#gsc_threshold, #min_frequency"
+                                ),
+                                Input(
+                                    type="number", 
+                                    name="min_frequency", 
+                                    id="min_frequency", 
+                                    value=min_frequency, 
+                                    min="0", 
+                                    max="250000", 
+                                    style="width: 150px;",
+                                    _oninput="document.getElementById('min_frequency_slider').value = this.value",
+                                    hx_post=f"/{app_name}/parameter_preview",
+                                    hx_trigger="input changed delay:300ms",
+                                    hx_target="#parameter-preview",
+                                    hx_include="#gsc_threshold, #min_frequency"
+                                ),
+                                style="display: flex; align-items: center; gap: 5px;"
                             ),
-                            Input(
-                                type="range", 
-                                name="min_frequency_slider", 
-                                id="min_frequency_slider", 
-                                value=min_frequency, 
-                                min="0", 
-                                max="250000", 
-                                step="1000",
-                                style="flex-grow: 1; margin: 0 10px;",
-                                _oninput="document.getElementById('min_frequency').value = this.value",
-                                # Add HTMX to trigger real-time updates
-                                hx_post=f"/{app_name}/parameter_preview",
-                                hx_trigger="input changed delay:300ms",
-                                hx_target="#parameter-preview",
-                                hx_include="#gsc_threshold, #min_frequency"
-                            ),
-                            Input(
-                                type="number", 
-                                name="min_frequency", 
-                                id="min_frequency", 
-                                value=min_frequency, 
-                                min="0", 
-                                max="250000", 
-                                style="width: 150px;",
-                                _oninput="document.getElementById('min_frequency_slider').value = this.value",
-                                # Add HTMX to trigger real-time updates
-                                hx_post=f"/{app_name}/parameter_preview",
-                                hx_trigger="input changed delay:300ms",
-                                hx_target="#parameter-preview",
-                                hx_include="#gsc_threshold, #min_frequency"
-                            ),
-                            style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
+                            style="margin-bottom: 15px;"
                         ),
                         
                         # Parameter preview container
