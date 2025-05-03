@@ -3903,8 +3903,14 @@ class ParameterBusterWorkflow:
         
         # Create the output UI
         if matching_params:
+            display_limit = 5000
+            display_message = ""
+            if param_count > display_limit:
+                display_message = f"(Displaying first {display_limit:,} of {param_count:,} matching parameters)"
+            
             return Div(
-                P(f"Found {param_count} parameters with total frequency of {total_frequency:,}"),
+                P(f"Found {param_count:,} parameters with total frequency of {total_frequency:,}"),
+                P(display_message, style="color: #888; font-style: italic; margin-bottom: 10px;") if display_message else None,
                 Table(
                     Tr(
                         Th("Parameter", style="text-align: left; color: cyan;"),
@@ -3917,7 +3923,7 @@ class ParameterBusterWorkflow:
                         Td(f"{count:,}", style="text-align: right; color: #4fa8ff;"),
                         Td(f"{gsc_count:,}", style="text-align: right; color: #50fa7b;"),
                         Td(f"{score:,.0f}", style="text-align: right; color: yellow; font-weight: bold;")
-                    ) for param, count, gsc_count, score in matching_params[:5000]],  # Increased from 10 to 5000
+                    ) for param, count, gsc_count, score in matching_params[:display_limit]],
                     style="width: 100%; border-collapse: collapse;"
                 ),
                 style="font-family: monospace;"
