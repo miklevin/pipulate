@@ -1177,7 +1177,7 @@ class ParameterBusterWorkflow:
                             min="10", 
                             max="100", 
                             step="5",
-                            style="width: 100px;"
+                            style="width: 120px;"  # Increased from 100px
                         ),
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
@@ -1212,7 +1212,7 @@ class ParameterBusterWorkflow:
         # Get the param_count from the form
         form = await request.form()
         param_count = form.get("param_count", "40")
-        
+
         # First, return a progress indicator immediately
         return Card(
             H3(f"{step.show}"),
@@ -1244,7 +1244,7 @@ class ParameterBusterWorkflow:
         form = await request.form()
         pipeline_id = form.get("pipeline_id", "unknown")
         param_count = int(form.get("param_count", "40"))
-        
+
         # Get required data from previous steps
         project_data = pip.get_step_data(pipeline_id, "step_01", {}).get("botify_project", "{}")
         analysis_data = pip.get_step_data(pipeline_id, "step_02", {}).get("analysis_selection", "{}")
@@ -1549,7 +1549,7 @@ class ParameterBusterWorkflow:
                                 min="1", 
                                 max="1000", 
                                 step="10",
-                                style="width: 80px;"
+                                style="width: 100px;"  # Increased from 80px
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
@@ -1579,7 +1579,7 @@ class ParameterBusterWorkflow:
                                 min="1", 
                                 max="10000", 
                                 step="50",
-                                style="width: 80px;"
+                                style="width: 100px;"  # Increased from 80px
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
@@ -3621,7 +3621,7 @@ class ParameterBusterWorkflow:
             figure_height = max(15, min(TOP_PARAMS_COUNT * 0.65, 50))
 
             add_debug(f"Chart parameters: count={TOP_PARAMS_COUNT}, final_height={figure_height}")
-
+            
             # Create figure with custom initialization parameters and no margins
             plt.figure(figsize=(10, figure_height), facecolor='#13171f', constrained_layout=False)
 
@@ -3637,11 +3637,11 @@ class ParameterBusterWorkflow:
             # Remove the right and top spines completely
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
-
+            
             # Generate positions for bars
             y_pos = np.arange(len(top_params))
             width = 0.25
-
+            
             # Prepare data for each source
             weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
@@ -3650,18 +3650,18 @@ class ParameterBusterWorkflow:
             # Calculate max value to help with layout
             max_value = max([max(weblogs_values or [0]), max(crawl_values or [0]), max(gsc_values or [0])])
             add_debug(f"Max value in data: {max_value}")
-
+            
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
-
+            
             # Create grouped bar chart with distinct colors
             weblog_bars = ax.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
             crawl_bars = ax.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
             gsc_bars = ax.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
-
+            
             # Make sure grid lines are white as well
             ax.grid(axis='x', linestyle='--', alpha=0.2, color='white')
-
+            
             # Set labels, ticks and styling - ensure all axis elements are white
             ax.set_yticks(y_pos)
             ax.set_yticklabels(top_params, fontsize=8, color='white')
@@ -3676,7 +3676,7 @@ class ParameterBusterWorkflow:
             if max_value > 0:
                 # For log scale, use multiplication factor to ensure room for labels
                 ax.set_xlim(0, max_value * 2)
-
+            
             # Add value labels with appropriate colors
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
                 # Web logs (blue)
@@ -3699,11 +3699,11 @@ class ParameterBusterWorkflow:
                     ax.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
                 elif gs == 0:
                     ax.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
-
+            
             # Ensure the y-axis limits are tight to the data
             y_min, y_max = -width * 1.5, (len(y_pos) - 1) + width * 1.5
             ax.set_ylim(y_min, y_max)  # Tight y-axis limits
-
+            
             # Save figure to a bytes buffer
             buffer = BytesIO()
             plt.savefig(buffer, format='png', dpi=120)
