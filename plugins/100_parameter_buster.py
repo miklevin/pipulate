@@ -3515,26 +3515,28 @@ console.log(analyzeParameters(testUrl));"""
             plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
             plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
             
-            # Add value labels showing zeros exactly at the axis line
+            # Add value labels matching their bar colors
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
-                # Show value for each bar, including zeros
+                # Web logs (blue)
                 if wb > 0:
                     text_pos = wb * 1.1 if wb > 1000 else wb + 5
-                    plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='white')
+                    plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
                 elif wb == 0:
-                    plt.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='white')
+                    plt.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
                     
+                # Crawl data (red)
                 if cr > 0:
                     text_pos = max(cr * 1.5, 5)
-                    plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='red', weight='bold')
+                    plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
                 elif cr == 0:
-                    plt.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='red')
+                    plt.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
                     
+                # Search console (green)
                 if gs > 0:
                     text_pos = gs * 1.1 if gs > 100 else gs + 5
-                    plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='white')
+                    plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
                 elif gs == 0:
-                    plt.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='white')
+                    plt.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
             
             # Adjust layout
             plt.tight_layout()
