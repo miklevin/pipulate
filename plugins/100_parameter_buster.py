@@ -3884,7 +3884,7 @@ class ParameterBusterWorkflow:
                             combined_counter.update(not_indexable_counter)
                         
                         # Apply our filtering criteria
-                        for param, count in combined_counter.most_common(20):  # Limit to top 20 for display
+                        for param, count in combined_counter.items():  # Remove the most_common(20) limit
                             param_gsc_count = gsc_counter.get(param, 0)
                             
                             # Check if this parameter meets our criteria
@@ -3917,7 +3917,7 @@ class ParameterBusterWorkflow:
                         Td(f"{count:,}", style="text-align: right; color: #4fa8ff;"),
                         Td(f"{gsc_count:,}", style="text-align: right; color: #50fa7b;"),
                         Td(f"{score:,.0f}", style="text-align: right; color: yellow; font-weight: bold;")
-                    ) for param, count, gsc_count, score in matching_params[:10]],  # Limit display to top 10
+                    ) for param, count, gsc_count, score in matching_params[:5000]],  # Increased from 10 to 5000
                     style="width: 100%; border-collapse: collapse;"
                 ),
                 style="font-family: monospace;"
