@@ -350,8 +350,7 @@ class SpliceWorkflow:
             # CRITICAL: Include trigger to next step even in finalized state
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
+                    H3(f"🔒 {step.show}: Completed")
                 ),
                 # CRITICAL: This explicit next step trigger ensures the chain reaction continues
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -454,8 +453,7 @@ class SpliceWorkflow:
         if "finalized" in finalize_data and placeholder_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
+                    H3(f"🔒 {step.show}: Completed")
                 ),
                 # CRITICAL: Include trigger to next step even in finalized state
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -548,8 +546,7 @@ class SpliceWorkflow:
         if "finalized" in finalize_data and placeholder_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
+                    H3(f"🔒 {step.show}: Completed")
                 ),
                 # Even the last step must trigger finalize when finalized
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),

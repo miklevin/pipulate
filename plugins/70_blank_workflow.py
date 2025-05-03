@@ -285,8 +285,7 @@ class BlankWorkflow:
             # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")  # Replace with custom widget display
+                    H3(f"🔒 {step.show}: Completed")  # Combined headline with completion status
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
