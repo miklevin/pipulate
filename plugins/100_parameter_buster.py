@@ -3509,11 +3509,11 @@ console.log(analyzeParameters(testUrl));"""
                     border-bottom: 3px solid white; /* Heavier border for header row */
                 }
                 .param-name { color: cyan; }
-                .weblogs-val { color: magenta; text-align: right; }
-                .not-index-val { color: green; text-align: right; }
-                .gsc-val { color: yellow; text-align: right; }
-                .total-val { color: #4fa8ff; text-align: right; }
-                .score-val { color: #ff5050; text-align: right; font-weight: bold; }
+                .weblogs-val { color: #4fa8ff; text-align: right; } /* Match web logs color from chart */
+                .not-index-val { color: #ff0000; text-align: right; } /* Match crawl data color from chart */
+                .gsc-val { color: #50fa7b; text-align: right; } /* Match search console color from chart */
+                .total-val { color: #d2d2d2; text-align: right; } /* Lighter gray for total */
+                .score-val { color: #ff5050; text-align: right; font-weight: bold; } /* Keeping red for emphasis */
             </style>
             <table class="param-table">
                 <tr><td colspan="6">Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</td></tr>
