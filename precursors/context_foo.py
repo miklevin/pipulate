@@ -665,7 +665,13 @@ def create_pipulate_manifest(file_paths):
             "Proper pattern for returning FastHTML content with HTMX triggers"
         )
     
-    return manifest.generate(), result_files, total_tokens
+    # Return the manifest content WITHOUT the outer <manifest> tags
+    manifest_xml = manifest.generate()
+    # Remove opening and closing manifest tags to prevent double wrapping
+    if manifest_xml.startswith('<manifest>') and manifest_xml.endswith('</manifest>'):
+        manifest_xml = manifest_xml[len('<manifest>'):-len('</manifest>')]
+    
+    return manifest_xml, result_files, total_tokens
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
@@ -837,7 +843,7 @@ print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
 print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
 
 output_xml = create_xml_element("context", [
-    create_xml_element("manifest", manifest),
+    create_xml_element("manifest", manifest),  # manifest no longer has its own <manifest> tags
     create_xml_element("pre_prompt", pre_prompt),
     create_xml_element("content", "\n".join(lines)),
     create_xml_element("post_prompt", post_prompt),
