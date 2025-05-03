@@ -254,12 +254,13 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
 def wrap_in_xml(content: str, tag_name: str, attributes: Optional[Dict[str, str]] = None) -> str:
     """Wrap content in XML tags with optional attributes."""
     attrs = " ".join(f'{k}="{v}"' for k, v in (attributes or {}).items())
-    return f"<{tag_name}{' ' + attrs if attrs else ''}>\n{content}\n</{tag_name}>"
+    return f"<{tag_name}{' ' + attrs if attrs else ''}>{content}</{tag_name}>"
 
 def create_xml_element(tag_name: str, content: Union[str, List[str]], attributes: Optional[Dict[str, str]] = None) -> str:
     """Create an XML element with optional attributes and content."""
     if isinstance(content, list):
         content = "\n".join(content)
+    content = content.replace('\n\n', '\n')  # Remove double newlines
     return wrap_in_xml(content, tag_name, attributes)
 
 def create_xml_list(items: List[str], tag_name: str = "item") -> str:
@@ -492,14 +493,23 @@ class AIAssistantManifest:
         for file in self.files:
             path = file['path']
             content_tokens = self.token_counts["files"]["content"].get(path, 0)
-            files_section.append(create_xml_element("file", [
+            file_type = self._get_file_type(path)
+            file_content = [
                 f"<path>{path}</path>",
-                f"<description>{file['description']}</description>",
-                create_xml_element("key_components", [
+                f"<description>{file['description']}</description>"
+            ]
+            
+            if file_type:
+                file_content.append(f"<file_type>{file_type}</file_type>")
+                
+            if file['key_components']:
+                file_content.append(create_xml_element("key_components", [
                     f"<component>{comp}</component>" for comp in file['key_components']
-                ]) if file['key_components'] else "",
-                f"<tokens>{content_tokens}</tokens>"
-            ]))
+                ]))
+                
+            file_content.append(f"<tokens>{content_tokens}</tokens>")
+            files_section.append(create_xml_element("file", file_content))
+        
         files_section.append('</files>')
         manifest.append("\n".join(files_section))
         
@@ -552,7 +562,28 @@ class AIAssistantManifest:
         manifest.append("\n".join(token_section))
         
         manifest.append('</manifest>')
-        return "\n".join(manifest)
+        result = "\n".join(manifest)
+        # Clean up any remaining double newlines
+        result = result.replace('\n\n', '\n')
+        return result
+    
+    def _get_file_type(self, path):
+        """Get file type based on extension for better LLM context"""
+        ext = os.path.splitext(path)[1].lower()
+        if ext:
+            lang_map = {
+                '.py': 'python',
+                '.js': 'javascript',
+                '.html': 'html',
+                '.css': 'css',
+                '.md': 'markdown',
+                '.json': 'json',
+                '.nix': 'nix',
+                '.sh': 'bash',
+                '.txt': 'text'
+            }
+            return lang_map.get(ext, 'text')
+        return None
     
     def generate(self):
         """Generate the manifest for the AI assistant (legacy format)."""
@@ -842,17 +873,54 @@ print(f"  Files tokens: {format_token_count(files_tokens)}")
 print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
 print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
 
-output_xml = create_xml_element("context", [
-    create_xml_element("manifest", manifest),  # manifest no longer has its own <manifest> tags
-    create_xml_element("pre_prompt", pre_prompt),
-    create_xml_element("content", "\n".join(lines)),
-    create_xml_element("post_prompt", post_prompt),
-    create_xml_element("token_summary", [
-        f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
-        f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
-        f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
-    ])
-])
+# Additional improvements to make the output more LLM-friendly:
+
+# 1. Add a schema reference and version to help LLMs understand the structure
+output_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<context schema="pipulate-context" version="1.0">\n{create_xml_element("manifest", manifest)}\n{create_xml_element("pre_prompt", pre_prompt)}\n{create_xml_element("content", "\n".join(lines))}\n{create_xml_element("post_prompt", post_prompt)}\n{create_xml_element("token_summary", [
+    f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
+    f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
+    f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
+])}\n</context>'
+
+# 2. Add file type indicators to help LLMs understand content better
+def process_file_content(file_path, content):
+    """Add file type information based on extension"""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext:
+        lang_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.html': 'html',
+            '.css': 'css',
+            '.md': 'markdown',
+            '.json': 'json',
+            '.nix': 'nix',
+            '.sh': 'bash',
+            '.txt': 'text'
+        }
+        lang = lang_map.get(ext, 'text')
+        return f'<file_type>{lang}</file_type>\n{content}'
+    return content
+
+# Process file content in the lines list to add file type information
+for i, line in enumerate(lines):
+    if line.startswith("# <<< START FILE:"):
+        file_path = line.split("# <<< START FILE:")[1].strip(" >")
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext:
+            lang_map = {
+                '.py': 'python',
+                '.js': 'javascript',
+                '.html': 'html',
+                '.css': 'css',
+                '.md': 'markdown',
+                '.json': 'json',
+                '.nix': 'nix',
+                '.sh': 'bash',
+                '.txt': 'text'
+            }
+            lang = lang_map.get(ext, 'text')
+            lines[i] = f"# <<< START FILE: {file_path} (type: {lang}) >>>"
 
 # Print structured output
 print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_combined_tokens, args.max_tokens)
