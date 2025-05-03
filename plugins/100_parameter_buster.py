@@ -1319,12 +1319,16 @@ class ParameterBusterWorkflow:
             # Show cache location
             await self.message_queue.add(pip, f"\nRaw parameter counts cached at: {parameter_summary['cache_path']}", verbatim=True)
             
-            # Return the completed view
+            # Create the visualization for the completed state
+            visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
+            
+            # Return the completed view with widget_container instead of revert_control
             return Div(
-                pip.revert_control(
+                pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
                     message=f"{step.show}: {len(total_unique_params):,} unique parameters found",
+                    widget=visualization_widget,
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -2842,7 +2846,7 @@ console.log(analyzeParameters(testUrl));"""
                     
                     # Poll for completion using the job ID approach if we have it
                     if job_id:
-                        await self.message_queue.add(pip, f"Using job ID {job_id} for polling", verbatim=True)
+                        await self.message_queue.add(pip, f"Using job ID {job_id} for polling...", verbatim=True)
                         full_job_url = f"https://api.botify.com/v1/jobs/{job_id}"
                         
                     # Polling with direct absolute URL approach
@@ -3332,19 +3336,25 @@ console.log(analyzeParameters(testUrl));"""
     def create_parameter_visualization_placeholder(self, summary_data_str=None):
         """
         Create a matplotlib visualization of parameters from all three data sources with distinct colors.
-        
-        Args:
-            summary_data_str: JSON string containing parameter summary data
-        
-        Returns:
-            A Div element with the visualization
         """
+        # Import logging at module level to avoid issues
+        import logging
+        import matplotlib.pyplot as plt
+        from io import BytesIO
+        import base64
+        import numpy as np
+        import json
+        import os
+        from pathlib import Path
+        
+        # Debug collection
+        debug_info = []
+        def add_debug(msg):
+            debug_info.append(msg)
+            logging.info(msg)
+        
         try:
-            # Import visualization libraries upfront to prevent undefined errors
-            import matplotlib.pyplot as plt
-            from io import BytesIO
-            import base64
-            import numpy as np
+            add_debug("Starting parameter visualization")
             
             # Parse summary data if provided
             has_data = False
@@ -3359,114 +3369,183 @@ console.log(analyzeParameters(testUrl));"""
             }
             
             if summary_data_str:
-                import json
                 summary_data = json.loads(summary_data_str)
                 total_params = summary_data.get('total_unique_parameters', 0)
                 data_sources = list(summary_data.get('data_sources', {}).keys())
                 has_data = True
                 
+                add_debug(f"Data sources in summary: {data_sources}")
+                
                 # Get the raw counters from cache file
                 cache_path = summary_data.get('cache_path')
+                add_debug(f"Cache path: {cache_path}, exists: {os.path.exists(cache_path) if cache_path else False}")
+                
                 if cache_path and os.path.exists(cache_path):
                     try:
                         with open(cache_path, 'rb') as f:
                             cache_data = pickle.load(f)
                         
-                        # Extract counters for all sources
                         raw_counters = cache_data.get('raw_counters', {})
-                        for source, counter_name in [('weblogs', 'weblogs'), ('gsc', 'gsc'), ('not_indexable', 'not_indexable')]:
-                            if counter_name in raw_counters:
-                                source_counters[source] = raw_counters[counter_name]
+                        add_debug(f"Raw counter keys in cache: {list(raw_counters.keys())}")
+                        
+                        # Dump the first few entries of each counter for inspection
+                        for key, counter in raw_counters.items():
+                            top_items = list(counter.most_common(5))
+                            add_debug(f"Raw counter '{key}' has {len(counter)} items. Top 5: {top_items}")
+                        
+                        # Direct mapping of sources to counter keys
+                        source_mapping = {
+                            'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
+                            'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
+                            'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
+                        }
+                        
+                        # Map sources to keys
+                        for source, possible_keys in source_mapping.items():
+                            found = False
+                            for key in possible_keys:
+                                if key in raw_counters:
+                                    source_counters[source] = raw_counters[key]
+                                    add_debug(f"Mapped source '{source}' to cache key '{key}' with {len(raw_counters[key])} items")
+                                    found = True
+                                    break
+                            if not found:
+                                add_debug(f"No matching key found for source '{source}'")
+                    
                     except Exception as e:
-                        logging.error(f"Error loading parameter data from cache: {e}")
-                
-                # If we couldn't get data from cache, try to use the summary data directly
-                if all(not counter for counter in source_counters.values()) and has_data:
-                    for source, counter in source_counters.items():
-                        source_data = summary_data.get('data_sources', {}).get(source, {})
-                        for param_data in source_data.get('top_parameters', []):
-                            counter[param_data['name']] = param_data['count']
+                        add_debug(f"Error loading parameter data from cache: {e}")
+                    else:
+                        add_debug(f"Cache file not found or invalid")
+                    
+                    # If we couldn't get data from cache, use the summary data directly
+                    if all(len(counter) == 0 for counter in source_counters.values()) and has_data:
+                        add_debug("No counter data from cache, using summary data directly")
+                        
+                        for source, counter in source_counters.items():
+                            # Try to find a matching data source
+                            matching_source = None
+                            if source == 'weblogs':
+                                matching_source = next((s for s in data_sources if 'log' in s.lower()), None)
+                            elif source == 'gsc':
+                                matching_source = next((s for s in data_sources if 'gsc' in s.lower() or 'search' in s.lower()), None)
+                            elif source == 'not_indexable':
+                                matching_source = next((s for s in data_sources if 'crawl' in s.lower() or 'index' in s.lower() or 'not_' in s.lower()), None)
+                            
+                            if matching_source:
+                                add_debug(f"Found matching source '{matching_source}' for '{source}'")
+                                source_data = summary_data.get('data_sources', {}).get(matching_source, {})
+                                for param_data in source_data.get('top_parameters', []):
+                                    counter[param_data['name']] = param_data['count']
+                            else:
+                                add_debug(f"No matching source found for '{source}'")
+            
+            # Print counter sizes after loading
+            for source, counter in source_counters.items():
+                top_items = counter.most_common(5)
+                items_count = len(counter)
+                total_count = sum(counter.values())
+                add_debug(f"FINAL: Source '{source}' has {items_count} items with {total_count} total occurrences")
+                if top_items:
+                    add_debug(f"  Top 5 for {source}: {top_items}")
+            
+            # Force some test data if no crawl data found (for debugging)
+            if sum(source_counters['not_indexable'].values()) == 0:
+                add_debug("WARNING: No crawl data values found - adding test data!")
+                # Add test values for diagnostic purposes
+                test_param = "test_param"
+                if param_total_counts:
+                    test_param = next(iter(param_total_counts.keys()))
+                source_counters['not_indexable'][test_param] = 1000
+                add_debug(f"Added test value of 1000 for parameter '{test_param}' to crawl data")
             
             # Get union of all parameters across sources
             all_params = set()
             for counter in source_counters.values():
                 all_params.update(counter.keys())
             
-            # Get top parameters across all sources
+            # Get top parameters across all sources by total frequency
             param_total_counts = Counter()
             for param in all_params:
                 total = sum(counter.get(param, 0) for counter in source_counters.values())
                 param_total_counts[param] = total
             
-            # Get top 30 parameters across all sources
+            # Get top 30 parameters
             top_params = [param for param, _ in param_total_counts.most_common(30)]
-            
-            # Reverse the order to have highest counts at the top
             top_params.reverse()
             
-            # Create figure with appropriate size and set dark style
+            add_debug(f"Top 5 parameters overall: {top_params[:5]}")
+            
+            # Create figure with dark style
             plt.figure(figsize=(10, 14), facecolor='#1e1e2e')
             ax = plt.gca()
-            ax.set_facecolor('#1e1e2e')  # Dark background for the plot area
+            ax.set_facecolor('#1e1e2e')
             
-            # Set text colors to light for better visibility on dark background
-            plt.rcParams.update({
-                'text.color': 'white',
-                'axes.labelcolor': 'white',
-                'axes.edgecolor': '#555555',
-                'xtick.color': 'white',
-                'ytick.color': 'white',
-            })
-            
-            # Set up positions for the bars
+            # Generate positions for bars
             y_pos = np.arange(len(top_params))
             width = 0.25
             
-            # Prepare data for each source - ensure they match top_params ordering
+            # Prepare data for each source
             weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
             gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
             
-            # Create grouped bar chart with distinct colors - use more vibrant colors for dark theme
+            # Log the final values being plotted
+            for i, param in enumerate(top_params[:5]):
+                add_debug(f"  Parameter '{param}': weblog={weblogs_values[i]}, crawl={crawl_values[i]}, gsc={gsc_values[i]}")
+            
+            # Use log scale to make small values more visible
+            ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
+            
+            # Create grouped bar chart with distinct colors - make crawl bars wider for visibility
             weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs')
-            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#50fa7b', label='Crawl Data')
-            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#ff7b7b', label='Search Console')
+            crawl_bars = plt.barh(y_pos, crawl_values, width * 1.2, color='#ff0000', label='Crawl Data')  # Slightly wider
+            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console')
             
-            # Set y-axis labels and ticks - follow the same ordering as bars
-            plt.yticks(y_pos, top_params, fontsize=8)
-            
-            # Add labels and title with light color
-            plt.xlabel('Occurrences', color='white')
+            # Set labels, ticks and styling
+            plt.yticks(y_pos, top_params, fontsize=8, color='white')
+            plt.xlabel('Occurrences (log scale)', color='white')  # Update to show it's log scale
             plt.ylabel('Parameters', color='white')
-            plt.title('Top 30 Parameters by Data Source', color='white')
-            
-            # Add legend and move to bottom right to avoid covering bars
+            plt.title('Top 30 Parameters by Data Source (Log Scale)', color='white')
+            plt.tick_params(axis='both', colors='white')
             plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
-            
-            # Add grid with lighter color for better readability on dark background
             plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
             
-            # Add value labels to the end of each bar
+            # Add value labels with white text
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
                 if wb > 0:
-                    plt.text(wb + 5, i + width, f"{wb:,}", va='center', fontsize=7, color='#3498db')
+                    # Position text based on value to avoid overlapping in log scale
+                    text_pos = wb * 1.1 if wb > 1000 else wb + 5
+                    plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='white')
                 if cr > 0:
-                    plt.text(cr + 5, i, f"{cr:,}", va='center', fontsize=7, color='#2ecc71')
+                    # Always show crawl values with special positioning to ensure visibility
+                    # Use max function to make sure very small values still have visible labels
+                    text_pos = max(cr * 1.5, 5)
+                    plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='red', weight='bold')
                 if gs > 0:
-                    plt.text(gs + 5, i - width, f"{gs:,}", va='center', fontsize=7, color='#e74c3c')
+                    text_pos = gs * 1.1 if gs > 100 else gs + 5
+                    plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='white')
             
             # Adjust layout
             plt.tight_layout()
             
             # Save figure to a bytes buffer
             buffer = BytesIO()
-            plt.savefig(buffer, format='png', dpi=120)  # Increased DPI for better quality
+            plt.savefig(buffer, format='png', dpi=120)
             plt.close()
             
             # Convert to base64 for embedding in HTML
             img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
             
-            # Create an HTML component with the image and metadata
+            # Create an HTML component with the image and metadata and debug info
+            debug_section = ""
+            if debug_info:
+                debug_section = Div(
+                    H5("Debug Information:"),
+                    Pre("\n".join(debug_info), 
+                        style="background: #333; color: #eee; padding: 10px; border-radius: 5px; font-size: 0.8em; max-height: 300px; overflow-y: auto;"),
+                    style="margin-top: 1rem;"
+                )
+            
             visualization = Div(
                 Div(
                     H4("Parameter Analysis Summary:"),
@@ -3476,6 +3555,7 @@ console.log(analyzeParameters(testUrl));"""
                         NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
                         style="text-align: center; margin-top: 1rem;"
                     ),
+                    debug_section,
                     style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
                 )
             )
@@ -3483,6 +3563,9 @@ console.log(analyzeParameters(testUrl));"""
             return visualization
             
         except Exception as e:
-            import logging
             logging.exception(f"Error creating parameter visualization: {e}")
-            return Div(NotStr(f"<div style='color: red;'>Error creating visualization: {str(e)}</div>"), _raw=True)
+            error_msg = f"Error creating visualization: {str(e)}\n\nDebug info:\n" + "\n".join(debug_info)
+            return Div(
+                NotStr(f"<div style='color: red; padding: 10px; background: #333; border-radius: 5px;'>{error_msg}</div>"), 
+                _raw=True
+            )
