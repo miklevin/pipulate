@@ -47,7 +47,7 @@ class BlankWorkflow:
             Step(
                 id='step_01',
                 done='placeholder',
-                show='Placeholder Step 1',
+                show='Step 1 Placeholder',
                 refill=False,
             ),
             # Add more steps as needed

@@ -75,19 +75,19 @@ class SpliceWorkflow:
             Step(
                 id='step_01',
                 done='placeholder',
-                show='Placeholder Step 1',
+                show='Step 1 Placeholder',
                 refill=False,
             ),
             Step(
                 id='step_02',
                 done='placeholder',
-                show='Placeholder Step 2',
+                show='Step 2 Placeholder',
                 refill=False,
             ),
             Step(
                 id='step_03',
                 done='placeholder',
-                show='Placeholder Step 3',
+                show='Step 3 Placeholder',
                 refill=False,
             ),
             # Add more steps as needed
