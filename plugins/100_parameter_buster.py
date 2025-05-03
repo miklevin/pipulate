@@ -1536,20 +1536,22 @@ class ParameterBusterWorkflow:
                                 name="gsc_threshold_slider", 
                                 id="gsc_threshold_slider", 
                                 value=gsc_threshold, 
-                                min="1", 
-                                max="1000", 
-                                step="10",
-                                style="flex-grow: 1; margin: 0 10px;"
+                                min="0", 
+                                max="100", 
+                                step="1",
+                                style="flex-grow: 1; margin: 0 10px;",
+                                _oninput="document.getElementById('gsc_threshold').value = this.value"
                             ),
                             Input(
                                 type="number", 
                                 name="gsc_threshold", 
                                 id="gsc_threshold", 
                                 value=gsc_threshold, 
-                                min="1", 
-                                max="1000", 
-                                step="10",
-                                style="width: 100px;"  # Increased from 80px
+                                min="0", 
+                                max="100", 
+                                step="1",
+                                style="width: 120px;",
+                                _oninput="document.getElementById('gsc_threshold_slider').value = this.value"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
@@ -1566,20 +1568,22 @@ class ParameterBusterWorkflow:
                                 name="min_frequency_slider", 
                                 id="min_frequency_slider", 
                                 value=min_frequency, 
-                                min="1", 
-                                max="10000", 
-                                step="50",
-                                style="flex-grow: 1; margin: 0 10px;"
+                                min="0", 
+                                max="250000", 
+                                step="1000",
+                                style="flex-grow: 1; margin: 0 10px;",
+                                _oninput="document.getElementById('min_frequency').value = this.value"
                             ),
                             Input(
                                 type="number", 
                                 name="min_frequency", 
                                 id="min_frequency", 
                                 value=min_frequency, 
-                                min="1", 
-                                max="10000", 
-                                step="50",
-                                style="width: 100px;"  # Increased from 80px
+                                min="0", 
+                                max="250000", 
+                                step="1000",
+                                style="width: 120px;",
+                                _oninput="document.getElementById('min_frequency_slider').value = this.value"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
