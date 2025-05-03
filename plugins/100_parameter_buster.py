@@ -3586,75 +3586,78 @@ console.log(analyzeParameters(testUrl));"""
             
             # Create figure with dark style for the bar chart
             # Calculate height dynamically based on parameter count
-            # Increase height by 1.5x the previous calculation (0.35 * 1.5 = 0.525)
-            figure_height = max(15, min(TOP_PARAMS_COUNT * 0.525, 30))
-            plt.figure(figsize=(10, figure_height), facecolor='#1e1e2e')
-            ax = plt.gca()
+            figure_height = max(15, min(TOP_PARAMS_COUNT * 0.65, 50))
+
+            add_debug(f"Chart parameters: count={TOP_PARAMS_COUNT}, final_height={figure_height}")
+
+            # Create figure with custom initialization parameters and no margins
+            plt.figure(figsize=(10, figure_height), facecolor='#1e1e2e', constrained_layout=False)
+
+            # Create axes with specific dimensions to fill most of the figure
+            # This gives us direct control over the plot area
+            ax = plt.axes([0.2, 0.02, 0.75, 0.95])  # left, bottom, width, height in figure coordinates (0-1)
             ax.set_facecolor('#1e1e2e')
-            
+
+            # Change all spines (the box around the plot) to white
+            for spine in ax.spines.values():
+                spine.set_color('white')
+
             # Generate positions for bars
             y_pos = np.arange(len(top_params))
             width = 0.25
-            
+
             # Prepare data for each source
             weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
             gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
-            
+
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
-            
+
             # Create grouped bar chart with distinct colors
-            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
-            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
-            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
-            
-            # Update title to include parameter count
-            plt.title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
-            
-            # Rest of the visualization code remains the same
-            # ... (rest of the visualization code)
-            
-            # Add subtle alternating row backgrounds
-            for i, p in enumerate(y_pos):
-                if i % 2 == 0:
-                    plt.axhspan(p - width*1.5, p + width*1.5, color='#2a2a3a', alpha=0.3)
-            
-            # Set labels, ticks and styling
-            plt.yticks(y_pos, top_params, fontsize=8, color='white')
-            plt.xlabel('Occurrences (log scale)', color='white')
-            plt.ylabel('Parameters', color='white')
-            plt.title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
-            plt.tick_params(axis='both', colors='white')
-            plt.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
-            plt.grid(axis='x', linestyle='--', alpha=0.2, color='#888888')
-            
+            weblog_bars = ax.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
+            crawl_bars = ax.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
+            gsc_bars = ax.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
+
+            # Make sure grid lines are white as well
+            ax.grid(axis='x', linestyle='--', alpha=0.2, color='white')
+
+            # Set labels, ticks and styling - ensure all axis elements are white
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(top_params, fontsize=8, color='white')
+            ax.set_xlabel('Occurrences (log scale)', color='white')
+            ax.set_ylabel('Parameters', color='white')
+            ax.set_title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
+            ax.tick_params(axis='both', colors='white')
+            ax.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
+
             # Add value labels with appropriate colors
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
                 # Web logs (blue)
                 if wb > 0:
                     text_pos = wb * 1.1 if wb > 1000 else wb + 5
-                    plt.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
+                    ax.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
                 elif wb == 0:
-                    plt.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
+                    ax.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
                     
                 # Crawl data (red)
                 if cr > 0:
                     text_pos = max(cr * 1.5, 5)
-                    plt.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
+                    ax.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
                 elif cr == 0:
-                    plt.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
+                    ax.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
                     
                 # Search console (green)
                 if gs > 0:
                     text_pos = gs * 1.1 if gs > 100 else gs + 5
-                    plt.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
+                    ax.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
                 elif gs == 0:
-                    plt.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
-            
-            # Adjust layout
-            plt.tight_layout()
-            
+                    ax.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
+
+            # Ensure the y-axis limits are tight to the data
+            y_min, y_max = -width * 1.5, (len(y_pos) - 1) + width * 1.5
+            ax.set_ylim(y_min, y_max)  # Tight y-axis limits
+
             # Save figure to a bytes buffer
             buffer = BytesIO()
             plt.savefig(buffer, format='png', dpi=120)
