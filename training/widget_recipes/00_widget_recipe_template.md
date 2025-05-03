@@ -1,5 +1,17 @@
 # Widget Recipe Template
 
+> ⚠️ **CRITICAL WARNING**: All widget implementations MUST preserve the chain reaction pattern:
+> ```python
+> Div(
+>     Card(...), # Current step's content
+>     # CRITICAL: This inner Div triggers loading of the next step
+>     # DO NOT REMOVE OR MODIFY these attributes:
+>     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+>     id=step_id
+> )
+> ```
+> See [Workflow Implementation Guide](../workflow_implementation_guide.md#the-chain-reaction-pattern) for details.
+
 This file serves as a template for creating new widget recipes. Follow this structure when documenting a new widget type.
 
 ## Format Overview

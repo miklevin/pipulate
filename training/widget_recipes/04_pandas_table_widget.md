@@ -1,5 +1,17 @@
 # Pandas Table Widget Recipe
 
+> ⚠️ **CRITICAL WARNING**: This widget MUST preserve the chain reaction pattern:
+> ```python
+> Div(
+>     Card(...), # Current step's content
+>     # CRITICAL: This inner Div triggers loading of the next step
+>     # DO NOT REMOVE OR MODIFY these attributes:
+>     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+>     id=step_id
+> )
+> ```
+> See [Workflow Implementation Guide](../workflow_implementation_guide.md#the-chain-reaction-pattern) for details.
+
 ## Overview
 This recipe transforms a placeholder step into a widget that:
 1. Collects CSV text input from the user
@@ -10,6 +22,8 @@ This recipe transforms a placeholder step into a widget that:
 - **Data Collection**: TextArea for CSV input
 - **State Storage**: Store both raw CSV and processed HTML
 - **Widget Display**: Use `HTML()` component to render the table
+- **Memory Management**: Automatic preview limiting for large datasets
+- **Security**: Safe HTML rendering with sanitized input
 
 ## Implementation Phases
 

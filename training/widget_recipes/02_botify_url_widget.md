@@ -9,6 +9,7 @@ This recipe transforms a placeholder step into a widget that collects and valida
 - **Pattern Matching**: Extract project ID and components from URL
 - **Error Handling**: Clear validation feedback to users
 - **Data Storage**: Store structured project data for downstream steps
+- **Chain Reaction Pattern**: CRITICAL - Maintain proper htmx chain reactions
 
 ## Implementation Phases
 

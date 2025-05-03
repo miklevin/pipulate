@@ -8,6 +8,7 @@ This recipe transforms a placeholder step into a widget that initiates a CSV dow
 - **Polling Pattern**: Check status periodically without blocking the UI
 - **Chain Breaking**: Temporarily break the automatic chain reaction during polling
 - **Terminal Response**: Provide a download link as a terminal response
+- **Chain Reaction Preservation**: CRITICAL - Must maintain chain reaction pattern with proper `hx_trigger="load"` attributes
 
 ## Implementation Phases
 

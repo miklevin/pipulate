@@ -1,7 +1,26 @@
 # Text Input Widget Recipe
 
+> ⚠️ **CRITICAL WARNING**: This widget MUST preserve the chain reaction pattern:
+> ```python
+> Div(
+>     Card(...), # Current step's content
+>     # CRITICAL: This inner Div triggers loading of the next step
+>     # DO NOT REMOVE OR MODIFY these attributes:
+>     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+>     id=step_id
+> )
+> ```
+> See [Workflow Implementation Guide](../workflow_implementation_guide.md#the-chain-reaction-pattern) for details.
+
 ## Overview
 This recipe transforms a placeholder step into a widget that collects text input with validation. This is the most basic form of user input and serves as a foundation for more complex input widgets.
+
+## Core Concepts
+- **Chain Reaction Pattern**: Maintains workflow progression through htmx triggers
+- **State Management**: Properly tracks and updates step state
+- **Validation**: Ensures input meets requirements before processing
+- **Refill Support**: Allows users to modify previous inputs
+- **Downstream Access**: Values are accessible in subsequent steps via `step_data.get(step.done)`
 
 ## Implementation Phases
 
@@ -122,3 +141,4 @@ return Div(
 ## Related Widget Recipes
 - [Dropdown Selection Widget](03_dropdown_selection_widget.md)
 - [URL Input Widget](02_botify_url_widget.md) 
+
