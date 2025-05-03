@@ -14,9 +14,9 @@ A guide for creating multi-step workflows with proper chain reaction behavior.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class PracticeWorkflow:
+class SpliceWorkflow:
     """
-    Practice Workflow Template
+    Splice Workflow Template
     
     A demonstration workflow showing how to extend from a simple single-step workflow 
     (like 70_blank_workflow.py) to a multi-step workflow with proper HTMX chain reactions.
@@ -44,10 +44,10 @@ class PracticeWorkflow:
     This explicit triggering is more reliable than depending on HTMX event bubbling.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "practice"           # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Practice Workflow" # User-friendly name shown in the UI
+    APP_NAME = "splice"           # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Splice Workflow" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This is a practice workflow template. "
+        "This is a splice workflow template. "
         "Enter an ID to start or resume your workflow."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context

@@ -22,7 +22,7 @@ requirements.txt
 plugins/20_hello_workflow.py
 plugins/60_widget_examples.py
 plugins/70_blank_workflow.py
-plugins/80_practice_workflow.py
+plugins/80_splice_workflow.py
 """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 

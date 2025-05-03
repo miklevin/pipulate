@@ -296,6 +296,27 @@ class Pipulate:
 
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
+    
+    # --- Core Architectural Patterns ---
+
+    ## Workflow Step Chain Reaction Pattern
+
+    Pipulate uses a two-level approach to ensuring reliable workflow progression:
+
+    1. Initial Setup (run_all_cells): Creates placeholders with event-based triggers
+       - First step: hx_trigger="load"
+       - Subsequent steps: hx_trigger="stepComplete-{previous_step.id} from:{previous_step.id}"
+
+    2. Step Implementation (explicit override): Each step's handlers EXPLICITLY trigger
+       the next step when completing
+       - GET handler (completed state): Returns Div with explicit hx_trigger="load"
+       - POST handler (submit): Returns Div with explicit hx_trigger="load"
+
+    This dual approach provides reliability across browsers and complex DOM structures.
+    The explicit triggering pattern in step handlers is REQUIRED and should not be
+    removed or refactored to rely solely on HTMX event bubbling.
+
+    See 80_splice_workflow.py for the canonical implementation of this pattern.
     """
     PRESERVE_REFILL = True
 
@@ -1086,14 +1107,20 @@ class Pipulate:
     def run_all_cells(self, app_name, steps):
         """
         Create a series of HTMX divs that will trigger a chain reaction of loading all steps.
-
-        This method standardizes the pattern used in workflows where each step is loaded
-        in sequence through HTMX triggers, similar to running all cells in a Jupyter Notebook.
-        It's a core helper method used by workflow plugins to generate placeholders that
-        will automatically load each step in order.
-
-        The first step loads immediately on trigger="load", while subsequent steps
-        wait for the previous step to complete using a custom HTMX event.
+        
+        This method sets up the initial placeholders with event-based triggering, where:
+        
+        1. The first step loads immediately on trigger="load"
+        2. Subsequent steps are configured to wait for 'stepComplete-{previous_step_id}' events
+        
+        IMPORTANT IMPLEMENTATION NOTE: 
+        While this method establishes event-based triggers, the standard workflow pattern in 
+        this codebase (see 80_splice_workflow.py) explicitly overrides this with 
+        direct 'hx_trigger="load"' attributes in completed step views. This explicit 
+        triggering pattern is preferred for reliability over event bubbling in complex workflows.
+        
+        This dual approach (event-based setup + explicit triggers in steps) ensures the chain
+        reaction works consistently across browsers and in complex DOM structures.
 
         Args:
             app_name: The name of the workflow app
@@ -1101,7 +1128,7 @@ class Pipulate:
 
         Returns:
             list: List of Div elements configured with HTMX attributes for sequential loading
-        """
+        """        
         cells = []
         for i, step in enumerate(steps):
             # First step loads immediately, subsequent steps wait for previous to complete
@@ -1248,11 +1275,11 @@ class Pipulate:
 
         This helper generates a consistent UI pattern for step navigation that includes:
         1. A revert control showing the current step's value
-        2. An HTMX-enabled div that triggers loading the next step automatically
-
-        By centralizing this UI generation, all workflows maintain consistent
-        navigation controls and behavior. This is typically returned by step_xx_submit
-        methods after successfully processing user input.
+        2. An HTMX-enabled div that EXPLICITLY triggers loading the next step using
+           hx_trigger="load" (preferred over relying on HTMX event bubbling)
+        
+        IMPLEMENTATION NOTE: This explicit triggering pattern is critical for
+        reliable workflow progression and should be maintained in all workflow steps.
 
         Args:
             step_id: The current step ID
@@ -1277,7 +1304,7 @@ class Pipulate:
             Div(
                 id=next_step_id,
                 hx_get=f"/{app_name}/{next_step_id}",
-                hx_trigger="load"
+                hx_trigger="load"  # CRITICAL: Explicit trigger for reliable chain reaction
             ) if next_step_id else Div()
         )
 

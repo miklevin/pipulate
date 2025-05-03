@@ -32,9 +32,28 @@ class ParameterBusterWorkflow:
     """
     Parameter Buster Workflow
     
-    A workflow that analyzes URLs with parameters to optimize for SEO performance.
-    Processes data from Botify crawls, web logs, and Search Console to identify 
-    URL parameter patterns that can be optimized for better crawl efficiency.
+    A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls, 
+    web logs, and Search Console) to identify optimization opportunities. This workflow demonstrates:
+
+    - Multi-step form collection with chain reaction progression
+    - Data fetching from external APIs with proper retry and error handling
+    - File caching and management for large datasets
+    - Background processing with progress indicators
+    - Complex data analysis with pandas
+
+    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger 
+    the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
+
+    ## Step Flow Pattern
+    Each step follows this pattern for reliable chain reaction:
+    1. GET handler returns a div containing the step UI plus an empty div for the next step
+    2. SUBMIT handler returns a revert control plus explicit next step trigger:
+       `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`
+
+    ## Key Implementation Notes
+    - Background tasks use Script tags with htmx.ajax for better UX during long operations
+    - File paths are deterministic based on username/project/analysis to enable caching
+    - All API errors are handled with specific error messages for better troubleshooting
     """
     # --- Workflow Configuration ---
     APP_NAME = "param_buster"              # Unique identifier for this workflow's routes and data
@@ -59,6 +78,9 @@ class ParameterBusterWorkflow:
         self.message_queue = pip.message_queue
 
         # Define workflow steps
+        # PATTERN NOTE: Each step is registered with both a display handler (step_XX) and 
+        # a submission handler (step_XX_submit). Additional specialized routes may be added
+        # for background processing (step_XX_process) or completion handling (step_XX_complete)
         steps = [
             Step(
                 id='step_01',
@@ -253,7 +275,11 @@ class ParameterBusterWorkflow:
         )
 
     async def finalize(self, request):
-        """Handles GET request to show Finalize button and POST request to lock the workflow."""
+        """Handles GET request to show Finalize button and POST request to lock the workflow.
+        
+        # PATTERN NOTE: The finalize step is the final destination of the chain reaction
+        # and should be triggered by the last content step's submit handler.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = steps[-1]
@@ -351,8 +377,8 @@ class ParameterBusterWorkflow:
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
         
-        Collects and validates a Botify project URL from the user.
-        Stores the extracted project data for use in subsequent steps.
+        # STEP PATTERN: GET handler returns current step UI + empty placeholder for next step
+        # Important: The next step div should NOT have hx_trigger here, only in the submit handler
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -436,14 +462,16 @@ class ParameterBusterWorkflow:
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id),  # Empty placeholder for next step - NO hx_trigger here
                 id=step_id
             )
 
     async def step_01_submit(self, request):
         """Process the submission for Botify URL input widget.
         
-        Validates the URL, extracts project data, and stores it for downstream steps.
+        # STEP PATTERN: Submit handler stores state and returns:
+        # 1. Revert control for the completed step
+        # 2. Next step div with explicit hx_trigger="load" to chain reaction to next step
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -1113,7 +1141,13 @@ class ParameterBusterWorkflow:
         )
 
     async def step_05_submit(self, request):
-        """Process the parameter optimization generation."""
+        """Process the parameter optimization generation.
+        
+        # BACKGROUND PROCESSING PATTERN: This demonstrates the standard pattern for long-running operations:
+        # 1. Return progress UI immediately
+        # 2. Use Script tag with setTimeout + htmx.ajax to trigger background processing
+        # 3. Background processor updates state and returns completed UI with next step trigger
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_05"
         step_index = self.steps_indices[step_id]
@@ -1579,6 +1613,12 @@ console.log(analyzeParameters(testUrl));"""
         """
         Checks if a specific collection exists for the given org and project.
         
+        # API PATTERN: This method demonstrates the standard Botify API interaction pattern:
+        # 1. Read API token from local file
+        # 2. Construct API endpoint URL with proper path parameters
+        # 3. Make authenticated request with error handling
+        # 4. Return tuple of (result, error_message) for consistent error handling
+        
         Args:
             org_slug: Organization slug
             project_slug: Project slug
@@ -1729,6 +1769,11 @@ console.log(analyzeParameters(testUrl));"""
 
     async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type=None):
         """Generate a deterministic file path for a given data export.
+        
+        # FILE MANAGEMENT PATTERN: This demonstrates the standard approach to file caching:
+        # 1. Create deterministic paths based on user/project identifiers
+        # 2. Check if files exist before re-downloading
+        # 3. Store metadata about cached files for user feedback
         
         Args:
             username: Organization username

@@ -381,7 +381,7 @@ class HelloFlow:
             # Show completed view with Revert button
              return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
-                # Trigger loading the next step's input form or completed view
+                # CRITICAL: Explicitly trigger next step loading - this pattern is required for reliable workflow progression
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
@@ -408,7 +408,16 @@ class HelloFlow:
             )
 
     async def step_01_submit(self, request):
-        """ Handles POST submission for Step 1: Validates, saves state, returns navigation. """
+        """Process the submission for placeholder Step 1.
+        
+        Chain Reaction Pattern:
+        When a step completes, it MUST explicitly trigger the next step by including
+        a div for the next step with hx_trigger="load". While this may seem redundant,
+        it is more reliable than depending on HTMX event bubbling.
+        
+        This is a deliberate architectural decision in Pipulate workflows to ensure
+        consistent behavior across browsers and complex DOM structures.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -480,7 +489,7 @@ class HelloFlow:
             # Show completed view with Revert button
              return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
-                # Trigger loading the next step's (finalize) input form or completed view
+                # CRITICAL: Explicitly trigger next step loading - this pattern is required for reliable workflow progression
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
