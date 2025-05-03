@@ -16,7 +16,8 @@ from typing import Dict, List, Optional, Union
 # allows for clean multi-line string formatting.
 
 FILES_TO_INCLUDE = """\
-test.txt
+flake.nix
+server.py
 """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 
@@ -34,8 +35,7 @@ test.txt
 # When enabled, the script will include the specified article in the context
 # and use specialized prompts for article analysis.
 
-ARTICLE_MODE = False  # Set to True to enable article analysis mode
-ARTICLE_PATH = "/home/mike/repos/MikeLev.in/_posts/your-article.md"  # Path to the article
+PROMPT_FILE = None  # Default prompt file is None
 
 # ============================================================================
 # END USER CONFIGURATION
@@ -504,7 +504,7 @@ class AIAssistantManifest:
             if file['key_components']:
                 file_content.append(create_xml_element("key_components", [
                     f"<component>{comp}</component>" for comp in file['key_components']
-                ]))
+            ]))
                 
             file_content.append(f"<tokens>{content_tokens}</tokens>")
             files_section.append(create_xml_element("file", file_content))
@@ -631,7 +631,7 @@ def create_pipulate_manifest(file_paths):
         processed_files.add(relative_path)
         result_files.append(relative_path)
         full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
-        
+            
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -724,8 +724,7 @@ parser.add_argument('-l', '--list', action='store_true', help='List available te
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
-parser.add_argument('--article-mode', action='store_true', help='Enable article analysis mode')
-parser.add_argument('--article-path', type=str, help='Path to the article for analysis')
+parser.add_argument('-p', '--prompt', type=str, help='Path to a prompt file to use instead of built-in templates')
 parser.add_argument('--cat', action='store_true',
                     help='Shortcut for concat mode with blog posts, outputs a single file')
 parser.add_argument('--concat-mode', action='store_true', 
@@ -761,18 +760,25 @@ if args.list:
 # Get the file list
 final_file_list = file_list.copy()  # Start with the default list
 
-# Handle article mode
-if args.article_mode:
-    if args.article_path:
-        ARTICLE_PATH = args.article_path
-    if not os.path.exists(ARTICLE_PATH):
-        print(f"Error: Article file not found at {ARTICLE_PATH}")
+# Handle prompt file
+if args.prompt:
+    # Check if the prompt file exists
+    prompt_path = args.prompt
+    if not os.path.isabs(prompt_path):
+        prompt_path = os.path.join(os.getcwd(), prompt_path)
+    
+    if not os.path.exists(prompt_path):
+        print(f"Error: Prompt file not found at {prompt_path}")
         sys.exit(1)
-    # Add article to files list if not already present
-    if ARTICLE_PATH not in final_file_list:
-        final_file_list.append(ARTICLE_PATH)
-    # Use article analysis template
+    
+    # Add prompt file to files list if not already present
+    if prompt_path not in final_file_list:
+        final_file_list.append(prompt_path)
+    
+    # Use article analysis template by default for prompt files
     args.template = 1  # Use the article analysis template
+    
+    print(f"Using prompt file: {prompt_path}")
 
 # If --cat is used, set concat mode and blog posts directory
 if args.cat:
@@ -870,7 +876,7 @@ for relative_path in processed_files:
         full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
         with open(full_path, 'r', encoding='utf-8') as f:
             content = f.read()
-            files_tokens_dict[relative_path] = count_tokens(content, "gpt-4")
+        files_tokens_dict[relative_path] = count_tokens(content, "gpt-4")
     except Exception as e:
         print(f"ERROR: Could not count tokens for {relative_path}: {e}")
         sys.exit(1)  # Exit with error code
@@ -895,13 +901,6 @@ output_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<context schema="pipulate
     f"<files_tokens>{format_token_count(token_counts['files'])}</files_tokens>",
     f"<prompt_tokens>{format_token_count(prompt_tokens)}</prompt_tokens>"
 ])}\n</context>'
-
-# Update the token info in file markers
-with open(full_path, 'r', encoding='utf-8') as infile:
-    file_content = infile.read()
-    file_tokens = count_tokens(file_content, "gpt-4")
-    token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-    lines.append(file_content + token_info)
 
 # Print structured output
 print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens)
