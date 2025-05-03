@@ -1524,10 +1524,22 @@ class ParameterBusterWorkflow:
                 P("Set thresholds for parameter optimization:"),
                 Form(
                     Div(
+                        # GSC Threshold with slider
                         Div(
                             Label(
                                 NotStr("<strong>GSC Threshold:</strong>"), 
-                                For="gsc_threshold"
+                                For="gsc_threshold",
+                                style="min-width: 180px;"
+                            ),
+                            Input(
+                                type="range", 
+                                name="gsc_threshold_slider", 
+                                id="gsc_threshold_slider", 
+                                value=gsc_threshold, 
+                                min="1", 
+                                max="1000", 
+                                step="10",
+                                style="flex-grow: 1; margin: 0 10px;"
                             ),
                             Input(
                                 type="number", 
@@ -1537,14 +1549,27 @@ class ParameterBusterWorkflow:
                                 min="1", 
                                 max="1000", 
                                 step="10",
-                                style="width: 100px;"
+                                style="width: 80px;"
                             ),
-                            style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
+                            style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
+                        
+                        # Minimum Frequency with slider
                         Div(
                             Label(
                                 NotStr("<strong>Minimum Frequency:</strong>"), 
-                                For="min_frequency"
+                                For="min_frequency",
+                                style="min-width: 180px;"
+                            ),
+                            Input(
+                                type="range", 
+                                name="min_frequency_slider", 
+                                id="min_frequency_slider", 
+                                value=min_frequency, 
+                                min="1", 
+                                max="10000", 
+                                step="50",
+                                style="flex-grow: 1; margin: 0 10px;"
                             ),
                             Input(
                                 type="number", 
@@ -1554,10 +1579,11 @@ class ParameterBusterWorkflow:
                                 min="1", 
                                 max="10000", 
                                 step="50",
-                                style="width: 100px;"
+                                style="width: 80px;"
                             ),
-                            style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
+                            style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
                         ),
+                        
                         Div(
                             Button("Submit", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
