@@ -3340,6 +3340,12 @@ console.log(analyzeParameters(testUrl));"""
             A Div element with the visualization
         """
         try:
+            # Import visualization libraries upfront to prevent undefined errors
+            import matplotlib.pyplot as plt
+            from io import BytesIO
+            import base64
+            import numpy as np
+            
             # Parse summary data if provided
             has_data = False
             total_params = 0
@@ -3368,9 +3374,9 @@ console.log(analyzeParameters(testUrl));"""
                         
                         # Extract counters for all sources
                         raw_counters = cache_data.get('raw_counters', {})
-                        for source in source_counters.keys():
-                            if source in raw_counters:
-                                source_counters[source] = raw_counters[source]
+                        for source, counter_name in [('weblogs', 'weblogs'), ('gsc', 'gsc'), ('not_indexable', 'not_indexable')]:
+                            if counter_name in raw_counters:
+                                source_counters[source] = raw_counters[counter_name]
                     except Exception as e:
                         logging.error(f"Error loading parameter data from cache: {e}")
                 
@@ -3392,87 +3398,77 @@ console.log(analyzeParameters(testUrl));"""
                 total = sum(counter.get(param, 0) for counter in source_counters.values())
                 param_total_counts[param] = total
             
-            # Get top 10 parameters across all sources
-            top_params = [param for param, _ in param_total_counts.most_common(10)]
+            # Get top 30 parameters across all sources
+            top_params = [param for param, _ in param_total_counts.most_common(30)]
             
-            # Create the visualization
-            if top_params:
-                # Generate a matplotlib visualization
-                import matplotlib.pyplot as plt
-                from io import BytesIO
-                import base64
-                import numpy as np
-                
-                # Create figure with appropriate size
-                plt.figure(figsize=(10, 6))
-                
-                # Set up positions for the bars
-                y_pos = np.arange(len(top_params))
-                width = 0.25  # Width of each bar
-                
-                # Prepare data for each source
-                weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
-                crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
-                gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
-                
-                # Create grouped bar chart with distinct colors
-                plt.barh([p + width for p in y_pos], weblogs_values, width, color='skyblue', label='Web Logs')
-                plt.barh(y_pos, crawl_values, width, color='lightgreen', label='Crawl Data')
-                plt.barh([p - width for p in y_pos], gsc_values, width, color='orange', label='Search Console')
-                
-                # Set y-axis labels and ticks
-                plt.yticks(y_pos, top_params)
-                
-                # Add labels and title
-                plt.xlabel('Occurrences')
-                plt.ylabel('Parameters')
-                plt.title('Top 10 Parameters by Data Source')
-                
-                # Add legend
-                plt.legend(loc='best')
-                
-                # Add grid for better readability
-                plt.grid(axis='x', linestyle='--', alpha=0.7)
-                
-                # Adjust layout to make room for the legend
-                plt.tight_layout()
-                
-                # Save figure to a bytes buffer
-                buffer = BytesIO()
-                plt.savefig(buffer, format='png', dpi=100)
-                plt.close()
-                
-                # Convert to base64 for embedding in HTML
-                img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
-                
-                # Create an HTML component with the image and metadata
-                visualization = Div(
+            # Reverse the order to have highest counts at the top
+            top_params.reverse()
+            
+            # Create figure with appropriate size
+            plt.figure(figsize=(10, 14))
+            
+            # Set up positions for the bars
+            y_pos = np.arange(len(top_params))
+            width = 0.25
+            
+            # Prepare data for each source - ensure they match top_params ordering
+            weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
+            crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
+            gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
+            
+            # Create grouped bar chart with distinct colors
+            # Use stronger colors to ensure visibility
+            weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#3498db', label='Web Logs')
+            crawl_bars = plt.barh(y_pos, crawl_values, width, color='#2ecc71', label='Crawl Data')
+            gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#e74c3c', label='Search Console')
+            
+            # Set y-axis labels and ticks - follow the same ordering as bars
+            plt.yticks(y_pos, top_params, fontsize=8)
+            
+            # Add labels and title
+            plt.xlabel('Occurrences')
+            plt.ylabel('Parameters')
+            plt.title('Top 30 Parameters by Data Source')
+            
+            # Add legend
+            plt.legend(loc='upper right')
+            
+            # Add grid for better readability
+            plt.grid(axis='x', linestyle='--', alpha=0.7)
+            
+            # Add value labels to the end of each bar
+            for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
+                if wb > 0:
+                    plt.text(wb + 5, i + width, f"{wb:,}", va='center', fontsize=7, color='#3498db')
+                if cr > 0:
+                    plt.text(cr + 5, i, f"{cr:,}", va='center', fontsize=7, color='#2ecc71')
+                if gs > 0:
+                    plt.text(gs + 5, i - width, f"{gs:,}", va='center', fontsize=7, color='#e74c3c')
+            
+            # Adjust layout
+            plt.tight_layout()
+            
+            # Save figure to a bytes buffer
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=120)  # Increased DPI for better quality
+            plt.close()
+            
+            # Convert to base64 for embedding in HTML
+            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            # Create an HTML component with the image and metadata
+            visualization = Div(
+                Div(
+                    H4("Parameter Analysis Summary:"),
+                    P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
+                    P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
                     Div(
-                        H4("Parameter Analysis Summary:"),
-                        P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
-                        P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
-                        Div(
-                            NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
-                            style="text-align: center; margin-top: 1rem;"
-                        ),
-                        style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
-                    )
+                        NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
+                        style="text-align: center; margin-top: 1rem;"
+                    ),
+                    style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
                 )
-                
-            else:
-                # Fallback visualization when no data is available
-                visualization = Div(
-                    Div(
-                        H4("Parameter Analysis Summary:"),
-                        P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
-                        P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
-                        Div(
-                            NotStr('<div style="width:100%; height:120px; background:#f5f5f5; border:1px dashed #ccc; border-radius:5px; display:flex; justify-content:center; align-items:center;">No parameter data available for visualization</div>'),
-                            style="margin: 15px 0;"
-                        ),
-                        style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
-                    )
-                )
+            )
             
             return visualization
             
