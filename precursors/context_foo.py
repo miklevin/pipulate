@@ -406,9 +406,8 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
     return len(encoding.encode(text))
 
 def format_token_count(num: int) -> str:
-    """Format a token count with commas and approximate cost."""
-    cost = (num / 1000) * 0.03  # GPT-4 costs approximately $0.03 per 1K tokens
-    return f"{num:,} tokens (≈${cost:.2f} at GPT-4 rates)"
+    """Format a token count with commas."""
+    return f"{num:,} tokens"
 
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
@@ -724,7 +723,7 @@ parser.add_argument('-t', '--template', type=int, default=0, help='Template inde
 parser.add_argument('-l', '--list', action='store_true', help='List available templates')
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
-                    help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,}, high value since we\'re not chunking)')
+                    help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
 parser.add_argument('--article-mode', action='store_true', help='Enable article analysis mode')
 parser.add_argument('--article-path', type=str, help='Path to the article for analysis')
 parser.add_argument('--cat', action='store_true',
@@ -740,7 +739,7 @@ parser.add_argument('--compress', action='store_true',
 parser.add_argument('--single', action='store_true',
                     help=f'Force single file output with {MAX_TOKENS - TOKEN_BUFFER:,} token limit')
 parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
-                    help='Set token limit based on model (default: claude)')
+                    help='Set target model (default: claude)')
 parser.add_argument('--repo-root', type=str, default=repo_root,
                     help=f'Repository root directory (default: {repo_root})')
 parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard')
@@ -782,19 +781,6 @@ if args.cat:
     if not args.output:  # Only set default if no output specified
         args.output = "foo.txt"  # Set default output for blog posts to .txt
     args.single = True  # Force single file output when using --cat
-
-# Set max tokens based on model if specified
-if args.single or args.cat:
-    # Use a very large token limit for single file mode
-    if args.model == 'gemini15':
-        args.max_tokens = 2_097_152 - TOKEN_BUFFER
-    elif args.model == 'gemini25':
-        args.max_tokens = 1_048_576 - TOKEN_BUFFER
-    elif args.model == 'claude':
-        args.max_tokens = 3_145_728 - TOKEN_BUFFER
-    elif args.model == 'gpt4':
-        args.max_tokens = 4_194_304 - TOKEN_BUFFER
-    print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
 
 # Set the template index and output filename
 template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
@@ -866,79 +852,59 @@ if total_tokens + post_prompt_tokens <= args.max_tokens:
 else:
     print("Warning: Post-prompt skipped as it would exceed token limit")
 
-# Calculate the file tokens from the processed files
-files_tokens = 0
+# Calculate the final token count
+def calculate_total_tokens(files_tokens, prompt_tokens):
+    """Calculate total tokens and component breakdowns"""
+    file_tokens = sum(files_tokens.values())
+    total = file_tokens + prompt_tokens
+    return {
+        "files": file_tokens,
+        "prompt": prompt_tokens,
+        "total": total
+    }
+
+# Calculate total tokens with proper accounting
+files_tokens_dict = {}
 for relative_path in processed_files:
     try:
         full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
         with open(full_path, 'r', encoding='utf-8') as f:
             content = f.read()
-            files_tokens += count_tokens(content, "gpt-4")
+            files_tokens_dict[relative_path] = count_tokens(content, "gpt-4")
     except Exception as e:
         print(f"ERROR: Could not count tokens for {relative_path}: {e}")
         sys.exit(1)  # Exit with error code
 
-# Calculate total tokens as in print_structured_output
-prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
-total_combined_tokens = files_tokens + prompt_tokens
+# Calculate prompt tokens
+pre_prompt_tokens = count_tokens(pre_prompt, "gpt-4")
+post_prompt_tokens = count_tokens(post_prompt, "gpt-4") 
+prompt_tokens = pre_prompt_tokens + post_prompt_tokens
+
+# Calculate total
+token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
 
 # Debug information for XML token counting
-print(f"\nXML Token Summary:")
-print(f"  Files tokens: {format_token_count(files_tokens)}")
+print(f"\nToken Summary:")
+print(f"  Files tokens: {format_token_count(token_counts['files'])}")
 print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
-print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
+print(f"  Total: {format_token_count(token_counts['total'])}")
 
-# Additional improvements to make the output more LLM-friendly:
-
-# 1. Add a schema reference and version to help LLMs understand the structure
+# Update the token summary in the output
 output_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<context schema="pipulate-context" version="1.0">\n{create_xml_element("manifest", manifest)}\n{create_xml_element("pre_prompt", pre_prompt)}\n{create_xml_element("content", "\n".join(lines))}\n{create_xml_element("post_prompt", post_prompt)}\n{create_xml_element("token_summary", [
-    f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
-    f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
-    f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
+    f"<total_context_size>{format_token_count(token_counts['total'])}</total_context_size>",
+    f"<files_tokens>{format_token_count(token_counts['files'])}</files_tokens>",
+    f"<prompt_tokens>{format_token_count(prompt_tokens)}</prompt_tokens>"
 ])}\n</context>'
 
-# 2. Add file type indicators to help LLMs understand content better
-def process_file_content(file_path, content):
-    """Add file type information based on extension"""
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext:
-        lang_map = {
-            '.py': 'python',
-            '.js': 'javascript',
-            '.html': 'html',
-            '.css': 'css',
-            '.md': 'markdown',
-            '.json': 'json',
-            '.nix': 'nix',
-            '.sh': 'bash',
-            '.txt': 'text'
-        }
-        lang = lang_map.get(ext, 'text')
-        return f'<file_type>{lang}</file_type>\n{content}'
-    return content
-
-# Process file content in the lines list to add file type information
-for i, line in enumerate(lines):
-    if line.startswith("# <<< START FILE:"):
-        file_path = line.split("# <<< START FILE:")[1].strip(" >")
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext:
-            lang_map = {
-                '.py': 'python',
-                '.js': 'javascript',
-                '.html': 'html',
-                '.css': 'css',
-                '.md': 'markdown',
-                '.json': 'json',
-                '.nix': 'nix',
-                '.sh': 'bash',
-                '.txt': 'text'
-            }
-            lang = lang_map.get(ext, 'text')
-            lines[i] = f"# <<< START FILE: {file_path} (type: {lang}) >>>"
+# Update the token info in file markers
+with open(full_path, 'r', encoding='utf-8') as infile:
+    file_content = infile.read()
+    file_tokens = count_tokens(file_content, "gpt-4")
+    token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+    lines.append(file_content + token_info)
 
 # Print structured output
-print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_combined_tokens, args.max_tokens)
+print_structured_output(manifest, pre_prompt, processed_files, post_prompt, token_counts['total'], args.max_tokens)
 
 # Write the complete XML output to the file
 try:
