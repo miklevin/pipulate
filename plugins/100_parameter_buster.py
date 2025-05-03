@@ -3555,7 +3555,7 @@ console.log(analyzeParameters(testUrl));"""
                 .not-index-val { color: #ff0000; text-align: right; } /* Match crawl data color from chart */
                 .gsc-val { color: #50fa7b; text-align: right; } /* Match search console color from chart */
                 .total-val { color: #d2d2d2; text-align: right; } /* Lighter gray for total */
-                .score-val { color: #ff5050; text-align: right; font-weight: bold; } /* Keeping red for emphasis */
+                .score-val { color: #ffff00; text-align: right; font-weight: bold; } /* Changed from red to yellow */
             </style>
             <table class="param-table">
                 <tr><td colspan="6">Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</td></tr>
