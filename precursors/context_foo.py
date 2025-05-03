@@ -1,10 +1,8 @@
 import os
 import sys
 import argparse
-import tiktoken  # Add tiktoken import
-import gzip  # Add gzip for compression
-import yaml  # Add YAML for front matter parsing
-import re  # Add regex for front matter extraction
+import tiktoken
+import re
 from typing import Dict, List, Optional, Union
 
 # ============================================================================
@@ -26,27 +24,8 @@ test.txt
 # flake.nix
 # .cursorrules
 # server.py
-# /home/mike/repos/.cursor/rules/wet-workflows.mdc
-# /home/mike/repos/.cursor/rules/nix-rules.mdc
-# /home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
-# /home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
 # plugins/10_connect_with_botify.py
 # plugins/20_hello_workflow.py
-# plugins/50_botify_export.py
-# plugins/60_widget_examples.py
-# plugins/70_blank_workflow.py
-
-# Example:
-# python context_foo.py --article-mode --article-path /home/mike/repos/MikeLev.in/_posts/prompt.md
-
-# Jekyll Example:
-# FILES_TO_INCLUDE = """\
-# /home/mike/repos/mikelev.in/flake.nix
-# /home/mike/repos/mikelev.in/Gemfile
-# /home/mike/repos/mikelev.in/_config.yml
-# /home/mike/repos/mikelev.in/_posts/2025-04-17-github-pages-logfiles.md
-# /home/mike/repos/MikeLev.in/_posts/2025-04-23-pfsense-firewall-secure-home-network-hosting-setup.md
-# """.splitlines()[:-1]  # Remove the last empty line
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION
@@ -269,12 +248,6 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
 # one text-file or your OS's copy/paste buffer and do one-shot prompting with 
 # spread out files as if they were a single file (reduce copy/paste tedium 
 # and improve prompt injection consistency).
-#
-# This is particularly useful when working with LLMs that have large context
-# windows, allowing you to feed in entire codebases or blog archives for
-# analysis without the tedium of manual file selection and copying. It's a
-# practical alternative to RAG or file-by-file processing for one-shot
-# analysis of large bodies of text, particularly entire Jekyll _posts folders.
 # -------------------------------------------------------------------------
 
 # --- XML Support Functions ---
@@ -296,18 +269,10 @@ def create_xml_list(items: List[str], tag_name: str = "item") -> str:
 # --- Configuration for context building ---
 # Edit these values as needed
 repo_root = "/home/mike/repos/pipulate"  # Path to your repository
-blog_posts_path = "/home/mike/repos/MikeLev.in/_posts"  # Path to blog posts
-blog_base_url = "https://mikelev.in"  # Base URL for blog posts
 
-# Model token limits
-GEMINI_15_PRO_LIMIT = 2_097_152  # Gemini 1.5 Pro's 2M token limit
-GEMINI_25_PRO_LIMIT = 1_048_576  # Gemini 2.5 Pro's 1M token limit
-CLAUDE_LIMIT = 3_145_728  # Claude's 3M token limit (approximate)
-GPT_4_TURBO_LIMIT = 4_194_304  # GPT-4 Turbo's 4M token limit (128K tokens)
-TOKEN_BUFFER = 10_000  # Buffer for pre/post prompts and overhead
-
-# Default to Claude's 3M limit for single-file mode
-SINGLE_FILE_LIMIT = CLAUDE_LIMIT
+# Token buffer for pre/post prompts and overhead
+TOKEN_BUFFER = 10_000
+MAX_TOKENS = 4_000_000  # Set to a high value since we're not chunking
 
 # === Prompt Templates ===
 # Define multiple prompt templates and select them by index
@@ -431,41 +396,7 @@ while maintaining its architectural integrity and existing patterns.
     }
 ]
 
-# Blog analysis prompts
-BLOG_PRE_PROMPT = create_xml_element("blog_analysis", [
-    create_xml_element("task_description", """
-You are analyzing a large collection of blog posts to help organize and optimize the site's information architecture.
-This content is being provided in chunks due to size. For each chunk:
-"""),
-    create_xml_element("analysis_requirements", [
-        "<requirement>Identify main topics and themes</requirement>",
-        "<requirement>Note potential hub posts that could serve as navigation centers</requirement>",
-        "<requirement>Track chronological development of ideas</requirement>",
-        "<requirement>Map relationships between posts</requirement>",
-        "<requirement>Consider optimal click-depth organization</requirement>"
-    ]),
-    create_xml_element("focus", "Focus on finding natural topic clusters and hierarchy patterns.")
-])
-
-BLOG_POST_PROMPT = """
-Please analyze this content chunk with attention to:
-1. Topic clustering and theme identification
-2. Potential hub posts and their spoke relationships
-3. Chronological development patterns
-4. Cross-referencing opportunities
-5. Hierarchy optimization for 5-click maximum depth
-
-Identify posts that could serve as:
-- Main topic hubs
-- Subtopic centers
-- Detail/leaf nodes
-- Chronological markers
-- Cross-topic bridges
-
-This analysis will be used to optimize the site's information architecture.
-"""
-
-# After the initialization of file_list, remove debug prints
+# Initialize file list from the user configuration
 file_list = FILES_TO_INCLUDE
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
@@ -478,334 +409,6 @@ def format_token_count(num: int) -> str:
     cost = (num / 1000) * 0.03  # GPT-4 costs approximately $0.03 per 1K tokens
     return f"{num:,} tokens (≈${cost:.2f} at GPT-4 rates)"
 
-def estimate_total_chunks(files, max_tokens, force_single=False):
-    """Estimate total chunks needed based on file token counts."""
-    total_tokens = 0
-    for filepath in files:
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-                total_tokens += count_tokens(content, "gpt-4")
-        except Exception as e:
-            print(f"Warning: Could not count tokens for {filepath}: {e}")
-    
-    if force_single:
-        return 1
-    return max(1, (total_tokens + max_tokens - 1) // max_tokens)
-
-def get_chunk_filename(base_filename, chunk_num, total_chunks, compress=False):
-    """Generate chunk filename with metadata."""
-    name, _ = os.path.splitext(base_filename)  # Ignore original extension
-    ext = ".txt"  # Always use .txt extension for Gemini compatibility
-    
-    # For single chunk, don't add chunk numbering
-    if total_chunks == 1:
-        if compress:
-            return f"{name}{ext}.gz"
-        return f"{name}{ext}"
-    
-    # Multiple chunks get numbered
-    if compress:
-        return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}.gz"
-    return f"{name}.chunk{chunk_num:02d}-of-{total_chunks:02d}{ext}"
-
-def write_chunk_metadata(lines, chunk_num, total_chunks, files_in_chunk, total_files, start_date, end_date, max_tokens, token_count):
-    """Write chunk metadata header."""
-    chunk_info = [
-        f"CHUNK {chunk_num} OF {total_chunks}",
-        f"Files: {len(files_in_chunk)} of {total_files} total",
-        f"Date range: {start_date} to {end_date}",
-        f"Token count: {format_token_count(token_count)}",
-        f"Max tokens: {max_tokens:,}",
-        f"Remaining: {format_token_count(max_tokens - token_count)}",
-        "Purpose: Site topology & content analysis for:",
-        "- Topic clustering",
-        "- Information architecture",
-        "- Hub-and-spoke organization",
-        "- 5-click depth distribution",
-        "- Content summarization"
-    ]
-    
-    max_length = max(len(line) for line in chunk_info)
-    lines.append("=" * max_length)
-    lines.extend(chunk_info)
-    lines.append("=" * max_length)
-    lines.append("")
-
-def extract_front_matter(content):
-    """Extract YAML front matter from Jekyll blog post."""
-    front_matter_match = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
-    if front_matter_match:
-        try:
-            front_matter = yaml.safe_load(front_matter_match.group(1))
-            return front_matter, content[front_matter_match.end():]
-        except yaml.YAMLError:
-            return None, content
-    return None, content
-
-def get_post_url(front_matter, filename):
-    """Construct post URL from front matter or filename."""
-    if front_matter and 'permalink' in front_matter:
-        permalink = front_matter['permalink'].strip('/')
-        return f"{blog_base_url}/{permalink}/"  # Ensure trailing slash
-    # Fallback to Jekyll's default URL structure
-    date_title = filename[:-3]  # Remove .md extension
-    return f"{blog_base_url}/{date_title}/"  # Already has trailing slash
-
-def process_chunk(md_files, start_idx, chunk_num, total_chunks, max_tokens, output_base, compress=False):
-    """Process a single chunk of files and write to output."""
-    lines = []
-    total_tokens = 0
-    files_processed = 0
-    current_files = []
-    
-    # Initialize date range
-    start_date = end_date = md_files[start_idx][:10] if start_idx < len(md_files) else "Unknown"
-    
-    # First, check if all files exist before processing
-    missing_files = []
-    for i in range(start_idx, len(md_files)):
-        filename = md_files[i]
-        filepath = os.path.join(args.directory, filename)
-        if not os.path.exists(filepath):
-            missing_files.append(filepath)
-    
-    # If any files are missing, raise an exception with clear details
-    if missing_files:
-        error_message = "The following files were not found:\n"
-        for missing_file in missing_files:
-            error_message += f"  - {missing_file}\n"
-        error_message += "\nPlease check that these files exist in the specified directory."
-        print(error_message)
-        sys.exit(1)
-    
-    # Add blog pre-prompt if using --cat
-    if args.cat and BLOG_PRE_PROMPT:
-        lines.append(BLOG_PRE_PROMPT)
-        total_tokens += count_tokens(BLOG_PRE_PROMPT, "gpt-4")
-    
-    # Process files for this chunk
-    for i in range(start_idx, len(md_files)):
-        filename = md_files[i]
-        filepath = os.path.join(args.directory, filename)
-        
-        try:
-            with open(filepath, 'r', encoding='utf-8') as infile:
-                content = infile.read()
-                front_matter, post_content = extract_front_matter(content)
-                post_url = get_post_url(front_matter, filename)
-                
-                file_tokens = count_tokens(content, "gpt-4")
-                
-                # Reserve space for metadata and buffer
-                reserved_tokens = TOKEN_BUFFER
-                if args.cat and BLOG_POST_PROMPT:
-                    reserved_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
-                reserved_tokens += 500  # 500 tokens for metadata
-                
-                # Check if adding this file would exceed limit
-                if total_tokens + file_tokens + reserved_tokens > max_tokens:
-                    break
-                
-                total_tokens += file_tokens
-                files_processed += 1
-                current_files.append(filename)
-                
-                # Update date range
-                if filename[:10] < start_date:
-                    start_date = filename[:10]
-                if filename[:10] > end_date:
-                    end_date = filename[:10]
-                
-                # Create XML structure for the file
-                file_xml = create_xml_element("file", [
-                    create_xml_element("metadata", [
-                        f"<filename>{filename}</filename>",
-                        f"<url>{post_url}</url>",
-                        create_xml_element("front_matter", [
-                            f"<title>{front_matter.get('title', '')}</title>",
-                            f"<description>{front_matter.get('description', '')}</description>"
-                        ]) if front_matter else "",
-                        f"<tokens>{file_tokens}</tokens>"
-                    ]),
-                    create_xml_element("content", post_content)
-                ])
-                
-                lines.append(file_xml)
-                print(f"Added {filename} ({format_token_count(file_tokens)})")
-                print(f"Total tokens so far: {format_token_count(total_tokens)}")
-                
-        except UnicodeDecodeError as e:
-            print(f"ERROR: Could not decode {filepath}: {e}")
-            sys.exit(1)  # Exit with error code for encoding issues
-        except Exception as e:
-            print(f"ERROR: Could not process {filepath}: {e}")
-            sys.exit(1)  # Exit with error code for any other exceptions
-    
-    # Create XML structure for the chunk
-    chunk_xml = create_xml_element("chunk", [
-        create_xml_element("metadata", [
-            f"<chunk_number>{chunk_num}</chunk_number>",
-            f"<total_chunks>{total_chunks}</total_chunks>",
-            f"<files_processed>{len(current_files)}</files_processed>",
-            f"<total_files>{len(md_files)}</total_files>",
-            f"<date_range>{start_date} to {end_date}</date_range>",
-            f"<token_count>{total_tokens}</token_count>",
-            f"<max_tokens>{max_tokens}</max_tokens>",
-            f"<remaining_tokens>{max_tokens - total_tokens}</remaining_tokens>"
-        ]),
-        create_xml_element("purpose", [
-            "<purpose>Site topology & content analysis for:</purpose>",
-            "<item>Topic clustering</item>",
-            "<item>Information architecture</item>",
-            "<item>Hub-and-spoke organization</item>",
-            "<item>5-click depth distribution</item>",
-            "<item>Content summarization</item>"
-        ]),
-        create_xml_element("content", "\n".join(lines))
-    ])
-    
-    # Add blog post prompt if using --cat
-    if args.cat and BLOG_POST_PROMPT and total_tokens + count_tokens(BLOG_POST_PROMPT, "gpt-4") <= max_tokens:
-        chunk_xml += "\n" + BLOG_POST_PROMPT
-        total_tokens += count_tokens(BLOG_POST_PROMPT, "gpt-4")
-    
-    # Write to file
-    chunk_filename = get_chunk_filename(output_base, chunk_num, total_chunks, compress)
-    try:
-        if compress:
-            with gzip.open(chunk_filename, 'wt', encoding='utf-8') as outfile:
-                outfile.write(chunk_xml)
-        else:
-            with open(chunk_filename, 'w', encoding='utf-8') as outfile:
-                outfile.write(chunk_xml)
-        print(f"\nSuccessfully created '{chunk_filename}'")
-        
-        # Copy to clipboard if this is the first chunk or forced single file
-        if (chunk_num == 1 and (args.cat or args.single or total_chunks == 1)):
-            try:
-                import pyperclip
-                with open(chunk_filename, 'r', encoding='utf-8') as infile:
-                    content = infile.read()
-                    pyperclip.copy(content)
-                    print(f"Content from '{chunk_filename}' successfully copied to clipboard using pyperclip.")
-            except ImportError:
-                print("`pyperclip` library not found for clipboard copy.")
-            except Exception as e:
-                print(f"Error copying to clipboard: {e}")
-                
-    except Exception as e:
-        print(f"Error writing to '{chunk_filename}': {e}")
-    
-    return start_idx + files_processed
-
-# Parse command line arguments
-parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
-parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
-parser.add_argument('-l', '--list', action='store_true', help='List available templates')
-parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
-parser.add_argument('-m', '--max-tokens', type=int, default=GEMINI_15_PRO_LIMIT - TOKEN_BUFFER, 
-                    help=f'Maximum tokens to include (default: {GEMINI_15_PRO_LIMIT - TOKEN_BUFFER:,}, Gemini 1.5 Pro limit minus buffer)')
-parser.add_argument('--article-mode', action='store_true', help='Enable article analysis mode')
-parser.add_argument('--article-path', type=str, help='Path to the article for analysis')
-parser.add_argument('--cat', action='store_true',
-                    help='Shortcut for concat mode with blog posts, outputs a single file')
-parser.add_argument('--concat-mode', action='store_true', 
-                    help='Use concatenation mode similar to cat_foo.py')
-parser.add_argument('-d', '--directory', type=str, default=".",
-                    help='Target directory for concat mode (default: current directory)')
-parser.add_argument('--chunk', type=int,
-                    help='Process specific chunk number (default: process all chunks)')
-parser.add_argument('--compress', action='store_true',
-                    help='Compress output files using gzip')
-parser.add_argument('--single', action='store_true',
-                    help=f'Force single file output with {SINGLE_FILE_LIMIT:,} token limit')
-parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
-                    help='Set token limit based on model (default: claude)')
-parser.add_argument('--repo-root', type=str, default=repo_root,
-                    help=f'Repository root directory (default: {repo_root})')
-
-args = parser.parse_args()
-
-# Update repo_root if specified via command line
-if args.repo_root and args.repo_root != repo_root:
-    repo_root = args.repo_root
-    print(f"Repository root directory set to: {repo_root}")
-
-# List available templates if requested
-if args.list:
-    print("Available prompt templates:")
-    for i, template in enumerate(prompt_templates):
-        print(f"{i}: {template['name']}")
-    sys.exit(0)
-
-# Get the file list
-final_file_list = file_list.copy()  # Start with the default list
-
-# Handle article mode
-if args.article_mode:
-    if args.article_path:
-        ARTICLE_PATH = args.article_path
-    if not os.path.exists(ARTICLE_PATH):
-        print(f"Error: Article file not found at {ARTICLE_PATH}")
-        sys.exit(1)
-    # Add article to files list if not already present
-    if ARTICLE_PATH not in final_file_list:
-        final_file_list.append(ARTICLE_PATH)
-    # Use article analysis template
-    args.template = 1  # Use the article analysis template
-
-# If --cat is used, set concat mode and blog posts directory
-if args.cat:
-    args.concat_mode = True
-    args.directory = blog_posts_path
-    if not args.output:  # Only set default if no output specified
-        args.output = "foo.txt"  # Set default output for blog posts to .txt
-    args.single = True  # Force single file output when using --cat
-
-# Set max tokens based on model if specified
-if args.single or args.cat:
-    # Use a very large token limit for single file mode
-    if args.model == 'gemini15':
-        args.max_tokens = GEMINI_15_PRO_LIMIT - TOKEN_BUFFER
-    elif args.model == 'gemini25':
-        args.max_tokens = GEMINI_25_PRO_LIMIT - TOKEN_BUFFER
-    elif args.model == 'claude':
-        args.max_tokens = CLAUDE_LIMIT - TOKEN_BUFFER
-    elif args.model == 'gpt4':
-        args.max_tokens = GPT_4_TURBO_LIMIT - TOKEN_BUFFER
-    print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
-
-# Set the template index and output filename
-template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
-output_filename = args.output
-
-# Set the pre and post prompts from the selected template
-pre_prompt = prompt_templates[template_index]["pre_prompt"]
-post_prompt = prompt_templates[template_index]["post_prompt"]
-
-print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
-print(f"Output will be written to: {output_filename}")
-
-# Add a clear message about file paths
-print("\nChecking files to include:")
-# For non-concat mode, show the files that will be checked
-if not args.concat_mode:
-    print("Files to be included from FILES_TO_INCLUDE:")
-    for file_path in final_file_list:
-        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-        print(f"  - {file_path} -> {full_path}")
-    print("\nNOTE: If running from a subdirectory, remember that relative paths in FILES_TO_INCLUDE")
-    print("      are relative to the repository root, which is currently set to:")
-    print(f"      {repo_root}")
-    print("      Files not found will cause the program to exit with an error message.")
-# For concat mode, show directory being used
-else:
-    print(f"Directory being searched for markdown files: {args.directory}")
-    print("NOTE: Only .md files in this directory will be processed.")
-    print("      Files not found will cause the program to exit with an error message.")
-
-# Remove debug prints and duplicated code
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
     """
@@ -916,7 +519,7 @@ class AIAssistantManifest:
             conv_section = ['<conventions>']
             for convention in self.conventions:
                 conv_section.append(create_xml_element("convention", [
-                    f"<n>{convention['name']}</n>",
+                    f"<name>{convention['name']}</name>",
                     f"<description>{convention['description']}</description>"
                 ]))
             conv_section.append('</conventions>')
@@ -961,7 +564,7 @@ def create_pipulate_manifest(file_paths):
     
     # Track total tokens and processed files to respect limit and avoid duplicates
     total_tokens = 0
-    max_tokens = args.max_tokens
+    max_tokens = MAX_TOKENS - TOKEN_BUFFER
     processed_files = set()
     result_files = []
     
@@ -1064,189 +667,195 @@ def create_pipulate_manifest(file_paths):
     
     return manifest.generate(), result_files, total_tokens
 
-# --- Core Logic to Create foo.txt ---
-lines = []
-total_tokens = 0
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
+parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
+parser.add_argument('-l', '--list', action='store_true', help='List available templates')
+parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
+parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
+                    help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,}, high value since we\'re not chunking)')
+parser.add_argument('--article-mode', action='store_true', help='Enable article analysis mode')
+parser.add_argument('--article-path', type=str, help='Path to the article for analysis')
+parser.add_argument('--cat', action='store_true',
+                    help='Shortcut for concat mode with blog posts, outputs a single file')
+parser.add_argument('--concat-mode', action='store_true', 
+                    help='Use concatenation mode similar to cat_foo.py')
+parser.add_argument('-d', '--directory', type=str, default=".",
+                    help='Target directory for concat mode (default: current directory)')
+parser.add_argument('--chunk', type=int,
+                    help='Process specific chunk number (default: process all chunks)')
+parser.add_argument('--compress', action='store_true',
+                    help='Compress output files using gzip')
+parser.add_argument('--single', action='store_true',
+                    help=f'Force single file output with {MAX_TOKENS - TOKEN_BUFFER:,} token limit')
+parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'], default='claude',
+                    help='Set token limit based on model (default: claude)')
+parser.add_argument('--repo-root', type=str, default=repo_root,
+                    help=f'Repository root directory (default: {repo_root})')
 
+args = parser.parse_args()
+
+# Update repo_root if specified via command line
+if args.repo_root and args.repo_root != repo_root:
+    repo_root = args.repo_root
+    print(f"Repository root directory set to: {repo_root}")
+
+# List available templates if requested
+if args.list:
+    print("Available prompt templates:")
+    for i, template in enumerate(prompt_templates):
+        print(f"{i}: {template['name']}")
+    sys.exit(0)
+
+# Get the file list
+final_file_list = file_list.copy()  # Start with the default list
+
+# Handle article mode
+if args.article_mode:
+    if args.article_path:
+        ARTICLE_PATH = args.article_path
+    if not os.path.exists(ARTICLE_PATH):
+        print(f"Error: Article file not found at {ARTICLE_PATH}")
+        sys.exit(1)
+    # Add article to files list if not already present
+    if ARTICLE_PATH not in final_file_list:
+        final_file_list.append(ARTICLE_PATH)
+    # Use article analysis template
+    args.template = 1  # Use the article analysis template
+
+# If --cat is used, set concat mode and blog posts directory
+if args.cat:
+    args.concat_mode = True
+    args.directory = "/home/mike/repos/MikeLev.in/_posts"  # Set blog posts directory
+    if not args.output:  # Only set default if no output specified
+        args.output = "foo.txt"  # Set default output for blog posts to .txt
+    args.single = True  # Force single file output when using --cat
+
+# Set max tokens based on model if specified
+if args.single or args.cat:
+    # Use a very large token limit for single file mode
+    if args.model == 'gemini15':
+        args.max_tokens = 2_097_152 - TOKEN_BUFFER
+    elif args.model == 'gemini25':
+        args.max_tokens = 1_048_576 - TOKEN_BUFFER
+    elif args.model == 'claude':
+        args.max_tokens = 3_145_728 - TOKEN_BUFFER
+    elif args.model == 'gpt4':
+        args.max_tokens = 4_194_304 - TOKEN_BUFFER
+    print(f"\nUsing {args.model} token limit: {args.max_tokens:,}")
+
+# Set the template index and output filename
+template_index = args.template if 0 <= args.template < len(prompt_templates) else 0
+output_filename = args.output
+
+# Set the pre and post prompts from the selected template
+pre_prompt = prompt_templates[template_index]["pre_prompt"]
+post_prompt = prompt_templates[template_index]["post_prompt"]
+
+print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
+print(f"Output will be written to: {output_filename}")
+
+# Add a clear message about file paths
+print("\nChecking files to include:")
+# For non-concat mode, show the files that will be checked
 if not args.concat_mode:
-    # First, check if all files exist before processing
-    missing_files = []
-    for relative_path in final_file_list:
-        if relative_path.strip():
-            full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
-            if not os.path.exists(full_path):
-                missing_files.append(full_path)
+    print("Files to be included from FILES_TO_INCLUDE:")
+    for file_path in final_file_list:
+        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
+        print(f"  - {file_path} -> {full_path}")
+    print("\nNOTE: If running from a subdirectory, remember that relative paths in FILES_TO_INCLUDE")
+    print("      are relative to the repository root, which is currently set to:")
+    print(f"      {repo_root}")
+    print("      Files not found will cause the program to exit with an error message.")
+# For concat mode, show directory being used
+else:
+    print(f"Directory being searched for markdown files: {args.directory}")
+    print("NOTE: Only .md files in this directory will be processed.")
+    print("      Files not found will cause the program to exit with an error message.")
+
+# Create the manifest and incorporate user's pre_prompt
+manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
+manifest = manifest_xml
+final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
+
+# Add the pre-prompt and separator
+lines = [final_pre_prompt]
+lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
+total_tokens = count_tokens(final_pre_prompt, "gpt-4")
+
+# Process each file in the manifest file list
+for relative_path in processed_files:
+    full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
     
-    # If any files are missing, show a clear error and exit
-    if missing_files:
-        error_message = "The following files were not found:\n"
-        for missing_file in missing_files:
-            error_message += f"  - {missing_file}\n"
-        error_message += "\nPlease check the file paths in FILES_TO_INCLUDE variable."
-        print(error_message)
+    # Original detailed mode with markers
+    start_marker = f"# <<< START FILE: {full_path} >>>"
+    end_marker = f"# <<< END FILE: {full_path} >>>"
+    
+    lines.append(start_marker)
+    try:
+        with open(full_path, 'r', encoding='utf-8') as infile:
+            file_content = infile.read()
+            file_tokens = count_tokens(file_content, "gpt-4")
+            token_info = f"\n# File token count: {format_token_count(file_tokens)}"
+            lines.append(file_content + token_info)
+    except Exception as e:
+        error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
+        print(f"ERROR: Could not read file {full_path}: {e}")
         sys.exit(1)  # Exit with error code
     
-    # Create the manifest and incorporate user's pre_prompt
-    manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
-    manifest = manifest_xml
-    final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
-    
-    # Add the pre-prompt and separator
-    lines.append(final_pre_prompt)
-    lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
-    total_tokens = count_tokens(final_pre_prompt, "gpt-4")
-    
-    # Process each file in the manifest file list
-    for relative_path in processed_files:
-        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
-        
-        # Original detailed mode with markers
-        start_marker = f"# <<< START FILE: {full_path} >>>"
-        end_marker = f"# <<< END FILE: {full_path} >>>"
-        
-        lines.append(start_marker)
-        try:
-            with open(full_path, 'r', encoding='utf-8') as infile:
-                file_content = infile.read()
-                file_tokens = count_tokens(file_content, "gpt-4")
-                token_info = f"\n# File token count: {format_token_count(file_tokens)}"
-                lines.append(file_content + token_info)
-        except Exception as e:
-            error_message = f"# --- ERROR: Could not read file {full_path}: {e} ---"
-            print(f"ERROR: Could not read file {full_path}: {e}")
-            sys.exit(1)  # Exit with error code
-        
-        lines.append(end_marker)
-    
-    # Add a separator and the post-prompt
-    lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
-    post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
-    if total_tokens + post_prompt_tokens <= args.max_tokens:
-        total_tokens += post_prompt_tokens
-        lines.append(post_prompt)
-    else:
-        print("Warning: Post-prompt skipped as it would exceed token limit")
-    
-    # Calculate the file tokens from the processed files
-    files_tokens = 0
-    for relative_path in processed_files:
-        try:
-            full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                files_tokens += count_tokens(content, "gpt-4")
-        except Exception as e:
-            print(f"ERROR: Could not count tokens for {relative_path}: {e}")
-            sys.exit(1)  # Exit with error code
-    
-    # Calculate total tokens as in print_structured_output
-    prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
-    total_combined_tokens = files_tokens + prompt_tokens
-    
-    # Debug information for XML token counting
-    print(f"\nXML Token Summary:")
-    print(f"  Files tokens: {format_token_count(files_tokens)}")
-    print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
-    print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
-    
-    output_xml = create_xml_element("context", [
-        create_xml_element("manifest", manifest),
-        create_xml_element("pre_prompt", pre_prompt),
-        create_xml_element("content", "\n".join(lines)),
-        create_xml_element("post_prompt", post_prompt),
-        create_xml_element("token_summary", [
-            f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
-            f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
-            f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
-        ])
-    ])
-    
-    # Print structured output
-    print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_combined_tokens, args.max_tokens)
-    
-    # Write the complete XML output to the file
-    try:
-        with open(args.output, 'w', encoding='utf-8') as outfile:
-            outfile.write(output_xml)
-    except Exception as e:
-        print(f"Error writing to '{args.output}': {e}")
+    lines.append(end_marker)
+
+# Add a separator and the post-prompt
+lines.append("=" * 20 + " END CONTEXT " + "=" * 20)
+post_prompt_tokens = count_tokens(post_prompt, "gpt-4")
+if total_tokens + post_prompt_tokens <= args.max_tokens:
+    total_tokens += post_prompt_tokens
+    lines.append(post_prompt)
 else:
-    # Process markdown files in target directory (concat mode)
-    target_dir = args.directory
+    print("Warning: Post-prompt skipped as it would exceed token limit")
+
+# Calculate the file tokens from the processed files
+files_tokens = 0
+for relative_path in processed_files:
     try:
-        # Get list of markdown files, sorted
-        md_files = sorted([f for f in os.listdir(target_dir) 
-                          if f.endswith('.md') and f not in ['foo.md', args.output]])
-        total_files = len(md_files)
-        
-        # Get full paths for token counting
-        md_paths = [os.path.join(target_dir, f) for f in md_files]
-
-        # Force single file output when --cat is used or --single is specified
-        if args.cat or args.single:
-            total_chunks = 1
-            print(f"\nFound {total_files} markdown files in {target_dir}")
-            print("Generating single file output...")
-        else:
-            total_chunks = estimate_total_chunks(md_paths, args.max_tokens)
-            print(f"\nFound {total_files} markdown files in {target_dir}")
-            print(f"Estimated chunks needed: {total_chunks}")
-
-        if args.chunk and not args.single and not args.cat:
-            # Process specific chunk
-            if 1 <= args.chunk <= total_chunks:
-                # Calculate start index for this chunk
-                start_idx = 0
-                for i in range(1, args.chunk):
-                    start_idx = process_chunk(md_files, start_idx, i, total_chunks, 
-                                           args.max_tokens, args.output, args.compress)
-                process_chunk(md_files, start_idx, args.chunk, total_chunks, 
-                            args.max_tokens, args.output, args.compress)
-            else:
-                print(f"Error: Chunk number must be between 1 and {total_chunks}")
-                sys.exit(1)
-        else:
-            # Process all chunks
-            start_idx = 0
-            for chunk_num in range(1, total_chunks + 1):
-                start_idx = process_chunk(md_files, start_idx, chunk_num, total_chunks, 
-                                       args.max_tokens, args.output, args.compress)
+        full_path = os.path.join(repo_root, relative_path) if not os.path.isabs(relative_path) else relative_path
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            files_tokens += count_tokens(content, "gpt-4")
     except Exception as e:
-        print(f"Error accessing directory {target_dir}: {e}")
-        sys.exit(1)
+        print(f"ERROR: Could not count tokens for {relative_path}: {e}")
+        sys.exit(1)  # Exit with error code
 
-# --- Clipboard Handling ---
-print("\n--- Clipboard Instructions ---")
+# Calculate total tokens as in print_structured_output
+prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
+total_combined_tokens = files_tokens + prompt_tokens
+
+# Debug information for XML token counting
+print(f"\nXML Token Summary:")
+print(f"  Files tokens: {format_token_count(files_tokens)}")
+print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
+print(f"  Total for XML: {format_token_count(total_combined_tokens)}")
+
+output_xml = create_xml_element("context", [
+    create_xml_element("manifest", manifest),
+    create_xml_element("pre_prompt", pre_prompt),
+    create_xml_element("content", "\n".join(lines)),
+    create_xml_element("post_prompt", post_prompt),
+    create_xml_element("token_summary", [
+        f"<total_context_size>{format_token_count(total_combined_tokens)}</total_context_size>",
+        f"<maximum_allowed>{format_token_count(args.max_tokens)} ({args.max_tokens:,} tokens)</maximum_allowed>",
+        f"<remaining>{format_token_count(args.max_tokens - total_combined_tokens)}</remaining>"
+    ])
+])
+
+# Print structured output
+print_structured_output(manifest, pre_prompt, processed_files, post_prompt, total_combined_tokens, args.max_tokens)
+
+# Write the complete XML output to the file
 try:
-    import pyperclip
-    # Copy the complete XML content to clipboard
-    if 'output_xml' in locals():
-        pyperclip.copy(output_xml)
-        print(f"Complete XML content successfully copied to clipboard using pyperclip.")
-        print("You can now paste it.")
-    else:
-        print("No XML content available to copy to clipboard.")
-except ImportError:
-    print("`pyperclip` library not found.")
-    print("To install it: pip install pyperclip")
-    print("Alternatively, use OS-specific commands below or manually copy from the output files.")
+    with open(args.output, 'w', encoding='utf-8') as outfile:
+        outfile.write(output_xml)
 except Exception as e:
-    print(f"An error occurred while using pyperclip: {e}")
-    print("Try OS-specific commands or manually copy from the output files.")
-
-# OS-specific clipboard instructions if pyperclip isn't available or failed
-if 'pyperclip' not in sys.modules:
-    if sys.platform == "darwin":  # macOS
-        print("\nOn macOS, you can try in your terminal:")
-        print(f"  cat {args.output} | pbcopy")
-    elif sys.platform == "win32":  # Windows
-        print("\nOn Windows, try in Command Prompt or PowerShell:")
-        print(f"  type {args.output} | clip")         # Command Prompt
-        print(f"  Get-Content {args.output} | Set-Clipboard")  # PowerShell
-    else:  # Linux (assuming X11 with xclip or xsel)
-        print("\nOn Linux, you can try in your terminal (requires xclip or xsel):")
-        print(f"  cat {args.output} | xclip -selection clipboard")
-        print("  # or")
-        print(f"  cat {args.output} | xsel --clipboard --input")
+    print(f"Error writing to '{args.output}': {e}")
 
 print("\nScript finished.")
