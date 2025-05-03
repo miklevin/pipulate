@@ -1083,41 +1083,65 @@ class ParameterBusterWorkflow:
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and optimization_result:
             try:
-                result_data = json.loads(optimization_result)
+                # Create visualization placeholder for locked state
+                visualization_widget = self.create_parameter_visualization_placeholder(optimization_result)
+                
+                return Div(
+                    Card(
+                        H3(f"🔒 {step.show}"),
+                        visualization_widget
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            except Exception as e:
+                logging.error(f"Error creating parameter visualization in finalized view: {str(e)}")
                 return Div(
                     Card(
                         H3(f"🔒 {step.show}"),
                         P("Parameter optimization completed", style="margin-bottom: 10px;"),
                         Div(
-                            P(f"Found {result_data.get('total_params', 0)} parameters to optimize"),
-                            P(f"Analysis completed on: {result_data.get('timestamp', 'unknown')}"),
+                            P(f"Analysis data is locked."),
                             style="padding: 10px; background: var(--pico-card-background-color); border-radius: 5px;"
                         )
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
                 )
-            except json.JSONDecodeError:
-                return P("Error: Invalid optimization result data", style=pip.get_style("error"))
 
         # Check if step is complete and not being reverted to
         if optimization_result and state.get("_revert_target") != step_id:
             try:
-                result_data = json.loads(optimization_result)
+                # Create visualization placeholder for revert state
+                visualization_widget = self.create_parameter_visualization_placeholder(optimization_result)
+                
+                # Use the widget_container instead of revert_control to display the widget properly
                 return Div(
-                    pip.revert_control(
+                    pip.widget_container(
                         step_id=step_id,
                         app_name=app_name,
-                        message=f"{step.show}: {result_data.get('total_params', 0)} parameters found",
+                        message=f"{step.show}: {json.loads(optimization_result).get('total_unique_parameters', 0):,} unique parameters found",
+                        widget=visualization_widget,
                         steps=steps
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
                 )
-            except json.JSONDecodeError:
-                return P("Error: Invalid optimization result data", style=pip.get_style("error"))
+            except Exception as e:
+                logging.error(f"Error creating parameter visualization in revert view: {str(e)}")
+                # Fall back to original revert control without widget
+                return Div(
+                    pip.revert_control(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f"{step.show}: Parameter analysis complete",
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
 
-        # Show the analysis form
+        # Show the analysis form (keep original implementation)
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
         return Div(
@@ -3303,3 +3327,52 @@ console.log(analyzeParameters(testUrl));"""
             logging.error(f"Error saving cache file: {e}")
 
         return counters_data
+
+    # Add this helper method to create a simple placeholder for parameter visualization
+    def create_parameter_visualization_placeholder(self, summary_data_str=None):
+        """
+        Create a simple placeholder for parameter visualization.
+        
+        This is a minimal implementation that will be expanded later
+        to include actual visualization of parameter data.
+        
+        Args:
+            summary_data_str: JSON string containing parameter summary data
+        
+        Returns:
+            A Div element with placeholder content
+        """
+        try:
+            # Parse summary data if provided
+            has_data = False
+            total_params = 0
+            data_sources = []
+            
+            if summary_data_str:
+                import json
+                summary_data = json.loads(summary_data_str)
+                total_params = summary_data.get('total_unique_parameters', 0)
+                data_sources = list(summary_data.get('data_sources', {}).keys())
+                has_data = True
+            
+            # Create placeholder visualization
+            placeholder = Div(
+                Div(
+                    H4("Parameter Analysis Summary:"),
+                    P("This visualization will show parameter distributions across data sources."),
+                    P(f"Total unique parameters: {total_params}" if has_data else "No data available yet"),
+                    P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
+                    Div(
+                        NotStr('<div style="width:100%; height:120px; background:#f5f5f5; border:1px dashed #ccc; border-radius:5px; display:flex; justify-content:center; align-items:center;">Parameter Visualization Placeholder</div>'),
+                        style="margin: 15px 0;"
+                    ),
+                    style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
+                )
+            )
+            
+            return placeholder
+        
+        except Exception as e:
+            import logging
+            logging.exception(f"Error creating parameter visualization placeholder: {e}")
+            return Div(NotStr(f"<div style='color: red;'>Error creating visualization placeholder: {str(e)}</div>"), _raw=True)
