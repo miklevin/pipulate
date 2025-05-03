@@ -1506,15 +1506,83 @@ class ParameterBusterWorkflow:
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
         
-        # Show input form with numerical fields instead of code
-        # Use default values if available or set reasonable defaults
+        # Get the previous step data to access the parameter cache
+        prev_step_data = pip.get_step_data(pipeline_id, "step_05", {})
+        prev_data_str = prev_step_data.get("placeholder", "")
+        
+        # Default values
+        gsc_threshold = "0"  # Changed default from 50 to 0
+        min_frequency = "100000"  # Default value, will try to calculate better value
+        
+        # Try to get values from previous input or calculate optimal values
         try:
-            values = json.loads(user_val) if user_val else {}
-            gsc_threshold = values.get("gsc_threshold", "50")
-            min_frequency = values.get("min_frequency", "100")
+            # First try to get values from current step if available
+            if user_val:
+                values = json.loads(user_val) if user_val else {}
+                gsc_threshold = values.get("gsc_threshold", "0")
+                min_frequency = values.get("min_frequency", "100000")
+            else:
+                # If the previous step has data, try to extract parameter information
+                if prev_data_str:
+                    summary_data = json.loads(prev_data_str)
+                    cache_path = summary_data.get('cache_path')
+                    
+                    if cache_path and os.path.exists(cache_path):
+                        # Load raw counters from cache
+                        try:
+                            with open(cache_path, 'rb') as f:
+                                cache_data = pickle.load(f)
+                            
+                            raw_counters = cache_data.get('raw_counters', {})
+                            
+                            # Extract weblogs, gsc, and not_indexable counters
+                            weblogs_counter = None
+                            gsc_counter = None
+                            not_indexable_counter = None
+                            
+                            # Map sources to counter keys
+                            source_mapping = {
+                                'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
+                                'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
+                                'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
+                            }
+                            
+                            # Find the right counters
+                            for source, possible_keys in source_mapping.items():
+                                for key in possible_keys:
+                                    if key in raw_counters:
+                                        if source == 'weblogs':
+                                            weblogs_counter = raw_counters[key]
+                                        elif source == 'gsc':
+                                            gsc_counter = raw_counters[key]
+                                        elif source == 'not_indexable':
+                                            not_indexable_counter = raw_counters[key]
+                                        break
+                        
+                            # Find parameters in weblogs or not_indexable but not in gsc
+                            if gsc_counter and (weblogs_counter or not_indexable_counter):
+                                # Combine weblogs and not_indexable counters
+                                combined_counter = Counter()
+                                if weblogs_counter:
+                                    combined_counter.update(weblogs_counter)
+                                if not_indexable_counter:
+                                    combined_counter.update(not_indexable_counter)
+                                
+                                # Find parameters with zero GSC occurrences
+                                # These are the "dead parameters" that could be optimized
+                                max_dead_param_frequency = 0
+                                for param, count in combined_counter.items():
+                                    if gsc_counter.get(param, 0) == 0:
+                                        max_dead_param_frequency = max(max_dead_param_frequency, count)
+                                
+                                # If we found a meaningful value, use it
+                                if max_dead_param_frequency > 0:
+                                    min_frequency = str(max_dead_param_frequency)
+                                    logging.info(f"Found optimal min_frequency: {min_frequency} from max dead parameter")
+                        except Exception as e:
+                            logging.error(f"Error calculating optimal frequency: {str(e)}")
         except json.JSONDecodeError:
-            gsc_threshold = "50"
-            min_frequency = "100"
+            pass  # Use defaults if JSON parsing fails
         
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
@@ -1549,8 +1617,7 @@ class ParameterBusterWorkflow:
                                 value=gsc_threshold, 
                                 min="0", 
                                 max="100", 
-                                step="1",
-                                style="width: 120px;",
+                                style="width: 150px;",  # Increased from 120px to 150px
                                 _oninput="document.getElementById('gsc_threshold_slider').value = this.value"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
@@ -1581,8 +1648,7 @@ class ParameterBusterWorkflow:
                                 value=min_frequency, 
                                 min="0", 
                                 max="250000", 
-                                step="1000",
-                                style="width: 120px;",
+                                style="width: 150px;",  # Increased from 120px to 150px
                                 _oninput="document.getElementById('min_frequency_slider').value = this.value"
                             ),
                             style="display: flex; align-items: center; gap: 5px; margin-bottom: 15px;"
