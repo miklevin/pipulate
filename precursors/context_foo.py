@@ -704,6 +704,20 @@ def create_pipulate_manifest(file_paths):
     
     return manifest_xml, result_files, total_tokens
 
+# Add a function to copy text to clipboard
+def copy_to_clipboard(text):
+    """Copy text to system clipboard."""
+    try:
+        # For Linux
+        import subprocess
+        process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
+        process.communicate(text.encode('utf-8'))
+        return True
+    except Exception as e:
+        print(f"Warning: Could not copy to clipboard: {e}")
+        print("Make sure xclip is installed (sudo apt-get install xclip)")
+        return False
+
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Generate context file with selectable prompt templates and token limits.')
 parser.add_argument('-t', '--template', type=int, default=0, help='Template index to use (default: 0)')
@@ -729,6 +743,7 @@ parser.add_argument('--model', choices=['gemini15', 'gemini25', 'claude', 'gpt4'
                     help='Set token limit based on model (default: claude)')
 parser.add_argument('--repo-root', type=str, default=repo_root,
                     help=f'Repository root directory (default: {repo_root})')
+parser.add_argument('--no-clipboard', action='store_true', help='Disable copying output to clipboard')
 
 args = parser.parse_args()
 
@@ -929,7 +944,13 @@ print_structured_output(manifest, pre_prompt, processed_files, post_prompt, tota
 try:
     with open(args.output, 'w', encoding='utf-8') as outfile:
         outfile.write(output_xml)
+    print(f"Output written to '{args.output}'")
 except Exception as e:
     print(f"Error writing to '{args.output}': {e}")
+
+# By default, copy the output to clipboard unless --no-clipboard is specified
+if not args.no_clipboard:
+    if copy_to_clipboard(output_xml):
+        print("Output copied to clipboard")
 
 print("\nScript finished.")
