@@ -3484,6 +3484,7 @@ console.log(analyzeParameters(testUrl));"""
                     color: white;
                     margin-top: 1rem;
                     margin-bottom: 1rem;
+                    border: 1px solid white; /* Add white border around entire table */
                 }
                 .param-table td {
                     border: none;
@@ -3498,9 +3499,10 @@ console.log(analyzeParameters(testUrl));"""
                     background-color: #000;
                     font-weight: bold;
                     color: white;
+                    border-bottom: 2px solid white; /* Heavier border for title row */
                 }
                 .param-table tr.header {
-                    border-bottom: 1px solid white;
+                    border-bottom: 3px solid white; /* Heavier border for header row */
                 }
                 .param-name { color: cyan; }
                 .weblogs-val { color: magenta; text-align: right; }
