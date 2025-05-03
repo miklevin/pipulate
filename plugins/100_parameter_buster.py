@@ -3331,7 +3331,7 @@ console.log(analyzeParameters(testUrl));"""
     # Add this helper method to create a simple placeholder for parameter visualization
     def create_parameter_visualization_placeholder(self, summary_data_str=None):
         """
-        Create a visualization of the top 10 parameters from weblogs data.
+        Create a matplotlib visualization of the top 10 parameters from weblogs data.
         
         Args:
             summary_data_str: JSON string containing parameter summary data
@@ -3377,82 +3377,63 @@ console.log(analyzeParameters(testUrl));"""
             
             # Create the visualization
             if top_weblogs_params:
-                # Find the maximum count for scaling
-                max_count = max(count for _, count in top_weblogs_params)
+                # Generate a matplotlib visualization
+                import matplotlib.pyplot as plt
+                from io import BytesIO
+                import base64
                 
-                # Generate HTML for bars
-                bars_html = ""
-                for param, count in top_weblogs_params:
-                    # Calculate percentage for bar width
-                    percentage = (count / max_count) * 100
-                    # Create a bar with label and tooltip
-                    bars_html += f"""
-                    <div class="param-bar-container" title="{param}: {count:,} occurrences">
-                        <div class="param-label">{param}</div>
-                        <div class="param-bar" style="width: {percentage}%;">{count:,}</div>
-                    </div>
-                    """
+                # Create figure with appropriate size
+                plt.figure(figsize=(10, 6))
                 
-                # CSS for the visualization
-                chart_style = """
-                <style>
-                    .param-chart {
-                        font-family: sans-serif;
-                        margin: 20px 0;
-                    }
-                    .param-bar-container {
-                        margin: 6px 0;
-                        display: flex;
-                        align-items: center;
-                    }
-                    .param-label {
-                        min-width: 100px;
-                        text-align: right;
-                        padding-right: 10px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                        font-size: 0.9em;
-                    }
-                    .param-bar {
-                        background: var(--pico-primary);
-                        color: white;
-                        padding: 4px 8px;
-                        border-radius: 3px;
-                        font-size: 0.8em;
-                        transition: all 0.3s ease;
-                    }
-                    .param-bar-container:hover .param-bar {
-                        filter: brightness(1.1);
-                    }
-                    .params-title {
-                        font-weight: bold;
-                        margin-bottom: 10px;
-                        color: var(--pico-color);
-                    }
-                </style>
-                """
+                # Sort by count (descending)
+                top_weblogs_params.sort(key=lambda x: x[1], reverse=True)
                 
-                # Assemble the visualization
-                chart_html = f"""
-                <div class="param-chart">
-                    <div class="params-title">Top 10 Parameters from Web Logs</div>
-                    {bars_html}
-                </div>
-                """
+                # Extract labels and values
+                labels = [param for param, _ in top_weblogs_params]
+                values = [count for _, count in top_weblogs_params]
                 
+                # Create horizontal bar chart (easier to read parameter names)
+                plt.barh(labels, values, color='skyblue')
+                
+                # Add labels and title
+                plt.xlabel('Occurrences')
+                plt.ylabel('Parameters')
+                plt.title('Top 10 Parameters from Web Logs')
+                
+                # Add value labels to the end of each bar
+                for i, v in enumerate(values):
+                    plt.text(v + (max(values) * 0.01), i, f"{v:,}", va='center')
+                
+                # Add grid for better readability
+                plt.grid(axis='x', linestyle='--', alpha=0.7)
+                
+                # Adjust layout
+                plt.tight_layout()
+                
+                # Save figure to a bytes buffer
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png')
+                plt.close()
+                
+                # Convert to base64 for embedding in HTML
+                img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                
+                # Create an HTML component with the image and metadata
                 visualization = Div(
                     Div(
                         H4("Parameter Analysis Summary:"),
                         P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
                         P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
-                        NotStr(chart_style + chart_html),
+                        Div(
+                            NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
+                            style="text-align: center; margin-top: 1rem;"
+                        ),
                         style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
                     )
                 )
                 
             else:
-                # Fallback visualization
+                # Fallback visualization when no data is available
                 visualization = Div(
                     Div(
                         H4("Parameter Analysis Summary:"),
