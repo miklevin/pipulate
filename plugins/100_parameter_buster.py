@@ -3591,12 +3591,12 @@ console.log(analyzeParameters(testUrl));"""
             add_debug(f"Chart parameters: count={TOP_PARAMS_COUNT}, final_height={figure_height}")
 
             # Create figure with custom initialization parameters and no margins
-            plt.figure(figsize=(10, figure_height), facecolor='#1e1e2e', constrained_layout=False)
+            plt.figure(figsize=(10, figure_height), facecolor='#13171f', constrained_layout=False)
 
             # Create axes with specific dimensions to fill most of the figure
-            # Extend the right margin further to make more room for the value labels
-            ax = plt.axes([0.2, 0.02, 0.65, 0.95])  # Reduced width from 0.7 to 0.65 to make more space
-            ax.set_facecolor('#1e1e2e')
+            # Extend the right margin to 0.7 (70% width) to make room for the value labels
+            ax = plt.axes([0.2, 0.02, 0.65, 0.95])  # left, bottom, width, height in figure coordinates (0-1)
+            ax.set_facecolor('#13171f')
 
             # Change all spines (the box around the plot) to white
             for spine in ax.spines.values():
@@ -3700,7 +3700,7 @@ console.log(analyzeParameters(testUrl));"""
                     P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
                     
                     Div(
-                        NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
+                        NotStr(f'<img src="data:image/png;base64,{img_str}" style="width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
                         style="text-align: center; margin-top: 1rem;"
                     ),
                     
