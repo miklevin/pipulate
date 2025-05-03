@@ -3494,12 +3494,16 @@ console.log(analyzeParameters(testUrl));"""
                 .param-table tr:nth-child(even) {
                     background-color: #1a1a1a;
                 }
-                .param-table tr:first-child {
+                .param-table tr:first-child td {
                     text-align: center;
                     background-color: #000;
                     font-weight: bold;
                     color: white;
                     border-bottom: 2px solid white; /* Heavier border for title row */
+                    border-left: none;
+                    border-right: none;
+                    border-top: none;
+                    padding: 10px 0; /* Add some vertical padding */
                 }
                 .param-table tr.header {
                     border-bottom: 3px solid white; /* Heavier border for header row */
