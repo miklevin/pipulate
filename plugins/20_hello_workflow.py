@@ -277,6 +277,7 @@ class HelloFlow:
             # Show locked view or finalize button
             if finalize_step.done in finalize_data:
                 return Card(H3("Workflow is locked."),
+                    P("You can unlock the workflow to make changes.", style="font-size: 0.9em; color: #666;"),
                     Form( Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
                     ), id=finalize_step.id )
