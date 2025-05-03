@@ -372,9 +372,12 @@ class HelloFlow:
         if "finalized" in finalize_data:
             # Show locked view
             return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
+                Card(
+                    H3(f"🔒 {step.show}: {user_val}")
+                ),
                 # Trigger loading the next step's locked view
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
 
         # Boilerplate: Check if step is complete and we are NOT reverting to it
@@ -480,9 +483,12 @@ class HelloFlow:
         if "finalized" in finalize_data:
             # Show locked view
             return Div(
-                Card(f"🔒 {step.show}: {user_val}"),
+                Card(
+                    H3(f"🔒 {step.show}: {user_val}")
+                ),
                 # Trigger loading the next step's (finalize) locked view
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
 
         # Boilerplate: Check if step is complete and we are NOT reverting to it
