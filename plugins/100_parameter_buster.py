@@ -3585,7 +3585,10 @@ console.log(analyzeParameters(testUrl));"""
             table_html += '</table>'
             
             # Create figure with dark style for the bar chart
-            plt.figure(figsize=(10, 14), facecolor='#1e1e2e')
+            # Calculate height dynamically based on parameter count
+            # Increase height by 1.5x the previous calculation (0.35 * 1.5 = 0.525)
+            figure_height = max(15, min(TOP_PARAMS_COUNT * 0.525, 30))
+            plt.figure(figsize=(10, figure_height), facecolor='#1e1e2e')
             ax = plt.gca()
             ax.set_facecolor('#1e1e2e')
             
