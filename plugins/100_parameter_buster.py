@@ -3337,6 +3337,9 @@ console.log(analyzeParameters(testUrl));"""
         """
         Create a visualization of parameters from all three data sources.
         """
+        # Constants for visualization
+        TOP_PARAMS_COUNT = 40  # Control the number of parameters shown in both visualizations
+        
         # Import standard libraries
         import logging
         import matplotlib.pyplot as plt
@@ -3469,8 +3472,8 @@ console.log(analyzeParameters(testUrl));"""
             # Sort parameters by score in descending order
             results_sorted = sorted(results, key=lambda x: x[5], reverse=True)
             
-            # Get top 30 parameters for matplotlib visualization
-            top_params = [param for param, _, _, _, _, _ in results_sorted[:30]]
+            # Get top parameters for matplotlib visualization
+            top_params = [param for param, _, _, _, _, _ in results_sorted[:TOP_PARAMS_COUNT]]
             top_params.reverse()
             
             # Create a custom HTML table for "Potential Parameter Wins" instead of using rich
@@ -3527,8 +3530,8 @@ console.log(analyzeParameters(testUrl));"""
                 </tr>
             '''
             
-            # Add the top 50 parameters to the table
-            for param, wb, ni, gsc, total, score in results_sorted[:50]:
+            # Add the top parameters to the table, using the same count as the chart
+            for param, wb, ni, gsc, total, score in results_sorted[:TOP_PARAMS_COUNT]:
                 table_html += f'''
                 <tr>
                     <td style="border-right: solid white 1px"><span class="param-name">{param}</span></td>
@@ -3563,6 +3566,12 @@ console.log(analyzeParameters(testUrl));"""
             weblog_bars = plt.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
             crawl_bars = plt.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
             gsc_bars = plt.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
+            
+            # Update title to include parameter count
+            plt.title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
+            
+            # Rest of the visualization code remains the same
+            # ... (rest of the visualization code)
             
             # Add subtle alternating row backgrounds
             for i, p in enumerate(y_pos):
