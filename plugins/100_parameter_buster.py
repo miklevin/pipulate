@@ -1613,7 +1613,7 @@ class ParameterBusterWorkflow:
                                     style="flex-grow: 1; margin: 0 10px;",
                                     _oninput="document.getElementById('gsc_threshold').value = this.value",
                                     hx_post=f"/{app_name}/parameter_preview",
-                                    hx_trigger="input changed delay:300ms",
+                                    hx_trigger="input changed delay:300ms, load",
                                     hx_target="#parameter-preview",
                                     hx_include="#gsc_threshold, #min_frequency"
                                 ),
