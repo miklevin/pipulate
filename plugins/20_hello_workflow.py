@@ -113,14 +113,14 @@ class HelloFlow:
             Step(
                 id='step_01',          # HTML ID and part of URL path
                 done='name',           # State key indicating step completion (usually input name)
-                show='Your Name',      # Label shown in UI for this step/data
+                show='Step 1 Your Name',      # Label shown in UI for this step/data
                 refill=True,           # Refill input with this value on revert?
                 # transform=None       # Step 1 usually doesn't transform previous data
             ),
             Step(
                 id='step_02',
                 done='greeting',
-                show='Hello Message',
+                show='Step 2 Hello Message',
                 refill=False,          # Usually False if value is generated/transformed
                 transform=lambda name_from_step_01: f"Hello {name_from_step_01}!" # Example: Generate greeting
             ),
