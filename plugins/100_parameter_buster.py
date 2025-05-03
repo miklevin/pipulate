@@ -3331,7 +3331,7 @@ console.log(analyzeParameters(testUrl));"""
     # Add this helper method to create a simple placeholder for parameter visualization
     def create_parameter_visualization_placeholder(self, summary_data_str=None):
         """
-        Create a matplotlib visualization of the top 10 parameters from weblogs data.
+        Create a matplotlib visualization of parameters from all three data sources with distinct colors.
         
         Args:
             summary_data_str: JSON string containing parameter summary data
@@ -3344,7 +3344,13 @@ console.log(analyzeParameters(testUrl));"""
             has_data = False
             total_params = 0
             data_sources = []
-            top_weblogs_params = []
+            
+            # Counters for each data source
+            source_counters = {
+                'weblogs': Counter(),
+                'gsc': Counter(),
+                'not_indexable': Counter()  # 'crawl' data
+            }
             
             if summary_data_str:
                 import json
@@ -3360,59 +3366,80 @@ console.log(analyzeParameters(testUrl));"""
                         with open(cache_path, 'rb') as f:
                             cache_data = pickle.load(f)
                         
-                        # Extract the weblogs counter
-                        weblogs_counter = cache_data.get('raw_counters', {}).get('weblogs', Counter())
-                        
-                        # Get top 10 parameters
-                        top_weblogs_params = weblogs_counter.most_common(10)
+                        # Extract counters for all sources
+                        raw_counters = cache_data.get('raw_counters', {})
+                        for source in source_counters.keys():
+                            if source in raw_counters:
+                                source_counters[source] = raw_counters[source]
                     except Exception as e:
                         logging.error(f"Error loading parameter data from cache: {e}")
-                        top_weblogs_params = []
+                
+                # If we couldn't get data from cache, try to use the summary data directly
+                if all(not counter for counter in source_counters.values()) and has_data:
+                    for source, counter in source_counters.items():
+                        source_data = summary_data.get('data_sources', {}).get(source, {})
+                        for param_data in source_data.get('top_parameters', []):
+                            counter[param_data['name']] = param_data['count']
             
-            # If we couldn't get the data from cache, try to use the summary data directly
-            if not top_weblogs_params and has_data:
-                weblog_data = summary_data.get('data_sources', {}).get('weblogs', {})
-                top_weblogs_params = [(item['name'], item['count']) 
-                                     for item in weblog_data.get('top_parameters', [])][:10]
+            # Get union of all parameters across sources
+            all_params = set()
+            for counter in source_counters.values():
+                all_params.update(counter.keys())
+            
+            # Get top parameters across all sources
+            param_total_counts = Counter()
+            for param in all_params:
+                total = sum(counter.get(param, 0) for counter in source_counters.values())
+                param_total_counts[param] = total
+            
+            # Get top 10 parameters across all sources
+            top_params = [param for param, _ in param_total_counts.most_common(10)]
             
             # Create the visualization
-            if top_weblogs_params:
+            if top_params:
                 # Generate a matplotlib visualization
                 import matplotlib.pyplot as plt
                 from io import BytesIO
                 import base64
+                import numpy as np
                 
                 # Create figure with appropriate size
                 plt.figure(figsize=(10, 6))
                 
-                # Sort by count (descending)
-                top_weblogs_params.sort(key=lambda x: x[1], reverse=True)
+                # Set up positions for the bars
+                y_pos = np.arange(len(top_params))
+                width = 0.25  # Width of each bar
                 
-                # Extract labels and values
-                labels = [param for param, _ in top_weblogs_params]
-                values = [count for _, count in top_weblogs_params]
+                # Prepare data for each source
+                weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
+                crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
+                gsc_values = [source_counters['gsc'].get(param, 0) for param in top_params]
                 
-                # Create horizontal bar chart (easier to read parameter names)
-                plt.barh(labels, values, color='skyblue')
+                # Create grouped bar chart with distinct colors
+                plt.barh([p + width for p in y_pos], weblogs_values, width, color='skyblue', label='Web Logs')
+                plt.barh(y_pos, crawl_values, width, color='lightgreen', label='Crawl Data')
+                plt.barh([p - width for p in y_pos], gsc_values, width, color='orange', label='Search Console')
+                
+                # Set y-axis labels and ticks
+                plt.yticks(y_pos, top_params)
                 
                 # Add labels and title
                 plt.xlabel('Occurrences')
                 plt.ylabel('Parameters')
-                plt.title('Top 10 Parameters from Web Logs')
+                plt.title('Top 10 Parameters by Data Source')
                 
-                # Add value labels to the end of each bar
-                for i, v in enumerate(values):
-                    plt.text(v + (max(values) * 0.01), i, f"{v:,}", va='center')
+                # Add legend
+                plt.legend(loc='best')
                 
                 # Add grid for better readability
                 plt.grid(axis='x', linestyle='--', alpha=0.7)
                 
-                # Adjust layout
+                # Adjust layout to make room for the legend
                 plt.tight_layout()
                 
                 # Save figure to a bytes buffer
                 buffer = BytesIO()
-                plt.savefig(buffer, format='png')
+                plt.savefig(buffer, format='png', dpi=100)
                 plt.close()
                 
                 # Convert to base64 for embedding in HTML
