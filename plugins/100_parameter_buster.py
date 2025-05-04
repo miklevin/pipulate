@@ -1879,29 +1879,169 @@ class ParameterBusterWorkflow:
         gsc_threshold = form.get("gsc_threshold", "0")
         min_frequency = form.get("min_frequency", "100000")
         
-        # Create a JSON object to store
-        threshold_data = {
-            "gsc_threshold": gsc_threshold,
-            "min_frequency": min_frequency
-        }
+        # Get the parameter data from step_05
+        prev_step_data = pip.get_step_data(pipeline_id, "step_05", {})
+        prev_data_str = prev_step_data.get("placeholder", "")
         
-        # Convert to JSON string for storage
-        user_val = json.dumps(threshold_data)
+        # Initialize empty list for selected parameters
+        selected_params = []
+        
+        try:
+            if prev_data_str:
+                summary_data = json.loads(prev_data_str)
+                cache_path = summary_data.get('cache_path')
+                
+                if cache_path and os.path.exists(cache_path):
+                    # Load raw counters from cache
+                    with open(cache_path, 'rb') as f:
+                        cache_data = pickle.load(f)
+                    
+                    raw_counters = cache_data.get('raw_counters', {})
+                    
+                    # Extract counters for each source
+                    weblogs_counter = None
+                    gsc_counter = None
+                    not_indexable_counter = None
+                    
+                    # Map sources to counter keys
+                    source_mapping = {
+                        'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
+                        'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
+                        'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
+                    }
+                    
+                    # Find the right counters
+                    for source, possible_keys in source_mapping.items():
+                        for key in possible_keys:
+                            if key in raw_counters:
+                                if source == 'weblogs':
+                                    weblogs_counter = raw_counters[key]
+                                elif source == 'gsc':
+                                    gsc_counter = raw_counters[key]
+                                elif source == 'not_indexable':
+                                    not_indexable_counter = raw_counters[key]
+                                break
+                    
+                    # Find parameters that meet our criteria
+                    if gsc_counter and (weblogs_counter or not_indexable_counter):
+                        # Combine weblogs and not_indexable counters
+                        combined_counter = Counter()
+                        if weblogs_counter:
+                            combined_counter.update(weblogs_counter)
+                        if not_indexable_counter:
+                            combined_counter.update(not_indexable_counter)
+                        
+                        # Collect parameters that match our criteria
+                        for param, count in combined_counter.items():
+                            param_gsc_count = gsc_counter.get(param, 0)
+                            
+                            # Check if this parameter meets our criteria
+                            if param_gsc_count <= int(gsc_threshold) and count >= int(min_frequency):
+                                selected_params.append(param)
+            
+            # Generate JavaScript code using the template
+            selected_params_js_array = json.dumps(selected_params)
+            
+            js_code = f"""
+import json
 
-        # Save the values to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
-        
-        # Return the completed view
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"Parameter Thresholds: GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency}",
-                steps=steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+# Set thresholds:
+GSC_LIMIT = {gsc_threshold}         # Only include parameters with a GSC count <= {gsc_threshold}
+MIN_FREQUENCY = {min_frequency}   # Only include parameters with a combined frequency (Weblogs + Not-Indexable) >= {min_frequency}
+
+# Selected parameters:
+selected_params = {selected_params_js_array}
+
+function removeQueryParams(url, paramsToRemove) {{
+    let urlParts = url.split('?');
+    if (urlParts.length >= 2) {{
+        let queryParams = urlParts[1].split('&');
+        let updatedParams = [];
+        for (let i = 0; i < queryParams.length; i++) {{
+            let paramParts = queryParams[i].split('=');
+            if (!paramsToRemove.includes(paramParts[0])) {{
+                updatedParams.push(queryParams[i]);
+            }}
+        }}
+        if (updatedParams.length > 0) {{
+            return urlParts[0] + '?' + updatedParams.join('&');
+        }} else {{
+            return urlParts[0];
+        }}
+    }} else {{
+        return url;
+    }}
+}}
+  
+function removeUselessLinks() {{
+    const DOM = runtime.getDOM();
+    const removeParameters = {selected_params_js_array};
+    DOM.getAllElements("[href]").forEach(function(el) {{
+        let targetURL = el.getAttribute("href");	
+        let newTargetURL = removeQueryParams(targetURL, removeParameters);
+        if (targetURL != newTargetURL) {{
+            //console.log("FROM:" + targetURL + " TO:" + newTargetURL);
+            el.setAttribute("href", newTargetURL);
+            el.setAttribute("data-bty-pw-id", "REPLACE_ME!!!");
+        }}
+    }});
+}}
+
+removeUselessLinks();
+"""
+            
+            # Store the JavaScript code in state
+            threshold_data = {
+                "gsc_threshold": gsc_threshold,
+                "min_frequency": min_frequency,
+                "selected_params": selected_params,
+                "js_code": js_code
+            }
+            
+            # Convert to JSON string for storage
+            user_val = json.dumps(threshold_data)
+            
+            # Save the values to state
+            await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+            
+            # Generate unique widget ID for this step and pipeline
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            
+            # Create Prism widget with the generated JavaScript
+            prism_widget = self.create_prism_widget(js_code, widget_id, 'javascript')
+            
+            # Return widget container instead of revert control
+            from starlette.responses import HTMLResponse
+            from fasthtml.common import to_xml  # Import from fasthtml.common instead
+            
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        pip.widget_container(
+                            step_id=step_id,
+                            app_name=app_name,
+                            message=f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})",
+                            widget=prism_widget,
+                            steps=steps
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
+            )
+            
+            # Add HX-Trigger to initialize Prism highlighting
+            response.headers["HX-Trigger"] = json.dumps({
+                "initializePrism": {
+                    "targetId": widget_id
+                }
+            })
+            
+            return response
+            
+        except Exception as e:
+            logging.exception(f"Error in step_06_submit: {e}")
+            return P(f"Error creating parameter optimization: {str(e)}", style=pip.get_style("error"))
 
     # --- Helper Methods ---
     
