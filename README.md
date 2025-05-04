@@ -57,13 +57,16 @@ This guide shows you how to install Pipulate using two main commands in your ter
     * Follow any instructions on the screen (you might need to type "Yes").
     * **Important:** After the installation finishes, **close your Terminal window completely and open a new one.** This ensures Nix is correctly added to your system's PATH.
 
-2.  **Install Pipulate:**
-    * This command downloads Pipulate into `~/pipulate` (by default), sets up automatic updates via Git, and configures the Nix environment.
-    * In the **new** Terminal window you just opened, copy and paste this command, then press Enter:
-        ```shell
-        curl -L https://pipulate.com/install.sh | sh
-        ```
-    * This might take some time the first time you run it as Nix downloads dependencies. It should automatically start the necessary services (JupyterLab and the Pipulate server) and open browser tabs when ready.
+2.  **Install Pipulate (or a custom-named version):**
+    * Install with the default name "pipulate":
+      ```shell
+      curl -L https://pipulate.com/install.sh | sh
+      ```
+    * Install with a custom name (e.g., "Botifython"):
+      ```shell
+      curl -L https://pipulate.com/install.sh | sh -s Botifython
+      ```
+    * This will download the code into `~/[custom-name]` and set the application branding accordingly
 
 **That's it! Pipulate is installed.** You now have a self-contained, reproducible environment managed by Nix.
 
