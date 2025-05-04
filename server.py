@@ -175,8 +175,28 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def title_name(word):
-    return ' '.join(word.capitalize() for word in word.replace('.', ' ').split('_'))
+def title_name(word: str) -> str:
+    """Format a string into a title case form.
+    
+    Args:
+        word: The string to format
+        
+    Returns:
+        str: The formatted string in title case
+    """
+    if not word:
+        return ""
+
+    # First replace periods with spaces, then hyphens with spaces
+    formatted = word.replace('.', ' ').replace('-', ' ')
+
+    # Split by underscores and spaces
+    words = []
+    for part in formatted.split('_'):
+        words.extend(part.split())
+
+    # Capitalize each word and join with spaces
+    return ' '.join(word.capitalize() for word in words)
 
 
 def endpoint_name(endpoint: str) -> str:
