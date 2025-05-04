@@ -121,8 +121,8 @@ class ParameterBusterWorkflow:
             ),
             Step(
                 id='step_07',
-                done='placeholder',
-                show='Step 7 Placeholder',
+                done='robots_txt',
+                show='Instructions & robots.txt',
                 refill=True,
             ),
         ]
@@ -135,8 +135,6 @@ class ParameterBusterWorkflow:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
-            (f"/{app_name}/step_06", self.step_06),  # Register route for step_06
-            (f"/{app_name}/step_06_submit", self.step_06_submit, ["POST"]),  # Register submit route
             (f"/{app_name}/parameter_preview", self.parameter_preview, ["POST"]),
         ]
 
@@ -146,10 +144,6 @@ class ParameterBusterWorkflow:
             step_id = step.id
             routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
             routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
-
-        # Register route for step_07
-        routes.append((f"/{app_name}/step_07", self.step_07))
-        routes.append((f"/{app_name}/step_07_submit", self.step_07_submit, ["POST"]))
 
         # Add the step_04_complete route
         routes.append((f"/{app_name}/step_04_complete", self.step_04_complete, ["POST"]))
@@ -4492,7 +4486,7 @@ removeWastefulParams();
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # Empty div for next step
+                Div(id=next_step_id),  # This one should not chain react because it's in the process of being updated
                 id=step_id
             )
 
