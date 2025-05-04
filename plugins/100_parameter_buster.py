@@ -1777,7 +1777,7 @@ class ParameterBusterWorkflow:
                             """
                             for freq, count in breakpoints:
                                 # Round down to nearest 100
-                                rounded_freq = int(freq // 100 * 100)
+                                rounded_freq = freq if freq < 100 else int(freq // 100 * 100)
                                 # Create clickable link with hardcoded path
                                 breakpoints_html += f"""
                                     <tr>
