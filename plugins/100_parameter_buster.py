@@ -1348,8 +1348,8 @@ class ParameterBusterWorkflow:
             return P("Error: Missing required project information", style=pip.get_style("error"))
 
         try:
-            # Show detailed progress messages
-            await self.message_queue.add(pip, "🔄 Starting parameter analysis...", verbatim=True)
+            # Show a single processing message instead of detailed progress
+            await self.message_queue.add(pip, "Analyzing parameters...", verbatim=True)
             
             # Determine data directory
             data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
@@ -1357,24 +1357,21 @@ class ParameterBusterWorkflow:
             
             # Define which files to process with appropriate names
             files_to_process = {
-                "not_indexable": "crawl.csv",  # Using the category name from your example
+                "not_indexable": "crawl.csv",  
                 "gsc": "gsc.csv",
-                "weblogs": "weblog.csv"  # Match your example but use the actual filename
+                "weblogs": "weblog.csv"  
             }
             
-            await self.message_queue.add(pip, "Step 1: Attempting to load raw counters from cache...", verbatim=True)
+            # Try to load from cache first
             cached_data = self.load_raw_counters_from_cache(data_dir, cache_filename)
             
             output_data = None  # Initialize
             
             if cached_data is not None:
-                await self.message_queue.add(pip, "✓ Cache loaded successfully.", verbatim=True)
                 output_data = cached_data
-                # Could add check here for configuration consistency
             
             # If cache wasn't loaded or needs recalculation
             if output_data is None:
-                await self.message_queue.add(pip, "Step 2: Cache not found or invalid, calculating from source files...", verbatim=True)
                 output_data = await self.calculate_and_cache_raw_counters(
                     data_directory_path=data_dir,
                     input_files_config=files_to_process,
@@ -1383,8 +1380,6 @@ class ParameterBusterWorkflow:
                 
                 if output_data is None:
                     raise ValueError("Failed to calculate counters from source files")
-                else:
-                    await self.message_queue.add(pip, "✓ Calculation and caching complete.", verbatim=True)
             
             # Prepare summary data about the raw counters
             raw_counters = output_data.get('raw_counters', {})
@@ -1400,19 +1395,21 @@ class ParameterBusterWorkflow:
             
             # Process each data source for summary
             total_unique_params = set()
+            total_occurrences = 0
+            
             for source, counter in raw_counters.items():
                 unique_params = len(counter)
-                total_params = sum(counter.values())
+                source_occurrences = sum(counter.values())
+                total_occurrences += source_occurrences
                 status = file_statuses.get(source, "Unknown")
                 
                 parameter_summary['data_sources'][source] = {
                     'unique_parameters': unique_params,
-                    'total_occurrences': total_params,
+                    'total_occurrences': source_occurrences,
                     'status': status,
-                    # Optional: Include top parameters if desired
                     'top_parameters': [
                         {'name': param, 'count': count}
-                        for param, count in counter.most_common(10)  # Store top 10
+                        for param, count in counter.most_common(10)
                     ] if counter else []
                 }
                 
@@ -1426,20 +1423,12 @@ class ParameterBusterWorkflow:
             summary_str = json.dumps(parameter_summary)
             await pip.update_step_state(pipeline_id, step_id, summary_str, steps)
 
-            # Add success messages with detailed stats
-            await self.message_queue.add(pip, f"✓ Parameter analysis complete!", verbatim=True)
-            await self.message_queue.add(pip, f"Analysis Summary:", verbatim=True)
-            await self.message_queue.add(pip, f"  - Total unique parameters: {len(total_unique_params):,}", verbatim=True)
-            
-            # Add details for each data source
-            for source, info in parameter_summary['data_sources'].items():
-                await self.message_queue.add(pip, f"  - {source.title()}:", verbatim=True)
-                await self.message_queue.add(pip, f"    • Unique parameters: {info['unique_parameters']:,}", verbatim=True)
-                await self.message_queue.add(pip, f"    • Total occurrences: {info['total_occurrences']:,}", verbatim=True)
-                await self.message_queue.add(pip, f"    • Status: {info['status']}", verbatim=True)
-            
-            # Show cache location
-            await self.message_queue.add(pip, f"\nRaw parameter counts cached at: {parameter_summary['cache_path']}", verbatim=True)
+            # Add a single consolidated summary message instead of multiple detailed ones
+            await self.message_queue.add(
+                pip, 
+                f"✓ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", 
+                verbatim=True
+            )
             
             # Create the visualization for the completed state
             visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
@@ -2947,8 +2936,7 @@ removeWastefulParams();
             
             if file_exists:
                 # File already exists, skip the export
-                await self.message_queue.add(pip, f"✓ Found existing crawl data from {file_info['created']}", verbatim=True)
-                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
                 
                 # Update analysis result with existing file info
                 analysis_result.update({
@@ -3218,8 +3206,7 @@ removeWastefulParams();
                 
                 if file_exists:
                     # File already exists, skip the export
-                    await self.message_queue.add(pip, f"✓ Found existing web logs data from {file_info['created']}", verbatim=True)
-                    await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                    await self.message_queue.add(pip, f"✓ Using cached web logs data ({file_info['size']})", verbatim=True)
                     
                     # Update check result with existing file info
                     check_result.update({
