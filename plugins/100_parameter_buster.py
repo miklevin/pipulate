@@ -118,6 +118,12 @@ class ParameterBusterWorkflow:
                 show='Parameter Optimization',
                 refill=True,
             ),
+            Step(
+                id='step_07',
+                done='placeholder',
+                show='Step 7 Placeholder',
+                refill=True,
+            ),
         ]
         
         # Register standard workflow routes
@@ -139,6 +145,10 @@ class ParameterBusterWorkflow:
             step_id = step.id
             routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
             routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+
+        # Register route for step_07
+        routes.append((f"/{app_name}/step_07", self.step_07))
+        routes.append((f"/{app_name}/step_07_submit", self.step_07_submit, ["POST"]))
 
         # Add the step_04_complete route
         routes.append((f"/{app_name}/step_04_complete", self.step_04_complete, ["POST"]))
@@ -4337,3 +4347,75 @@ removeWastefulParams();
         }, 500);
     }
     ''')
+
+    async def step_07(self, request):
+        """Handles GET request for Step 7 placeholder."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_07"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P("Placeholder step completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Show minimal UI with just a Proceed button
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Proceed", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),  # Note: No hx_trigger="load" here to prevent auto-progression
+                id=step_id
+            )
+
+    async def step_07_submit(self, request):
+        """Process the submission for placeholder Step 7."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_07"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # Set a fixed completion value
+        placeholder_value = "completed"
+        
+        # Update state and notify user
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return with revert control and chain reaction to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
