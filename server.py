@@ -471,17 +471,7 @@ class Pipulate:
         """Format an endpoint string into a human-readable form."""
         if endpoint in friendly_names:
             return friendly_names[endpoint]
-
-        # First replace periods with spaces, then hyphens with spaces
-        formatted = endpoint.replace('.', ' ').replace('-', ' ')
-
-        # Split by underscores and spaces
-        words = []
-        for part in formatted.split('_'):
-            words.extend(part.split())
-
-        # Capitalize each word and join with spaces
-        return ' '.join(word.capitalize() for word in words)
+        return title_name(endpoint)
 
     def _get_clean_state(self, pkey):
         try:
