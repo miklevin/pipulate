@@ -1184,7 +1184,7 @@ class ParameterBusterWorkflow:
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
                     Button(
-                        NotStr("<strong>Analyze Parameters</strong>"), 
+                        "Analyze Parameters", 
                         type="submit", 
                         cls="primary"
                     ),
