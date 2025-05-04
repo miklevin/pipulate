@@ -4471,6 +4471,10 @@ removeWastefulParams();
             
             return response
         else:
+            # When going into edit mode, clear the finalize state to prevent finalize button display
+            if "finalized" in finalize_data:
+                await pip.clear_steps_from(pipeline_id, "finalize", steps)
+            
             # Show input form for editing markdown content
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
@@ -4493,7 +4497,7 @@ removeWastefulParams();
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # ADD hx_get and hx_trigger
+                Div(id=next_step_id),  # The only condtion (Update) where chain reaction is not needed
                 id=step_id
             )
 
