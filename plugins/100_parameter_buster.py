@@ -1943,14 +1943,8 @@ class ParameterBusterWorkflow:
             selected_params_js_array = json.dumps(selected_params)
             
             js_code = f"""
-import json
-
-# Set thresholds:
-GSC_LIMIT = {gsc_threshold}         # Only include parameters with a GSC count <= {gsc_threshold}
-MIN_FREQUENCY = {min_frequency}   # Only include parameters with a combined frequency (Weblogs + Not-Indexable) >= {min_frequency}
-
-# Selected parameters:
-selected_params = {selected_params_js_array}
+// Selected parameters:
+const selected_params = {selected_params_js_array};
 
 function removeQueryParams(url, paramsToRemove) {{
     let urlParts = url.split('?');
