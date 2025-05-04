@@ -1587,6 +1587,99 @@ class ParameterBusterWorkflow:
         
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
+        # Calculate meaningful breakpoints for display in a static area
+        breakpoints_html = ""
+        try:
+            # Get the parameter data from step_05
+            prev_step_data = pip.get_step_data(pipeline_id, "step_05", {})
+            prev_data_str = prev_step_data.get("placeholder", "")
+            
+            if prev_data_str:
+                summary_data = json.loads(prev_data_str)
+                cache_path = summary_data.get('cache_path')
+                
+                if cache_path and os.path.exists(cache_path):
+                    # Quick calculation of meaningful breakpoints
+                    with open(cache_path, 'rb') as f:
+                        cache_data = pickle.load(f)
+                    
+                    raw_counters = cache_data.get('raw_counters', {})
+                    
+                    # Get the counters
+                    weblogs_counter = None
+                    gsc_counter = None
+                    not_indexable_counter = None
+                    
+                    # Map sources to counter keys
+                    source_mapping = {
+                        'weblogs': ['weblogs', 'weblog', 'logs', 'log'],
+                        'gsc': ['gsc', 'search_console', 'searchconsole', 'google'],
+                        'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']
+                    }
+                    
+                    # Find the right counters
+                    for source, possible_keys in source_mapping.items():
+                        for key in possible_keys:
+                            if key in raw_counters:
+                                if source == 'weblogs':
+                                    weblogs_counter = raw_counters[key]
+                                elif source == 'gsc':
+                                    gsc_counter = raw_counters[key]
+                                elif source == 'not_indexable':
+                                    not_indexable_counter = raw_counters[key]
+                                break
+                    
+                    # Find parameters with GSC=0 that meet the criteria
+                    if gsc_counter and (weblogs_counter or not_indexable_counter):
+                        # Combine counters
+                        combined_counter = Counter()
+                        if weblogs_counter:
+                            combined_counter.update(weblogs_counter)
+                        if not_indexable_counter:
+                            combined_counter.update(not_indexable_counter)
+                        
+                        # Get frequencies sorted in descending order
+                        all_frequencies = sorted(set(combined_counter.values()), reverse=True)
+                        param_counts = {}
+                        
+                        # Calculate how many parameters at each frequency
+                        for freq in all_frequencies:
+                            count = sum(1 for param, count in combined_counter.items() 
+                                       if gsc_counter.get(param, 0) <= 0 and count >= freq)
+                            param_counts[freq] = count
+                        
+                        # Find breakpoints for interesting parameter counts
+                        breakpoints = []
+                        ranges = [(5, 15), (15, 30), (30, 50), (50, 100)]
+                        for min_count, max_count in ranges:
+                            for freq in all_frequencies:
+                                if param_counts[freq] >= min_count and param_counts[freq] <= max_count:
+                                    breakpoints.append((freq, param_counts[freq]))
+                                    break
+                        
+                        # Create the HTML for breakpoints
+                        if breakpoints:
+                            breakpoints_html = f"""
+                            <div style="background: #222; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                                <h5 style="margin-bottom: 5px; color: #ccc;">Meaningful Min Frequency Values (with GSC=0):</h5>
+                                <table style="margin-bottom: 10px; font-size: 0.9em;">
+                            """
+                            for freq, count in breakpoints:
+                                breakpoints_html += f"""
+                                    <tr>
+                                        <td style="color: #bbb; padding-right: 10px;">Show ~{count} parameters:</td>
+                                        <td style="color: #ff8c00; font-weight: bold; text-align: right;">{freq:,}</td>
+                                    </tr>
+                                """
+                            breakpoints_html += """
+                                </table>
+                            </div>
+                            """
+        except Exception as e:
+            logging.error(f"Error calculating breakpoints: {e}")
+            breakpoints_html = ""
+
+        # Return the form with the properly placed breakpoints info
         return Div(
             Card(
                 H3(f"{pip.fmt(step_id)}: {step.show}"),
@@ -1677,6 +1770,9 @@ class ParameterBusterWorkflow:
                             ),
                             style="margin-bottom: 15px;"
                         ),
+                        
+                        # Static breakpoints info - placed outside dynamic update area
+                        NotStr(breakpoints_html) if breakpoints_html else None,
                         
                         # Parameter preview container
                         Div(
@@ -3840,6 +3936,7 @@ class ParameterBusterWorkflow:
         matching_params = []
         param_count = 0
         total_frequency = 0
+        breakpoint_frequencies = []  # Initialize this variable here
         
         try:
             if prev_data_str:
@@ -3886,8 +3983,31 @@ class ParameterBusterWorkflow:
                         if not_indexable_counter:
                             combined_counter.update(not_indexable_counter)
                         
+                        # Calculate breakpoints with GSC=0 (only needed once)
+                        # Identify frequencies where parameter counts change significantly
+                        if gsc_threshold == 0:
+                            # Get all frequencies sorted in descending order
+                            all_frequencies = sorted(set(combined_counter.values()), reverse=True)
+                            param_counts = {}
+                            
+                            # Calculate how many parameters at each frequency
+                            for freq in all_frequencies:
+                                # Count params with GSC ≤ 0 and frequency ≥ freq
+                                count = sum(1 for param, count in combined_counter.items() 
+                                           if gsc_counter.get(param, 0) <= 0 and count >= freq)
+                                param_counts[freq] = count
+                            
+                            # Find breakpoints where param count changes from <5 to ≥5, etc.
+                            ranges = [(5, 15), (15, 30), (30, 50), (50, 100)]
+                            for min_count, max_count in ranges:
+                                for i, freq in enumerate(all_frequencies):
+                                    if param_counts[freq] >= min_count and param_counts[freq] <= max_count:
+                                        # Found a frequency in our desired range
+                                        breakpoint_frequencies.append((freq, param_counts[freq]))
+                                        break
+                        
                         # Apply our filtering criteria
-                        for param, count in combined_counter.items():  # Remove the most_common(20) limit
+                        for param, count in combined_counter.items():
                             param_gsc_count = gsc_counter.get(param, 0)
                             
                             # Check if this parameter meets our criteria
@@ -3904,7 +4024,22 @@ class ParameterBusterWorkflow:
             logging.error(f"Error in parameter preview: {str(e)}")
             return Div(P(f"Error: {str(e)}", style="color: red;"))
         
-        # Create the output UI
+        # Create breakpoints info if we've calculated it
+        breakpoints_info = ""
+        if breakpoint_frequencies and gsc_threshold == 0:
+            breakpoints_info = Div(
+                H5("Meaningful Min Frequency Values (with GSC=0):", style="margin-bottom: 5px; color: #ccc;"),
+                Table(
+                    *[Tr(
+                        Td(f"Show ~{count} parameters:", style="color: #bbb; padding-right: 10px;"),
+                        Td(f"{freq:,}", style="color: #ff8c00; font-weight: bold; text-align: right;")
+                    ) for freq, count in breakpoints_info],
+                    style="margin-bottom: 10px; font-size: 0.9em;"
+                ),
+                style="background: #222; padding: 10px; border-radius: 5px; margin-bottom: 15px;"
+            )
+        
+        # Create the output UI with optional breakpoints info
         if matching_params:
             display_limit = 5000
             display_message = ""
@@ -3914,6 +4049,7 @@ class ParameterBusterWorkflow:
             return Div(
                 P(f"Found {param_count:,} parameters with total frequency of {total_frequency:,}"),
                 P(display_message, style="color: #888; font-style: italic; margin-bottom: 10px;") if display_message else None,
+                breakpoints_info,  # Include breakpoints info here
                 Table(
                     Tr(
                         Th("Parameter", style="text-align: left; color: cyan;"),
