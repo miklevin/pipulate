@@ -4402,25 +4402,9 @@ removeWastefulParams();
         if not markdown_content:
             markdown_content = """# Parameter Buster Documentation
 
-## Overview
-This workflow analyzes URL parameters from multiple data sources:
-- Botify crawl data
-- Web logs (when available)
-- Search Console data
+1. Copy/Paste that JavaScript into a new PageWorkers custom optimization.
+2. Update the `REPLACE_ME!!!` with the ID found in the URL of the PageWorker.
 
-## Optimization Process
-1. **Analysis**: We identify parameters with high occurrence in crawl/logs but low GSC value
-2. **Filtering**: Parameters are filtered based on:
-   - GSC Threshold: Maximum GSC occurrences allowed
-   - Minimum Frequency: Minimum crawl/logs occurrences required
-3. **Implementation**: JavaScript code removes these parameters from links
-
-## Benefits
-- Improves crawl efficiency
-- Reduces duplicate content
-- Preserves important parameters for tracking
-
-> **Note**: Always test parameter removal in staging before production deployment!
 """
 
         # Generate a unique ID for this instance
