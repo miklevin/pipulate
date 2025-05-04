@@ -88,4 +88,83 @@ Keeping these different (as in the example above) allows you to improve user-fac
    - Never remove the `hx_trigger="load"` attribute even if it seems redundant
    - This explicit approach is the reliable standard for the application and alternative implicit approaches are not supported
 
+2. **Step Progression Pattern**:
+   - **GET Handler** displays UI for user input and must follow this structure:
+     ```python
+     return Div(
+         Card(...),  # Current step content
+         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # Next step loader
+         id=step_id
+     )
+     ```
+   - **POST Handler** processes submitted data and must include chain reaction:
+     ```python
+     # Process form data, validate, and store
+     await pip.update_step_state(pipeline_id, step_id, value, steps)
+     
+     return Div(
+         pip.revert_control(...),  # Shows completed step with revert option
+         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # CRITICAL! Triggers next step
+         id=step_id  # CRITICAL! Maintains current step ID
+     )
+     ```
+
+3. **Breaking the Chain (Only Two Special Cases)**:
+   - **Terminal Responses** (for explicit user action):
+     ```python
+     return Div(
+         result_card,
+         download_button,
+         cls="terminal-response no-chain-reaction",
+         id=step_id
+     )
+     ```
+   - **Polling States** (for checking status without progression):
+     ```python
+     return Div(
+         result_card,
+         progress_indicator,
+         cls="polling-status no-chain-reaction",
+         hx_get=f"/{app_name}/check_status",
+         hx_trigger="load, every 2s",
+         hx_target=f"#{step_id}",
+         id=step_id
+     )
+     ```
+
+4. **Placeholder Step Pattern**:
+   - Used for scaffolding workflow steps before implementing full functionality
+   - Follows the standard progression pattern but with minimal UI components
+   - Implementation example:
+     ```python
+     # In __init__ steps list
+     Step(
+         id='step_XX',            # Use proper sequential numbering
+         done='placeholder',      # Simple state field name
+         show='Placeholder Step', # Descriptive UI text
+         refill=True,             # Usually True for consistency
+     )
+     
+     # GET handler 
+     async def step_XX(self, request):
+         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+         step_id = "step_XX"
+         step_index = self.steps_indices[step_id]
+         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+         
+         # Simple UI with just a proceed button
+         return Div(
+             Card(
+                 H4(f"{pip.fmt(step_id)}: {step.show}"),
+                 Form(
+                     Button("Proceed", type="submit"),
+                     hx_post=f"/{app_name}/{step_id}_submit",
+                     hx_target=f"#{step_id}"
+                 )
+             ),
+             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+             id=step_id
+         )
+     ```
+
 ---

@@ -1,410 +1,289 @@
-Previous Prompt:
-
-We are going to do this in sever bite-sized chunk passes because any attempt to do a large analysis of this system and a full step-by-step guide results in the Gemini Web UI logging me out and losing all the work thus far. It is extremely frustrating, so we are going to use a "bank small win" methodology by breaking the request up and asking that you specifically focus on one small piece of the big picture, give the best output you can for that one small piece, and wrap things up quickly. For starters, create a very high-level introduction to the system that you see represented here for someone who is getting ready to create a workflow. Don't go into too much depth. Make it a very user-friendly intro.
-
-Gemini: Okay, let's break down this system to get you ready for creating your own workflow!
-
-Think of this codebase as a platform for building interactive, step-by-step processes, which we call "Workflows". It's designed to be run locally on your machine, using a web browser as the interface.
-
-Here's a high-level overview:
-
-1.    **The Core Engine (`server.py`):** This is the heart of the application. It runs a web server (using FastAPI/Starlette and Uvicorn) and manages the overall structure. It handles:
-    * Loading and managing different Workflows (which are implemented as "Plugins").
-    * Providing the basic navigation menu (like selecting profiles or apps).
-    * Displaying the main layout (usually a content area on the left and a chat interface on the right).
-    * Managing application state (like the currently selected profile or workflow ID) using a simple key-value store (`DictLikeDB`).
-    * Storing the persistent data for each running workflow instance in a database table (`pipeline`).
-
-2.    **Plugins (`plugins/` directory):** This is where you'll create your workflow. Each `.py` file in this directory (following specific naming conventions, like `_workflow.py` suffix and often a numeric prefix like `20_` for ordering) represents a distinct workflow or application component.
-    * **Workflow Plugins (like `20_hello_workflow.py`, `60_widget_examples.py`):** These are typically classes that define a sequence of steps. You'll define:
-        * Metadata like `APP_NAME` (a unique internal ID) and `DISPLAY_NAME` (shown in the UI).
-        * A list of `Step` objects detailing each stage of your process.
-        * Functions (methods within the class) to handle displaying each step (`step_XX`) and processing user input for that step (`step_XX_submit`).
-    * **CRUD Plugins (like `30_tasks.py`):** These are simpler plugins, often inheriting from `BaseCrud`, designed for managing lists of items (like tasks or profiles).
-
-3.    **The `Pipulate` Class (in `server.py`):** This is your main toolkit when building a workflow. Your workflow class will receive an instance of `Pipulate` (often aliased as `pip` in the examples). It provides helper methods for common tasks like:
-    * Reading and writing workflow state (`pip.read_state`, `pip.write_state`, `pip.update_step_state`).
-    * Generating standard UI elements like "Revert" buttons (`pip.revert_control`) or containers for dynamic content (`pip.widget_container`).
-    * Validating user input (`pip.validate_step_input`).
-    * Generating unique IDs for workflow instances (`pip.generate_pipeline_key`).
-
-4.    **User Interface (UI):** The UI is built using `fasthtml` (a Python library for generating HTML) and `PicoCSS` for styling. It relies heavily on `HTMX` to update parts of the page dynamically without needing full page reloads, making it feel more interactive.
-
-5.    **Environment (`flake.nix`, `requirements.txt`):** The project uses Nix to manage system-level dependencies (like Python itself) and `pip` within a virtual environment (`.venv`) for Python packages. **Crucially, you always need to run `nix develop` in your terminal before running any other commands** to ensure you have the correct environment activated.
-
-**In essence, to create a new workflow:**
-
-1.  Copy an existing workflow file (like `70_blank_workflow.py`) in the `plugins/` directory and rename it appropriately (e.g., `90_my_new_workflow.py`).
-2.  Rename the class inside the file (e.g., `MyNewWorkflow`).
-3.  Update `APP_NAME` and `DISPLAY_NAME`.
-4.  Define your sequence of steps in the `steps` list within the `__init__` method.
-5.  Implement the `step_XX` (GET) and `step_XX_submit` (POST) methods for each step, using `self.pipulate` helpers for state and UI generation.
-
-The system will automatically discover your new plugin file and add it to the "APP" dropdown menu in the UI.
-
----
-
-Previous Prompt: 
-
-Excellent! Examine the step-to-step flow, particularly the HTMX chain reaction and the parts that are critical to keep intact when making new workflows. There are 1000 ways to get it wrong and only 1 way to keep the step-to-step chain reaction proceeding correctly. This includes the transition of init/landing into step_01 and then the eventual transition of step_XX into finalize/unfinalize. 9 times out of 10 this gets messed up when new steps are spliced in as the coder feels compelled to override the natural chain reaction progression which always introduces difficult to debug situations. So in the same high-level fashion, summarize for the user what it is about the system that is so surprising and unique (patterned after Jupyter "Run all Cells" that must be specifically left intact or meticulously reproduced when expanding template examples and particularly as things get more complicated as with the introduction of widgets. Don't go too deep or the automatic logout will happen again. Go for precision of description and clarity of communication over quantity.
-
----
-
-Gemini: Okay, let's focus on that step-by-step flow. It's one of the most powerful but also potentially trickiest parts of building these workflows.
-
-**The Core Idea: Automatic Chain Reaction**
-
-Think of it like setting up a row of dominoes. When you start a workflow (by entering an ID and hitting Enter on the landing page), the `init` function essentially does the following:
-
-1.  It calls `pipulate.rebuild()`.
-2.  `rebuild()` calls `pipulate.run_all_cells()`.
-3.  `run_all_cells()` creates placeholder `Div` elements for *every single step* defined in your workflow's `steps` list (e.g., `<Div id='step_01'>`, `<Div id='step_02'>`, etc.) and puts them all into the main container (`<Div id='your_app_name-container'>`).
-
-Here's the crucial part about those placeholders generated by `run_all_cells`:
-
-* **Step 1:** The placeholder `<Div id='step_01'>` has an HTMX attribute `hx_trigger="load"`. This means as soon as it appears on the page, it automatically makes a GET request to fetch its content (`/your_app_name/step_01`).
-* **Subsequent Steps (Step 2, 3, ...):** *Their* placeholders (e.g., `<Div id='step_02'>`) have a different trigger, something like `hx_trigger="stepComplete-step_01 from:#step_01"`. This tells HTMX: "Wait until you see an event named `stepComplete-step_01` coming *from* the element with `id='step_01'`, *then* make your GET request (`/your_app_name/step_02`)."
-
-**Keeping the Dominoes Falling: The Submit-and-Replace Pattern**
-
-This chain reaction relies entirely on how steps are handled, especially the `step_XX_submit` methods:
-
-1.  **User Submits:** The user fills a form in `step_01` and clicks Submit. This sends a POST request to `/your_app_name/step_01_submit`.
-2.  **Server Processes:** Your `step_01_submit` method does its work (validates, saves data using `pip.update_step_state`).
-3.  **Server Responds:** It then returns the *completed view* for `step_01`. This response typically uses `pip.revert_control` or `pip.widget_container` to show the data the user entered and the revert button.
-4.  **HTMX Swaps:** Crucially, the form that triggered the submit likely had `hx_target="#step_01"` and `hx_swap="outerHTML"`. HTMX replaces the entire `<Div id='step_01'>` (which contained the form) with the completed view content sent back by the server.
-5.  **The Implicit Trigger:** When HTMX performs this swap, it automatically dispatches events on the element being swapped out. The placeholder `<Div id='step_02'>` (which has been patiently waiting in the background) hears the `stepComplete-step_01` event bubbling up from the replaced `#step_01` element, and *that's* what triggers it to finally load its content via GET `/your_app_name/step_02`.
-
-This repeats for every step until the `finalize` step is reached.
-
-**Why It's Fragile (and How to Avoid Breaking It)**
-
-This automatic progression is surprisingly easy to disrupt if you deviate from the pattern:
-
-* **Incorrect Targeting:** If your `step_XX_submit` method returns content, but the corresponding form didn't have the correct `hx_target` (e.g., `hx_target=f"#{step_id}"`), the replacement won't happen correctly, and the `stepComplete` event might not fire where the next step is listening.
-* **Incorrect Swap:** Using a different `hx_swap` method might prevent the necessary event from firing correctly. `outerHTML` on the step's main container (`Div(id=step_id)`) is the standard.
-* **Manual Interference:** Trying to manually trigger the next step load from within the `step_XX_submit` handler (instead of letting the HTMX event chain work) often leads to race conditions or duplicate loads.
-* **Incorrect Return Structure:** Both `step_XX` (GET) and `step_XX_submit` (POST) *must* ultimately return content intended to be placed within (or replace entirely) the `Div` corresponding to that specific `step_id`. If you return content meant for a different part of the page without careful use of `hx-swap-oob`, the main step container might get messed up.
-
-**Golden Rules for Workflow Steps:**
-
-1.  **Trust `rebuild`/`run_all_cells`:** Let these core methods set up the initial placeholders and triggers when the workflow starts or is rebuilt (after revert/unfinalize). Don't try to replicate this logic in your step handlers.
-2.  **GET Handler (`step_XX`):**
-    * Its main job is to return the HTML for the *current step's container* (`Div(id=step_id, ...)`).
-    * Inside this container, decide whether to show the input form OR the "completed" view (often using `pip.revert_control` or `pip.widget_container` if the step's data exists and you're not explicitly reverting to it).
-    * **Do not** manually add the *next* step's placeholder here. It's already in the DOM from the initial `rebuild`.
-3.  **POST Handler (`step_XX_submit`):**
-    * Process the form data.
-    * Validate the data (use `pip.validate_step_input`). Return error components directly if invalid.
-    * Save the valid data using `pip.update_step_state(pipeline_id, step_id, processed_value, steps)`.
-    * Return the "completed" view for the *current step*. Use helpers like `pip.create_step_navigation` or `pip.widget_container`. This response *must* target and replace the current step's container (`hx_target=f"#{step_id}", hx_swap="outerHTML"` on the form is standard).
-    * **Let HTMX handle triggering the next step** via the implicit `stepComplete` event.
-4.  **Widgets:** Use `pip.widget_container` to display complex content within the "completed" view of a step. If your widget needs JavaScript initialization after being loaded by HTMX, return an `HTMLResponse` from your submit handler and add an `HX-Trigger` header (see `60_widget_examples.py` for examples like `initMarked`, `renderMermaid`, `initializePrism`, `runJavaScript`).
-
-By sticking closely to how the `step_XX` and `step_XX_submit` methods interact with the `Pipulate` helpers and the HTMX attributes set up by `rebuild`/`run_all_cells`, you maintain the crucial chain reaction that makes the workflow progress smoothly.
-
----
-
-Previous Prompt: 
-
-Excellent! Now examine the difference between the different workflows. Find what you think are the best, most clear patterns for ensuring the htmx chain reaction with the least workflow code and the highest clarity. There are a number of methods to doing this trick of chain reacting back from the app_name-container id up until the latest step that does not yet have any recorded input in order to simulate Jupyter's "Restart Kernel and Run All Cells..." behavior. We are looking to make it as simple and consistent as possible across all the workflows so that for all work moving forward that uses these as the examples, there is no ambiguity or lack of clarity about the best way. I will use your answer to this to go in and make all the workflows match the best and most clear feature-equivalent example the swapping-out of which will be non-breaking.
-
-Gemini: Okay, let's dissect the step progression patterns in the existing workflows and identify the clearest, most robust approach for that HTMX chain reaction.
-
-You're right, getting this wrong is easy and leads to debugging headaches. The goal is to have a consistent pattern that reliably mimics the "Run All Cells" behavior, where completing one step automatically triggers the next, right up until the first incomplete step.
-
-**Core Mechanism Recap:**
-
-The foundation is laid by `pipulate.rebuild()` calling `pipulate.run_all_cells()`. This function populates the workflow container (`#your_app_name-container`) with placeholder `Div`s for *all* defined steps:
-
-* `Div(id="step_01", hx_get="/app/step_01", hx_trigger="load", hx_swap="outerHTML")`
-* `Div(id="step_02", hx_get="/app/step_02", hx_trigger="stepComplete-step_01 from:#step_01", hx_swap="outerHTML")`
-* `Div(id="step_03", hx_get="/app/step_03", hx_trigger="stepComplete-step_02 from:#step_02", hx_swap="outerHTML")`
-* ...and so on, ending eventually with the `finalize` step placeholder.
-
-The magic is in the `hx_trigger`: Step 1 loads automatically. Subsequent steps wait for a `stepComplete-XXX` event *from the previous step's container* before loading themselves.
-
-**Analyzing Existing Patterns vs. the Ideal:**
-
-Let's look at how the current workflows handle the transition from one step to the next after a user submits data (`step_XX_submit`):
-
-1.  **`20_hello_workflow.py` & `70_blank_workflow.py` / `80_practice_workflow.py`:**
-    * **GET (`step_XX`):** If the step is already complete, they return the completed view *plus* an explicit `<Div hx_get="/app/next_step_id" hx_trigger="load">`.
-    * **POST (`step_XX_submit`):** They use `pip.create_step_navigation`, which *also* returns the completed view *plus* that same explicit trigger for the next step.
-    * **Critique:** This pattern largely ignores the `stepComplete-...` trigger that `run_all_cells` set up. It manually triggers the next step with `hx_trigger="load"` in *both* the GET (if already done) and POST handlers. This is redundant and less idiomatic for HTMX event-driven flow. It forces the *current* step handler to know about and explicitly load the *next* step.
-
-2.  **`60_widget_examples.py`:**
-    * **GET (`step_XX`):** Similar to above, if complete, it returns the widget container *plus* the explicit next-step load trigger `Div`.
-    * **POST (`step_XX_submit`):** It returns an `HTMLResponse` containing the completed view (`pip.widget_container`) *plus* the explicit next-step load trigger `Div`. It correctly uses `HTMLResponse(to_xml(...))` and adds `HX-Trigger` headers for JS widgets.
-    * **Critique:** While correctly handling JS initialization via headers, it still suffers from the same redundancy of explicitly triggering the next step load, bypassing the intended `stepComplete-...` mechanism.
-
-**The Clearest & Most Robust Pattern:**
-
-The most consistent and maintainable approach leverages the initial setup by `run_all_cells` and the implicit eventing of HTMX swaps:
-
-1.  **Initial Setup:** `run_all_cells` creates all placeholders with their respective `load` or `stepComplete-...` triggers. This is the correct foundation.
-2.  **GET Handler (`step_XX`):**
-    * Its *only* job is to render the content for the `<Div id="step_XX">`.
-    * It checks state (`finalized`, `completed`, `_revert_target`).
-    * It returns *either*:
-        * The input form `Card`.
-        * The "completed" view (`pip.revert_control` or `pip.widget_container`).
-    * It should **not** explicitly add a `Div` to trigger the *next* step.
-3.  **POST Handler (`step_XX_submit`):**
-    * Process/validate data.
-    * Save state (`pip.update_step_state`).
-    * Generate the "completed" view for the *current* step (e.g., using `pip.widget_container` or a simple `pip.revert_control`).
-    * Return *only* this "completed" view content.
-    * **Crucially:** Ensure the form that submitted has `hx_target=f"#{step_id}"` and `hx_swap="outerHTML"`.
-    * **How it works:** When HTMX swaps the content of `<Div id="step_XX">` with the returned "completed" view, the `stepComplete-step_XX` event is automatically dispatched on the swapped element. The *next* step's placeholder (`<Div id="step_YY">`), which has been waiting with `hx_trigger="stepComplete-step_XX from:#step_XX"`, receives this event and loads itself via GET.
-    * **JS Widgets:** If the "completed" view contains a widget needing JS initialization, wrap the returned FastHTML object in `HTMLResponse(to_xml(...))` and add the necessary `HX-Trigger` header (like in `60_widget_examples.py`).
-
-**Why this is Better:**
-
-* **Separation of Concerns:** Each step handler focuses only on its own step. It doesn't need explicit knowledge of the *next* step's loading mechanism.
-* **Leverages HTMX Events:** It uses the intended `stepComplete-...` event chain set up initially, making the flow more declarative.
-* **Consistency:** The logic for progressing to the next step is handled consistently by HTMX's swap/event mechanism, not duplicated or bypassed in different handlers.
-* **Simplicity:** The code within step handlers becomes slightly simpler as they no longer need to manually add the next step's trigger `Div`.
-
-**Recommendation:**
-
-To achieve maximum clarity and consistency:
-
-1.  **Refactor all workflow GET (`step_XX`) handlers:** Remove any code that explicitly adds `<Div id=next_step_id hx_get=... hx_trigger="load">`.
-2.  **Refactor all workflow POST (`step_XX_submit`) handlers:**
-    * Remove any code that explicitly adds `<Div id=next_step_id ...>`.
-    * Ensure they return *only* the content for the current step's completed view.
-    * Use `HTMLResponse(to_xml(...))` when `HX-Trigger` headers are needed for JS, otherwise returning the FastHTML component directly should work.
-3.  **Modify `Pipulate.create_step_navigation`:** Change it to *only* return the `Div` containing the `revert_control`, removing the part that adds the next step's loading `Div`. (Alternatively, stop using this helper and just return `pip.revert_control(...)` directly in simple submit handlers).
-
-Adopting this refined pattern across all workflows will make the core progression logic identical and easier to follow, isolating the step-specific logic (forms, data processing, widget creation) within each handler pair.
-
----
-
-Prevous Prompt: 
-
-Okay, I really like this plan. The problem is that issuing it as an instruction to an AI coding assistant bites off more than it can chew. If we tried to do this all at once, we would have a giant jumbled broken mess. We have to reduce this concept into a series of tinier explicit steps. I believe the goal should be to get one perfect reference specification implementation, probably in 20_hello_workflow.py and progress forward from there using that as the reference specification implementation. So the instructions for this prompt is to take everything you learned from the prior interactions and boil it down to very precise non-breaking step instructions on how to create the perfect refined pattern in 20_hello_workflow.py. It should also ask the AI coding assistant to document the reasons for things as it makes the changes so the reference specification is also the documentation of the chain reaction process and the warning against interfering with the fragile progression.
-
-Gemini: Okay, let's refine the `70_blank_workflow.py` template to align with the clearest and most robust pattern for the HTMX chain reaction. The core principle is to **trust the initial setup by `run_all_cells` and let the HTMX swap event implicitly trigger the next step**, rather than manually adding next-step triggers in the step handlers.
-
-Here’s how you would modify `plugins/70_blank_workflow.py`:
-
-**1. Refactor the GET Handler (`step_01`)**
-
-* **Goal:** Make the GET handler *only* responsible for returning the content to fill `#step_01`. It should decide whether to show the input form or the completed view, but *not* worry about triggering the next step.
-
-* **Original `step_01` (Problematic Part Highlighted):**
-    ```python
-    # [...]
-    # Check if step is complete and not being reverted to
-    if placeholder_value and state.get("_revert_target") != step_id:
-        # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
-        return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            # --- PROBLEM: Explicitly triggering next step here ---
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            # ----------------------------------------------------
-            id=step_id
-        )
-    else:
-        # CUSTOMIZE_FORM: Replace with your widget's input form
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{step.show}"),
-                P("This is a placeholder step. Click Proceed to continue to the next step."),
-                Form(
-                    Button("Proceed", type="submit", cls="primary"),
-                    hx_post=f"/{app_name}/{step_id}_submit", 
-                    hx_target=f"#{step_id}" # Correct target
-                )
-            ),
-            # --- OK here: Empty placeholder, not triggered ---
-            Div(id=next_step_id),
-            # ------------------------------------------------
-            id=step_id
-        )
-
-    ```
-
-* **Refactored `step_01` (Cleaned):**
-    ```python
-    async def step_01(self, request):
-        """Handles GET request for placeholder Step 1."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        # next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize' # Not strictly needed here anymore
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
-
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Finalized view for this step
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed") # CUSTOMIZE_DISPLAY: Replace with your widget/display
-                ),
-                id=step_id # The container itself is the target
-            )
-            
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Completed view for this step (using revert_control)
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                # NO explicit next step trigger here!
-                id=step_id # The container itself is the target
-            )
-        else:
-            # Input form for this step
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
-                    Form(
-                        # CUSTOMIZE_FORM: Replace Button with actual inputs for your step
-                        Button("Proceed", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}", # Target this step's container
-                        hx_swap="outerHTML"     # Replace this step's container
-                    )
-                ),
-                # NO explicit next step trigger here!
-                id=step_id # The container itself is the target
-            )
-    ```
-
-**2. Refactor the POST Handler (`step_01_submit`)**
-
-* **Goal:** Make the POST handler *only* return the completed view content for `#step_01`. Trust that the HTMX swap will implicitly trigger the `stepComplete-step_01` event, which the existing `#step_02` placeholder is already listening for.
-
-* **Original `step_01_submit` (Problematic Part Highlighted):**
-    ```python
-    async def step_01_submit(self, request):
-        # [...] Code to process data and update state
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # PRESERVE: Return the revert control with chain reaction to next step
-        return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-             # --- PROBLEM: Explicitly triggering next step here ---
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            # ----------------------------------------------------
-            id=step_id
-        )
-    ```
-
-* **Refactored `step_01_submit` (Cleaned):**
-    ```python
-    async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        # next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize' # Not needed here
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        # --- Placeholder Logic ---
-        # CUSTOMIZE_FORM_PROCESSING: Get actual form data here
-        # CUSTOMIZE_VALIDATION: Validate data here
-        placeholder_value = "completed" # CUSTOMIZE_STATE_VALUE: Replace with processed data
-        # ------------------------
-
-        # PRESERVE: Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # --- Return ONLY the completed view for the CURRENT step ---
-        # This content will replace the Div with id="step_01" because the form used hx-target="#step_01"
-        
-        # Option 1: Simple revert control (like the original placeholder)
-        completed_view = pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
-
-        # Option 2: If displaying a widget (using widget_examples as a guide)
-        # CUSTOMIZE_WIDGET_DISPLAY: Create your widget here
-        # placeholder_widget = P(f"{step.show} data processed: {placeholder_value}") 
-        # completed_view = pip.widget_container(
-        #     step_id=step_id,
-        #     app_name=app_name,
-        #     message=f"{step.show}: Complete", # Message for the revert control part
-        #     widget=placeholder_widget,       # Your actual widget content
-        #     steps=steps
-        # )
-
-        # If the widget needs JS initialization (like Mermaid, Prism, MarkedJS)
-        # return HTMLResponse(to_xml(completed_view), headers={"HX-Trigger": json.dumps({"yourEvent": {"key": "value"}})})
-        
-        # Otherwise, just return the component
-        return completed_view 
-    ```
-
-**3. Refactor `Pipulate.create_step_navigation` (Recommendation)**
-
-While you'd modify this in `server.py`, the implication for your plugin code is to *stop using it* or use a modified version. Instead of:
-
-```python
-# Old way in submit handler
-return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
-```
-
-You would simply return the revert control or widget container directly:
-
-```python
-# New way in submit handler (for simple steps without widgets)
-return pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps)
-
-# Or for steps with widgets
-# widget = create_my_widget(processed_val) 
-# return pip.widget_container(step_id=step_id, ..., widget=widget, ...)
-```
-
-By applying these changes, you make the workflow rely consistently on the initial `run_all_cells` setup and the implicit HTMX eventing triggered by swaps, leading to cleaner, more maintainable, and less error-prone step transitions.
-
----
-
-That was an abysmal failure. Feedback from Claude...
-
-Claude: # Lessons Learned from the Workflow Splicing Project
-
-1. **Critical Chain Reaction Pattern**: The key insight was understanding the workflow progression is driven by *explicit* next-step triggers, not by implicit HTMX events. Each step must explicitly include a div with the next step's ID and `hx_trigger="load"` to ensure proper progression.
-
-2. **DOM Structure Matters**: The ID attribute on step containers must be preserved throughout the entire lifecycle. When a step is completed, its replacement view must maintain the same ID so that HTMX properly targets and replaces it.
-
-3. **Explicit Beats Implicit**: While trying to make the code "purer" by relying on HTMX's event bubbling seemed theoretically elegant, the explicit approach of directly triggering the next step is more reliable and debuggable.
-
-4. **Step Indexing Is Crucial**: The pattern of computing the correct `next_step_id` based on the step's index in the steps list (`steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'`) ensures proper flow, especially for the critical transition to the finalize step.
-
-5. **Understanding Working Code**: Our attempt to "improve" a working system without fully understanding its mechanisms led to breaking it. Sometimes what appears less elegant on the surface has good reasons for its design.
-
-6. **Documentation Is As Important As Code**: The value of explicitly documenting the chain reaction pattern with clear "CRITICAL" markers will help future developers (including AI assistants) understand what must be preserved when extending workflows.
-
-7. **Finalize Step Is Special But Not Different**: The finalize step follows the same pattern as regular steps - it's triggered explicitly by the last regular step, but the mechanics are identical.
-
-8. **Route Registration Order Matters**: Steps must be registered in the correct order, with finalize added last, to maintain the proper flow.
-
-9. **Maintaining Consistent Patterns**: The structure for GET and POST handlers needs to be consistent across all steps, using the same pattern for handling completed, finalized, and input states.
-
-10. **Testing Over Theory**: Theoretical improvements should be validated with actual testing. Our attempt to simplify the code ended up breaking functionality because we prioritized theoretical elegance over validated patterns.
-
-11. **Splicing Made Clear**: The new structure with explicit comments makes it much clearer how to "splice in" new steps by following the established pattern, maintaining the chain reaction through the workflow.
-
-12. **Naming Reflects Purpose**: Renaming to "splice_workflow" perfectly captures the intent of this example - it's specifically designed to show how to splice in new steps while maintaining the critical chain reaction.
-
-Renaming it to "splice_workflow" was indeed righteous - it directly communicates the primary purpose of this example: showing developers how to correctly splice in new steps while preserving the chain reaction pattern that drives workflow progression.
-
----
-
-Current Prompt:
-
-Gemini, examine 70_blank_workflow.py and 80_splice_workflow.py and figure out what was wrong with your plan.
+I have finished the first and potentially most important of the Pipulate
+workflows for actual day-to-day use by my coworkers. It is Parameter Buster. It
+is the type of thing that will mostly be useful for Botify customers as it
+leverages all 3 of the major data sources Botify takes advantage of:
+
+- Web logs, which are not easy to get these days
+- Crawl data, already pre-analyzed to those not in Google Search
+- Search Console, all the URLs that are active in search
+
+It uses these three data sources to create a optimization that will remove
+querystring parameters from the URLs it finds during a Google Crawl that would
+result in crawl budget waste. The end result is a copy/pastable PageWorkers
+optimization, perhaps one of the best tricks in the book.
+
+Today is about banking wins and banking more wins. It's about polish,
+documentation and enabling my coworkers to actually use this thing. It's a lot
+like letting Pipulate out in the wild generally, but really only of much use to
+Botify employees and customers. This is a reasonable first step. More general
+purpose SEO stuff comes later.
+
+Avoid rabbit hole projects today. A single one could ruin you for another week.
+You have this big solid open block of Sunday, and then back to work. By the time
+you go back to work you will have a private YouTube video for this thing planted
+as a copy/pastable link-example payload to ricochet around on Slack. The idea is
+to quietly and self-evidently announce a total game-changer that those who can
+recognize such things will recognize. This is much about that story and that
+script. Speak quietly and deliver a big demo.
+
+I'm doing a few passes to improve the overall system based on the considerable
+learnings implementing `100_parameter_buster.py`. My first stop is
+`50_botify_export.py` to capture all the nuance and subtlety surrounding CSV
+downloads, of which there are many. It's a wild maze to navigate — from BQLv1
+which is easy to get examples of but which you shouldn't be using vs. BQLv2
+which you should be using but is hard to get examples of. Then there's the
+`/query` endpoint vs. the `/jobs` endpoint, and really also the `/export`
+endpoint which is all over the place in terms of examples but which really has
+been deprecated by the `/jobs` endpoint... even when it's a BQLv1 query! And
+then the polling... Oh, don't get me started. 
+
+There's vast divide of experience with the Botify API that must be mastered
+before everything stops being some sort of show-stopping obstacle. You really
+have to be an engineer. However, I am not. And so this kind of post-successful
+project documentation where I bank my winnings in documentation that helps the
+next round of AI Assistants pick apart why things went well the last time is so
+important. It's part of the accelerating success effect. Success leads to
+success leads to success, and perhaps few places as well as in training AIs with
+really good and forever-improving documentation.
+
+I feel the underlying AI Code Assistants and the way they are integrated with
+the Cursor AI editor shifting and evolving underneath of me as I go. I believe
+it's going to be too resource intensive and wasteful to train all the frontier
+AI models that are being used for such things, Claude, Gemini, ChatGPT, etc. to
+handle this process radically differently between Cursor, VSCode, Windsurf,
+Cline and the like. I believe we are experiencing User Interface / User
+Experience / Application Programming Interface (UI/UX/API) convergence here. The
+way "Agent" mode is different from "Manual" mode is different from "Ask" mode,
+while the labels of these modes may vary from AI assisted editor to editor, the
+spirit stays the same.
+
+It used to be that there was one simple way you got AI-assisted coding. More or
+less, it was the same way we used ChatGPT through the Web UI at first, which is
+we send a prompt and a bunch of code together in-context, and it responded back
+with new code that we somehow had to figure out how to work into our existing
+codebase. Pedantic hair-splitting definition people are calling this former case
+AI assisted coding, while the later case that is springing up all over the place
+*Agentic Coding.* People thing Agentic Coding is new, but as fast as the ChatGPT
+API was out, so was AutoGPT, CrewAI, Microsoft's AutoGen and others. Agentic
+mode was there from the beginning, but relegated to us techies. Extremely
+recently the flurry of GooseAI, Manus, Cline and Claude Code showed us that
+Agentic operation was for the masses. And so now it's popping up as "Agent" mode
+everywhere, including Cursor. And it all comes down to calling tools with
+iterative back-and-forth self-prompting.
+
+Implementations may vary, but the end result is the same. The AI goes off
+half-cocked and loosey goosey fulfilling your request until it feels its done to
+your satisfaction and whatever other criteria. It's not terribly different than
+the original coding assistants except that all their output is fed back into
+them as the new input automatically, including the output of the use of external
+tools that can search your codebase, use git, check the Web and whatever else.
+
+The precise details of how they do this and made such a big leap forward so
+quickly is part of where this new fangled protocol MCP (model context protocol)
+that is becoming so popular. If all the frontier models need to know how to do
+this stuff we can't fragment it into a thousand different ways because its too
+expensive and brittle to get all the models abiding by the schisming rules that
+started popping up with different tool-call protocols, differing annoyingly
+slightly between OpenAI, Google and Anthropic. Anthropic leading the way with
+new protocol proposals such as they seem to do a lot lately proposed MCP and
+everyone jumped on the bandwagon (including Google!) and now all the AI models
+know how to do this agentic dance.
+
+And so we have Agent, Manual and Ask "modes" to choose from. And we have AIs
+going off half-cocked doing stuff to the point of downwards spiraling collapse
+or the narrow-path to success. Try stuff, break things, back-up, undo, try again
+refactoring while factoring in what we learned. Basically AIs are working a lot
+like humans but exploring all these potential paths at 100x the rate a human
+could. And so yeah, agentic behavior is big and important like all the hype, but
+then so is controlling that half-cocked loosey goosey behavior, steering and
+directing it with the kind of talent that defines where the jobs are going in
+the new age of AI — riding the bucking bronco — or the sandworm if you prefer
+and are a Dune nerd like me.
+
+And so with such a potentially disastrous (to your codebase) process, obviously
+they need some sort of safety-net letting them revert and branch in the
+background, and obviously they're going to choose `git` just like humans and the
+rest of the world. And so equally obviously Cursor AI, and I presume all the
+others like Microsoft, Cline and Windsurf who must be implementing such things,
+are using their own bizarro parallel git server in the background for their own
+code assistants through some MCP tool-calling standard. Git through MCP must be
+just about the most delicious secret sauce in the AI code editor arms race right
+now. 
+
+Cursor AI's implementation is good. I feel free to experiment wildly. I have
+`git reset --hard HEAD` ready on my end. I know Claude has something similar on
+its end. When an experiment spirals out of control it's almost like an inside
+joke between the human and the AI who is going to revert first and inform the
+other of the restore-point details. Claude doesn't have or know my git hashes
+(unless I instruct it to use them through the terminal, haha), and I don't know
+it's. But what used to be downward spirals of AI code-assisted ruin are now just
+easy peasy experimental branches, and thus the sought-after acceleration effect
+is possible. Collapsing house of cards become reassemblable construction
+projects with instant undo/redo — from two sides! The git-using AI and the human
+who is learning to use git better, because AI.
+
+It doesn't matter whether these things are sentient or whether they have "true"
+creativity or not. Their value as a pedantic housekeeper of deep arcane detail
+make them infinitely useful from a pragmatic standpoint. How creative does a
+superpowered librarian need to be? How creative does a superpowered automechanic
+need to be? If something is there to immediately find the unfindable and fix the
+unfixable that just frees up all your creative potential. And when you learn to
+tap these superpowered assistants like driving a car, you can talk and drive at
+the same time. See? When steering AI becomes second nature like driving, your
+own deliberate cognitive capacity — the kind that needs to be front-and-center
+which you can't throw on autopilot — gets freed up for the important stuff like
+adapting to changing conditions.
+
+And that's very much where we are now on the Pipulate project. I am learning to
+use the AI coding assistants naturally. It's not a struggle every time screaming
+at them FastHTML is not FastAPI. With a critical mass of code examples they have
+to look at every time when navigating responses they are effectively cornered
+into understanding the things they need to understand to be useful. Your local
+context is overwhelmingly overriding their over-training on all the full web
+stack enterprise redux kubernetes react stuff they've been brainwashed on. But
+sometimes you need to use a wedge like: It's like the Electron Platform. Yeah
+that's right. Web UI's can be used for localhost apps (VSCode, Slack, Zoom,
+Discord, etc). And they don't have to be written scale like Netflix. Surprise!
+
+So, I'm sorting out the rules. This is part of my cleaning and polish. When you
+drop a `.cursorrules` in your local git repo, it's tied to the repo moving
+around with it and part of your vendor-independent portability powers. However,
+the new workspace-scoped `.cursor/rules/something.mdc` are not. And so part of
+this morning's cleanup as the day gets underway is me taking what I've broken up
+over multiple non-repo-bound `.mdc` files and wrapping them into one. I'm going
+to use Gemini 2.5 to do this, even though it's been letting me down a lot lately
+by not being able to do long replies without logging me out. However, it's also
+given the best responses so the strategy is just to keep it short. Let's get the
+context together. First, the prompt.
+
+I have a system. The documentation of this system is spread out over a lot of
+places and files which I have gathered together here. I have also included
+parts of the codebase this documentation refers to so you can check the accuracy
+of the documentation against the single source of truth: the code itself, the
+behavior of which when running is what's being documented.
+
+The system is full of counterintuitive anti-patterns as a remedy for much of
+what ails bloated Conway's Law-infested modern web development. A single
+webmaster sitting at a single system can interact with a software product in the
+web browser much as one would with an Electron platform app, but instead of an
+opinionated bundle there is a whole normalized deterministic Linux subsystem
+running out of a git repo folder provided by nix flakes, solving the "not on my
+machine" problem, blurring the lines between the development platform and the
+app runtime environment. This provides full transparency to the user by moving
+almost all responsibilities and concerns that would be handled by a fat
+JavaScript client library onto the server through FastHTML and HTMX, down to and
+including the cookies. Think server-side cookies whose state is shown through
+the webserver console output which the user is free to watch while using the
+app. There are no mysteries concerning client-side state because all that state
+is shifted to the server and exposed through its server console. That's on top
+of the client-side DevTools console which still also can be used to monitor the
+reduced and simplified minimal JavaScript that remains. So in short, there is
+nothing that cannot be easily known. And with this total knowledge comes
+enhanced control and with this enhanced control comes accelerated feedback loop
+of app improvement, especially AI-assisted as it can be leveraging that same
+said transparency for the Coding Assistant.
+
+Is the vision becoming clear? None of this is theoretical. All of this exists
+right now today as you can see from the code and documentation I am providing
+you. In fact I am leaving many things out so as to not overwhelm you with the
+quantity and details of the antipattern corralling examples that overcome your
+enterprise-concerns over-training. I've given you just enough examples of the
+DRY CRUD apps and WET Workflow examples to allay any concern that they might not
+exist or be as powerful as this system implies. They exist and are quite
+powerful. Basically, anything able to be expressed in Python and organized in
+the Jupyter Notebook style can be ported into this system and have a superior
+user interface and experience for the non-technical user who doesn't want to and
+shouldn't need to look at the Python code powering it all. So in other words,
+Pipulate brings the already transformative and liberating power of Notebooks to
+the rest of the world by taking that extra step and allowing the refinement of
+notebooks into code-free (as far as the user is concerned) Web Apps!
+
+So there are 2 audience for every bit of documentation made. Can that. There are
+FOUR audiences for the documentation:
+
+1. The human merely using the apps who need not even know nix but for the 2
+   commands to get an app installed and running
+2. The human developing the apps who need be near a pulsing-brain alien to port
+   Notebooks to FastHTML/HTMX.
+3. The frontier-model AI Coding Assistant (like you) there to reduce the human's
+   dependency on actually being a pulsing-brain alien
+4. The Ollama-powered LLM baked into the locally running web app who understands
+   it from real-time training and is there to help the human merely using the app
+
+Together these four audiences have a beautiful dance, rapidly customizing
+different instances of this system into endless customized variations for the
+SEO, Finance, Science industries and others — basally any industry or situation
+that could benefit from having a clearly documented semi-automated linear
+workflow with a local AI riding shotgun to help you make sure those parts that
+can't be fully automated are at least well understood by the human while it
+shepherded them through whatever part of the process that still needs a human in
+the loop.
+
+The way this becomes a feedback loop independent of any particular AI platform
+(including Cursor, Windsurf, Cline, VSCode, etc) or even any particular API,
+application or even Web UI, is to bundle it all up into an XML package that can
+be 1-shot submitted to you and your kind. It's so easy to do this way I am not
+even limited to doing it once against you nor to just you. I can do variations
+of this very prompt and rapidly re-test it against you and other models to
+compare your output. It is a wonderful way to probe for the best answers using
+different approaches, and even to benchmark the frontier models like you. So it
+is with that sort of eye I will be examining your response to this prompt.
+
+With that in mind, I have given you both the code that drives the system (for
+the most part) and some of the already existing documentation. I need to create
+documentation for each of the audiences discussed:
+
+1. A human just using web apps
+2. A human developing those web apps
+2. A Frontier Model AI (like you) helping the developer make those web apps (port Notebooks)
+4. A local model helping the user use those web apps (step through Pythonless Notebooks)
+
+For audience 1, the documentation will be:
+
+- Introduction on Pipulate.com
+- Install instructions
+- Philosophy document (why the keys, chain reacting flow, etc)
+
+For audience 2, the documentation will be:
+
+- Explanation of Nix/.venv environment
+- High level Notebook-to-FastHTML/HTMX concepts
+- Workflow Implementation Guide
+
+For audience 3, the documentation will be:
+
+- The mega super-complete `.cusorrules` file (replacing need for `.mdc` files)
+- The mega super-complete Workflow Implementation Guide
+- Recipes for every kind of Workflow Widget
+
+For audience 4, the documentation will be:
+
+- System prompt instilling persona and giving overview of its role
+- Real-time training markdown documents per crud/workflow web app
+- Tool-use instructions (probably MCP) for agentic "steps" within workflows
+
+I think that about covers it. That's to give you the broad overview. But now to
+the actual prompt for you for right now, what I expect you to do in response to
+this. My priority is to reduce the reliance on `.mdc` files that are not bound
+to the repo and to instead roll all their good and knowledge into a combination
+of `.cursorrules`, perhaps the `README.md` (serving a lot of audiences and
+purposes right now), and the `plugins/workflow_implementation_guide.md`, which
+seems to be where a lot of the deep precise knowledge is ending up that's too
+big to feed to the LLM on every request the way `.cursorrules` does.
+
+And so the request here is really for you to within a reasonable response size
+because anything larger than what appears to be about 1000 lines automatically
+logs me off of Gemini and loses all the good work of your reply (no way to
+retrieve your up-to-that output — lost forever!). So give me what you think is
+the right first-pass output to this request with further instructions as to how
+I should refine THIS PROMPT for the next iterative round because it is very easy
+for me to re-prompt you with one of these super-prompts in a wholly new session
+freeing up all your tokens and starting fresh, but with your directional advice
+incorporated into the prompt-at-the-end (which this is).
+
+Is that clear? I understand it is a bit meta, but you can appreciate what I'm
+going for with the accelerating effect implied by this document and the effect
+that good documentation has towards this cause by enabling entities such as you
+to do even better the next time.
+
+Please and thank you!

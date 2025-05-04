@@ -12,6 +12,11 @@ from typing import Dict, List, Optional, Union
 # Each file will be processed and its content will be made available to the AI.
 # Files are processed in order, and token counts are tracked to stay within limits.
 #
+# Note: When using a prompt file with --prompt flag, the script automatically
+# selects Template 1 (Material Analysis Mode), which is designed to be more
+# flexible and allows for various response types rather than strictly
+# implementation-focused responses.
+#
 # Simply add or remove file paths, one per line. The backslash at the start
 # allows for clean multi-line string formatting.
 
@@ -19,18 +24,21 @@ FILES_TO_INCLUDE = """\
 server.py
 flake.nix
 requirements.txt
+README.md
+.cursorrules
 plugins/20_hello_workflow.py
 plugins/60_widget_examples.py
 plugins/70_blank_workflow.py
 plugins/80_splice_workflow.py
+/home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
+/home/mike/repos/.cursor/rules/nix-rules.mdc
+/home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
+/home/mike/repos/.cursor/rules/wet-workflows.mdc
+/home/mike/repos/pipulate/training/workflow_implementation_guide.md
 """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 
-# README.md
-# .cursorrules
 # plugins/10_connect_with_botify.py
-# plugins/20_hello_workflow.py
-
 # static/chat-interface.js
 # static/chat-scripts.js
 # static/chat-styles.css
@@ -42,6 +50,13 @@ plugins/80_splice_workflow.py
 # Set these values to enable article analysis mode.
 # When enabled, the script will include the specified article in the context
 # and use specialized prompts for article analysis.
+
+# ============================================================================
+# MATERIAL ANALYSIS CONFIGURATION  
+# ============================================================================
+# Set these values to enable material analysis mode.
+# When enabled, the script will include the specified material in the context
+# and use specialized prompts for flexible analysis.
 
 PROMPT_FILE = None  # Default prompt file is None
 
@@ -345,12 +360,11 @@ I've provided you with the core architecture of a Python web application that ta
     },
     # Template 1: Article Analysis Mode
     {
-        "name": "Article Analysis Mode",
+        "name": "Material Analysis Mode",
         "pre_prompt": create_xml_element("context", [
             create_xml_element("system_info", """
-You are about to review a codebase in preparation for implementing changes requested in an article.
-Please study and understand the codebase thoroughly, as you will need this context
-to provide meaningful implementation suggestions based on the article's requirements.
+You are about to review a codebase and related documentation. Please study and understand
+the provided materials thoroughly before responding.
 
 Key things to know about this codebase:
 - It uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages
@@ -359,47 +373,47 @@ Key things to know about this codebase:
 - The project is organized as a server with plugin-based workflows
 """),
             create_xml_element("key_points", [
-                "<point>Focus on understanding how the codebase currently implements related functionality</point>",
-                "<point>Note any existing patterns that could be leveraged for the requested changes</point>",
-                "<point>Consider how the requested changes would integrate with the current architecture</point>"
+                "<point>Focus on understanding the architecture and patterns in the codebase</point>",
+                "<point>Note how existing patterns could be leveraged in your response</point>",
+                "<point>Consider both technical and conceptual aspects in your analysis</point>"
             ])
         ]),
-        "post_prompt": create_xml_element("implementation_request", [
+        "post_prompt": create_xml_element("response_request", [
             create_xml_element("introduction", """
-Now that you understand the codebase, please review the article's requirements and provide
-specific implementation suggestions. Focus on how to modify the codebase to meet these requirements
-while maintaining its architectural integrity and existing patterns.
+Now that you've reviewed the provided materials, please respond thoughtfully to the prompt.
+Your response can include analysis, insights, implementation suggestions, or other relevant
+observations based on what was requested.
 """),
-            create_xml_element("implementation_areas", [
+            create_xml_element("response_areas", [
                 create_xml_element("area", [
-                    "<title>Required Changes</title>",
+                    "<title>Material Analysis</title>",
                     "<questions>",
-                    "<question>What specific code changes are needed to implement the article's requirements?</question>",
-                    "<question>Which existing components need to be modified or extended?</question>",
-                    "<question>What new components or patterns need to be introduced?</question>",
+                    "<question>What are the key concepts, patterns, or architecture details in the provided materials?</question>",
+                    "<question>What interesting aspects of the system stand out to you?</question>",
+                    "<question>How would you characterize the approach taken in this codebase?</question>",
                     "</questions>"
                 ]),
                 create_xml_element("area", [
-                    "<title>Integration Strategy</title>",
+                    "<title>Strategic Considerations</title>",
                     "<questions>",
-                    "<question>How should these changes be integrated with existing functionality?</question>",
-                    "<question>What existing patterns or conventions should be followed?</question>",
-                    "<question>How can we ensure backward compatibility?</question>",
+                    "<question>How might the content of the materials inform future development?</question>",
+                    "<question>What patterns or conventions should be considered in any response?</question>",
+                    "<question>What alignment exists between the provided materials and the prompt?</question>",
                     "</questions>"
                 ]),
                 create_xml_element("area", [
-                    "<title>Implementation Plan</title>",
+                    "<title>Concrete Response</title>",
                     "<questions>",
-                    "<question>What's the recommended order for implementing these changes?</question>",
-                    "<question>What are the key milestones or checkpoints?</question>",
-                    "<question>What potential challenges or risks need to be addressed?</question>",
+                    "<question>What specific actionable insights can be provided based on the prompt?</question>",
+                    "<question>If implementation is requested, how might it be approached?</question>",
+                    "<question>What recommendations or observations are most relevant to the prompt?</question>",
                     "</questions>"
                 ])
             ]),
             create_xml_element("focus_areas", [
-                "<area>Practical implementation of the article's requirements</area>",
-                "<area>Maintenance of codebase integrity and patterns</area>",
-                "<area>Clear, actionable implementation steps</area>"
+                "<area>Responding directly to the core request in the prompt</area>",
+                "<area>Drawing connections between the materials and the prompt</area>",
+                "<area>Providing value in the form requested (analysis, implementation, etc.)</area>"
             ])
         ])
     }
@@ -784,7 +798,7 @@ if args.prompt:
         final_file_list.append(prompt_path)
     
     # Use article analysis template by default for prompt files
-    args.template = 1  # Use the article analysis template
+    args.template = 1  # Use the material analysis template
     
     print(f"Using prompt file: {prompt_path}")
 
