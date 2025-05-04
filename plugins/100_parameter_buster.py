@@ -1964,11 +1964,7 @@ class ParameterBusterWorkflow:
             # Generate JavaScript code using the template
             selected_params_js_array = json.dumps(selected_params)
             
-            js_code = f"""
-// Selected parameters for URL parameter optimization:
-const selected_params = {selected_params_js_array};
-
-// Function to remove query parameters from a URL
+            js_code = f"""// Function to remove query parameters from a URL
 function removeQueryParams(url, paramsToRemove) {{
     let urlParts = url.split('?');
     if (urlParts.length >= 2) {{
@@ -1990,7 +1986,7 @@ function removeQueryParams(url, paramsToRemove) {{
     }}
 }}
   
-// Main function to remove useless parameters from links
+// Remove useless parameters from all links
 function removeUselessLinks() {{
     const DOM = runtime.getDOM();
     const removeParameters = {selected_params_js_array};
