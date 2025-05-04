@@ -77,7 +77,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         self.step_messages = {
             "finalize": {
                 "ready": "Ready to save your Botify API token.",
-                "complete": f"✅ Botify API token saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+                "complete": f"✅ Botify API token saved. Use {pip.UNLOCK_BUTTON_LABEL} to change token."
             }
         }
 
@@ -157,7 +157,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                             required=True,
                             autofocus=True,
                         ),
-                        button_label="Connect to Botify API",
+                        button_label="Connect to Botify API 🔑",
                         button_class="secondary"
                     ),
                     Datalist(*[Option(value=pid) for pid in existing_ids], id="pipeline-ids"),
@@ -279,10 +279,10 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
 
             # No other steps to check since we don't have any
             return Card(
-                H3("Ready to finalize?"),
+                H3("Save Token"),
                 P("Save your Botify API token?"),
                 Form(
-                    Button("Finalize", type="submit", cls="primary"),  # PicoCSS primary style
+                    Button("Save Token", type="submit", cls="primary"),  # PicoCSS primary style
                     hx_post=f"/{app_name}/finalize",
                     hx_target=f"#{app_name}-container",
                     hx_swap="outerHTML"

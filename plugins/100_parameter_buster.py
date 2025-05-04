@@ -216,9 +216,30 @@ class ParameterBusterWorkflow:
     # --- Core Workflow Engine Methods ---
 
     async def landing(self):
-        """Renders the initial landing page with the key input form."""
+        """Renders the initial landing page with the key input form or a message if Botify token is missing."""
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         title = f"{self.DISPLAY_NAME or app_name.title()}"
+        
+        # Check if botify_token.txt exists
+        token_exists = os.path.exists("botify_token.txt")
+        
+        # If token doesn't exist, show message about needing to connect with Botify first
+        if not token_exists:
+            return Container(
+                Card(
+                    H2(title),
+                    P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                    Div(
+                        H3("Botify Connection Required", style="color: #e74c3c;"),
+                        P("To use the Parameter Buster workflow, you must first connect with Botify.", style="margin-bottom: 10px;"),
+                        P("Please run the \"Connect With Botify\" workflow to set up your Botify API token.", style="margin-bottom: 20px;"),
+                        P("Once configured, you can return to this workflow.", style="font-style: italic; color: #666;")
+                    )
+                ),
+                Div(id=f"{app_name}-container")
+            )
+        
+        # Otherwise, show the normal key input form
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
         default_value = full_key
         pipeline.xtra(app_name=app_name)
@@ -454,7 +475,7 @@ class ParameterBusterWorkflow:
                 Card(
                     H3(f"{step.show}"),
                     P("Enter a Botify project URL:"),
-                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/", style="display: block; margin-bottom: 10px;"),
+                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/", style="display: block; margin-bottom: 10px; color: #666; font-style: italic;"),
                     Form(
                         Input(
                             type="url", 
@@ -4349,7 +4370,7 @@ removeWastefulParams();
     ''')
 
     async def step_07(self, request):
-        """Handles GET request for Step 7 placeholder."""
+        """Handles GET request for Step 7 Markdown widget."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_07"
         step_index = self.steps_indices[step_id]
@@ -4358,47 +4379,130 @@ removeWastefulParams();
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        
+        # Try to get stored markdown content or use default sample
+        try:
+            markdown_data = json.loads(step_data.get(step.done, "{}"))
+            markdown_content = markdown_data.get("markdown", "")
+        except (json.JSONDecodeError, TypeError):
+            markdown_content = ""
+            
+        # Use sample markdown if empty
+        if not markdown_content:
+            markdown_content = """# Parameter Buster Documentation
 
+## Overview
+This workflow analyzes URL parameters from multiple data sources:
+- Botify crawl data
+- Web logs (when available)
+- Search Console data
+
+## Optimization Process
+1. **Analysis**: We identify parameters with high occurrence in crawl/logs but low GSC value
+2. **Filtering**: Parameters are filtered based on:
+   - GSC Threshold: Maximum GSC occurrences allowed
+   - Minimum Frequency: Minimum crawl/logs occurrences required
+3. **Implementation**: JavaScript code removes these parameters from links
+
+## Benefits
+- Improves crawl efficiency
+- Reduces duplicate content
+- Preserves important parameters for tracking
+
+> **Note**: Always test parameter removal in staging before production deployment!
+"""
+
+        # Generate a unique ID for this instance
+        widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
+        if "finalized" in finalize_data:
+            # Create markdown widget directly for finalized state
+            markdown_widget = self.create_marked_widget(markdown_content, widget_id)
+            
+            from starlette.responses import HTMLResponse
+            from fasthtml.common import to_xml
+            
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        Card(
+                            H3(f"🔒 {step.show}"),
+                            markdown_widget
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
             )
             
+            # Add HX-Trigger to initialize markdown rendering
+            response.headers["HX-Trigger"] = json.dumps({
+                "initializeMarked": {"targetId": widget_id}
+            })
+            
+            return response
+                
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
+        if markdown_content and state.get("_revert_target") != step_id:
+            # Create markdown widget for completed state
+            markdown_widget = self.create_marked_widget(markdown_content, widget_id)
+            
+            from starlette.responses import HTMLResponse
+            from fasthtml.common import to_xml
+            
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        pip.widget_container(
+                            step_id=step_id,
+                            app_name=app_name,
+                            message=f"{step.show}: Markdown Documentation",
+                            widget=markdown_widget,
+                            steps=steps
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
             )
+            
+            # Add HX-Trigger to initialize markdown rendering
+            response.headers["HX-Trigger"] = json.dumps({
+                "initializeMarked": {"targetId": widget_id}
+            })
+            
+            return response
         else:
-            # Show minimal UI with just a Proceed button
+            # Show input form for editing markdown content
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    P("Edit the Markdown documentation for the Parameter Buster workflow:"),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Textarea(
+                            markdown_content,
+                            name="markdown_content",
+                            rows="15",
+                            style="width: 100%; font-family: monospace;"
+                        ),
+                        Div(
+                            Button("Update Documentation", type="submit", cls="primary"),
+                            style="margin-top: 10px; text-align: right;"
+                        ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # Note: No hx_trigger="load" here to prevent auto-progression
+                Div(id=next_step_id),  # Empty div for next step
                 id=step_id
             )
 
     async def step_07_submit(self, request):
-        """Process the submission for placeholder Step 7."""
+        """Process the markdown content submission for Step 7."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_07"
         step_index = self.steps_indices[step_id]
@@ -4406,16 +4510,116 @@ removeWastefulParams();
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Set a fixed completion value
-        placeholder_value = "completed"
+        # Get markdown content from form
+        form = await request.form()
+        markdown_content = form.get("markdown_content", "")
         
-        # Update state and notify user
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        # Store the markdown content
+        markdown_data = {"markdown": markdown_content}
+        data_str = json.dumps(markdown_data)
+        await pip.update_step_state(pipeline_id, step_id, data_str, steps)
+        await self.message_queue.add(pip, f"{step.show}: Markdown content updated", verbatim=True)
         
-        # Return with revert control and chain reaction to next step
+        # Generate a unique ID for the markdown widget
+        widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        
+        # Create the markdown widget
+        markdown_widget = self.create_marked_widget(markdown_content, widget_id)
+        
+        # Return with widget container and chain reaction to next step
+        from starlette.responses import HTMLResponse
+        from fasthtml.common import to_xml
+        
+        response = HTMLResponse(
+            to_xml(
+                Div(
+                    pip.widget_container(
+                        step_id=step_id,
+                        app_name=app_name,
+                        message=f"{step.show}: Markdown Documentation",
+                        widget=markdown_widget,
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            )
+        )
+        
+        # Add HX-Trigger to initialize markdown rendering
+        response.headers["HX-Trigger"] = json.dumps({
+            "initializeMarked": {"targetId": widget_id}
+        })
+        
+        return response
+
+    def create_marked_widget(self, markdown_content, widget_id):
+        """Create a Marked.js markdown rendering widget.
+        
+        Args:
+            markdown_content: The markdown text to render
+            widget_id: Unique ID for this widget instance
+            
+        Returns:
+            A Div containing the markdown widget
+        """
+        # The hidden textarea holds the raw markdown content
+        textarea_id = f"{widget_id}_content"
+        
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
+            # Hidden textarea containing raw markdown
+            Textarea(
+                markdown_content,
+                id=textarea_id,
+                style="display: none;"
+            ),
+            # Container for rendered markdown
+            Div(
+                id=f"{widget_id}_output",
+                cls="markdown-body",
+                style="padding: 15px; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius);"
+            ),
+            # Script to initialize marked.js rendering
+            Script(f"""
+            (function() {{
+                function renderMarkdown() {{
+                    if (typeof marked === 'undefined') {{
+                        console.error('Marked.js library not loaded');
+                        return;
+                    }}
+                    
+                    const textarea = document.getElementById('{textarea_id}');
+                    const output = document.getElementById('{widget_id}_output');
+                    
+                    if (textarea && output) {{
+                        // Configure marked options if needed
+                        marked.setOptions({{
+                            breaks: true,
+                            gfm: true,
+                            headerIds: true
+                        }});
+                        
+                        // Render the markdown content
+                        const rawMarkdown = textarea.value;
+                        output.innerHTML = marked.parse(rawMarkdown);
+                        
+                        console.log('Markdown rendered for {widget_id}');
+                    }} else {{
+                        console.error('Markdown elements not found for {widget_id}');
+                    }}
+                }}
+                
+                // Try to render immediately
+                renderMarkdown();
+                
+                // Also listen for initialization event
+                document.body.addEventListener('initialize-marked', function(e) {{
+                    if (e.detail && e.detail.targetId === '{widget_id}') {{
+                        console.log('Markdown initialization event received for {widget_id}');
+                        renderMarkdown();
+                    }}
+                }});
+            }})();
+            """),
+            id=widget_id
         )
