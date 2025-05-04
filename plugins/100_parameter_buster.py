@@ -59,8 +59,9 @@ class ParameterBusterWorkflow:
     APP_NAME = "param_buster"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Parameter Buster" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This workflow analyzes URL parameters from Botify, logs, and Search Console data "
-        "to produce a PageWorkers optimization for better crawl efficiency."
+        "This workflow analyzes URL parameters from Botify, Web Logs, and Search Console data "
+        "to produce a PageWorkers optimization for better crawl efficiency. "
+        "Click Enter to start."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -475,7 +476,17 @@ class ParameterBusterWorkflow:
                 Card(
                     H3(f"{step.show}"),
                     P("Enter a Botify project URL:"),
-                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/", style="display: block; margin-bottom: 10px; color: #666; font-style: italic;"),
+                    Small(
+                        "Example: ",
+                        Span(
+                            "https://app.botify.com/uhnd-com/uhnd.com-demo-account/", 
+                            id="copy-example-url",
+                            style="cursor: pointer; color: #888; text-decoration: none;",
+                            hx_on_click="document.querySelector('input[name=\"botify_url\"]').value = this.innerText; this.style.color = '#28a745'; setTimeout(() => this.style.color = '#888', 1000)",
+                            title="Click to use this example URL"
+                        ),
+                        style="display: block; margin-bottom: 10px; color: #666; font-style: italic;"
+                    ),
                     Form(
                         Input(
                             type="url", 
