@@ -2393,8 +2393,7 @@ removeWastefulParams();
             
             if file_exists:
                 # File already exists, skip the export
-                await self.message_queue.add(pip, f"✓ Found existing Search Console data from {file_info['created']}", verbatim=True)
-                await self.message_queue.add(pip, f"ℹ️ Using cached file: {file_info['path']} ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
                 
                 # Update check result with existing file info
                 check_result.update({
@@ -3134,7 +3133,7 @@ removeWastefulParams();
                     raise
             
             # Final message for completed download
-            await self.message_queue.add(pip, "✓ Crawl data ready for analysis!", verbatim=True)
+            await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
             
             # Update state with complete analysis info including download results
             analysis_result_str = json.dumps(analysis_result)
@@ -3420,7 +3419,7 @@ removeWastefulParams();
                         raise
                 
                 # Final message
-                await self.message_queue.add(pip, "✓ Web logs data ready for analysis!", verbatim=True)
+                await self.message_queue.add(pip, f"✓ Web logs data downloaded: {file_info['size']}", verbatim=True)
             
             # Convert to JSON for storage
             check_result_str = json.dumps(check_result)
@@ -4419,8 +4418,8 @@ removeWastefulParams();
             markdown_content = f"""# Parameter Buster Documentation
 
 ## Instructions
-1. Copy/Paste that JavaScript into a new PageWorkers custom optimization.
-2. Update the `REPLACE_ME!!!` with the ID found in the URL of the PageWorker.
+1. Copy/Paste that JavaScript into a new PageWorkers custom Optimization.
+2. Update the `REPLACE_ME!!!` with the ID found in the URL of the Optimization.
 
 **Parameter Optimization Settings**
 - GSC Threshold: {gsc_threshold}
