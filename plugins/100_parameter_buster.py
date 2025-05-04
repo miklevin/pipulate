@@ -4385,6 +4385,21 @@ removeWastefulParams();
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
+        # Get parameter data from step_06
+        step_06_data = pip.get_step_data(pipeline_id, "step_06", {})
+        parameters_info = {}
+        
+        try:
+            if step_06_data.get("parameter_optimization"):
+                param_data = json.loads(step_06_data.get("parameter_optimization"))
+                parameters_info = {
+                    "selected_params": param_data.get("selected_params", []),
+                    "gsc_threshold": param_data.get("gsc_threshold", "0"),
+                    "min_frequency": param_data.get("min_frequency", "100000")
+                }
+        except (json.JSONDecodeError, TypeError):
+            parameters_info = {"selected_params": [], "gsc_threshold": "0", "min_frequency": "100000"}
+        
         # Try to get stored markdown content or use default sample
         try:
             markdown_data = json.loads(step_data.get(step.done, "{}"))
@@ -4392,18 +4407,47 @@ removeWastefulParams();
         except (json.JSONDecodeError, TypeError):
             markdown_content = ""
             
-        # Use sample markdown if empty
+        # Use sample markdown if empty, enhanced with parameter information
         if not markdown_content:
-            markdown_content = """# Parameter Buster Documentation
+            # Get parameters list for documentation
+            params_list = parameters_info.get("selected_params", [])
+            gsc_threshold = parameters_info.get("gsc_threshold", "0")
+            min_frequency = parameters_info.get("min_frequency", "100000")
+            
+            # Convert string values to integers for formatting
+            try:
+                min_frequency_int = int(min_frequency)
+                min_frequency_formatted = f"{min_frequency_int:,}"
+            except ValueError:
+                min_frequency_formatted = min_frequency
 
+            # Create markdown content with parameters list
+            param_list_str = "\n".join([f"- `{param}`" for param in params_list[:20]])
+            if len(params_list) > 20:
+                param_list_str += f"\n- ... and {len(params_list) - 20} more parameters"
+            
+            # Create the full markdown content
+            markdown_content = f"""# Parameter Buster Documentation
+
+## Instructions
 1. Copy/Paste that JavaScript into a new PageWorkers custom optimization.
 2. Update the `REPLACE_ME!!!` with the ID found in the URL of the PageWorker.
 
+## Parameter Optimization Settings
+- GSC Threshold: {gsc_threshold}
+- Minimum Frequency: {min_frequency_formatted}
+- Total Parameters Optimized: {len(params_list)}
+
+## Parameters Being Optimized
+{param_list_str if params_list else "No parameters selected for optimization."}
 """
             # On first run, automatically save the default markdown to enable chain reaction
             # This is a special case for this workflow step only
             if step_data.get(step.done, "") == "":  # Only if truly empty, not just JSON parse issue
-                markdown_data = {"markdown": markdown_content}
+                markdown_data = {
+                    "markdown": markdown_content,
+                    "parameters_info": parameters_info  # Store parameters info in the step data
+                }
                 data_str = json.dumps(markdown_data)
                 await pip.update_step_state(pipeline_id, step_id, data_str, steps, clear_previous=False)
                 # After saving, we'll still show the display state but state is now officially saved
@@ -4497,7 +4541,7 @@ removeWastefulParams();
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # The only condtion (Update) where chain reaction is not needed
+                Div(id=next_step_id),  # The only condition (Update) where chain reaction is not needed
                 id=step_id
             )
 
@@ -4514,8 +4558,35 @@ removeWastefulParams();
         form = await request.form()
         markdown_content = form.get("markdown_content", "")
         
-        # Store the markdown content
-        markdown_data = {"markdown": markdown_content}
+        # Get parameters info from previous state if it exists
+        existing_data = {}
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        try:
+            if step_data.get(step.done):
+                existing_data = json.loads(step_data.get(step.done, "{}"))
+        except json.JSONDecodeError:
+            pass
+        
+        # Get parameters info from step_06 if not in existing data
+        parameters_info = existing_data.get("parameters_info", {})
+        if not parameters_info:
+            step_06_data = pip.get_step_data(pipeline_id, "step_06", {})
+            try:
+                if step_06_data.get("parameter_optimization"):
+                    param_data = json.loads(step_06_data.get("parameter_optimization"))
+                    parameters_info = {
+                        "selected_params": param_data.get("selected_params", []),
+                        "gsc_threshold": param_data.get("gsc_threshold", "0"),
+                        "min_frequency": param_data.get("min_frequency", "100000")
+                    }
+            except (json.JSONDecodeError, TypeError):
+                parameters_info = {"selected_params": [], "gsc_threshold": "0", "min_frequency": "100000"}
+        
+        # Store the markdown content with parameters info
+        markdown_data = {
+            "markdown": markdown_content,
+            "parameters_info": parameters_info
+        }
         data_str = json.dumps(markdown_data)
         await pip.update_step_state(pipeline_id, step_id, data_str, steps)
         await self.message_queue.add(pip, f"{step.show}: Markdown content updated", verbatim=True)
