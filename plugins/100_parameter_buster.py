@@ -4470,12 +4470,6 @@ User-agent: *
 The following robots.txt rules can be used to prevent crawlers from accessing URLs with these parameters:
 
 {robots_txt_display}
-
-**Important Notes:**
-- robots.txt is advisory, not enforcement - malicious bots may ignore it
-- Using robots.txt only prevents crawling, not necessarily indexing
-- For testing purposes only; a more comprehensive SEO strategy may be needed
-- Consider using more specific User-agent directives for production
 """
 
             # On first run, automatically save the default markdown to enable chain reaction
