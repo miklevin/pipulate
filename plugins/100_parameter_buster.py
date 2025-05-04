@@ -1178,7 +1178,8 @@ class ParameterBusterWorkflow:
                             min="10", 
                             max="100", 
                             step="5",
-                            style="width: 120px;"  # Increased from 100px
+                            style="width: 120px;",
+                            _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"
                         ),
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
@@ -1188,8 +1189,23 @@ class ParameterBusterWorkflow:
                         cls="primary"
                     ),
                     hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
+                    hx_target=f"#{step_id}",
+                    _onsubmit="if(event.submitter !== document.querySelector('button[type=\"submit\"]')) { event.preventDefault(); return false; }",
+                    _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"
+                ),
+                Script('''
+                function triggerParameterPreview() {
+                    // Use HTMX to manually trigger the parameter preview
+                    htmx.trigger('#parameter-preview', 'htmx:beforeRequest');
+                    htmx.ajax('POST', document.querySelector('input[name="gsc_threshold"]').form.getAttribute('hx-post').replace('step_06_submit', 'parameter_preview'), {
+                        target: '#parameter-preview',
+                        values: {
+                            'gsc_threshold': document.getElementById('gsc_threshold').value,
+                            'min_frequency': document.getElementById('min_frequency').value
+                        }
+                    });
+                }
+                ''')
             ),
             Div(id=next_step_id),
             id=step_id
@@ -1688,7 +1704,7 @@ class ParameterBusterWorkflow:
                     Div(
                         # GSC Threshold with slider row
                         Div(
-                            Small("Lower to lower risk", style="color: #888; font-style: italic;"),
+                            Small("Lower GSC Threshold to lower risk (generally keep set to 0)", style="color: #888; font-style: italic;"),
                             Div(
                                 Label(
                                     NotStr("<strong>GSC Threshold:</strong>"), 
@@ -1704,7 +1720,7 @@ class ParameterBusterWorkflow:
                                     max="100", 
                                     step="1",
                                     style="flex-grow: 1; margin: 0 10px;",
-                                    _oninput="document.getElementById('gsc_threshold').value = this.value",
+                                    _oninput="document.getElementById('gsc_threshold').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
                                     hx_trigger="input changed delay:300ms, load",
                                     hx_target="#parameter-preview",
@@ -1718,9 +1734,10 @@ class ParameterBusterWorkflow:
                                     min="0", 
                                     max="100", 
                                     style="width: 150px;",
-                                    _oninput="document.getElementById('gsc_threshold_slider').value = this.value",
+                                    _oninput="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();",
+                                    _onchange="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
-                                    hx_trigger="input changed delay:300ms",
+                                    hx_trigger="none",
                                     hx_target="#parameter-preview",
                                     hx_include="#gsc_threshold, #min_frequency"
                                 ),
@@ -1730,7 +1747,7 @@ class ParameterBusterWorkflow:
                         
                         # Minimum Frequency with slider row
                         Div(
-                            Small("Higher for the biggest offenders", style="color: #888; font-style: italic;"),
+                            Small("Higher Minimum Frequency to reduce to only the biggest offenders", style="color: #888; font-style: italic;"),
                             Div(
                                 Label(
                                     NotStr("<strong>Minimum Frequency:</strong>"), 
@@ -1746,7 +1763,7 @@ class ParameterBusterWorkflow:
                                     max="250000", 
                                     step="1000",
                                     style="flex-grow: 1; margin: 0 10px;",
-                                    _oninput="document.getElementById('min_frequency').value = this.value",
+                                    _oninput="document.getElementById('min_frequency').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
                                     hx_trigger="input changed delay:300ms",
                                     hx_target="#parameter-preview",
@@ -1760,9 +1777,10 @@ class ParameterBusterWorkflow:
                                     min="0", 
                                     max="250000", 
                                     style="width: 150px;",
-                                    _oninput="document.getElementById('min_frequency_slider').value = this.value",
+                                    _oninput="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
+                                    _onchange="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
-                                    hx_trigger="input changed delay:300ms",
+                                    hx_trigger="none",
                                     hx_target="#parameter-preview",
                                     hx_include="#gsc_threshold, #min_frequency"
                                 ),
