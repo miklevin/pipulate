@@ -3624,26 +3624,29 @@ removeUselessLinks();
             return None
 
     def create_prism_widget(self, code, widget_id, language='javascript'):
-        """Create a Prism.js syntax highlighting widget with copy functionality.
-        
-        Args:
-            code (str): The code to highlight
-            widget_id (str): Unique ID for the widget
-            language (str): The programming language for syntax highlighting (default: javascript)
-        """
+        """Create a Prism.js syntax highlighting widget with copy functionality."""
         # Generate a unique ID for the hidden textarea
         textarea_id = f"{widget_id}_raw_code"
         
         # Create container for the widget
         container = Div(
             Div(
-                H5("Syntax Highlighted Code:"),
+                H5("Copy/Paste into PageWorkers:"),
                 # Add a hidden textarea to hold the raw code (much safer than trying to escape it for JS)
                 Textarea(
                     code,
                     id=textarea_id,
                     style="display: none;"  # Hide the textarea
                 ),
+                # Add custom styling to remove padding
+                NotStr("""
+                <style>
+                    /* Remove padding from pre > code */
+                    #""" + widget_id + """ pre > code {
+                        padding: 0 !important;
+                    }
+                </style>
+                """),
                 # This pre/code structure is required for Prism.js
                 Pre(
                     Code(
