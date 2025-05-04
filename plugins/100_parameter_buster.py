@@ -114,8 +114,8 @@ class ParameterBusterWorkflow:
             ),
             Step(
                 id='step_06',
-                done='code_display',
-                show='Code Syntax Highlighter',
+                done='parameter_optimization',
+                show='Parameter Optimization',
                 refill=True,
             ),
         ]
@@ -444,7 +444,7 @@ class ParameterBusterWorkflow:
                 Card(
                     H3(f"{step.show}"),
                     P("Enter a Botify project URL:"),
-                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/crawl", style="display: block; margin-bottom: 10px;"),
+                    Small("Example: https://app.botify.com/uhnd-com/uhnd.com-demo-account/", style="display: block; margin-bottom: 10px;"),
                     Form(
                         Input(
                             type="url", 
@@ -3936,7 +3936,7 @@ class ParameterBusterWorkflow:
         matching_params = []
         param_count = 0
         total_frequency = 0
-        breakpoint_frequencies = []  # Initialize this variable here
+        breakpoint_frequencies = []  # Initialize this variable
         
         try:
             if prev_data_str:
@@ -4049,7 +4049,7 @@ class ParameterBusterWorkflow:
             return Div(
                 P(f"Found {param_count:,} parameters with total frequency of {total_frequency:,}"),
                 P(display_message, style="color: #888; font-style: italic; margin-bottom: 10px;") if display_message else None,
-                breakpoints_info,  # Include breakpoints info here
+                # Remove breakpoints_info from here
                 Table(
                     Tr(
                         Th("Parameter", style="text-align: left; color: cyan;"),
