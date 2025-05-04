@@ -4486,7 +4486,7 @@ removeWastefulParams();
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # This one should not chain react because it's in the process of being updated
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # ADD hx_get and hx_trigger
                 id=step_id
             )
 
