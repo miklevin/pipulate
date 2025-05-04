@@ -1,4 +1,5 @@
 import asyncio
+import asyncio
 from collections import namedtuple, Counter
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
@@ -4427,6 +4428,28 @@ removeWastefulParams();
             # Create parameter list string - show all parameters without truncation
             param_list_str = "\n".join([f"- `{param}`" for param in params_list])
 
+            # Use special encoding for details/summary tags that won't trigger logger issues
+            if len(params_list) > 5:
+                # Encode the tags with special strings that won't be interpreted as HTML by the logger
+                # but can be processed by our custom renderer
+                param_list_display = f"""[[DETAILS_START]]
+[[SUMMARY_START]]Show all {len(params_list)} parameters[[SUMMARY_END]]
+
+{param_list_str}
+[[DETAILS_END]]"""
+
+                robots_txt_display = f"""[[DETAILS_START]]
+[[SUMMARY_START]]Show all {len(params_list)} robots.txt rules[[SUMMARY_END]]
+
+```robots.txt
+User-agent: *
+{robots_txt_rules}
+```
+[[DETAILS_END]]"""
+            else:
+                param_list_display = param_list_str
+                robots_txt_display = f"```robots.txt\nUser-agent: *\n{robots_txt_rules if params_list else '# No parameters to block'}\n```"
+
             # Create the full markdown content with robots.txt example
             markdown_content = f"""# Parameter Buster Documentation
 
@@ -4440,16 +4463,13 @@ removeWastefulParams();
 - Total Parameters Optimized: {len(params_list)}
 
 ## Parameters Being Optimized
-{param_list_str if params_list else "No parameters selected for optimization."}
+{param_list_display if params_list else "No parameters selected for optimization."}
 
 ## Example robots.txt Rules
 
 The following robots.txt rules can be used to prevent crawlers from accessing URLs with these parameters:
 
-```robots.txt
-User-agent: *
-{robots_txt_rules if params_list else "# No parameters to block"}
-```
+{robots_txt_display}
 
 **Important Notes:**
 - robots.txt is advisory, not enforcement - malicious bots may ignore it
@@ -4457,6 +4477,7 @@ User-agent: *
 - For testing purposes only; a more comprehensive SEO strategy may be needed
 - Consider using more specific User-agent directives for production
 """
+
             # On first run, automatically save the default markdown to enable chain reaction
             # This is a special case for this workflow step only
             if step_data.get(step.done, "") == "":  # Only if truly empty, not just JSON parse issue
@@ -4464,8 +4485,9 @@ User-agent: *
                     "markdown": markdown_content,
                     "parameters_info": parameters_info  # Store parameters info in the step data
                 }
-                data_str = json.dumps(markdown_data)
-                await pip.update_step_state(pipeline_id, step_id, data_str, steps, clear_previous=False)
+                
+                # Use our custom method instead of pip.update_step_state
+                await self.update_state_with_html(pipeline_id, step_id, markdown_data, steps, clear_previous=False)
                 # After saving, we'll still show the display state but state is now officially saved
         
         # Generate a unique ID for this instance
@@ -4604,7 +4626,7 @@ User-agent: *
             "parameters_info": parameters_info
         }
         data_str = json.dumps(markdown_data)
-        await pip.update_step_state(pipeline_id, step_id, data_str, steps)
+        await self.update_state_with_html(pipeline_id, step_id, markdown_data, steps)
         await self.message_queue.add(pip, f"{step.show}: Markdown content updated", verbatim=True)
         
         # Generate a unique ID for the markdown widget
@@ -4641,22 +4663,22 @@ User-agent: *
         return response
 
     def create_marked_widget(self, markdown_content, widget_id):
-        """Create a Marked.js markdown rendering widget.
+        """Create a Marked.js markdown rendering widget with special tag handling."""
+        # Replace our special encodings with actual HTML tags
+        # This happens after logging so it won't trigger errors
+        processed_content = markdown_content
+        processed_content = processed_content.replace("[[DETAILS_START]]", "<details>")
+        processed_content = processed_content.replace("[[DETAILS_END]]", "</details>")
+        processed_content = processed_content.replace("[[SUMMARY_START]]", "<summary>")
+        processed_content = processed_content.replace("[[SUMMARY_END]]", "</summary>")
         
-        Args:
-            markdown_content: The markdown text to render
-            widget_id: Unique ID for this widget instance
-            
-        Returns:
-            A Div containing the markdown widget
-        """
         # The hidden textarea holds the raw markdown content
         textarea_id = f"{widget_id}_content"
         
         return Div(
             # Hidden textarea containing raw markdown
             Textarea(
-                markdown_content,
+                processed_content,  # Use the processed content with real HTML tags
                 id=textarea_id,
                 style="display: none;"
             ),
@@ -4710,3 +4732,34 @@ User-agent: *
             """),
             id=widget_id
         )
+
+    async def update_state_with_html(self, pipeline_id, step_id, data, steps, clear_previous=True):
+        """Helper method to update state while avoiding HTML logging issues"""
+        pip = self.pipulate
+        
+        # Get current state to modify directly
+        state = pip.read_state(pipeline_id)
+        
+        # Convert to string if needed
+        if isinstance(data, dict):
+            data_str = json.dumps(data)
+        else:
+            data_str = data
+        
+        # Update step in the state directly
+        if step_id not in state:
+            state[step_id] = {}
+        
+        # Store the data
+        state[step_id][steps[self.steps_indices[step_id]].done] = data_str
+        
+        # If this should clear subsequent steps
+        if clear_previous:
+            pip.clear_state_from_step(state, step_id, steps)
+        
+        # Clear revert target if any
+        if "_revert_target" in state:
+            del state["_revert_target"]
+        
+        # Write the state directly (bypasses logging in update_step_state)
+        pip.write_state(pipeline_id, state)
