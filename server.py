@@ -2659,7 +2659,11 @@ async def home(request):
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
     return Titled(
-        f"{APP_NAME} / {title_name(last_profile_name)} / {endpoint_name(menux)}",
+        Div(
+            A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
+            f" / {title_name(last_profile_name)} / {endpoint_name(menux)}",
+            style="display: inline;"
+        ),
         response,
         data_theme="dark",
         style=(
