@@ -1673,7 +1673,7 @@ class ParameterBusterWorkflow:
                                     breakpoints.append((freq, param_counts[freq]))
                                     break
                         
-                        # Create the HTML for breakpoints
+                        # Modify the breakpoints HTML generation code
                         if breakpoints:
                             breakpoints_html = f"""
                             <div style="background: #222; padding: 10px; border-radius: 5px; margin: 15px 0;">
@@ -1681,10 +1681,16 @@ class ParameterBusterWorkflow:
                                 <table style="margin-bottom: 10px; font-size: 0.9em;">
                             """
                             for freq, count in breakpoints:
+                                # Round down to nearest 100
+                                rounded_freq = int(freq // 100 * 100)
+                                # Create clickable link with JavaScript to update sliders
                                 breakpoints_html += f"""
                                     <tr>
                                         <td style="color: #bbb; padding-right: 10px;">Show ~{count} parameters:</td>
-                                        <td style="color: #ff8c00; font-weight: bold; text-align: right;">{freq:,}</td>
+                                        <td style="color: #ff8c00; font-weight: bold; text-align: right;">
+                                            <a href="javascript:void(0)" onclick="document.getElementById('min_frequency').value={rounded_freq}; document.getElementById('min_frequency_slider').value={rounded_freq}; triggerParameterPreview();" 
+                                               style="color: #ff8c00; text-decoration: underline; cursor: pointer;">{freq:,}</a>
+                                        </td>
                                     </tr>
                                 """
                             breakpoints_html += """
@@ -1805,7 +1811,7 @@ class ParameterBusterWorkflow:
                         ),
                         
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Create Optimization", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -4088,3 +4094,25 @@ class ParameterBusterWorkflow:
         else:
             return P("No parameters match these criteria. Try adjusting the thresholds.", 
                     style="color: #ff5555; font-style: italic;")
+
+    # Add this script to handle the frequency links
+    Script('''
+    function setFrequencyAndPreview(value) {
+        // Update both the slider and the number input
+        const slider = document.getElementById("min_frequency_slider");
+        const input = document.getElementById("min_frequency");
+        
+        // Set values
+        slider.value = value;
+        input.value = value;
+        
+        // Trigger the parameter preview
+        triggerParameterPreview();
+        
+        // Optional: Add visual feedback
+        input.style.backgroundColor = "#224433";
+        setTimeout(function() {
+            input.style.backgroundColor = "";
+        }, 500);
+    }
+    ''')
