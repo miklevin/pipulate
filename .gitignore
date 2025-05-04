@@ -15,6 +15,7 @@ config.json
 data/
 downloads/*
 flake.lock
+foo.txt
 logs/
 service_account.txt
 wip/*

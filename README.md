@@ -45,39 +45,65 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 ## How to Install Pipulate
 
-This guide shows you how to install Pipulate using two commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu terminal.
+This guide shows you how to install Pipulate using two main commands in your terminal. This works on macOS or on Windows using WSL (Windows Subsystem for Linux) with an Ubuntu (or similar Linux) terminal.
 
 1.  **Install Nix:**
+    * Nix manages the underlying software dependencies and ensures a consistent environment.
     * Open your Terminal.
     * Copy and paste this command, then press Enter:
         ```shell
         curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
         ```
     * Follow any instructions on the screen (you might need to type "Yes").
-    * **Important:** After the installation finishes, **close your Terminal window completely and open a new one.**
+    * **Important:** After the installation finishes, **close your Terminal window completely and open a new one.** This ensures Nix is correctly added to your system's PATH.
 
 2.  **Install Pipulate:**
+    * This command downloads Pipulate into `~/pipulate` (by default), sets up automatic updates via Git, and configures the Nix environment.
     * In the **new** Terminal window you just opened, copy and paste this command, then press Enter:
         ```shell
         curl -L https://pipulate.com/install.sh | sh
         ```
-    * This command downloads Pipulate, sets it up in a directory (usually `~/pipulate`), configures automatic updates, and starts the necessary services (like JupyterLab and the Pipulate server). This might take some time the first time you run it. It should automatically open browser tabs when ready.
+    * This might take some time the first time you run it as Nix downloads dependencies. It should automatically start the necessary services (JupyterLab and the Pipulate server) and open browser tabs when ready.
 
-**That's it! Pipulate is installed.**
+**That's it! Pipulate is installed.** You now have a self-contained, reproducible environment managed by Nix.
 
-**How to Run Pipulate After Installation**
+## How to Run Pipulate After Installation
+
+Pipulate uses Nix Flakes to manage its environment. This means you activate the specific environment defined in the `flake.nix` file to run the application and its tools.
 
 1.  Open a Terminal.
-2.  Go to the Pipulate directory. Type:
+2.  Navigate to the Pipulate directory. If you used the default install script, type:
     ```shell
     cd ~/pipulate
     ```
     *(If it was installed elsewhere, change `~/pipulate` to the correct path)*
-3.  Start Pipulate by typing:
+3.  Activate the Pipulate environment and start the services:
     ```shell
     nix develop
     ```
-    This command will check for updates automatically, start the Pipulate server and JupyterLab, and should open them in your web browser.
+    * **What this command does:**
+        * Checks for updates to the Pipulate code via `git pull` (if in a git repo).
+        * Enters the Nix environment defined in `flake.nix`, making all necessary tools (Python, system libraries, etc.) available.
+        * Executes the `shellHook` defined in `flake.nix`, which:
+            * Sets up the Python virtual environment (`.venv`).
+            * Installs/updates Python packages from `requirements.txt` using `pip`.
+            * Starts JupyterLab in the background (via `tmux`).
+            * Starts the Pipulate server (`server.py`) in the foreground.
+    * Your browser should open automatically to `http://localhost:5001` (Pipulate) and `http://localhost:8888` (JupyterLab).
+    * Press `Ctrl+C` in the terminal to stop the Pipulate server (and the `nix develop` session). JupyterLab will continue running in the background.
+    * To stop *all* services (including JupyterLab), you can run `pkill tmux` in a separate terminal.
+
+## Developer Setup & Environment Notes
+
+* **Nix Environment Activation:** Always run `nix develop` from the `~/pipulate` directory *before* running any project commands (`python server.py`, `pip install`, etc.) in a new terminal. This ensures you are using the correct dependencies defined in `flake.nix`.
+* **Interactive vs. Quiet Shell:**
+    * `nix develop` (or `nix develop .#default`): Standard interactive shell, runs the startup script (`run-script` defined in `flake.nix`) with welcome messages and service startup. Ideal for general use.
+    * `nix develop .#quiet`: Activates the Nix environment *without* running the full startup script or launching services automatically. It only sets up paths and installs pip requirements. Use this for:
+        * Running specific commands without starting the servers (e.g., `nix develop .#quiet --command python -c "import pandas"`).
+        * Debugging or interacting with AI assistants where verbose startup output is undesirable.
+        * Manually running `run-server` or `run-jupyter` (scripts placed in `.venv/bin` by the `shellHook`).
+* **Dependencies:** System-level dependencies (Python version, libraries like `gcc`, `zlib`) are managed by `flake.nix`. Python package dependencies are managed by `pip` using `requirements.txt` within the Nix-provided environment.
+* **Source of Truth:** The `flake.nix` file is the definitive source for the development environment setup.
 
 ---
 
