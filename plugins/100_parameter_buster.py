@@ -4400,7 +4400,14 @@ removeWastefulParams();
 2. Update the `REPLACE_ME!!!` with the ID found in the URL of the PageWorker.
 
 """
-
+            # On first run, automatically save the default markdown to enable chain reaction
+            # This is a special case for this workflow step only
+            if step_data.get(step.done, "") == "":  # Only if truly empty, not just JSON parse issue
+                markdown_data = {"markdown": markdown_content}
+                data_str = json.dumps(markdown_data)
+                await pip.update_step_state(pipeline_id, step_id, data_str, steps, clear_previous=False)
+                # After saving, we'll still show the display state but state is now officially saved
+        
         # Generate a unique ID for this instance
         widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         
