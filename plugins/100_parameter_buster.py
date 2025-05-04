@@ -1188,6 +1188,24 @@ class ParameterBusterWorkflow:
                         type="submit", 
                         cls="primary"
                     ),
+                    # Add this script at the beginning of the form to ensure triggerParameterPreview is available globally
+                    Script('''
+                    // Define triggerParameterPreview in the global scope
+                    window.triggerParameterPreview = function() {
+                        // Use HTMX to manually trigger the parameter preview
+                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');
+                        htmx.ajax('POST', 
+                            window.location.pathname.replace('step_06', 'parameter_preview'), 
+                            {
+                                target: '#parameter-preview',
+                                values: {
+                                    'gsc_threshold': document.getElementById('gsc_threshold').value,
+                                    'min_frequency': document.getElementById('min_frequency').value
+                                }
+                            }
+                        );
+                    };
+                    '''),
                     hx_post=f"/{app_name}/{step_id}_submit",
                     hx_target=f"#{step_id}",
                     _onsubmit="if(event.submitter !== document.querySelector('button[type=\"submit\"]')) { event.preventDefault(); return false; }",
@@ -1683,12 +1701,35 @@ class ParameterBusterWorkflow:
                             for freq, count in breakpoints:
                                 # Round down to nearest 100
                                 rounded_freq = int(freq // 100 * 100)
-                                # Create clickable link with JavaScript to update sliders
+                                # Create clickable link with hardcoded path
                                 breakpoints_html += f"""
                                     <tr>
                                         <td style="color: #bbb; padding-right: 10px;">Show ~{count} parameters:</td>
                                         <td style="color: #ff8c00; font-weight: bold; text-align: right;">
-                                            <a href="javascript:void(0)" onclick="document.getElementById('min_frequency').value={rounded_freq}; document.getElementById('min_frequency_slider').value={rounded_freq}; triggerParameterPreview();" 
+                                            <a href="javascript:void(0)" 
+                                               onclick="
+                                                 // Update both the slider and number input
+                                                 document.getElementById('min_frequency').value = {rounded_freq};
+                                                 document.getElementById('min_frequency_slider').value = {rounded_freq};
+                                                 
+                                                 // Visual feedback
+                                                 document.getElementById('min_frequency').style.backgroundColor = '#224433';
+                                                 setTimeout(function() {{ 
+                                                     document.getElementById('min_frequency').style.backgroundColor = ''; 
+                                                 }}, 500);
+                                                 
+                                                 // Direct AJAX call with FIXED CORRECT PATH
+                                                 htmx.ajax('POST', 
+                                                     '/{app_name}/parameter_preview', 
+                                                     {{
+                                                         target: '#parameter-preview',
+                                                         values: {{
+                                                             'gsc_threshold': document.getElementById('gsc_threshold').value,
+                                                             'min_frequency': {rounded_freq}
+                                                         }}
+                                                     }});
+                                                 
+                                                 return false;" 
                                                style="color: #ff8c00; text-decoration: underline; cursor: pointer;">{freq:,}</a>
                                         </td>
                                     </tr>
