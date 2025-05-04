@@ -4428,48 +4428,34 @@ removeWastefulParams();
             # Create parameter list string - show all parameters without truncation
             param_list_str = "\n".join([f"- `{param}`" for param in params_list])
 
-            # Use special encoding for details/summary tags that won't trigger logger issues
-            if len(params_list) > 5:
-                # Encode the tags with special strings that won't be interpreted as HTML by the logger
-                # but can be processed by our custom renderer
-                param_list_display = f"""[[DETAILS_START]]
-[[SUMMARY_START]]Show all {len(params_list)} parameters[[SUMMARY_END]]
-
-{param_list_str}
-[[DETAILS_END]]"""
-
-                robots_txt_display = f"""[[DETAILS_START]]
-[[SUMMARY_START]]Show all {len(params_list)} robots.txt rules[[SUMMARY_END]]
-
-```robots.txt
-User-agent: *
-{robots_txt_rules}
-```
-[[DETAILS_END]]"""
-            else:
-                param_list_display = param_list_str
-                robots_txt_display = f"```robots.txt\nUser-agent: *\n{robots_txt_rules if params_list else '# No parameters to block'}\n```"
-
-            # Create the full markdown content with robots.txt example
+            # Create more condensed markdown content with details tags OUTSIDE list items
             markdown_content = f"""# Parameter Buster Documentation
 
 ## Instructions
 1. Copy/Paste that JavaScript into a new PageWorkers custom optimization.
 2. Update the `REPLACE_ME!!!` with the ID found in the URL of the PageWorker.
 
-## Parameter Optimization Settings
+**Parameter Optimization Settings**
 - GSC Threshold: {gsc_threshold}
 - Minimum Frequency: {min_frequency_formatted}
 - Total Parameters Optimized: {len(params_list)}
 
-## Parameters Being Optimized
-{param_list_display if params_list else "No parameters selected for optimization."}
+[[DETAILS_START]]
+[[SUMMARY_START]]View all {len(params_list)} parameters[[SUMMARY_END]]
 
-## Example robots.txt Rules
+{param_list_str}
+[[DETAILS_END]]
 
-The following robots.txt rules can be used to prevent crawlers from accessing URLs with these parameters:
+[[DETAILS_START]]
+[[SUMMARY_START]]View robots.txt rules[[SUMMARY_END]]
 
-{robots_txt_display}
+```robots.txt
+User-agent: *
+{robots_txt_rules}
+```
+[[DETAILS_END]]
+
+**Important Notes:** robots.txt is advisory, not enforcement; prevents crawling but not indexing; for testing only
 """
 
             # On first run, automatically save the default markdown to enable chain reaction
