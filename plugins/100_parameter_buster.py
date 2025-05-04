@@ -1168,7 +1168,19 @@ class ParameterBusterWorkflow:
                     Div(
                         Label(
                             NotStr("<strong>Number of Parameters to Show:</strong>"), 
-                            For="param_count"
+                            For="param_count",
+                            style="min-width: 220px;"
+                        ),
+                        Input(
+                            type="range", 
+                            name="param_count_slider", 
+                            id="param_count_slider", 
+                            value=param_count, 
+                            min="10", 
+                            max="100", 
+                            step="5",
+                            style="flex-grow: 1; margin: 0 10px;",
+                            _oninput="document.getElementById('param_count').value = this.value;"
                         ),
                         Input(
                             type="number", 
@@ -1178,13 +1190,14 @@ class ParameterBusterWorkflow:
                             min="10", 
                             max="100", 
                             step="5",
-                            style="width: 120px;",
+                            style="width: 100px;",  # Increased width to accommodate arrows
+                            _oninput="document.getElementById('param_count_slider').value = this.value;",
                             _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"
                         ),
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
                     Button(
-                        "Analyze Parameters", 
+                        "Analyze Parameters",  # Removed the NotStr("<strong>...</strong>")
                         type="submit", 
                         cls="primary"
                     ),
@@ -1986,8 +1999,8 @@ function removeQueryParams(url, paramsToRemove) {{
     }}
 }}
   
-// Remove useless parameters from all links
-function removeUselessLinks() {{
+// Remove wasteful parameters from all links
+function removeWastefulParams() {{
     const DOM = runtime.getDOM();
     const removeParameters = {selected_params_js_array};
     DOM.getAllElements("[href]").forEach(function(el) {{
@@ -2002,7 +2015,7 @@ function removeUselessLinks() {{
 }}
 
 // Execute the function
-removeUselessLinks();
+removeWastefulParams();
 """
             
             # Store the JavaScript code in state
@@ -4014,7 +4027,7 @@ removeUselessLinks();
 
             # Create axes with specific dimensions to fill most of the figure
             # Extend the right margin to 0.7 (70% width) to make room for the value labels
-            ax = plt.axes([0.2, 0.02, 0.65, 0.95])  # left, bottom, width, height in figure coordinates (0-1)
+            ax = plt.axes([0.25, 0.02, 0.7, 0.95])  # Increased left margin from 0.2 to 0.25
             ax.set_facecolor('#13171f')
 
             # Change all spines (the box around the plot) to white
@@ -4024,11 +4037,11 @@ removeUselessLinks();
             # Remove the right and top spines completely
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
-            
+
             # Generate positions for bars
             y_pos = np.arange(len(top_params))
             width = 0.25
-            
+
             # Prepare data for each source
             weblogs_values = [source_counters['weblogs'].get(param, 0) for param in top_params]
             crawl_values = [source_counters['not_indexable'].get(param, 0) for param in top_params]
@@ -4037,21 +4050,30 @@ removeUselessLinks();
             # Calculate max value to help with layout
             max_value = max([max(weblogs_values or [0]), max(crawl_values or [0]), max(gsc_values or [0])])
             add_debug(f"Max value in data: {max_value}")
-            
+
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
-            
+
             # Create grouped bar chart with distinct colors
             weblog_bars = ax.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
             crawl_bars = ax.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
             gsc_bars = ax.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
-            
+
             # Make sure grid lines are white as well
             ax.grid(axis='x', linestyle='--', alpha=0.2, color='white')
-            
+
+            # Truncate long parameter names with ellipsis for better display
+            truncated_params = []
+            for param in top_params:
+                if len(param) > 25:
+                    truncated = param[:22] + "..."
+                else:
+                    truncated = param
+                truncated_params.append(truncated)
+
             # Set labels, ticks and styling - ensure all axis elements are white
             ax.set_yticks(y_pos)
-            ax.set_yticklabels(top_params, fontsize=8, color='white')
+            ax.set_yticklabels(truncated_params, fontsize=8, color='white')
             ax.set_xlabel('Occurrences (log scale)', color='white')
             ax.set_ylabel('Parameters', color='white')
             ax.set_title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
