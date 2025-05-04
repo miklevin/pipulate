@@ -82,7 +82,7 @@ Pipulate uses Nix Flakes to manage its environment. This means you activate the 
     nix develop
     ```
     * **What this command does:**
-        * Checks for updates to the Pipulate code via `git pull` (if in a git repo).
+        * Checks for updates to the Pipulate code via `git pull`.
         * Enters the Nix environment defined in `flake.nix`, making all necessary tools (Python, system libraries, etc.) available.
         * Executes the `shellHook` defined in `flake.nix`, which:
             * Sets up the Python virtual environment (`.venv`).
@@ -364,7 +364,7 @@ Pipulate uses two main patterns for adding functionality:
 1.  **CRUD Apps (`BaseCrud`):** For standard data management tasks (Create, Read, Update, Delete). Inherit from `BaseCrud` provided by the framework. Examples: `profiles_app.py`, `todo_app.py`.
 2.  **Workflows (No Superclass):** For linear, step-by-step processes, often ported from Jupyter Notebooks. These are plain Python classes following a specific convention (steps list, `step_XX` / `step_XX_submit` methods). Example: `hello_flow.py`, `botify_export.py`.
 
-New apps/workflows placed in the `apps/` or `workflows/` directories are automatically discovered and added to the UI navigation.
+New apps/workflows placed in the `plugins/` directory are automatically discovered and added to the UI navigation.
 
 -----
 
@@ -374,22 +374,132 @@ These are key libraries underpinning Pipulate.
 
 ### FastHTML vs. FastAPI
 
-FastHTML is chosen for its radical simplicity in building server-rendered UIs with HTMX, *not* for building high-performance JSON APIs like FastAPI. If your goal is a traditional API, FastAPI is likely a better choice. If your goal is a highly interactive, server-rendered UI with minimal JavaScript, FastHTML excels.
+FastHTML and FastAPI are both modern Python web frameworks, but they serve fundamentally different purposes:
 
-\<details\>
-\<summary\>FastHTML Code Examples (Click to Expand)\</summary\>
+- **FastAPI** is designed for building high-performance APIs with automatic OpenAPI/Swagger documentation, type validation, and async support. It excels in enterprise microservices and data-heavy applications where JSON is the primary data exchange format.
 
-*(Include the minimal, HTMX, and MiniDataAPI examples from the original document here)*
+- **FastHTML** is built for simplicity in creating server-rendered UIs with minimal JavaScript. It generates HTML directly from Python objects (no template language), works seamlessly with HTMX for interactivity, and includes MiniDataAPI for straightforward database operations.
 
-\</details\>
+The key difference: **FastAPI** optimizes for building APIs (JSON in/out), while **FastHTML** optimizes for building interactive UIs with minimal cognitive overhead (Python in, HTML out).
+
+Choose FastHTML when you want:
+- Server-rendered HTML without template languages
+- Minimal JavaScript through HTMX integration
+- Simple database interactions with SQLite
+- A streamlined development workflow without build steps
+- To use Python's object model to directly generate HTML
+
+<details>
+<summary>FastHTML Code Examples (Click to Expand)</summary>
+
+### Minimal Example
+
+```python
+from fasthtml.common import *
+
+app, rt = fast_app()
+
+@rt('/')
+def get():
+    return HTML(
+        Body(
+            Main(
+                H1("Welcome to FastHTML!"),
+                P("Creating clean web pages with minimal Python code.")
+            )
+        )
+    )
+
+serve()
+```
+
+### HTMX Integration Example
+
+```python
+from fasthtml.common import *
+
+app, rt = fast_app()
+
+@rt('/')
+def get():
+    return HTML(
+        Body(
+            Main(
+                H1("Interactive Example"),
+                Input(
+                    name="username", 
+                    placeholder="Enter your name", 
+                    hx_post="/welcome", 
+                    hx_target="#welcome-msg", 
+                    hx_swap="innerHTML"
+                ),
+                Div(id="welcome-msg")
+            )
+        )
+    )
+
+@rt('/welcome', methods=['POST'])
+def welcome(username: str = ""):
+    return P(f"Welcome {username}!")
+```
+
+### MiniDataAPI Example
+
+```python
+from fasthtml.common import *
+
+# Create app with SQLite database
+app, rt, users, User = fast_app('data.db', users={'username': str})
+
+@rt('/')
+def get():
+    return HTML(
+        Body(
+            Main(
+                H1("User List"),
+                Form(
+                    Input(name="username", placeholder="New user"),
+                    Button("Add", type="submit"),
+                    hx_post="/add-user",
+                    hx_target="#user-list",
+                    hx_swap="innerHTML"
+                ),
+                Ul(
+                    id="user-list",
+                    *[Li(user.username) for user in users()]
+                )
+            )
+        )
+    )
+
+@rt('/add-user', methods=['POST'])
+def add_user(username: str = ""):
+    if username:
+        users.insert(username=username)
+    return Ul(*[Li(user.username) for user in users()])
+```
+
+</details>
 
 ### MiniDataAPI Spec
 
-MiniDataAPI provides simple, dictionary-based interaction with SQLite tables.
+MiniDataAPI provides simple, dictionary-based interaction with SQLite tables without the complexity of traditional ORMs:
 
-  * **Philosophy:** Avoids ORM complexity.
-  * **Operations:** `insert()`, `update()`, `delete()`, `.xtra()` (for filtering/ordering), `()` (for fetching).
-  * **Type Safety:** Uses paired dataclasses (like `Task` for the `tasks` table object) generated by `fast_app`.
+- **Philosophy:** Minimalist database API focused on basic CRUD operations
+- **Core Methods:**
+  - `table.insert(field=value, ...)` - Create a new record
+  - `table[primary_key]` - Retrieve a record by primary key
+  - `table()` - Get all records (optionally filtered)
+  - `table.update(primary_key=value, field=value, ...)` - Update a record
+  - `table.delete(primary_key)` - Delete a record
+  - `table.xtra(field=value, ...)` - Add persistent filters to a table instance
+- **Future-Proof:** The simplified interface allows for potentially swapping SQLite with other database engines without changing application code
+- **Type Safety:** Uses paired dataclasses (like `User` for the `users` table) that are automatically generated
+
+When used with `fast_app()`, database setup becomes remarkably simple:
+```python
+app, rt, users, User = fast_app('data.db', users={'username': str, 'pk': 'id'})
+```
 
 ### The `fast_app` Helper
 
@@ -467,61 +577,4 @@ The repository includes not only polished plugins but also experimental scripts 
 
   * **Numeric Prefixes:** Files like `workflows/10_hello_flow.py` are registered as `hello_flow` (number stripped for internal name, used for menu order).
   * **Parentheses Skip:** Files with `()` in the name (e.g., `hello_flow (Copy).py`) are skipped – useful for temporary copies during development.
-  * **`xx_` Prefix Skip:** Files prefixed with `xx_` (e.g., `xx_experimental_flow.py`) are skipped – useful for keeping unfinished work in the plugin directories without activating it.
-
-#### Workflow for Creating New Plugins
-
-1.  **Copy:** Copy a template (e.g., `starter_flow.py`) to `my_flow (Copy).py`.
-2.  **Modify:** Develop your workflow. It won't auto-register yet.
-3.  **Test:** Rename to `xx_my_flow.py`. The server should auto-reload. Test thoroughly.
-4.  **Deploy:** Rename to `##_my_flow.py` (e.g., `30_my_flow.py`) to assign menu order and activate.
-
-#### Git History Considerations
-
-Use `git mv` for simple renames (like `xx_` to numbered prefix) to preserve history. Document more complex renames in commit messages.
-
-```bash
-git mv workflows/xx_my_flow.py workflows/30_my_flow.py
-git commit -m "Feat: Promote workflow xx_my_flow.py to 30_my_flow.py"
-```
-
------
-
-## Roadmap
-
-**Core & Workflow Enhancements:**
-
-  * Dev, Test, and Prod database switching
-  * Saving source HTML and rendered DOM of any URL
-  * Botify data export CSV save (incorporating robust polling)
-  * Full web form field support (textarea, dropdown, checkboxes, radio buttons)
-  * Generic support for Anywidgets
-  * Utility for deleting garbage tables from plugin experimentation
-
-**AI / LLM Integration:**
-
-  * LLM inspection of any local data object (RAG-style functionality)
-  * Various memory types for LLM context (vector embedding, graph, key/val-store)
-  * Enabling the local LLM to be an MCP Client
-
-**Automation & External Interaction:**
-
-  * MCP Server for automated web browsing and similar tasks
-
------
-
-## Contributing
-
-Contributions are welcome\! Please adhere to the project's core philosophy:
-
-  * Maintain Local-First Simplicity (No multi-tenant patterns, complex ORMs, heavy client-side state).
-  * Respect Server-Side State (Use DictLikeDB/JSON for workflows, MiniDataAPI for CRUD).
-  * Preserve the Workflow Pipeline Pattern (Keep steps linear, state explicit).
-  * Honor Integrated Features (Don't disrupt core LLM/Jupyter integration unless enhancing local goals).
-
------
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
+  * **`
