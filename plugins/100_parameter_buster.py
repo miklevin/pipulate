@@ -4421,12 +4421,13 @@ removeWastefulParams();
             except ValueError:
                 min_frequency_formatted = min_frequency
 
-            # Create markdown content with parameters list
-            param_list_str = "\n".join([f"- `{param}`" for param in params_list[:20]])
-            if len(params_list) > 20:
-                param_list_str += f"\n- ... and {len(params_list) - 20} more parameters"
-            
-            # Create the full markdown content
+            # Create robots.txt rules for the parameters - show all of them
+            robots_txt_rules = "\n".join([f"Disallow: /*?*{param}=*" for param in params_list])
+
+            # Create parameter list string - show all parameters without truncation
+            param_list_str = "\n".join([f"- `{param}`" for param in params_list])
+
+            # Create the full markdown content with robots.txt example
             markdown_content = f"""# Parameter Buster Documentation
 
 ## Instructions
@@ -4440,6 +4441,21 @@ removeWastefulParams();
 
 ## Parameters Being Optimized
 {param_list_str if params_list else "No parameters selected for optimization."}
+
+## Example robots.txt Rules
+
+The following robots.txt rules can be used to prevent crawlers from accessing URLs with these parameters:
+
+```robots.txt
+User-agent: *
+{robots_txt_rules if params_list else "# No parameters to block"}
+```
+
+**Important Notes:**
+- robots.txt is advisory, not enforcement - malicious bots may ignore it
+- Using robots.txt only prevents crawling, not necessarily indexing
+- For testing purposes only; a more comprehensive SEO strategy may be needed
+- Consider using more specific User-agent directives for production
 """
             # On first run, automatically save the default markdown to enable chain reaction
             # This is a special case for this workflow step only
