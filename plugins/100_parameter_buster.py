@@ -1423,22 +1423,33 @@ class ParameterBusterWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
         
+        # Import these at the beginning of the method so they're available everywhere
+        from starlette.responses import HTMLResponse
+        from fasthtml.common import to_xml
+        
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and user_val:
             # Show the syntax highlighter in locked state
             try:
-                # Parse the JSON data and get the js_code
-                values = json.loads(user_val) if user_val else {}
-                code_to_display = values.get("js_code", "")
-                gsc_threshold = values.get("gsc_threshold", "0")
-                min_frequency = values.get("min_frequency", "100000")
-                selected_params = values.get("selected_params", [])
-                
-                # Generate unique widget ID for this step and pipeline
+                # Generate unique widget ID
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 
-                # Use the helper method to create a prism widget
+                # Try to parse as JSON
+                try:
+                    values = json.loads(user_val)
+                    code_to_display = values.get("js_code", "")
+                    selected_params = values.get("selected_params", [])
+                    gsc_threshold = values.get("gsc_threshold", "0")
+                    min_frequency = values.get("min_frequency", "100000")
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, use the raw value
+                    code_to_display = user_val
+                    selected_params = []
+                    gsc_threshold = "0" 
+                    min_frequency = "0"
+                
+                # Create Prism widget
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
                 
                 # Create response with widget in locked view
@@ -1447,7 +1458,7 @@ class ParameterBusterWorkflow:
                         Div(
                             Card(
                                 H3(f"🔒 {step.show}"),
-                                P(f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})"),
+                                P(f"Parameter Optimization with {len(selected_params)} parameters"),
                                 prism_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -1465,11 +1476,12 @@ class ParameterBusterWorkflow:
                 
                 return response
             except Exception as e:
-                logging.error(f"Error creating Prism widget in locked view: {str(e)}")
+                logging.exception(f"Error creating Prism widget in locked view: {str(e)}")
                 return Div(
                     Card(
                         H3(f"🔒 {step.show}"),
-                        P("Code display unavailable in locked view.")
+                        P("Parameter optimization JavaScript"),
+                        Pre(f"JavaScript couldn't be displayed due to an error: {str(e)}")
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
@@ -1480,14 +1492,39 @@ class ParameterBusterWorkflow:
             # Create the prism widget from the existing code
             try:
                 # Parse the JSON data and get the js_code
-                values = json.loads(user_val) if user_val else {}
-                code_to_display = values.get("js_code", "")
-                gsc_threshold = values.get("gsc_threshold", "0") 
-                min_frequency = values.get("min_frequency", "100000")
-                selected_params = values.get("selected_params", [])
+                values = None
+                try:
+                    # Log the raw user_val for debugging
+                    logging.info(f"Raw user_val in finalized state: {user_val[:100]}...")
+                    
+                    # Try to parse JSON
+                    values = json.loads(user_val) if user_val else {}
+                    
+                    # Log the structure
+                    logging.info(f"Parsed JSON keys: {list(values.keys())}")
+                except json.JSONDecodeError as json_err:
+                    logging.error(f"JSON parsing error: {str(json_err)}")
+                    # If it's not valid JSON, use as plain text
+                    code_to_display = user_val
+                    gsc_threshold = "0"
+                    min_frequency = "100000"
+                    selected_params = []
+                else:
+                    # Successfully parsed JSON
+                    code_to_display = values.get("js_code", "")
+                    if not code_to_display and user_val:
+                        # If js_code is missing, use the full user_val
+                        code_to_display = user_val
+                        
+                    gsc_threshold = values.get("gsc_threshold", "0")
+                    min_frequency = values.get("min_frequency", "100000")
+                    selected_params = values.get("selected_params", [])
                 
                 # Generate unique widget ID for this step and pipeline
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+                
+                # Log lengths for debugging
+                logging.info(f"Code length: {len(code_to_display)}, Params count: {len(selected_params) if selected_params else 0}")
                 
                 # Create Prism widget with the extracted JavaScript code
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
@@ -1502,7 +1539,7 @@ class ParameterBusterWorkflow:
                             pip.widget_container(
                                 step_id=step_id,
                                 app_name=app_name,
-                                message=f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})",
+                                message=f"Parameter Optimization with {len(selected_params) if selected_params else 0} parameters",
                                 widget=prism_widget,
                                 steps=steps
                             ),
@@ -1928,9 +1965,10 @@ class ParameterBusterWorkflow:
             selected_params_js_array = json.dumps(selected_params)
             
             js_code = f"""
-// Selected parameters:
+// Selected parameters for URL parameter optimization:
 const selected_params = {selected_params_js_array};
 
+// Function to remove query parameters from a URL
 function removeQueryParams(url, paramsToRemove) {{
     let urlParts = url.split('?');
     if (urlParts.length >= 2) {{
@@ -1952,6 +1990,7 @@ function removeQueryParams(url, paramsToRemove) {{
     }}
 }}
   
+// Main function to remove useless parameters from links
 function removeUselessLinks() {{
     const DOM = runtime.getDOM();
     const removeParameters = {selected_params_js_array};
@@ -1959,13 +1998,14 @@ function removeUselessLinks() {{
         let targetURL = el.getAttribute("href");	
         let newTargetURL = removeQueryParams(targetURL, removeParameters);
         if (targetURL != newTargetURL) {{
-            //console.log("FROM:" + targetURL + " TO:" + newTargetURL);
+            // console.log("FROM:" + targetURL + " TO:" + newTargetURL);
             el.setAttribute("href", newTargetURL);
             el.setAttribute("data-bty-pw-id", "REPLACE_ME!!!");
         }}
     }});
 }}
 
+// Execute the function
 removeUselessLinks();
 """
             
@@ -1999,7 +2039,7 @@ removeUselessLinks();
                         pip.widget_container(
                             step_id=step_id,
                             app_name=app_name,
-                            message=f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})",
+                            message=f"Parameter Optimization with {len(selected_params) if selected_params else 0} parameters",
                             widget=prism_widget,
                             steps=steps
                         ),
