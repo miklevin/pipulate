@@ -1428,36 +1428,26 @@ class ParameterBusterWorkflow:
         if "finalized" in finalize_data and user_val:
             # Show the syntax highlighter in locked state
             try:
-                # Check if user specified a language in format: ```language\ncode```
-                language = 'javascript'  # Default language
-                code_to_display = user_val
-                
-                if user_val.startswith('```'):
-                    # Try to extract language from markdown-style code block
-                    first_line = user_val.split('\n', 1)[0].strip()
-                    if len(first_line) > 3:
-                        detected_lang = first_line[3:].strip()
-                        if detected_lang:
-                            language = detected_lang
-                            # Remove the language specification line from the code
-                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-                    
-                    # Remove trailing backticks if present
-                    if code_to_display.endswith('```'):
-                        code_to_display = code_to_display.rsplit('```', 1)[0]
+                # Parse the JSON data and get the js_code
+                values = json.loads(user_val) if user_val else {}
+                code_to_display = values.get("js_code", "")
+                gsc_threshold = values.get("gsc_threshold", "0")
+                min_frequency = values.get("min_frequency", "100000")
+                selected_params = values.get("selected_params", [])
                 
                 # Generate unique widget ID for this step and pipeline
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 
-                # Use the helper method to create a prism widget with detected language
-                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
+                # Use the helper method to create a prism widget
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
                 
-                # Create response with locked view
+                # Create response with widget in locked view
                 response = HTMLResponse(
                     to_xml(
                         Div(
                             Card(
-                                H3(f"🔒 {step.show} ({language})"),
+                                H3(f"🔒 {step.show}"),
+                                P(f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})"),
                                 prism_widget
                             ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -1489,38 +1479,33 @@ class ParameterBusterWorkflow:
         if user_val and state.get("_revert_target") != step_id:
             # Create the prism widget from the existing code
             try:
-                # Check if user specified a language in format: ```language\ncode```
-                language = 'javascript'  # Default language
-                code_to_display = user_val
+                # Parse the JSON data and get the js_code
+                values = json.loads(user_val) if user_val else {}
+                code_to_display = values.get("js_code", "")
+                gsc_threshold = values.get("gsc_threshold", "0") 
+                min_frequency = values.get("min_frequency", "100000")
+                selected_params = values.get("selected_params", [])
                 
-                if user_val.startswith('```'):
-                    # Try to extract language from markdown-style code block
-                    first_line = user_val.split('\n', 1)[0].strip()
-                    if len(first_line) > 3:
-                        detected_lang = first_line[3:].strip()
-                        if detected_lang:
-                            language = detected_lang
-                            # Remove the language specification line from the code
-                            code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-                    
-                    # Remove trailing backticks if present
-                    if code_to_display.endswith('```'):
-                        code_to_display = code_to_display.rsplit('```', 1)[0]
-                
+                # Generate unique widget ID for this step and pipeline
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-                prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
-                    widget=prism_widget,
-                    steps=steps
-                )
+                
+                # Create Prism widget with the extracted JavaScript code
+                prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
+                
+                # Use widget_container instead of revert_control
+                from starlette.responses import HTMLResponse
+                from fasthtml.common import to_xml
                 
                 response = HTMLResponse(
                     to_xml(
                         Div(
-                            content_container,
+                            pip.widget_container(
+                                step_id=step_id,
+                                app_name=app_name,
+                                message=f"Parameter Optimization created with {len(selected_params)} parameters (GSC ≤ {gsc_threshold}, Min Freq ≥ {min_frequency})",
+                                widget=prism_widget,
+                                steps=steps
+                            ),
                             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                             id=step_id
                         )
