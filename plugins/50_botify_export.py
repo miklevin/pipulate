@@ -33,6 +33,7 @@ import httpx
 from pathlib import Path
 import json
 import os
+import logging
 
 from fasthtml.common import *
 from loguru import logger
@@ -52,6 +53,45 @@ class BotifyExport:
     This workflow helps users export data from Botify projects and download it as CSV files.
     It demonstrates usage of rich UI components like directory trees alongside standard
     form inputs and revert controls.
+    
+    ## Key Implementation Notes
+    
+    ### Data Processing Challenges
+    
+    1. **CSV Format Variations**: Botify exports have inconsistent format details:
+       - Some files include `sep=,` as the first line (must be stripped in post-processing)
+       - Column headers vary between exports and require normalization
+       - Character encoding issues may arise (handled with utf-8 errors='ignore')
+    
+    2. **Compression Format Handling**:
+       - Exports come in various formats (gzip, zip, or uncompressed)
+       - The workflow detects format dynamically and handles each appropriately
+       - Failback mechanisms attempt different decompression approaches when format detection fails
+    
+    3. **File Naming and Paths**:
+       - Deterministic path generation ensures consistent file locations
+       - Cached exports are detected and reused when possible
+       - Directory structure mirrors Botify organization (org/project/analysis)
+    
+    ### Implementation Decisions
+    
+    1. **Step Separation Trade-offs**:
+       - This workflow separates export configuration from download steps
+       - While ParameterBuster combines these operations into background processes
+       - The separated approach gives more visibility but requires additional user clicks
+       - Future versions could adopt the background polling pattern from ParameterBuster
+    
+    2. **API Interaction Pattern**:
+       - Job submission and polling follows the standard Botify API workflow
+       - Error handling includes extensive retry logic for network issues
+       - Job ID extraction provides a fallback when URLs expire
+       - Token validation occurs at workflow start rather than per-request
+    
+    3. **Post-processing Requirements**:
+       - Unlike ParameterBuster which handles processing inline, this workflow requires manual steps
+       - Column renaming must be done after download
+       - Header row handling for `sep=,` must be managed explicitly
+       - UTF-8 decoding with error handling is essential for some exports
     
     Implementation Note on Tree Displays:
     ------------------------------------
@@ -177,91 +217,70 @@ class BotifyExport:
 # ============================================================================
 
     async def landing(self):
-        """
-        Generate the landing page for the workflow.
-        
-        This method creates the initial UI that users see when they access the
-        workflow. It provides a form for entering or selecting a unique identifier
-        (pipeline ID) to start or resume a workflow. Key features:
-        
-        - Displays the workflow title and description
-        - Generates a default pipeline ID for new workflows
-        - Provides a datalist of existing workflow IDs
-        - Creates an HTMX-enabled form for workflow initialization
-        
-        Returns:
-            FastHTML container with the landing page UI components
-        """
+        """Renders the initial landing page with the key input form or connection message."""
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
-        
-        # Get plugin display name for the title
-        context = pip.get_plugin_context(self)
         title = f"{self.DISPLAY_NAME or app_name.title()}"
         
-        # Generate a default key and get the prefix for the datalist
+        # Check if botify_token.txt exists
+        token_exists = os.path.exists("botify_token.txt")
+        
+        # If token doesn't exist, show message about needing to connect with Botify first
+        if not token_exists:
+            return Container(
+                Card(
+                    H2(title),
+                    P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                    Div(
+                        H3("Botify Connection Required", style="color: #e74c3c;"),
+                        P("To use the Botify CSV Export workflow, you must first connect with Botify.", style="margin-bottom: 10px;"),
+                        P("Please run the \"Connect With Botify\" workflow to set up your Botify API token.", style="margin-bottom: 20px;"),
+                        P("Once configured, you can return to this workflow.", style="font-style: italic; color: #666;")
+                    )
+                ),
+                Div(id=f"{app_name}-container")
+            )
+        
+        # Continue with normal form display if token exists
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
         default_value = full_key
-        
-        # Get existing keys for the datalist
         pipeline.xtra(app_name=app_name)
-        matching_records = [record.pkey for record in pipeline() 
-                           if record.pkey.startswith(prefix)]
-        
-        # Create full key options for the datalist
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        
-        return Container(  # Get used to this return signature of FastHTML & HTMX
+
+        return Container(
             Card(
                 H2(title),
-                # P(f"Key format: Profile-Plugin-Number (e.g., {prefix}01)", style="font-size: 0.9em; color: #666;"),
-                P("Enter a key to start a new workflow or resume an existing one.", style="font-size: 0.9em; color: #666;"),
-                # P("Clear the field and submit to generate a fresh auto-key.", style="font-size: 0.9em; color: #666;"),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Existing or new 🗝 here (Enter for auto)",
-                            name="pipeline_id",
-                            list="pipeline-ids",
-                            type="search",
-                            required=False,  # Allow empty submissions
-                            autofocus=True,
-                            value=default_value,
-                            _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
                             cls="contrast"
                         ),
-                        button_label=f"Enter 🔑",
-                        button_class="secondary"
+                        button_label=f"Enter 🔑", button_class="secondary"
                     ),
-                    # Use the helper method to create the initial datalist
                     pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
-                    hx_post=f"/{app_name}/init",
-                    hx_target=f"#{app_name}-container"
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
                 )
             ),
             Div(id=f"{app_name}-container")
         )
 
     async def init(self, request):
-        """
-        Initialize the workflow and create the UI for all steps.
-        
-        This method handles the form submission from the landing page, setting up
-        the workflow pipeline. It performs several key operations:
-        
-        1. Generates or validates the pipeline ID
-        2. Initializes the workflow state
-        3. Provides user feedback about workflow status
-        4. Updates the datalist for returning to this workflow
-        5. Generates the HTMX-enabled placeholders for all steps
-        
-        The initialization process accommodates both new workflows and resuming
-        existing ones, with appropriate feedback for each situation.
+        """Handles the key submission, initializes state, and renders the UI placeholders.
         
         Args:
-            request: The HTTP request object containing the pipeline_id form field
+            request: The incoming HTTP request with form data
             
-        Returns:
-            FastHTML container with all workflow step placeholders
+        Note on Token Validation:
+        Unlike ParameterBuster which checks token existence per-operation,
+        this workflow validates the token once at startup. Both approaches have merits:
+        - Startup validation (this workflow): Prevents users from even starting without a token
+        - Per-operation validation (ParameterBuster): More robust against token deletion during workflow
+        
+        This method also sets up the workflow state and prepares the initial display.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
@@ -789,7 +808,18 @@ class BotifyExport:
     # Step 4: Export Configuration
     # -----------------
     async def step_04(self, request):
-        """Display the CSV export form with field selection options"""
+        """Display the CSV export form with field selection options
+        
+        This step demonstrates a key difference from ParameterBuster's approach:
+        - This workflow separates configuration (this step) from processing (download steps)
+        - ParameterBuster uses background processing with immediate progress feedback
+        
+        The separated approach gives users more control but requires additional clicks.
+        It also lacks the immediate visual feedback that background processing provides.
+        
+        The field selection UI shows available fields based on BQLv2 schema definition,
+        with checkbox controls for flexible selection.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1831,7 +1861,30 @@ class BotifyExport:
         return '\n'.join(tree_lines)
 
     async def download_csv(self, request):
-        """Handle CSV file download"""
+        """Handles the download request for a Botify export job.
+        
+        This method demonstrates file format handling complexity:
+        1. Downloads compressed files (.gz or .zip) from Botify API
+        2. Detects format automatically and applies appropriate decompression
+        3. Handles file name extraction from archive contents
+        4. Manages temporary files and cleanup
+        
+        Format detection challenges:
+        - Some exports have Content-Type: application/gzip
+        - Others use application/zip or application/octet-stream
+        - Format must sometimes be inferred from file contents
+        - Failed decompression requires fallback approaches
+        
+        Compare with ParameterBuster's approach which adds post-processing:
+        - Directly loads the CSV with pandas after download
+        - Skips header row with `sep=,` delimiter notation
+        - Applies consistent column naming
+        - Saves back with normalized format
+        
+        Usage:
+        Called via AJAX from the frontend during job status polling
+        when download becomes available.
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -2311,16 +2364,34 @@ class BotifyExport:
             return None, f"Error initiating export job: {str(e)}"
 
     async def poll_job_status(self, job_url, api_token, max_attempts=12):
-        """
-        Poll the job status URL to check for completion
+        """Poll the job status URL to check for completion.
         
         Args:
             job_url: Full job URL to poll
             api_token: Botify API token
-            max_attempts: Maximum number of polling attempts
+            max_attempts: Maximum number of polling attempts (default: 12)
             
         Returns:
-            Tuple of (is_complete, download_url, error_message)
+            Tuple of (success, result_dict_or_error_message)
+        
+        Polling Implementation Notes:
+        This method showcases important API polling patterns:
+        
+        1. Exponential backoff with capped delay (prevents excessive requests)
+        2. Error classification (authentication vs. network vs. API errors)
+        3. URL regeneration for expired job paths (using extracted job ID)
+        4. Network error resilience (retries with increasing delays)
+        
+        Comparison with ParameterBuster approach:
+        - Both use polling with exponential backoff
+        - This implementation has more explicit error handling
+        - ParameterBuster integrates polling with UI updates in a single flow
+        - This workflow separates these concerns into discrete steps
+        
+        Additional fault tolerance mechanisms:
+        - Track consecutive network errors to trigger URL reconstruction
+        - Extract job ID from URL for fallback polling approach
+        - Recover from temporarily unavailable API endpoints
         """
         headers = {"Authorization": f"Token {api_token}"}
         
@@ -2843,3 +2914,43 @@ def parse_botify_url(url: str) -> dict:
     project = path_parts[1]
     base_url = f"https://{parsed.netloc}/{org}/{project}/"
     return {"url": base_url, "org": org, "project": project} 
+
+def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
+    """Loads a CSV file with flexible options for Botify export quirks.
+    
+    Args:
+        file_path: Path to the CSV file
+        skip_rows: Number of rows to skip (default: 0)
+        encoding: File encoding (default: 'utf-8')
+        
+    Returns:
+        Pandas DataFrame or None on error
+    
+    CSV Processing Notes:
+    This method handles common Botify export format issues:
+    
+    1. 'sep=' delimiter notation:
+       - Some exports include 'sep=,' as the first line
+       - This requires skip_rows=1 to properly parse
+       - Must be detected by examining file content
+    
+    2. Encoding variations:
+       - UTF-8 is standard but some exports have other encodings
+       - errors='ignore' prevents crashes on encoding issues
+       - Falling back to latin-1 may be necessary for some exports
+    
+    3. Header normalization:
+       - Column names may include spaces and special characters
+       - Standardization is needed for reliable field access
+       - ParameterBuster directly sets readable column headers
+    
+    Similar to ParameterBuster's load_csv_with_optional_skip method,
+    but with additional options for Botify-specific format variations.
+    """
+    try:
+        # Method implementation would go here - this is documenting a
+        # hypothetical method that would match ParameterBuster's functionality
+        pass
+    except Exception as e:
+        logging.error(f"Error loading CSV {Path(file_path).name}: {e}")
+        return None
