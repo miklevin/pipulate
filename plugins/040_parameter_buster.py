@@ -493,7 +493,7 @@ class ParameterBusterWorkflow:
                             style="width: 100%;"
                         ),
                         Div(
-                            Button("Submit ▸", type="submit", cls="primary"),
+                            Button("Use this URL ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
@@ -864,12 +864,12 @@ class ParameterBusterWorkflow:
         analysis_slug = analysis_data.get("analysis_slug", "")
         
         # First, show a progress indicator
-        await self.message_queue.add(pip, f"Checking if project '{project_name}' has web logs available...", verbatim=True)
+        await self.message_queue.add(pip, f"Downloading Web Logs for '{project_name}'...", verbatim=True)
         
         # Return the progress indicator immediately
         return Card(
             H3(f"{step.show}"),
-            P(f"Checking if project '{project_name}' has web logs..."),
+            P(f"Downloading Web Logs for '{project_name}'..."),
             Progress(style="margin-top: 10px;"),  # Indeterminate progress bar
             
             # Add a script that will process in the background
@@ -960,10 +960,10 @@ class ParameterBusterWorkflow:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P(f"Check if project '{project_name}' has Search Console data available"),
+                    P(f"Download Search Console data for '{project_name}'"),
                     P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Download Search Console", type="submit", cls="primary"),
+                        Button("Download Search Console ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -997,7 +997,7 @@ class ParameterBusterWorkflow:
         # We'll simply return the progress UI directly instead of trying to use Response
         return Card(
             H3(f"{step.show}"),
-            P(f"Checking if project '{project_name}' has Search Console data..."),
+            P(f"Downloading Search Console data for '{project_name}'..."),
             Progress(style="margin-top: 10px;"),  # Indeterminate progress bar
             
             # Add a script that will check again after a delay
@@ -1234,7 +1234,7 @@ class ParameterBusterWorkflow:
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
                     Button(
-                        "Analyze Parameters",  # Removed the NotStr("<strong>...</strong>")
+                        "Analyze Parameters ▸",  # Removed the NotStr("<strong>...</strong>")
                         type="submit", 
                         cls="primary"
                     ),
@@ -1913,7 +1913,7 @@ class ParameterBusterWorkflow:
                         ),
                         
                         Div(
-                            Button("Create Optimization", type="submit", cls="primary"),
+                            Button("Create Optimization ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -3347,7 +3347,7 @@ removeWastefulParams();
                         
                         # Handle the specific "Unknown error" case more gracefully
                         if "Unknown error (Type: Unknown type)" in error_message:
-                            await self.message_queue.add(pip, "This likely means the project doesn't support the logs export format.", verbatim=True)
+                            await self.message_queue.add(pip, "This likely means no web logs were retrieved for this analysis period. Try selecting a different analysis in Step 2.", verbatim=True)
                             # Instead of failing, just mark as no logs available
                             check_result["has_logs"] = False
                             check_result["download_complete"] = True
@@ -4567,7 +4567,7 @@ User-agent: *
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Update Documentation", type="submit", cls="primary"),
+                            Button("Update Documentation ▸", type="submit", cls="primary"),
                             style="margin-top: 10px; text-align: right;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
