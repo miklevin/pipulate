@@ -2708,8 +2708,15 @@ def create_nav_menu():
     
     # Create a breadcrumb-style navigation
     breadcrumb = H1(
-        A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
-        f" / {title_name(selected_profile_name)} / {endpoint_name(menux)}",
+        A(APP_NAME, 
+          href="/redirect/", 
+          title="Go to Home", 
+          style="text-decoration: none; color: inherit; transition: color 0.2s;",
+          onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';", 
+          onmouseout="this.style.color='inherit'; this.style.textDecoration='none';"
+        ),
+        Span(" / ", style="padding: 0 0.3rem;"),
+        Span(f"{title_name(selected_profile_name)} / {endpoint_name(menux)}"),
         style="display: inline-flex; align-items: center; margin-right: auto;"
     )
     
