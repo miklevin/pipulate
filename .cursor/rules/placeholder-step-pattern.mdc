@@ -145,3 +145,39 @@ When ready to replace the placeholder with functional content:
 2. Add necessary form elements to collect data
 3. Enhance the submit handler to process the collected data
 4. Preserve the chain reaction pattern and revert functionality
+
+# Placeholder Step Pattern for Pipulate Workflows
+
+## Standard Workflow Step Structure
+When implementing steps in Pipulate workflows, follow these patterns:
+
+1. **Step Definition**: Use namedtuple `Step` with appropriate fields
+   ```python
+   Step(
+       id='step_XX',          # HTML ID and URL path component
+       done='field_name',     # State key indicating completion
+       show='User-facing label',
+       refill=True/False,     # Whether to refill on revert
+       transform=lambda prev_val: f"Process {prev_val}"  # Optional
+   )
+   ```
+
+2. **GET Handler Pattern** (`step_XX`):
+   - Check finalization status
+   - Check if step is complete but not being reverted
+   - Use `wrap_with_inline_button` with "Next ▸" label
+
+3. **POST Handler Pattern** (`step_XX_submit`):
+   - Validate input
+   - Process data
+   - Store with `pip.update_step_state`
+   - Return navigation with `pip.create_step_navigation`
+
+## Chain Reaction Mechanism
+Always include the appropriate chain reaction elements when implementing steps:
+- Include explicit `hx_trigger="load"` attributes in all step handlers
+- Return appropriate navigation controls from submit handlers
+- Use the standard `pip.create_step_navigation` helper
+
+## Example
+See implementation in [plugins/020_hello_workflow.py](mdc:pipulate/plugins/020_hello_workflow.py)
