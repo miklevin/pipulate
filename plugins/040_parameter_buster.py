@@ -334,7 +334,7 @@ class ParameterBusterWorkflow:
                         H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                         Form(
-                            Button("Finalize", type="submit", cls="primary"),
+                            Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize", 
                             hx_target=f"#{app_name}-container"
                         ),
@@ -493,7 +493,7 @@ class ParameterBusterWorkflow:
                             style="width: 100%;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Submit ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit", 
@@ -666,7 +666,7 @@ class ParameterBusterWorkflow:
                                 ) for slug in slugs
                             ]
                         ),
-                        Button("Download Crawl Analysis", type="submit", cls="primary", style="margin-top: 10px;"),
+                        Button("Download Crawl Analysis ▸", type="submit", cls="primary", style="margin-top: 10px;"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -822,7 +822,7 @@ class ParameterBusterWorkflow:
                     P(f"Check if project '{project_name}' has web logs available"),
                     P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
-                        Button("Download Web Logs", type="submit", cls="primary"),
+                        Button("Download Web Logs ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -3344,7 +3344,36 @@ removeWastefulParams();
                     if not success:
                         error_message = isinstance(result, str) and result or "Export job failed"
                         await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
-                        raise ValueError(f"Export failed: {error_message}")
+                        
+                        # Handle the specific "Unknown error" case more gracefully
+                        if "Unknown error (Type: Unknown type)" in error_message:
+                            await self.message_queue.add(pip, "This likely means the project doesn't support the logs export format.", verbatim=True)
+                            # Instead of failing, just mark as no logs available
+                            check_result["has_logs"] = False
+                            check_result["download_complete"] = True
+                            check_result["error"] = error_message
+                            check_result["note"] = "Project doesn't support logs export format"
+                            
+                            # Convert to JSON for storage
+                            check_result_str = json.dumps(check_result)
+                            
+                            # Store in state
+                            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+                            
+                            # Return result display with explanatory message
+                            return Div(
+                                pip.revert_control(
+                                    step_id=step_id, 
+                                    app_name=app_name, 
+                                    message=f"{step.show}: Project logs couldn't be processed (using fallback)",
+                                    steps=steps
+                                ),
+                                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                                id=step_id
+                            )
+                        else:
+                            # For other errors, still raise the exception
+                            raise ValueError(f"Export failed: {error_message}")
                     
                     # Export ready message
                     await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
