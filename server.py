@@ -2658,22 +2658,33 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
-    return Titled(
-        Div(
-            A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
-            f" / {title_name(last_profile_name)} / {endpoint_name(menux)}",
-            style="display: inline;"
-        ),
-        response,
-        data_theme="dark",
-        style=(
-            f"width: {WEB_UI_WIDTH}; "
-            f"max-width: none; "
-            f"padding: {WEB_UI_PADDING}; "
-            f"margin: {WEB_UI_MARGIN};"
-        ),
+    
+    # Create a plain text title for the document title
+    page_title = f"{APP_NAME} - {title_name(last_profile_name)} - {endpoint_name(menux)}"
+    
+    # Create the navigation header as a separate component for the content area
+    # The Div here could be an H1
+    nav_header = Div(
+        A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
+        f" / {title_name(last_profile_name)} / {endpoint_name(menux)}",
+        style="display: inline;"
     )
-
+    
+    # Return the title and main content separately instead of using Titled()
+    return (
+        Title(page_title),  # This will be the <title> in the HTML head
+        Main(
+            nav_header,     # This is the HTML navigation header
+            response,       # This is the main content
+            data_theme="dark",
+            style=(
+                f"width: {WEB_UI_WIDTH}; "
+                f"max-width: none; "
+                f"padding: {WEB_UI_PADDING}; "
+                f"margin: {WEB_UI_MARGIN};"
+            )
+        )
+    )
 
 def create_nav_group():
     # Create the initial nav menu
