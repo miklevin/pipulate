@@ -1,8 +1,14 @@
 ---
-description: 
+description: Use whenever working on Pipulate Workflow plugins
 globs: 
 alwaysApply: false
 ---
+---
+description: Pattern for creating placeholder steps in workflow progression
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # placeholder-step-pattern
 
 ## Overview

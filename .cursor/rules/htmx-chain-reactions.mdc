@@ -1,8 +1,14 @@
 ---
-description: 
+description: Use whenever working on Pipulate Workflow plugins
 globs: 
 alwaysApply: false
 ---
+---
+description: Critical HTMX chain reaction pattern for workflow progression
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # chain-reaction-pattern
 
 ## Overview

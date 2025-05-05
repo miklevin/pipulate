@@ -3,6 +3,12 @@ description: When working in the Pipulate repo
 globs: 
 alwaysApply: false
 ---
+---
+description: Comprehensive guide for developing workflows in Pipulate
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Pipulate Workflow Development Guide
 
 ## Core Structure
@@ -131,7 +137,7 @@ To add a new step or insert one between existing steps:
 4. **Verify chain reactions** in surrounding steps
 5. **Add suggestion text** in the get_suggestion method
 
-For placeholder steps, see the [placeholder-step-pattern](mdc:.cursor/rules/placeholder-step-pattern.mdc) rule.
+For placeholder steps, see the placeholder-step-pattern rule.
 
 ## State Management
 - Use Pipulate helpers for state:

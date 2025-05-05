@@ -1,0 +1,73 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Core architectural principles for the Pipulate framework 
+globs: ["pipulate/**/*.py"]
+alwaysApply: true
+---
+
+# Pipulate Architecture Guidelines
+
+## Core Philosophy
+1. **Local-First, Single-Tenant Only:**  
+   This code is a stripped-down, single-user, local app—more like an Electron app than an enterprise system. All state is observable server-side through DictLikeDB and JSON blobs.
+
+2. **Server-Side State Only:**  
+   No client-side state management (React, Redux) or ORM complexity. Everything lives server-side in a simple, observable data store.
+
+3. **Everything is a DIV:**  
+   UI is built entirely from DIVs with HTMX for dynamic updates. No templating engines, component libraries, or client-heavy frameworks.
+
+4. **Pipeline Workflow Pattern:**  
+   Workflows are linear JSON blobs with self-contained steps. State flows forward only, with each step's output feeding the next. Perfect for porting WET code from Jupyter Notebooks.
+
+5. **CRUD App Pattern:**  
+   Apps are CRUD apps that follow the FastHTML/MiniDataAPI pattern with a single table that inherit from BaseApp. The CRUD is DRY and the Workflows are WET!
+
+6. **Local LLM Integration:**  
+   Integrated with Ollama for local, streaming LLM support. Bounded conversation history (128k tokens) with real-time response parsing and tool calling.
+
+## Critical Implementation Patterns
+
+1. **HTMX Chain Reaction:**  
+   - The pattern `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")` must be preserved exactly
+   - Never remove the `hx_trigger="load"` attribute even if it seems redundant
+   - This explicit approach is the reliable standard for the application and alternative implicit approaches are not supported
+
+2. **Step Progression Pattern**:
+   - **GET Handler** displays UI for user input and must follow this structure:
+     ```python
+     return Div(
+         Card(...),  # Current step content
+         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # Next step loader
+         id=step_id
+     )
+     ```
+   - **POST Handler** processes submitted data and must include chain reaction:
+     ```python
+     # Process form data, validate, and store
+     await pip.update_step_state(pipeline_id, step_id, value, steps)
+     
+     return Div(
+         pip.revert_control(...),  # Shows completed step with revert option
+         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # CRITICAL! Triggers next step
+         id=step_id  # CRITICAL! Maintains current step ID
+     )
+     ```
+
+## Important Note on Workflow Identity
+
+Pipulate workflows have two separate identities:
+- The **filename** (`110_parameter_buster_workflow.py`) determines the URL/endpoint users access
+- The **APP_NAME** (`"parameter_buster"`) identifies the workflow in the database
+
+Keeping these different (as in the example above) allows you to improve user-facing URLs without breaking existing workflow data. Always maintain a consistent APP_NAME when you want to preserve existing workflow state data.
+
+## Reference Other Rules
+For detailed implementation patterns, refer to:
+- [htmx-chain-reactions.mdc](mdc:.cursor/rules/htmx-chain-reactions.mdc): Details on the chain reaction pattern
+- [placeholder-step-pattern.mdc](mdc:.cursor/rules/placeholder-step-pattern.mdc): How to implement placeholder steps
+- [wet-workflows.mdc](mdc:.cursor/rules/wet-workflows.mdc): Complete workflow development guidelines
