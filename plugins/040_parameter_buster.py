@@ -819,7 +819,7 @@ class ParameterBusterWorkflow:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P(f"Check if project '{project_name}' has web logs available"),
+                    P(f"Download Web Logs for '{project_name}'"),
                     P(f"Organization: {username}", style="color: #666; font-size: 0.9em;"),
                     Form(
                         Button("Download Web Logs ▸", type="submit", cls="primary"),
