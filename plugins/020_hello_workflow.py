@@ -287,7 +287,7 @@ class HelloFlow:
                 if all_steps_complete:
                     return Card(H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
-                        Form( Button("Finalize ▸", type="submit", cls="primary"),
+                        Form( Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
                         ), id=finalize_step.id )
                 else:
