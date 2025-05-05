@@ -2712,6 +2712,28 @@ def create_nav_group():
     return Group(nav, refresh_listener, style=nav_group_style)
 
 
+def create_env_menu():
+    """Create environment selection dropdown menu."""
+    menu_items = []
+    menu_items.append(Li(
+        A("Development", href="#", cls="dropdown-item", style=f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);"), 
+        style="display: block;"
+    ))
+    menu_items.append(Li(
+        A("Production", href="#", cls="dropdown-item", style=NOWRAP_STYLE), 
+        style="display: block;"
+    ))
+    
+    return Details(
+        Summary(
+            "ENV: Development", 
+            id="env-id", 
+            style="white-space: nowrap; display: inline-block; min-width: max-content;"
+        ), 
+        Ul(*menu_items, cls="dropdown-menu"),
+        cls="dropdown",
+    )
+
 def create_nav_menu():
     logger.debug("Creating navigation menu.")
     menux = db.get("last_app_choice", "App")
@@ -2735,9 +2757,10 @@ def create_nav_menu():
         style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
     )
     
-    # Add the breadcrumb at the beginning, before the filler item
+    # Add the breadcrumb at the beginning, followed by all dropdown menus
     nav_items = [
-        breadcrumb, 
+        breadcrumb,
+        create_env_menu(),  # Add the new environment menu first
         create_profile_menu(selected_profile_id, selected_profile_name), 
         create_app_menu(menux)
     ]
