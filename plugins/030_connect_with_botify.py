@@ -282,7 +282,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 H3("Save Token"),
                 P("Save your Botify API token?"),
                 Form(
-                    Button("Save Token", type="submit", cls="primary"),  # PicoCSS primary style
+                    Button("Save Token 💾", type="submit", cls="primary"),  # PicoCSS primary style
                     hx_post=f"/{app_name}/finalize",
                     hx_target=f"#{app_name}-container",
                     hx_swap="outerHTML"

@@ -117,7 +117,7 @@ class StreamSimulatorPlugin:
 
     def create_simulator_button(self):
         self.logger.debug("Creating simulator button")
-        return Button("Start Stream Simulation", onclick=f"startSimulation_{self.id_suffix}()", cls="stream-sim-button", id=f"stream_sim_button{self.id_suffix}")
+        return Button("Start Streaming Simulation ▸", onclick=f"startSimulation_{self.id_suffix}()", cls="stream-sim-button", id=f"stream_sim_button{self.id_suffix}")
 
     async def render(self):
         logger.debug("Rendering Stream Simulator")
