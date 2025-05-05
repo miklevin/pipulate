@@ -357,6 +357,9 @@ class Pipulate:
     PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
     
+    # Text style constants
+    MUTED_TEXT_STYLE = "font-size: 0.9em; color: var(--pico-muted-color);"
+    
     # Content style constants
     CONTENT_STYLE = "margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;"
     TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 1.5vh;"
@@ -472,7 +475,8 @@ class Pipulate:
             "success": self.SUCCESS_STYLE,
             "warning_button": self.WARNING_BUTTON_STYLE,
             "primary_button": self.PRIMARY_BUTTON_STYLE,
-            "secondary_button": self.SECONDARY_BUTTON_STYLE
+            "secondary_button": self.SECONDARY_BUTTON_STYLE,
+            "muted": self.MUTED_TEXT_STYLE
         }
         return styles.get(style_type, "")
 
