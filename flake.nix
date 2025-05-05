@@ -305,7 +305,7 @@
               ${baseEnvSetup pkgs}
               
               # Set up CUDA if available (with output)
-              if ${pkgs.lib.optionalString isLinux "command -v nvidia-smi &> /dev/null"}; then
+              if ${if isLinux then "command -v nvidia-smi &> /dev/null" else "false"}; then
                 echo "CUDA hardware detected."
               else
                 echo "No CUDA hardware detected."
