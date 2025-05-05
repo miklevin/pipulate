@@ -2764,7 +2764,8 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
     return Details(
         Summary(f"{profile_app.name.upper()}: {selected_profile_name}",
-                id="profile-id"),
+                id="profile-id",
+                style="white-space: nowrap; display: inline-block; min-width: max-content;"),
         Ul(*menu_items, style="padding-left: 0;"),
         cls="dropdown",
         id="profile-dropdown-menu"  # Add this ID to target for refresh
@@ -2791,7 +2792,15 @@ def create_app_menu(menux):
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
         menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
 
-    return Details(Summary(f"APP: {endpoint_name(menux)}", id="app-id",), Ul(*menu_items, cls="dropdown-menu",), cls="dropdown",)
+    return Details(
+        Summary(
+            f"APP: {endpoint_name(menux)}", 
+            id="app-id", 
+            style="white-space: nowrap; display: inline-block; min-width: max-content;"
+        ), 
+        Ul(*menu_items, cls="dropdown-menu",), 
+        cls="dropdown",
+    )
 
 
 async def create_outer_container(current_profile_id, menux):
