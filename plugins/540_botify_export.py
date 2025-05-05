@@ -416,7 +416,7 @@ class BotifyExport:
                         H3("Finalize Pipeline"),
                         P("You can finalize this pipeline or go back to fix something."),
                         Form(
-                            Button("Finalize All Steps", type="submit", cls="primary"),
+                            Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize",
                             hx_target=f"#{app_name}-container",
                             hx_swap="outerHTML"
@@ -1004,7 +1004,7 @@ class BotifyExport:
             # Add a download button if the file is ready but not yet downloaded
             if download_url and not (local_file and Path(local_file).exists()):
                 download_button = Form(
-                    Button("Download CSV", type="submit", cls="secondary outline"),
+                    Button("Download CSV ▸", type="submit", cls="secondary outline"),
                     hx_post=f"/{app_name}/download_csv",
                     hx_target=f"#{step_id}",
                     hx_swap="outerHTML",
@@ -1092,12 +1092,12 @@ class BotifyExport:
                     P(f"Path:", style="margin-bottom: 0.5rem;"),
                     Pre(self.format_path_as_tree(file_path), style="margin-bottom: 1rem; white-space: pre;"),
                     Div(
-                        Button("Use Existing Download", type="button", cls="primary", 
+                        Button("Use Existing Download ▸", type="button", cls="primary", 
                                hx_post=f"/{app_name}/use_existing_export",
                                hx_target=f"#{step.id}",
                                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{file_path}"}}'
                         ),
-                        Button("Create New Export", type="button", 
+                        Button("Create New Export ▸", type="button", 
                                hx_get=f"/{app_name}/{step.id}/new",
                                hx_target=f"#{step.id}"
                         ),
@@ -1125,7 +1125,7 @@ class BotifyExport:
             # Determine appropriate buttons based on state
             download_button = None
             if job_has_complete_data:
-                download_button = Button("Download Ready Export", type="button", cls="primary", 
+                download_button = Button("Download Ready Export ▸", type="button", cls="primary", 
                                       hx_post=f"/{app_name}/download_ready_export",
                                       hx_target=f"#{step.id}",
                                       hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "download_url": "{download_url}"}}'
@@ -1189,7 +1189,7 @@ class BotifyExport:
                         id="progress-container"
                     ),
                     Div(
-                        Button("Create New Export", type="button", 
+                        Button("Create New Export ▸", type="button", 
                                hx_get=f"/{app_name}/{step.id}/new",
                                hx_target=f"#{step.id}"
                         ),
@@ -1216,12 +1216,12 @@ class BotifyExport:
                       style="margin-bottom: 0.5rem;"),
                     P(f"File: {existing_file.name}", style="margin-bottom: 1rem;"),
                     Div(
-                        Button("Use Existing File", type="button", cls="primary", 
+                        Button("Use Existing File ▸", type="button", cls="primary", 
                                hx_post=f"/{app_name}/use_existing_export",
                                hx_target=f"#{step.id}",
                                hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{existing_file}"}}'
                         ),
-                        Button("Create New Export", type="button", 
+                        Button("Create New Export ▸", type="button", 
                                hx_get=f"/{app_name}/{step.id}/new",
                                hx_target=f"#{step.id}"
                         ),
@@ -1261,7 +1261,7 @@ class BotifyExport:
                         ),
                         style="margin-bottom: 1.5rem;"
                     ),
-                    Button("Start Export", type="submit", cls="primary"),
+                    Button("Start Export ▸", type="submit", cls="primary"),
                     P("Note: Large exports may take several minutes to process.", 
                       style="font-size: 0.8em; color: #666; margin-top: 0.5rem;"),
                     hx_post=f"/{app_name}/{step.id}_submit",
@@ -1379,7 +1379,7 @@ class BotifyExport:
                     P(f"The export with your requested parameters is ready for download.", 
                       style="margin-bottom: 1rem;"),
                     Form(
-                        Button("Download CSV", type="submit", cls="primary"),
+                        Button("Download CSV ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/download_csv",
                         hx_target=f"#{step_id}",
                         hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
@@ -1546,7 +1546,7 @@ class BotifyExport:
             if is_complete:
                 # If the job completed right away, show download button
                 download_button = Form(
-                    Button("Download CSV", type="submit", cls="primary"),
+                    Button("Download CSV ▸", type="submit", cls="primary"),
                     hx_post=f"/{app_name}/download_csv",
                     hx_target=f"#{step_id}",
                     hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
@@ -1631,7 +1631,7 @@ class BotifyExport:
                         ),
                         style="margin-bottom: 1.5rem;"
                     ),
-                    Button("Start Export", type="submit", cls="primary"),
+                    Button("Start Export ▸", type="submit", cls="primary"),
                     P("Note: Large exports may take several minutes to process.", 
                       style="font-size: 0.8em; color: #666; margin-top: 0.5rem;"),
                     hx_post=f"/{app_name}/{step.id}_submit",
@@ -2097,7 +2097,7 @@ class BotifyExport:
                     P(f"Error downloading CSV file: {str(e)}", style=pip.get_style("error")),
                     P(f"Download URL: {download_url}"),
                     P(f"Target file: {local_file_path}"),
-                    Button("Try Again", type="button", cls="primary",
+                    Button("Try Again ▸", type="button", cls="primary",
                            hx_post=f"/{app_name}/download_csv",
                            hx_target=f"#{step_id}",
                            hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
@@ -2507,7 +2507,7 @@ class BotifyExport:
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
-                            Button("Download CSV", type="submit", cls="primary"),
+                            Button("Download CSV ▸", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/download_csv",
                             hx_target=f"#{step_id}",
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
@@ -2628,7 +2628,7 @@ class BotifyExport:
                         P(f"Job ID: {job_id}", style="margin-bottom: 0.5rem;"),
                         P(f"The export is ready for download.", style="margin-bottom: 1rem;"),
                         Form(
-                            Button("Download CSV", type="submit", cls="primary"),
+                            Button("Download CSV ▸", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/download_csv",
                             hx_target=f"#{step_id}",
                             hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'
@@ -2731,7 +2731,7 @@ class BotifyExport:
                     H3("All steps complete. Finalize?"),
                     P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                     Form(
-                        Button("Finalize", type="submit", cls="primary"),
+                        Button("Finalize 🔒", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/finalize",
                         hx_target=f"#{app_name}-container",
                         hx_swap="outerHTML"

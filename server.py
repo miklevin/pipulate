@@ -911,7 +911,7 @@ class Pipulate:
     def wrap_with_inline_button(
         self,
         input_element: Input,
-        button_label: str = "Next",
+        button_label: str = "Next ▸",
         button_class: str = "primary"
     ) -> Div:
         return Div(

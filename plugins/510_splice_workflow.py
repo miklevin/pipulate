@@ -254,7 +254,7 @@ class SpliceWorkflow:
                         H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                         Form(
-                            Button("Finalize", type="submit", cls="primary"),
+                            Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize", 
                             hx_target=f"#{app_name}-container"
                         ),
@@ -376,7 +376,7 @@ class SpliceWorkflow:
                     H3(f"{step.show}"),
                     P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Next ▸", type="submit", cls="primary"),
                         # CRITICAL: Form must target the current step_id to ensure proper replacement
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
@@ -476,7 +476,7 @@ class SpliceWorkflow:
                     H3(f"{step.show}"),
                     P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Next ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -569,7 +569,7 @@ class SpliceWorkflow:
                     H3(f"{step.show}"),
                     P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
-                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Next ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
