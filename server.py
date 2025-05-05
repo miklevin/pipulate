@@ -2724,13 +2724,15 @@ def create_nav_menu():
         A(APP_NAME, 
           href="/redirect/", 
           title="Go to Home", 
-          style="text-decoration: none; color: inherit; transition: color 0.2s;",
+          style="text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;",
           onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';", 
           onmouseout="this.style.color='inherit'; this.style.textDecoration='none';"
         ),
         Span(" / ", style="padding: 0 0.3rem;"),
-        Span(f"{title_name(selected_profile_name)} / {endpoint_name(menux)}"),
-        style="display: inline-flex; align-items: center; margin-right: auto;"
+        Span(title_name(selected_profile_name), style="white-space: nowrap;"),
+        Span(" / ", style="padding: 0 0.3rem;"),
+        Span(endpoint_name(menux), style="white-space: nowrap;"),
+        style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
     )
     
     # Add the breadcrumb at the beginning, before the filler item
