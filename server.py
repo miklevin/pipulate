@@ -2662,20 +2662,12 @@ async def home(request):
     # Create a plain text title for the document title
     page_title = f"{APP_NAME} - {title_name(last_profile_name)} - {endpoint_name(menux)}"
     
-    # Create the navigation header as a separate component for the content area
-    # The Div here could be an H1
-    nav_header = Div(
-        A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
-        f" / {title_name(last_profile_name)} / {endpoint_name(menux)}",
-        style="display: inline;"
-    )
-    
     # Return the title and main content separately instead of using Titled()
+    # We no longer need to include nav_header here as it's now in the nav_menu
     return (
         Title(page_title),  # This will be the <title> in the HTML head
         Main(
-            nav_header,     # This is the HTML navigation header
-            response,       # This is the main content
+            response,       # This now contains the nav_group with breadcrumb
             data_theme="dark",
             style=(
                 f"width: {WEB_UI_WIDTH}; "
@@ -2687,7 +2679,7 @@ async def home(request):
     )
 
 def create_nav_group():
-    # Create the initial nav menu
+    # Create the initial nav menu with integrated breadcrumb
     nav = create_nav_menu()
 
     # Add a hidden event listener to refresh the profile dropdown
@@ -2700,7 +2692,10 @@ def create_nav_group():
         style="display: none;"
     )
 
-    nav_group_style = ("display: flex; ""align-items: center; ""position: relative;")
+    # Style for the navigation group 
+    nav_group_style = "display: flex; align-items: center; position: relative;"
+    
+    # Return a group with the nav and the refresh listener
     return Group(nav, refresh_listener, style=nav_group_style)
 
 
@@ -2710,8 +2705,22 @@ def create_nav_menu():
     # Use our helper functions for profile id and name
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
-    nav_items = [create_filler_item(), create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux)]
-    nav = Div(*nav_items, style="display: flex; gap: 20px;")
+    
+    # Create a breadcrumb-style navigation
+    breadcrumb = H1(
+        A(APP_NAME, href="/redirect/", style="text-decoration: none; color: inherit;"),
+        f" / {title_name(selected_profile_name)} / {endpoint_name(menux)}",
+        style="display: inline-flex; align-items: center; margin-right: auto;"
+    )
+    
+    # Add the breadcrumb at the beginning, before the filler item
+    nav_items = [
+        breadcrumb, 
+        create_profile_menu(selected_profile_id, selected_profile_name), 
+        create_app_menu(menux)
+    ]
+    
+    nav = Div(*nav_items, style="display: flex; align-items: center; gap: 20px; width: 100%;")
     logger.debug("Navigation menu created.")
     return nav
 
@@ -2766,6 +2775,7 @@ def create_app_menu(menux):
 
 
 async def create_outer_container(current_profile_id, menux):
+    # Create nav group (now includes breadcrumb)
     nav_group = create_nav_group()
 
     # Default layout
