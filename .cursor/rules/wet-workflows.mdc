@@ -1,5 +1,5 @@
 ---
-description: When working in the Pipulate repo
+description: Use whenever working on Pipulate Workflow plugins
 globs: 
 alwaysApply: false
 ---
