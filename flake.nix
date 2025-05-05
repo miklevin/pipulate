@@ -280,19 +280,24 @@
           export PATH="$VIRTUAL_ENV/bin:$PATH"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
 
-          # Set up CUDA env vars if available (no output)
+          # Set up CUDA env vars if available (no output) - Linux only
+          ${pkgs.lib.optionalString isLinux ''
           if command -v nvidia-smi &> /dev/null; then
             export CUDA_HOME=${pkgs.cudatoolkit}
             export PATH=$CUDA_HOME/bin:$PATH
             export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
           fi
+          ''}
         '';
 
         # Function to create shells for each OS
         mkShells = pkgs: {
           # Default shell with the full interactive setup
           default = pkgs.mkShell {
-            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
+            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals 
+              (isLinux && builtins.pathExists "/usr/bin/nvidia-smi") 
+              cudaPackages
+            );
             shellHook = ''
               # Kill any running server instances first
               pkill -f "python server.py" || true
@@ -300,7 +305,7 @@
               ${baseEnvSetup pkgs}
               
               # Set up CUDA if available (with output)
-              if command -v nvidia-smi &> /dev/null; then
+              if ${pkgs.lib.optionalString isLinux "command -v nvidia-smi &> /dev/null"}; then
                 echo "CUDA hardware detected."
               else
                 echo "No CUDA hardware detected."
@@ -313,7 +318,10 @@
           
           # Quiet shell for AI assistants and scripting
           quiet = pkgs.mkShell {
-            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals (builtins.pathExists "/usr/bin/nvidia-smi") cudaPackages);
+            buildInputs = commonPackages ++ (with pkgs; pkgs.lib.optionals 
+              (isLinux && builtins.pathExists "/usr/bin/nvidia-smi") 
+              cudaPackages
+            );
             shellHook = ''
               # Kill any running server instances first
               pkill -f "python server.py" || true
