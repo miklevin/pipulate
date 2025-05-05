@@ -2714,19 +2714,39 @@ def create_nav_group():
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
+    # Default to Development mode
+    current_env = db.get("current_environment", "Development")
+    
     menu_items = []
+    # Development option
+    is_dev = current_env == "Development"
+    dev_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_dev else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Development", href="#", cls="dropdown-item", style=f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);"), 
+        A("Development", 
+          hx_post="/switch_environment", 
+          hx_vals='{"environment": "Development"}',
+          hx_confirm="Switch to Development environment? This will restart the server.",
+          cls="dropdown-item", 
+          style=dev_style), 
         style="display: block;"
     ))
+    
+    # Production option
+    is_prod = current_env == "Production"
+    prod_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_prod else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Production", href="#", cls="dropdown-item", style=NOWRAP_STYLE), 
+        A("Production", 
+          hx_post="/switch_environment", 
+          hx_vals='{"environment": "Production"}',
+          hx_confirm="Switch to Production environment? This will restart the server.",
+          cls="dropdown-item", 
+          style=prod_style), 
         style="display: block;"
     ))
     
     return Details(
         Summary(
-            "ENV: Development", 
+            f"ENV: {current_env}", 
             id="env-id", 
             style="white-space: nowrap; display: inline-block; min-width: max-content;"
         ), 
@@ -3181,6 +3201,37 @@ async def refresh_profile_menu(request):
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
+
+@rt('/switch_environment', methods=['POST'])
+async def switch_environment(request):
+    """Handle environment switching and restart the server."""
+    try:
+        form = await request.form()
+        environment = form.get('environment', 'Development')
+        
+        # Store the selected environment in the database
+        db["current_environment"] = environment
+        
+        # Return a response that tells the client what's happening
+        response = HTMLResponse(
+            f"<div>Switching to {environment} environment. Server restarting...</div>"
+        )
+        
+        # Add a header to refresh the page after a delay
+        response.headers["HX-Refresh"] = "true"
+        
+        # Schedule server restart
+        asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error switching environment: {e}")
+        return HTMLResponse(f"Error: {str(e)}", status_code=500)
+
+async def delayed_restart(delay_seconds):
+    """Restart the server after a delay."""
+    await asyncio.sleep(delay_seconds)
+    restart_server()
 
 ALL_ROUTES = list(set(['', profile_app.name] + MENU_ITEMS))
 for item in ALL_ROUTES:
