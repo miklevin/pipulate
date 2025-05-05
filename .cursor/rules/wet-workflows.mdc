@@ -1,0 +1,263 @@
+---
+description: When working in the Pipulate repo
+globs: 
+alwaysApply: false
+---
+# Pipulate Workflow Development Guide
+
+## Core Structure
+Every workflow must follow this basic structure:
+```python
+class WorkflowName:
+    APP_NAME = "unique_name"        # Unique identifier
+    DISPLAY_NAME = "User Name"      # UI display name
+    ENDPOINT_MESSAGE = "..."        # User guidance
+    TRAINING_PROMPT = "name.md"     # Training file
+    PRESERVE_REFILL = True/False    # State preservation
+```
+
+## Required Files
+- Main workflow file in `pipulate/plugins/` with format `XX_name.py`
+- Training prompt file referenced in `TRAINING_PROMPT`
+- Plugin numbering indicates load order and dependencies
+
+## Step Definition
+Steps use the namedtuple pattern:
+```python
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'])
+
+steps = [
+    Step(
+        id='step_01',           # Format: step_XX
+        done='field_name',      # State field name
+        show='Display Name',    # UI display text
+        refill=True/False,      # Preserve on revert
+        transform=lambda x: x   # Optional transform
+    )
+]
+```
+
+## Required Methods
+Every workflow must implement:
+1. `__init__`: Setup routes and steps
+2. `landing`: Initial page display
+3. `init`: Workflow initialization
+4. `finalize/unfinalize`: State management
+5. `handle_revert`: Step reversal
+6. Per-step handlers: `step_XX` and `step_XX_submit`
+
+## UI Components
+- Use FastHTML components consistently
+- Follow HTMX patterns for dynamic updates
+- Maintain chain reaction pattern (NEVER remove `hx_trigger="load"`)
+- Example structure:
+```python
+return Div(
+    Card(
+        H4(f"{pip.fmt(step_id)}: {title}"),
+        Form(...),
+    ),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+## Step Progression Pattern
+The standard step progression pattern has these key elements:
+
+1. **GET Handler Pattern**:
+```python
+async def step_XX(self, request):
+    """Handles GET request for Step XX."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    step_data = pip.get_step_data(pipeline_id, step_id, {})
+    
+    # Form with required fields and revert button
+    return Div(
+        Card(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+2. **POST Handler Pattern**:
+```python
+async def step_XX_submit(self, request):
+    """Process the submission for Step XX."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    pipeline_id = db.get("pipeline_id", "unknown")
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    
+    # Process form data
+    form = await request.form()
+    value = form.get("field_name", "")
+    
+    # Validate
+    if not value:
+        return P("Error: Field is required", style=pip.get_style("error"))
+    
+    # Store in state
+    state = pip.read_state(pipeline_id)
+    state[step.done] = value
+    pip.write_state(pipeline_id, state)
+    
+    # Update progress and message
+    await pip.update_step_state(pipeline_id, step_id, value, steps)
+    await self.message_queue.add(pip, f"{step.show} complete: {value}", verbatim=True)
+    
+    # Return response with chain reaction
+    return Div(
+        Card(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+## Adding or Inserting Steps
+To add a new step or insert one between existing steps:
+
+1. **Add to the steps list** in the correct position
+2. **Update step indices** in the steps_indices dictionary in __init__
+3. **Create both handler methods** following the patterns above
+4. **Verify chain reactions** in surrounding steps
+5. **Add suggestion text** in the get_suggestion method
+
+For placeholder steps, see the [placeholder-step-pattern](mdc:.cursor/rules/placeholder-step-pattern.mdc) rule.
+
+## State Management
+- Use Pipulate helpers for state:
+  - `pip.read_state(pipeline_id)`
+  - `pip.get_step_data(pipeline_id, step_id, {})`
+  - `pip.update_step_state(pipeline_id, step_id, val, steps)`
+- Handle finalization properly
+- Clear state appropriately on revert
+
+## Message Queue Usage
+- Use ordered message delivery:
+```python
+await self.message_queue.add(
+    pip,
+    message,
+    verbatim=True,
+    spaces_before=0,
+    spaces_after=1
+)
+```
+
+## Error Handling
+- Validate all inputs
+- Use consistent error presentation
+- Provide clear user feedback
+- Handle edge cases gracefully
+- Example:
+```python
+try:
+    # Operation
+except Exception as e:
+    return P(f"Error: {str(e)}", style=pip.get_style("error"))
+```
+
+## Advanced Features
+- Use transform functions for step data flow
+- Implement custom state preservation
+- Use advanced revert controls when needed
+- Track progress for long operations
+- Handle file operations safely
+
+## Documentation
+- Provide clear docstrings
+- Document step dependencies
+- Explain state management
+- Detail UI/UX considerations
+- Document error handling
+
+## Testing Considerations
+- Test step progression
+- Verify state management
+- Check revert functionality
+- Validate error handling
+- Test chain reactions
+
+## Special Cases and Edge Case Handling
+1. **Terminal steps** may break the chain reaction pattern
+2. **Polling operations** require special HTMX handling
+3. **File downloads** use no-chain-reaction with manual continuation
+4. **Error recoveries** should guide users on how to proceed
+
+Remember: Workflows are intentionally WET (Write Everything Twice) to allow maximum customization while maintaining consistent patterns.
+
+Reference Examples:
+- [10_connect_with_botify.py](mdc:pipulate/plugins/10_connect_with_botify.py): Simple authentication workflow
+- [20_hello_workflow.py](mdc:pipulate/plugins/20_hello_workflow.py): Basic workflow template
+- [50_botify_export.py](mdc:pipulate/plugins/50_botify_export.py): Complex multi-step workflow
+- [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py): Visualizing data in workflow
+
+# Workflow Architecture in Pipulate
+
+## Dual-Identity Pattern: Filename vs APP_NAME
+
+Pipulate workflows maintain two separate identities:
+
+### 1. Filename-based Endpoint Identity
+- **Source**: The Python filename (minus numeric prefix and .py extension)
+- **Example**: `110_parameter_buster_workflow.py` → `/parameter_buster_workflow` endpoint
+- **Purpose**: Determines the URL path users will access in the browser
+- **Navigation**: Controls what appears in the UI navigation menu
+- **Flexibility**: Can be changed to improve user-facing URLs without breaking stored data
+
+### 2. APP_NAME-based Storage Identity
+- **Source**: The `APP_NAME` constant in the workflow class
+- **Example**: `APP_NAME = "parameter_buster"` → Database keys use "parameter_buster"
+- **Purpose**: Used for database keys and internal state management
+- **Data Integrity**: Maintains connection to existing records in the database
+- **Consistency**: Must remain stable to avoid orphaning existing workflow data
+
+### Best Practices
+- **Make Them Different**: Using different values for filename and APP_NAME (like `110_parameter_buster_workflow.py` with `APP_NAME = "parameter_buster"`) provides maximum flexibility
+- **Descriptive Filenames**: Use more descriptive filenames for better URL clarity
+- **Simple APP_NAMEs**: Keep APP_NAMEs shorter and simpler for cleaner database keys
+- **Version Transitions**: When creating a major revision, you can create a new file (e.g., `parameter_buster_v2_workflow.py`) while keeping the same APP_NAME to preserve all existing data
+
+### Examples
+- Improving a URL without breaking data:
+  ```python
+  # Old: 110_pb.py
+  class ParameterBusterWorkflow:
+      APP_NAME = "parameter_buster"
+      # ...
+  
+  # New: 110_parameter_buster_workflow.py (better URL)
+  class ParameterBusterWorkflow:
+      APP_NAME = "parameter_buster"  # Same APP_NAME preserves data
+      # ...
+  ```
+
+- Creating multiple entry points to the same workflow data:
+  ```python
+  # 110_parameter_buster_workflow.py (primary endpoint)
+  class ParameterBusterWorkflow:
+      APP_NAME = "parameter_buster"
+      # ...
+  
+  # 120_parameter_buster_quick.py (alternative entry point)
+  class QuickParameterBusterWorkflow:
+      APP_NAME = "parameter_buster"  # Same data, different UI
+      # ...
+  ```
+
+### Technical Implementation
+This separation works because:
+1. The server discovers plugin files and creates navigation entries based on filenames
+2. Each workflow class registers its own routes using its APP_NAME
+3. All database operations are performed using the APP_NAME, not the filename
+
+This architecture allows developers to improve and evolve the user interface and URL structures without disrupting existing workflows or losing user data.

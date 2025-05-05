@@ -1,0 +1,66 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# chain-reaction-pattern
+
+## Overview
+The chain reaction pattern is the core mechanism for step progression in Pipulate workflows. It enables automatic advancement through workflow steps without requiring manual user intervention for each transition.
+
+## CRITICAL Implementation Pattern - DO NOT MODIFY
+```python
+return Div(
+    Card(...),  # Current step content
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),  # Next step loader
+    id=step_id
+)
+```
+
+## Why This Pattern Is Required
+- The inner `Div` with `id=next_step_id` serves as a container for the next step
+- The `hx_get` attribute requests the next step from the server
+- **IMPORTANT**: The `hx_trigger="load"` makes this happen automatically when current step renders
+- Removing `hx_trigger="load"` breaks the auto-progression functionality 
+- Alternative approaches using event bubbling are NOT reliable in this application
+
+## Key Elements
+- The inner `Div` with `id=next_step_id` serves as a container for the next step
+- The `hx_get` attribute requests the next step from the server
+- `hx_trigger="load"` makes this happen automatically when current step renders
+- The outer `Div` with `id=step_id` is replaced when the current step completes
+
+## Breaking the Chain (Cautionary Pattern)
+The `no-chain-reaction` class should only be used in two specific scenarios:
+
+1. **Terminal responses** - For endpoints requiring explicit user action:
+```python
+return Div(
+    result_card,
+    download_button,
+    cls="terminal-response no-chain-reaction",
+    id=step_id
+)
+```
+
+2. **Polling states** - For continuous status checking without progression:
+```python
+return Div(
+    result_card,
+    progress_indicator,
+    cls="polling-status no-chain-reaction",
+    hx_get=f"/{app_name}/check_status",
+    hx_trigger="load, every 2s",
+    hx_target=f"#{step_id}",
+    id=step_id
+)
+```
+
+## Best Practices
+- Always maintain the chain reaction pattern unless absolutely necessary
+- When breaking the chain, provide clear UI indicators of what's happening
+- Resume the chain reaction as soon as the exceptional condition is complete
+- Document any use of `no-chain-reaction` with explicit comments explaining why
+
+## Example in Botify Export
+See [50_botify_export.py](mdc:pipulate/plugins/50_botify_export.py) lines 1515-1540 for implementation examples of both patterns.

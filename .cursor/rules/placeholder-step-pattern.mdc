@@ -1,0 +1,141 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# placeholder-step-pattern
+
+## Overview
+Placeholder steps are skeletal workflow steps that serve as preparation points for inserting fully-functional steps later. They maintain the standard workflow progression pattern while collecting minimal or no user data.
+
+## When to Use Placeholder Steps
+- When planning a workflow's structure before implementing detailed functionality
+- When creating a step that will be replaced with more complex widgets later
+- When needing a "confirmation" or "review" step between functional steps
+- When creating a template for different widget types
+
+## Implementation Pattern
+To add a placeholder step to an existing workflow:
+
+### 1. Add the Step Definition
+```python
+Step(
+    id='step_XX',            # Use proper sequential numbering
+    done='placeholder',      # Simple state field name
+    show='Placeholder Step', # Descriptive UI text
+    refill=True,             # Usually True for consistency
+),
+```
+
+### 2. Create the GET Handler Method
+```python
+async def step_XX(self, request):
+    """Handles GET request for placeholder step."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    # Simple form with just a proceed button
+    return Div(
+        Card(
+            H4(f"{step.show}"),
+            P("Click Proceed to continue to the next step."),
+            Form(
+                Button("Proceed", type="submit", cls="primary"),
+                Button("Revert", type="button", cls="secondary",
+                       hx_post=f"/{app_name}/handle_revert",
+                       hx_vals=f'{{"step_id": "{step_id}"}}'),
+                hx_post=f"/{app_name}/{step_id}_submit",
+            ),
+        ),
+        # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+### 3. Create the POST Handler Method
+```python
+async def step_XX_submit(self, request):
+    """Process the submission for placeholder step."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    pipeline_id = db.get("pipeline_id", "unknown")
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+    # Store minimal state data
+    placeholder_value = "completed"
+    state = pip.read_state(pipeline_id)
+    state[step.done] = placeholder_value
+    pip.write_state(pipeline_id, state)
+    
+    # Confirm completion and configure next step display
+    await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+    await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+    
+    # Return response with chain reaction to next step
+    response = Div(
+        Card(
+            H4(f"{step.show} Complete"),
+            P("Proceeding to next step..."),
+        ),
+        # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+    return response
+```
+
+### 4. Add Suggestion for Step (Optional)
+In the `get_suggestion` method, add a simple text for the placeholder:
+```python
+'step_XX': """Placeholder step - no user content needed.
+
+This step serves as a placeholder for future functionality."""
+```
+
+## Critical Elements to Preserve
+1. **Chain Reaction Pattern**: 
+   ```python
+   # CRITICAL - DO NOT MODIFY OR REMOVE
+   Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+   ```
+   - The `id=next_step_id` identifies the container for the next step
+   - The `hx_get` attribute loads the next step's content
+   - The `hx_trigger="load"` attribute is REQUIRED for automatic progression
+   - NEVER remove `hx_trigger="load"` even if you think event bubbling would work
+   - This explicit triggering pattern is the standard throughout the codebase
+
+2. **Revert Button**: Always include for consistent user experience
+3. **Step Numbering**: Maintain proper sequential numbering
+4. **State Management**: Always store state even if minimal
+5. **Message Queue Updates**: Always notify of step completion
+
+## Common Implementation Pitfalls
+- **SERIOUS ERROR**: Removing `hx_trigger="load"` from the chain reaction div will break progression
+- **SERIOUS ERROR**: Using an empty div without the required attributes
+- **SERIOUS ERROR**: Using event bubbling or implicit triggering instead of explicit triggers
+- Using incorrect next_step_id calculation (especially for the last step)
+- Forgetting to update steps_indices after adding new steps
+- Not preserving the chain reaction pattern in both GET and POST handlers
+
+## Placement Considerations
+- **First Step**: If replacing the first step, ensure proper initialization
+- **Middle Step**: Ensure proper next_step_id and previous step chain reaction
+- **Last Step**: Properly handle transition to 'finalize' instead of next_step_id
+
+## Example
+See [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py) step_07 for a complete placeholder implementation.
+
+## Upgrading Later
+When ready to replace the placeholder with functional content:
+1. Keep the same step_id and step definition
+2. Add necessary form elements to collect data
+3. Enhance the submit handler to process the collected data
+4. Preserve the chain reaction pattern and revert functionality
