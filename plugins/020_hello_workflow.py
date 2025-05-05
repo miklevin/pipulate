@@ -85,10 +85,10 @@ class HelloFlow:
     """
     # --- Workflow Configuration (CHANGE THESE) ---
     APP_NAME = "hello"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Hello World"    # User-friendly name shown in the UI
+    DISPLAY_NAME = "Hello Workflow"    # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This simple workflow demonstrates a basic Hello World example. "
-        "Enter an ID to start or resume your workflow."
+        "Simply press Enter to start a new Workflow with this Key. "
+        "Keys are arbitrary (PROFILE + APP + Number-of-Runs by convention)."
     )
     TRAINING_PROMPT = "hello_workflow.md" # Filename (in /training) or text for AI context
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
@@ -113,14 +113,14 @@ class HelloFlow:
             Step(
                 id='step_01',          # HTML ID and part of URL path
                 done='name',           # State key indicating step completion (usually input name)
-                show='Step 1 Your Name',      # Label shown in UI for this step/data
+                show='Your Name',      # Label shown in UI for this step/data
                 refill=True,           # Refill input with this value on revert?
                 # transform=None       # Step 1 usually doesn't transform previous data
             ),
             Step(
                 id='step_02',
                 done='greeting',
-                show='Step 2 Hello Message',
+                show='Hello Message',
                 refill=False,          # Usually False if value is generated/transformed
                 transform=lambda name_from_step_01: f"Hello {name_from_step_01}!" # Example: Generate greeting
             ),

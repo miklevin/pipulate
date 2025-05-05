@@ -195,8 +195,17 @@ def title_name(word: str) -> str:
     for part in formatted.split('_'):
         words.extend(part.split())
 
-    # Capitalize each word and join with spaces
-    return ' '.join(word.capitalize() for word in words)
+    # Process each word - strip leading zeros from numeric strings
+    processed_words = []
+    for word in words:
+        if word.isdigit():
+            # Strip leading zeros but preserve at least one digit
+            processed_words.append(word.lstrip('0') or '0')
+        else:
+            processed_words.append(word.capitalize())
+
+    # Join with spaces
+    return ' '.join(processed_words)
 
 
 def endpoint_name(endpoint: str) -> str:
