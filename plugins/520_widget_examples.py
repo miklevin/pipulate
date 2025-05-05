@@ -342,7 +342,7 @@ class WidgetExamples:
                         H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                         Form(
-                            Button("Finalize", type="submit", cls="primary"),
+                            Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
                         ),
                         id=finalize_step.id
@@ -581,7 +581,7 @@ This step serves as a placeholder for future widget types."""
                                 style="width: 100%; font-family: monospace;"
                             ),
                             Div(
-                                Button("Submit", type="submit", cls="primary"),
+                                Button("Record Text ▸", type="submit", cls="primary"),
                                 style="margin-top: 1vh; text-align: right;"
                             ),
                             style="width: 100%;"
@@ -767,7 +767,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Render Markdown ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -953,7 +953,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Create Diagram ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -1123,7 +1123,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Draw Table ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -1374,7 +1374,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Highlight Code ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -1612,7 +1612,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Submit", type="submit", cls="primary"),
+                            Button("Run JavaScript ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -1660,7 +1660,7 @@ This step serves as a placeholder for future widget types."""
             ),
             # Button to re-run the JavaScript
             Button(
-                "Re-run JavaScript", 
+                "Re-run JavaScript ▸", 
                 type="button", 
                 _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
                 style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
@@ -2047,7 +2047,7 @@ This step serves as a placeholder for future widget types."""
                             style="width: 100%; font-family: monospace;"
                         ),
                         Div(
-                            Button("Create Histogram", type="submit", cls="primary"),
+                            Button("Create Histogram ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         style="width: 100%;"
@@ -2180,7 +2180,7 @@ This step serves as a placeholder for future widget types."""
                     P("This is a new placeholder step. No input is required."),
                     Form(
                         Div(
-                            Button("Proceed", type="submit", cls="primary"),
+                            Button("Proceed ▸", type="submit", cls="primary"),
                             style="margin-top: 1vh; text-align: right;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit",
