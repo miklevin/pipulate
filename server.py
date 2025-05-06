@@ -34,6 +34,7 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+import sqlite3
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
@@ -2817,7 +2818,7 @@ async def dev_tools():
     Only accessible in development environment."""
     logger.debug("Dev tools endpoint accessed - performing complete database reset")
     
-    # 1. Clear all database keys
+    # 1. Clear all database keys (DictLikeDB)
     log.warning("Starting complete database reset", "This will recreate an empty database")
     
     # Save only the navigation state 
@@ -2830,8 +2831,8 @@ async def dev_tools():
         del db[key]
     log.warning("DictLikeDB cleared", f"Deleted {len(keys)} keys")
     
-    # 2. Reset pipeline tables
-    # Clear ALL pipeline records - reset any filters first
+    # 2. Reset core tables defined in fast_app
+    # 2.1 Reset pipeline table - reset any filters first
     if hasattr(pipulate.table, 'xtra'):
         # Reset any filters by passing an empty dict to xtra
         pipulate.table.xtra()
@@ -2841,7 +2842,7 @@ async def dev_tools():
         pipulate.table.delete(record.pkey)
     log.warning("Pipeline table cleared", f"Deleted {len(records)} records")
     
-    # 3. Reset profile table
+    # 2.2 Reset profile table
     # Get profile records first
     profile_records = list(profiles())
     profile_count = len(profile_records)
@@ -2850,6 +2851,32 @@ async def dev_tools():
     for profile in profile_records:
         profiles.delete(profile.id)
     log.warning("Profiles table cleared", f"Deleted {profile_count} records")
+    
+    # 3. Find and reset all plugin-created tables
+    # Use sqlite3 directly to query for all tables
+    import sqlite3
+    conn = sqlite3.connect(DB_FILENAME)
+    cursor = conn.cursor()
+    
+    # Get all table names from SQLite schema
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+    plugin_tables = cursor.fetchall()
+    
+    # Clear each plugin table
+    for (table_name,) in plugin_tables:
+        try:
+            # Delete all records
+            cursor.execute(f"DELETE FROM {table_name}")
+            log.warning(f"Plugin table '{table_name}' cleared", f"All records deleted")
+            
+            # Reset auto-increment if this table has it
+            cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
+        except Exception as e:
+            log.error(f"Error clearing table {table_name}", str(e))
+    
+    # Commit changes and close connection
+    conn.commit()
+    conn.close()
     
     # 4. Re-initialize the database with default data
     # This is similar to the first-run initialization
@@ -3199,7 +3226,9 @@ def create_poke_button():
     workflow_display_name = "Pipeline"
 
     # Get the display name for the current workflow if available
-    if menux and menux in plugin_instances:
+    is_workflow_plugin = menux and menux in plugin_instances and menux != profile_app.name and menux != ""
+    
+    if is_workflow_plugin:
         instance = plugin_instances.get(menux)
         if instance and hasattr(instance, 'DISPLAY_NAME'):
             workflow_display_name = instance.DISPLAY_NAME
@@ -3210,15 +3239,19 @@ def create_poke_button():
     button_style = "margin-right: 10px; font-size: 0.85rem; padding: 0.4rem 0.8rem;"
     
     # Create button elements list
-    buttons = [
-        A(
-            f"Clear {workflow_display_name}",
-            hx_post="/clear-db",
-            hx_swap="none",
-            cls="button",
-            style=button_style
+    buttons = []
+    
+    # Only show Clear Pipeline button when in a workflow plugin
+    if is_workflow_plugin:
+        buttons.append(
+            A(
+                f"Clear {workflow_display_name}",
+                hx_post="/clear-db",
+                hx_swap="none",
+                cls="button",
+                style=button_style
+            )
         )
-    ]
     
     # Add dev tools button only in development mode
     if get_current_environment() == "Development":
