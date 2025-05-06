@@ -3248,33 +3248,44 @@ def create_poke_button():
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
 
-    # Get the display name for the current workflow if available
-    is_workflow_plugin = menux and menux in plugin_instances and menux != profile_app.name and menux != ""
-    
-    if is_workflow_plugin:
-        instance = plugin_instances.get(menux)
-        if instance and hasattr(instance, 'DISPLAY_NAME'):
-            workflow_display_name = instance.DISPLAY_NAME
-        else:
-            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-
     # Common button style for smaller buttons
     button_style = "margin-right: 10px; font-size: 0.85rem; padding: 0.4rem 0.8rem;"
     
     # Create button elements list
     buttons = []
     
-    # Only show Clear Pipeline button when in a workflow plugin
-    if is_workflow_plugin:
-        buttons.append(
-            A(
-                f"Clear {workflow_display_name}",
-                hx_post="/clear-pipeline",
-                hx_swap="none",
-                cls="button",
-                style=button_style
+    # Check if current plugin is in plugin_instances
+    if menux and menux in plugin_instances:
+        instance = plugin_instances.get(menux)
+        
+        # Get the display name for the current plugin if available
+        if hasattr(instance, 'DISPLAY_NAME'):
+            workflow_display_name = instance.DISPLAY_NAME
+        else:
+            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
+        
+        # Determine if this is a workflow plugin vs a CRUD plugin
+        # SIMPLER APPROACH: Check for key class properties
+        is_crud_plugin = (hasattr(instance, '__class__') and 
+                          instance.__class__.__name__ == 'CrudUI')
+        
+        # Consider it a workflow plugin if it's not a CRUD plugin
+        # and it's not the profile app or home page
+        is_workflow_plugin = (not is_crud_plugin and 
+                             menux != profile_app.name and 
+                             menux != "")
+        
+        # Only show Clear Pipeline button for workflow plugins
+        if is_workflow_plugin:
+            buttons.append(
+                A(
+                    f"Clear {workflow_display_name}",
+                    hx_post="/clear-pipeline",
+                    hx_swap="none",
+                    cls="button",
+                    style=button_style
+                )
             )
-        )
     
     # Add dev tools button only in development mode
     if get_current_environment() == "Development":
