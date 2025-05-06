@@ -2812,8 +2812,8 @@ async def clear_pipeline(request):
     return html_response
 
 
-@rt('/dev-tools', methods=['POST'])
-async def dev_tools():
+@rt('/clear-db', methods=['POST'])
+async def clear_db(request):
     """Developer tools endpoint - fully resets the database to initial state.
     Only accessible in development environment."""
     logger.debug("Dev tools endpoint accessed - performing complete database reset")
@@ -3258,7 +3258,7 @@ def create_poke_button():
         buttons.append(
             A(
                 "Clear DB",
-                hx_post="/dev-tools",
+                hx_post="/clear-db",
                 hx_target="#msg-list",
                 hx_swap="innerHTML",
                 cls="button",
