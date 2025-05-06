@@ -64,7 +64,38 @@ TONE = "neutral"
 MODEL = "gemma3"
 MAX_LLM_RESPONSE_WORDS = 60
 MAX_CONVERSATION_LENGTH = 10000
-DB_FILENAME = f"data/{APP_NAME.lower()}.db"
+
+# Environment settings
+ENV_FILE = Path('data/environment.txt')
+
+# Create data directory if it doesn't exist
+data_dir = Path('data')
+data_dir.mkdir(parents=True, exist_ok=True)
+
+# Read environment from file or default to Production
+def get_current_environment():
+    if ENV_FILE.exists():
+        return ENV_FILE.read_text().strip()
+    else:
+        # Default to Production if file doesn't exist
+        ENV_FILE.write_text("Production")
+        return "Production"
+
+def set_current_environment(environment):
+    ENV_FILE.write_text(environment)
+    logger.info(f"Environment set to: {environment}")
+
+# Function to get database filename based on current environment
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == "Development":
+        return f"data/{APP_NAME.lower()}_dev.db"
+    else:
+        return f"data/{APP_NAME.lower()}.db"
+
+# Set initial DB_FILENAME
+DB_FILENAME = get_db_filename()
+
 PLACEHOLDER_ADDRESS = "www.site.com"
 PLACEHOLDER_CODE = "CCode (us, uk, de, etc)"
 GRID_LAYOUT = "65% 35%"
@@ -140,7 +171,13 @@ def setup_logging():
     return logger.opt(colors=True)
 
 
+# Initialize logger after setting up environment functions
 logger = setup_logging()
+
+# Log the current environment and database file
+logger.info(f"Environment: {get_current_environment()}")
+logger.info(f"Using database: {DB_FILENAME}")
+
 custom_theme = Theme({
     "default": "white on black",
     "header": RichStyle(
@@ -2714,8 +2751,15 @@ def create_nav_group():
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
-    # Default to Development mode
-    current_env = db.get("current_environment", "Development")
+    # Get current environment from file
+    current_env = get_current_environment()
+    
+    # Style for summary based on environment
+    env_summary_style = "white-space: nowrap; display: inline-block; min-width: max-content;"
+    
+    # Add visual indicator for Development mode (red background)
+    if current_env == "Development":
+        env_summary_style += " background-color: #f55; color: white; padding: 0 5px; border-radius: 4px;"
     
     menu_items = []
     # Development option
@@ -2748,7 +2792,7 @@ def create_env_menu():
         Summary(
             f"ENV: {current_env}", 
             id="env-id", 
-            style="white-space: nowrap; display: inline-block; min-width: max-content;"
+            style=env_summary_style
         ), 
         Ul(*menu_items, cls="dropdown-menu"),
         cls="dropdown",
@@ -3209,8 +3253,9 @@ async def switch_environment(request):
         form = await request.form()
         environment = form.get('environment', 'Development')
         
-        # Store the selected environment in the database
-        db["current_environment"] = environment
+        # Store the selected environment in the environment file
+        set_current_environment(environment)
+        logger.info(f"Environment switched to: {environment}")
         
         # Return a response that tells the client what's happening
         response = HTMLResponse(
@@ -3230,8 +3275,19 @@ async def switch_environment(request):
 
 async def delayed_restart(delay_seconds):
     """Restart the server after a delay."""
+    logger.info(f"Server restart scheduled in {delay_seconds} seconds...")
     await asyncio.sleep(delay_seconds)
-    restart_server()
+    
+    # Force close existing connections 
+    # This helps ensure we don't keep the old database file open
+    try:
+        # Log that we're about to restart
+        logger.info("Performing server restart now...")
+        
+        # Restart the server
+        restart_server()
+    except Exception as e:
+        logger.error(f"Error during restart: {e}")
 
 ALL_ROUTES = list(set(['', profile_app.name] + MENU_ITEMS))
 for item in ALL_ROUTES:
@@ -3264,17 +3320,22 @@ def restart_server():
     if not check_syntax(Path(__file__)):
         print("Syntax error detected. Please fix the error and save the file again.")
         return
+    
     max_retries = 3
     for attempt in range(max_retries):
         try:
+            # Log restart attempt
+            logger.info(f"Restarting server (attempt {attempt + 1}/{max_retries})")
+            
+            # Forcefully exit to ensure all connections are closed
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
-            print(f"Error restarting server (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error(f"Error restarting server (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                print("Waiting 5 seconds before retrying...")
+                logger.info("Waiting 5 seconds before retrying...")
                 time.sleep(5)
             else:
-                print("Max retries reached. Please restart the server manually.")
+                logger.error("Max retries reached. Please restart the server manually.")
 
 
 class ServerRestartHandler(FileSystemEventHandler):
@@ -3287,11 +3348,31 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 def run_server_with_watchdog():
     fig("SERVER RESTART")
-    # print("\n" * 30)
-    # Insert Alice
+    
+    # Display current environment
+    env = get_current_environment()
+    env_db = DB_FILENAME
+    
+    # Display environment information with color based on environment
+    if env == "Development":
+        print("\n")
+        logger.warning("=" * 60)
+        logger.warning(f"RUNNING IN DEVELOPMENT ENVIRONMENT")
+        logger.warning(f"Using database: {env_db}")
+        logger.warning("=" * 60)
+        print("\n")
+    else:
+        print("\n")
+        logger.info("=" * 60)
+        logger.info(f"RUNNING IN PRODUCTION ENVIRONMENT")
+        logger.info(f"Using database: {env_db}")
+        logger.info("=" * 60)
+        print("\n")
+        
+    # Display Alice mascot
     with open('static/alice.txt', 'r') as file:
         print(file.read())
-    # print("\n" * 30)
+        
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
@@ -3301,8 +3382,8 @@ def run_server_with_watchdog():
     except KeyboardInterrupt:
         observer.stop()
     except Exception as e:
-        print(f"Error running server: {e}")
-        print("Attempting to restart...")
+        logger.error(f"Error running server: {e}")
+        logger.info("Attempting to restart...")
         restart_server()
     finally:
         observer.join()
