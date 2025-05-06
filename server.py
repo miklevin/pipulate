@@ -2753,8 +2753,8 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f"Dynamic MENU_ITEMS: {MENU_ITEMS}")
 
 
-@rt('/clear-db', methods=['POST'])
-async def clear_db(request):
+@rt('/clear-pipeline', methods=['POST'])
+async def clear_pipeline(request):
     # Get the current workflow name and display name
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
@@ -3246,7 +3246,7 @@ def create_poke_button():
         buttons.append(
             A(
                 f"Clear {workflow_display_name}",
-                hx_post="/clear-db",
+                hx_post="/clear-pipeline",
                 hx_swap="none",
                 cls="button",
                 style=button_style
