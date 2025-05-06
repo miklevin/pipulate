@@ -114,10 +114,18 @@ LIST_SUFFIX = "List"
 
 
 def setup_logging():
+    """Set up unified logging between console and file with synchronized formats.
+    
+    Designed to:
+    1. Default to INFO level (quiet but informative)
+    2. Use consistent formatting between console and file
+    3. Enable easy switching to DEBUG via environment variable
+    4. Keep a single log file that's reset on server restart
+    """
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
-    logger.remove()
+    logger.remove()  # Remove default handlers
 
     # Create a function to sanitize HTML tags for the logger
     def sanitize_for_log(record):
@@ -126,6 +134,10 @@ def setup_logging():
             record["message"] = record["message"].replace("<", "&lt;").replace(">", "&gt;")
         return record
 
+    # Check for DEBUG mode via environment variable
+    debug_mode = os.environ.get('PIPULATE_DEBUG', '').lower() in ('1', 'true', 'yes')
+    log_level = "DEBUG" if debug_mode else "INFO"
+    
     # Delete the previous log file if it exists
     if app_log_path.exists():
         app_log_path.unlink()
@@ -136,45 +148,40 @@ def setup_logging():
             old_log.unlink()
         except Exception as e:
             print(f"Failed to delete old log file {old_log}: {e}")
-
+    
+    # Define format strings for consistent display between console and file
+    time_format = "{time:YYYY-MM-DD HH:mm:ss}"
+    console_time_format = "<green>{time:HH:mm:ss}</green>"
+    
+    message_format = "{level: <8} | {name: <15} | {message}"
+    console_message_format = "<level>{level: <8}</level> | <cyan>{name: <15}</cyan> | <cyan>{message}</cyan>"
+    
+    # File logger - captures everything at the configured level
     logger.add(
         app_log_path,
-        level="DEBUG",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}",
+        level=log_level,
+        format=f"{time_format} | {message_format}",
         enqueue=True,
-        filter=sanitize_for_log  # Add our sanitizer function
+        filter=sanitize_for_log
     )
 
+    # Console logger - same content but with color
     logger.add(
         sys.stderr,
-        level="DEBUG",
-        format=(
-            "<green>{time:HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name: <15}</cyan> | "
-            "<cyan>{message}</cyan>"
-        ),
+        level=log_level,
+        format=f"{console_time_format} | {console_message_format}",
         colorize=True,
-        filter=lambda record: (
-            sanitize_for_log(record) and  # First sanitize
-            (record["level"].name in ["ERROR", "WARNING"] or
-             record["level"].name == "INFO" or
-             (record["level"].name == "DEBUG" and
-              ("HTTP Request:" in record["message"] or
-               "Pipeline ID:" in record["message"] or
-               "State changed:" in record["message"] or
-               record["message"].startswith("Creating") or
-               record["message"].startswith("Updated")) and
-              not "Pipeline" in record["message"] and
-              not record["message"].startswith("DB: __") and
-              not "First record" in record["message"] and
-              not "Records found" in record["message"] and
-              not "dir:" in record["message"])
-             )
-        )
+        filter=sanitize_for_log
     )
-
-    return logger.opt(colors=True)
+    
+    # Log the current mode on startup
+    log_instance = logger.opt(colors=True)
+    if debug_mode:
+        log_instance.info(f"🔍 Running in <yellow>DEBUG</yellow> mode (verbose logging enabled)")
+    else:
+        log_instance.info(f"🚀 Running in <green>INFO</green> mode (set PIPULATE_DEBUG=1 for verbose logging)")
+        
+    return log_instance
 
 
 # Initialize logger after setting up environment functions
@@ -183,6 +190,93 @@ logger = setup_logging()
 # Log the current environment and database file
 logger.info(f"Environment: {get_current_environment()}")
 logger.info(f"Using database: {DB_FILENAME}")
+
+class LogManager:
+    """Central logging coordinator for artistic control of console and file output.
+    
+    This class provides methods that encourage a consistent, carefully curated
+    logging experience across both console and log file. It encourages using 
+    the same messages in both places with appropriate formatting.
+    """
+    def __init__(self, logger):
+        self.logger = logger
+        self.categories = {
+            "server": "🖥️ SERVER",
+            "startup": "🚀 STARTUP",
+            "workflow": "⚙️ WORKFLOW",
+            "pipeline": "🔄 PIPELINE",
+            "network": "🌐 NETWORK",
+            "database": "💾 DATABASE",
+            "profile": "👤 PROFILE",
+            "plugin": "🔌 PLUGIN",
+            "chat": "💬 CHAT",
+            "error": "❌ ERROR",
+            "warning": "⚠️ WARNING"
+        }
+        
+    def format_message(self, category, message, details=None):
+        """Format a message with optional details in a consistent way."""
+        category_prefix = self.categories.get(category, f"⚡ {category.upper()}")
+        formatted = f"{category_prefix}: {message}"
+        if details:
+            formatted += f" | {details}"
+        return formatted
+    
+    def startup(self, message, details=None):
+        """Log a startup-related message."""
+        self.logger.info(self.format_message("startup", message, details))
+    
+    def workflow(self, message, details=None):
+        """Log a workflow-related message."""
+        self.logger.info(self.format_message("workflow", message, details))
+    
+    def pipeline(self, message, details=None, pipeline_id=None):
+        """Log a pipeline-related message."""
+        if pipeline_id:
+            details = f"Pipeline: {pipeline_id}" + (f" | {details}" if details else "")
+        self.logger.info(self.format_message("pipeline", message, details))
+    
+    def profile(self, message, details=None):
+        """Log a profile-related message."""
+        self.logger.info(self.format_message("profile", message, details))
+    
+    def data(self, message, data=None):
+        """Log structured data - at DEBUG level since it's typically verbose."""
+        msg = self.format_message("database", message)
+        if data is not None:
+            # Limit the data display in INFO mode to keep logs clean
+            if isinstance(data, dict) and len(data) > 5:
+                self.logger.debug(f"{msg} | {json.dumps(data, indent=2)}")
+            else:
+                self.logger.debug(f"{msg} | {data}")
+        else:
+            self.logger.info(msg)
+    
+    def event(self, event_type, message, details=None):
+        """Log a user-facing event in the application."""
+        self.logger.info(self.format_message(event_type, message, details))
+    
+    def warning(self, message, details=None):
+        """Log a warning message at WARNING level."""
+        self.logger.warning(self.format_message("warning", message, details))
+        
+    def error(self, message, error=None):
+        """Log an error with traceback at ERROR level."""
+        formatted = self.format_message("error", message)
+        if error:
+            import traceback
+            error_details = f"{error.__class__.__name__}: {str(error)}"
+            self.logger.error(f"{formatted} | {error_details}")
+            self.logger.debug(traceback.format_exc())
+        else:
+            self.logger.error(formatted)
+    
+    def debug(self, category, message, details=None):
+        """Log debug information that only appears in DEBUG mode."""
+        self.logger.debug(self.format_message(category, message, details))
+
+# Create a global log manager instance
+log = LogManager(logger)
 
 custom_theme = Theme({
     "default": "white on black",
@@ -349,16 +443,36 @@ def append_to_conversation(message=None, role="user", quiet=False):
 def pipeline_operation(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        url = args[0]if args else None
+        url = args[0] if args else None
         if not url:
             return func(self, *args, **kwargs)
+        
+        # Get the original state
         old_state = self._get_clean_state(url)
+        
+        # Execute the function
         result = func(self, *args, **kwargs)
+        
+        # Check for state changes
         new_state = self._get_clean_state(url)
         if old_state != new_state:
+            # Calculate what changed
             changes = {k: new_state[k] for k in new_state if k not in old_state or old_state[k] != new_state[k]}
+            
             if changes:
-                logger.info(f"Pipeline '{url}' state updated: {changes}")
+                # Get function name for better context
+                operation = func.__name__
+                
+                # Log a summary at INFO level
+                step_changes = [k for k in changes if not k.startswith('_')]
+                if step_changes:
+                    log.pipeline(f"Operation '{operation}' updated state", 
+                                details=f"Steps: {', '.join(step_changes)}",
+                                pipeline_id=url)
+                
+                # Log the detailed changes at DEBUG level only
+                log.debug("pipeline", f"Pipeline '{url}' detailed changes", json.dumps(changes, indent=2))
+        
         return result
     return wrapper
 
@@ -2305,10 +2419,16 @@ def db_operation(func):
             if func.__name__ == '__setitem__':
                 key, value = args[1], args[2]
                 if not key.startswith('_') and not key.endswith('_temp'):
-                    logger.debug(f"DB: {key} = {str(value)[:50]}...")
+                    # Only log important state changes at INFO level
+                    if key in ('last_app_choice', 'last_profile_id', 'last_visited_url', 'pipeline_id'):
+                        log.data(f"State updated: {key}", value)
+                    else:
+                        # Log all other DB operations at DEBUG level
+                        log.debug("database", f"DB {func.__name__}: {key}", 
+                                 f"value: {str(value)[:30]}..." if len(str(value)) > 30 else f"value: {value}")
             return result
         except Exception as e:
-            logger.error(f"DB Error: {e}")
+            log.error(f"Database operation {func.__name__} failed", e)
             raise
     return wrapper
 
@@ -3180,29 +3300,49 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         endpoint = request.url.path
         method = request.method
-        logger.debug(f"HTTP Request: {method} {endpoint}")
+        
+        # Skip logging for static files and other noise at INFO level
+        is_static = endpoint.startswith('/static/') 
+        is_ws = endpoint == '/ws'
+        is_sse = endpoint == '/sse'
+        
+        if not (is_static or is_ws or is_sse):
+            # Log actual page requests at INFO level
+            log.event("network", f"{method} {endpoint}")
+        else:
+            # But still log everything at DEBUG level
+            log.debug("network", f"{method} {endpoint}")
+            
         response = await call_next(request)
-        cookie_table = Table(title="Stored Cookie States")
-        cookie_table.add_column("Key", style="cyan")
-        cookie_table.add_column("Value", style="magenta")
-        for key, value in db.items():
-            json_value = JSON.from_data(value, indent=2)
-            cookie_table.add_row(key, json_value)
-        console.print(cookie_table)
-        pipeline_table = Table(title="Pipeline States")
-        pipeline_table.add_column("Key", style="yellow")
-        pipeline_table.add_column("Created", style="magenta")
-        pipeline_table.add_column("Updated", style="cyan")
-        pipeline_table.add_column("Steps", style="white")
-        for record in pipulate.table():
-            try:
-                state = json.loads(record.data)
-                pre_state = json.loads(record.data)
-                pipeline_table.add_row(record.pkey, str(state.get('created', '')), str(state.get('updated', '')), str(len(pre_state) - 2))
-            except (json.JSONDecodeError, AttributeError)as e:
-                logger.error(f"Error parsing pipeline state for {record.pkey}: {e}")
-                pipeline_table.add_row(record.pkey, "ERROR", "Invalid State")
-        console.print(pipeline_table)
+        
+        # Only print state tables in DEBUG mode
+        debug_mode = os.environ.get('PIPULATE_DEBUG', '').lower() in ('1', 'true', 'yes')
+        if debug_mode:
+            # Cookie state table
+            cookie_table = Table(title="Stored Cookie States")
+            cookie_table.add_column("Key", style="cyan")
+            cookie_table.add_column("Value", style="magenta")
+            for key, value in db.items():
+                json_value = JSON.from_data(value, indent=2)
+                cookie_table.add_row(key, json_value)
+            console.print(cookie_table)
+            
+            # Pipeline state table
+            pipeline_table = Table(title="Pipeline States")
+            pipeline_table.add_column("Key", style="yellow")
+            pipeline_table.add_column("Created", style="magenta")
+            pipeline_table.add_column("Updated", style="cyan")
+            pipeline_table.add_column("Steps", style="white")
+            for record in pipulate.table():
+                try:
+                    state = json.loads(record.data)
+                    pre_state = json.loads(record.data)
+                    pipeline_table.add_row(record.pkey, str(state.get('created', '')), str(state.get('updated', '')), str(len(pre_state) - 2))
+                except (json.JSONDecodeError, AttributeError) as e:
+                    log.error(f"Error parsing pipeline state for {record.pkey}", e)
+                    pipeline_table.add_row(record.pkey, "ERROR", "Invalid State")
+            console.print(pipeline_table)
+            
         return response
 
 
@@ -3321,24 +3461,24 @@ def check_syntax(filename):
 
 def restart_server():
     if not check_syntax(Path(__file__)):
-        print("Syntax error detected. Please fix the error and save the file again.")
+        log.warning("Syntax error detected", "Fix the error and save the file again")
         return
     
     max_retries = 3
     for attempt in range(max_retries):
         try:
             # Log restart attempt
-            logger.info(f"Restarting server (attempt {attempt + 1}/{max_retries})")
+            log.startup(f"Restarting server (attempt {attempt + 1}/{max_retries})")
             
             # Forcefully exit to ensure all connections are closed
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
-            logger.error(f"Error restarting server (attempt {attempt + 1}/{max_retries}): {e}")
+            log.error(f"Error restarting server (attempt {attempt + 1}/{max_retries})", e)
             if attempt < max_retries - 1:
-                logger.info("Waiting 5 seconds before retrying...")
+                log.warning("Restart failed", "Waiting 5 seconds before retrying")
                 time.sleep(5)
             else:
-                logger.error("Max retries reached. Please restart the server manually.")
+                log.error("Max restart retries reached", "Please restart the server manually")
 
 
 class ServerRestartHandler(FileSystemEventHandler):
@@ -3356,21 +3496,14 @@ def run_server_with_watchdog():
     env = get_current_environment()
     env_db = DB_FILENAME
     
+    # Log startup information using our new log manager
+    log.startup(f"Starting {APP_NAME} server")
+    
     # Display environment information with color based on environment
     if env == "Development":
-        print("\n")
-        logger.warning("=" * 60)
-        logger.warning(f"RUNNING IN DEVELOPMENT ENVIRONMENT")
-        logger.warning(f"Using database: {env_db}")
-        logger.warning("=" * 60)
-        print("\n")
+        log.warning("Development mode active", details=f"Using database: {env_db}")
     else:
-        print("\n")
-        logger.info("=" * 60)
-        logger.info(f"RUNNING IN PRODUCTION ENVIRONMENT")
-        logger.info(f"Using database: {env_db}")
-        logger.info("=" * 60)
-        print("\n")
+        log.startup("Production mode active", details=f"Using database: {env_db}")
         
     # Display Alice mascot
     with open('static/alice.txt', 'r') as file:
@@ -3380,13 +3513,16 @@ def run_server_with_watchdog():
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
     observer.start()
+    
     try:
+        log.startup("Server starting on http://localhost:5001")
         uvicorn.run(app, host="0.0.0.0", port=5001)
     except KeyboardInterrupt:
+        log.event("server", "Server shutdown requested by user")
         observer.stop()
     except Exception as e:
-        logger.error(f"Error running server: {e}")
-        logger.info("Attempting to restart...")
+        log.error("Server error", e)
+        log.startup("Attempting to restart")
         restart_server()
     finally:
         observer.join()
