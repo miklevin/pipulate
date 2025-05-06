@@ -191,6 +191,9 @@
           echo "Starting $APP_NAME server..."
           # Kill any running server instances first
           pkill -f "python server.py" || true
+          # Always pull the latest code before starting the server
+          echo "Pulling latest code updates..."
+          git pull
           python server.py
           EOF
           chmod +x .venv/bin/run-server
@@ -250,6 +253,10 @@
           echo "JupyterLab started in the background. View logs with: tmux attach -t jupyter"
           echo "Starting $APP_NAME server in the foreground..."
           
+          # Always pull the latest code before starting the server
+          echo "Pulling latest code updates..."
+          git pull
+          
           # Open FastHTML in the browser
           (
             # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
@@ -291,6 +298,10 @@
           # Start the server in foreground
           echo "Starting $APP_NAME server in the foreground..."
           echo "Press Ctrl+C to stop the server."
+          
+          # Always pull the latest code before starting the server
+          echo "Pulling latest code updates..."
+          git pull
           
           # Open FastHTML in the browser
           (
