@@ -6,6 +6,55 @@
 #                                                    `._,._,'  /'\_   _/`\  |     |     |
 #      Solving the "Not on my machine" problem well.           \___)=(___/  |_____|_____|
 
+# ==============================================================================
+# PIPULATE NIX FLAKE - "MAGIC COOKIE" AUTO-UPDATING SYSTEM
+# ==============================================================================
+# 
+# This flake is the second half of the "magic cookie" installation system.
+# It works together with the install.sh script (hosted at pipulate.com) to:
+#
+# 1. Transform a non-git directory into a proper git repository
+# 2. Enable forever-forward git-pull auto-updates
+# 3. Provide a consistent development environment across macOS and Linux
+#
+# === THE "MAGIC COOKIE" CONCEPT ===
+# The "magic cookie" approach solves a bootstrapping problem:
+# - Nix flakes require a git repository to function properly
+# - We can't rely on git being available on all systems during initial install
+# - We want a simple one-line curl|sh installation that works everywhere
+#
+# The solution:
+# 1. install.sh downloads a ZIP archive (no git required)
+# 2. install.sh extracts the ZIP and adds a ROT13-encoded SSH key
+# 3. install.sh runs `nix develop` to activate this flake
+# 4. THIS FLAKE should detect it's not in a git repo and transform itself
+# 5. Auto-updates are enabled through git pulls in future nix develop sessions
+#
+# === CURRENT LIMITATIONS ===
+# The current flake implementation is missing critical "magic cookie" functionality:
+# - It doesn't check if it's running in a git repository
+# - It doesn't perform a clean git clone to transform the installation
+# - It doesn't preserve app_name.txt during the transformation
+# - It doesn't move the .ssh directory with keys during transformation
+#
+# === THE PATH FORWARD ===
+# To complete the "magic cookie" system, this flake needs to be enhanced:
+# 1. In baseEnvSetup: Add detection for non-git directories
+# 2. Clone the repo to a temporary location when needed
+# 3. Preserve app_name.txt and .ssh during the transformation
+# 4. Swap directories to upgrade the installation
+#
+# === REPOSITORY AWARENESS ===
+# This flake is part of the target pipulate project repo at:
+# /home/mike/repos/pipulate/flake.nix
+#
+# This is different from the installer script which lives at:
+# /home/mike/repos/Pipulate.com/install.sh
+#
+# When a user runs:
+#   curl -L https://pipulate.com/install.sh | sh -s Botifython
+# The installer downloads this flake as part of the ZIP archive.
+
 # Most modern development is done on Linux, but Macs are Unix. If you think Homebrew and Docker
 # are the solution, you're wrong. Welcome to the world of Nix Flakes! This file defines a complete,
 # reproducible development environment. It's like a recipe for your perfect workspace, ensuring
@@ -78,6 +127,8 @@
             fi
             echo "$APP_NAME" > app_name.txt
           fi
+          # MAGIC COOKIE COMPONENT: This section reads the app_name.txt that should be 
+          # preserved if/when the directory is transformed into a git repo
           APP_NAME=$(cat app_name.txt)
           PROPER_APP_NAME=$(echo "$APP_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
           figlet "$PROPER_APP_NAME"
@@ -258,6 +309,17 @@
 
         # Base shell hook that just sets up the environment without any output
         baseEnvSetup = pkgs: ''
+          # MAGIC COOKIE CRITICAL COMPONENT: 
+          # This section should detect if we're not in a git repository
+          # and perform the "magic cookie" transformation.
+          #
+          # MISSING FUNCTIONALITY:
+          # 1. Check if .git directory doesn't exist
+          # 2. Create temp directory and git clone the repo there
+          # 3. Preserve app_name.txt and .ssh directory
+          # 4. Swap the directories to upgrade the installation
+          # 5. Clean up temporary directories
+
           # Auto-update: Perform a git pull if this is a git repository
           if [ -d .git ]; then
             echo "Checking for updates..."
