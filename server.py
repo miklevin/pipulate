@@ -2855,28 +2855,51 @@ async def clear_db(request):
     # 3. Find and reset all plugin-created tables
     # Use sqlite3 directly to query for all tables
     import sqlite3
-    conn = sqlite3.connect(DB_FILENAME)
-    cursor = conn.cursor()
     
-    # Get all table names from SQLite schema
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
-    plugin_tables = cursor.fetchall()
-    
-    # Clear each plugin table
-    for (table_name,) in plugin_tables:
-        try:
-            # Delete all records
-            cursor.execute(f"DELETE FROM {table_name}")
-            log.warning(f"Plugin table '{table_name}' cleared", f"All records deleted")
-            
-            # Reset auto-increment if this table has it
-            cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
-        except Exception as e:
-            log.error(f"Error clearing table {table_name}", str(e))
-    
-    # Commit changes and close connection
-    conn.commit()
-    conn.close()
+    try:
+        # Log the database file we're using
+        logger.debug(f"Using database file: {DB_FILENAME}")
+        
+        conn = sqlite3.connect(DB_FILENAME)
+        cursor = conn.cursor()
+        
+        # Get all table names from SQLite schema - excluding core tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+        plugin_tables = cursor.fetchall()
+        
+        # Log the tables we found for debugging
+        table_names = [table[0] for table in plugin_tables]
+        log.warning("Found plugin tables", f"Tables to clear: {', '.join(table_names)}")
+        
+        # Clear each plugin table
+        cleared_count = 0
+        for (table_name,) in plugin_tables:
+            try:
+                # Check if table exists and has records
+                cursor.execute(f"SELECT count(*) FROM {table_name}")
+                row_count = cursor.fetchone()[0]
+                
+                # Delete all records
+                cursor.execute(f"DELETE FROM {table_name}")
+                
+                # Log the operation with row count
+                log.warning(f"Plugin table '{table_name}' cleared", f"Deleted {row_count} records")
+                cleared_count += 1
+                
+                # Reset auto-increment if this table has it
+                cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
+                
+            except Exception as e:
+                log.error(f"Error clearing table {table_name}", str(e))
+        
+        # Commit changes
+        conn.commit()
+        log.warning("Plugin tables cleanup complete", f"Cleared {cleared_count} tables")
+        
+        # Close connection
+        conn.close()
+    except Exception as e:
+        log.error("Error accessing SQLite database", str(e))
     
     # 4. Re-initialize the database with default data
     # This is similar to the first-run initialization
@@ -2889,9 +2912,9 @@ async def clear_db(request):
     if last_visited_url:
         db["last_visited_url"] = last_visited_url
     
-    # Send confirmation to the user
-    message = "Database completely reset to initial state. All data has been cleared and a fresh default profile has been created."
-    asyncio.create_task(pipulate.stream(message, verbatim=True))
+    # Set a confirmation message in the temporary message system instead of streaming
+    db["temp_message"] = "Database completely reset to initial state. All data has been cleared and a fresh default profile has been created."
+    log.startup("Database reset confirmation message set", "Will display after page reload")
     
     # Create a response with refresh directive
     html_response = HTMLResponse("<div>Database reset complete</div>")
