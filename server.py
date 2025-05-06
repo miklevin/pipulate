@@ -2760,13 +2760,16 @@ def create_env_menu():
     # Add visual indicator for Development mode (subtle styling)
     if current_env == "Development":
         env_summary_style += " color: #f77; font-weight: bold;"
+        display_env = "Dev"
+    else:
+        display_env = "Prod"
     
     menu_items = []
     # Development option
     is_dev = current_env == "Development"
     dev_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_dev else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Development", 
+        A("Dev", 
           hx_post="/switch_environment", 
           hx_vals='{"environment": "Development"}',
           hx_confirm="Switch to Development environment? This will restart the server.",
@@ -2779,7 +2782,7 @@ def create_env_menu():
     is_prod = current_env == "Production"
     prod_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_prod else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Production", 
+        A("Prod", 
           hx_post="/switch_environment", 
           hx_vals='{"environment": "Production"}',
           hx_confirm="Switch to Production environment? This will restart the server.",
@@ -2790,7 +2793,7 @@ def create_env_menu():
     
     return Details(
         Summary(
-            f"ENV: {current_env}", 
+            f"ENV: {display_env}", 
             id="env-id", 
             style=env_summary_style
         ), 
@@ -3261,7 +3264,7 @@ async def switch_environment(request):
         asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
         
         # Return a minimal response with a spinner using aria-busy
-        return HTMLResponse(f"<div aria-busy='true'>Switching to {environment} environment...</div>")
+        return HTMLResponse(f"<div aria-busy='true'>Switching</div>")
         
     except Exception as e:
         logger.error(f"Error switching environment: {e}")
