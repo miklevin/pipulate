@@ -36,7 +36,6 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 # Direct settings for logging verbosity - toggle these to change behavior
-# Toggle these directly in the code instead of using environment variables
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
 STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
@@ -3147,22 +3146,47 @@ def create_poke_button():
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
 
-    return Div(
+    # Common button style for smaller buttons
+    button_style = "margin-right: 10px; font-size: 0.85rem; padding: 0.4rem 0.8rem;"
+    
+    # Create button elements list
+    buttons = [
         A(
             f"Clear {workflow_display_name}",
             hx_post="/clear-db",
             hx_swap="none",
             cls="button",
-            style="margin-right: 10px;"
-        ),
+            style=button_style
+        )
+    ]
+    
+    # Add dev tools button only in development mode
+    if get_current_environment() == "Development":
+        buttons.append(
+            A(
+                "Clear DB",
+                hx_post="/dev-tools",
+                hx_target="#msg-list",
+                hx_swap="innerHTML",
+                cls="button",
+                style=button_style
+            )
+        )
+    
+    # Always add the poke button
+    buttons.append(
         A(
             f"Poke {MODEL}",
             hx_post="/poke",
             hx_target="#msg-list",
             hx_swap="innerHTML",
             cls="button",
-            style="margin-right: 10px;"
-        ),
+            style=button_style
+        )
+    )
+    
+    return Div(
+        *buttons,  # Unpack the buttons list
         style=(
             "bottom: 20px; "
             "position: fixed; "
@@ -3545,3 +3569,11 @@ if __name__ == "__main__":
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
+
+@rt('/dev-tools', methods=['POST'])
+async def dev_tools():
+    """Developer tools endpoint - only accessible in development environment."""
+    logger.debug("Dev tools endpoint accessed")
+    message = "Developer tools activated. This would show advanced debugging options in a real implementation."
+    asyncio.create_task(pipulate.stream(message, verbatim=True))
+    return "Dev tools activated"
