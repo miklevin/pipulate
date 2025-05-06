@@ -309,17 +309,64 @@
 
         # Base shell hook that just sets up the environment without any output
         baseEnvSetup = pkgs: ''
-          # MAGIC COOKIE CRITICAL COMPONENT: 
-          # This section should detect if we're not in a git repository
-          # and perform the "magic cookie" transformation.
-          #
-          # MISSING FUNCTIONALITY:
-          # 1. Check if .git directory doesn't exist
-          # 2. Create temp directory and git clone the repo there
-          # 3. Preserve app_name.txt and .ssh directory
-          # 4. Swap the directories to upgrade the installation
-          # 5. Clean up temporary directories
-
+          # MAGIC COOKIE TRANSFORMATION
+          if [ ! -d .git ]; then
+            echo "🔄 Transforming installation into git repository..."
+            
+            # Create a temporary directory for the clean git clone
+            TEMP_DIR=$(mktemp -d)
+            echo "Creating temporary clone in $TEMP_DIR..."
+            
+            # Clone the repository into the temporary directory
+            if git clone --depth=1 https://github.com/miklevin/pipulate.git "$TEMP_DIR"; then
+              # Save important files that need to be preserved
+              echo "Preserving app identity and credentials..."
+              if [ -f app_name.txt ]; then
+                cp app_name.txt "$TEMP_DIR/"
+              fi
+              if [ -d .ssh ]; then
+                mkdir -p "$TEMP_DIR/.ssh"
+                cp -r .ssh/* "$TEMP_DIR/.ssh/"
+                chmod 600 "$TEMP_DIR/.ssh/rot" 2>/dev/null || true
+              fi
+              
+              # Preserve virtual environment if it exists
+              if [ -d .venv ]; then
+                echo "Preserving virtual environment..."
+                cp -r .venv "$TEMP_DIR/"
+              fi
+              
+              # Get current directory name and parent for later restoration
+              CURRENT_DIR="$(pwd)"
+              PARENT_DIR="$(dirname "$CURRENT_DIR")"
+              DIR_NAME="$(basename "$CURRENT_DIR")"
+              
+              # Move everything to a backup location first
+              BACKUP_DIR=$(mktemp -d)
+              echo "Creating backup of current directory in $BACKUP_DIR..."
+              cp -r . "$BACKUP_DIR/"
+              
+              # Clean current directory (except hidden files to avoid issues)
+              find . -maxdepth 1 -not -path "./.*" -exec rm -rf {} \; 2>/dev/null || true
+              
+              # Move git repository contents into current directory
+              echo "Moving git repository into place..."
+              cp -r "$TEMP_DIR/." .
+              
+              # Clean up temporary directory
+              rm -rf "$TEMP_DIR"
+              
+              echo "✅ Successfully transformed into git repository!"
+              echo "Original files backed up to: $BACKUP_DIR"
+              echo "You can safely remove the backup once everything is working:"
+              echo "rm -rf \"$BACKUP_DIR\""
+              
+            else
+              echo "❌ Error: Failed to clone repository. Your installation will continue,"
+              echo "but without git-based updates. Please try again later or report this issue."
+            fi
+          fi
+          
           # Auto-update: Perform a git pull if this is a git repository
           if [ -d .git ]; then
             echo "Checking for updates..."
@@ -333,6 +380,16 @@
               echo "Update complete!"
             else
               echo "Already up to date."
+            fi
+          fi
+          
+          # Update remote URL to use SSH if we have a key
+          if [ -d .git ] && [ -f ~/.ssh/id_rsa ]; then
+            # Check if we're using HTTPS remote
+            REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+            if [[ "$REMOTE_URL" == https://* ]]; then
+              echo "Updating remote URL to use SSH..."
+              git remote set-url origin git@github.com:miklevin/pipulate.git
             fi
           fi
           
@@ -350,6 +407,33 @@
             export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
           fi
           ''}
+
+          # Set up the SSH key if it exists
+          if [ -f .ssh/rot ]; then
+            # Create an id_rsa file for the git operations by decoding the ROT13 key
+            mkdir -p ~/.ssh
+            
+            # Decode the ROT13 key to ~/.ssh/id_rsa if it doesn't exist
+            if [ ! -f ~/.ssh/id_rsa ]; then
+              echo "Setting up SSH key for git operations..."
+              tr 'A-Za-z' 'N-ZA-Mn-za-m' < .ssh/rot > ~/.ssh/id_rsa
+              chmod 600 ~/.ssh/id_rsa
+              
+              # Create or append to SSH config to use this key for github
+              if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
+                cat >> ~/.ssh/config << EOF
+Host github.com
+  IdentityFile ~/.ssh/id_rsa
+  User git
+EOF
+              fi
+              
+              # Add github.com to known_hosts if not already there
+              if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
+                ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+              fi
+            fi
+          fi
         '';
 
         # Function to create shells for each OS
