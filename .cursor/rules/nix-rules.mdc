@@ -24,6 +24,15 @@ alwaysApply: true
 - Work exclusively in ~/repos/pipulate
 - Use relative paths from repo root
 
+## Magic Cookie Installation System
+- The main installer is at /home/mike/repos/Pipulate.com/install.sh
+- Users install via: `curl -L https://pipulate.com/install.sh | sh -s <AppName>`
+- The installer and flake.nix work together in the "magic cookie" system
+- The flake handles git repository transformation and auto-updates
+- On macOS: `nix develop --impure` is required
+- On Linux: `nix develop` is sufficient
+- See [magic-cookie-system.mdc](mdc:.cursor/rules/magic-cookie-system.mdc) for details
+
 ## Data Libraries and Visualization
 - Pandas and data visualization libraries are included in the Nix environment
 - Test pandas availability in the environment:

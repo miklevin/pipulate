@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Magic Cookie Installation & Auto-Update System
+
+The "magic cookie" system enables a seamless installation experience for users while maintaining auto-updating capabilities through git without requiring git knowledge from end users.
+
+## Key Components
+
+### Installation Script
+- [install.sh](mdc:home/mike/repos/Pipulate.com/install.sh) - Hosted at Pipulate.com, this is the entry point for users
+- Provides a simple curl-pipe-sh installation: `curl -L https://pipulate.com/install.sh | sh -s Botifython`
+- Downloads ZIP archive instead of using git (more reliable across systems)
+- Places ROT13-encoded SSH key in .ssh folder as a "magic cookie"
+
+### Nix Flake
+- [flake.nix](mdc:flake.nix) - The core configuration file that defines the development environment
+- Contains the "magic cookie transformation" logic in the baseEnvSetup function
+- Handles converting the unzipped directory into a proper git repository
+- Sets up auto-updating through git pull at strategic points
+
+## Magic Cookie Transformation Process
+
+1. install.sh downloads and extracts a ZIP of the repo (no git required)
+2. User starts nix develop for the first time
+3. flake.nix detects it's not in a git repo and performs transformation:
+   - Clones the repo to a temporary location
+   - Preserves important files (app_name.txt, .ssh folder)
+   - Swaps the directories to replace non-git with git repository
+   - Sets up SSH keys for passwordless git operations
+
+## Auto-Update System
+
+The application automatically updates itself by performing git pull at these strategic points:
+1. When entering the nix shell (checks for updates)
+2. Before starting the server with the run-server script
+3. Before starting the server with the run-all script
+4. Before starting the server in the default flow
+
+## Important Details
+
+- ROT13 encoding is used for SSH keys to avoid GitHub security scanners
+- The system doesn't require users to understand git
+- The application operates like a desktop app with transparent auto-updates
+- All git output is preserved so users can see update progress
+- CUDA detection and OS-specific adaptations are handled automatically
+- The --impure flag is required on macOS for proper operation
