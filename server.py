@@ -2757,9 +2757,9 @@ def create_env_menu():
     # Style for summary based on environment
     env_summary_style = "white-space: nowrap; display: inline-block; min-width: max-content;"
     
-    # Add visual indicator for Development mode (red background)
+    # Add visual indicator for Development mode (subtle styling)
     if current_env == "Development":
-        env_summary_style += " background-color: #f55; color: white; padding: 0 5px; border-radius: 4px;"
+        env_summary_style += " color: #f77; font-weight: bold;"
     
     menu_items = []
     # Development option
@@ -3257,18 +3257,12 @@ async def switch_environment(request):
         set_current_environment(environment)
         logger.info(f"Environment switched to: {environment}")
         
-        # Return a response that tells the client what's happening
-        response = HTMLResponse(
-            f"<div>Switching to {environment} environment. Server restarting...</div>"
-        )
-        
-        # Add a header to refresh the page after a delay
-        response.headers["HX-Refresh"] = "true"
-        
         # Schedule server restart
         asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
         
-        return response
+        # Return a minimal response with a spinner using aria-busy
+        return HTMLResponse(f"<div aria-busy='true'>Switching to {environment} environment...</div>")
+        
     except Exception as e:
         logger.error(f"Error switching environment: {e}")
         return HTMLResponse(f"Error: {str(e)}", status_code=500)
