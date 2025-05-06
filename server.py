@@ -2811,6 +2811,66 @@ async def clear_db(request):
     return html_response
 
 
+@rt('/dev-tools', methods=['POST'])
+async def dev_tools():
+    """Developer tools endpoint - fully resets the database to initial state.
+    Only accessible in development environment."""
+    logger.debug("Dev tools endpoint accessed - performing complete database reset")
+    
+    # 1. Clear all database keys
+    log.warning("Starting complete database reset", "This will recreate an empty database")
+    
+    # Save only the navigation state 
+    last_app_choice = db.get("last_app_choice")
+    last_visited_url = db.get("last_visited_url")
+    
+    # Delete all keys from the db
+    keys = list(db.keys())
+    for key in keys:
+        del db[key]
+    log.warning("DictLikeDB cleared", f"Deleted {len(keys)} keys")
+    
+    # 2. Reset pipeline tables
+    # Clear ALL pipeline records - reset any filters first
+    if hasattr(pipulate.table, 'xtra'):
+        # Reset any filters by passing an empty dict to xtra
+        pipulate.table.xtra()
+    
+    records = list(pipulate.table())
+    for record in records:
+        pipulate.table.delete(record.pkey)
+    log.warning("Pipeline table cleared", f"Deleted {len(records)} records")
+    
+    # 3. Reset profile table
+    # Get profile records first
+    profile_records = list(profiles())
+    profile_count = len(profile_records)
+    
+    # Delete all profile records
+    for profile in profile_records:
+        profiles.delete(profile.id)
+    log.warning("Profiles table cleared", f"Deleted {profile_count} records")
+    
+    # 4. Re-initialize the database with default data
+    # This is similar to the first-run initialization
+    populate_initial_data()
+    log.startup("Database reset to initial state", "Default profile created")
+    
+    # 5. Restore navigation state if needed
+    if last_app_choice:
+        db["last_app_choice"] = last_app_choice
+    if last_visited_url:
+        db["last_visited_url"] = last_visited_url
+    
+    # Send confirmation to the user
+    message = "Database completely reset to initial state. All data has been cleared and a fresh default profile has been created."
+    asyncio.create_task(pipulate.stream(message, verbatim=True))
+    
+    # Create a response with refresh directive
+    html_response = HTMLResponse("<div>Database reset complete</div>")
+    html_response.headers["HX-Refresh"] = "true"  # Force a full page refresh
+    return html_response
+
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f"Retrieving profile name for ID: {profile_id}")
@@ -3569,11 +3629,3 @@ if __name__ == "__main__":
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
-
-@rt('/dev-tools', methods=['POST'])
-async def dev_tools():
-    """Developer tools endpoint - only accessible in development environment."""
-    logger.debug("Dev tools endpoint accessed")
-    message = "Developer tools activated. This would show advanced debugging options in a real implementation."
-    asyncio.create_task(pipulate.stream(message, verbatim=True))
-    return "Dev tools activated"
