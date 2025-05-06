@@ -35,6 +35,10 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+# Direct settings for logging verbosity - toggle these to change behavior
+# Toggle these directly in the code instead of using environment variables
+DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
+STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -119,7 +123,7 @@ def setup_logging():
     Designed to:
     1. Default to INFO level (quiet but informative)
     2. Use consistent formatting between console and file
-    3. Enable easy switching to DEBUG via environment variable
+    3. Enable easy switching to DEBUG via the DEBUG_MODE constant
     4. Keep a single log file that's reset on server restart
     """
     logs_dir = Path('logs')
@@ -134,9 +138,8 @@ def setup_logging():
             record["message"] = record["message"].replace("<", "&lt;").replace(">", "&gt;")
         return record
 
-    # Check for DEBUG mode via environment variable
-    debug_mode = os.environ.get('PIPULATE_DEBUG', '').lower() in ('1', 'true', 'yes')
-    log_level = "DEBUG" if debug_mode else "INFO"
+    # Use the DEBUG_MODE constant directly instead of environment variable
+    log_level = "DEBUG" if DEBUG_MODE else "INFO"
     
     # Delete the previous log file if it exists
     if app_log_path.exists():
@@ -176,10 +179,14 @@ def setup_logging():
     
     # Log the current mode on startup
     log_instance = logger.opt(colors=True)
-    if debug_mode:
+    if DEBUG_MODE:
         log_instance.info(f"🔍 Running in <yellow>DEBUG</yellow> mode (verbose logging enabled)")
     else:
-        log_instance.info(f"🚀 Running in <green>INFO</green> mode (set PIPULATE_DEBUG=1 for verbose logging)")
+        log_instance.info(f"🚀 Running in <green>INFO</green> mode (edit server.py and set DEBUG_MODE=True for verbose logging)")
+        
+    # Log state tables mode if enabled
+    if STATE_TABLES:
+        log_instance.info(f"🔍 State tables <yellow>ENABLED</yellow> (🍪 and ➡️ tables will be displayed)")
         
     return log_instance
 
@@ -215,9 +222,8 @@ class LogManager:
         }
         
     def format_message(self, category, message, details=None):
-        """Format a message with optional details in a consistent way."""
-        category_prefix = self.categories.get(category, f"⚡ {category.upper()}")
-        formatted = f"{category_prefix}: {message}"
+        emoji = self.categories.get(category, f"⚡ {category.upper()}")
+        formatted = f"[{emoji}] {message}"
         if details:
             formatted += f" | {details}"
         return formatted
@@ -3315,11 +3321,10 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             
         response = await call_next(request)
         
-        # Only print state tables in DEBUG mode
-        debug_mode = os.environ.get('PIPULATE_DEBUG', '').lower() in ('1', 'true', 'yes')
-        if debug_mode:
-            # Cookie state table
-            cookie_table = Table(title="Stored Cookie States")
+        # This is controlled by the STATE_TABLES constant at the top of the file
+        if STATE_TABLES:
+            # Cookie state table with emoji
+            cookie_table = Table(title="🍪 Stored Cookie States")
             cookie_table.add_column("Key", style="cyan")
             cookie_table.add_column("Value", style="magenta")
             for key, value in db.items():
@@ -3327,8 +3332,8 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 cookie_table.add_row(key, json_value)
             console.print(cookie_table)
             
-            # Pipeline state table
-            pipeline_table = Table(title="Pipeline States")
+            # Pipeline state table with emoji
+            pipeline_table = Table(title="➡️ Pipeline States")
             pipeline_table.add_column("Key", style="yellow")
             pipeline_table.add_column("Created", style="magenta")
             pipeline_table.add_column("Updated", style="cyan")
@@ -3504,6 +3509,10 @@ def run_server_with_watchdog():
         log.warning("Development mode active", details=f"Using database: {env_db}")
     else:
         log.startup("Production mode active", details=f"Using database: {env_db}")
+    
+    # Display state tables mode if enabled    
+    if STATE_TABLES:
+        log.startup("State tables enabled", details="Edit server.py and set STATE_TABLES=False to disable")
         
     # Display Alice mascot
     with open('static/alice.txt', 'r') as file:
