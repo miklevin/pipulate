@@ -126,13 +126,19 @@ def setup_logging():
             record["message"] = record["message"].replace("<", "&lt;").replace(">", "&gt;")
         return record
 
-    for p in [app_log_path]:
-        if p.exists():
-            p.unlink()
+    # Delete the previous log file if it exists
+    if app_log_path.exists():
+        app_log_path.unlink()
+    
+    # Also delete any timestamped log files that may exist
+    for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
+        try:
+            old_log.unlink()
+        except Exception as e:
+            print(f"Failed to delete old log file {old_log}: {e}")
 
     logger.add(
         app_log_path,
-        rotation="2 MB",
         level="DEBUG",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}",
         enqueue=True,
