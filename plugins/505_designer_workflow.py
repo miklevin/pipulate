@@ -435,33 +435,36 @@ class DesignerWorkflow:
                 font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
                 border-collapse: collapse;
                 width: 100%;
-                background-color: black;
                 color: white;
                 margin-top: 1rem;
                 margin-bottom: 1rem;
                 border: 1px solid white;
+                background-color: #000;
+            }
+            .param-table caption {
+                caption-side: top;
+                text-align: center;
+                font-weight: bold;
+                color: white;
+                background: transparent !important;
+                padding: 10px 0;
+                font-size: 1.1em;
+                letter-spacing: 0.5px;
+            }
+            .param-table tr.header td,
+            .param-table tr.header span {
+                color: white !important;
+                background-color: #000 !important;
+                font-weight: bold;
+                border-bottom: 3px solid white;
+            }
+            .param-table tbody tr:not(.header):not(.param-table-label) td {
+                background-color: #000 !important;
             }
             .param-table td {
                 border: none;
                 padding: 5px;
                 text-align: left;
-            }
-            .param-table tr:nth-child(even) {
-                background-color: #1a1a1a;
-            }
-            .param-table tr:first-child td {
-                text-align: center;
-                background-color: #000;
-                font-weight: bold;
-                color: white;
-                border-bottom: 2px solid white;
-                border-left: none;
-                border-right: none;
-                border-top: none;
-                padding: 10px 0;
-            }
-            .param-table tr.header {
-                border-bottom: 3px solid white;
             }
             .param-name { color: cyan; }
             .value1-val { color: #4fa8ff; text-align: right; }
@@ -479,7 +482,7 @@ class DesignerWorkflow:
         # Create the table HTML
         table_html = f"""
         <table class="param-table">
-            <tr><td colspan="{len(headers)}">Rich Table Example</td></tr>
+            <caption>Rich Table Example</caption>
             <tr class="header">
         """
         
