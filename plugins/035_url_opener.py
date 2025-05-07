@@ -46,15 +46,15 @@ class BlankWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='url',  # Change from placeholder to actual data field
+                done='url',
                 show='Enter URL',
                 refill=True,  # Allow URL reuse
             ),
             Step(
                 id='step_02',
                 done='placeholder',
-                show='Confirm URL',
-                refill=False,
+                show='New Search Step',
+                refill=True,  # Allow reuse for iterative development
             ),
         ]
         
@@ -276,7 +276,14 @@ class BlankWorkflow:
         if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: {url_value}")
+                    H3(f"🔒 {step.show}"),
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -284,8 +291,23 @@ class BlankWorkflow:
             
         # Check if step is complete and not being reverted to
         if url_value and state.get("_revert_target") != step_id:
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {url_value}",
+                widget=Div(
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
+                ),
+                steps=steps
+            )
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {url_value}", steps=steps),
+                content_container,
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
@@ -304,7 +326,7 @@ class BlankWorkflow:
                             value=url_value if step.refill else "",
                             cls="contrast"
                         ),
-                        Button("Next ▸", type="submit", cls="primary"),
+                        Button("Open URL ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -314,7 +336,7 @@ class BlankWorkflow:
             )
 
     async def step_01_submit(self, request):
-        """Process the URL submission."""
+        """Process the URL submission and open the URL."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -334,11 +356,35 @@ class BlankWorkflow:
         
         # Store URL in state
         await pip.update_step_state(pipeline_id, step_id, url, steps)
-        await self.message_queue.add(pip, f"URL set to: {url}", verbatim=True)
+        
+        # Open URL immediately
+        import webbrowser
+        webbrowser.open(url)
+        await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
+        
+        # Create widget with reopen button
+        url_widget = Div(
+            P(f"URL configured: ", B(url)),
+            Button(
+                "Open URL Again ▸",
+                type="button",
+                _onclick=f"window.open('{url}', '_blank')",
+                cls="secondary"
+            )
+        )
+        
+        # Create content container
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: {url}",
+            widget=url_widget,
+            steps=steps
+        )
         
         # Return with chain reaction to next step
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {url}", steps=steps),
+            content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
@@ -418,6 +464,83 @@ class BlankWorkflow:
         placeholder_value = "completed"
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
+        
+        # Return with chain reaction to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    # --- Step 3: New Search Step (Placeholder) ---
+    async def step_03(self, request):
+        """Handles GET request for Step 3: New Search Step.
+        
+        This is a placeholder step that will be evolved into a Google search URL builder.
+        It maintains workflow progression while we plan the implementation.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}: Completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            await self.message_queue.add(pip, "This step will become a Google search URL builder.", verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder for the Google search URL builder."),
+                    Form(
+                        Button("Proceed ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_03_submit(self, request):
+        """Process the submission for Step 3 (placeholder).
+        
+        This placeholder submit handler maintains workflow progression
+        while we plan the Google search URL builder implementation.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # For placeholder, we use a fixed value
+        placeholder_value = "completed"
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # Return with chain reaction to next step
         return Div(

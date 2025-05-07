@@ -47,10 +47,10 @@ async def initiate_csv_download(self, parameters):
     }
     
     try:
-        # Simulate starting an async task
-        # In real implementation, you would use a proper async process
-        asyncio.create_task(self._simulate_download_progress(job_id))
-        return job_id
+    # Simulate starting an async task
+    # In real implementation, you would use a proper async process
+    asyncio.create_task(self._simulate_download_progress(job_id))
+    return job_id
     except Exception as e:
         self.download_jobs[job_id]['status'] = 'ERROR'
         self.download_jobs[job_id]['error'] = str(e)
@@ -67,28 +67,28 @@ async def _simulate_download_progress(self, job_id):
     import random
     
     try:
-        # Simulate download steps
-        for progress in range(0, 101, 10):
-            self.download_jobs[job_id]['progress'] = progress
-            
-            # Random sleep to simulate work
-            await asyncio.sleep(random.uniform(1, 2))
+    # Simulate download steps
+    for progress in range(0, 101, 10):
+        self.download_jobs[job_id]['progress'] = progress
         
-        # Mark as complete when done
-        self.download_jobs[job_id]['status'] = 'COMPLETED'
-        
-        # Create a dummy CSV file
-        output_dir = os.path.join(os.getcwd(), 'downloads')
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filepath = os.path.join(output_dir, f"{job_id}.csv")
-        with open(filepath, 'w') as f:
-            f.write("column1,column2,column3\n")
-            f.write("value1,value2,value3\n")
-            f.write("value4,value5,value6\n")
-        
-        # Store the filepath
-        self.download_jobs[job_id]['filepath'] = filepath
+        # Random sleep to simulate work
+        await asyncio.sleep(random.uniform(1, 2))
+    
+    # Mark as complete when done
+    self.download_jobs[job_id]['status'] = 'COMPLETED'
+    
+    # Create a dummy CSV file
+    output_dir = os.path.join(os.getcwd(), 'downloads')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    filepath = os.path.join(output_dir, f"{job_id}.csv")
+    with open(filepath, 'w') as f:
+        f.write("column1,column2,column3\n")
+        f.write("value1,value2,value3\n")
+        f.write("value4,value5,value6\n")
+    
+    # Store the filepath
+    self.download_jobs[job_id]['filepath'] = filepath
     except Exception as e:
         self.download_jobs[job_id]['status'] = 'ERROR'
         self.download_jobs[job_id]['error'] = str(e)
@@ -128,39 +128,39 @@ async def handle_download_status(self, request):
     from starlette.responses import JSONResponse
     
     try:
-        # Get job_id from query parameters
-        job_id = request.query_params.get('job_id')
-        if not job_id:
+    # Get job_id from query parameters
+    job_id = request.query_params.get('job_id')
+    if not job_id:
             return JSONResponse({
                 'status': 'ERROR', 
                 'message': 'No job ID provided'
             }, status_code=400)
-        
-        # Check the job status
-        status = await self.check_download_status(job_id)
-        
-        # Generate appropriate response
-        if status['status'] == 'COMPLETED':
-            # If complete, return JSON with filepath
-            return JSONResponse({
-                'status': 'COMPLETED', 
-                'filepath': status['filepath'],
-                'download_url': f"/{self.app_name}/download_file?file={os.path.basename(status['filepath'])}"
-            })
-        elif status['status'] == 'RUNNING':
-            # If still running, return progress
-            return JSONResponse({
-                'status': 'RUNNING',
-                'progress': status['progress'],
-                'message': f"Download {status['progress']}% complete"
-            })
+    
+    # Check the job status
+    status = await self.check_download_status(job_id)
+    
+    # Generate appropriate response
+    if status['status'] == 'COMPLETED':
+        # If complete, return JSON with filepath
+        return JSONResponse({
+            'status': 'COMPLETED', 
+            'filepath': status['filepath'],
+            'download_url': f"/{self.app_name}/download_file?file={os.path.basename(status['filepath'])}"
+        })
+    elif status['status'] == 'RUNNING':
+        # If still running, return progress
+        return JSONResponse({
+            'status': 'RUNNING',
+            'progress': status['progress'],
+            'message': f"Download {status['progress']}% complete"
+        })
         elif status['status'] == 'ERROR':
             # Handle error state
             return JSONResponse({
                 'status': 'ERROR',
                 'message': status.get('error', 'Unknown error occurred')
             }, status_code=500)
-        else:
+    else:
             # Unknown status
             return JSONResponse({
                 'status': 'UNKNOWN',
@@ -191,28 +191,28 @@ async def serve_download_file(self, request):
     import os
     
     try:
-        # Get filename from query parameter
-        filename = request.query_params.get('file')
-        if not filename:
+    # Get filename from query parameter
+    filename = request.query_params.get('file')
+    if not filename:
             return HTMLResponse(
                 "Error: No file specified", 
                 status_code=400
             )
-        
-        # Construct full path
-        filepath = os.path.join(os.getcwd(), 'downloads', filename)
-        
-        # Check if file exists
-        if not os.path.exists(filepath):
+    
+    # Construct full path
+    filepath = os.path.join(os.getcwd(), 'downloads', filename)
+    
+    # Check if file exists
+    if not os.path.exists(filepath):
             return HTMLResponse(
                 "Error: File not found", 
                 status_code=404
             )
-        
-        # Serve the file as a download
-        return FileResponse(
-            filepath,
-            media_type='text/csv',
+    
+    # Serve the file as a download
+    return FileResponse(
+        filepath,
+        media_type='text/csv',
             filename=filename,
             headers={
                 'Content-Disposition': f'attachment; filename="{filename}"'
@@ -222,7 +222,7 @@ async def serve_download_file(self, request):
         return HTMLResponse(
             f"Error serving file: {str(e)}", 
             status_code=500
-        )
+    )
 ```
 
 ### Phase 5: Update Step Definition
@@ -315,20 +315,20 @@ if job_id and state.get("_revert_target") != step_id:
     else:
         # Show status for unfinished job
         download_widget = P(f"Download status: {status.get('status', 'Unknown')}")
-    
+        
     return Div(
         pip.revert_control(
-            step_id=step_id, 
-            app_name=app_name, 
+            step_id=step_id,
+            app_name=app_name,
             message=f"{step.show}: {status.get('status', 'Unknown')}", 
             steps=steps
         ),
         download_widget,
-        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-        id=step_id,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id,
         role="region",
         aria-live="polite"
-    )
+        )
 
 # CUSTOMIZE_FORM: Replace with download initiation form
 return Div(
@@ -343,7 +343,7 @@ return Div(
                 style="min-height: 44px; min-width: 44px;",  # Mobile touch target
                 aria-label="Start CSV download"
             ),
-            hx_post=f"/{app_name}/{step_id}_submit", 
+            hx_post=f"/{app_name}/{step_id}_submit",
             hx_target=f"#{step_id}",
             _="on htmx:beforeRequest add .loading to <button[type='submit']/> end on htmx:afterRequest remove .loading from <button[type='submit']/> end"
         )
@@ -363,11 +363,11 @@ Replace the key sections:
 try:
     # Start the download process
     job_id = await self.initiate_csv_download({})  # Add any parameters needed
-    
+
     # Store the job ID in state
-    await pip.update_step_state(pipeline_id, step_id, job_id, steps)
+await pip.update_step_state(pipeline_id, step_id, job_id, steps)
     await self.message_queue.add(pip, f"{step.show} started", verbatim=True)
-    
+
     # Return polling UI
     return Div(
         Card(
@@ -377,7 +377,7 @@ try:
                 "0%",
                 id=f"{step_id}-progress",
                 style="width: 100%; height: 20px; background: #eee; border-radius: 4px; overflow: hidden;"
-            ),
+        ),
             Div(
                 style="width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease;",
                 _=f"on load set my.style.width to '0%' end on htmx:afterRequest set my.style.width to event.detail.xhr.response.progress + '%' end"
@@ -385,14 +385,14 @@ try:
         ),
         Div(
             id=next_step_id,
-            hx_get=f"/{app_name}/check_download_status?job_id={job_id}",
-            hx_trigger="load, every 2s",
+    hx_get=f"/{app_name}/check_download_status?job_id={job_id}",
+    hx_trigger="load, every 2s",
             hx_swap="outerHTML"
         ),
-        id=step_id,
+    id=step_id,
         role="region",
         aria-live="polite"
-    )
+)
 except Exception as e:
     return P(f"Error starting download: {str(e)}", style=pip.get_style("error"), role="alert")
 ```

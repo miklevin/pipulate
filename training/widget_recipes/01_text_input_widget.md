@@ -127,8 +127,8 @@ Only modify the marked sections:
 ```python
 # CUSTOMIZE_FORM_PROCESSING: Process form data with error handling
 try:
-    form = await request.form()
-    text_input = form.get(step.done, "").strip()
+form = await request.form()
+text_input = form.get(step.done, "").strip()
 except Exception as e:
     return P(f"Error processing form: {str(e)}", style=pip.get_style("error"))
 
@@ -140,14 +140,14 @@ if len(text_input) > 1000:  # Example length limit
 
 # CUSTOMIZE_DATA_PROCESSING: Process the data with error handling
 try:
-    processed_value = text_input  # Any transformations (e.g., title case, formatting)
+processed_value = text_input  # Any transformations (e.g., title case, formatting)
 except Exception as e:
     return P(f"Error processing input: {str(e)}", style=pip.get_style("error"), role="alert")
 
 # CUSTOMIZE_STATE_STORAGE: Save to state with error handling
 try:
-    await pip.update_step_state(pipeline_id, step_id, processed_value, steps)
-    await self.message_queue.add(pip, f"{step.show} complete: {processed_value}", verbatim=True)
+await pip.update_step_state(pipeline_id, step_id, processed_value, steps)
+await self.message_queue.add(pip, f"{step.show} complete: {processed_value}", verbatim=True)
 except Exception as e:
     return P(f"Error saving state: {str(e)}", style=pip.get_style("error"), role="alert")
 
