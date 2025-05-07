@@ -46,11 +46,16 @@ class BlankWorkflow:
         steps = [
             Step(
                 id='step_01',
+                done='url',  # Change from placeholder to actual data field
+                show='Enter URL',
+                refill=True,  # Allow URL reuse
+            ),
+            Step(
+                id='step_02',
                 done='placeholder',
-                show='Step 1 Placeholder',
+                show='Confirm URL',
                 refill=False,
             ),
-            # Add more steps as needed
         ]
         
         # Register standard workflow routes
@@ -255,20 +260,7 @@ class BlankWorkflow:
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        """
+        """Handles GET request for URL input step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -277,54 +269,52 @@ class BlankWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        url_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+        if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")  # Combined headline with completion status
+                    H3(f"🔒 {step.show}: {url_value}")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
+        if url_value and state.get("_revert_target") != step_id:
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {url_value}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # CUSTOMIZE_FORM: Replace with your widget's input form
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            await self.message_queue.add(pip, "Enter the URL you want to open:", verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
+                        Input(
+                            type="url",
+                            name="url",
+                            placeholder="https://example.com",
+                            required=True,
+                            value=url_value if step.refill else "",
+                            cls="contrast"
+                        ),
                         Button("Next ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id),
                 id=step_id
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
-        
-        Chain Reaction Pattern:
-        When a step completes, it MUST explicitly trigger the next step by including
-        a div for the next step with hx-trigger="load". While this may seem redundant,
-        it is more reliable than depending on HTMX event bubbling.
-        """
+        """Process the URL submission."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -332,12 +322,104 @@ class BlankWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # Process and save data...
+        # Get and validate URL
+        form = await request.form()
+        url = form.get("url", "").strip()
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+        
+        # Store URL in state
+        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await self.message_queue.add(pip, f"URL set to: {url}", verbatim=True)
+        
+        # Return with chain reaction to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {url}", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    async def step_02(self, request):
+        """Handles GET request for URL confirmation step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Get URL from previous step
+        prev_step = steps[step_index - 1]
+        prev_data = pip.get_step_data(pipeline_id, prev_step.id, {})
+        url = prev_data.get(prev_step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}: Completed"),
+                    P(f"URL confirmed: {url}")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            await self.message_queue.add(pip, f"Please confirm you want to open: {url}", verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P(f"URL to open: {url}", style="font-family: monospace;"),
+                    Form(
+                        Button("Open URL ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_02_submit(self, request):
+        """Process the URL confirmation."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # Get URL from previous step
+        prev_step = steps[step_index - 1]
+        prev_data = pip.get_step_data(pipeline_id, prev_step.id, {})
+        url = prev_data.get(prev_step.done, "")
+        
+        # Open URL in default browser
+        import webbrowser
+        webbrowser.open(url)
+        
+        # Mark step as complete
         placeholder_value = "completed"
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
         
-        # CRITICAL: Return the completed view WITH explicit next step trigger
+        # Return with chain reaction to next step
         return Div(
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),

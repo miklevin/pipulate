@@ -1,0 +1,93 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Endpoint Routing Pattern
+
+## Overview
+Pipulate maintains a sophisticated dual-routing system where the filename controls the landing page URL, but the APP_NAME controls all workflow-specific endpoints. This creates a clean separation between public entry points and internal workflow state.
+
+## URL Pattern Examples
+```
+# Landing Page (controlled by filename: 035_url_opener.py)
+GET /url_opener              # Entry point, shows key input form
+
+# Workflow Steps (controlled by APP_NAME: "open_url")
+POST /open_url/init         # Initialize workflow state
+GET  /open_url/step_01     # Load first step
+POST /open_url/step_01_submit  # Process step submission
+GET  /open_url/finalize    # Show finalization UI
+POST /open_url/finalize    # Lock workflow
+POST /open_url/unfinalize  # Unlock workflow
+POST /open_url/revert      # Revert to previous step
+```
+
+## Key Routing Rules
+1. Landing page route matches filename (minus number prefix)
+2. All workflow endpoints use APP_NAME
+3. WebSocket connections follow APP_NAME routing
+
+## Typical Request Flow
+```
+1. User visits:     GET  /url_opener
+2. Enters key:      POST /open_url/init
+3. Auto-loads:      GET  /open_url/step_01
+4. User submits:    POST /open_url/step_01_submit
+5. Auto-loads:      GET  /open_url/finalize
+```
+
+## State Management
+- Landing page is stateless
+- All state operations happen under APP_NAME routes
+- Database keys use APP_NAME for consistency
+- WebSocket messages use APP_NAME channels
+
+## Safe Renaming Examples
+```python
+# Original
+Filename: 035_url_opener.py
+Landing: /url_opener/*
+APP_NAME="open_url"
+Workflow: /open_url/*
+
+# After renaming file
+Filename: 020_browser_tool.py
+Landing: /browser_tool/*     # Landing page moves
+APP_NAME="open_url"         # Stays same!
+Workflow: /open_url/*       # All workflow URLs unchanged
+```
+
+## Critical Rules
+1. Never change APP_NAME after deployment
+2. Landing page URL can safely change
+3. All workflow endpoints must use APP_NAME
+4. Database keys use APP_NAME for stability
+
+## Common Patterns
+
+### Landing Page Pattern
+```python
+@rt('/')
+def get():
+    """Landing page always uses filename-based route"""
+    return landing_page_ui()
+```
+
+### Workflow Step Pattern
+```python
+@rt(f'/{app_name}/step_01')  # Uses APP_NAME
+async def step_01(self, request):
+    """All workflow steps use APP_NAME routes"""
+    return step_ui()
+```
+
+## Error Prevention
+- Check logs for 404s indicating route mismatches
+- Verify all workflow endpoints use APP_NAME
+- Confirm database keys use APP_NAME
+- Test after renaming files
+
+## Reference Examples
+See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for route registration patterns.
+See [510_splice_workflow.py](mdc:pipulate/plugins/510_splice_workflow.py) for workflow endpoint examples.

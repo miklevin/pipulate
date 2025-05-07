@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Blog Post Header Pattern Guide
+
+## Front Matter Structure
+```yaml
+---
+title: "Main Title: With Optional Subtitle"
+description: "A compelling description that expands on the title"
+date: YYYY-MM-DD
+author: Author Name
+group: blog
+---
+```
+
+## Title Hierarchy
+1. **Front Matter Title**: Used for SEO and navigation
+2. **Content H1**: Should NOT repeat the front matter title
+3. **Subsequent Headers**: Start at H2 and follow logical nesting
+
+## Content Structure Rules
+- No H1 tags in the content (they compete with the front matter title)
+- Start content with an engaging opening paragraph
+- Use H2 for main sections
+- Use H3+ for subsections as needed
+- Maintain proper header hierarchy (no skipping levels)
+
+## Examples
+
+### Good Structure
+```markdown
+---
+title: "The Local-First Revolution: How Pipulate is Redefining Development"
+description: "Discover how Pipulate's approach changes software development"
+date: 2024-05-07
+author: Mike Levin
+group: blog
+---
+
+An engaging opening paragraph that introduces the topic...
+
+## The Cloud Paradox
+
+Content about the cloud paradox...
+
+## The Pendulum Swings Back
+
+More content...
+
+### Specific Example
+
+Even more detailed content...
+```
+
+### Bad Structure (Don't Do This)
+```markdown
+---
+title: "The Local-First Revolution"
+---
+
+# The Local-First Revolution
+
+## Introduction
+
+Content...
+```
+
+## Best Practices
+1. Front matter title should be descriptive and SEO-friendly
+2. Description should expand on title without repeating it
+3. Opening paragraph should hook the reader
+4. Use consistent header capitalization
+5. Keep header hierarchy logical and clear
+6. Avoid duplicate titles/headers
+7. Use proper Markdown formatting
+
+## Common Patterns
+- Use colons in titles to separate main concept from explanation
+- Start with "The" for foundational articles
+- Use "How to" for tutorials
+- Use present progressive (-ing) for process articles
+- Keep headers concise but descriptive
