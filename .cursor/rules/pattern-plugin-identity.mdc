@@ -1,0 +1,102 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Plugin Identity Pattern
+
+## Overview
+Pipulate plugins maintain a strict separation between public identity (filename) and internal identity (APP_NAME) to enable flexible reorganization without breaking data relationships.
+
+## Core Pattern
+```python
+# Filename: 035_url_opener.py
+class MyWorkflow:
+    APP_NAME = "open_url"          # Internal identity - MUST differ from filename
+    DISPLAY_NAME = "URL Opener"    # User-friendly name
+```
+
+## Identity Components
+
+### Filename Identity (Public)
+- Controls menu position via numeric prefix (e.g., `035_`)
+- Defines public endpoint URLs
+- Safe to change for reorganization
+- Example progression: `xx_url_opener.py` → `035_url_opener.py` → `020_url_opener.py`
+
+### APP_NAME Identity (Internal)
+- Must differ from filename stem
+- Maintains database relationships
+- Preserves workflow pipeline associations
+- Should remain constant after initial deployment
+- Used in database keys and internal routing
+
+## Development States
+
+### 1. Development State
+```python
+# Filename: xx_my_plugin.py
+APP_NAME = "my_internal_name"    # Set permanent internal identity
+```
+- `xx_` prefix prevents auto-loading
+- Safe to experiment with configuration
+
+### 2. Deployment State
+```python
+# Filename: 035_my_plugin.py
+APP_NAME = "my_internal_name"    # Remains unchanged
+```
+- Number prefix sets menu position
+- Filename creates public endpoints
+
+### 3. Reorganization State
+```python
+# Filename: 020_my_plugin.py     # Only filename changes
+APP_NAME = "my_internal_name"    # Stays constant
+```
+- Can safely rename for menu reordering
+- Internal relationships preserved
+
+## Critical Rules
+1. Never match filename stem with APP_NAME
+2. Never change APP_NAME after deployment
+3. Use `xx_` prefix during initial development
+4. Choose menu position number based on desired grouping
+
+## Common Patterns
+
+### Menu Organization
+```
+010_tasks.py           # Core functionality
+020_hello_workflow.py  # Basic examples
+030_connect_*.py      # Connection plugins
+500_blank_*.py        # Templates
+520_widget_*.py       # Widget examples
+```
+
+### Safe Rename Examples
+```python
+# Original
+035_url_opener.py  # Public: /url_opener/*
+APP_NAME="open_url"  # Internal: db keys, etc.
+
+# After reorganization
+020_url_tool.py    # Public: /url_tool/*
+APP_NAME="open_url"  # Internal: unchanged!
+```
+
+### Development Workflow
+1. Copy template with `xx_` prefix
+2. Set unique APP_NAME
+3. Test configuration
+4. Choose final filename/position
+5. Remove `xx_` prefix to deploy
+
+## Error Prevention
+- Navigation disappears if APP_NAME matches filename
+- Database corruption if APP_NAME changes after deployment
+- Plugin conflicts if APP_NAME duplicated
+
+## Reference Examples
+See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for template pattern.
+See [510_splice_workflow.py](mdc:pipulate/plugins/510_splice_workflow.py) for implementation examples.
