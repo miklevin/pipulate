@@ -1745,12 +1745,17 @@ class ParameterBusterWorkflow:
                         
                         # Find breakpoints for interesting parameter counts
                         breakpoints = []
-                        ranges = [(5, 15), (15, 30), (30, 50), (50, 100)]
+                        ranges = [(1, 5), (5, 15), (15, 30), (30, 50), (50, 100)]  # Added (1, 5) range
                         for min_count, max_count in ranges:
                             for freq in all_frequencies:
                                 if param_counts[freq] >= min_count and param_counts[freq] <= max_count:
                                     breakpoints.append((freq, param_counts[freq]))
                                     break
+                        
+                        # Add the highest frequency parameter if it's not already included
+                        max_freq = all_frequencies[0] if all_frequencies else 0  # First one since sorted in descending order
+                        if max_freq > 0 and (not breakpoints or max_freq > breakpoints[0][0]):
+                            breakpoints.insert(0, (max_freq, param_counts[max_freq]))
                         
                         # Modify the breakpoints HTML generation code
                         if breakpoints:
@@ -4262,13 +4267,18 @@ removeWastefulParams();
                                 param_counts[freq] = count
                             
                             # Find breakpoints where param count changes from <5 to ≥5, etc.
-                            ranges = [(5, 15), (15, 30), (30, 50), (50, 100)]
+                            ranges = [(1, 5), (5, 15), (15, 30), (30, 50), (50, 100)]  # Added (1, 5) range
                             for min_count, max_count in ranges:
-                                for i, freq in enumerate(all_frequencies):
+                                for freq in all_frequencies:
                                     if param_counts[freq] >= min_count and param_counts[freq] <= max_count:
                                         # Found a frequency in our desired range
                                         breakpoint_frequencies.append((freq, param_counts[freq]))
                                         break
+                        
+                        # Add the highest frequency parameter if it's not already included
+                        max_freq = all_frequencies[0] if all_frequencies else 0  # First one since sorted in descending order
+                        if max_freq > 0 and (not breakpoint_frequencies or max_freq > breakpoint_frequencies[0][0]):
+                            breakpoint_frequencies.insert(0, (max_freq, param_counts[max_freq]))
                         
                         # Apply our filtering criteria
                         for param, count in combined_counter.items():
