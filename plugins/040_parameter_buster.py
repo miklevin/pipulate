@@ -1775,7 +1775,7 @@ class ParameterBusterWorkflow:
                                 # Create clickable link with hardcoded path
                                 breakpoints_html += f"""
                                     <tr>
-                                        <td style="color: #bbb; padding-right: 10px;">Show {count} parameters:</td>
+                                        <td style="color: #bbb; padding-right: 10px;">Show {count} parameter{'' if count == 1 else 's'}:</td>
                                         <td style="color: #ff8c00; font-weight: bold; text-align: right;">
                                             <a href="javascript:void(0)" 
                                                onclick="
@@ -1801,7 +1801,7 @@ class ParameterBusterWorkflow:
                                                      }});
                                                  
                                                  return false;" 
-                                               style="color: #ff8c00; text-decoration: underline; cursor: pointer;">{freq:,}</a>
+                                               style="color: #ff8c00; text-decoration: underline; cursor: pointer;">{'~' if freq > 100 else ''}{freq:,}</a>
                                         </td>
                                     </tr>
                                 """
