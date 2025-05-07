@@ -2425,7 +2425,7 @@ removeWastefulParams();
             
             if file_exists:
                 # File already exists, skip the export
-                await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✓ Using cached GSC data ({file_info['size']})", verbatim=True)
                 
                 # Update check result with existing file info
                 check_result.update({
@@ -2438,6 +2438,18 @@ removeWastefulParams();
                         "cached": True
                     }
                 })
+                
+                # Return completed view with cached message
+                return Div(
+                    pip.revert_control(
+                        step_id=step_id, 
+                        app_name=app_name, 
+                        message=f"{step.show}: Project {status_text} Search Console data (already downloaded, using cached)",
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
             else:
                 # Need to do the export and download
                 await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
@@ -2980,6 +2992,18 @@ removeWastefulParams();
                         "cached": True
                     }
                 })
+                
+                # Return the completed view
+                return Div(
+                    pip.revert_control(
+                        step_id=step_id, 
+                        app_name=app_name, 
+                        message=f"{step.show}: {analysis_slug} (already downloaded, using cached)",
+                        steps=steps
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
             else:
                 # Need to perform the export and download
                 await self.message_queue.add(pip, "🔄 Initiating crawl data export...", verbatim=True)
@@ -3250,6 +3274,18 @@ removeWastefulParams();
                             "cached": True
                         }
                     })
+                    
+                    # Return result display with cached message
+                    return Div(
+                        pip.revert_control(
+                            step_id=step_id, 
+                            app_name=app_name, 
+                            message=f"{step.show}: Project {status_text} web logs (already downloaded, using cached)",
+                            steps=steps
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
                 else:
                     # Need to export and download web logs
                     await self.message_queue.add(pip, "🔄 Initiating web logs export...", verbatim=True)
