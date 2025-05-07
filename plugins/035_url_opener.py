@@ -314,6 +314,9 @@ class BlankWorkflow:
         else:
             await self.message_queue.add(pip, "Enter the URL you want to open:", verbatim=True)
             
+            # Use existing value if available, otherwise use default
+            display_value = url_value if step.refill and url_value else "https://example.com/"
+            
             return Div(
                 Card(
                     H3(f"{step.show}"),
@@ -321,9 +324,9 @@ class BlankWorkflow:
                         Input(
                             type="url",
                             name="url",
-                            placeholder="https://example.com",
+                            placeholder="https://example.com/",
                             required=True,
-                            value=url_value if step.refill else "",
+                            value=display_value,
                             cls="contrast"
                         ),
                         Button("Open URL ▸", type="submit", cls="primary"),
