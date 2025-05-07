@@ -1,0 +1,88 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Pipulate Philosophy Guide
+
+## Core Principles
+
+### Local-First Desktop Application
+- Pipulate is a desktop application, NOT a client-server system
+- Similar to Electron apps like Slack or Discord
+- No multi-user concerns or distributed system complexity
+- Full access to local system resources
+- Data stays on your machine
+
+### WET Over DRY Philosophy
+- Workflows are intentionally Write Everything Twice (WET)
+- Each workflow is self-contained and explicit
+- No complex abstractions or inheritance hierarchies
+- Similar to Jupyter notebook cells
+- Manual, artistic conversion process from notebooks
+
+### Simplicity and Transparency
+- No complex enterprise patterns
+- Server-side state management
+- Observable system behavior
+- Clear and explicit workflows
+- Minimal JavaScript, maximum Python
+
+### Error Handling Approach
+- No complex error recovery systems
+- Each workflow handles its own errors
+- Errors viewed as opportunities for better input
+- Simple retry mechanisms (re-enter key)
+- Focus on process insight over recovery
+
+### Resource Usage
+- Full access to local machine capabilities
+- Use filesystem for large data storage
+- SQLite for structured data
+- JSON state blobs for workflow progress
+- Local LLM integration via Ollama
+
+## Anti-Patterns to Avoid
+
+### Enterprise Over-Engineering
+- Multi-user authentication systems
+- Complex security layers
+- Distributed system patterns
+- Heavy client-side state management
+- Complex error recovery mechanisms
+
+### Framework Complexity
+- Heavy JavaScript frameworks
+- Complex ORMs
+- Message queues
+- Build systems
+- Template engines
+
+## Development Philosophy
+
+### Code Evolution
+- Pragmatic cycling of workflows
+- Natural selection of useful patterns
+- AI-assisted development
+- Focus on utility over perfection
+- Learn from actual usage
+
+### Testing Approach
+- Focus on workflow functionality
+- Playwright for automation
+- Meta-workflows for testing
+- Simple, pragmatic validation
+- Observable behavior over unit tests
+
+### Security Considerations
+- Local system security model
+- Simple API key storage
+- Transparent configuration
+- Appropriate for desktop use
+- No enterprise security theater
+
+## Related Rules
+- [Workflow Implementation](mdc:workflow-implementation.mdc)
+- [WET Workflows](mdc:wet-workflows.mdc)
+- [Local LLM Integration](mdc:local-llm-integration.mdc)
+- [Architecture Guide](mdc:architecture-guide.mdc)
