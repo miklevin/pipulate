@@ -1,0 +1,134 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Widget Mobile Responsiveness Requirements
+
+## Core Mobile Patterns
+
+### Touch Targets
+All interactive elements MUST have minimum touch target sizes:
+```python
+# Buttons and clickable elements
+Button(
+    "Submit",
+    type="submit",
+    cls="primary",
+    style="min-height: 44px; min-width: 44px;"  # Minimum touch target
+)
+
+# Form inputs
+Input(
+    type="text",
+    style="min-height: 44px; padding: 8px;"  # Comfortable touch target
+)
+
+# Links and interactive elements
+A(
+    "Click here",
+    style="min-height: 44px; min-width: 44px; display: inline-block;"
+)
+```
+
+### Layout Considerations
+- Use responsive containers
+- Handle keyboard appearance
+- Consider viewport constraints
+- Support different orientations
+- Use flexible layouts
+
+### Loading States
+```python
+# Loading indicator
+Div(
+    "Loading...",
+    cls="loading-indicator",
+    style="display: none;",
+    _="on htmx:beforeRequest show me end on htmx:afterRequest hide me end"
+)
+
+# Button loading state
+Button(
+    "Submit",
+    type="submit",
+    cls="primary",
+    _="on htmx:beforeRequest add .loading to me end on htmx:afterRequest remove .loading from me end"
+)
+```
+
+## Implementation Examples
+
+### Responsive Form
+```python
+Div(
+    Card(
+        H3(f"{step.show}", id=f"{step_id}-title"),
+        Form(
+            Input(
+                type="text",
+                name=step.done,
+                style="min-height: 44px; padding: 8px; width: 100%;",
+                placeholder="Enter text"
+            ),
+            Button(
+                "Submit",
+                type="submit",
+                cls="primary",
+                style="min-height: 44px; min-width: 44px; margin-top: 1vh;"
+            ),
+            style="display: flex; flex-direction: column; gap: 1vh;"
+        )
+    ),
+    style="max-width: 100%; overflow-x: auto;"
+)
+```
+
+### Responsive Table
+```python
+Div(
+    Table(
+        # Table content
+    ),
+    style="max-width: 100%; overflow-x: auto;"
+)
+```
+
+### Responsive Grid
+```python
+Div(
+    # Grid content
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1vh;"
+)
+```
+
+## Common Pitfalls
+1. Small touch targets
+2. Fixed widths
+3. Horizontal scrolling
+4. Poor keyboard handling
+5. Inadequate spacing
+6. Unresponsive layouts
+7. Missing loading states
+8. Poor error display
+
+## Testing Requirements
+- Test on various devices
+- Check different orientations
+- Verify touch interactions
+- Test keyboard handling
+- Validate loading states
+- Check error displays
+- Test with different screen sizes
+- Verify responsive behavior
+
+## Device Considerations
+- Smartphones (320px - 480px)
+- Tablets (481px - 768px)
+- Small laptops (769px - 1024px)
+- Large screens (1025px+)
+
+## Related Rules
+- [Widget Implementation](mdc:widget-implementation.mdc)
+- [Accessibility](mdc:widget-accessibility.mdc)
+- [Error Handling](mdc:error-handling.mdc)

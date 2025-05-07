@@ -9,6 +9,9 @@ This recipe transforms a placeholder step into a widget that initiates a CSV dow
 - **Chain Breaking**: Temporarily break the automatic chain reaction during polling
 - **Terminal Response**: Provide a download link as a terminal response
 - **Chain Reaction Preservation**: CRITICAL - Must maintain chain reaction pattern with proper `hx_trigger="load"` attributes
+- **Mobile Responsiveness**: Adapts to different screen sizes and touch interactions
+- **Accessibility**: Supports keyboard navigation and screen readers
+- **Error Recovery**: Handles various failure scenarios gracefully
 
 ## Implementation Phases
 
@@ -39,14 +42,19 @@ async def initiate_csv_download(self, parameters):
         'progress': 0,
         'status': 'RUNNING',
         'parameters': parameters,
-        'filepath': None
+        'filepath': None,
+        'error': None  # Track any errors
     }
     
-    # Simulate starting an async task
-    # In real implementation, you would use a proper async process
-    asyncio.create_task(self._simulate_download_progress(job_id))
-    
-    return job_id
+    try:
+        # Simulate starting an async task
+        # In real implementation, you would use a proper async process
+        asyncio.create_task(self._simulate_download_progress(job_id))
+        return job_id
+    except Exception as e:
+        self.download_jobs[job_id]['status'] = 'ERROR'
+        self.download_jobs[job_id]['error'] = str(e)
+        raise
 
 async def _simulate_download_progress(self, job_id):
     """Simulate a download process progressing from 0% to 100%.
@@ -58,28 +66,33 @@ async def _simulate_download_progress(self, job_id):
     import os
     import random
     
-    # Simulate download steps
-    for progress in range(0, 101, 10):
-        self.download_jobs[job_id]['progress'] = progress
+    try:
+        # Simulate download steps
+        for progress in range(0, 101, 10):
+            self.download_jobs[job_id]['progress'] = progress
+            
+            # Random sleep to simulate work
+            await asyncio.sleep(random.uniform(1, 2))
         
-        # Random sleep to simulate work
-        await asyncio.sleep(random.uniform(1, 2))
-    
-    # Mark as complete when done
-    self.download_jobs[job_id]['status'] = 'COMPLETED'
-    
-    # Create a dummy CSV file
-    output_dir = os.path.join(os.getcwd(), 'downloads')
-    os.makedirs(output_dir, exist_ok=True)
-    
-    filepath = os.path.join(output_dir, f"{job_id}.csv")
-    with open(filepath, 'w') as f:
-        f.write("column1,column2,column3\n")
-        f.write("value1,value2,value3\n")
-        f.write("value4,value5,value6\n")
-    
-    # Store the filepath
-    self.download_jobs[job_id]['filepath'] = filepath
+        # Mark as complete when done
+        self.download_jobs[job_id]['status'] = 'COMPLETED'
+        
+        # Create a dummy CSV file
+        output_dir = os.path.join(os.getcwd(), 'downloads')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        filepath = os.path.join(output_dir, f"{job_id}.csv")
+        with open(filepath, 'w') as f:
+            f.write("column1,column2,column3\n")
+            f.write("value1,value2,value3\n")
+            f.write("value4,value5,value6\n")
+        
+        # Store the filepath
+        self.download_jobs[job_id]['filepath'] = filepath
+    except Exception as e:
+        self.download_jobs[job_id]['status'] = 'ERROR'
+        self.download_jobs[job_id]['error'] = str(e)
+        raise
 
 async def check_download_status(self, job_id):
     """Check the status of an ongoing download job."""
@@ -90,7 +103,8 @@ async def check_download_status(self, job_id):
     return {
         'status': job['status'],
         'progress': job['progress'],
-        'filepath': job['filepath']
+        'filepath': job['filepath'],
+        'error': job.get('error')
     }
 ```
 
@@ -113,32 +127,50 @@ async def handle_download_status(self, request):
     """Handle requests to check download status."""
     from starlette.responses import JSONResponse
     
-    # Get job_id from query parameters
-    job_id = request.query_params.get('job_id')
-    if not job_id:
-        return JSONResponse({'status': 'ERROR', 'message': 'No job ID provided'})
-    
-    # Check the job status
-    status = await self.check_download_status(job_id)
-    
-    # Generate appropriate response
-    if status['status'] == 'COMPLETED':
-        # If complete, return JSON with filepath
+    try:
+        # Get job_id from query parameters
+        job_id = request.query_params.get('job_id')
+        if not job_id:
+            return JSONResponse({
+                'status': 'ERROR', 
+                'message': 'No job ID provided'
+            }, status_code=400)
+        
+        # Check the job status
+        status = await self.check_download_status(job_id)
+        
+        # Generate appropriate response
+        if status['status'] == 'COMPLETED':
+            # If complete, return JSON with filepath
+            return JSONResponse({
+                'status': 'COMPLETED', 
+                'filepath': status['filepath'],
+                'download_url': f"/{self.app_name}/download_file?file={os.path.basename(status['filepath'])}"
+            })
+        elif status['status'] == 'RUNNING':
+            # If still running, return progress
+            return JSONResponse({
+                'status': 'RUNNING',
+                'progress': status['progress'],
+                'message': f"Download {status['progress']}% complete"
+            })
+        elif status['status'] == 'ERROR':
+            # Handle error state
+            return JSONResponse({
+                'status': 'ERROR',
+                'message': status.get('error', 'Unknown error occurred')
+            }, status_code=500)
+        else:
+            # Unknown status
+            return JSONResponse({
+                'status': 'UNKNOWN',
+                'message': 'Unknown job status'
+            }, status_code=400)
+    except Exception as e:
         return JSONResponse({
-            'status': 'COMPLETED', 
-            'filepath': status['filepath'],
-            'download_url': f"/{self.app_name}/download_file?file={os.path.basename(status['filepath'])}"
-        })
-    elif status['status'] == 'RUNNING':
-        # If still running, return progress
-        return JSONResponse({
-            'status': 'RUNNING',
-            'progress': status['progress'],
-            'message': f"Download {status['progress']}% complete"
-        })
-    else:
-        # Error or unknown status
-        return JSONResponse(status)
+            'status': 'ERROR',
+            'message': f"Error checking status: {str(e)}"
+        }, status_code=500)
 ```
 
 ### Phase 4: Add Download Route
@@ -155,27 +187,42 @@ app.route(f"/{app_name}/download_file")(self.serve_download_file)
 ```python
 async def serve_download_file(self, request):
     """Serve a downloaded file."""
-    from starlette.responses import FileResponse
+    from starlette.responses import FileResponse, HTMLResponse
     import os
     
-    # Get filename from query parameter
-    filename = request.query_params.get('file')
-    if not filename:
-        return HTMLResponse("Error: No file specified")
-    
-    # Construct full path
-    filepath = os.path.join(os.getcwd(), 'downloads', filename)
-    
-    # Check if file exists
-    if not os.path.exists(filepath):
-        return HTMLResponse("Error: File not found")
-    
-    # Serve the file as a download
-    return FileResponse(
-        filepath,
-        media_type='text/csv',
-        filename=filename
-    )
+    try:
+        # Get filename from query parameter
+        filename = request.query_params.get('file')
+        if not filename:
+            return HTMLResponse(
+                "Error: No file specified", 
+                status_code=400
+            )
+        
+        # Construct full path
+        filepath = os.path.join(os.getcwd(), 'downloads', filename)
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            return HTMLResponse(
+                "Error: File not found", 
+                status_code=404
+            )
+        
+        # Serve the file as a download
+        return FileResponse(
+            filepath,
+            media_type='text/csv',
+            filename=filename,
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        return HTMLResponse(
+            f"Error serving file: {str(e)}", 
+            status_code=500
+        )
 ```
 
 ### Phase 5: Update Step Definition
@@ -205,7 +252,7 @@ Replace the key sections:
 # CUSTOMIZE_VALUE_ACCESS
 job_id = step_data.get(step.done, "")  # Get saved job ID
 
-# CUSTOMIZE_DISPLAY: Enhanced finalized state display
+# CUSTOMIZE_DISPLAY: Enhanced finalized state display with accessibility
 if "finalized" in finalize_data and job_id:
     # Check job status
     status = await self.check_download_status(job_id)
@@ -217,26 +264,33 @@ if "finalized" in finalize_data and job_id:
             "Download CSV File",
             href=f"/{app_name}/download_file?file={filename}",
             target="_blank",
-            cls="button primary"
+            cls="button primary",
+            style="min-height: 44px; min-width: 44px;",  # Mobile touch target
+            aria-label="Download CSV file",
+            role="button"
         )
         return Div(
             Card(
-                H3(f"🔒 {step.show}"),
-                P("Download is ready:"),
+                H3(f"🔒 {step.show}", id=f"{step_id}-title"),
+                P("Download is ready:", id=f"{step_id}-status"),
                 download_link
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
+            id=step_id,
+            role="region",
+            aria-labelledby=f"{step_id}-title"
         )
     else:
         # Show status for unfinished job
         return Div(
             Card(
-                H3(f"🔒 {step.show}"),
-                P(f"Download status: {status.get('status', 'Unknown')}")
+                H3(f"🔒 {step.show}", id=f"{step_id}-title"),
+                P(f"Download status: {status.get('status', 'Unknown')}", id=f"{step_id}-status")
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
+            id=step_id,
+            role="region",
+            aria-labelledby=f"{step_id}-title"
         )
 
 # CUSTOMIZE_COMPLETE: Enhanced completion display with download status
@@ -248,110 +302,56 @@ if job_id and state.get("_revert_target") != step_id:
         # Show download link for completed job
         filename = os.path.basename(status['filepath'])
         download_widget = Div(
-            P("Your CSV file is ready for download:"),
             A(
                 "Download CSV File",
                 href=f"/{app_name}/download_file?file={filename}",
                 target="_blank",
-                cls="button primary"
+                cls="button primary",
+                style="min-height: 44px; min-width: 44px;",  # Mobile touch target
+                aria-label="Download CSV file",
+                role="button"
             )
         )
-        
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Download ready",
-            widget=download_widget,
-            steps=steps
-        )
-        
-        return Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-    
-    elif status['status'] == 'RUNNING':
-        # Show progress indicator for running job
-        progress_bar = Div(
-            P(f"Downloading: {status['progress']}% complete"),
-            Div(
-                Div(
-                    style=f"width: {status['progress']}%; height: 20px; background-color: #4CAF50;"
-                ),
-                style="width: 100%; background-color: #f1f1f1; border-radius: 5px;"
-            ),
-            # Key part: This creates a polling update
-            cls="polling-status no-chain-reaction",
-            hx_get=f"/{app_name}/check_download_status?job_id={job_id}",
-            hx_trigger="load, every 2s",
-            hx_target=f"#{step_id}-status"
-        )
-        
-        return Div(
-            Card(
-                H3(f"{step.show}"),
-                progress_bar
-            ),
-            Div(id=f"{step_id}-status"),  # Status update target
-            id=step_id,
-            cls="no-chain-reaction"  # Prevents chain reaction during polling
-        )
-    
     else:
-        # Show error or unknown status
-        return Div(
-            Card(
-                H3(f"{step.show}"),
-                P(f"Download status: {status.get('status', 'Unknown')}"),
-                P(f"Error: {status.get('message', 'Unknown error')}", style="color: red;")
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        # Show status for unfinished job
+        download_widget = P(f"Download status: {status.get('status', 'Unknown')}")
+    
+    return Div(
+        pip.revert_control(
+            step_id=step_id, 
+            app_name=app_name, 
+            message=f"{step.show}: {status.get('status', 'Unknown')}", 
+            steps=steps
+        ),
+        download_widget,
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id,
+        role="region",
+        aria-live="polite"
+    )
 
-# CUSTOMIZE_FORM: Create download initiation form
-await self.message_queue.add(pip, f"Initiate CSV download in {step.show}", verbatim=True)
-
+# CUSTOMIZE_FORM: Replace with download initiation form
 return Div(
     Card(
-        H3(f"{step.show}"),
-        P("Configure and start your CSV download:"),
+        H3(f"{step.show}", id=f"{step_id}-title"),
+        P("Click Start to begin the download:", id=f"{step_id}-instruction"),
         Form(
-            # Simple parameters for the download
-            Div(
-                Label("Rows:", fr=f"{step_id}-rows"),
-                Input(
-                    type="number",
-                    id=f"{step_id}-rows",
-                    name="rows",
-                    value="100",
-                    min="1",
-                    max="1000",
-                    required=True
-                ),
-                style="margin-bottom: 10px;"
+            Button(
+                "Start Download", 
+                type="submit", 
+                cls="primary",
+                style="min-height: 44px; min-width: 44px;",  # Mobile touch target
+                aria-label="Start CSV download"
             ),
-            Div(
-                Label("Format:", fr=f"{step_id}-format"),
-                Select(
-                    Option("CSV", value="csv", selected=True),
-                    Option("TSV", value="tsv"),
-                    id=f"{step_id}-format",
-                    name="format"
-                ),
-                style="margin-bottom: 20px;"
-            ),
-            Div(
-                Button("Start Download", type="submit", cls="primary"),
-                style="margin-top: 1vh; text-align: right;"
-            ),
-            hx_post=f"/{app_name}/{step_id}_submit",
-            hx_target=f"#{step_id}"
+            hx_post=f"/{app_name}/{step_id}_submit", 
+            hx_target=f"#{step_id}",
+            _="on htmx:beforeRequest add .loading to <button[type='submit']/> end on htmx:afterRequest remove .loading from <button[type='submit']/> end"
         )
     ),
-    Div(id=next_step_id),
-    id=step_id
+    Div(id=next_step_id),  # PRESERVE: Empty div for next step
+    id=step_id,
+    role="region",
+    aria-labelledby=f"{step_id}-title"
 )
 ```
 
@@ -359,76 +359,76 @@ return Div(
 Replace the key sections:
 
 ```python
-# CUSTOMIZE_FORM_PROCESSING: Get download parameters
-form = await request.form()
-rows = form.get("rows", "100")
-format_type = form.get("format", "csv")
-
-# CUSTOMIZE_VALIDATION: Validate parameters
+# CUSTOMIZE_FORM_PROCESSING: Process form data with error handling
 try:
-    rows = int(rows)
-    if rows < 1 or rows > 1000:
-        raise ValueError("Rows must be between 1 and 1000")
-except ValueError as e:
-    return P(f"Error: {str(e)}", style=pip.get_style("error"))
-
-# Validate format
-if format_type not in ["csv", "tsv"]:
-    return P("Error: Invalid format selected", style=pip.get_style("error"))
-
-# CUSTOMIZE_DATA_PROCESSING: Start the download job
-parameters = {
-    "rows": rows,
-    "format": format_type
-}
-job_id = await self.initiate_csv_download(parameters)
-
-# CUSTOMIZE_STATE_STORAGE: Store job ID in state
-await pip.update_step_state(pipeline_id, step_id, job_id, steps)
-await self.message_queue.add(pip, f"{step.show} started. Download job ID: {job_id}", verbatim=True)
-
-# Check initial status
-status = await self.check_download_status(job_id)
-
-# CUSTOMIZE_WIDGET_DISPLAY: Show progress indicator
-progress_bar = Div(
-    P(f"Downloading: {status['progress']}% complete"),
-    Div(
-        Div(
-            style=f"width: {status['progress']}%; height: 20px; background-color: #4CAF50;"
+    # Start the download process
+    job_id = await self.initiate_csv_download({})  # Add any parameters needed
+    
+    # Store the job ID in state
+    await pip.update_step_state(pipeline_id, step_id, job_id, steps)
+    await self.message_queue.add(pip, f"{step.show} started", verbatim=True)
+    
+    # Return polling UI
+    return Div(
+        Card(
+            H3(f"{step.show}", id=f"{step_id}-title"),
+            P("Download in progress...", id=f"{step_id}-status"),
+            Div(
+                "0%",
+                id=f"{step_id}-progress",
+                style="width: 100%; height: 20px; background: #eee; border-radius: 4px; overflow: hidden;"
+            ),
+            Div(
+                style="width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease;",
+                _=f"on load set my.style.width to '0%' end on htmx:afterRequest set my.style.width to event.detail.xhr.response.progress + '%' end"
+            )
         ),
-        style="width: 100%; background-color: #f1f1f1; border-radius: 5px;"
-    ),
-    # Key part: This creates a polling update
-    hx_get=f"/{app_name}/check_download_status?job_id={job_id}",
-    hx_trigger="load, every 2s",
-    hx_target=f"#{step_id}-status"
-)
-
-# Return with polling status instead of chain reaction
-from starlette.responses import HTMLResponse
-from fasthtml.xml import to_xml
-
-response_content = Div(
-    Card(
-        H3(f"{step.show}"),
-        progress_bar
-    ),
-    Div(id=f"{step_id}-status"),  # Status update target
-    id=step_id,
-    cls="no-chain-reaction"  # Prevents chain reaction during polling
-)
-
-return HTMLResponse(to_xml(response_content))
+        Div(
+            id=next_step_id,
+            hx_get=f"/{app_name}/check_download_status?job_id={job_id}",
+            hx_trigger="load, every 2s",
+            hx_swap="outerHTML"
+        ),
+        id=step_id,
+        role="region",
+        aria-live="polite"
+    )
+except Exception as e:
+    return P(f"Error starting download: {str(e)}", style=pip.get_style("error"), role="alert")
 ```
 
 ## Common Pitfalls
-- **Chain Reaction Breaking**: Use `cls="no-chain-reaction"` only during polling, then restore the chain
-- **HTMX Triggers**: Use `hx_trigger="load, every 2s"` for polling with a reasonable interval
-- **Async Handling**: Ensure download processes run in the background and don't block the server
-- **File Cleanup**: Implement file cleanup to remove old downloads eventually
-- **Error Handling**: Provide clear error messages and recovery options
+- Don't remove the chain reaction div with next_step_id
+- Don't forget to handle download errors
+- Use proper error status codes
+- Always clean up temporary files
+- Handle mobile touch targets properly
+- Include proper ARIA attributes
+- Handle keyboard navigation
+- Consider screen reader announcements
+
+## Mobile Responsiveness
+- Use appropriate touch target sizes (min 44px)
+- Ensure download buttons are easily tappable
+- Handle progress bar display on small screens
+- Consider download size limitations
+- Use responsive layout patterns
+
+## Accessibility Features
+- ARIA labels and descriptions
+- Keyboard navigation support
+- Screen reader compatibility
+- Progress announcements
+- Focus management
+- Color contrast compliance
+
+## Error Recovery
+- Handle network failures
+- Manage file system errors
+- Clean up incomplete downloads
+- Provide clear error messages
+- Allow retry mechanisms
 
 ## Related Widget Recipes
-- [Polling Status Widget](09_polling_status_widget.md)
-- [File Upload Widget](10_file_upload_widget.md) 
+- [File Upload Widget](path/to/file_upload_widget.md)
+- [Progress Bar Widget](path/to/progress_bar_widget.md)
