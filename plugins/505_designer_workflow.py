@@ -433,7 +433,8 @@ class DesignerWorkflow:
         <style>
             .param-table {
                 font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
-                border-collapse: collapse;
+                border-collapse: separate;
+                border-spacing: 0;
                 width: 100%;
                 color: white;
                 margin-top: 1rem;
@@ -445,24 +446,37 @@ class DesignerWorkflow:
                 caption-side: top;
                 text-align: center;
                 font-weight: bold;
+                font-style: italic;
                 color: white;
                 background: transparent !important;
                 padding: 10px 0;
                 font-size: 1.1em;
                 letter-spacing: 0.5px;
             }
-            .param-table tr.header td,
-            .param-table tr.header span {
+            .header-cell {
                 color: white !important;
-                background-color: #000 !important;
+                background: #000 !important;
                 font-weight: bold;
-                border-bottom: 3px solid white;
+                border-top: 4px solid white;
+                border-bottom: 4px solid white;
+                border-left: 4px solid white;
+                border-right: 4px solid white;
             }
-            .param-table tbody tr:not(.header):not(.param-table-label) td {
-                background-color: #000 !important;
+            .param-table tr.header td:last-child {
+                border-right: none !important;
+            }
+            .param-table tr:not(.header) td {
+                border-top: none;
+                border-bottom: none;
+                border-left: none;
+                border-right: 2px solid white;
+            }
+            .param-table tr:not(.header) td:last-child {
+                border-right: none !important;
             }
             .param-table td {
-                border: none;
+                background: #000;
+                color: inherit;
                 padding: 5px;
                 text-align: left;
             }
@@ -487,22 +501,23 @@ class DesignerWorkflow:
         """
         
         # Add header row
-        for header in headers:
+        for i, header in enumerate(headers):
             header_class = "param-name" if header == "name" else f"{header}-val"
-            table_html += f'<td style="border-right: solid white 1px"><span class="{header_class}">{header}</span></td>'
+            td_class = "header-cell"
+            table_html += f'<td class="{td_class}"><span class="{header_class}">{header}</span></td>'
         
         table_html += "</tr>"
         
         # Add data rows
         for row in data:
             table_html += "<tr>"
-            for header in headers:
+            for i, header in enumerate(headers):
                 cell_class = "param-name" if header == "name" else f"{header}-val"
                 value = row.get(header, "")
                 # Format numbers with commas
                 if isinstance(value, (int, float)):
                     value = f"{value:,}"
-                table_html += f'<td style="border-right: solid white 1px"><span class="{cell_class}">{value}</span></td>'
+                table_html += f'<td><span class="{cell_class}">{value}</span></td>'
             table_html += "</tr>"
         
         table_html += "</table>"
