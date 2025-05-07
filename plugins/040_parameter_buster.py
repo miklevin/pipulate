@@ -4280,8 +4280,26 @@ removeWastefulParams();
                     # Add note about parameter count being display-only
                     P(
                         "Note: The number of parameters shown below is controlled by the slider and only affects the visualization. " 
-                        "It does not impact the underlying analysis. You can revert Step 5 and ajdust it to up to 250.",
+                        "It does not impact the underlying analysis. You can revert Step 5 and adjust it to up to 250.",
                         style="font-size: 0.85em; color: #888; font-style: italic; margin-bottom: 15px;"
+                    ),
+                    
+                    # Add explanation about the visualizations' purpose
+                    Div(
+                        H4("Understanding the Data Visualizations", style="color: #ccc; margin-bottom: 10px;"),
+                        P(
+                            "The following two visualizations (bar chart and scoring matrix) are provided to help you understand "
+                            "the parameter distribution patterns across your data sources. While they offer valuable insights for SEO analysis "
+                            "and client discussions, they are supplementary tools only.",
+                            style="margin-bottom: 10px;"
+                        ),
+                        P(
+                            "For optimization purposes, you can focus directly on the \"Meaningful Min Frequency Values\" table below "
+                            "to select your breakpoint, then proceed to create your optimization. The visualizations are here to help "
+                            "you make informed decisions and explain your strategy.",
+                            style="margin-bottom: 15px;"
+                        ),
+                        style="background: #222; padding: 15px; border-radius: 5px; margin-bottom: 20px;"
                     ),
                     
                     Div(
