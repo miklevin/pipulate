@@ -170,8 +170,8 @@ class WidgetExamples:
             ),
             Step(
                 id='step_08',
-                done='new_placeholder',
-                show='New Placeholder Step',
+                done='url',
+                show='URL Opener Widget',
                 refill=True,
             ),
         ]
@@ -2126,13 +2126,13 @@ This step serves as a placeholder for future widget types."""
             logger.error(f"Error creating histogram visualization: {e}")
             return P(f"Error creating histogram: {str(e)}", style=pip.get_style("error"))
 
-    # --- Step 8: New Placeholder Step ---
+    # --- Step 8: URL Opener Widget ---
     async def step_08(self, request):
         """ 
-        Handles GET request for Step 8: New Placeholder Step.
+        Handles GET request for Step 8: URL Opener Widget.
         
-        This is a minimal placeholder step with just a Proceed button.
-        It maintains the same workflow pattern but without collecting user data.
+        This widget allows users to input a URL and open it in their default browser.
+        It demonstrates a practical use case for workflow steps.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_08"
@@ -2142,28 +2142,40 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        url_value = step_data.get(step.done, "")
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Show a simple confirmation in finalized state
+        if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("New placeholder step completed")
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
             
         # Check if step is complete and not reverting
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Show completion message
+        if url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"{step.show} Completed",
-                widget=P("New placeholder step completed"),
+                message=f"{step.show}: {url_value}",
+                widget=Div(
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
+                ),
                 steps=steps
             )
             return Div(
@@ -2171,17 +2183,29 @@ This step serves as a placeholder for future widget types."""
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
-            # Show just a Proceed button
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            # Show URL input form
+            display_value = url_value if step.refill and url_value else "https://example.com"
+            await self.message_queue.add(pip, "Enter the URL you want to open:", verbatim=True)
             
             return Div(
                 Card(
-                    H3(f"{pip.fmt(step_id)}: {step.show}"),
-                    P("This is a new placeholder step. No input is required."),
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P("Enter a URL to open in your default browser."),
                     Form(
                         Div(
-                            Button("Proceed ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
+                            Input(
+                                type="url",
+                                name="url",
+                                placeholder="https://example.com",
+                                required=True,
+                                value=display_value,
+                                cls="contrast"
+                            ),
+                            Div(
+                                Button("Open URL ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
                         ),
                         hx_post=f"/{app_name}/{step_id}_submit",
                         hx_target=f"#{step_id}"
@@ -2193,10 +2217,10 @@ This step serves as a placeholder for future widget types."""
 
     async def step_08_submit(self, request):
         """ 
-        Process the submission for Step 8 (New Placeholder).
+        Process the submission for Step 8 (URL Opener).
         
-        This is a simplified version that doesn't collect user input
-        but maintains the same workflow progression pattern.
+        Takes a URL input, validates it, opens it in the default browser,
+        and provides a button to reopen it later.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_08"
@@ -2205,25 +2229,45 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
 
-        # For placeholder, we use a fixed value instead of form data
-        placeholder_value = "completed"
-
-        # Save the placeholder value to state
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-
-        # Create a simple confirmation widget
-        placeholder_widget = P("New placeholder step completed")
+        # Get and validate URL
+        form = await request.form()
+        url = form.get("url", "").strip()
         
-        # Create content container with the widget
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+
+        # Save URL to state
+        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await self.message_queue.add(pip, f"URL set to: {url}", verbatim=True)
+        
+        # Open URL in default browser
+        import webbrowser
+        webbrowser.open(url)
+        
+        # Create widget with reopen button
+        url_widget = Div(
+            P(f"URL configured: ", B(url)),
+            Button(
+                "Open URL Again ▸",
+                type="button",
+                _onclick=f"window.open('{url}', '_blank')",
+                cls="secondary"
+            )
+        )
+        
+        # Create content container
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show} Completed",
-            widget=placeholder_widget,
+            message=f"{step.show}: {url}",
+            widget=url_widget,
             steps=steps
         )
         
-        # Create full response structure
+        # Create full response
         response_content = Div(
             content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -2231,9 +2275,8 @@ This step serves as a placeholder for future widget types."""
         )
         
         # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-
-        # Return the HTMLResponse with the widget container
+        await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
+        
         return HTMLResponse(to_xml(response_content))
 
     # Add the helper method to create a matplotlib histogram
