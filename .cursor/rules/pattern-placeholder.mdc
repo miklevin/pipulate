@@ -12,12 +12,12 @@ alwaysApply: false
 # placeholder-step-pattern
 
 ## Overview
-Placeholder steps are skeletal workflow steps that serve as preparation points for inserting fully-functional steps later. They maintain the standard workflow progression pattern while collecting minimal or no user data.
+Placeholder steps are skeletal workflow steps that serve as preparation points for inserting fully-functional steps later. Like a `cat` command in a Unix pipeline or an empty Jupyter notebook cell, they maintain flow while providing space for future implementation.
 
 ## When to Use Placeholder Steps
 - When planning a workflow's structure before implementing detailed functionality
-- When creating a step that will be replaced with more complex widgets later
-- When needing a "confirmation" or "review" step between functional steps
+- When creating a step that will be replaced with more complex widgets later (like a Jupyter cell TODO)
+- When needing a "confirmation" or "review" step between functional steps (like `tee` in Unix pipelines)
 - When creating a template for different widget types
 
 ## Implementation Pattern
@@ -181,3 +181,20 @@ Always include the appropriate chain reaction elements when implementing steps:
 
 ## Example
 See implementation in [plugins/020_hello_workflow.py](mdc:pipulate/plugins/020_hello_workflow.py)
+
+## Flow-Based Programming Context
+
+Placeholder steps serve similar roles across different paradigms:
+
+```bash
+# Unix pipeline with placeholder (cat)
+command1 | cat | command3  # cat maintains flow
+
+# Jupyter notebook with placeholder
+data = process1()           # Cell 1
+# TODO: Add processing here # Cell 2 (placeholder)
+result = process3(data)     # Cell 3
+
+# Pipulate with placeholder
+step_01 -> placeholder_step -> step_03
+```

@@ -5,7 +5,7 @@ alwaysApply: false
 ---
 # Chain Reaction Pattern
 
-The chain reaction pattern is the core mechanism enabling Pipulate's step-based workflow progression. 
+The chain reaction pattern is the core mechanism enabling Pipulate's step-based workflow progression. Like Unix pipes (`|`) or Jupyter notebook cells, it ensures data and control flow smoothly from one step to the next.
 
 ## The Critical Pattern - NEVER MODIFY
 
@@ -20,11 +20,28 @@ return Div(
 
 This pattern has three essential components that must be preserved:
 
-1. **Inner Div with `id=next_step_id`**: Container targeted for the next step
-2. **`hx_get`**: Attribute specifying the endpoint to fetch the next step
-3. **`hx_trigger="load"`**: Critical attribute that causes automatic progression
+1. **Inner Div with `id=next_step_id`**: Container targeted for the next step (like a pipe's output target)
+2. **`hx_get`**: Attribute specifying the endpoint to fetch the next step (like a command in a pipeline)
+3. **`hx_trigger="load"`**: Critical attribute that causes automatic progression (like the pipe operator `|`)
 
-Never remove `hx_trigger="load"` even if it seems redundant. Alternatives like event bubbling will not work reliably.
+Never remove `hx_trigger="load"` even if it seems redundant. Alternatives like event bubbling will not work reliably, just as removing a pipe operator breaks a Unix pipeline.
+
+## Flow-Based Programming Heritage
+
+Pipulate's chain reaction follows a rich tradition of flow-based programming:
+
+```bash
+# Unix pipeline: Data flows through transformations
+cat data.txt | grep "pattern" | sort
+
+# Jupyter notebook: Data flows through cells
+data = read_input()     # Cell 1
+filtered = process(data) # Cell 2
+display(filtered)       # Cell 3
+
+# Pipulate: Data flows through steps
+step_01 -> step_02 -> step_03
+```
 
 ## Step Flow Visualization
 
