@@ -176,8 +176,8 @@ class WidgetExamples:
             ),
             Step(
                 id='step_09',
-                done='placeholder',
-                show='New Placeholder Step',
+                done='rich_table',  # Changed from 'placeholder'
+                show='Rich Table Widget',  # Changed from 'New Placeholder Step'
                 refill=True,
             ),
         ]
@@ -216,8 +216,8 @@ class WidgetExamples:
                 "complete": f"New Placeholder Step complete. Continue to next step."
             },
             "step_09": {
-                "input": f"{pip.fmt('step_09')}: Please complete New Placeholder Step.",
-                "complete": f"New Placeholder Step complete. Continue to next step."
+                "input": f"{pip.fmt('step_09')}: Configure Rich Table Widget.",
+                "complete": f"Rich Table Widget complete. Continue to next step."
             },
             "step_07": {
                 "input": f"{pip.fmt('step_07')}: Enter counter data for Matplotlib Histogram.",
@@ -2374,9 +2374,14 @@ This step serves as a placeholder for future widget types."""
 
     async def step_09(self, request):
         """ 
-        Handles GET request for Step 9: New Placeholder Step.
+        Handles GET request for Step 9: Rich Table Widget.
         
-        This is a blank placeholder step that can be customized for new widget types.
+        This widget demonstrates a beautifully styled table with:
+        - Connected border lines
+        - Alternating row colors
+        - Bold headers with thicker borders
+        - Proper cell padding and alignment
+        - Color-coded columns
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_09"
@@ -2386,113 +2391,190 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
+        table_data = step_data.get(step.done, "")
+
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P(f"Placeholder content: {user_val}")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        if "finalized" in finalize_data and table_data:
+            try:
+                data = json.loads(table_data)
+                table_widget = self.create_rich_table_widget(data)
+                return Div(
+                    Card(
+                        H3(f"🔒 {step.show}"),
+                        table_widget
+                    ),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            except Exception as e:
+                logger.error(f"Error creating table widget in finalized view: {str(e)}")
+                return Div(
+                    Card(f"🔒 {step.show}: <content locked>"),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
             
-        # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: {user_val}",
-                widget=Div(
-                    P(f"Placeholder content: {user_val}")
-                ),
-                steps=steps
-            )
-            return Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
-        else:
-            # Show input form
-            display_value = user_val if step.refill and user_val else "New placeholder content"
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                    P("Enter placeholder content:"),
-                    Form(
-                        Div(
-                            Input(
-                                type="text",
-                                name=step.done,
-                                placeholder="Enter placeholder content",
-                                required=True,
-                                value=display_value,
-                                cls="contrast"
-                            ),
-                            Div(
-                                Button("Save ▸", type="submit", cls="primary"),
-                                style="margin-top: 1vh; text-align: right;"
-                            ),
-                            style="width: 100%;"
+        # Check if step is complete and not being reverted to
+        if table_data and state.get("_revert_target") != step_id:
+            try:
+                data = json.loads(table_data)
+                table_widget = self.create_rich_table_widget(data)
+                content_container = pip.widget_container(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Configured",
+                    widget=table_widget,
+                    steps=steps
+                )
+                return Div(
+                    content_container,
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
+            except Exception as e:
+                logger.error(f"Error creating table widget: {str(e)}")
+                state["_revert_target"] = step_id
+                pip.write_state(pipeline_id, state)
+
+        # Show input form
+        sample_data = [
+            {"name": "Parameter 1", "value1": 1000, "value2": 500, "value3": 50},
+            {"name": "Parameter 2", "value1": 2000, "value2": 1000, "value3": 100},
+            {"name": "Parameter 3", "value1": 3000, "value2": 1500, "value3": 150}
+        ]
+        display_value = table_data if step.refill and table_data else json.dumps(sample_data, indent=2)
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                P("Enter table data as JSON array of objects. Example is pre-populated."),
+                P("Format: [{\"name\": \"value\", \"value1\": number, ...}, {...}]", 
+                  style="font-size: 0.8em; font-style: italic;"),
+                Form(
+                    Div(
+                        Textarea(
+                            display_value,
+                            name=step.done,
+                            placeholder="Enter JSON array of objects for the table",
+                            required=True,
+                            rows=10,
+                            style="width: 100%; font-family: monospace;"
                         ),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
+                        Div(
+                            Button("Create Table ▸", type="submit", cls="primary"),
+                            style="margin-top: 1vh; text-align: right;"
+                        ),
+                        style="width: 100%;"
+                    ),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
 
     async def step_09_submit(self, request):
-        """ 
-        Process the submission for Step 9 (New Placeholder Step).
-        
-        This is a blank placeholder step that can be customized for new widget types.
-        """
+        """Process the submission for Rich Table Widget."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_09"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
 
         # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "").strip()
-        
-        if not user_val:
-            return P("Error: Content is required", style=pip.get_style("error"))
+        table_data = form.get(step.done, "").strip()
 
-        # Save content to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
-        await self.message_queue.add(pip, f"Placeholder content set to: {user_val}", verbatim=True)
+        # Validate input
+        is_valid, error_msg, error_component = pip.validate_step_input(table_data, step.show)
+        if not is_valid:
+            return error_component
+            
+        # Additional validation for JSON format
+        try:
+            data = json.loads(table_data)
+            if not isinstance(data, list) or not data:
+                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
+            if not all(isinstance(item, dict) for item in data):
+                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
+        except json.JSONDecodeError:
+            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
+
+        # Save to state
+        await pip.update_step_state(pipeline_id, step_id, table_data, steps)
+
+        # Create the rich table widget
+        try:
+            table_widget = self.create_rich_table_widget(data)
+            
+            # Create content container
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: Table created with {len(data)} rows",
+                widget=table_widget,
+                steps=steps
+            )
+            
+            # Create full response
+            response_content = Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+            # Send confirmation message
+            await self.message_queue.add(pip, f"{step.show} complete. Table created with {len(data)} rows.", verbatim=True)
+
+            return HTMLResponse(to_xml(response_content))
+            
+        except Exception as e:
+            logger.error(f"Error creating table widget: {e}")
+            return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
+
+    def create_rich_table_widget(self, data):
+        """Create a rich table widget with beautiful styling."""
+        # Get column headers from first row
+        if not data:
+            return P("No data provided for table", style="color: red;")
         
-        # Create widget with content
-        placeholder_widget = Div(
-            P(f"Placeholder content: {user_val}")
+        headers = list(data[0].keys())
+
+        # Create the table HTML
+        table_html = f"""
+        <table class="param-table">
+            <caption>Rich Table Example</caption>
+            <tr class="header">
+        """
+        
+        # Add header row
+        for i, header in enumerate(headers):
+            header_class = "param-name" if header == "name" else f"{header}-val"
+            td_class = "header-cell"
+            table_html += f'<td class="{td_class}"><span class="{header_class}">{header}</span></td>'
+        
+        table_html += "</tr>"
+        
+        # Add data rows
+        for row in data:
+            table_html += "<tr>"
+            for i, header in enumerate(headers):
+                cell_class = "param-name" if header == "name" else f"{header}-val"
+                value = row.get(header, "")
+                # Format numbers with commas
+                if isinstance(value, (int, float)):
+                    value = f"{value:,}"
+                table_html += f'<td><span class="{cell_class}">{value}</span></td>'
+            table_html += "</tr>"
+        
+        table_html += "</table>"
+        
+        # Return the complete widget
+        return Div(
+            NotStr(table_html),
+            style="overflow-x: auto;"
         )
-        
-        # Create content container
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: {user_val}",
-            widget=placeholder_widget,
-            steps=steps
-        )
-        
-        # Create full response
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"Placeholder content saved: {user_val}", verbatim=True)
-        
-        return HTMLResponse(to_xml(response_content))

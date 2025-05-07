@@ -9,10 +9,11 @@
     border: 1px solid white;
     background-color: #000;
 }
+
 .param-table caption {
     caption-side: top;
     text-align: center;
-    font-weight: bold;
+    font-weight: normal;
     font-style: italic;
     color: white;
     background: transparent !important;
@@ -20,22 +21,42 @@
     font-size: 1.1em;
     letter-spacing: 0.5px;
 }
+
 .header-cell {
-    border-bottom: 4px solid white;
-    border-right: 4px solid white;
-    color: white;
-    background: #000;
+    color: white !important;
+    background: #000 !important;
     font-weight: bold;
-    padding: 8px;
-}
-.header-cell:last-child {
-    border-right: none;
-}
-.param-table td {
-    background: #000;
-    padding: 8px;
+    border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    border-left: 2px solid white;
     border-right: 2px solid white;
 }
-.param-table td:last-child {
-    border-right: none;
-} 
+
+.param-table tr.header td:last-child {
+    border-right: none !important;
+    padding: 8px;
+}
+
+.param-table tr:not(.header) td {
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    border-right: 2px solid white;
+}
+
+.param-table tr:not(.header) td:last-child {
+    border-right: none !important;
+}
+
+.param-table td {
+    background: #000;
+    color: inherit;
+    padding: 2px 4px 2px 8px;
+    text-align: left;
+}
+
+.param-name { color: cyan; }
+.value1-val { color: #4fa8ff; text-align: right; }
+.value2-val { color: #ff0000; text-align: right; }
+.value3-val { color: #50fa7b; text-align: right; }
+.header-cell span { color: white !important; } 
