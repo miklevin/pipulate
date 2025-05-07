@@ -4607,7 +4607,7 @@ removeWastefulParams();
             param_list_str = "\n".join([f"- `{param}`" for param in params_list])
 
             # Create more condensed markdown content with details tags OUTSIDE list items
-            markdown_content = f"""# Parameter Buster Documentation
+            markdown_content = f"""# PageWorkers Optimization Ready to Copy/Paste
 
 ## Instructions
 1. Copy/Paste that JavaScript into a new PageWorkers custom Optimization.
