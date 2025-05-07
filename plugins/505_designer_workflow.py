@@ -445,7 +445,7 @@ class DesignerWorkflow:
             .param-table caption {
                 caption-side: top;
                 text-align: center;
-                font-weight: bold;
+                font-weight: normal;
                 font-style: italic;
                 color: white;
                 background: transparent !important;
@@ -457,13 +457,14 @@ class DesignerWorkflow:
                 color: white !important;
                 background: #000 !important;
                 font-weight: bold;
-                border-top: 4px solid white;
-                border-bottom: 4px solid white;
-                border-left: 4px solid white;
-                border-right: 4px solid white;
+                border-top: 2px solid white;
+                border-bottom: 2px solid white;
+                border-left: 2px solid white;
+                border-right: 2px solid white;
             }
             .param-table tr.header td:last-child {
                 border-right: none !important;
+                padding: 8px;
             }
             .param-table tr:not(.header) td {
                 border-top: none;
@@ -477,13 +478,16 @@ class DesignerWorkflow:
             .param-table td {
                 background: #000;
                 color: inherit;
-                padding: 5px;
+                padding: 2px 4px 2px 8px;
                 text-align: left;
             }
             .param-name { color: cyan; }
             .value1-val { color: #4fa8ff; text-align: right; }
             .value2-val { color: #ff0000; text-align: right; }
             .value3-val { color: #50fa7b; text-align: right; }
+            .header-cell span {
+                color: white !important;
+            }
         </style>
         """)
 
