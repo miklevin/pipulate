@@ -1,0 +1,109 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Chain Reaction Pattern
+
+The chain reaction pattern is the core mechanism enabling Pipulate's step-based workflow progression. 
+
+## The Critical Pattern - NEVER MODIFY
+
+```python
+return Div(
+    Card(...),  # Current step content
+    # CRITICAL: This inner Div triggers loading of the next step
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+This pattern has three essential components that must be preserved:
+
+1. **Inner Div with `id=next_step_id`**: Container targeted for the next step
+2. **`hx_get`**: Attribute specifying the endpoint to fetch the next step
+3. **`hx_trigger="load"`**: Critical attribute that causes automatic progression
+
+Never remove `hx_trigger="load"` even if it seems redundant. Alternatives like event bubbling will not work reliably.
+
+## Step Flow Visualization
+
+```
+┌─────────────┐        ┌──────────────┐        ┌───────────┐
+│   landing   │        │    step_01   │        │  finalize │
+│  (method)   │ -----> │ (placeholder)│ -----> │  (method) │
+└─────────────┘        └──────────────┘        └───────────┘
+```
+
+## Implementing a New Step
+
+Adding a step requires updating both surrounding steps to maintain the chain:
+
+1. **Update Previous Step**: Change its `next_step_id` to point to your new step
+2. **Create Your Step**: Implement with proper chain reaction to the following step
+3. **Update Step Indices**: Update the `self.steps_indices` dictionary
+
+## Breaking the Chain (Cautionary Pattern)
+
+The `no-chain-reaction` class should only be used in specific scenarios:
+
+```python
+# For polling operations (continuous status checking):
+return Div(
+    progress_indicator,
+    cls="polling-status no-chain-reaction",
+    hx_get=f"/{app_name}/check_status",
+    hx_trigger="load, every 2s",
+    hx_target=f"#{step_id}",
+    id=step_id
+)
+```
+
+Always document any use of `no-chain-reaction` with comments explaining why the chain is being broken.
+
+## Step Method Blueprint
+
+For consistent implementation, follow this pattern for each step:
+
+```python
+async def step_XX(self, request):
+    """GET handler for step XX display"""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    # Form and content here
+    
+    # CRITICAL: Chain reaction to next step
+    return Div(
+        Card(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+```python
+async def step_XX_submit(self, request):
+    """POST handler for step XX form submission"""
+    # Similar setup code...
+    
+    # Process form data
+    form = await request.form()
+    value = form.get("field_name", "")
+    
+    # Store in state
+    state = pip.read_state(pipeline_id)
+    state[step.done] = value
+    pip.write_state(pipeline_id, state)
+    
+    # CRITICAL: Chain reaction to next step
+    return Div(
+        pip.revert_control(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```

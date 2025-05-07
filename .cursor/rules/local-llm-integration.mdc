@@ -1,0 +1,170 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Local LLM Integration Guide
+
+Pipulate integrates with [Ollama](mdc:https:/ollama.ai) to provide local, private LLM capabilities without relying on external API services.
+
+## Core Benefits
+
+- **Privacy**: All data and prompts stay on your local machine
+- **Cost-effective**: No per-token charges or API costs
+- **Control**: Full control over model selection and parameters
+- **Always available**: Works offline, no internet required
+
+## Setup
+
+1. **Install Ollama**:
+   - macOS: Download from [ollama.ai](mdc:https:/ollama.ai)
+   - Linux: `curl -fsSL https://ollama.ai/install.sh | sh`
+
+2. **Pull a model**:
+   ```bash
+   ollama pull llama3
+   ```
+
+3. **Ensure Ollama is running**:
+   ```bash
+   ollama serve
+   ```
+
+## Chat Integration
+
+The built-in chat interface connects to your local Ollama server. Pipulate uses a WebSocket connection to stream responses in real-time.
+
+### Configuration
+
+The default Ollama configuration can be customized in `server.py`:
+
+```python
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "localhost")
+OLLAMA_PORT = os.environ.get("OLLAMA_PORT", "11434")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "llama3")
+```
+
+You can override these with environment variables:
+```bash
+export OLLAMA_HOST=192.168.1.100
+export OLLAMA_PORT=11434
+export DEFAULT_MODEL=mistral
+```
+
+## WebSocket Communication
+
+Pipulate uses WebSockets for bidirectional, streaming communication with the LLM:
+
+```python
+async def websocket_endpoint(websocket):
+    await websocket.accept()
+    
+    while True:
+        try:
+            data = await websocket.receive_text()
+            # Process user message
+            # Stream response from Ollama
+            async for chunk in get_streaming_response(data):
+                await websocket.send_text(chunk)
+        except WebSocketDisconnect:
+            break
+```
+
+## Tool Calling
+
+Pipulate can parse special JSON responses from the LLM to execute functions:
+
+```python
+async def process_tool_call(tool_call):
+    """Handle a tool call from the LLM"""
+    tool_name = tool_call.get("name")
+    arguments = tool_call.get("arguments", {})
+    
+    if tool_name == "search_web":
+        results = await search_web(arguments.get("query"))
+        return results
+    elif tool_name == "get_workflow_data":
+        return get_workflow_data(arguments.get("workflow_id"))
+    # etc.
+```
+
+## Context Management
+
+Pipulate maintains a bounded conversation history to respect the LLM's context window:
+
+```python
+class Chat:
+    def __init__(self, max_history=20):
+        self.history = []
+        self.max_history = max_history
+    
+    def add_message(self, role, content):
+        self.history.append({"role": role, "content": content})
+        self._prune_history()
+    
+    def _prune_history(self):
+        """Ensure history stays within token limits"""
+        if len(self.history) > self.max_history:
+            # Remove oldest messages but keep system prompt
+            system_messages = [m for m in self.history if m["role"] == "system"]
+            other_messages = [m for m in self.history if m["role"] != "system"]
+            other_messages = other_messages[-(self.max_history - len(system_messages)):]
+            self.history = system_messages + other_messages
+```
+
+## Using LLMs in Workflows
+
+You can integrate LLM capabilities into your workflows:
+
+```python
+async def step_XX_submit(self, request):
+    # ... standard setup code
+    
+    form = await request.form()
+    user_input = form.get("input", "")
+    
+    # Process with LLM
+    prompt = f"""
+    Analyze the following SEO data:
+    {user_input}
+    
+    Provide a summary of key insights.
+    """
+    
+    llm_response = await self.pipulate.get_llm_response(prompt)
+    
+    # Store both input and LLM analysis
+    state = pip.read_state(pipeline_id)
+    state[step.done] = {
+        "raw_input": user_input,
+        "analysis": llm_response
+    }
+    pip.write_state(pipeline_id, state)
+    
+    # Return with usual chain reaction...
+```
+
+## Model Parameters
+
+Fine-tune the model behavior with parameters:
+
+```python
+params = {
+    "model": "llama3",
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 40,
+    "max_tokens": 1024,
+    "system": "You are a helpful SEO assistant."
+}
+
+response = await get_ollama_completion(prompt, params)
+```
+
+## Best Practices
+
+1. **Keep prompts focused**: Provide clear, concise instructions
+2. **Use system messages**: Set the assistant's role and constraints
+3. **Implement timeouts**: Handle potential slow responses
+4. **Add fallbacks**: Provide graceful degradation if LLM is unavailable
+5. **Consider context limits**: Be mindful of token limits for your model
