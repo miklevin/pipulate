@@ -4001,6 +4001,13 @@ removeWastefulParams();
             
             # Create a rich table for "Potential Parameter Wins"
             table_html = '''
+            <style>
+                /* Column-specific colors that override the base rich table styles */
+                .weblogs-val { color: #4fa8ff !important; text-align: right; }
+                .not-index-val { color: #ff0000 !important; text-align: right; }
+                .gsc-val { color: #50fa7b !important; text-align: right; }
+                .score-val { color: #ffff00 !important; text-align: right; font-weight: bold; }
+            </style>
             <table class="param-table">
                 <caption>Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</caption>
                 <tr class="header">
