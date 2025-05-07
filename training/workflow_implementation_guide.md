@@ -1,11 +1,236 @@
-# Guide and Primer On Pipulate Workflow Patterns
+# Pipulate Workflow Implementation Guide
 
-This serves as a comprehensive guide and primer on the fundamental patterns used for building
-and modifying workflows within the Pipulate framework, particularly focusing on
-step insertion and maintaining the crucial HTMX chain reaction mechanism. It
-doesn't introduce new requirements *for* the codebase but rather documents *how*
-the codebase works and how developers (or AI assistants) should interact with it
-when adding or modifying workflow steps.
+## Overview
+This guide serves as the primary reference for building and modifying workflows within the Pipulate framework. It focuses on core patterns, step management, and maintaining the crucial HTMX chain reaction mechanism.
+
+## Core Patterns Reference
+Before implementing workflows, familiarize yourself with these essential patterns:
+
+- [Atomic Steps Pattern](mdc:.cursor/rules/pattern-atomic-steps.mdc): How to design focused, purposeful workflow steps
+- [Chain Reaction Pattern](mdc:.cursor/rules/pattern-chain-reaction.mdc): Critical HTMX progression mechanism
+- [Placeholder Pattern](mdc:.cursor/rules/pattern-placeholder.mdc): Starting point for new steps
+- [Widget Implementation](mdc:.cursor/rules/pattern-widget-implementation.mdc): UI component standards
+- [Browser Integration](mdc:.cursor/rules/pattern-browser-integration.mdc): Working with web browsers
+
+## Implementation Philosophy
+Follow these established philosophies:
+
+- [Core Philosophy](mdc:.cursor/rules/philosophy-core.mdc): Fundamental principles
+- [Modern Simplicity](mdc:.cursor/rules/philosophy-simplicity.mdc): Design approach
+- [Future-Proofing](mdc:.cursor/rules/philosophy-future-proofing.mdc): Long-term considerations
+
+## Workflow Structure
+
+### 1. Basic Workflow (Landing → Finalize)
+```
+┌─────────────┐                  ┌───────────┐
+│   landing   │                  │  finalize │
+│  (method)   │ ---------------> │  (method) │
+└─────────────┘                  └───────────┘
+```
+
+Key Code Pattern:
+```python
+# In landing method return statement
+return Div(
+    Card(...),
+    # Chain reaction initiator - NEVER REMOVE OR MODIFY THIS PATTERN
+    Div(id="finalize", hx_get=f"/{app_name}/finalize", hx_trigger="load"),
+    id="landing"
+)
+```
+
+### 2. Adding Steps
+Follow the [Atomic Steps Pattern](mdc:.cursor/rules/pattern-atomic-steps.mdc) when adding new steps:
+
+```python
+Step(
+    id='step_01',
+    done='result_key',
+    show='User-Friendly Name',
+    refill=True,  # Allow value reuse
+)
+```
+
+### 3. Step Implementation
+Each step requires:
+
+1. GET Handler:
+```python
+async def step_XX(self, request):
+    """Handles GET request for Step XX."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    
+    # Follow Widget Implementation Pattern for UI components
+    return Div(
+        Card(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+2. POST Handler:
+```python
+async def step_XX_submit(self, request):
+    """Process the submission for Step XX."""
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_XX"
+    step_index = self.steps_indices[step_id]
+    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    
+    # Follow Error Handling Pattern
+    try:
+        # Process form data
+        form = await request.form()
+        value = form.get("field_name", "")
+        
+        if not value:
+            return P("Error: Field is required", style=pip.get_style("error"))
+        
+        # Update state following State Management Pattern
+        await pip.update_step_state(pipeline_id, step_id, value, steps)
+        
+        # Return with chain reaction
+        return Div(
+            pip.widget_container(...),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    except Exception as e:
+        return P(f"Error: {str(e)}", style=pip.get_style("error"))
+```
+
+## Critical Patterns
+
+### Chain Reaction
+The chain reaction pattern is IMMUTABLE. Never modify these elements:
+```python
+Div(
+    id=next_step_id,
+    hx_get=f"/{app_name}/{next_step_id}",
+    hx_trigger="load"
+)
+```
+
+### Widget Structure
+Follow the [Widget Implementation Pattern](mdc:.cursor/rules/pattern-widget-implementation.mdc):
+```python
+Card(
+    H3(f"{step.show}"),
+    Form(
+        Input(...),
+        Button(...),
+        hx_post=f"/{app_name}/{step_id}_submit"
+    )
+)
+```
+
+### State Management
+Use Pipulate's state management helpers:
+```python
+# Read state
+state = pip.read_state(pipeline_id)
+step_data = pip.get_step_data(pipeline_id, step_id, {})
+
+# Update state
+await pip.update_step_state(pipeline_id, step_id, value, steps)
+```
+
+## Development Workflow
+
+1. Start with Placeholders
+   - Use the [Placeholder Pattern](mdc:.cursor/rules/pattern-placeholder.mdc)
+   - Maintain chain reaction
+   - Plan step progression
+
+2. Evolve to Widgets
+   - Follow [Widget Implementation](mdc:.cursor/rules/pattern-widget-implementation.mdc)
+   - Add form elements
+   - Implement validation
+
+3. Add Functionality
+   - Follow [Browser Integration](mdc:.cursor/rules/pattern-browser-integration.mdc) if needed
+   - Implement error handling
+   - Add user feedback
+
+## Testing and Validation
+
+1. Chain Reaction
+   - Verify progression works
+   - Test revert functionality
+   - Check finalization
+
+2. State Management
+   - Test state persistence
+   - Verify revert behavior
+   - Check refill functionality
+
+3. Error Handling
+   - Test validation
+   - Check error messages
+   - Verify recovery paths
+
+## Common Pitfalls
+
+1. Chain Reaction Breaks
+   - Missing `hx_trigger="load"`
+   - Incorrect next_step_id calculation
+   - Broken progression chain
+
+2. State Management Issues
+   - Not clearing subsequent steps on revert
+   - Missing state updates
+   - Incorrect refill behavior
+
+3. UI/UX Problems
+   - Inconsistent button placement
+   - Missing error feedback
+   - Poor progression indicators
+
+## Best Practices
+
+1. Follow Atomic Design
+   - One clear purpose per step
+   - Combine related actions
+   - Maintain user mental model
+
+2. Preserve Patterns
+   - Use established widget structures
+   - Maintain chain reaction
+   - Follow state management conventions
+
+3. Error Handling
+   - Validate all inputs
+   - Provide clear feedback
+   - Handle edge cases
+
+## Reference Examples
+
+1. Basic Workflows
+   - [20_hello_workflow.py](mdc:pipulate/plugins/20_hello_workflow.py): Template
+   - [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py): URL handling
+
+2. Complex Workflows
+   - [50_botify_export.py](mdc:pipulate/plugins/50_botify_export.py): Multi-step
+   - [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py): Widget patterns
+
+## Additional Resources
+
+1. Implementation Guides
+   - [HTMX Integration](mdc:.cursor/rules/implementation-htmx.mdc)
+   - [Error Handling](mdc:.cursor/rules/implementation-widget-error.mdc)
+   - [Mobile Support](mdc:.cursor/rules/implementation-widget-mobile.mdc)
+   - [Accessibility](mdc:.cursor/rules/implementation-widget-accessibility.mdc)
+
+2. Architecture Guides
+   - [Core Architecture](mdc:.cursor/rules/architecture-core.mdc)
+   - [State Management](mdc:.cursor/rules/architecture-state.mdc)
+
+Remember: Workflows are intentionally WET (Write Everything Twice) to allow maximum customization while maintaining consistent patterns. Follow the established patterns but feel free to adapt them to your specific needs.
 
 # PIPULATE WORKFLOW PROGRESSION GUIDE
 
