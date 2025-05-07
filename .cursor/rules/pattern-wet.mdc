@@ -267,3 +267,64 @@ This separation works because:
 3. All database operations are performed using the APP_NAME, not the filename
 
 This architecture allows developers to improve and evolve the user interface and URL structures without disrupting existing workflows or losing user data.
+
+# WET Pattern for Rich Tables
+
+## Overview
+When workflows need specific column colors that differ from the standard rich table styling, use the WET (Write Everything Twice) pattern with inline styles.
+
+## Implementation
+1. Use the standard rich table structure from [rich-table.css](mdc:pipulate/static/rich-table.css)
+2. Add workflow-specific color overrides using inline styles
+3. Use `!important` to ensure workflow colors take precedence
+
+## Example Pattern
+```html
+<style>
+    /* Column-specific colors that override the base rich table styles */
+    .weblogs-val { color: #4fa8ff !important; text-align: right; }
+    .not-index-val { color: #ff0000 !important; text-align: right; }
+    .gsc-val { color: #50fa7b !important; text-align: right; }
+    .score-val { color: #ffff00 !important; text-align: right; font-weight: bold; }
+</style>
+<table class="param-table">
+    <caption>Table Caption</caption>
+    <tr class="header">
+        <td class="header-cell"><span class="param-name">Column 1</span></td>
+        <td class="header-cell"><span class="custom-val">Column 2</span></td>
+    </tr>
+    <tr>
+        <td><span class="param-name">Data 1</span></td>
+        <td><span class="custom-val">Data 2</span></td>
+    </tr>
+</table>
+```
+
+## Key Points
+1. Keep the base rich table structure:
+   - Use `param-table` class
+   - Use `header-cell` class for header cells
+   - Use `caption` for table title
+   - Maintain border structure
+
+2. Add workflow-specific styling:
+   - Define color classes with `!important`
+   - Use `span` elements for colored text
+   - Keep consistent naming (e.g., `-val` suffix)
+   - Include text alignment if needed
+
+3. Common color patterns:
+   - Parameters/Names: cyan
+   - Numeric values: workflow-specific colors
+   - Totals: lighter gray
+   - Scores/Important values: yellow or highlighted
+
+## When to Use
+- Workflow needs specific column colors
+- Table represents different data types
+- Visual distinction between columns is important
+- Data mapping follows workflow-specific logic
+
+## Examples in Codebase
+- Parameter Buster: [040_parameter_buster.py](mdc:pipulate/plugins/040_parameter_buster.py)
+- Designer Workflow: [505_designer_workflow.py](mdc:pipulate/plugins/505_designer_workflow.py)
