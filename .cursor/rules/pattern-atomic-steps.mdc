@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Atomic Steps Pattern
+
+## Overview
+This guide covers the atomic steps pattern used in Pipulate workflows, where each step is self-contained but can include multiple related actions, as demonstrated in [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py).
+
+## Principles
+
+### Step Atomicity
+- Each step should have a single, clear purpose
+- Multiple actions are allowed if they're closely related
+- Example: URL opener combines input and opening in one step
+
+### Step Independence
+- Steps should not depend on previous step data unless necessary
+- Each step should be independently revertible
+- State should be contained within the step's data
+
+### User Experience
+- Minimize the number of steps for clearer mental models
+- Combine closely related actions to reduce user friction
+- Provide immediate feedback for actions
+
+## Implementation Guidelines
+
+### Step Definition
+```python
+Step(
+    id='step_02',
+    done='query',  # Single result key
+    show='Google Search',  # Clear purpose
+    refill=True,  # Enable reuse
+)
+```
+
+### Action Combinations
+Valid combinations in a single step:
+1. Input collection + immediate action
+2. Configuration + execution
+3. Validation + processing
+
+### State Management
+- Store only the essential state for the step
+- Use clear state keys that reflect the step's purpose
+- Example: 'query' for search step, 'url' for URL opener
+
+## Examples
+
+### Good: URL Opener
+- Combines URL input and opening in one step
+- Clear single purpose: opening a URL
+- Immediate feedback with "Open Again" option
+
+### Good: Google Search
+- Combines query input and search execution
+- Single focus: performing a search
+- Maintains state for query reuse
+
+### Bad: Split Steps
+```python
+# Don't do this:
+Step(id='step_01', done='url_input', show='Enter URL')
+Step(id='step_02', done='url_confirm', show='Open URL')
+```
+
+### Good: Combined Step
+```python
+# Do this instead:
+Step(id='step_01', done='url', show='Open URL')
+```
+
+## When to Split Steps
+Split steps only when:
+1. Actions are logically separate
+2. Each action requires significant user consideration
+3. Actions might need to be reverted independently
+
+## Chain Reaction
+- Each step should trigger the next automatically
+- Use the standard chain reaction pattern
+- Allow reverting to previous steps when needed

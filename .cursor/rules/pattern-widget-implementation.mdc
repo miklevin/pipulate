@@ -1,0 +1,92 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Widget Implementation Pattern
+
+## Overview
+This guide covers the standard pattern for implementing interactive widgets in Pipulate workflows, as exemplified in [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py).
+
+## Core Components
+
+### Step Definition
+```python
+Step(
+    id='step_01',
+    done='result_key',
+    show='User-Friendly Name',
+    refill=True,  # Allow value reuse
+)
+```
+
+### Widget Structure
+1. Input Collection
+   - Use `Card` for consistent styling
+   - Include descriptive `H3` header
+   - Place input fields in a `Form`
+   - Use clear button labels (e.g., "Search ▸", "Open URL ▸")
+
+2. Result Display
+   - Show completed action in `widget_container`
+   - Include "Again" button for repeatable actions
+   - Display configured values with `B()` tags
+
+## State Management
+- Store values using `pip.update_step_state()`
+- Check finalized state before rendering
+- Use `refill=True` for reusable inputs
+- Preserve values when reverting with `_revert_target`
+
+## Button Placement
+- Primary action buttons go in forms
+- "Again" buttons go in widget containers
+- Use consistent arrow symbol (▸) in button labels
+
+## Example Implementation
+```python
+# Input Collection
+Card(
+    H3(f"{step.show}"),
+    Form(
+        Input(
+            type="text",
+            name="field_name",
+            placeholder="Helpful placeholder",
+            required=True,
+            value=display_value,
+            cls="contrast"
+        ),
+        Button("Action ▸", type="submit", cls="primary"),
+        hx_post=f"/{app_name}/{step_id}_submit", 
+        hx_target=f"#{step_id}"
+    )
+)
+
+# Result Display
+content_container = pip.widget_container(
+    step_id=step_id,
+    app_name=app_name,
+    message=f"{step.show}: {value}",
+    widget=Div(
+        P(f"Label: ", B(value)),
+        Button(
+            "Action Again ▸",
+            type="button",
+            _onclick="action()",
+            cls="secondary"
+        )
+    ),
+    steps=steps
+)
+```
+
+## Chain Reaction Pattern
+Always include next step trigger:
+```python
+Div(
+    content_container,
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
