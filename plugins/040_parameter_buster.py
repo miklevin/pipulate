@@ -3999,57 +3999,17 @@ removeWastefulParams();
             top_params = [param for param, _, _, _, _, _ in results_sorted[:TOP_PARAMS_COUNT]]
             top_params.reverse()
             
-            # Create a custom HTML table for "Potential Parameter Wins" instead of using rich
+            # Create a rich table for "Potential Parameter Wins"
             table_html = '''
-            <style>
-                .param-table {
-                    font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
-                    border-collapse: collapse;
-                    width: 100%;
-                    background-color: black;
-                    color: white;
-                    margin-top: 1rem;
-                    margin-bottom: 1rem;
-                    border: 1px solid white; /* Add white border around entire table */
-                }
-                .param-table td {
-                    border: none;
-                    padding: 5px;
-                    text-align: left;
-                }
-                .param-table tr:nth-child(even) {
-                    background-color: #1a1a1a;
-                }
-                .param-table tr:first-child td {
-                    text-align: center;
-                    background-color: #000;
-                    font-weight: bold;
-                    color: white;
-                    border-bottom: 2px solid white; /* Heavier border for title row */
-                    border-left: none;
-                    border-right: none;
-                    border-top: none;
-                    padding: 10px 0; /* Add some vertical padding */
-                }
-                .param-table tr.header {
-                    border-bottom: 3px solid white; /* Heavier border for header row */
-                }
-                .param-name { color: cyan; }
-                .weblogs-val { color: #4fa8ff; text-align: right; } /* Match web logs color from chart */
-                .not-index-val { color: #ff0000; text-align: right; } /* Match crawl data color from chart */
-                .gsc-val { color: #50fa7b; text-align: right; } /* Match search console color from chart */
-                .total-val { color: #d2d2d2; text-align: right; } /* Lighter gray for total */
-                .score-val { color: #ffff00; text-align: right; font-weight: bold; } /* Changed from red to yellow */
-            </style>
             <table class="param-table">
-                <tr><td colspan="6">Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</td></tr>
+                <caption>Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</caption>
                 <tr class="header">
-                    <td style="border-right: solid white 1px"><span class="param-name">Parameter</span></td>
-                    <td style="border-right: solid white 1px"><span class="weblogs-val">Weblogs</span></td>
-                    <td style="border-right: solid white 1px"><span class="not-index-val">Not-Indexable</span></td>
-                    <td style="border-right: solid white 1px"><span class="gsc-val">GSC</span></td>
-                    <td style="border-right: solid white 1px"><span class="total-val">Total</span></td>
-                    <td><span class="score-val">Score</span></td>
+                    <td class="header-cell"><span class="param-name">Parameter</span></td>
+                    <td class="header-cell"><span class="weblogs-val">Weblogs</span></td>
+                    <td class="header-cell"><span class="not-index-val">Not-Indexable</span></td>
+                    <td class="header-cell"><span class="gsc-val">GSC</span></td>
+                    <td class="header-cell"><span class="total-val">Total</span></td>
+                    <td class="header-cell"><span class="score-val">Score</span></td>
                 </tr>
             '''
             
@@ -4057,11 +4017,11 @@ removeWastefulParams();
             for param, wb, ni, gsc, total, score in results_sorted[:TOP_PARAMS_COUNT]:
                 table_html += f'''
                 <tr>
-                    <td style="border-right: solid white 1px"><span class="param-name">{param}</span></td>
-                    <td style="border-right: solid white 1px"><span class="weblogs-val">{wb:,}</span></td>
-                    <td style="border-right: solid white 1px"><span class="not-index-val">{ni:,}</span></td>
-                    <td style="border-right: solid white 1px"><span class="gsc-val">{gsc:,}</span></td>
-                    <td style="border-right: solid white 1px"><span class="total-val">{total:,}</span></td>
+                    <td><span class="param-name">{param}</span></td>
+                    <td><span class="weblogs-val">{wb:,}</span></td>
+                    <td><span class="not-index-val">{ni:,}</span></td>
+                    <td><span class="gsc-val">{gsc:,}</span></td>
+                    <td><span class="total-val">{total:,}</span></td>
                     <td><span class="score-val">{score:,.0f}</span></td>
                 </tr>
                 '''
