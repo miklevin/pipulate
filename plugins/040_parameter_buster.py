@@ -4417,19 +4417,32 @@ removeWastefulParams();
             return Div(
                 P(f"Found {param_count:,} parameters with total frequency of {total_frequency:,}"),
                 P(display_message, style="color: #888; font-style: italic; margin-bottom: 10px;") if display_message else None,
-                # Remove breakpoints_info from here
                 Table(
                     Tr(
                         Th("Parameter", style="text-align: left; color: cyan;"),
-                        Th("Frequency", style="text-align: right; color: #4fa8ff;"),
-                        Th("GSC", style="text-align: right; color: #50fa7b;"),
-                        Th("Score", style="text-align: right; color: yellow;")
+                        Th("Web Logs", style="text-align: right; color: #4fa8ff;"),  # Blue
+                        Th("Not-Indexable", style="text-align: right; color: #ff0000;"),  # Red
+                        Th("GSC", style="text-align: right; color: #50fa7b;"),  # Green
+                        Th("Score", style="text-align: right; color: #ffff00;")  # Yellow
                     ),
                     *[Tr(
                         Td(param, style="color: cyan;"),
-                        Td(f"{count:,}", style="text-align: right; color: #4fa8ff;"),
-                        Td(f"{gsc_count:,}", style="text-align: right; color: #50fa7b;"),
-                        Td(f"{score:,.0f}", style="text-align: right; color: yellow; font-weight: bold;")
+                        Td(
+                            f"{weblogs_counter.get(param, 0):,}" if weblogs_counter else "N/A", 
+                            style="text-align: right; color: #4fa8ff;"
+                        ),
+                        Td(
+                            f"{not_indexable_counter.get(param, 0):,}" if not_indexable_counter else "N/A", 
+                            style="text-align: right; color: #ff0000;"
+                        ),
+                        Td(
+                            f"{gsc_counter.get(param, 0):,}" if gsc_counter else "N/A", 
+                            style="text-align: right; color: #50fa7b;"
+                        ),
+                        Td(
+                            f"{score:,.0f}", 
+                            style="text-align: right; color: #ffff00; font-weight: bold;"
+                        )
                     ) for param, count, gsc_count, score in matching_params[:display_limit]],
                     style="width: 100%; border-collapse: collapse;"
                 ),
