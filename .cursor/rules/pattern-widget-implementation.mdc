@@ -3,7 +3,58 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Widget Implementation Pattern
+# Widget Implementation Patterns
+
+## Core Pattern
+All widgets must follow these core implementation patterns:
+
+1. Chain Reaction Preservation
+2. State Management
+3. Error Handling
+4. Finalization Support
+
+## Widget Categories and Recipes
+
+### Input Widgets
+- Text Input: See `training/widget_recipes/input/text_input.md`
+- URL Input: See `training/widget_recipes/input/url_input.md`
+- Dropdown: See `training/widget_recipes/input/dropdown.md`
+
+### Display Widgets
+- Table Display: See `training/widget_recipes/display/table.md`
+- Markdown: See `training/widget_recipes/display/markdown.md`
+- Mermaid: See `training/widget_recipes/display/mermaid.md`
+
+### Operation Widgets
+- API Request: See `training/widget_recipes/operation/api_request.md`
+- File Download: See `training/widget_recipes/operation/file_download.md`
+- File Upload: See `training/widget_recipes/operation/file_upload.md`
+
+### Integration Widgets
+- Browser: See `training/widget_recipes/integration/browser.md`
+- Search: See `training/widget_recipes/integration/search.md`
+
+## Implementation Steps
+1. Choose appropriate widget category
+2. Reference corresponding recipe
+3. Follow recipe implementation guide
+4. Preserve core patterns
+
+## Recipe Usage
+Widget recipes provide:
+- Complete implementation examples
+- State management patterns
+- Error handling approaches
+- UI/UX considerations
+
+Always check recipes when implementing new widgets or modifying existing ones.
+
+## Pattern Enforcement
+The widget implementation pattern ensures:
+1. Consistent user experience
+2. Reliable state management
+3. Proper error handling
+4. Maintainable code structure
 
 ## Overview
 This guide covers the standard pattern for implementing interactive widgets in Pipulate workflows, as exemplified in [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py).
