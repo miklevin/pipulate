@@ -1203,6 +1203,11 @@ class ParameterBusterWorkflow:
                 ),
                 Form(
                     Div(
+                        P(
+                            "Note: This slider only controls how many parameters are displayed and can be adjusted at any time. " 
+                            "It does not affect the underlying analysis.",
+                            style=pip.get_style("muted") + "margin-bottom: 10px;"
+                        ),
                         Label(
                             NotStr("<strong>Number of Parameters to Show:</strong>"), 
                             For="param_count",
@@ -3986,6 +3991,15 @@ removeWastefulParams();
             for counter in source_counters.values():
                 all_params.update(counter.keys())
             
+            # Store cache data for status display
+            cache_data = {
+                'raw_counters': source_counters,
+                'metadata': {
+                    'cache_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'file_statuses': {}
+                }
+            }
+            
             # Calculate scores and create sorted results
             results = []
             for param in all_params:
@@ -4012,6 +4026,7 @@ removeWastefulParams();
                 .not-index-val { color: #ff0000 !important; text-align: right; }
                 .gsc-val { color: #50fa7b !important; text-align: right; }
                 .score-val { color: #ffff00 !important; text-align: right; font-weight: bold; }
+                .na-val { color: #666666 !important; text-align: right; font-style: italic; }
             </style>
             <table class="param-table">
                 <caption>Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</caption>
@@ -4027,14 +4042,21 @@ removeWastefulParams();
             
             # Add the top parameters to the table, using the same count as the chart
             for param, wb, ni, gsc, total, score in results_sorted[:TOP_PARAMS_COUNT]:
+                # Format values with N/A indicators
+                wb_display = f"{wb:,}" if wb is not None else '<span class="na-val">N/A</span>'
+                ni_display = f"{ni:,}" if ni is not None else '<span class="na-val">N/A</span>'
+                gsc_display = f"{gsc:,}" if gsc is not None else '<span class="na-val">N/A</span>'
+                total_display = f"{total:,}" if total is not None else '<span class="na-val">N/A</span>'
+                score_display = f"{score:,.0f}" if score is not None else '<span class="na-val">N/A</span>'
+
                 table_html += f'''
                 <tr>
                     <td><span class="param-name">{param}</span></td>
-                    <td><span class="weblogs-val">{wb:,}</span></td>
-                    <td><span class="not-index-val">{ni:,}</span></td>
-                    <td><span class="gsc-val">{gsc:,}</span></td>
-                    <td><span class="total-val">{total:,}</span></td>
-                    <td><span class="score-val">{score:,.0f}</span></td>
+                    <td><span class="weblogs-val">{wb_display}</span></td>
+                    <td><span class="not-index-val">{ni_display}</span></td>
+                    <td><span class="gsc-val">{gsc_display}</span></td>
+                    <td><span class="total-val">{total_display}</span></td>
+                    <td><span class="score-val">{score_display}</span></td>
                 </tr>
                 '''
             
@@ -4078,10 +4100,20 @@ removeWastefulParams();
             # Use log scale to make small values more visible
             ax.set_xscale('symlog')  # Symmetric log scale for handling zero values
 
-            # Create grouped bar chart with distinct colors
-            weblog_bars = ax.barh([p + width for p in y_pos], weblogs_values, width, color='#4fa8ff', label='Web Logs', alpha=0.9)
-            crawl_bars = ax.barh(y_pos, crawl_values, width, color='#ff0000', label='Crawl Data', alpha=0.9)
-            gsc_bars = ax.barh([p - width for p in y_pos], gsc_values, width, color='#50fa7b', label='Search Console', alpha=0.9)
+            # Create grouped bar chart with distinct colors and alpha for missing data
+            weblog_bars = ax.barh([p + width for p in y_pos], weblogs_values, width, 
+                                color='#4fa8ff', label='Web Logs', alpha=0.9)
+            crawl_bars = ax.barh(y_pos, crawl_values, width, 
+                               color='#ff0000', label='Crawl Data', alpha=0.9)
+            gsc_bars = ax.barh([p - width for p in y_pos], gsc_values, width, 
+                             color='#50fa7b', label='Search Console', alpha=0.9)
+
+            # Add hatching pattern for zero values to make them more visible
+            for bars in [weblog_bars, crawl_bars, gsc_bars]:
+                for bar in bars:
+                    if bar.get_width() == 0:
+                        bar.set_hatch('/')
+                        bar.set_alpha(0.3)  # More transparent for zero values
 
             # Make sure grid lines are white as well
             ax.grid(axis='x', linestyle='--', alpha=0.2, color='white')
@@ -4110,28 +4142,28 @@ removeWastefulParams();
                 # For log scale, use multiplication factor to ensure room for labels
                 ax.set_xlim(0, max_value * 2)
             
-            # Add value labels with appropriate colors
+            # Add value labels with appropriate colors and handle zero/missing values
             for i, (wb, cr, gs) in enumerate(zip(weblogs_values, crawl_values, gsc_values)):
                 # Web logs (blue)
                 if wb > 0:
                     text_pos = wb * 1.05  # Reduced offset factor
                     ax.text(text_pos, i + width, f"{wb:,}", va='center', fontsize=7, color='#4fa8ff')
-                elif wb == 0:
-                    ax.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff')
+                else:
+                    ax.text(0.01, i + width, "0", va='center', ha='left', fontsize=7, color='#4fa8ff', alpha=0.5)
                     
                 # Crawl data (red)
                 if cr > 0:
                     text_pos = cr * 1.05  # Reduced offset factor
                     ax.text(text_pos, i, f"{cr:,}", va='center', fontsize=7, color='#ff0000', weight='bold')
-                elif cr == 0:
-                    ax.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000')
+                else:
+                    ax.text(0.01, i, "0", va='center', ha='left', fontsize=7, color='#ff0000', alpha=0.5)
                     
                 # Search console (green)
                 if gs > 0:
                     text_pos = gs * 1.05  # Reduced offset factor
                     ax.text(text_pos, i - width, f"{gs:,}", va='center', fontsize=7, color='#50fa7b')
-                elif gs == 0:
-                    ax.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b')
+                else:
+                    ax.text(0.01, i - width, "0", va='center', ha='left', fontsize=7, color='#50fa7b', alpha=0.5)
             
             # Ensure the y-axis limits are tight to the data
             y_min, y_max = -width * 1.5, (len(y_pos) - 1) + width * 1.5
@@ -4146,6 +4178,65 @@ removeWastefulParams();
             img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
             
             # Create an HTML component with the image, styled table, and debug info
+            # Add file status section
+            file_status_html = """
+            <div style="margin: 15px 0; padding: 10px; background: #222; border-radius: 5px;">
+                <h5 style="margin-bottom: 10px; color: #ccc;">Data Source Status:</h5>
+                <table style="width: 100%; font-size: 0.9em;">
+            """
+            
+            # Add status for each data source
+            source_display = {
+                'weblogs': ('Web Logs', '#4fa8ff'),
+                'not_indexable': ('Not-Indexable', '#ff0000'),
+                'gsc': ('Search Console', '#50fa7b')
+            }
+            
+            # Extract file statuses from cache metadata if available
+            cache_metadata = cache_data.get('metadata', {}) if 'cache_data' in locals() else {}
+            file_statuses = cache_metadata.get('file_statuses', {})
+            
+            for source, (display_name, color) in source_display.items():
+                counter = source_counters.get(source, Counter())
+                
+                # Determine status based on counter and cache metadata
+                if len(counter) > 0:
+                    status = f"Found ({cache_metadata.get('cache_timestamp', 'Unknown date')})"
+                else:
+                    # Check if file was processed but empty
+                    if source in file_statuses:
+                        status = file_statuses[source]
+                    else:
+                        status = "No Data Available"
+                
+                param_count = len(counter)
+                total_occurrences = sum(counter.values())
+                
+                # Determine status color based on data presence
+                if param_count > 0:
+                    status_color = "#50fa7b"  # Green for data present
+                elif source in file_statuses and "error" in file_statuses[source].lower():
+                    status_color = "#ff5555"  # Red for errors
+                else:
+                    status_color = "#ff8c00"  # Orange for no data but no error
+                
+                file_status_html += f"""
+                    <tr>
+                        <td style="color: {color}; padding: 5px 0;">{display_name}:</td>
+                        <td style="color: {status_color}; text-align: right;">
+                            {param_count:,} parameters, {total_occurrences:,} occurrences
+                        </td>
+                        <td style="color: #888; text-align: right; font-style: italic;">
+                            ({status})
+                        </td>
+                    </tr>
+                """
+            
+            file_status_html += """
+                </table>
+            </div>
+            """
+            
             # Hide debug section by default, only include as a collapsible section
             debug_section = ""
             if debug_info:
@@ -4163,6 +4254,9 @@ removeWastefulParams();
                     H4("Parameter Analysis Summary:"),
                     P(f"Total unique parameters: {total_params:,}" if has_data else "No data available yet"),
                     P(f"Data sources: {', '.join(data_sources)}" if data_sources else "No data sources processed yet"),
+                    
+                    # Add file status section before the chart
+                    NotStr(file_status_html),
                     
                     Div(
                         NotStr(f'<img src="data:image/png;base64,{img_str}" style="width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
