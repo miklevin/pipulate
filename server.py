@@ -558,6 +558,8 @@ class Pipulate:
 
         async def add(self, pipulate, message, **kwargs):
             """Add a message to the queue and process if not already processing."""
+            # Log the message to the logger
+            logger.info(f"[🔄 WORKFLOW] {message}")
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
                 await self._process_queue()
