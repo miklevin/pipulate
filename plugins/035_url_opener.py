@@ -52,9 +52,9 @@ class BlankWorkflow:
             ),
             Step(
                 id='step_02',
-                done='placeholder',
-                show='New Search Step',
-                refill=True,  # Allow reuse for iterative development
+                done='query',
+                show='Google Search',
+                refill=True,  # Allow query reuse
             ),
         ]
         
@@ -393,7 +393,7 @@ class BlankWorkflow:
         )
 
     async def step_02(self, request):
-        """Handles GET request for URL confirmation step."""
+        """Handles GET request for Google Search step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -402,41 +402,69 @@ class BlankWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
-
-        # Get URL from previous step
-        prev_step = steps[step_index - 1]
-        prev_data = pip.get_step_data(pipeline_id, prev_step.id, {})
-        url = prev_data.get(prev_step.done, "")
+        query_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
+        if "finalized" in finalize_data and query_value:
+            search_url = f"https://www.google.com/search?q={query_value}"
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed"),
-                    P(f"URL confirmed: {url}")
+                    H3(f"🔒 {step.show}"),
+                    P(f"Search query: ", B(query_value)),
+                    Button(
+                        "Search Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{search_url}', '_blank')",
+                        cls="secondary"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
+        if query_value and state.get("_revert_target") != step_id:
+            search_url = f"https://www.google.com/search?q={query_value}"
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {query_value}",
+                widget=Div(
+                    P(f"Search query: ", B(query_value)),
+                    Button(
+                        "Search Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{search_url}', '_blank')",
+                        cls="secondary"
+                    )
+                ),
+                steps=steps
+            )
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                content_container,
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            await self.message_queue.add(pip, f"Please confirm you want to open: {url}", verbatim=True)
+            await self.message_queue.add(pip, "Enter your Google search query:", verbatim=True)
+            
+            # Use existing value if available, otherwise use default
+            display_value = query_value if step.refill and query_value else "example search"
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P(f"URL to open: {url}", style="font-family: monospace;"),
                     Form(
-                        Button("Open URL ▸", type="submit", cls="primary"),
+                        Input(
+                            type="text",
+                            name="query",
+                            placeholder="Enter search query",
+                            required=True,
+                            value=display_value,
+                            cls="contrast"
+                        ),
+                        Button("Search ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -446,31 +474,53 @@ class BlankWorkflow:
             )
 
     async def step_02_submit(self, request):
-        """Process the URL confirmation."""
+        """Process the search query submission and open Google search."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Get URL from previous step
-        prev_step = steps[step_index - 1]
-        prev_data = pip.get_step_data(pipeline_id, prev_step.id, {})
-        url = prev_data.get(prev_step.done, "")
         
-        # Open URL in default browser
+        # Get and validate query
+        form = await request.form()
+        query = form.get("query", "").strip()
+        
+        if not query:
+            return P("Error: Search query is required", style=pip.get_style("error"))
+        
+        # Store query in state
+        await pip.update_step_state(pipeline_id, step_id, query, steps)
+        
+        # Construct and open search URL
+        search_url = f"https://www.google.com/search?q={query}"
         import webbrowser
-        webbrowser.open(url)
+        webbrowser.open(search_url)
+        await self.message_queue.add(pip, f"Opening Google search: {query}", verbatim=True)
         
-        # Mark step as complete
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
+        # Create widget with search again button
+        search_widget = Div(
+            P(f"Search query: ", B(query)),
+            Button(
+                "Search Again ▸",
+                type="button",
+                _onclick=f"window.open('{search_url}', '_blank')",
+                cls="secondary"
+            )
+        )
+        
+        # Create content container
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: {query}",
+            widget=search_widget,
+            steps=steps
+        )
         
         # Return with chain reaction to next step
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
