@@ -1219,7 +1219,7 @@ class ParameterBusterWorkflow:
                             id="param_count_slider", 
                             value=param_count, 
                             min="10", 
-                            max="100", 
+                            max="250", 
                             step="5",
                             style="flex-grow: 1; margin: 0 10px;",
                             _oninput="document.getElementById('param_count').value = this.value;"
@@ -1230,7 +1230,7 @@ class ParameterBusterWorkflow:
                             id="param_count", 
                             value=param_count, 
                             min="10", 
-                            max="100", 
+                            max="250", 
                             step="5",
                             style="width: 100px;",  # Increased width to accommodate arrows
                             _oninput="document.getElementById('param_count_slider').value = this.value;",
@@ -1813,6 +1813,24 @@ class ParameterBusterWorkflow:
             logging.error(f"Error calculating breakpoints: {e}")
             breakpoints_html = ""
 
+        # Calculate the maximum frequency from the breakpoints
+        max_frequency = breakpoints[0][0] if breakpoints else 250000  # Use highest frequency or default
+        
+        # Create breakpoints info if we've calculated it
+        breakpoints_info = ""
+        if breakpoints and gsc_threshold == 0:
+            breakpoints_info = Div(
+                H5("Meaningful Min Frequency Values (with GSC=0):", style="margin-bottom: 5px; color: #ccc;"),
+                Table(
+                    *[Tr(
+                        Td(f"Show {count} parameters:", style="color: #bbb; padding-right: 10px;"),
+                        Td(f"{'~' if freq > 100 else ''}{freq:,}", style="color: #ff8c00; font-weight: bold; text-align: right;")
+                    ) for freq, count in breakpoints],
+                    style="margin-bottom: 10px; font-size: 0.9em;"
+                ),
+                style="background: #222; padding: 10px; border-radius: 5px; margin-bottom: 15px;"
+            )
+        
         # Return the form with the properly placed breakpoints info
         return Div(
             Card(
@@ -1878,8 +1896,8 @@ class ParameterBusterWorkflow:
                                     id="min_frequency_slider", 
                                     value=min_frequency, 
                                     min="0", 
-                                    max="250000", 
-                                    step="1000",
+                                    max=str(max_frequency),  # Use the dynamic max value
+                                    step=str(max(1, max_frequency // 100)),  # Dynamic step size
                                     style="flex-grow: 1; margin: 0 10px;",
                                     _oninput="document.getElementById('min_frequency').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
@@ -1893,7 +1911,8 @@ class ParameterBusterWorkflow:
                                     id="min_frequency", 
                                     value=min_frequency, 
                                     min="0", 
-                                    max="250000", 
+                                    max=str(max_frequency),  # Use the dynamic max value
+                                    step=str(max(1, max_frequency // 100)),  # Dynamic step size
                                     style="width: 150px;",
                                     _oninput="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
                                     _onchange="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
@@ -4132,7 +4151,7 @@ removeWastefulParams();
             ax.set_yticklabels(truncated_params, fontsize=8, color='white')
             ax.set_xlabel('Occurrences (log scale)', color='white')
             ax.set_ylabel('Parameters', color='white')
-            ax.set_title(f'Top {TOP_PARAMS_COUNT} Parameters by Data Source (Log Scale)', color='white')
+            ax.set_title(f'Displaying {TOP_PARAMS_COUNT} Parameters with Log Scale (to show smaller values)', color='white')
             ax.tick_params(axis='both', colors='white')
             ax.legend(loc='lower right', facecolor='#2d2d3a', edgecolor='#555555', labelcolor='white')
 
@@ -4257,6 +4276,13 @@ removeWastefulParams();
                     
                     # Add file status section before the chart
                     NotStr(file_status_html),
+                    
+                    # Add note about parameter count being display-only
+                    P(
+                        "Note: The number of parameters shown below is controlled by the slider and only affects the visualization. " 
+                        "It does not impact the underlying analysis. You can revert Step 5 and ajdust it to up to 250.",
+                        style="font-size: 0.85em; color: #888; font-style: italic; margin-bottom: 15px;"
+                    ),
                     
                     Div(
                         NotStr(f'<img src="data:image/png;base64,{img_str}" style="width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
@@ -4399,8 +4425,8 @@ removeWastefulParams();
                 H5("Meaningful Min Frequency Values (with GSC=0):", style="margin-bottom: 5px; color: #ccc;"),
                 Table(
                     *[Tr(
-                        Td(f"Show ~{count} parameters:", style="color: #bbb; padding-right: 10px;"),
-                        Td(f"{freq:,}", style="color: #ff8c00; font-weight: bold; text-align: right;")
+                        Td(f"Show {count} parameters:", style="color: #bbb; padding-right: 10px;"),
+                        Td(f"{'~' if freq > 100 else ''}{freq:,}", style="color: #ff8c00; font-weight: bold; text-align: right;")
                     ) for freq, count in breakpoints_info],
                     style="margin-bottom: 10px; font-size: 0.9em;"
                 ),
