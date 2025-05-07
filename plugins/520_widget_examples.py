@@ -174,6 +174,12 @@ class WidgetExamples:
                 show='URL Opener Widget',
                 refill=True,
             ),
+            Step(
+                id='step_09',
+                done='placeholder',
+                show='New Placeholder Step',
+                refill=True,
+            ),
         ]
         
         # Standard workflow routes
@@ -207,6 +213,10 @@ class WidgetExamples:
             "new": "Please complete each step to explore different widget types.",
             "step_08": {
                 "input": f"{pip.fmt('step_08')}: Please complete New Placeholder Step.",
+                "complete": f"New Placeholder Step complete. Continue to next step."
+            },
+            "step_09": {
+                "input": f"{pip.fmt('step_09')}: Please complete New Placeholder Step.",
                 "complete": f"New Placeholder Step complete. Continue to next step."
             },
             "step_07": {
@@ -2361,3 +2371,128 @@ This step serves as a placeholder for future widget types."""
             import traceback
             tb = traceback.format_exc()
             return Div(NotStr(f"<div style='color: red;'>Error creating histogram: {str(e)}<br><pre>{tb}</pre></div>"), _raw=True)
+
+    async def step_09(self, request):
+        """ 
+        Handles GET request for Step 9: New Placeholder Step.
+        
+        This is a blank placeholder step that can be customized for new widget types.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_09"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "")
+        
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P(f"Placeholder content: {user_val}")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+            
+        # Check if step is complete and not reverting
+        if user_val and state.get("_revert_target") != step_id:
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {user_val}",
+                widget=Div(
+                    P(f"Placeholder content: {user_val}")
+                ),
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+        else:
+            # Show input form
+            display_value = user_val if step.refill and user_val else "New placeholder content"
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P("Enter placeholder content:"),
+                    Form(
+                        Div(
+                            Input(
+                                type="text",
+                                name=step.done,
+                                placeholder="Enter placeholder content",
+                                required=True,
+                                value=display_value,
+                                cls="contrast"
+                            ),
+                            Div(
+                                Button("Save ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_09_submit(self, request):
+        """ 
+        Process the submission for Step 9 (New Placeholder Step).
+        
+        This is a blank placeholder step that can be customized for new widget types.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_09"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "").strip()
+        
+        if not user_val:
+            return P("Error: Content is required", style=pip.get_style("error"))
+
+        # Save content to state
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await self.message_queue.add(pip, f"Placeholder content set to: {user_val}", verbatim=True)
+        
+        # Create widget with content
+        placeholder_widget = Div(
+            P(f"Placeholder content: {user_val}")
+        )
+        
+        # Create content container
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: {user_val}",
+            widget=placeholder_widget,
+            steps=steps
+        )
+        
+        # Create full response
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        # Send confirmation message
+        await self.message_queue.add(pip, f"Placeholder content saved: {user_val}", verbatim=True)
+        
+        return HTMLResponse(to_xml(response_content))
