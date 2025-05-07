@@ -1870,9 +1870,9 @@ class ParameterBusterWorkflow:
                             Small("Lower GSC Threshold to lower risk (generally keep set to 0)", style="color: #888; font-style: italic;"),
                             Div(
                                 Label(
-                                    NotStr("<strong>GSC Threshold:</strong>"), 
+                                    NotStr("GSC Threshold:"), 
                                     For="gsc_threshold",
-                                    style="min-width: 180px;"
+                                    style="min-width: 180px; color: #888;"  # Changed to gray and removed bold
                                 ),
                                 Input(
                                     type="range", 
@@ -1882,7 +1882,7 @@ class ParameterBusterWorkflow:
                                     min="0", 
                                     max="100", 
                                     step="1",
-                                    style="flex-grow: 1; margin: 0 10px;",
+                                    style="width: 60%; margin: 0 10px;",  # Changed from flex-grow to fixed width percentage
                                     _oninput="document.getElementById('gsc_threshold').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
                                     hx_trigger="input changed delay:300ms, load",
@@ -4713,7 +4713,7 @@ removeWastefulParams();
             robots_txt_rules = "\n".join([f"Disallow: /*?*{param}=*" for param in params_list])
 
             # Create parameter list string - show all parameters without truncation
-            param_list_str = "\n".join([f"- `{param}`" for param in params_list])
+            param_list_str = "\n".join([f"- {param}" for param in params_list])
 
             # Create more condensed markdown content with details tags OUTSIDE list items
             markdown_content = f"""# PageWorkers Optimization Ready to Copy/Paste
@@ -5022,7 +5022,7 @@ User-agent: *
         
         # If this should clear subsequent steps
         if clear_previous:
-            pip.clear_state_from_step(state, step_id, steps)
+            await pip.clear_steps_from(pipeline_id, step_id, steps)
         
         # Clear revert target if any
         if "_revert_target" in state:
