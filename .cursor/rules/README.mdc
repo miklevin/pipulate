@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor Rules Organization
+
+## File Naming Conventions
+
+### Core Philosophy Files
+- `philosophy-*.mdc`: Core philosophical principles
+  - `philosophy-core.mdc`: Main philosophical principles
+  - `philosophy-simplicity.mdc`: Modern simplicity approach
+  - `philosophy-webmaster.mdc`: Webmaster era principles
+  - `philosophy-future.mdc`: Future-proofing principles
+
+### Architecture Files
+- `architecture-*.mdc`: System architecture and design
+  - `architecture-core.mdc`: Core architecture principles
+  - `architecture-state.mdc`: State management
+  - `architecture-workflow.mdc`: Workflow system
+  - `architecture-widget.mdc`: Widget system
+
+### Implementation Guides
+- `implementation-*.mdc`: How to implement features
+  - `implementation-workflow.mdc`: Workflow implementation
+  - `implementation-widget.mdc`: Widget implementation
+  - `implementation-htmx.mdc`: HTMX implementation
+  - `implementation-nix.mdc`: Nix implementation
+
+### Pattern Files
+- `pattern-*.mdc`: Reusable patterns and conventions
+  - `pattern-chain-reaction.mdc`: Chain reaction pattern
+  - `pattern-placeholder.mdc`: Placeholder pattern
+  - `pattern-wet.mdc`: WET workflow pattern
+  - `pattern-button.mdc`: Button conventions
+
+### Integration Files
+- `integration-*.mdc`: External system integration
+  - `integration-llm.mdc`: Local LLM integration
+  - `integration-minidataapi.mdc`: MiniDataAPI integration
+  - `integration-cookie.mdc`: Magic cookie system
+
+## File Organization
+
+### Core Philosophy
+- High-level principles and approaches
+- System-wide decisions and rationale
+- Future direction and vision
+
+### Architecture
+- System design and structure
+- Component relationships
+- State management
+- Data flow
+
+### Implementation
+- Step-by-step guides
+- Code examples
+- Best practices
+- Common pitfalls
+
+### Patterns
+- Reusable solutions
+- Conventions
+- Anti-patterns
+- Best practices
+
+### Integration
+- External system integration
+- API usage
+- Configuration
+- Security
+
+## Related Rules
+- [Philosophy Core](mdc:philosophy-core.mdc)
+- [Architecture Core](mdc:architecture-core.mdc)
+- [Implementation Core](mdc:implementation-core.mdc)
+- [Pattern Core](mdc:pattern-core.mdc)
+- [Integration Core](mdc:integration-core.mdc)
+

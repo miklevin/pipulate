@@ -1,0 +1,113 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Future-Proofing Guide
+
+## Core Principles
+
+### 1. Technology Choices
+- Choose battle-tested tools
+- Avoid trendy frameworks
+- Focus on standards
+- Keep it simple
+- Plan for longevity
+
+### 2. Architecture Decisions
+- Design for change
+- Keep it modular
+- Avoid tight coupling
+- Plan for growth
+- Stay flexible
+
+### 3. Development Practices
+- Write clear code
+- Document decisions
+- Keep it maintainable
+- Focus on quality
+- Plan for the future
+
+## Future-Proof Patterns
+
+### 1. Environment Management
+- Use Nix for reproducibility
+- Keep dependencies minimal
+- Document requirements
+- Plan for updates
+- Stay compatible
+
+### 2. Data Management
+- Use SQLite for simplicity
+- Keep data portable
+- Plan for growth
+- Stay flexible
+- Focus on integrity
+
+### 3. Web Development
+- Use FastHTML for simplicity
+- Keep it server-side
+- Plan for growth
+- Stay flexible
+- Focus on performance
+
+### 4. Local-First Approach
+- Keep data local
+- Plan for sync
+- Stay flexible
+- Focus on privacy
+- Plan for the future
+
+## Anti-Patterns to Avoid
+
+### 1. Technology Lock-in
+- Avoid vendor lock-in
+- Stay independent
+- Keep it portable
+- Plan for change
+- Stay flexible
+
+### 2. Framework Dependencies
+- Avoid heavy frameworks
+- Keep it simple
+- Stay independent
+- Plan for change
+- Stay flexible
+
+### 3. Complex Architecture
+- Avoid microservices
+- Keep it simple
+- Stay maintainable
+- Plan for growth
+- Stay flexible
+
+## Best Practices
+
+### 1. Development Approach
+- Start simple
+- Add complexity only when needed
+- Keep it maintainable
+- Plan for growth
+- Stay flexible
+
+### 2. Code Organization
+- Keep it modular
+- Stay maintainable
+- Plan for growth
+- Stay flexible
+- Focus on quality
+
+### 3. Testing Strategy
+- Keep it simple
+- Stay maintainable
+- Plan for growth
+- Stay flexible
+- Focus on quality
+
+## Related Rules
+- [Modern Simplicity](mdc:modern-simplicity.mdc)
+- [Webmaster Era](mdc:webmaster-era.mdc)
+- [Nix Environment](mdc:nix-environment.mdc)
+- [FastHTML MiniDataAPI](mdc:fasthtml-minidataapi.mdc)
+- [HTMX Chain Reactions](mdc:htmx-chain-reactions.mdc)
+- [WET Workflows](mdc:wet-workflows.mdc)

@@ -1,0 +1,98 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Modern Webmaster Guide
+
+## The New Webmaster Era
+
+### Core Philosophy
+- One person can manage the entire stack
+- Full control over the system
+- Deep understanding of all components
+- No silos or handoffs
+- Maximum productivity
+
+### Modern Tooling
+- Nix for environment management
+- FastHTML for server-side rendering
+- HTMX for dynamic updates
+- SQLite for data storage
+- Python for everything else
+
+## Key Responsibilities
+
+### 1. System Architecture
+- Design simple, maintainable systems
+- Choose appropriate tools
+- Avoid unnecessary complexity
+- Focus on productivity
+- Keep it local-first
+
+### 2. Development
+- Write clean, simple code
+- Use modern tools effectively
+- Maintain full stack knowledge
+- Focus on user experience
+- Keep it maintainable
+
+### 3. Operations
+- Manage environments with Nix
+- Deploy with confidence
+- Monitor system health
+- Handle errors gracefully
+- Keep it running
+
+### 4. Data Management
+- Design simple data models
+- Use SQLite effectively
+- Keep data local
+- Ensure data integrity
+- Make it accessible
+
+## Best Practices
+
+### Development Approach
+- Start simple
+- Add complexity only when needed
+- Use modern tools effectively
+- Focus on productivity
+- Keep it maintainable
+
+### Code Organization
+- Clear, simple structure
+- Minimal dependencies
+- Observable behavior
+- Easy to understand
+- Easy to modify
+
+### Testing Strategy
+- Simple, pragmatic tests
+- Focus on functionality
+- Observable behavior
+- No complex frameworks
+- Easy to maintain
+
+## Anti-Patterns to Avoid
+
+### Enterprise Complexity
+- Microservices
+- Complex ORMs
+- Heavy JavaScript frameworks
+- Distributed systems
+- Over-engineered security
+
+### Framework Fatigue
+- JavaScript framework churn
+- Complex build systems
+- Heavy abstractions
+- Unnecessary complexity
+- Over-automation
+
+## Related Rules
+- [Modern Simplicity](mdc:modern-simplicity.mdc)
+- [Nix Environment](mdc:nix-environment.mdc)
+- [FastHTML MiniDataAPI](mdc:fasthtml-minidataapi.mdc)
+- [HTMX Chain Reactions](mdc:htmx-chain-reactions.mdc)
+- [WET Workflows](mdc:wet-workflows.mdc)
