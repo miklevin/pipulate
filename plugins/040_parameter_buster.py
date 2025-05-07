@@ -111,7 +111,7 @@ class ParameterBusterWorkflow:
             Step(
                 id='step_05',
                 done='placeholder',
-                show='Analyze Parameters',
+                show='Count Parameters Per Source',
                 refill=True,
             ),
             Step(
@@ -199,10 +199,10 @@ class ParameterBusterWorkflow:
             "complete": "Web logs check complete. Continue to next step."
         }
 
-        # Add specific message for step_05 (Analyze Parameters)
+        # Add specific message for step_05 (Count Parameters)
         self.step_messages["step_05"] = {
-            "input": f"{pip.fmt('step_05')}: Please analyze the parameters.",
-            "complete": "Parameter analysis complete. Ready to finalize."
+            "input": f"{pip.fmt('step_05')}: Please count the parameters.",
+            "complete": "Parameter count complete. Ready to finalize."
         }
 
         # Add the finalize step internally
@@ -1194,7 +1194,7 @@ class ParameterBusterWorkflow:
         return Div(
             Card(
                 H3(f"{step.show}"),
-                P("Create counters for querystring parameters for each of the following:", style="margin-bottom: 15px;"),
+                P("This will create counters for your querystring parameters for each of the following:", style="margin-bottom: 15px;"),
                 Ul(
                     Li("Crawl data from Botify analysis"),
                     Li("Search Console performance data"),
@@ -1204,7 +1204,8 @@ class ParameterBusterWorkflow:
                 Form(
                     Div(
                         P(
-                            "Note: This slider only controls how many parameters are displayed and can be adjusted at any time. " 
+                            "Note: It doesn't matter what you choose here. "
+                            "This slider only controls how many parameters are displayed and can be adjusted at any time. " 
                             "It does not affect the underlying analysis.",
                             style=pip.get_style("muted") + "margin-bottom: 10px;"
                         ),
@@ -1239,7 +1240,7 @@ class ParameterBusterWorkflow:
                         style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"
                     ),
                     Button(
-                        "Analyze Parameters ▸",  # Removed the NotStr("<strong>...</strong>")
+                        "Count Parameters ▸",  # Removed the NotStr("<strong>...</strong>")
                         type="submit", 
                         cls="primary"
                     ),
@@ -1306,7 +1307,7 @@ class ParameterBusterWorkflow:
         # First, return a progress indicator immediately
         return Card(
             H3(f"{step.show}"),
-            P("Analyzing parameters...", style="margin-bottom: 15px;"),
+            P("Counting parameters...", style="margin-bottom: 15px;"),
             Progress(style="margin-top: 10px;"),
             Script("""
             setTimeout(function() {
@@ -1354,7 +1355,7 @@ class ParameterBusterWorkflow:
 
         try:
             # Show a single processing message instead of detailed progress
-            await self.message_queue.add(pip, "Analyzing parameters...", verbatim=True)
+            await self.message_queue.add(pip, "Counting parameters...", verbatim=True)
             
             # Determine data directory
             data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
@@ -1897,7 +1898,7 @@ class ParameterBusterWorkflow:
                                     value=min_frequency, 
                                     min="0", 
                                     max=str(max_frequency),  # Use the dynamic max value
-                                    step=str(max(1, max_frequency // 100)),  # Dynamic step size
+                                    step="1",  # Change to 1 for finest granularity
                                     style="flex-grow: 1; margin: 0 10px;",
                                     _oninput="document.getElementById('min_frequency').value = this.value; triggerParameterPreview();",
                                     hx_post=f"/{app_name}/parameter_preview",
@@ -1912,7 +1913,7 @@ class ParameterBusterWorkflow:
                                     value=min_frequency, 
                                     min="0", 
                                     max=str(max_frequency),  # Use the dynamic max value
-                                    step=str(max(1, max_frequency // 100)),  # Dynamic step size
+                                    step="1",  # Change to 1 for finest granularity
                                     style="width: 150px;",
                                     _oninput="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
                                     _onchange="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();",
@@ -3509,7 +3510,7 @@ removeWastefulParams();
             return P(f"Error: {str(e)}", style=pip.get_style("error"))
 
     async def analyze_parameters(self, username, project_name, analysis_slug):
-        """Analyzes URL parameters from crawl, GSC, and web logs data.
+        """Counts URL parameters from crawl, GSC, and web logs data.
         
         Args:
             username: Organization username
@@ -4048,7 +4049,7 @@ removeWastefulParams();
                 .na-val { color: #666666 !important; text-align: right; font-style: italic; }
             </style>
             <table class="param-table">
-                <caption>Potential Parameter Wins (High Weblogs+NotIndex / Low GSC)</caption>
+                <caption>Displaying ''' + str(TOP_PARAMS_COUNT) + ''' Parameters with Scoring (to help identify optimization targets)</caption>
                 <tr class="header">
                     <td class="header-cell"><span class="param-name">Parameter</span></td>
                     <td class="header-cell"><span class="weblogs-val">Weblogs</span></td>
@@ -4306,8 +4307,38 @@ removeWastefulParams();
                         NotStr(f'<img src="data:image/png;base64,{img_str}" style="width:100%; height:auto;" alt="Parameter Distribution Chart" />'),
                         style="text-align: center; margin-top: 1rem;"
                     ),
+
+                    # Add explanation of data sources
+                    Div(
+                        H4("Understanding Your Data Sources", style="color: #ccc; margin-bottom: 10px;"),
+                        P(
+                            "The table below shows parameter data from three critical sources:",
+                            style="margin-bottom: 10px;"
+                        ),
+                        Ul(
+                            Li(
+                                Span("Web Logs ", style="color: #4fa8ff; font-weight: bold;"),
+                                "(Blue): Shows Googlebot crawler behavior. High parameter counts here are natural as Google's crawler "
+                                "thoroughly explores your site structure.",
+                                style="margin-bottom: 8px;"
+                            ),
+                            Li(
+                                Span("Not-Indexable ", style="color: #ff0000; font-weight: bold;"),
+                                "(Red): From Botify's crawl analysis, identifying URLs that cannot be indexed for various technical reasons. "
+                                "Parameters appearing here often indicate potential optimization opportunities.",
+                                style="margin-bottom: 8px;"
+                            ),
+                            Li(
+                                Span("GSC ", style="color: #50fa7b; font-weight: bold;"),
+                                "(Green): URLs that have received any impressions in Google Search Console. Parameters appearing here "
+                                "are actively involved in your search presence and should be handled with caution. This is why we "
+                                "recommend keeping the GSC Threshold at 0.",
+                                style="margin-bottom: 8px;"
+                            )
+                        ),
+                        style="background: #222; padding: 15px; border-radius: 5px; margin: 20px 0;"
+                    ),
                     
-                    H4("Potential Parameter Wins"),
                     NotStr(table_html),
                     
                     debug_section,
