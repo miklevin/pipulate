@@ -19,43 +19,41 @@ This directory contains recipes for transforming placeholder steps in Pipulate w
 ## Using Widget Recipes
 
 1. **Start with a placeholder step** created using the instructions in `widget_implementation_guide.md`.
-2. **Choose a recipe** that matches your needs from the ones available below.
+2. **Choose a recipe** from the appropriate category below that matches your needs.
 3. **Follow the implementation phases** described in the recipe, which typically include:
    - Adding helper methods to your workflow class
    - Updating the Step definition
    - Modifying the GET and SUBMIT handlers
    - Adding any additional routes or handlers needed
 
-## Available Recipes
+## Recipe Categories
 
-### Input Collection Widgets
+### Input Widgets (`input/`)
+Widgets for collecting user input:
+- `text_input.md`: Basic text input with validation
+- `url_input.md`: URL validation and processing
+- `dropdown.md`: Selection widget with options
 
-| Recipe | Description | Key Features | Critical Notes |
-|--------|-------------|-------------|----------------|
-| [Text Input Widget](01_text_input_widget.md) | Basic text input with validation | Simple, reusable text input pattern | Preserves chain reaction |
-| [Botify URL Widget](02_botify_url_widget.md) | Validates and extracts Botify project URLs | URL pattern validation, data extraction | Handles serialization |
-| [Dropdown Selection Widget](03_dropdown_selection_widget.md) | Selection widget with options | Dynamic options, preset selections | Maintains state |
+### Display Widgets (`display/`)
+Widgets for presenting information:
+- `table.md`: DataFrame and table rendering
+- `markdown.md`: Markdown content display
+- `mermaid.md`: Diagram generation and display
 
-### Data Display Widgets
+### Operation Widgets (`operation/`)
+Widgets for performing actions:
+- `file_download.md`: File download management
+- `javascript.md`: Client-side code execution
+- `api_request.md`: External API integration
 
-| Recipe | Description | Key Features | Critical Notes |
-|--------|-------------|-------------|----------------|
-| [Pandas Table Widget](04_pandas_table_widget.md) | Creates and displays DataFrame tables | CSV processing, HTML table rendering | Memory management |
-| [Markdown Widget](05_markdown_widget.md) | Renders Markdown content | Text formatting, code blocks | Security aware |
-| [Mermaid Diagram Widget](06_mermaid_diagram_widget.md) | Creates flowcharts and diagrams | Interactive diagrams, code generation | Client-side rendering |
+### Integration Widgets (`integration/`)
+Widgets for external system integration:
+- `browser.md`: Browser automation integration
+- `search.md`: Search engine integration
 
-### Operational Widgets
+## Recipe Template
 
-| Recipe | Description | Key Features | Critical Notes |
-|--------|-------------|-------------|----------------|
-| [API Request Widget](07_api_request_widget.md) | Makes API calls to external services | Request configuration, response handling | Error handling |
-| [CSV Download Widget](08_csv_download_widget.md) | Manages file downloads with status | Progress tracking, async operations | Chain preservation |
-| [Polling Status Widget](09_polling_status_widget.md) | Polls for status of long-running operations | Automatic updates, completion detection | State management |
-| [File Upload Widget](10_file_upload_widget.md) | Handles file uploads | Validation, processing | Security focus |
-
-## Widget Recipe Template
-
-When creating new widget recipes, use the [Widget Recipe Template](00_widget_recipe_template.md) as a starting point to ensure consistency across all recipes.
+When creating new widget recipes, use the template in `_template/widget_recipe_template.md` as a starting point to ensure consistency across all recipes.
 
 ## Customization Markers
 
@@ -106,10 +104,10 @@ Common integration issues and solutions:
 
 To add new widget recipes:
 
-1. Copy the template from `00_widget_recipe_template.md`
-2. Create a new file with an appropriate name, using the next available number
+1. Copy the template from `_template/widget_recipe_template.md`
+2. Create a new file in the appropriate category directory
 3. Implement the recipe following the standard format
-4. Update this README to include your new recipe in the appropriate category
+4. Update this README to include your new recipe
 5. Test the recipe by implementing it in a real workflow
 6. Verify chain reaction pattern preservation
 7. Document any special considerations or limitations
