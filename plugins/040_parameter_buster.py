@@ -1769,6 +1769,22 @@ class ParameterBusterWorkflow:
                         if breakpoints:
                             breakpoints_html = f"""
                             <div style="background: #222; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                                <div style="font-size: 0.85em; color: #888; font-style: italic; margin-bottom: 15px;">
+                                    <p style="margin-bottom: 8px;">
+                                        There are two key settings above: The GSC Threshold and Minimum Frequency. Keep GSC Threshold at 0 to protect 
+                                        parameters that appear in URLs receiving any Google Search Console impressions—these are your "working" parameters.
+                                    </p>
+                                    <p style="margin-bottom: 8px;">
+                                        The Minimum Frequency determines how aggressive your parameter optimization will be. URLs with parameters that appear 
+                                        frequently in crawls but never in search results represent pure crawl budget waste.
+                                    </p>
+                                    <p>
+                                        Instead of manually adjusting the frequency, we've identified the key breakpoints below. Click the 
+                                        <span style="color: #ff8c00;">orange numbers</span> to see which parameters would be affected. Start conservatively 
+                                        with the highest frequency (fewer parameters) and become more aggressive over time by selecting lower frequencies 
+                                        to optimize more parameters.
+                                    </p>
+                                </div>
                                 <h5 style="margin-bottom: 5px; color: #ccc;">Meaningful Min Frequency Values (with GSC=0):</h5>
                                 <table style="margin-bottom: 10px; font-size: 0.9em;">
                             """
@@ -4659,7 +4675,7 @@ removeWastefulParams();
             markdown_content = f"""# PageWorkers Optimization Ready to Copy/Paste
 
 ## Instructions
-1. Copy/Paste that JavaScript into a new PageWorkers custom Optimization.
+1. Copy/Paste the JavaScript (found above) into a new PageWorkers custom Optimization.
 2. Update the `REPLACE_ME!!!` with the ID found in the URL of the Optimization.
 
 **Parameter Optimization Settings**
