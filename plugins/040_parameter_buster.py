@@ -2882,20 +2882,27 @@ removeWastefulParams();
                 job_id_index = parts.index('jobs') + 1
                 if job_id_index < len(parts):
                     job_id = parts[job_id_index]
+                    await self.message_queue.add(self.pipulate, f"Using job ID {job_id} for polling...", verbatim=True)
         except Exception:
             pass
             
-        logging.info(f"Starting polling for job: {job_url}" + (f" (ID: {job_id})" if job_id else ""))
+        poll_msg = f"Starting polling for job: {job_url}" + (f" (ID: {job_id})" if job_id else "")
+        logging.info(poll_msg)
+        await self.message_queue.add(self.pipulate, poll_msg, verbatim=True)
         
         while attempt < max_attempts:
             try:
-                logging.info(f"Polling job status (attempt {attempt+1}/{max_attempts}): {job_url}")
+                poll_attempt_msg = f"Poll attempt {attempt+1}/{max_attempts} for job: {job_url}"
+                logging.info(poll_attempt_msg)
+                await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
                 
                 # If we have had network errors and we have a job ID, reconstruct the URL
                 if consecutive_network_errors >= 2 and job_id:
                     alternative_url = f"https://api.botify.com/v1/jobs/{job_id}"
                     if alternative_url != job_url:
-                        logging.info(f"Switching to direct job ID URL: {alternative_url}")
+                        url_switch_msg = f"Switching to direct job ID URL: {alternative_url}"
+                        logging.info(url_switch_msg)
+                        await self.message_queue.add(self.pipulate, url_switch_msg, verbatim=True)
                         job_url = alternative_url
                 
                 async with httpx.AsyncClient(timeout=45.0) as client:  # Increased timeout
@@ -2910,27 +2917,36 @@ removeWastefulParams();
                     # Log the raw response for debugging
                     try:
                         response_json = response.json()
-                        logging.info(f"Poll response: {json.dumps(response_json, indent=2)}")
+                        logging.debug(f"Poll response: {json.dumps(response_json, indent=2)}")
                     except:
-                        logging.info(f"Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}")
+                        logging.debug(f"Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}")
                     
                     if response.status_code == 401:
-                        logging.error("Authentication error (401) during polling")
-                        return False, "Authentication failed. Please check your API token."
+                        error_msg = "Authentication failed. Please check your API token."
+                        logging.error(error_msg)
+                        await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
+                        return False, error_msg
                         
                     # Handle other error codes
                     if response.status_code >= 400:
-                        logging.error(f"Error response {response.status_code} during polling: {response.text}")
-                        return False, f"API error {response.status_code}: {response.text}"
+                        error_msg = f"API error {response.status_code}: {response.text}"
+                        logging.error(error_msg)
+                        await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
+                        return False, error_msg
                         
                     job_data = response.json()
                     status = job_data.get('job_status')
                     
-                    logging.info(f"Poll attempt {attempt+1}: status={status}")
+                    status_msg = f"Poll attempt {attempt+1}: status={status}"
+                    logging.info(status_msg)
+                    await self.message_queue.add(self.pipulate, status_msg, verbatim=True)
                     
                     if status == 'DONE':
                         # Capture all metadata
                         results = job_data.get('results', {})
+                        success_msg = "Job completed successfully!"
+                        logging.info(success_msg)
+                        await self.message_queue.add(self.pipulate, f"✓ {success_msg}", verbatim=True)
                         return True, {
                             "download_url": results.get("download_url"),
                             "row_count": results.get("row_count"),
@@ -2943,34 +2959,54 @@ removeWastefulParams();
                         error_details = job_data.get('error', {})
                         error_message = error_details.get('message', 'Unknown error')
                         error_type = error_details.get('type', 'Unknown type')
-                        logging.error(f"Job failed with error type: {error_type}, message: {error_message}")
+                        error_msg = f"Job failed with error type: {error_type}, message: {error_message}"
+                        logging.error(error_msg)
+                        await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
                         return False, f"Export failed: {error_message} (Type: {error_type})"
                         
                     # Still processing
                     attempt += 1
+                    wait_msg = f"Job still processing. Waiting {delay} seconds before next attempt..."
+                    logging.info(wait_msg)
+                    await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                     await asyncio.sleep(delay)
                     delay = min(delay * 1.5, 20)  # Exponential backoff, but cap at 20 seconds
                     
             except (httpx.RequestError, socket.gaierror, socket.timeout) as e:
                 # Network errors - retry with backoff
                 consecutive_network_errors += 1
-                logging.error(f"Network error polling job status: {str(e)}")
+                error_msg = f"Network error polling job status: {str(e)}"
+                logging.error(error_msg)
+                await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
                 
                 # Try to extract job ID and rebuild URL no matter what on network errors
                 if job_id:
                     job_url = f"https://api.botify.com/v1/jobs/{job_id}"
-                    logging.warning(f"Retry with direct job ID URL: {job_url}")
+                    retry_msg = f"Retry with direct job ID URL: {job_url}"
+                    logging.warning(retry_msg)
+                    await self.message_queue.add(self.pipulate, retry_msg, verbatim=True)
                 
                 attempt += 1
+                wait_msg = f"Network error. Waiting {delay} seconds before retry..."
+                logging.info(wait_msg)
+                await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 30)  # Longer backoff for network errors, cap at 30 seconds
                 
             except Exception as e:
-                logging.exception(f"Unexpected error in polling: {str(e)}")
+                error_msg = f"Unexpected error in polling: {str(e)}"
+                logging.exception(error_msg)
+                await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
                 attempt += 1
+                wait_msg = f"Unexpected error. Waiting {delay} seconds before retry..."
+                logging.info(wait_msg)
+                await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 30)
                 
+        max_attempts_msg = "Maximum polling attempts reached"
+        logging.warning(max_attempts_msg)
+        await self.message_queue.add(self.pipulate, f"⚠️ {max_attempts_msg}", verbatim=True)
         return False, "Maximum polling attempts reached. The export job may still complete in the background."
 
     async def step_02_process(self, request):
