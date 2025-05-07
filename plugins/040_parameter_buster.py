@@ -1063,7 +1063,7 @@ class ParameterBusterWorkflow:
             
             # Process data and wait for completion - key change here
             await self.process_search_console_data(
-                pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result
+                pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result, app_name, step
             )
         else:
             # No search console data
@@ -1082,7 +1082,7 @@ class ParameterBusterWorkflow:
                 step_id=step_id, 
                 app_name=app_name, 
                 message=f"{step.show}: {completed_message}",
-                steps=steps
+                steps=self.steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
@@ -2410,11 +2410,12 @@ removeWastefulParams();
         directory = os.path.dirname(filepath)
         os.makedirs(directory, exist_ok=True)
 
-    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
+    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result, app_name, step):
         """Process search console data in the background."""
         
-        # Add detailed logging
-        logging.info(f"Starting real GSC data export for {username}/{project_name}/{analysis_slug}")
+        # Calculate next step ID
+        step_index = self.steps_indices[step_id]
+        next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
         
         try:
             # Determine file path for this export
@@ -2444,8 +2445,8 @@ removeWastefulParams();
                     pip.revert_control(
                         step_id=step_id, 
                         app_name=app_name, 
-                        message=f"{step.show}: Project {status_text} Search Console data (already downloaded, using cached)",
-                        steps=steps
+                        message=f"{step.show}: Project HAS Search Console data (already downloaded, using cached)",
+                        steps=self.steps
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
@@ -2619,6 +2620,18 @@ removeWastefulParams();
             check_result_str = json.dumps(check_result)
             await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
             
+            # Return completed view with appropriate message
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: Project HAS Search Console data ({'already downloaded, using cached' if check_result.get('download_info', {}).get('cached', False) else 'data downloaded'})",
+                    steps=self.steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
         except Exception as e:
             logging.exception(f"Error in process_search_console_data: {e}")
             
@@ -2999,7 +3012,7 @@ removeWastefulParams();
                         step_id=step_id, 
                         app_name=app_name, 
                         message=f"{step.show}: {analysis_slug} (already downloaded, using cached)",
-                        steps=steps
+                        steps=self.steps
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
@@ -3193,7 +3206,7 @@ removeWastefulParams();
             
             # Update state with complete analysis info including download results
             analysis_result_str = json.dumps(analysis_result)
-            await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
+            await pip.update_step_state(pipeline_id, step_id, analysis_result_str, self.steps)
             
             # Return the completed view
             return Div(
@@ -3201,7 +3214,7 @@ removeWastefulParams();
                     step_id=step_id, 
                     app_name=app_name, 
                     message=f"{step.show}: {analysis_slug} (data downloaded)",
-                    steps=steps
+                    steps=self.steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -3281,7 +3294,7 @@ removeWastefulParams();
                             step_id=step_id, 
                             app_name=app_name, 
                             message=f"{step.show}: Project {status_text} web logs (already downloaded, using cached)",
-                            steps=steps
+                            steps=self.steps
                         ),
                         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                         id=step_id
@@ -3426,7 +3439,7 @@ removeWastefulParams();
                             check_result_str = json.dumps(check_result)
                             
                             # Store in state
-                            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+                            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
                             
                             # Return result display with explanatory message
                             return Div(
@@ -3434,7 +3447,7 @@ removeWastefulParams();
                                     step_id=step_id, 
                                     app_name=app_name, 
                                     message=f"{step.show}: Project logs couldn't be processed (using fallback)",
-                                    steps=steps
+                                    steps=self.steps
                                 ),
                                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                                 id=step_id
@@ -3522,7 +3535,7 @@ removeWastefulParams();
             check_result_str = json.dumps(check_result)
             
             # Store in state
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
             
             # Return result display
             status_color = "green" if has_logs else "red"
@@ -3535,7 +3548,7 @@ removeWastefulParams();
                     step_id=step_id, 
                     app_name=app_name, 
                     message=f"{step.show}: Project {status_text} web logs{download_message}",
-                    steps=steps
+                    steps=self.steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -4681,7 +4694,7 @@ User-agent: *
                 }
                 
                 # Use our custom method instead of pip.update_step_state
-                await self.update_state_with_html(pipeline_id, step_id, markdown_data, steps, clear_previous=False)
+                await self.update_state_with_html(pipeline_id, step_id, markdown_data, self.steps, clear_previous=False)
                 # After saving, we'll still show the display state but state is now officially saved
         
         # Generate a unique ID for this instance
@@ -4732,7 +4745,7 @@ User-agent: *
                             app_name=app_name,
                             message=f"{step.show}: Markdown Documentation",
                             widget=markdown_widget,
-                            steps=steps
+                            steps=self.steps
                         ),
                         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                         id=step_id
@@ -4749,7 +4762,7 @@ User-agent: *
         else:
             # When going into edit mode, clear the finalize state to prevent finalize button display
             if "finalized" in finalize_data:
-                await pip.clear_steps_from(pipeline_id, "finalize", steps)
+                await pip.clear_steps_from(pipeline_id, "finalize", self.steps)
             
             # Show input form for editing markdown content
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
@@ -4820,7 +4833,7 @@ User-agent: *
             "parameters_info": parameters_info
         }
         data_str = json.dumps(markdown_data)
-        await self.update_state_with_html(pipeline_id, step_id, markdown_data, steps)
+        await self.update_state_with_html(pipeline_id, step_id, markdown_data, self.steps)
         await self.message_queue.add(pip, f"{step.show}: Markdown content updated", verbatim=True)
         
         # Generate a unique ID for the markdown widget
@@ -4841,7 +4854,7 @@ User-agent: *
                         app_name=app_name,
                         message=f"{step.show}: Markdown Documentation",
                         widget=markdown_widget,
-                        steps=steps
+                        steps=self.steps
                     ),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                     id=step_id
