@@ -1,0 +1,41 @@
+.param-table {
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    color: white;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid white;
+    background-color: #000;
+}
+.param-table caption {
+    caption-side: top;
+    text-align: center;
+    font-weight: bold;
+    font-style: italic;
+    color: white;
+    background: transparent !important;
+    padding: 10px 0;
+    font-size: 1.1em;
+    letter-spacing: 0.5px;
+}
+.header-cell {
+    border-bottom: 4px solid white;
+    border-right: 4px solid white;
+    color: white;
+    background: #000;
+    font-weight: bold;
+    padding: 8px;
+}
+.header-cell:last-child {
+    border-right: none;
+}
+.param-table td {
+    background: #000;
+    padding: 8px;
+    border-right: 2px solid white;
+}
+.param-table td:last-child {
+    border-right: none;
+} 
