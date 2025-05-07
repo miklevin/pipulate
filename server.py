@@ -560,6 +560,12 @@ class Pipulate:
             """Add a message to the queue and process if not already processing."""
             # Log the message to the logger
             logger.info(f"[🔄 WORKFLOW] {message}")
+            
+            # Escape URLs in the message by replacing : with ꞉ (a special colon character)
+            # This prevents auto-linking while keeping the message readable
+            if isinstance(message, str):
+                message = message.replace("http:", "http꞉").replace("https:", "https꞉")
+            
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
                 await self._process_queue()

@@ -1769,23 +1769,31 @@ class ParameterBusterWorkflow:
                         if breakpoints:
                             breakpoints_html = f"""
                             <div style="background: #222; padding: 10px; border-radius: 5px; margin: 15px 0;">
-                                <div style="font-size: 0.85em; color: #888; font-style: italic; margin-bottom: 15px;">
-                                    <p style="margin-bottom: 8px;">
-                                        There are two key settings above: The GSC Threshold and Minimum Frequency. Keep GSC Threshold at 0 to protect 
-                                        parameters that appear in URLs receiving any Google Search Console impressions—these are your "working" parameters.
-                                    </p>
-                                    <p style="margin-bottom: 8px;">
-                                        The Minimum Frequency determines how aggressive your parameter optimization will be. URLs with parameters that appear 
-                                        frequently in crawls but never in search results represent pure crawl budget waste.
-                                    </p>
-                                    <p>
-                                        Instead of manually adjusting the frequency, we've identified the key breakpoints below. Click the 
-                                        <span style="color: #ff8c00;">orange numbers</span> to see which parameters would be affected. Start conservatively 
-                                        with the highest frequency (fewer parameters) and become more aggressive over time by selecting lower frequencies 
-                                        to optimize more parameters.
+                                <h4 style="color: #ccc; margin-bottom: 10px;">Understanding the Optimization Settings</h4>
+                                <p style="margin-bottom: 15px;">
+                                    There are two critical settings that control how parameters are optimized:
+                                </p>
+                                <ul style="margin-bottom: 15px;">
+                                    <li style="margin-bottom: 8px;">
+                                        <span style="color: #50fa7b; font-weight: bold;">GSC Threshold</span>: Keep this at 0 to protect parameters 
+                                        that appear in URLs receiving any Google Search Console impressions. These are your "working" parameters that 
+                                        are actively involved in search visibility.
+                                    </li>
+                                    <li style="margin-bottom: 8px;">
+                                        <span style="color: #ff8c00; font-weight: bold;">Minimum Frequency</span>: Controls how aggressive your optimization 
+                                        will be. Higher values target only the most wasteful parameters, while lower values optimize more parameters but 
+                                        require more careful testing.
+                                    </li>
+                                </ul>
+                                <div style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                                    <p style="color: #888; font-style: italic;">
+                                        Instead of manually adjusting these values, we've identified key breakpoints below. Click the 
+                                        <span style="color: #ff8c00; font-weight: bold;">orange numbers</span> to see which parameters would be affected. 
+                                        Start conservatively with higher frequencies (fewer parameters) and gradually become more aggressive by selecting 
+                                        lower frequencies.
                                     </p>
                                 </div>
-                                <h5 style="margin-bottom: 5px; color: #ccc;">Meaningful Min Frequency Values (with GSC=0):</h5>
+                                <h5 style="margin: 15px 0 10px 0; color: #ccc;">Meaningful Min Frequency Values (with GSC=0):</h5>
                                 <table style="margin-bottom: 10px; font-size: 0.9em;">
                             """
                             for freq, count in breakpoints:
