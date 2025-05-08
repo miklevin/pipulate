@@ -259,12 +259,18 @@ class DesignerWorkflow:
     async def step_01(self, request):
         """Handles GET request for Rich Table Widget.
         
-        This widget demonstrates a beautifully styled table with:
-        - Connected border lines
-        - Alternating row colors
-        - Bold headers with thicker borders
-        - Proper cell padding and alignment
-        - Color-coded columns
+        Widget Design Pattern:
+        Each widget implementation should keep the LLM informed about:
+        1. Widget Configuration: The input parameters/configuration
+        2. Widget State: Current display state (input, preview, finalized)
+        3. Widget Content: The actual rendered content
+        4. Widget Interactions: Any user interactions or data updates
+        
+        Use pip.append_to_history() with these standard markers:
+        - [WIDGET CONFIG] - Widget setup and parameters
+        - [WIDGET STATE] - Current widget lifecycle state
+        - [WIDGET CONTENT] - Actual content being displayed
+        - [WIDGET INTERACTION] - User actions and data changes
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -282,6 +288,12 @@ class DesignerWorkflow:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
+                
+                # Keep LLM informed about finalized widget state
+                pip.append_to_history(f"[WIDGET STATE] {step.show} (Finalized)")
+                pip.append_to_history(f"[WIDGET CONFIG] Table configuration:\n{json.dumps(data, indent=2)}")
+                pip.append_to_history(f"[WIDGET CONTENT] Rich table displaying {len(data)} rows with columns: {', '.join(data[0].keys())}")
+                
                 return Div(
                     Card(
                         H3(f"🔒 {step.show}"),
@@ -292,6 +304,7 @@ class DesignerWorkflow:
                 )
             except Exception as e:
                 logger.error(f"Error creating table widget in finalized view: {str(e)}")
+                pip.append_to_history(f"[WIDGET STATE] Error displaying finalized widget: {str(e)}")
                 return Div(
                     Card(f"🔒 {step.show}: <content locked>"),
                     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -303,6 +316,12 @@ class DesignerWorkflow:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
+                
+                # Keep LLM informed about completed widget state
+                pip.append_to_history(f"[WIDGET STATE] {step.show} (Completed)")
+                pip.append_to_history(f"[WIDGET CONFIG] Current table configuration:\n{json.dumps(data, indent=2)}")
+                pip.append_to_history(f"[WIDGET CONTENT] Rich table displaying {len(data)} rows with columns: {', '.join(data[0].keys())}")
+                
                 content_container = pip.widget_container(
                     step_id=step_id,
                     app_name=app_name,
@@ -317,6 +336,7 @@ class DesignerWorkflow:
                 )
             except Exception as e:
                 logger.error(f"Error creating table widget: {str(e)}")
+                pip.append_to_history(f"[WIDGET STATE] Error displaying widget: {str(e)}")
                 state["_revert_target"] = step_id
                 pip.write_state(pipeline_id, state)
 
@@ -327,6 +347,11 @@ class DesignerWorkflow:
             {"name": "Parameter 3", "value1": 3000, "value2": 1500, "value3": 150}
         ]
         display_value = table_data if step.refill and table_data else json.dumps(sample_data, indent=2)
+        
+        # Keep LLM informed about input form state
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing configuration form")
+        pip.append_to_history(f"[WIDGET CONFIG] Sample/default configuration:\n{json.dumps(sample_data, indent=2)}")
+        
         await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
         
         return Div(
@@ -360,7 +385,21 @@ class DesignerWorkflow:
         )
 
     async def step_01_submit(self, request):
-        """Process the submission for Rich Table Widget."""
+        """Process the submission for Rich Table Widget.
+        
+        Widget Submission Pattern:
+        When processing widget submissions, keep the LLM informed about:
+        1. Configuration Changes: What parameters/settings were updated
+        2. Validation Results: Any validation errors or successes
+        3. Content Updates: Changes to the displayed content
+        4. State Transitions: Moving between widget states
+        
+        Use consistent markers to help the LLM track the widget lifecycle:
+        - [WIDGET CONFIG] - Configuration changes
+        - [WIDGET VALIDATION] - Validation results
+        - [WIDGET CONTENT] - Content updates
+        - [WIDGET STATE] - State changes
+        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -372,19 +411,31 @@ class DesignerWorkflow:
         form = await request.form()
         table_data = form.get(step.done, "").strip()
 
+        # Keep LLM informed about submission
+        pip.append_to_history(f"[WIDGET INTERACTION] Received configuration submission for {step.show}")
+        
         # Validate input
         is_valid, error_msg, error_component = pip.validate_step_input(table_data, step.show)
         if not is_valid:
+            pip.append_to_history(f"[WIDGET VALIDATION] Basic validation failed: {error_msg}")
             return error_component
             
         # Additional validation for JSON format
         try:
             data = json.loads(table_data)
             if not isinstance(data, list) or not data:
+                pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: Must be a non-empty array")
                 return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
             if not all(isinstance(item, dict) for item in data):
+                pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: All items must be objects")
                 return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
+                
+            # Keep LLM informed about successful validation
+            pip.append_to_history("[WIDGET VALIDATION] Configuration validated successfully")
+            pip.append_to_history(f"[WIDGET CONFIG] New configuration:\n{json.dumps(data, indent=2)}")
+            
         except json.JSONDecodeError:
+            pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: Invalid syntax")
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save to state
@@ -393,6 +444,10 @@ class DesignerWorkflow:
         # Create the rich table widget
         try:
             table_widget = self.create_rich_table_widget(data)
+            
+            # Keep LLM informed about successful widget creation
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Widget created successfully")
+            pip.append_to_history(f"[WIDGET CONTENT] Rich table created with {len(data)} rows and columns: {', '.join(data[0].keys())}")
             
             # Create content container
             content_container = pip.widget_container(
@@ -417,16 +472,24 @@ class DesignerWorkflow:
             
         except Exception as e:
             logger.error(f"Error creating table widget: {e}")
+            pip.append_to_history(f"[WIDGET STATE] Error creating widget: {str(e)}")
             return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
 
     def create_rich_table_widget(self, data):
         """Create a rich table widget with beautiful styling.
         
-        Args:
-            data: List of dictionaries containing table data
-            
-        Returns:
-            A styled table widget
+        Widget Creation Pattern:
+        When implementing widget creation methods:
+        1. Document the widget's visual components and styling
+        2. Keep styling contained within the widget
+        3. Handle errors gracefully with informative messages
+        4. Consider accessibility in the design
+        
+        The LLM should be able to understand:
+        - The widget's visual structure
+        - Styling patterns used
+        - Error handling approach
+        - Accessibility considerations
         """
         # First, add the CSS styling
         style = NotStr("""
