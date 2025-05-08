@@ -8,7 +8,7 @@ alwaysApply: false
 This rule ensures the LLM maintains awareness of what users see in the UI, enabling more contextual responses.
 
 ## Core Principle
-The LLM should be "seeing" everything the user sees, plus relevant behind-the-scenes context. This is achieved through Pipulate's OrderedMessageQueue system, which automatically synchronizes UI messages with the LLM's conversation history.
+The LLM should be "seeing" everything the user sees, plus relevant behind-the-scenes context. This is achieved through Pipulate's OrderedMessageQueue system, which automatically synchronizes UI messages with the LLM's conversation history and maintains workflow state.
 
 ## Implementation Patterns
 
@@ -25,7 +25,21 @@ await self.message_queue.add(
 )
 ```
 
-### 2. Message Types and Usage
+### 2. Workflow State Tracking
+The OrderedMessageQueue automatically tracks workflow state:
+```python
+# State is updated automatically based on message content
+[WORKFLOW STATE: Not yet started]
+[INFO] Workflow initialized...
+
+[WORKFLOW STATE: Waiting for Step 1 input]
+[PROMPT] Step 1: Please enter Your Name.
+
+[WORKFLOW STATE: Step 1 completed]
+[INFO] Step 1 complete: Name entered
+```
+
+### 3. Message Types and Context
 
 #### System State Changes
 ```python
@@ -35,6 +49,9 @@ await self.message_queue.add(
     verbatim=True,
     role="system"
 )
+# Results in:
+# [WORKFLOW STATE: Current state]
+# [INFO] ⚠️ Invalid Botify API token...
 ```
 
 #### User Feedback
@@ -45,6 +62,9 @@ await self.message_queue.add(
     verbatim=True,
     role="user"
 )
+# Results in:
+# [WORKFLOW STATE: Current state]
+# [USER INPUT] ✅ Operation successful...
 ```
 
 #### LLM Interactions
@@ -55,29 +75,10 @@ await self.message_queue.add(
     verbatim=False,  # Will be processed by LLM
     role="system"
 )
+# Results in:
+# [WORKFLOW STATE: Current state]
+# [PROMPT] Greet user...
 ```
-
-### 3. Best Practices
-
-- **Error States**: Always inform both user and LLM about errors
-  ```python
-  await self.message_queue.add(pip, f"Error: {error_type}", verbatim=True)
-  ```
-
-- **State Transitions**: Log workflow state changes
-  ```python
-  await self.message_queue.add(pip, "Workflow state updated to: unfinalized", verbatim=True)
-  ```
-
-- **User Actions**: Record significant user interactions
-  ```python
-  await self.message_queue.add(pip, f"User action: {action_description}", verbatim=True)
-  ```
-
-- **Validation Results**: Share validation outcomes
-  ```python
-  await self.message_queue.add(pip, f"Validation {success ? 'passed' : 'failed'}: {detail}", verbatim=True)
-  ```
 
 ### 4. Message Queue Features
 
@@ -87,6 +88,23 @@ The OrderedMessageQueue system ensures:
 - Proper role attribution (system/user/assistant)
 - URL escaping for links
 - Consistent spacing and formatting
+- Workflow state tracking and context
+- Automatic step progress detection
+
+### 5. State Context Markers
+
+Every message is automatically prefixed with workflow state:
+- `[WORKFLOW STATE: Not yet started]` - Initial state
+- `[WORKFLOW STATE: Waiting for Step X input]` - Step awaiting user input
+- `[WORKFLOW STATE: Step X completed]` - Step completion state
+
+### 6. Message Type Markers
+
+Messages are automatically categorized:
+- `[PROMPT]` - System messages requesting input
+- `[INFO]` - System messages providing information
+- `[USER INPUT]` - Messages from the user
+- `[RESPONSE]` - Messages from the assistant
 
 ## Implementation in [plugins/020_hello_workflow.py](mdc:plugins/020_hello_workflow.py)
 
@@ -94,7 +112,7 @@ The OrderedMessageQueue system ensures:
 
 1. **Message Queue is the Single Source of Truth**
    - All user-visible messages should go through message_queue.add()
-   - The queue automatically handles conversation history
+   - The queue automatically handles conversation history and state tracking
    ```python
    await self.message_queue.add(pip, message, verbatim=True)
    ```
@@ -108,10 +126,11 @@ The OrderedMessageQueue system ensures:
    ```
 
 3. **State Changes**
-   - When workflow state changes:
+   - State is tracked automatically based on message content:
    ```python
-   state_msg = f"Workflow is now {new_state}"
+   state_msg = f"Step {step_num} complete: {value}"
    await self.message_queue.add(pip, state_msg, verbatim=True)
+   # State automatically updates to completed
    ```
 
 4. **Validation & Errors**
@@ -129,6 +148,8 @@ The OrderedMessageQueue system ensures:
 3. Use appropriate roles (system/user/assistant)
 4. Set verbatim=True for direct messages, False for LLM processing
 5. Consider spacing parameters for visual clarity
+6. Let the queue handle state tracking automatically
+7. Use standard message formats for consistent state detection
 
 ## Common Sync Points
 
@@ -146,17 +167,21 @@ The OrderedMessageQueue system ensures:
 ```python
 # 1. Show empty form
 await self.message_queue.add(pip, "Showing name input form. No name has been entered yet.", verbatim=True)
+# State: Waiting for input
 
 # 2. User submits form
 await self.message_queue.add(pip, f"User submitted name: {user_val}", verbatim=True)
+# State: Processing submission
 
 # 3. Validation result
 if not is_valid:
     await self.message_queue.add(pip, f"Validation failed: {error_msg}", verbatim=True)
     return error_component
+# State: Validation failed
 
 # 4. Success confirmation
 await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
+# State: Step completed
 ```
 
-This pattern ensures the LLM maintains awareness of the user's current context in the workflow through the centralized message queue system, which automatically handles conversation history management and message ordering.
+This pattern ensures the LLM maintains awareness of the user's current context in the workflow through the centralized message queue system, which automatically handles conversation history management, message ordering, and workflow state tracking.
