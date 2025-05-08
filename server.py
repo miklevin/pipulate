@@ -3145,19 +3145,45 @@ def create_app_menu(menux):
         if not show_all and not is_core_plugin(item):
             continue
 
-        # Normalize both the current selection and menu item for comparison
-        norm_menux = normalize_menu_path(menux)
-        norm_item = normalize_menu_path(item)
+        # Only show core items in the first pass
+        if not show_all or is_core_plugin(item):
+            # Normalize both the current selection and menu item for comparison
+            norm_menux = normalize_menu_path(menux)
+            norm_item = normalize_menu_path(item)
 
-        is_selected = norm_item == norm_menux
-        item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
+            is_selected = norm_item == norm_menux
+            item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
+            menu_items.append(Li(
+                A(endpoint_name(item), 
+                  href=f"/redirect/{item}", 
+                  cls="dropdown-item", 
+                  style=f"{NOWRAP_STYLE} {item_style}"), 
+                style="display: block;"
+            ))
+    
+    # If showing all plugins, add non-core items after a divider
+    if show_all:
+        # Add a divider after core plugins
         menu_items.append(Li(
-            A(endpoint_name(item), 
-              href=f"/redirect/{item}", 
-              cls="dropdown-item", 
-              style=f"{NOWRAP_STYLE} {item_style}"), 
+            Hr(style="margin: 0.5rem 0;"),
             style="display: block;"
         ))
+        
+        # Add non-core items
+        for item in MENU_ITEMS:
+            if item != profile_app.name and not is_core_plugin(item):
+                norm_menux = normalize_menu_path(menux)
+                norm_item = normalize_menu_path(item)
+
+                is_selected = norm_item == norm_menux
+                item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
+                menu_items.append(Li(
+                    A(endpoint_name(item), 
+                      href=f"/redirect/{item}", 
+                      cls="dropdown-item", 
+                      style=f"{NOWRAP_STYLE} {item_style}"), 
+                    style="display: block;"
+                ))
     
     # Add a divider before the Show All toggle
     menu_items.append(Li(
