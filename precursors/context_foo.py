@@ -22,20 +22,68 @@ from typing import Dict, List, Optional, Union
 
 FILES_TO_INCLUDE = """\
 server.py
-flake.nix
-requirements.txt
-README.md
-.cursorrules
-plugins/20_hello_workflow.py
-plugins/60_widget_examples.py
-plugins/70_blank_workflow.py
-plugins/80_splice_workflow.py
-/home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
-/home/mike/repos/.cursor/rules/nix-rules.mdc
-/home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
-/home/mike/repos/.cursor/rules/wet-workflows.mdc
-/home/mike/repos/pipulate/training/workflow_implementation_guide.md
-""".strip().splitlines()  # Changed from [:-1] to handle empty lines properly
+.cursor/rules/philosophy-core.mdc
+.cursor/rules/philosophy-webmaster.mdc
+.cursor/rules/philosophy-simplicity.mdc
+.cursor/rules/architecture-core.mdc
+.cursor/rules/architecture-state.mdc
+.cursor/rules/pattern-plugin-identity.mdc
+.cursor/rules/pattern-chain-reaction.mdc
+.cursor/rules/implementation-workflow.mdc
+.cursor/rules/implementation-widget.mdc
+plugins/500_blank_workflow.py
+plugins/510_splice_workflow.py
+plugins/520_widget_examples.py
+static/chat-interface.js
+static/chat-scripts.js
+static/widget-scripts.js
+training/workflow_implementation_guide.md
+""".strip().splitlines()
+
+
+
+# FILES_TO_INCLUDE = """\
+# server.py
+# flake.nix
+# requirements.txt
+# README.md
+# .cursor/rules/architecture-core.mdc
+# .cursor/rules/architecture-state.mdc
+# .cursor/rules/implementation-widget.mdc
+# .cursor/rules/implementation-workflow.mdc
+# .cursor/rules/pattern-plugin-identity.mdc
+# .cursor/rules/pattern-button.mdc
+# .cursor/rules/pattern-chain-reaction.mdc
+# .cursor/rules/philosophy-core.mdc
+# .cursor/rules/philosophy-simplicity.mdc
+# .cursor/rules/philosophy-webmaster.mdc
+# plugins/500_blank_workflow.py
+# plugins/510_splice_workflow.py
+# plugins/520_widget_examples.py
+# static/chat-interface.js
+# static/chat-scripts.js
+# static/chat-styles.css
+# static/widget-scripts.js
+# training/workflow_implementation_guide.md
+# """.strip().splitlines()
+
+
+# FILES_TO_INCLUDE = """\
+# server.py
+# flake.nix
+# requirements.txt
+# README.md
+# .cursorrules
+# plugins/20_hello_workflow.py
+# plugins/60_widget_examples.py
+# plugins/70_blank_workflow.py
+# plugins/80_splice_workflow.py
+# /home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
+# /home/mike/repos/.cursor/rules/nix-rules.mdc
+# /home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
+# /home/mike/repos/.cursor/rules/wet-workflows.mdc
+# /home/mike/repos/pipulate/training/workflow_implementation_guide.md
+# """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
 
 # Example: 
 # plugins/10_connect_with_botify.py

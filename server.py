@@ -3168,7 +3168,7 @@ def create_app_menu(menux):
     # Add the Show All toggle
     toggle_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if show_all else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Show All Plugins" if not show_all else "Show Core Plugins",
+        A("Show All Plugins..." if not show_all else "Show Core Plugins",
           hx_post="/toggle_show_all",
           hx_target="body",
           hx_swap="outerHTML",
