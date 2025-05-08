@@ -174,7 +174,7 @@ class ParameterBusterWorkflow:
                 "complete": "Crawl analysis download complete. Continue to next step."
             },
             "step_06": {
-                "input": f"{pip.fmt('step_06')}: Please enter JavaScript code for syntax highlighting.",
+                "input": f"{pip.fmt('step_06')}: Please enter value for Minimum Frequency.",
                 "complete": "Code syntax highlighting complete. Ready to finalize."
             }
         }
@@ -330,6 +330,7 @@ class ParameterBusterWorkflow:
                     for step in steps[:-1]
                 )
                 if all_steps_complete:
+                    await self.message_queue.add(pip, "All steps are complete. You can now finalize the workflow or revert to any step to make changes.", verbatim=True)
                     return Card(
                         H3("All steps complete. Finalize?"),
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
