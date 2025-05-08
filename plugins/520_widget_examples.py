@@ -636,6 +636,9 @@ This step serves as a placeholder for future widget types."""
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
 
+        # Keep LLM informed about the widget content
+        pip.append_to_history(f"[WIDGET CONTENT] Simple Text Widget:\n{user_val}")
+
         # Create a simple widget with the user's content in a Pre tag to preserve formatting
         simple_widget = Pre(
             user_val,
@@ -815,6 +818,9 @@ This step serves as a placeholder for future widget types."""
 
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Keep LLM informed about the markdown content
+        pip.append_to_history(f"[WIDGET CONTENT] Markdown Widget:\n{user_val}")
         
         # Generate unique widget ID for this step and pipeline
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1011,6 +1017,9 @@ This step serves as a placeholder for future widget types."""
 
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Keep LLM informed about the mermaid diagram
+        pip.append_to_history(f"[WIDGET CONTENT] Mermaid Diagram:\n{user_val}")
         
         # Generate unique widget ID for this step and pipeline
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1038,7 +1047,6 @@ This step serves as a placeholder for future widget types."""
         response = HTMLResponse(to_xml(response_content))
         
         # Add HX-Trigger header to initialize Mermaid rendering
-        # This is a backup mechanism in case the inline script doesn't work
         response.headers["HX-Trigger"] = json.dumps({
             "renderMermaid": {
                 "targetId": f"{widget_id}_output",
@@ -1120,7 +1128,7 @@ This step serves as a placeholder for future widget types."""
             Card(
                 H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
                 P("Enter table data as JSON array of objects. Example is pre-populated."),
-                P("Format: [{\"column1\": value1, \"column2\": value2}, {...}, ...]", 
+                P("Format: [{\"name\": \"value\", \"value1\": number, ...}, {...}]", 
                   style="font-size: 0.8em; font-style: italic;"),
                 Form(
                     Div(
@@ -1186,6 +1194,9 @@ This step serves as a placeholder for future widget types."""
 
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Keep LLM informed about the table data
+        pip.append_to_history(f"[WIDGET CONTENT] Pandas Table Data:\n{user_val}")
 
         # Create a pandas table from the JSON data
         try:
@@ -1433,6 +1444,9 @@ This step serves as a placeholder for future widget types."""
 
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Keep LLM informed about the code content
+        pip.append_to_history(f"[WIDGET CONTENT] Code Syntax Highlighting ({language}):\n{user_val}")
         
         # Generate unique widget ID for this step and pipeline
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1655,6 +1669,9 @@ This step serves as a placeholder for future widget types."""
 
         # Save the value to state
         await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+
+        # Keep LLM informed about the JavaScript code
+        pip.append_to_history(f"[WIDGET CONTENT] JavaScript Widget Code:\n{user_val}")
         
         # Generate unique widget ID for this step and pipeline
         widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
