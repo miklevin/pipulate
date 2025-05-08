@@ -1,5 +1,125 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Persona Menu Implementation
+
+The persona selector provides a consistent way to switch between different UI views while maintaining Pipulate's server-side state management and HTMX patterns.
+
+## Core Structure
+
+The persona menu follows the standard navigation pattern established in [server.py](mdc:server.py):
+
+```python
+# Constants definition
+PERSONAS = {
+    "ALL": "Show All Tools",
+    "SEO": "SEO Practitioner View",
+    "DEV": "Developer Tools"
+}
+
+def create_persona_menu():
+    current_persona = db.get('ui_persona', 'ALL')
+    menu_items = []
+    
+    for persona_id, display_name in PERSONAS.items():
+        is_selected = persona_id == current_persona
+        item_style = "background-color: var(--pico-primary-background);" if is_selected else ""
+        menu_items.append(Li(
+            A(display_name,
+              href="#",
+              hx_post="/set_persona",
+              hx_vals=f'{{"persona": "{persona_id}"}}',
+              hx_target="body",
+              hx_swap="none",
+              cls="dropdown-item",
+              style=f"{NOWRAP_STYLE} {item_style}"
+            )
+        ))
+    
+    return Details(
+        Summary(
+            f"VIEW: {PERSONAS[current_persona]}",
+            id="view-id",
+            style="white-space: nowrap; display: inline-block; min-width: max-content;"
+        ),
+        Ul(*menu_items, cls="dropdown-menu"),
+        cls="dropdown"
+    )
+```
+
+## State Management
+
+1. **Storage**
+   - Uses DictLikeDB: `db['ui_persona']`
+   - Default value: 'ALL'
+   - Uppercase keys only
+
+2. **Transitions**
+   - Full page refresh on change
+   - Uses `HX-Refresh: true` header
+   - Preserves workflow state
+
+3. **Integration**
+   - Lives in nav menu with Profile/App selectors
+   - Affects menu filtering only
+   - No impact on active workflows
+
+## Implementation Details
+
+1. **Menu Creation**
+   - Uses Details/Summary pattern
+   - Consistent with other dropdowns
+   - HTMX-driven updates
+
+2. **Style Consistency**
+   - Matches [pattern-button.mdc](mdc:pattern-button.mdc)
+   - Uses standard NOWRAP_STYLE
+   - Highlights active selection
+
+3. **Error Handling**
+   - Invalid personas default to 'ALL'
+   - Graceful fallback for missing state
+   - Clean state transitions
+
+## Usage Example
+
+```python
+# In server.py endpoint
+@rt('/set_persona', methods=['POST'])
+async def set_persona(request):
+    form = await request.form()
+    persona = form.get('persona', 'ALL')
+    if persona in PERSONAS:
+        db['ui_persona'] = persona
+    
+    # Force clean reload
+    response = HTMLResponse(status_code=204)
+    response.headers["HX-Refresh"] = "true"
+    return response
+```
+
+## Integration Points
+
+- Menu rendering in `create_nav_menu()`
+- Plugin filtering in `create_app_menu()`
+- State persistence in DictLikeDB
+- HTMX refresh mechanism
+
+## Philosophy Alignment
+
+1. **Server Control**
+   - No client-side state
+   - Single source of truth
+   - Explicit state transitions
+
+2. **Simplicity**
+   - Standard menu pattern
+   - Clear state management
+   - Minimal JavaScript
+
+3. **Observability**
+   - State in SQLite
+   - Clear UI feedback
+   - Predictable behavior

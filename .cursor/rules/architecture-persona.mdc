@@ -1,5 +1,138 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Persona Architecture Overview
+
+The persona system provides different UI views while maintaining Pipulate's core philosophies of simplicity and server-side control. It enables tailored experiences for different user types (SEO Practitioners vs. Developers) without compromising the system's fundamental principles.
+
+## Key Concepts
+
+1. **Separation of Concerns**
+   - **Profiles** = Data Context (client data, API keys)
+   - **Personas** = UI View (tool visibility, complexity)
+   - No coupling between these systems
+   - Independent state management
+
+2. **State Management**
+   - Uses DictLikeDB (`db['ui_persona']`)
+   - Server-side state only
+   - No client-side storage
+   - Simple key-value persistence
+
+3. **UI Updates**
+   - Full page refresh on persona change
+   - HTMX-driven using `HX-Refresh: true`
+   - Preserves workflow state
+   - Clean state transitions
+
+## Core Components
+
+1. **Plugin Identity System**
+   - See [pattern-persona-identity.mdc](mdc:pattern-persona-identity.mdc)
+   - `PERSONA_TAGS` class attribute
+   - Explicit tool categorization
+   - Multiple persona support
+
+2. **Navigation Menu**
+   - See [implementation-persona-menu.mdc](mdc:implementation-persona-menu.mdc)
+   - Standard Details/Summary pattern
+   - Consistent with other nav elements
+   - HTMX-powered transitions
+
+3. **State Storage**
+   - SQLite via DictLikeDB
+   - Single key: `ui_persona`
+   - Default to 'ALL' view
+   - Simple, observable state
+
+## Implementation Files
+
+1. **Core Implementation**
+   - [server.py](mdc:server.py)
+     - `PERSONAS` constant
+     - Menu creation
+     - State management
+     - HTMX endpoints
+
+2. **Plugin Files**
+   - Individual `PERSONA_TAGS` declarations
+   - Tool categorization
+   - View filtering rules
+
+3. **Documentation**
+   - [pattern-persona-identity.mdc](mdc:pattern-persona-identity.mdc)
+   - [implementation-persona-menu.mdc](mdc:implementation-persona-menu.mdc)
+   - This architecture overview
+
+## Philosophy Alignment
+
+1. **Webmaster Thinking**
+   - Server-side control
+   - Simple state management
+   - Clear, explicit behavior
+   - No client-side complexity
+
+2. **Observability**
+   - State in SQLite
+   - Clear UI feedback
+   - Predictable transitions
+   - Easy debugging
+
+3. **Simplicity**
+   - Minimal JavaScript
+   - Standard patterns
+   - Clear responsibilities
+   - No hidden state
+
+## Integration Points
+
+1. **Menu System**
+   - Lives in nav bar
+   - Standard dropdown pattern
+   - HTMX-driven updates
+
+2. **Plugin System**
+   - Extends plugin identity
+   - Simple tag-based filtering
+   - Clear categorization
+
+3. **State System**
+   - Uses existing DictLikeDB
+   - Simple key-value storage
+   - Clean transitions
+
+## Usage Guidelines
+
+1. **Plugin Development**
+   - Always declare `PERSONA_TAGS`
+   - Use uppercase constants
+   - Consider multi-persona tools
+   - Keep workflows focused
+
+2. **UI Development**
+   - Follow standard patterns
+   - Use server-side filtering
+   - Maintain HTMX patterns
+   - Keep transitions clean
+
+3. **State Management**
+   - Use DictLikeDB only
+   - Default to 'ALL' view
+   - Handle invalid states
+   - Clean transitions
+
+## Future Considerations
+
+1. **Extensibility**
+   - New persona types
+   - Additional UI adaptations
+   - Enhanced filtering options
+   - Workflow specialization
+
+2. **Maintenance**
+   - Keep patterns consistent
+   - Document new features
+   - Maintain simplicity
+   - Preserve philosophy

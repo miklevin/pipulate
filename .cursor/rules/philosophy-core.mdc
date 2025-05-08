@@ -3,86 +3,109 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Pipulate Philosophy Guide
+# Core Philosophy: The Digital Workbench
 
-## Core Principles
+Pipulate is not just a web application framework; it's a statement about how modern software tools can be built with clarity, control, and purpose. It represents a deliberate step sideways from conventional web development patterns toward digital self-sufficiency.
 
-### Local-First Desktop Application
-- Pipulate is a desktop application, NOT a client-server system
-- Similar to Electron apps like Slack or Discord
-- No multi-user concerns or distributed system complexity
-- Full access to local system resources
-- Data stays on your machine
+## Fundamental Principles
 
-### WET Over DRY Philosophy
-- Workflows are intentionally Write Everything Twice (WET)
-- Each workflow is self-contained and explicit
-- No complex abstractions or inheritance hierarchies
-- Similar to Jupyter notebook cells
-- Manual, artistic conversion process from notebooks
+1. **Local-First Reality**
+   - Your data lives in SQLite, not a remote cloud
+   - Your environment is reproducible via Nix
+   - Your LLM runs on your machine via Ollama
+   - Control and immediacy over remote abstraction
 
-### Simplicity and Transparency
-- No complex enterprise patterns
-- Server-side state management
-- Observable system behavior
-- Clear and explicit workflows
-- Minimal JavaScript, maximum Python
+2. **Modern Webmaster Thinking**
+   - One person CAN understand the entire stack
+   - Server-side control is a feature, not a limitation
+   - Explicit Python over implicit magic
+   - See [philosophy-webmaster.mdc](mdc:philosophy-webmaster.mdc)
 
-### Error Handling Approach
-- No complex error recovery systems
-- Each workflow handles its own errors
-- Errors viewed as opportunities for better input
-- Simple retry mechanisms (re-enter key)
-- Focus on process insight over recovery
+3. **Selective Complexity**
+   - Embrace powerful tools (Nix, Python 3.12, async)
+   - Reject accidental complexity
+   - Simple state management (DictLikeDB)
+   - Minimal but strategic JavaScript
 
-### Resource Usage
-- Full access to local machine capabilities
-- Use filesystem for large data storage
-- SQLite for structured data
-- JSON state blobs for workflow progress
-- Local LLM integration via Ollama
+4. **Tool-Centric Design**
+   - Build a workbench, not a platform
+   - Each workflow is a specialized tool
+   - Clarity over abstract reuse
+   - See [pattern-wet.mdc](mdc:pattern-wet.mdc)
 
-## Anti-Patterns to Avoid
+## Technical Foundations
 
-### Enterprise Over-Engineering
-- Multi-user authentication systems
-- Complex security layers
-- Distributed system patterns
-- Heavy client-side state management
-- Complex error recovery mechanisms
+1. **Server Authority**
+   - Server is the source of truth
+   - For both data AND UI
+   - FastHTML for explicit rendering
+   - HTMX for controlled interactivity
 
-### Framework Complexity
-- Heavy JavaScript frameworks
-- Complex ORMs
-- Message queues
-- Build systems
-- Template engines
+2. **State Management**
+   - SQLite as the single source
+   - DictLikeDB for UI state
+   - Server-side filtering
+   - Observable data flow
 
-## Development Philosophy
+3. **UI Philosophy**
+   - HTML over JavaScript
+   - HTMX over SPA frameworks
+   - Explicit chain reactions
+   - See [pattern-chain-reaction.mdc](mdc:pattern-chain-reaction.mdc)
 
-### Code Evolution
-- Pragmatic cycling of workflows
-- Natural selection of useful patterns
-- AI-assisted development
-- Focus on utility over perfection
-- Learn from actual usage
+## Core Patterns
 
-### Testing Approach
-- Focus on workflow functionality
-- Playwright for automation
-- Meta-workflows for testing
-- Simple, pragmatic validation
-- Observable behavior over unit tests
+1. **WET Workflows**
+   - Write Everything Twice for clarity
+   - Self-contained automation scripts
+   - Explicit over DRY
+   - Tool-specific logic
 
-### Security Considerations
-- Local system security model
-- Simple API key storage
-- Transparent configuration
-- Appropriate for desktop use
-- No enterprise security theater
+2. **DRY Infrastructure**
+   - Base classes for CRUD
+   - Core Pipulate helpers
+   - UI rendering functions
+   - Reuse where appropriate
 
-## Related Rules
-- [Workflow Implementation](mdc:workflow-implementation.mdc)
-- [WET Workflows](mdc:wet-workflows.mdc)
-- [Local LLM Integration](mdc:local-llm-integration.mdc)
-- [Architecture Guide](mdc:architecture-guide.mdc)
+3. **Controlled Interaction**
+   - HTMX for declarative updates
+   - Minimal custom JavaScript
+   - Explicit state transitions
+   - Predictable behavior
+
+## Implementation Philosophy
+
+When implementing new features in Pipulate:
+
+1. **Leverage Existing Patterns**
+   - Use established structures
+   - Extend don't replace
+   - Keep state server-side
+   - Follow explicit patterns
+
+2. **Maintain Simplicity**
+   - One person should understand it
+   - Avoid client-side state
+   - Use simple flags over complex logic
+   - Keep tools focused
+
+3. **Preserve Observability**
+   - All state in SQLite
+   - Clear data flow
+   - Traceable logic
+   - Easy debugging
+
+## The Path Forward
+
+Pipulate represents a specific vision of software development:
+- Individual empowerment over enterprise scale
+- Direct control over cloud abstraction
+- Tool clarity over framework flexibility
+- Simplicity over feature creep
+
+This isn't about building the next global SaaS platform. It's about crafting a personal or small-team workbench where every tool is sharp, every action is intentional, and every state is observable.
+
+See also:
+- [philosophy-simplicity.mdc](mdc:philosophy-simplicity.mdc)
+- [philosophy-webmaster.mdc](mdc:philosophy-webmaster.mdc)
+- [architecture-core.mdc](mdc:architecture-core.mdc)
