@@ -994,7 +994,6 @@ class ParameterBusterWorkflow:
         username = project_data.get("username", "")
         
         # First, show a visual progress indicator
-        # We'll simply return the progress UI directly instead of trying to use Response
         return Card(
             H3(f"{step.show}"),
             P(f"Downloading Search Console data for '{project_name}'..."),
@@ -1043,50 +1042,62 @@ class ParameterBusterWorkflow:
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get("analysis_slug", "")
         
-        # Do the check
-        has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
-        
-        if error_message:
-            return P(f"Error: {error_message}", style=pip.get_style("error"))
-        
-        # Store the check result
-        check_result = {
-            "has_search_console": has_search_console,
-            "project": project_name,
-            "username": username,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        # If the project has search console data, process it SYNCHRONOUSLY
-        if has_search_console:
-            await self.message_queue.add(pip, f"✓ Project has Search Console data, downloading...", verbatim=True)
+        try:
+            # Do the check
+            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, "search_console")
             
-            # Process data and wait for completion - key change here
-            await self.process_search_console_data(
-                pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result, app_name, step
-            )
-        else:
-            # No search console data
-            await self.message_queue.add(pip, f"Project does not have Search Console data (skipping download)", verbatim=True)
+            if error_message:
+                return Div(
+                    P(f"Error: {error_message}", style=pip.get_style("error")),
+                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                    id=step_id
+                )
             
             # Store the check result
-            check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
-        
-        # Return completed step
-        status_text = "HAS" if has_search_console else "does NOT have"
-        completed_message = "Data downloaded successfully" if has_search_console else "No Search Console data available"
-        
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: {completed_message}",
-                steps=self.steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+            check_result = {
+                "has_search_console": has_search_console,
+                "project": project_name,
+                "username": username,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # If the project has search console data, process it SYNCHRONOUSLY
+            if has_search_console:
+                await self.message_queue.add(pip, f"✓ Project has Search Console data, downloading...", verbatim=True)
+                
+                # Process data and wait for completion - key change here
+                await self.process_search_console_data(
+                    pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result
+                )
+            else:
+                # No search console data
+                await self.message_queue.add(pip, f"Project does not have Search Console data (skipping download)", verbatim=True)
+                
+                # Store the check result
+                check_result_str = json.dumps(check_result)
+                await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            
+            # Return completed step with chain reaction
+            status_text = "HAS" if has_search_console else "does NOT have"
+            completed_message = "Data downloaded successfully" if has_search_console else "No Search Console data available"
+            
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {completed_message}",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        except Exception as e:
+            logging.exception(f"Error in step_04_complete: {e}")
+            return Div(
+                P(f"Error: {str(e)}", style=pip.get_style("error")),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
 
     async def step_05(self, request):
         """Handles GET request for Parameter Optimization Generation."""
@@ -2434,12 +2445,11 @@ removeWastefulParams();
         directory = os.path.dirname(filepath)
         os.makedirs(directory, exist_ok=True)
 
-    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result, app_name, step):
+    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
         
-        # Calculate next step ID
-        step_index = self.steps_indices[step_id]
-        next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
+        # Add detailed logging
+        logging.info(f"Starting real GSC data export for {username}/{project_name}/{analysis_slug}")
         
         try:
             # Determine file path for this export
@@ -2464,179 +2474,172 @@ removeWastefulParams();
                     }
                 })
                 
-                # Return completed view with cached message
-                return Div(
-                    pip.revert_control(
-                        step_id=step_id, 
-                        app_name=app_name, 
-                        message=f"{step.show}: Project HAS Search Console data (already downloaded, using cached)",
-                        steps=self.steps
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            else:
-                # Need to do the export and download
-                await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
+                # Store the updated check result
+                check_result_str = json.dumps(check_result)
+                await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+                return
                 
-                # Get API token
-                api_token = self.read_api_token()
-                if not api_token:
-                    raise ValueError("Cannot read API token")
+            # Need to do the export and download
+            await self.message_queue.add(pip, "🔄 Initiating Search Console data export...", verbatim=True)
+            
+            # Get API token
+            api_token = self.read_api_token()
+            if not api_token:
+                raise ValueError("Cannot read API token")
+            
+            # Create export job payload for Search Console data
+            # Use last 30 days by default
+            end_date = datetime.now().strftime("%Y-%m-%d")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            
+            # Build BQLv2 export query
+            export_query = await self.build_exports(
+                username, 
+                project_name, 
+                analysis_slug, 
+                data_type='gsc',
+                start_date=start_date,
+                end_date=end_date
+            )
+            
+            # Submit export job
+            job_url = "https://api.botify.com/v1/jobs"
+            headers = {
+                "Authorization": f"Token {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            try:
+                # Log the payload we're about to send
+                logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
                 
-                # Create export job payload for Search Console data
-                # Use last 30 days by default
-                end_date = datetime.now().strftime("%Y-%m-%d")
-                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        job_url, 
+                        headers=headers, 
+                        json=export_query["export_job_payload"],
+                        timeout=60.0
+                    )
+                    # Log the response status
+                    logging.info(f"Export job submission response status: {response.status_code}")
+                    
+                    try:
+                        # Try to log the response body
+                        logging.info(f"Export job response: {json.dumps(response.json(), indent=2)}")
+                    except:
+                        logging.info(f"Could not parse response as JSON. Raw: {response.text[:500]}")
+                    
+                    response.raise_for_status()
+                    job_data = response.json()
+                    
+                    # Get job URL
+                    job_url_path = job_data.get('job_url')
+                    if not job_url_path:
+                        raise ValueError("Failed to get job URL from response")
+                        
+                    full_job_url = f"https://api.botify.com{job_url_path}"
+                    logging.info(f"Got job URL: {full_job_url}")
+                    
+                    # Export initiated message
+                    await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
+                    
+            except Exception as e:
+                logging.exception(f"Error creating export job: {str(e)}")
+                await self.message_queue.add(pip, f"❌ Error creating export job: {str(e)}", verbatim=True)
+                raise
+            
+            # Start polling message
+            await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
+            
+            # Poll for completion with improved error handling
+            success, result = await self.poll_job_status(full_job_url, api_token)
+            
+            if not success:
+                error_message = isinstance(result, str) and result or "Export job failed"
+                await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
+                raise ValueError(f"Export failed: {error_message}")
+            
+            # Export ready message
+            await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
+            
+            # Download the file
+            download_url = result.get("download_url")
+            if not download_url:
+                await self.message_queue.add(pip, "❌ No download URL found in job result", verbatim=True)
+                raise ValueError("No download URL found in job result")
+            
+            # Downloading message
+            await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
+            
+            # Make sure target directory exists
+            await self.ensure_directory_exists(gsc_filepath)
+            
+            # Download the zip file to a temporary location
+            zip_path = f"{gsc_filepath}.zip"
+            try:
+                async with httpx.AsyncClient() as client:
+                    async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
+                        response.raise_for_status()
+                        with open(zip_path, 'wb') as f:
+                            async for chunk in response.aiter_bytes():
+                                f.write(chunk)
                 
-                # Build BQLv2 export query
-                export_query = await self.build_exports(
-                    username, 
-                    project_name, 
-                    analysis_slug, 
-                    data_type='gsc',
-                    start_date=start_date,
-                    end_date=end_date
-                )
+                # Extract the CSV from the zip
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    # Get the CSV file name (should be the only file or first file)
+                    csv_name = None
+                    for name in zip_ref.namelist():
+                        if name.endswith('.csv'):
+                            csv_name = name
+                            break
+                    
+                    if not csv_name:
+                        raise ValueError("No CSV file found in the downloaded zip")
+                    
+                    # Extract and rename to our target path
+                    zip_ref.extract(csv_name, os.path.dirname(gsc_filepath))
+                    extracted_path = os.path.join(os.path.dirname(gsc_filepath), csv_name)
+                    
+                    # Rename to our standardized file name if needed
+                    if extracted_path != gsc_filepath:
+                        if os.path.exists(gsc_filepath):
+                            os.remove(gsc_filepath)
+                        os.rename(extracted_path, gsc_filepath)
                 
-                # Submit export job
-                job_url = "https://api.botify.com/v1/jobs"
-                headers = {
-                    "Authorization": f"Token {api_token}",
-                    "Content-Type": "application/json"
+                # Clean up the zip file
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+                
+                # Get info about the created file
+                _, file_info = await self.check_file_exists(gsc_filepath)
+                
+                # Download complete message
+                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+
+                # Load into DataFrame skipping first row to chop off sep=,
+                df = pd.read_csv(gsc_filepath, skiprows=1)
+                # Save right back out with no index
+                df.to_csv(gsc_filepath, index=False)
+                
+                # Create downloadable data directory info for storage
+                download_info = {
+                    "has_file": True,
+                    "file_path": gsc_filepath,
+                    "timestamp": file_info['created'],
+                    "size": file_info['size'],
+                    "cached": False
                 }
                 
-                try:
-                    # Log the payload we're about to send
-                    logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
-                    
-                    async with httpx.AsyncClient() as client:
-                        response = await client.post(
-                            job_url, 
-                            headers=headers, 
-                            json=export_query["export_job_payload"],
-                            timeout=60.0
-                        )
-                        # Log the response status
-                        logging.info(f"Export job submission response status: {response.status_code}")
-                        
-                        try:
-                            # Try to log the response body
-                            logging.info(f"Export job response: {json.dumps(response.json(), indent=2)}")
-                        except:
-                            logging.info(f"Could not parse response as JSON. Raw: {response.text[:500]}")
-                        
-                        response.raise_for_status()
-                        job_data = response.json()
-                        
-                        # Get job URL
-                        job_url_path = job_data.get('job_url')
-                        if not job_url_path:
-                            raise ValueError("Failed to get job URL from response")
-                            
-                        full_job_url = f"https://api.botify.com{job_url_path}"
-                        logging.info(f"Got job URL: {full_job_url}")
-                        
-                        # Export initiated message
-                        await self.message_queue.add(pip, "✓ Export job created successfully!", verbatim=True)
-                        
-                except Exception as e:
-                    logging.exception(f"Error creating export job: {str(e)}")
-                    await self.message_queue.add(pip, f"❌ Error creating export job: {str(e)}", verbatim=True)
-                    raise
+                # Update the check result to include download info
+                check_result.update({
+                    "download_complete": True,
+                    "download_info": download_info
+                })
                 
-                # Start polling message
-                await self.message_queue.add(pip, "🔄 Polling for export completion...", verbatim=True)
-                
-                # Poll for completion with improved error handling
-                success, result = await self.poll_job_status(full_job_url, api_token)
-                
-                if not success:
-                    error_message = isinstance(result, str) and result or "Export job failed"
-                    await self.message_queue.add(pip, f"❌ Export failed: {error_message}", verbatim=True)
-                    raise ValueError(f"Export failed: {error_message}")
-                
-                # Export ready message
-                await self.message_queue.add(pip, "✓ Export completed and ready for download!", verbatim=True)
-                
-                # Download the file
-                download_url = result.get("download_url")
-                if not download_url:
-                    await self.message_queue.add(pip, "❌ No download URL found in job result", verbatim=True)
-                    raise ValueError("No download URL found in job result")
-                
-                # Downloading message
-                await self.message_queue.add(pip, "🔄 Downloading Search Console data...", verbatim=True)
-                
-                # Make sure target directory exists
-                await self.ensure_directory_exists(gsc_filepath)
-                
-                # Download the zip file to a temporary location
-                zip_path = f"{gsc_filepath}.zip"
-                try:
-                    async with httpx.AsyncClient() as client:
-                        async with client.stream("GET", download_url, headers={"Authorization": f"Token {api_token}"}) as response:
-                            response.raise_for_status()
-                            with open(zip_path, 'wb') as f:
-                                async for chunk in response.aiter_bytes():
-                                    f.write(chunk)
-                
-                    # Extract the CSV from the zip
-                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        # Get the CSV file name (should be the only file or first file)
-                        csv_name = None
-                        for name in zip_ref.namelist():
-                            if name.endswith('.csv'):
-                                csv_name = name
-                                break
-                        
-                        if not csv_name:
-                            raise ValueError("No CSV file found in the downloaded zip")
-                        
-                        # Extract and rename to our target path
-                        zip_ref.extract(csv_name, os.path.dirname(gsc_filepath))
-                        extracted_path = os.path.join(os.path.dirname(gsc_filepath), csv_name)
-                        
-                        # Rename to our standardized file name if needed
-                        if extracted_path != gsc_filepath:
-                            if os.path.exists(gsc_filepath):
-                                os.remove(gsc_filepath)
-                            os.rename(extracted_path, gsc_filepath)
-                
-                    # Clean up the zip file
-                    if os.path.exists(zip_path):
-                        os.remove(zip_path)
-                
-                    # Get info about the created file
-                    _, file_info = await self.check_file_exists(gsc_filepath)
-                    
-                    # Download complete message
-                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-
-                    # Load into DataFrame skipping first row to chop off sep=,
-                    df = pd.read_csv(gsc_filepath, skiprows=1)
-                    # Save right back out with no index
-                    df.to_csv(gsc_filepath, index=False)
-                    
-                    # Create downloadable data directory info for storage
-                    download_info = {
-                        "has_file": True,
-                        "file_path": gsc_filepath,
-                        "timestamp": file_info['created'],
-                        "size": file_info['size'],
-                        "cached": False
-                    }
-                    
-                    # Update the check result to include download info
-                    check_result.update({
-                        "download_complete": True,
-                        "download_info": download_info
-                    })
-                    
-                except Exception as e:
-                    await self.message_queue.add(pip, f"❌ Error downloading or extracting file: {str(e)}", verbatim=True)
-                    raise
-                
+            except Exception as e:
+                await self.message_queue.add(pip, f"❌ Error downloading or extracting file: {str(e)}", verbatim=True)
+                raise
+            
             # Final processing message
             await self.message_queue.add(pip, "✓ Search Console data ready for analysis!", verbatim=True)
             
@@ -2644,18 +2647,6 @@ removeWastefulParams();
             check_result_str = json.dumps(check_result)
             await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
             
-            # Return completed view with appropriate message
-            return Div(
-                pip.revert_control(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f"{step.show}: Project HAS Search Console data ({'already downloaded, using cached' if check_result.get('download_info', {}).get('cached', False) else 'data downloaded'})",
-                    steps=self.steps
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        
         except Exception as e:
             logging.exception(f"Error in process_search_console_data: {e}")
             
@@ -2669,6 +2660,7 @@ removeWastefulParams();
             
             # Add error message to queue
             await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
+            raise  # Re-raise to be handled by caller
 
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
         """Builds BQLv2 query objects and export job payloads."""
@@ -3347,18 +3339,6 @@ removeWastefulParams();
                             "cached": True
                         }
                     })
-                    
-                    # Return result display with cached message
-                    return Div(
-                        pip.revert_control(
-                            step_id=step_id, 
-                            app_name=app_name, 
-                            message=f"{step.show}: Project {status_text} web logs (already downloaded, using cached)",
-                            steps=self.steps
-                        ),
-                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                        id=step_id
-                    )
                 else:
                     # Need to export and download web logs
                     await self.message_queue.add(pip, "🔄 Initiating web logs export...", verbatim=True)
@@ -3499,15 +3479,15 @@ removeWastefulParams();
                             check_result_str = json.dumps(check_result)
                             
                             # Store in state
-                            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+                            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
                             
-                            # Return result display with explanatory message
+                            # Return result display with chain reaction to next step
                             return Div(
                                 pip.revert_control(
                                     step_id=step_id, 
                                     app_name=app_name, 
                                     message=f"{step.show}: Project logs couldn't be processed (using fallback)",
-                                    steps=self.steps
+                                    steps=steps
                                 ),
                                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                                 id=step_id
@@ -3595,9 +3575,9 @@ removeWastefulParams();
             check_result_str = json.dumps(check_result)
             
             # Store in state
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
             
-            # Return result display
+            # Return result display with chain reaction to next step
             status_color = "green" if has_logs else "red"
             download_message = ""
             if has_logs:
@@ -3608,7 +3588,7 @@ removeWastefulParams();
                     step_id=step_id, 
                     app_name=app_name, 
                     message=f"{step.show}: Project {status_text} web logs{download_message}",
-                    steps=self.steps
+                    steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -3617,8 +3597,12 @@ removeWastefulParams();
         except Exception as e:
             logging.exception(f"Error in step_03_process: {e}")
             
-            # Return error message
-            return P(f"Error: {str(e)}", style=pip.get_style("error"))
+            # Return error message with chain reaction to next step
+            return Div(
+                P(f"Error: {str(e)}", style=pip.get_style("error")),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
 
     async def analyze_parameters(self, username, project_name, analysis_slug):
         """Counts URL parameters from crawl, GSC, and web logs data.
