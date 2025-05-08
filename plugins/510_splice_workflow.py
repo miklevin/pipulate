@@ -332,6 +332,12 @@ class SpliceWorkflow:
         
         CRITICAL: When step is complete, return a div that EXPLICITLY triggers the next step 
         with <Div id="next_step_id" hx_get="/app_name/next_step_id" hx_trigger="load">
+        
+        LLM CONTEXT PATTERN:
+        Keep the LLM informed about the step's state using pip.append_to_history():
+        1. Finalized state: [WIDGET CONTENT] with (Finalized) marker
+        2. Completed state: [WIDGET CONTENT] with (Completed) marker
+        3. Input form state: [WIDGET STATE] showing form display
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -346,6 +352,9 @@ class SpliceWorkflow:
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
+            # Keep LLM informed about finalized state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
             # Show a simple confirmation in finalized state
             # CRITICAL: Include trigger to next step even in finalized state
             return Div(
@@ -359,6 +368,9 @@ class SpliceWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
+            # Keep LLM informed about completed state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
             # Show completion message with revert control
             # CRITICAL: Include trigger to next step in completed state
             return Div(
@@ -368,6 +380,9 @@ class SpliceWorkflow:
                 id=step_id
             )
         else:
+            # Keep LLM informed about showing input form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
             # Show input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
@@ -399,6 +414,12 @@ class SpliceWorkflow:
         CRITICAL: The return MUST include:
         1. A Div with id="step_id" (preserve the original ID)
         2. A Div that explicitly triggers the next step with hx_trigger="load"
+        
+        LLM CONTEXT PATTERN:
+        Keep the LLM informed about:
+        1. The submitted content: [WIDGET CONTENT]
+        2. The step completion: [WIDGET STATE]
+        Use pip.append_to_history() to avoid cluttering the chat interface.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -412,6 +433,12 @@ class SpliceWorkflow:
 
         # Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        
+        # Keep LLM informed about the step completion
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        
+        # Send user-visible confirmation via message queue
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # CRITICAL: Return the revert control WITH explicit trigger to next step
@@ -436,6 +463,7 @@ class SpliceWorkflow:
         1. Computing the proper next_step_id
         2. Including the trigger to next step in completed states
         3. Maintaining the step_id on the outer div
+        4. Keeping the LLM informed about widget state and content
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
@@ -451,6 +479,9 @@ class SpliceWorkflow:
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
+            # Keep LLM informed about finalized state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
             return Div(
                 Card(
                     H3(f"🔒 {step.show}: Completed")
@@ -462,6 +493,9 @@ class SpliceWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
+            # Keep LLM informed about completed state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
                 # CRITICAL: Include trigger to next step in completed state
@@ -469,6 +503,9 @@ class SpliceWorkflow:
                 id=step_id
             )
         else:
+            # Keep LLM informed about showing input form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -493,6 +530,7 @@ class SpliceWorkflow:
         1. Correct step_id and next_step_id calculation
         2. Data processing appropriate to the step
         3. Explicit trigger to the next step
+        4. LLM context updates for content and state
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
@@ -507,6 +545,12 @@ class SpliceWorkflow:
 
         # Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        
+        # Keep LLM informed about the step completion
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        
+        # Send user-visible confirmation via message queue
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # CRITICAL: Return completion view WITH explicit trigger to next step
@@ -529,6 +573,7 @@ class SpliceWorkflow:
         1. Each step computes the correct next_step_id (or 'finalize' if last step)
         2. Completed steps explicitly trigger the next step with hx_trigger="load"
         3. Input forms target the current step's container for proper replacement
+        4. LLM context is maintained through all step states
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
@@ -544,6 +589,9 @@ class SpliceWorkflow:
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
+            # Keep LLM informed about finalized state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
             return Div(
                 Card(
                     H3(f"🔒 {step.show}: Completed")
@@ -555,6 +603,9 @@ class SpliceWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
+            # Keep LLM informed about completed state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
                 # CRITICAL: Last step must trigger the finalize step
@@ -562,6 +613,9 @@ class SpliceWorkflow:
                 id=step_id
             )
         else:
+            # Keep LLM informed about showing input form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
@@ -586,6 +640,10 @@ class SpliceWorkflow:
         This step demonstrates the transition to the finalize step.
         The pattern is identical - the last step triggers finalize just like
         any other step would trigger the next step in sequence.
+        
+        LLM CONTEXT:
+        Even in the final step, maintain consistent LLM context updates to
+        ensure the LLM understands the complete workflow state.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
@@ -600,6 +658,12 @@ class SpliceWorkflow:
 
         # Store state data
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        
+        # Keep LLM informed about the final step completion
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Final step completed")
+        
+        # Send user-visible confirmation via message queue
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # CRITICAL: The last step must trigger the finalize step

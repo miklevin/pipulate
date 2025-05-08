@@ -268,6 +268,7 @@ class BlankWorkflow:
         - Finalization state handling pattern
         - Revert control mechanism
         - Overall Div structure and ID patterns
+        - LLM context updates for widget content
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -282,6 +283,9 @@ class BlankWorkflow:
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and placeholder_value:
+            # Keep LLM informed about the finalized widget content
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
             # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
@@ -293,6 +297,9 @@ class BlankWorkflow:
             
         # Check if step is complete and not being reverted to
         if placeholder_value and state.get("_revert_target") != step_id:
+            # Keep LLM informed about the completed widget content
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
             # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
@@ -300,6 +307,9 @@ class BlankWorkflow:
                 id=step_id
             )
         else:
+            # Keep LLM informed about showing the input form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
             # CUSTOMIZE_FORM: Replace with your widget's input form
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
@@ -324,6 +334,13 @@ class BlankWorkflow:
         When a step completes, it MUST explicitly trigger the next step by including
         a div for the next step with hx-trigger="load". While this may seem redundant,
         it is more reliable than depending on HTMX event bubbling.
+        
+        LLM Context Pattern:
+        Always keep the LLM informed about:
+        1. What was submitted (widget content)
+        2. Any transformations or processing applied
+        3. The final state of the widget
+        Use pip.append_to_history() for this to avoid cluttering the chat interface.
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -335,6 +352,12 @@ class BlankWorkflow:
         # Process and save data...
         placeholder_value = "completed"
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        
+        # Keep LLM informed about the widget content and state
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        
+        # Send user-visible confirmation via message queue
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         # CRITICAL: Return the completed view WITH explicit next step trigger
