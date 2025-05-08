@@ -8,7 +8,7 @@ alwaysApply: false
 This rule ensures the LLM maintains awareness of what users see in the UI, enabling more contextual responses.
 
 ## Core Principle
-The LLM should be "seeing" everything the user sees, plus relevant behind-the-scenes context. This is achieved by inserting UI text and state changes into the conversation history.
+The LLM should be "seeing" everything the user sees, plus relevant behind-the-scenes context. This is achieved by inserting UI text and state changes into the conversation history using the Pipulate helper method.
 
 ## Implementation in [plugins/020_hello_workflow.py](mdc:plugins/020_hello_workflow.py)
 
@@ -16,17 +16,17 @@ The LLM should be "seeing" everything the user sees, plus relevant behind-the-sc
 
 1. **Message Queue Updates**
    - Use `message_queue.add()` for user-visible messages
-   - Always follow with `append_to_conversation()` to sync LLM context
+   - Always follow with `pip.append_to_history()` to sync LLM context
    ```python
    await self.message_queue.add(pip, message, verbatim=True)
-   append_to_conversation(message, role="system", quiet=True)
+   pip.append_to_history(message)
    ```
 
 2. **UI Text Elements**
    - When showing explanatory text (P tags), sync to LLM:
    ```python
    P_text = "Explanation shown to user..."
-   append_to_conversation(P_text, role="system", quiet=True)
+   pip.append_to_history(P_text)
    return P(P_text, style=pip.get_style("muted"))
    ```
 
@@ -34,7 +34,7 @@ The LLM should be "seeing" everything the user sees, plus relevant behind-the-sc
    - When workflow state changes (finalize, unfinalize, revert):
    ```python
    state_msg = f"Workflow is now {new_state}"
-   append_to_conversation(state_msg, role="system", quiet=True)
+   pip.append_to_history(state_msg)
    ```
 
 4. **Validation & Errors**
@@ -42,16 +42,34 @@ The LLM should be "seeing" everything the user sees, plus relevant behind-the-sc
    ```python
    is_valid, error_msg, error_component = pip.validate_step_input(...)
    if not is_valid:
-       append_to_conversation(error_msg, role="system", quiet=True)
+       error_context = f"Validation failed: {error_msg}"
+       pip.append_to_history(error_context)
    ```
+
+## Using the Pipulate Helper
+
+The `append_to_history` method is the preferred way to update LLM context:
+
+```python
+def append_to_history(self, message: str, role: str = "system", quiet: bool = True) -> None:
+    """Add a message to the LLM conversation history without triggering a response.
+    
+    This is the preferred way for workflows to update the LLM's context about:
+    - UI state changes
+    - Form submissions
+    - Validation results
+    - Explanatory text shown to users
+    - Step completion status
+    """
+```
 
 ## Best Practices
 
-1. Use `quiet=True` to avoid triggering LLM responses
-2. Use `role="system"` for UI/state messages
-3. Keep messages concise and descriptive
-4. Include both user-visible text and relevant context
-5. Sync messages before returning UI components
+1. Always use `pip.append_to_history()` instead of direct conversation manipulation
+2. Keep messages concise and descriptive
+3. Include both user-visible text and relevant context
+4. Sync messages before returning UI components
+5. Use the method's default parameters (`role="system", quiet=True`) for most cases
 
 ## Common Sync Points
 
@@ -67,18 +85,24 @@ The LLM should be "seeing" everything the user sees, plus relevant behind-the-sc
 ## Example Workflow
 
 ```python
-# 1. User sees explanation
-P_text = "This step collects user input"
-append_to_conversation(P_text, role="system", quiet=True)
+# 1. Show empty form
+form_msg = "Showing name input form. No name has been entered yet."
+pip.append_to_history(form_msg)
 
 # 2. User submits form
-if is_valid:
-    success_msg = f"Input accepted: {value}"
-    await message_queue.add(pip, success_msg, verbatim=True)
-    append_to_conversation(success_msg, role="system", quiet=True)
-else:
-    error_msg = "Invalid input"
-    append_to_conversation(error_msg, role="system", quiet=True)
+submit_msg = f"User submitted name: {user_val}"
+pip.append_to_history(submit_msg)
+
+# 3. Validation result
+if not is_valid:
+    error_context = f"Name validation failed: {error_msg}"
+    pip.append_to_history(error_context)
+    return error_component
+
+# 4. Success confirmation
+confirm_msg = f"{step.show}: {processed_val}"
+await self.message_queue.add(pip, confirm_msg, verbatim=True)
+pip.append_to_history(confirm_msg)
 ```
 
-This pattern ensures the LLM can provide relevant help by maintaining awareness of the user's current context in the workflow.
+This pattern ensures the LLM can provide relevant help by maintaining awareness of the user's current context in the workflow. By using the Pipulate helper method, we maintain consistent conversation history management across all workflows.
