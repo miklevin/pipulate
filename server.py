@@ -556,6 +556,23 @@ class Pipulate:
         # Initialize the message queue
         self.message_queue = self.OrderedMessageQueue()
 
+    def append_to_history(self, message: str, role: str = "system", quiet: bool = True) -> None:
+        """Add a message to the LLM conversation history without triggering a response.
+        
+        This is the preferred way for workflows to update the LLM's context about:
+        - UI state changes
+        - Form submissions
+        - Validation results
+        - Explanatory text shown to users
+        - Step completion status
+        
+        Args:
+            message: The message to add to history
+            role: The role of the message sender ("system", "user", "assistant")
+            quiet: Whether to suppress logging (defaults to True)
+        """
+        append_to_conversation(message, role=role, quiet=quiet)
+
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
 

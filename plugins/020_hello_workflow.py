@@ -1,9 +1,13 @@
-import asyncio
 from collections import namedtuple
 from datetime import datetime
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
+from server import append_to_conversation
+
+# Warning: This is an intentionally local-first app using server-side state and HTMX.
+# Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursorrules
+# for the design philosophy and contribution guidelines.
 
 """
 Pipulate Workflow Template (Hello World Example)
@@ -361,21 +365,22 @@ class HelloFlow:
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize' # Next is finalize if last step
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "") # Get the saved value for 'name' if it exists
+        user_val = step_data.get(step.done, "")
 
         # Boilerplate: Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             # Show locked view
+            locked_msg = f"🔒 Your name is set to: {user_val}"
+            pip.append_to_history(locked_msg)
             return Div(
                 Card(
                     H3(f"🔒 {step.show}: {user_val}")
                 ),
-                # Trigger loading the next step's locked view
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
@@ -383,22 +388,33 @@ class HelloFlow:
         # Boilerplate: Check if step is complete and we are NOT reverting to it
         if user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button
-             return Div(
+            completed_msg = f"Step 1 is complete. You entered: {user_val}"
+            pip.append_to_history(completed_msg)
+            return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
-                # CRITICAL: Explicitly trigger next step loading - this pattern is required for reliable workflow progression
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
             # Show the input form for this step
             # Determine value: Use existing if refill enabled, otherwise get suggestion (none for step_01)
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            
+            # Let LLM know we're showing an empty form
+            form_msg = "Showing name input form. No name has been entered yet."
+            pip.append_to_history(form_msg)
+            
             # Add prompt message to UI
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            # Add explanation to both UI and LLM context
+            explanation = "Workflows are like Python Notebooks where you don't have to look at the code to use it. Here we just collect some data."
+            pip.append_to_history(explanation)
+            
             # Render the card with the form
             return Div(
                 Card(
                     H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
-                    P("Workflows are like Python Notebooks where you don't have to look at the code to use it. Here we just collect some data.", style=pip.get_style("muted")),
+                    P(explanation, style=pip.get_style("muted")),
                     Form(
                         pip.wrap_with_inline_button(
                             Input( type="text", name=step.done, value=display_value,
@@ -406,25 +422,16 @@ class HelloFlow:
                                    _onfocus="this.setSelectionRange(this.value.length, this.value.length)" ),
                             button_label="Next ▸"
                         ),
-                        hx_post=f"/{app_name}/{step.id}_submit", # Submit to step_01_submit
-                        hx_target=f"#{step.id}"                 # Replace this Div on response
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
                     )
                 ),
-                Div(id=next_step_id), # Placeholder for the next step
-                id=step.id            # This Div gets replaced by HTMX on submit/revert
+                Div(id=next_step_id),
+                id=step.id
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
-        
-        Chain Reaction Pattern:
-        When a step completes, it MUST explicitly trigger the next step by including
-        a div for the next step with hx_trigger="load". While this may seem redundant,
-        it is more reliable than depending on HTMX event bubbling.
-        
-        This is a deliberate architectural decision in Pipulate workflows to ensure
-        consistent behavior across browsers and complex DOM structures.
-        """
+        """Process the submission for placeholder Step 1."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -438,31 +445,35 @@ class HelloFlow:
         form = await request.form()
         user_val = form.get(step.done, "") # Get value for 'name' field
 
+        # Let LLM know we received a submission
+        submit_msg = f"User submitted name: {user_val}"
+        pip.append_to_history(submit_msg)
+
         # --- Custom Validation (Example) ---
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        # Add more specific validation if needed:
-        # if not is_valid:
-        #     return error_component # Return error message UI
-        # elif len(user_val) < 2:
-        #     return P("Name must be at least 2 characters.", style=pip.get_style("error"))
-        if not is_valid: return error_component
+        if not is_valid:
+            error_context = f"Name validation failed: {error_msg}"
+            pip.append_to_history(error_context)
+            return error_component
         # --- End Custom Validation ---
 
         # --- Custom Processing (Example) ---
-        # processed_val = user_val.strip().title() # e.g., Clean up the name
         processed_val = user_val # Keep it simple for template
-        # Add API calls, Playwright, etc. here if needed
         # --- End Custom Processing ---
 
         # Save the processed value to this step's state
         await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        # Send confirmation message to UI
-        await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)
+        # Send confirmation message to UI and LLM
+        confirm_msg = f"{step.show}: {processed_val}"
+        await self.message_queue.add(pip, confirm_msg, verbatim=True)
+        pip.append_to_history(confirm_msg)
 
         # Check if this was the last step before finalize
         if pip.check_finalize_needed(step_index, steps):
-            await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+            finalize_msg = self.step_messages["finalize"]["ready"]
+            await self.message_queue.add(pip, finalize_msg, verbatim=True)
+            pip.append_to_history(finalize_msg)
 
         # Return the standard navigation controls (Revert button + trigger for next step)
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
