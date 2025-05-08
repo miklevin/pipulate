@@ -2974,11 +2974,11 @@ removeWastefulParams();
                         
                     # Still processing
                     attempt += 1
-                    wait_msg = f"Job still processing. Waiting {delay} seconds before next attempt..."
+                    wait_msg = f"Job still processing. Waiting {int(delay)} seconds before next attempt..."
                     logging.info(wait_msg)
                     await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                     await asyncio.sleep(delay)
-                    delay = min(delay * 1.5, 20)  # Exponential backoff, but cap at 20 seconds
+                    delay = min(int(delay * 1.5), 20)  # Exponential backoff with rounding, cap at 20 seconds
                     
             except (httpx.RequestError, socket.gaierror, socket.timeout) as e:
                 # Network errors - retry with backoff
@@ -2995,22 +2995,22 @@ removeWastefulParams();
                     await self.message_queue.add(self.pipulate, retry_msg, verbatim=True)
                 
                 attempt += 1
-                wait_msg = f"Network error. Waiting {delay} seconds before retry..."
+                wait_msg = f"Network error. Waiting {int(delay)} seconds before retry..."
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
-                delay = min(delay * 2, 30)  # Longer backoff for network errors, cap at 30 seconds
+                delay = min(int(delay * 2), 30)  # Longer backoff with rounding for network errors, cap at 30 seconds
                 
             except Exception as e:
                 error_msg = f"Unexpected error in polling: {str(e)}"
                 logging.exception(error_msg)
                 await self.message_queue.add(self.pipulate, f"❌ {error_msg}", verbatim=True)
                 attempt += 1
-                wait_msg = f"Unexpected error. Waiting {delay} seconds before retry..."
+                wait_msg = f"Unexpected error. Waiting {int(delay)} seconds before retry..."
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
-                delay = min(delay * 2, 30)
+                delay = min(int(delay * 2), 30)
                 
         max_attempts_msg = "Maximum polling attempts reached"
         logging.warning(max_attempts_msg)
