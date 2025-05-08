@@ -1,0 +1,118 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor Rules Organization
+
+## Rule Types and Naming
+
+### Pattern Rules
+Rules documenting reusable code patterns. Always prefix with `pattern-`:
+- `pattern-chain-reaction` - Step progression in workflows
+- `pattern-wet` - Write Everything Twice workflow development
+- `pattern-placeholder` - Placeholder step implementation
+
+### Implementation Rules
+Rules for specific implementation details. Prefix with `implementation-`:
+- `implementation-nix-rules` - NixOS configuration guidelines
+- `implementation-htmx` - HTMX usage patterns
+
+### Guide Rules
+High-level architectural and conceptual guides. Prefix with `guide-`:
+- `guide-architecture` - System architecture overview
+- `guide-testing` - Testing practices
+
+### Configuration Rules
+System and deployment configuration. Prefix with `config-`:
+- `config-nix` - NixOS setup
+- `config-deployment` - Deployment procedures
+
+## Rule Discovery
+
+When looking for rules:
+
+1. Check for pattern rules first:
+```bash
+ls .cursor/rules/pattern-*
+```
+
+2. Check implementation rules:
+```bash
+ls .cursor/rules/implementation-*
+```
+
+3. Check guides and configs:
+```bash
+ls .cursor/rules/guide-* .cursor/rules/config-*
+```
+
+## Rule Application
+
+Rules are applied in this order:
+1. Implementation rules (most specific)
+2. Pattern rules (reusable patterns)
+3. Guide rules (high-level concepts)
+4. Config rules (system setup)
+
+## Rule Metadata
+
+Each rule should have:
+```markdown
+---
+description: Brief description of the rule's purpose
+globs: ["path/to/apply/*.ext"]  # Files where rule applies
+alwaysApply: false  # Whether to always show this rule
+---
+```
+
+## Rule Content Guidelines
+
+1. Start with clear overview
+2. Include concrete examples
+3. Link to reference implementations
+4. Document exceptions/edge cases
+5. Cross-reference related rules
+
+## Example Rule Structure
+
+```markdown
+# Rule Title
+
+## Overview
+Brief description of what this rule covers
+
+## Key Components
+Main concepts and patterns
+
+## Examples
+Concrete code examples
+
+## Common Pitfalls
+Things to watch out for
+
+## Related Rules
+- [pattern-xyz](mdc:pattern-xyz.mdc)
+- [implementation-abc](mdc:implementation-abc.mdc)
+
+## Reference Files
+- [example.py](mdc:path/to/example.py)
+```
+
+## Rule Maintenance
+
+When creating new rules:
+1. Check existing rules first using prefixes
+2. Follow established naming conventions
+3. Add appropriate metadata
+4. Cross-reference related rules
+5. Update this meta-rule if adding new categories
+
+## Quick Reference
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| pattern- | Reusable code patterns | pattern-chain-reaction |
+| implementation- | Specific implementations | implementation-htmx |
+| guide- | High-level concepts | guide-architecture |
+| config- | System configuration | config-deployment |
