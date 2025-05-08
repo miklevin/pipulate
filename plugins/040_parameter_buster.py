@@ -3882,6 +3882,7 @@ removeWastefulParams();
         data_dir = Path(data_directory_path)
         cache_file_path = data_dir / cache_filename
         if not cache_file_path.is_file():
+            self.pipulate.append_to_history(f"[CACHE] No parameter counter cache found at {cache_file_path}", quiet=True)
             return None
 
         try:
@@ -3892,6 +3893,7 @@ removeWastefulParams();
                 'raw_counters' in counters_data and isinstance(counters_data['raw_counters'], dict) and
                 'metadata' in counters_data and isinstance(counters_data['metadata'], dict) and
                 counters_data['metadata'].get('cache_version', 0) >= 2.0): # Check version
+                self.pipulate.append_to_history(f"[CACHE] Loaded parameter counters from cache: {len(counters_data['raw_counters'])} sources", quiet=True)
                 return counters_data
             else:
                 logging.error(f"Invalid or outdated cache file format in {cache_file_path}.")
@@ -3997,6 +3999,9 @@ removeWastefulParams();
         from pathlib import Path
         from collections import Counter
 
+        # Keep LLM informed about visualization creation
+        self.pipulate.append_to_history("[VISUALIZATION] Creating parameter distribution visualization", quiet=True)
+        
         # Debug collection
         debug_info = []
         def add_debug(msg):
@@ -4460,6 +4465,9 @@ removeWastefulParams();
         form = await request.form()
         gsc_threshold = int(form.get("gsc_threshold", "0"))
         min_frequency = int(form.get("min_frequency", "100000"))
+        
+        # Keep LLM informed about parameter preview request
+        pip.append_to_history(f"[PARAMETER PREVIEW] Previewing parameters with GSC threshold={gsc_threshold} and min_frequency={min_frequency}", quiet=True)
         
         # Get the parameter data from step_05
         prev_step_data = pip.get_step_data(pipeline_id, "step_05", {})
