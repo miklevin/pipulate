@@ -1,0 +1,84 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# LLM Context Synchronization Pattern
+
+This rule ensures the LLM maintains awareness of what users see in the UI, enabling more contextual responses.
+
+## Core Principle
+The LLM should be "seeing" everything the user sees, plus relevant behind-the-scenes context. This is achieved by inserting UI text and state changes into the conversation history.
+
+## Implementation in [plugins/020_hello_workflow.py](mdc:plugins/020_hello_workflow.py)
+
+### Key Methods for Context Sync
+
+1. **Message Queue Updates**
+   - Use `message_queue.add()` for user-visible messages
+   - Always follow with `append_to_conversation()` to sync LLM context
+   ```python
+   await self.message_queue.add(pip, message, verbatim=True)
+   append_to_conversation(message, role="system", quiet=True)
+   ```
+
+2. **UI Text Elements**
+   - When showing explanatory text (P tags), sync to LLM:
+   ```python
+   P_text = "Explanation shown to user..."
+   append_to_conversation(P_text, role="system", quiet=True)
+   return P(P_text, style=pip.get_style("muted"))
+   ```
+
+3. **State Changes**
+   - When workflow state changes (finalize, unfinalize, revert):
+   ```python
+   state_msg = f"Workflow is now {new_state}"
+   append_to_conversation(state_msg, role="system", quiet=True)
+   ```
+
+4. **Validation & Errors**
+   - Sync validation messages to LLM context:
+   ```python
+   is_valid, error_msg, error_component = pip.validate_step_input(...)
+   if not is_valid:
+       append_to_conversation(error_msg, role="system", quiet=True)
+   ```
+
+## Best Practices
+
+1. Use `quiet=True` to avoid triggering LLM responses
+2. Use `role="system"` for UI/state messages
+3. Keep messages concise and descriptive
+4. Include both user-visible text and relevant context
+5. Sync messages before returning UI components
+
+## Common Sync Points
+
+- Landing page loads
+- Step transitions
+- Form submissions
+- Validation results
+- State changes (finalize/unfinalize)
+- Error messages
+- Help text display
+- Generated suggestions
+
+## Example Workflow
+
+```python
+# 1. User sees explanation
+P_text = "This step collects user input"
+append_to_conversation(P_text, role="system", quiet=True)
+
+# 2. User submits form
+if is_valid:
+    success_msg = f"Input accepted: {value}"
+    await message_queue.add(pip, success_msg, verbatim=True)
+    append_to_conversation(success_msg, role="system", quiet=True)
+else:
+    error_msg = "Invalid input"
+    append_to_conversation(error_msg, role="system", quiet=True)
+```
+
+This pattern ensures the LLM can provide relevant help by maintaining awareness of the user's current context in the workflow.
