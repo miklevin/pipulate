@@ -81,9 +81,9 @@ def get_current_environment():
     if ENV_FILE.exists():
         return ENV_FILE.read_text().strip()
     else:
-        # Default to Production if file doesn't exist
-        ENV_FILE.write_text("Production")
-        return "Production"
+        # Default to Development if file doesn't exist
+        ENV_FILE.write_text("Development")
+        return "Development"
 
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
@@ -116,6 +116,18 @@ NOWRAP_STYLE = (
 )
 LIST_SUFFIX = "List"
 
+# Near the top with other constants
+CORE_PLUGINS = {
+    "",  # Home
+    "tasks",
+    "hello_workflow",
+    "connect_with_botify",
+    "parameter_buster"
+}
+
+def is_core_plugin(plugin_name):
+    """Determine if a plugin is part of the core workflow."""
+    return plugin_name in CORE_PLUGINS
 
 def setup_logging():
     """Set up unified logging between console and file with synchronized formats.
@@ -3121,9 +3133,16 @@ def normalize_menu_path(path):
 
 def create_app_menu(menux):
     menu_items = []
+    show_all = db.get("show_all_plugins", "0") == "1"
+    
+    # First add all core items
     for item in MENU_ITEMS:
         # Skip profile app in Apps menu
         if item == profile_app.name:
+            continue
+            
+        # Skip non-core items unless show_all is enabled
+        if not show_all and not is_core_plugin(item):
             continue
 
         # Normalize both the current selection and menu item for comparison
@@ -3132,7 +3151,31 @@ def create_app_menu(menux):
 
         is_selected = norm_item == norm_menux
         item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
-        menu_items.append(Li(A(endpoint_name(item), href=f"/redirect/{item}", cls="dropdown-item", style=f"{NOWRAP_STYLE} {item_style}"), style="display: block;"))
+        menu_items.append(Li(
+            A(endpoint_name(item), 
+              href=f"/redirect/{item}", 
+              cls="dropdown-item", 
+              style=f"{NOWRAP_STYLE} {item_style}"), 
+            style="display: block;"
+        ))
+    
+    # Add a divider before the Show All toggle
+    menu_items.append(Li(
+        Hr(style="margin: 0.5rem 0;"),
+        style="display: block;"
+    ))
+    
+    # Add the Show All toggle
+    toggle_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if show_all else NOWRAP_STYLE
+    menu_items.append(Li(
+        A("Show All Plugins" if not show_all else "Show Core Plugins",
+          hx_post="/toggle_show_all",
+          hx_target="body",
+          hx_swap="outerHTML",
+          cls="dropdown-item",
+          style=toggle_style),
+        style="display: block;"
+    ))
 
     return Details(
         Summary(
@@ -3143,6 +3186,17 @@ def create_app_menu(menux):
         Ul(*menu_items, cls="dropdown-menu",), 
         cls="dropdown",
     )
+
+# Add the toggle endpoint
+@rt('/toggle_show_all', methods=['POST'])
+async def toggle_show_all(request):
+    """Toggle between showing all plugins or just core plugins."""
+    current = db.get("show_all_plugins", "0")
+    db["show_all_plugins"] = "1" if current == "0" else "0"
+    
+    # Get the current URL to redirect back to
+    redirect_url = db.get("last_visited_url", "/")
+    return Redirect(redirect_url)
 
 
 async def create_outer_container(current_profile_id, menux):
