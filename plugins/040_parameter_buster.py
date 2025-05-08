@@ -2112,6 +2112,12 @@ function removeWastefulParams() {{
 removeWastefulParams();
 """
             
+            # Keep LLM informed about the generated optimization code
+            pip.append_to_history(
+                f"[OPTIMIZATION CODE] Generated PageWorkers optimization for {len(selected_params)} parameters:\n{js_code}",
+                quiet=True
+            )
+            
             # Store the JavaScript code in state
             threshold_data = {
                 "gsc_threshold": gsc_threshold,
