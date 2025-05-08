@@ -584,6 +584,17 @@ class Pipulate:
         def __init__(self):
             self.queue = []
             self._processing = False
+            self._current_step = None
+            self._step_completed = False
+
+        def _get_workflow_context(self):
+            """Get the current workflow context for the LLM."""
+            if not self._current_step:
+                return "[WORKFLOW STATE: Not yet started]"
+            elif self._step_completed:
+                return f"[WORKFLOW STATE: Step {self._current_step} completed]"
+            else:
+                return f"[WORKFLOW STATE: Waiting for Step {self._current_step} input]"
 
         async def add(self, pipulate, message, **kwargs):
             """Add a message to the queue and process if not already processing."""
@@ -595,6 +606,40 @@ class Pipulate:
             if isinstance(message, str):
                 message = message.replace("http:", "http꞉").replace("https:", "https꞉")
             
+            # Determine the role based on kwargs or default to "system"
+            role = kwargs.pop("role", "system")
+            
+            # Update workflow state based on message content
+            if "Step " in message and "Please enter" in message:
+                step_num = message.split("Step ")[1].split(":")[0]
+                self._current_step = step_num
+                self._step_completed = False
+            elif "complete" in message.lower() and "step" in message.lower():
+                self._step_completed = True
+            
+            # Add context marker based on message type/role
+            context_message = message
+            if role == "system":
+                # For system messages (prompts, UI text), make it clear it's a prompt
+                if "Please" in message or "Enter" in message or message.endswith("?"):
+                    context_message = f"[PROMPT] {message}"
+                else:
+                    context_message = f"[INFO] {message}"
+            elif role == "user":
+                # For user messages, make it clear it's user input
+                context_message = f"[USER INPUT] {message}"
+            elif role == "assistant":
+                # For assistant messages, make it clear it's a response
+                context_message = f"[RESPONSE] {message}"
+            
+            # Add workflow state context before each message
+            workflow_context = self._get_workflow_context()
+            context_message = f"{workflow_context}\n{context_message}"
+            
+            # Add to conversation history with context
+            append_to_conversation(context_message, role=role)
+            
+            # Queue the original message (without context marker) for UI display
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
                 await self._process_queue()
@@ -605,9 +650,26 @@ class Pipulate:
             try:
                 while self.queue:
                     pipulate, message, kwargs = self.queue.pop(0)
-                    await pipulate.stream(message, **kwargs)
+                    # Stream the message and capture any response
+                    response = await pipulate.stream(message, **kwargs)
+                    
+                    # If there was a response and it's different from the input message,
+                    # append it to conversation history as an assistant message with context
+                    if response and response != message:
+                        workflow_context = self._get_workflow_context()
+                        append_to_conversation(f"{workflow_context}\n[RESPONSE] {response}", role="assistant")
             finally:
                 self._processing = False
+
+        def mark_step_complete(self, step_num):
+            """Mark a step as completed."""
+            self._current_step = step_num
+            self._step_completed = True
+
+        def mark_step_started(self, step_num):
+            """Mark a step as started but not completed."""
+            self._current_step = step_num
+            self._step_completed = False
 
     def make_singular(self, word):
         """Convert a potentially plural word to its singular form using simple rules.

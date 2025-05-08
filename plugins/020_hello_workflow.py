@@ -3,7 +3,6 @@ from datetime import datetime
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
-from server import append_to_conversation
 
 # Warning: This is an intentionally local-first app using server-side state and HTMX.
 # Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursorrules
@@ -374,9 +373,9 @@ class HelloFlow:
         # Boilerplate: Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
-            # Show locked view
+            # Show locked view - message queue will handle conversation history
             locked_msg = f"🔒 Your name is set to: {user_val}"
-            pip.append_to_history(locked_msg)
+            await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
                 Card(
                     H3(f"🔒 {step.show}: {user_val}")
@@ -387,28 +386,27 @@ class HelloFlow:
 
         # Boilerplate: Check if step is complete and we are NOT reverting to it
         if user_val and state.get("_revert_target") != step_id:
-            # Show completed view with Revert button
+            # Show completed view with Revert button - message queue handles history
             completed_msg = f"Step 1 is complete. You entered: {user_val}"
-            pip.append_to_history(completed_msg)
+            await self.message_queue.add(pip, completed_msg, verbatim=True)
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
             # Show the input form for this step
-            # Determine value: Use existing if refill enabled, otherwise get suggestion (none for step_01)
             display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
             
-            # Let LLM know we're showing an empty form
+            # Let LLM know we're showing an empty form via message queue
             form_msg = "Showing name input form. No name has been entered yet."
-            pip.append_to_history(form_msg)
+            await self.message_queue.add(pip, form_msg, verbatim=True)
             
             # Add prompt message to UI
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             # Add explanation to both UI and LLM context
             explanation = "Workflows are like Python Notebooks where you don't have to look at the code to use it. Here we just collect some data."
-            pip.append_to_history(explanation)
+            await self.message_queue.add(pip, explanation, verbatim=True)
             
             # Render the card with the form
             return Div(
@@ -445,15 +443,15 @@ class HelloFlow:
         form = await request.form()
         user_val = form.get(step.done, "") # Get value for 'name' field
 
-        # Let LLM know we received a submission
+        # Let LLM know we received a submission via message queue
         submit_msg = f"User submitted name: {user_val}"
-        pip.append_to_history(submit_msg)
+        await self.message_queue.add(pip, submit_msg, verbatim=True)
 
         # --- Custom Validation (Example) ---
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
-            error_context = f"Name validation failed: {error_msg}"
-            pip.append_to_history(error_context)
+            error_msg = f"Name validation failed: {error_msg}"
+            await self.message_queue.add(pip, error_msg, verbatim=True)
             return error_component
         # --- End Custom Validation ---
 
@@ -464,16 +462,14 @@ class HelloFlow:
         # Save the processed value to this step's state
         await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
 
-        # Send confirmation message to UI and LLM
+        # Send confirmation message to UI and LLM via message queue
         confirm_msg = f"{step.show}: {processed_val}"
         await self.message_queue.add(pip, confirm_msg, verbatim=True)
-        pip.append_to_history(confirm_msg)
 
         # Check if this was the last step before finalize
         if pip.check_finalize_needed(step_index, steps):
             finalize_msg = self.step_messages["finalize"]["ready"]
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
-            pip.append_to_history(finalize_msg)
 
         # Return the standard navigation controls (Revert button + trigger for next step)
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
