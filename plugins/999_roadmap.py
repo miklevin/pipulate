@@ -17,27 +17,31 @@ class RoadmapPlugin:
         dateFormat YYYY-MM-DD
         axisFormat %b %d
         
-        section Database
-        Dev/Test/Prod DB        :active, db1, 2025-05-01, 30d
-        Delete Exp Tables       :db2, after db1, 20d
+        section Core Infrastructure
+        Nix Environment         :done, nix1, 2024-01-01, 60d
+        Magic Cookie System     :done, nix2, after nix1, 30d
+        Dev/Test/Prod DB        :active, db1, 2024-03-15, 30d
         
         section Web Data
-        Save HTML & DOM         :web1, 2025-05-15, 28d
-        Botify CSV Export       :web2, after web1, 25d
+        Botify Integration     :done, web1, 2024-02-01, 45d
+        Parameter Buster       :done, web2, after web1, 30d
+        Save HTML & DOM        :web3, 2024-05-01, 28d
         
         section AI Capabilities
-        LLM Inspection          :ai1, 2025-06-01, 35d
-        Vector Memory           :ai2, after ai1, 28d
-        Graph Memory            :ai3, after ai2, 24d
-        Key/Value Store         :ai4, after ai3, 22d
+        LLM Integration        :done, ai1, 2024-01-15, 45d
+        Chat Interface        :done, ai2, after ai1, 30d
+        Vector Memory         :ai3, 2024-05-15, 28d
+        Graph Memory          :ai4, after ai3, 24d
         
         section UI & Controls
-        Web Form Fields         :ui1, 2025-07-01, 32d
-        Anywidgets Support      :ui2, after ui1, 30d
+        HTMX Integration      :done, ui1, 2024-01-01, 45d
+        FastHTML Components   :done, ui2, after ui1, 30d
+        Web Form Fields       :ui3, 2024-06-01, 32d
+        Anywidgets Support    :ui4, after ui3, 30d
         
         section Automation
-        MCP Server              :auto1, 2025-08-01, 35d
-        LLM as MCP Client       :auto2, after auto1, 30d
+        MCP Server            :auto1, 2024-07-01, 35d
+        LLM as MCP Client     :auto2, after auto1, 30d
     """
     
     def __init__(self, app, pipulate, pipeline, db):
