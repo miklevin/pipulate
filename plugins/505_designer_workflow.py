@@ -71,6 +71,7 @@ class DesignerWorkflow:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            (f"/{app_name}/reopen_url", self.reopen_url, ["POST"]),  # New route for reopening URLs
         ]
 
         # Register routes for each step
@@ -262,6 +263,70 @@ class DesignerWorkflow:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
 
+    async def reopen_url(self, request):
+        """Handle reopening a URL with Selenium."""
+        pip, db = self.pipulate, self.db
+        form = await request.form()
+        url = form.get("url", "").strip()
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        try:
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            # Initialize the Chrome driver
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin":
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            # Open the URL
+            await self.message_queue.add(pip, f"Reopening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
+            
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
+            
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
+            return P(f"Successfully reopened: {url}", style="color: green;")
+            
+        except Exception as e:
+            error_msg = f"Error reopening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error"))
+
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
@@ -283,12 +348,17 @@ class DesignerWorkflow:
                 Card(
                     H3(f"🔒 {step.show}"),
                     P(f"URL configured: ", B(url_value)),
-                    Button(
-                        "Open URL Again ▸",
-                        type="button",
-                        _onclick=f"window.open('{url_value}', '_blank')",
-                        cls="secondary"
-                    )
+                    Form(
+                        Input(type="hidden", name="url", value=url_value),
+                        Button(
+                            "Open URL Again ▸",
+                            type="submit",
+                            cls="secondary"
+                        ),
+                        hx_post=f"/{app_name}/reopen_url",
+                        hx_target=f"#{step_id}-status"
+                    ),
+                    Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -302,12 +372,17 @@ class DesignerWorkflow:
                 message=f"{step.show}: {url_value}",
                 widget=Div(
                     P(f"URL configured: ", B(url_value)),
-                    Button(
-                        "Open URL Again ▸",
-                        type="button",
-                        _onclick=f"window.open('{url_value}', '_blank')",
-                        cls="secondary"
-                    )
+                    Form(
+                        Input(type="hidden", name="url", value=url_value),
+                        Button(
+                            "Open URL Again ▸",
+                            type="submit",
+                            cls="secondary"
+                        ),
+                        hx_post=f"/{app_name}/reopen_url",
+                        hx_target=f"#{step_id}-status"
+                    ),
+                    Div(id=f"{step_id}-status")
                 ),
                 steps=steps
             )
@@ -351,7 +426,7 @@ class DesignerWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-        
+
         # Get and validate URL
         form = await request.form()
         url = form.get("url", "").strip()
@@ -371,6 +446,13 @@ class DesignerWorkflow:
             # chrome_options.add_argument("--headless")  # Commented out for visibility
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
             
             # Log the current OS and environment
             effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
@@ -404,6 +486,10 @@ class DesignerWorkflow:
             driver.quit()
             await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
             
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
         except Exception as e:
             error_msg = f"Error opening URL with Selenium: {str(e)}"
             logger.error(error_msg)
@@ -413,12 +499,17 @@ class DesignerWorkflow:
         # Create widget with reopen button
         url_widget = Div(
             P(f"URL configured: ", B(url)),
-            Button(
-                "Open URL Again ▸",
-                type="button",
-                _onclick=f"window.open('{url}', '_blank')",
-                cls="secondary"
-            )
+            Form(
+                Input(type="hidden", name="url", value=url),
+                Button(
+                    "Open URL Again ▸",
+                    type="submit",
+                    cls="secondary"
+                ),
+                hx_post=f"/{app_name}/reopen_url",
+                hx_target=f"#{step_id}-status"
+            ),
+            Div(id=f"{step_id}-status")
         )
         
         # Create content container
