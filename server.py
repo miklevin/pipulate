@@ -3416,7 +3416,7 @@ def create_poke_button():
     workflow_display_name = "Pipeline"
 
     # Common button style for smaller buttons
-    button_style = "margin-right: 5px; font-size: 0.85rem; padding: 0.4rem 0.8rem;"
+    button_style = "margin-right: 5px; font-size: 0.85rem; padding: 0.4rem 0.2rem;"
     
     # Create button elements list
     buttons = []
@@ -3470,7 +3470,7 @@ def create_poke_button():
     # Always add the poke button
     buttons.append(
         A(
-            f"Poke {MODEL}",
+            f"Poke",
             hx_post="/poke",
             hx_target="#msg-list",
             hx_swap="innerHTML",
@@ -3482,7 +3482,7 @@ def create_poke_button():
     # Add scroll to top button
     buttons.append(
         A(
-            "Scroll to Top",
+            "Top",
             href="#",
             onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;",
             cls="button",
