@@ -104,6 +104,7 @@
           wget                         # Utility for non-interactive download of files from the web
           cmake                        # Cross-platform build system generator
           htop                         # Interactive process viewer for Unix systems
+          nbstripout                   # Git filter for stripping notebook outputs
         ] ++ (with pkgs; pkgs.lib.optionals isLinux [
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
@@ -320,6 +321,13 @@
 
         # Base shell hook that just sets up the environment without any output
         baseEnvSetup = pkgs: ''
+          # Set up nbstripout git filter
+          if [ ! -f .gitattributes ]; then
+            echo "*.ipynb filter=nbstripout" > .gitattributes
+          fi
+          git config --local filter.nbstripout.clean "nbstripout"
+          git config --local filter.nbstripout.required true
+          
           # MAGIC COOKIE TRANSFORMATION
           if [ ! -d .git ]; then
             echo "🔄 Transforming installation into git repository..."
