@@ -109,6 +109,8 @@
           virtualenv
           gcc                          # GNU Compiler Collection for compiling C/C++ code
           stdenv.cc.cc.lib             # Standard C library for Linux systems
+          chromedriver                 # ChromeDriver for Selenium automation
+          chromium                     # Chromium browser for Selenium automation
         ]);
 
         # This script sets up our Python environment and project
@@ -327,6 +329,15 @@
           fi
           git config --local filter.nbstripout.clean "nbstripout"
           git config --local filter.nbstripout.required true
+          
+          # Set EFFECTIVE_OS for browser automation scripts
+          if [[ "$(uname -s)" == "Darwin" ]]; then
+            export EFFECTIVE_OS="darwin"
+          else
+            # Assuming Linux for non-Darwin POSIX systems in Nix context
+            export EFFECTIVE_OS="linux"
+          fi
+          echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS (for browser automation context)"
           
           # MAGIC COOKIE TRANSFORMATION
           if [ ! -d .git ]; then

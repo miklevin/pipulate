@@ -23,6 +23,8 @@ pyfiglet
 python_fasthtml
 requests
 rich
+selenium
+webdriver-manager
 watchdog
 
 google-api-python-client
