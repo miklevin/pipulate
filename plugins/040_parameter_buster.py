@@ -60,11 +60,14 @@ class ParameterBusterWorkflow:
     APP_NAME = "param_buster"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Parameter Buster" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This workflow analyzes URL parameters from Botify, Web Logs, and Search Console data "
-        "to produce a PageWorkers optimization for better crawl efficiency. "
-        "Click Enter to start."
+        "Extract and analyze URL parameters from any web address. "
+        "Perfect for understanding tracking codes and URL structure."
     )
-    TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = (
+        "This workflow helps users analyze URL parameters and tracking codes. "
+        "It uses the widget_container pattern to display parameter breakdowns "
+        "and provides insights into URL structure and tracking mechanisms."
+    )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---

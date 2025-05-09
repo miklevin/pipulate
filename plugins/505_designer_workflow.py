@@ -26,10 +26,14 @@ class DesignerWorkflow:
     APP_NAME = "designer"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Designer Workflow" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This is a workflow where we design new widgets. "
-        "Enter an ID to start or resume your workflow."
+        "Design and test workflow UI components in isolation. "
+        "Perfect for prototyping new widgets and testing UI patterns."
     )
-    TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = (
+        "This workflow is a sandbox for designing and testing UI components. "
+        "It provides a safe environment to experiment with widgets, test HTMX patterns, "
+        "and validate UI/UX ideas before implementing them in production workflows."
+    )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---

@@ -24,10 +24,13 @@ class BlankWorkflow:
     APP_NAME = "blank"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Blank Workflow" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This is a blank workflow template. "
-        "Enter an ID to start or resume your workflow."
+        "This is a blank workflow template. Use it as a starting point for creating new workflows."
     )
-    TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = (
+        "This is a minimal workflow template that demonstrates the core patterns "
+        "of Pipulate workflows. It shows how to structure steps, handle state, "
+        "and implement the standard workflow lifecycle methods."
+    )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---

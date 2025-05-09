@@ -27,7 +27,11 @@ class BlankWorkflow:
         "Open any URL in your default browser using your existing profile and settings. "
         "Perfect for accessing pages that require login."
     )
-    TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = (
+        "This workflow helps users open URLs in their default browser. "
+        "It uses the widget_container pattern for consistent UI and provides "
+        "a simple interface for URL input and Google search functionality."
+    )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
