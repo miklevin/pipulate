@@ -3,6 +3,11 @@ import json
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
+import os
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 import pandas as pd
 from fasthtml.common import * # type: ignore
@@ -182,9 +187,9 @@ class WidgetExamples:
             ),
             Step(
                 id='step_10',
-                done='placeholder',
-                show='Placeholder Step',
-                refill=True,  # Usually True for consistency
+                done='selenium_url',  # Changed from 'placeholder'
+                show='Selenium URL Opener',  # Changed from 'Placeholder Step'
+                refill=True,
             ),
         ]
         
@@ -2603,7 +2608,7 @@ This step serves as a placeholder for future widget types."""
         )
 
     async def step_10(self, request):
-        """Handles GET request for placeholder step."""
+        """Handles GET request for Selenium URL step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_10"
         step_index = self.steps_indices[step_id]
@@ -2612,28 +2617,50 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        url_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
+        if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P("Placeholder step completed.")
+                    P(f"URL configured: ", B(url_value)),
+                    Form(
+                        Input(type="hidden", name="url", value=url_value),
+                        Button(
+                            "Open URL Again 🪄",
+                            type="submit",
+                            cls="secondary"
+                        ),
+                        hx_post=f"/{app_name}/reopen_url",
+                        hx_target=f"#{step_id}-status"
+                    ),
+                    Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
+        if url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"{step.show}: Complete",
+                message=f"{step.show}: {url_value}",
                 widget=Div(
-                    P("Placeholder step completed.")
+                    P(f"URL configured: ", B(url_value)),
+                    Form(
+                        Input(type="hidden", name="url", value=url_value),
+                        Button(
+                            "Open URL Again 🪄",
+                            type="submit",
+                            cls="secondary"
+                        ),
+                        hx_post=f"/{app_name}/reopen_url",
+                        hx_target=f"#{step_id}-status"
+                    ),
+                    Div(id=f"{step_id}-status")
                 ),
                 steps=steps
             )
@@ -2643,51 +2670,202 @@ This step serves as a placeholder for future widget types."""
                 id=step_id
             )
         else:
-            await self.message_queue.add(pip, "This is a placeholder step for future functionality.", verbatim=True)
+            await self.message_queue.add(pip, "Enter the URL you want to open with Selenium:", verbatim=True)
+            
+            # Use existing value if available, otherwise use default
+            display_value = url_value if step.refill and url_value else "https://example.com/"
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("Click Proceed to continue to the next step."),
                     Form(
-                        Button("Proceed 🪄", type="submit", cls="primary"),
-                        Button("Revert", type="button", cls="secondary",
-                               hx_post=f"/{app_name}/handle_revert",
-                               hx_vals=f'{{"step_id": "{step_id}"}}'),
-                        hx_post=f"/{app_name}/{step_id}_submit",
+                        Input(
+                            type="url",
+                            name="url",
+                            placeholder="https://example.com/",
+                            required=True,
+                            value=display_value,
+                            cls="contrast"
+                        ),
+                        Button("Open URL 🪄", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
-                    ),
+                    )
                 ),
                 Div(id=next_step_id),
                 id=step_id
             )
 
     async def step_10_submit(self, request):
-        """Process the submission for placeholder step."""
+        """Process the URL submission and open it with Selenium."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_10"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Store minimal state data
-        placeholder_value = "completed"
-        state = pip.read_state(pipeline_id)
-        state[step.done] = placeholder_value
-        pip.write_state(pipeline_id, state)
+        # Get and validate URL
+        form = await request.form()
+        url = form.get("url", "").strip()
         
-        # Confirm completion and configure next step display
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
         
-        # Return response with chain reaction to next step
-        return Div(
-            Card(
-                H4(f"{step.show} Complete"),
-                P("Proceeding to next step..."),
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+        
+        # Store URL in state
+        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        
+        try:
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            # Log the current OS and environment
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
+            
+            # Initialize the Chrome driver
+            if effective_os == "darwin":
+                # On macOS, use webdriver-manager
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                # On Linux, use system Chrome
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            # Open the URL
+            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
+            
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
+            
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
+        except Exception as e:
+            error_msg = f"Error opening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error"))
+        
+        # Create widget with reopen button
+        url_widget = Div(
+            P(f"URL configured: ", B(url)),
+            Form(
+                Input(type="hidden", name="url", value=url),
+                Button(
+                    "Open URL Again 🪄",
+                    type="submit",
+                    cls="secondary"
+                ),
+                hx_post=f"/{app_name}/reopen_url",
+                hx_target=f"#{step_id}-status"
             ),
-            # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
+            Div(id=f"{step_id}-status")
+        )
+        
+        # Create content container
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: {url}",
+            widget=url_widget,
+            steps=steps
+        )
+        
+        # Return with chain reaction to next step
+        return Div(
+            content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
+
+    async def reopen_url(self, request):
+        """Handle reopening a URL with Selenium."""
+        pip, db = self.pipulate, self.db
+        form = await request.form()
+        url = form.get("url", "").strip()
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        try:
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            # Initialize the Chrome driver
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin":
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            # Open the URL
+            await self.message_queue.add(pip, f"Reopening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
+            
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
+            
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
+            return P(f"Successfully reopened: {url}", style="color: green;")
+            
+        except Exception as e:
+            error_msg = f"Error reopening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error"))
