@@ -351,7 +351,7 @@ class DesignerWorkflow:
                     Form(
                         Input(type="hidden", name="url", value=url_value),
                         Button(
-                            "Open URL Again ▸",
+                            "Open URL Again 🪄",
                             type="submit",
                             cls="secondary"
                         ),
@@ -375,7 +375,7 @@ class DesignerWorkflow:
                     Form(
                         Input(type="hidden", name="url", value=url_value),
                         Button(
-                            "Open URL Again ▸",
+                            "Open URL Again 🪄",
                             type="submit",
                             cls="secondary"
                         ),
@@ -409,7 +409,7 @@ class DesignerWorkflow:
                             value=display_value,
                             cls="contrast"
                         ),
-                        Button("Open URL ▸", type="submit", cls="primary"),
+                        Button("Open URL 🪄", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -502,7 +502,7 @@ class DesignerWorkflow:
             Form(
                 Input(type="hidden", name="url", value=url),
                 Button(
-                    "Open URL Again ▸",
+                    "Open URL Again 🪄",
                     type="submit",
                     cls="secondary"
                 ),
