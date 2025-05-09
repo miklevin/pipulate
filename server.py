@@ -2618,7 +2618,7 @@ logger.debug("Database wrapper initialized.")
 
 def populate_initial_data():
     logger.debug("Populating initial data.")
-    allowed_keys = {'last_app_choice', 'last_visited_url', 'last_profile_id'}
+    allowed_keys = {'last_app_choice', 'last_visited_url', 'last_profile_id', 'show_all_plugins'}
     for key in list(db.keys()):
         if key not in allowed_keys:
             try:
@@ -2631,6 +2631,11 @@ def populate_initial_data():
         logger.debug(f"Inserted default profile: {default_profile}")
     else:
         default_profile = profiles()[0]
+    
+    # Initialize show_all_plugins if not present
+    if 'show_all_plugins' not in db:
+        db['show_all_plugins'] = "0"
+        logger.debug("Initialized show_all_plugins to '0'")
 
 
 populate_initial_data()
