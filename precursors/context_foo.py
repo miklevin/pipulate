@@ -22,75 +22,45 @@ from typing import Dict, List, Optional, Union
 
 FILES_TO_INCLUDE = """\
 server.py
-.cursor/rules/philosophy-core.mdc
-.cursor/rules/philosophy-webmaster.mdc
-.cursor/rules/philosophy-simplicity.mdc
-.cursor/rules/architecture-core.mdc
-.cursor/rules/architecture-state.mdc
-.cursor/rules/pattern-plugin-identity.mdc
-.cursor/rules/pattern-chain-reaction.mdc
-.cursor/rules/implementation-workflow.mdc
-.cursor/rules/implementation-widget.mdc
-plugins/500_blank_workflow.py
-plugins/510_splice_workflow.py
-plugins/520_widget_examples.py
-static/chat-interface.js
-static/chat-scripts.js
-static/widget-scripts.js
-training/workflow_implementation_guide.md
+flake.nix
+requirements.txt
+README.md
+/home/mike/repos/pipulate/plugins/010_tasks.py
+/home/mike/repos/pipulate/plugins/020_hello_workflow.py
+/home/mike/repos/pipulate/training/workflow_implementation_guide.md
+/home/mike/repos/pipulate/plugins/540_url_opener.py
+/home/mike/repos/browser/flake.nix
+/home/mike/repos/browser/test_selenium.py
+# /home/mike/repos/pipulate/static/chat-interface.js
+# /home/mike/repos/pipulate/static/chat-scripts.js
+# /home/mike/repos/pipulate/static/chat-styles.css
+# /home/mike/repos/pipulate/static/rich-table.css
+# /home/mike/repos/pipulate/static/script.js
+# /home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/plugins/030_connect_with_botify.py
+# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
+# /home/mike/repos/pipulate/plugins/500_blank_workflow.py
+# /home/mike/repos/pipulate/plugins/505_designer_workflow.py
+# /home/mike/repos/pipulate/plugins/510_splice_workflow.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/pipulate/plugins/530_botify_export.py
+# /home/mike/repos/pipulate/plugins/600_stream_simulator.py
+# /home/mike/repos/pipulate/plugins/999_roadmap.py
+# /home/mike/repos/pipulate/training/botify_export.md
+# /home/mike/repos/pipulate/training/botify_workflow.md
+# /home/mike/repos/pipulate/training/hello_workflow.md
+# /home/mike/repos/pipulate/training/system_prompt.md
+# /home/mike/repos/pipulate/training/tasks.md
+# /home/mike/repos/pipulate/training/widget_examples.md
+# /home/mike/repos/pipulate/training/widget_implementation_guide.md
 """.strip().splitlines()
 
-
+# Filter out any commented lines
+FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if not line.strip().startswith('#')]
 
 # FILES_TO_INCLUDE = """\
-# server.py
-# flake.nix
-# requirements.txt
-# README.md
-# .cursor/rules/architecture-core.mdc
-# .cursor/rules/architecture-state.mdc
-# .cursor/rules/implementation-widget.mdc
-# .cursor/rules/implementation-workflow.mdc
-# .cursor/rules/pattern-plugin-identity.mdc
-# .cursor/rules/pattern-button.mdc
-# .cursor/rules/pattern-chain-reaction.mdc
-# .cursor/rules/philosophy-core.mdc
-# .cursor/rules/philosophy-simplicity.mdc
-# .cursor/rules/philosophy-webmaster.mdc
-# plugins/500_blank_workflow.py
-# plugins/510_splice_workflow.py
-# plugins/520_widget_examples.py
-# static/chat-interface.js
-# static/chat-scripts.js
-# static/chat-styles.css
-# static/widget-scripts.js
-# training/workflow_implementation_guide.md
 # """.strip().splitlines()
 
-
-# FILES_TO_INCLUDE = """\
-# server.py
-# flake.nix
-# requirements.txt
-# README.md
-# .cursorrules
-# plugins/20_hello_workflow.py
-# plugins/60_widget_examples.py
-# plugins/70_blank_workflow.py
-# plugins/80_splice_workflow.py
-# /home/mike/repos/.cursor/rules/htmx-chain-reactions.mdc
-# /home/mike/repos/.cursor/rules/nix-rules.mdc
-# /home/mike/repos/.cursor/rules/placeholder-step-pattern.mdc
-# /home/mike/repos/.cursor/rules/wet-workflows.mdc
-# /home/mike/repos/pipulate/training/workflow_implementation_guide.md
-# """.strip().splitlines()  # Changed from [:-1] to handle empty lines properly
-
-# Example: 
-# plugins/10_connect_with_botify.py
-# static/chat-interface.js
-# static/chat-scripts.js
-# static/chat-styles.css
-# static/widget-scripts.js
 
 # ============================================================================
 # ARTICLE MODE CONFIGURATION

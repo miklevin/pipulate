@@ -1,0 +1,111 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Future Development Guide
+
+## Planned Enhancements
+
+### Automation and Testing
+- Playwright integration for browser automation
+- Meta-workflows for testing workflows
+- Simple testing framework (TBD)
+- Workflow simulation tools
+- Performance testing tools
+
+### UI and Accessibility
+- Enhanced ARIA support
+- AnyWidget integration
+- Improved data visualizations
+- Mobile responsiveness
+- Touch interface support
+
+### Configuration and Management
+- Improved API key management
+- Configuration system for data sources
+- Plugin versioning system
+- Simple backup solutions
+- Update management tools
+
+### Development Tools
+- Enhanced debugging tools
+- Development mode features
+- Plugin development tools
+- Workflow templates
+- Code generation helpers
+
+## Areas for Community Input
+
+### Plugin System
+- Version control strategies
+- Dependency management
+- Security guidelines
+- Distribution methods
+- Testing approaches
+
+### Testing Framework
+- Test case organization
+- Workflow testing patterns
+- Integration test strategies
+- Performance benchmarks
+- Error simulation
+
+### Security Features
+- API key storage
+- Local authentication
+- Data encryption
+- Access controls
+- Security best practices
+
+### Documentation
+- API documentation
+- Plugin guidelines
+- Workflow patterns
+- Best practices
+- Example collections
+
+## Development Guidelines
+
+### Contributing
+- MIT license
+- GitHub repository
+- PR welcome
+- Code style guidelines
+- Documentation requirements
+
+### Plugin Development
+- Template usage
+- Testing requirements
+- Documentation needs
+- Security considerations
+- Version compatibility
+
+### Testing Strategy
+- Focus on workflow functionality
+- Use meta-workflows
+- Simple validation
+- Observable behavior
+- Performance metrics
+
+## Anti-Patterns to Avoid
+
+### Over-Engineering
+- Enterprise features
+- Complex frameworks
+- Heavy abstractions
+- Unnecessary security
+- Complex deployment
+
+### Feature Bloat
+- Unnecessary complexity
+- Enterprise-focused features
+- Heavy frameworks
+- Complex deployment
+- Over-automation
+
+## Related Rules
+- [Pipulate Philosophy](mdc:pipulate-philosophy.mdc)
+- [Architecture Guide](mdc:architecture-guide.mdc)
+- [Development Guide](mdc:development-guide.mdc)
+- [WET Workflows](mdc:wet-workflows.mdc)
