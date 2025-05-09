@@ -13,31 +13,37 @@ from loguru import logger
 from starlette.responses import HTMLResponse
 
 """
-Pipulate Workflow Template
-A minimal starter template for creating step-based Pipulate workflows.
+Pipulate Browser Automation Workflow
+
+This workflow demonstrates Selenium-based browser automation capabilities:
+- Cross-platform Chrome automation (Linux/macOS)
+- Clean browser sessions with temporary profiles
+- Detailed status logging and error handling
+- URL opening and verification
 """
 
 # Model for a workflow step
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class DesignerWorkflow:
+class BrowserAutomation:
     """
-    Selenium URL Opener Workflow
+    Browser Automation Workflow
     
-    A workflow that demonstrates basic Selenium integration by opening URLs.
+    A workflow that demonstrates Selenium integration for browser automation tasks.
+    This serves as the primary development ground for Pipulate's browser automation features.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "designer"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Selenium URL Opener" # User-friendly name shown in the UI
+    APP_NAME = "browser"              # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Browser Automation" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
         "Open URLs using Selenium for browser automation. "
-        "Perfect for testing Selenium integration in Pipulate."
+        "This workflow demonstrates Pipulate's browser automation capabilities."
     )
     TRAINING_PROMPT = (
-        "This workflow demonstrates basic Selenium integration by opening URLs. "
-        "It uses the webdriver-manager for cross-platform compatibility and "
-        "provides a simple interface for URL input and browser automation."
+        "This workflow showcases browser automation using Selenium. "
+        "It uses webdriver-manager for cross-platform compatibility and "
+        "provides a foundation for developing more advanced automation features."
     )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
@@ -71,7 +77,7 @@ class DesignerWorkflow:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
-            (f"/{app_name}/reopen_url", self.reopen_url, ["POST"]),  # New route for reopening URLs
+            (f"/{app_name}/reopen_url", self.reopen_url, ["POST"]),  # Route for reopening URLs
         ]
 
         # Register routes for each step
@@ -103,7 +109,7 @@ class DesignerWorkflow:
 
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)} 
 
     # --- Core Workflow Engine Methods ---
 
@@ -263,72 +269,6 @@ class DesignerWorkflow:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
 
-    async def reopen_url(self, request):
-        """Handle reopening a URL with Selenium."""
-        pip, db = self.pipulate, self.db
-        form = await request.form()
-        url = form.get("url", "").strip()
-        
-        if not url:
-            return P("Error: URL is required", style=pip.get_style("error"))
-        
-        try:
-            # Set up Chrome options
-            chrome_options = Options()
-            # chrome_options.add_argument("--headless")  # Commented out for visibility
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--new-window")  # Force new window
-            chrome_options.add_argument("--start-maximized")  # Start maximized
-            
-            # Create a temporary profile directory
-            import tempfile
-            profile_dir = tempfile.mkdtemp()
-            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-            
-            # Initialize the Chrome driver
-            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
-            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
-            
-            if effective_os == "darwin":
-                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
-                service = Service(ChromeDriverManager().install())
-            else:
-                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
-                service = Service()
-            
-            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Open the URL
-            await self.message_queue.add(pip, f"Reopening URL with Selenium: {url}", verbatim=True)
-            driver.get(url)
-            
-            # Wait a moment to ensure the page loads
-            await asyncio.sleep(2)
-            
-            # Get the page title to confirm it loaded
-            title = driver.title
-            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
-            
-            # Close the browser
-            driver.quit()
-            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
-            
-            # Clean up the temporary profile directory
-            import shutil
-            shutil.rmtree(profile_dir, ignore_errors=True)
-            
-            return P(f"Successfully reopened: {url}", style="color: green;")
-            
-        except Exception as e:
-            error_msg = f"Error reopening URL with Selenium: {str(e)}"
-            logger.error(error_msg)
-            await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style("error"))
-
-    # --- Placeholder Step Methods ---
-
     async def step_01(self, request):
         """Handles GET request for URL input step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -344,9 +284,9 @@ class DesignerWorkflow:
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data and url_value:
-                return Div(
-                    Card(
-                        H3(f"🔒 {step.show}"),
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
                     P(f"URL configured: ", B(url_value)),
                     Form(
                         Input(type="hidden", name="url", value=url_value),
@@ -360,15 +300,15 @@ class DesignerWorkflow:
                     ),
                     Div(id=f"{step_id}-status")
                 ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
             
         # Check if step is complete and not being reverted to
         if url_value and state.get("_revert_target") != step_id:
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
                 message=f"{step.show}: {url_value}",
                 widget=Div(
                     P(f"URL configured: ", B(url_value)),
@@ -384,23 +324,23 @@ class DesignerWorkflow:
                     ),
                     Div(id=f"{step_id}-status")
                 ),
-                    steps=steps
-                )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
         else:
             await self.message_queue.add(pip, "Enter the URL you want to open with Selenium:", verbatim=True)
             
             # Use existing value if available, otherwise use default
             display_value = url_value if step.refill and url_value else "https://example.com/"
-        
-        return Div(
-            Card(
+            
+            return Div(
+                Card(
                     H3(f"{step.show}"),
-                Form(
+                    Form(
                         Input(
                             type="url",
                             name="url",
@@ -410,13 +350,13 @@ class DesignerWorkflow:
                             cls="contrast"
                         ),
                         Button("Open URL 🪄", type="submit", cls="primary"),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
         """Process the URL submission and open it with Selenium."""
@@ -527,3 +467,67 @@ class DesignerWorkflow:
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
+
+    async def reopen_url(self, request):
+        """Handle reopening a URL with Selenium."""
+        pip, db = self.pipulate, self.db
+        form = await request.form()
+        url = form.get("url", "").strip()
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        try:
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            # Initialize the Chrome driver
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin":
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            # Open the URL
+            await self.message_queue.add(pip, f"Reopening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
+            
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
+            
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
+            return P(f"Successfully reopened: {url}", style="color: green;")
+            
+        except Exception as e:
+            error_msg = f"Error reopening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error")) 

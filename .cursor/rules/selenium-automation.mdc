@@ -1,0 +1,104 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Selenium Automation in Pipulate
+
+## Overview
+Pipulate integrates Selenium for browser automation with cross-platform support. The implementation is designed to work seamlessly on both Linux and macOS environments, with the primary development happening in the Browser Automation workflow.
+
+## Key Components
+
+### Dependencies
+- `selenium`: Core browser automation library
+- `webdriver-manager`: Handles ChromeDriver installation and management
+- `chromium` and `chromedriver`: System packages for Linux environments
+
+### Environment Setup
+The environment is configured in [flake.nix](mdc:flake.nix) with:
+- Platform-specific packages for Linux and macOS
+- `EFFECTIVE_OS` environment variable to detect the current platform
+- Automatic ChromeDriver management based on platform
+
+### Browser Configuration
+Chrome options are configured for optimal automation:
+```python
+chrome_options = Options()
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--new-window")
+chrome_options.add_argument("--start-maximized")
+```
+
+### Cross-Platform Support
+The implementation handles platform differences:
+- macOS: Uses `webdriver-manager` for ChromeDriver management
+- Linux: Uses system-provided Chrome and ChromeDriver
+- Temporary profile directories for clean browser sessions
+
+### URL Opening Implementation
+The URL opening functionality is implemented in [550_browser_automation.py](mdc:plugins/550_browser_automation.py) with:
+- Initial URL opening during workflow submission
+- "Open URL Again" functionality for reopening URLs
+- Consistent behavior across both opening methods
+- Detailed logging and error handling
+
+### Best Practices
+1. Always use temporary profile directories for clean sessions
+2. Implement proper cleanup of browser resources
+3. Include detailed logging for debugging
+4. Handle platform-specific configurations
+5. Provide user feedback through message queue
+
+### Error Handling
+The implementation includes comprehensive error handling:
+- URL validation
+- Browser initialization errors
+- Page loading verification
+- Resource cleanup
+- User-friendly error messages
+
+### Usage Example
+```python
+# Initialize Chrome options
+chrome_options = Options()
+chrome_options.add_argument("--new-window")
+chrome_options.add_argument("--start-maximized")
+
+# Create temporary profile
+profile_dir = tempfile.mkdtemp()
+chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+
+# Initialize driver based on platform
+if os.environ.get("EFFECTIVE_OS") == "darwin":
+    service = Service(ChromeDriverManager().install())
+else:
+    service = Service()
+
+# Open URL
+driver = webdriver.Chrome(service=service, options=chrome_options)
+driver.get(url)
+```
+
+## Integration Points
+1. Workflow Steps: URL input and validation
+2. Browser Management: Cross-platform driver initialization
+3. User Interface: Status updates and error messages
+4. Resource Management: Cleanup of temporary files and browser instances
+
+## Future Considerations
+1. Support for additional browsers
+2. Enhanced error recovery
+3. Custom browser profiles
+4. Extended automation capabilities
+5. Performance optimizations
+
+## Development Guidelines
+The Browser Automation workflow (`550_browser_automation.py`) serves as the primary development ground for Selenium features in Pipulate. When implementing new browser automation capabilities:
+
+1. Start in the Browser Automation workflow
+2. Test and refine the implementation
+3. Once stable, extract reusable components
+4. Document any platform-specific considerations
+5. Update this rule with new capabilities
