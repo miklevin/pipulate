@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class RoadmapPlugin:
     NAME = "roadmap"
     DISPLAY_NAME = "Roadmap"
-    ENDPOINT_MESSAGE = "Here's the current project roadmap."
+    ENDPOINT_MESSAGE = "Displaying project roadmap..."
     
     # Define the Mermaid diagram as a class property
     ROADMAP_DIAGRAM = """
@@ -50,18 +50,31 @@ class RoadmapPlugin:
         # Generate unique IDs
         unique_id = f"mermaid-{int(time.time() * 1000)}"
         
-        # Send the diagram to the chat, but only once per session
-        if hasattr(self, 'pipulate') and self.pipulate and not self._has_streamed:
-            diagram_message = f"```mermaid\n{self.ROADMAP_DIAGRAM}\n```"
-            await self.pipulate.stream(
-                f"Here's the current project roadmap:\n{diagram_message}", 
-                verbatim=False,
-                role="system",
-                spaces_before=1,
-                spaces_after=1
-            )
-            self._has_streamed = True  # Set flag to prevent repeated streaming
-            logger.debug("Roadmap streamed to chat")
+        # Send the diagram to the conversation history, but only once per session
+        if self.pipulate is not None and not self._has_streamed:
+            try:
+                # First, send the verbatim redirect message
+                await self.pipulate.stream(
+                    self.ENDPOINT_MESSAGE,
+                    verbatim=True,
+                    role="system",
+                    spaces_before=1,
+                    spaces_after=1
+                )
+                
+                # Then append the roadmap info to history without displaying
+                diagram_message = f"```mermaid\n{self.ROADMAP_DIAGRAM}\n```"
+                self.pipulate.append_to_history(  # Remove await since it's not async
+                    "[WIDGET CONTENT] Project Roadmap\n" + diagram_message,
+                    role="system",
+                    quiet=True  # Add quiet flag to ensure it's silent
+                )
+                
+                self._has_streamed = True  # Set flag to prevent repeated streaming
+                logger.debug("Roadmap appended to conversation history")
+            except Exception as e:
+                logger.error(f"Error in roadmap plugin: {str(e)}")
+                # Continue even if messaging fails - the diagram will still show
         
         # Create the mermaid diagram container - leave empty for now
         mermaid_diagram = Div(
