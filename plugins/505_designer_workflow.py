@@ -2,6 +2,11 @@ import asyncio
 from collections import namedtuple
 from datetime import datetime
 import json
+import os
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -18,21 +23,21 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class DesignerWorkflow:
     """
-    Blank Workflow Template
+    Selenium URL Opener Workflow
     
-    A minimal starting point for creating new workflows.
+    A workflow that demonstrates basic Selenium integration by opening URLs.
     """
     # --- Workflow Configuration ---
     APP_NAME = "designer"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Designer Workflow" # User-friendly name shown in the UI
+    DISPLAY_NAME = "Selenium URL Opener" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "Design and test workflow UI components in isolation. "
-        "Perfect for prototyping new widgets and testing UI patterns."
+        "Open URLs using Selenium for browser automation. "
+        "Perfect for testing Selenium integration in Pipulate."
     )
     TRAINING_PROMPT = (
-        "This workflow is a sandbox for designing and testing UI components. "
-        "It provides a safe environment to experiment with widgets, test HTMX patterns, "
-        "and validate UI/UX ideas before implementing them in production workflows."
+        "This workflow demonstrates basic Selenium integration by opening URLs. "
+        "It uses the webdriver-manager for cross-platform compatibility and "
+        "provides a simple interface for URL input and browser automation."
     )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
@@ -52,11 +57,10 @@ class DesignerWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='rich_table',
-                show='Rich Table Widget',
-                refill=True,
+                done='url',
+                show='Enter URL',
+                refill=True,  # Allow URL reuse
             ),
-            # Add more steps as needed
         ]
         
         # Register standard workflow routes
@@ -261,21 +265,7 @@ class DesignerWorkflow:
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for Rich Table Widget.
-        
-        Widget Design Pattern:
-        Each widget implementation should keep the LLM informed about:
-        1. Widget Configuration: The input parameters/configuration
-        2. Widget State: Current display state (input, preview, finalized)
-        3. Widget Content: The actual rendered content
-        4. Widget Interactions: Any user interactions or data updates
-        
-        Use pip.append_to_history() with these standard markers:
-        - [WIDGET CONFIG] - Widget setup and parameters
-        - [WIDGET STATE] - Current widget lifecycle state
-        - [WIDGET CONTENT] - Actual content being displayed
-        - [WIDGET INTERACTION] - User actions and data changes
-        """
+        """Handles GET request for URL input step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -284,318 +274,165 @@ class DesignerWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        table_data = step_data.get(step.done, "")
+        url_value = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and table_data:
-            try:
-                data = json.loads(table_data)
-                table_widget = self.create_rich_table_widget(data)
-                
-                # Keep LLM informed about finalized widget state
-                pip.append_to_history(f"[WIDGET STATE] {step.show} (Finalized)")
-                pip.append_to_history(f"[WIDGET CONFIG] Table configuration:\n{json.dumps(data, indent=2)}")
-                pip.append_to_history(f"[WIDGET CONTENT] Rich table displaying {len(data)} rows with columns: {', '.join(data[0].keys())}")
-                
-                return Div(
-                    Card(
-                        H3(f"🔒 {step.show}"),
-                        table_widget
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            except Exception as e:
-                logger.error(f"Error creating table widget in finalized view: {str(e)}")
-                pip.append_to_history(f"[WIDGET STATE] Error displaying finalized widget: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
+        if "finalized" in finalize_data and url_value:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
             
         # Check if step is complete and not being reverted to
-        if table_data and state.get("_revert_target") != step_id:
-            try:
-                data = json.loads(table_data)
-                table_widget = self.create_rich_table_widget(data)
-                
-                # Keep LLM informed about completed widget state
-                pip.append_to_history(f"[WIDGET STATE] {step.show} (Completed)")
-                pip.append_to_history(f"[WIDGET CONFIG] Current table configuration:\n{json.dumps(data, indent=2)}")
-                pip.append_to_history(f"[WIDGET CONTENT] Rich table displaying {len(data)} rows with columns: {', '.join(data[0].keys())}")
-                
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=table_widget,
-                    steps=steps
-                )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            except Exception as e:
-                logger.error(f"Error creating table widget: {str(e)}")
-                pip.append_to_history(f"[WIDGET STATE] Error displaying widget: {str(e)}")
-                state["_revert_target"] = step_id
-                pip.write_state(pipeline_id, state)
-
-        # Show input form
-        sample_data = [
-            {"name": "Parameter 1", "value1": 1000, "value2": 500, "value3": 50},
-            {"name": "Parameter 2", "value1": 2000, "value2": 1000, "value3": 100},
-            {"name": "Parameter 3", "value1": 3000, "value2": 1500, "value3": 150}
-        ]
-        display_value = table_data if step.refill and table_data else json.dumps(sample_data, indent=2)
-        
-        # Keep LLM informed about input form state
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing configuration form")
-        pip.append_to_history(f"[WIDGET CONFIG] Sample/default configuration:\n{json.dumps(sample_data, indent=2)}")
-        
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter table data as JSON array of objects. Example is pre-populated."),
-                P("Format: [{\"name\": \"value\", \"value1\": number, ...}, {...}]", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JSON array of objects for the table",
+        if url_value and state.get("_revert_target") != step_id:
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {url_value}",
+                widget=Div(
+                    P(f"URL configured: ", B(url_value)),
+                    Button(
+                        "Open URL Again ▸",
+                        type="button",
+                        _onclick=f"window.open('{url_value}', '_blank')",
+                        cls="secondary"
+                    )
+                ),
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            await self.message_queue.add(pip, "Enter the URL you want to open with Selenium:", verbatim=True)
+            
+            # Use existing value if available, otherwise use default
+            display_value = url_value if step.refill and url_value else "https://example.com/"
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    Form(
+                        Input(
+                            type="url",
+                            name="url",
+                            placeholder="https://example.com/",
                             required=True,
-                            rows=10,
-                            style="width: 100%; font-family: monospace;"
+                            value=display_value,
+                            cls="contrast"
                         ),
-                        Div(
-                            Button("Create Table ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+                        Button("Open URL ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
-        """Process the submission for Rich Table Widget.
-        
-        Widget Submission Pattern:
-        When processing widget submissions, keep the LLM informed about:
-        1. Configuration Changes: What parameters/settings were updated
-        2. Validation Results: Any validation errors or successes
-        3. Content Updates: Changes to the displayed content
-        4. State Transitions: Moving between widget states
-        
-        Use consistent markers to help the LLM track the widget lifecycle:
-        - [WIDGET CONFIG] - Configuration changes
-        - [WIDGET VALIDATION] - Validation results
-        - [WIDGET CONTENT] - Content updates
-        - [WIDGET STATE] - State changes
-        """
+        """Process the URL submission and open it with Selenium."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Get form data
-        form = await request.form()
-        table_data = form.get(step.done, "").strip()
-
-        # Keep LLM informed about submission
-        pip.append_to_history(f"[WIDGET INTERACTION] Received configuration submission for {step.show}")
         
-        # Validate input
-        is_valid, error_msg, error_component = pip.validate_step_input(table_data, step.show)
-        if not is_valid:
-            pip.append_to_history(f"[WIDGET VALIDATION] Basic validation failed: {error_msg}")
-            return error_component
-            
-        # Additional validation for JSON format
+        # Get and validate URL
+        form = await request.form()
+        url = form.get("url", "").strip()
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+        
+        # Store URL in state
+        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        
         try:
-            data = json.loads(table_data)
-            if not isinstance(data, list) or not data:
-                pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: Must be a non-empty array")
-                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
-            if not all(isinstance(item, dict) for item in data):
-                pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: All items must be objects")
-                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
-                
-            # Keep LLM informed about successful validation
-            pip.append_to_history("[WIDGET VALIDATION] Configuration validated successfully")
-            pip.append_to_history(f"[WIDGET CONFIG] New configuration:\n{json.dumps(data, indent=2)}")
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
             
-        except json.JSONDecodeError:
-            pip.append_to_history("[WIDGET VALIDATION] JSON validation failed: Invalid syntax")
-            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
-
-        # Save to state
-        await pip.update_step_state(pipeline_id, step_id, table_data, steps)
-
-        # Create the rich table widget
-        try:
-            table_widget = self.create_rich_table_widget(data)
+            # Log the current OS and environment
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
             
-            # Keep LLM informed about successful widget creation
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Widget created successfully")
-            pip.append_to_history(f"[WIDGET CONTENT] Rich table created with {len(data)} rows and columns: {', '.join(data[0].keys())}")
+            # Initialize the Chrome driver
+            if effective_os == "darwin":
+                # On macOS, use webdriver-manager
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                # On Linux, use system Chrome
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
             
-            # Create content container
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: Table created with {len(data)} rows",
-                widget=table_widget,
-                steps=steps
-            )
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
             
-            # Create full response
-            response_content = Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
+            # Open the URL
+            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
             
-            # Send confirmation message
-            await self.message_queue.add(pip, f"{step.show} complete. Table created with {len(data)} rows.", verbatim=True)
-
-            return HTMLResponse(to_xml(response_content))
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
             
         except Exception as e:
-            logger.error(f"Error creating table widget: {e}")
-            pip.append_to_history(f"[WIDGET STATE] Error creating widget: {str(e)}")
-            return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
-
-    def create_rich_table_widget(self, data):
-        """Create a rich table widget with beautiful styling.
+            error_msg = f"Error opening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error"))
         
-        Widget Creation Pattern:
-        When implementing widget creation methods:
-        1. Document the widget's visual components and styling
-        2. Keep styling contained within the widget
-        3. Handle errors gracefully with informative messages
-        4. Consider accessibility in the design
+        # Create widget with reopen button
+        url_widget = Div(
+            P(f"URL configured: ", B(url)),
+            Button(
+                "Open URL Again ▸",
+                type="button",
+                _onclick=f"window.open('{url}', '_blank')",
+                cls="secondary"
+            )
+        )
         
-        The LLM should be able to understand:
-        - The widget's visual structure
-        - Styling patterns used
-        - Error handling approach
-        - Accessibility considerations
-        """
-        # First, add the CSS styling
-        style = NotStr("""
-        <style>
-            .param-table {
-                font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
-                border-collapse: separate;
-                border-spacing: 0;
-                width: 100%;
-                color: white;
-                margin-top: 1rem;
-                margin-bottom: 1rem;
-                border: 1px solid white;
-                background-color: #000;
-            }
-            .param-table caption {
-                caption-side: top;
-                text-align: center;
-                font-weight: normal;
-                font-style: italic;
-                color: white;
-                background: transparent !important;
-                padding: 10px 0;
-                font-size: 1.1em;
-                letter-spacing: 0.5px;
-            }
-            .header-cell {
-                color: white !important;
-                background: #000 !important;
-                font-weight: bold;
-                border-top: 2px solid white;
-                border-bottom: 2px solid white;
-                border-left: 2px solid white;
-                border-right: 2px solid white;
-            }
-            .param-table tr.header td:last-child {
-                border-right: none !important;
-                padding: 8px;
-            }
-            .param-table tr:not(.header) td {
-                border-top: none;
-                border-bottom: none;
-                border-left: none;
-                border-right: 2px solid white;
-            }
-            .param-table tr:not(.header) td:last-child {
-                border-right: none !important;
-            }
-            .param-table td {
-                background: #000;
-                color: inherit;
-                padding: 2px 4px 2px 8px;
-                text-align: left;
-            }
-            .param-name { color: cyan; }
-            .value1-val { color: #4fa8ff; text-align: right; }
-            .value2-val { color: #ff0000; text-align: right; }
-            .value3-val { color: #50fa7b; text-align: right; }
-            .header-cell span {
-                color: white !important;
-            }
-        </style>
-        """)
-
-        # Get column headers from first row
-        if not data:
-            return P("No data provided for table", style="color: red;")
+        # Create content container
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: {url}",
+            widget=url_widget,
+            steps=steps
+        )
         
-        headers = list(data[0].keys())
-
-        # Create the table HTML
-        table_html = f"""
-        <table class="param-table">
-            <caption>Rich Table Example</caption>
-            <tr class="header">
-        """
-        
-        # Add header row
-        for i, header in enumerate(headers):
-            header_class = "param-name" if header == "name" else f"{header}-val"
-            td_class = "header-cell"
-            table_html += f'<td class="{td_class}"><span class="{header_class}">{header}</span></td>'
-        
-        table_html += "</tr>"
-        
-        # Add data rows
-        for row in data:
-            table_html += "<tr>"
-            for i, header in enumerate(headers):
-                cell_class = "param-name" if header == "name" else f"{header}-val"
-                value = row.get(header, "")
-                # Format numbers with commas
-                if isinstance(value, (int, float)):
-                    value = f"{value:,}"
-                table_html += f'<td><span class="{cell_class}">{value}</span></td>'
-            table_html += "</tr>"
-        
-        table_html += "</table>"
-        
-        # Return the complete widget
+        # Return with chain reaction to next step
         return Div(
-            style,
-            NotStr(table_html),
-            style="overflow-x: auto;"
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
         )
