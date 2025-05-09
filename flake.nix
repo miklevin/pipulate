@@ -261,7 +261,7 @@
           # Open FastHTML in the browser
           (
             # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
-            sleep 7
+            sleep 10
             if command -v xdg-open >/dev/null 2>&1; then
               xdg-open http://localhost:5001 >/dev/null 2>&1 &
             elif command -v open >/dev/null 2>&1; then
@@ -307,7 +307,7 @@
           # Open FastHTML in the browser
           (
             # Wait a brief moment to ensure browser doesn't get confused with multiple tabs
-            sleep 7
+            sleep 10
             if command -v xdg-open >/dev/null 2>&1; then
               xdg-open http://localhost:5001 >/dev/null 2>&1 &
             elif command -v open >/dev/null 2>&1; then
