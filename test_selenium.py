@@ -4,13 +4,14 @@ import tempfile
 import shutil
 import time
 import sys
-from selenium import webdriver
+import json
+from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 
-print("--- Pipulate Standalone Selenium POC ---")
+print("--- Pipulate Standalone Selenium POC with selenium-wire ---")
 
 def get_host_browser_path(browser_name: str) -> str | None:
     """
@@ -82,11 +83,8 @@ def run_selenium_test():
 
         if effective_os_for_test == "linux":
             print("Linux detected: Will rely on Nix-provided Chromium and Chromedriver in PATH.")
-            # No need to set chrome_options.binary_location if chromium is in PATH
-            # and chromedriver can find it.
         elif effective_os_for_test == "darwin":
             print("macOS detected: Will use webdriver-manager and system-installed Chrome/Chromium.")
-            # No need to set chrome_options.binary_location for standard Chrome installations.
         else:
             print(f"Warning: Unrecognized OS '{effective_os_for_test}'. Defaulting to Linux behavior.")
 
@@ -105,11 +103,10 @@ def run_selenium_test():
             chrome_service = ChromeService(ChromeDriverManager().install())
             print("Using webdriver-manager for ChromeDriver on macOS.")
         else: # Assuming Linux
-            # On Linux, chromedriver should be in PATH from Nix flake
             chrome_service = ChromeService()
             print("Using system (Nix-provided) ChromeDriver on Linux.")
         
-        print("Initializing webdriver.Chrome...")
+        print("Initializing webdriver.Chrome with selenium-wire...")
         driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
         print("Chrome WebDriver initialized.")
 
@@ -122,25 +119,40 @@ def run_selenium_test():
         # Get the final URL after any redirects
         final_url = driver.current_url
         
-        # Get the status code using JavaScript's Performance API
-        status_code = None
-        try:
-            status_code = driver.execute_script("""
-                return window.performance.getEntriesByType('navigation')[0].responseStatus;
-            """)
-        except Exception as e:
-            print(f"Warning: Could not get status code via Performance API: {e}")
+        # Find the main document request using selenium-wire
+        main_request = None
+        for request in driver.requests:
+            if request.response and request.url == final_url:
+                main_request = request
+                break
+
+        if main_request:
+            # Get headers and source HTML using selenium-wire
+            headers = dict(main_request.response.headers)
+            source_html = main_request.response.body.decode('utf-8', errors='replace')
+            
+            print("\n--- HTTP Response Headers ---")
+            print(json.dumps(headers, indent=2))
+            
+            print("\n--- Source HTML (first 500 chars) ---")
+            print(source_html[:500])
+            
+            # Get status code from selenium-wire response
+            status_code = main_request.response.status_code
+            print(f"\nHTTP Status Code (from selenium-wire): {status_code}")
+        else:
+            print("Warning: Could not find main request in selenium-wire requests.")
+            # Fallback to Performance API for status code
+            status_code = None
             try:
-                # Fallback to a different Performance API method
                 status_code = driver.execute_script("""
-                    return window.performance.getEntriesByType('resource')[0].responseStatus;
+                    return window.performance.getEntriesByType('navigation')[0].responseStatus;
                 """)
-            except Exception as e2:
-                print(f"Warning: Could not get status code via fallback method: {e2}")
+            except Exception as e:
+                print(f"Warning: Could not get status code via Performance API: {e}")
         
         title = driver.title
         print(f"Page title: '{title}'")
-        print(f"HTTP Status Code (for {final_url}): {status_code}")
 
         if "example domain" in title.lower() and status_code == 200:
             print("SUCCESS: Correct page title and status code found!")

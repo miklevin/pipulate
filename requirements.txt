@@ -8,6 +8,7 @@ vulture
 
 aiohttp
 beautifulsoup4
+blinker==1.7.0
 dominate
 httpx
 itables
@@ -25,6 +26,7 @@ requests
 rich
 selenium
 webdriver-manager
+selenium-wire
 watchdog
 
 google-api-python-client
