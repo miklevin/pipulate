@@ -664,9 +664,9 @@ class BrowserAutomation:
                 status = 200  # Default to 200 if we can't get the actual status
 
             # Prepare directory structure
-            domain, path = self.get_safe_path(url)
+            domain, path = get_safe_path(url)
             date_slug = datetime.now().strftime("%Y%m%d")
-            base_dir = self.ensure_crawl_dir(app_name, domain, date_slug)
+            base_dir = ensure_crawl_dir(app_name, domain, date_slug)
             crawl_dir = os.path.join(base_dir, path)
             os.makedirs(crawl_dir, exist_ok=True)
 
@@ -687,7 +687,7 @@ class BrowserAutomation:
             shutil.rmtree(profile_dir, ignore_errors=True)
 
             # Store crawl data in state (including reconstructed URL)
-            reconstructed_url = self.reconstruct_url(domain, path)
+            reconstructed_url = reconstruct_url(domain, path)
             crawl_data = {
                 "url": url,
                 "title": title,
