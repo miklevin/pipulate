@@ -276,7 +276,7 @@ class BrowserAutomation:
         return pip.rebuild(app_name, steps)
 
     async def step_01(self, request):
-        """Handles GET request for URL input step."""
+        """Handles GET request for Open URL step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -292,8 +292,8 @@ class BrowserAutomation:
         if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P(f"URL configured: ", B(url_value)),
+                    H3(f"🔒 Open URL"),
+                    P(f"URL opened (and closed): ", B(url_value)),
                     Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -305,9 +305,9 @@ class BrowserAutomation:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"{step.show}: {url_value}",
+                message=f"Open URL: {url_value}",
                 widget=Div(
-                    P(f"URL configured: ", B(url_value)),
+                    P(f"URL opened (and closed): ", B(url_value)),
                     Div(id=f"{step_id}-status")
                 ),
                 steps=steps
@@ -322,7 +322,7 @@ class BrowserAutomation:
             display_value = url_value if step.refill and url_value else "https://example.com"
             return Div(
                 Card(
-                    H3(f"{step.show}"),
+                    H3("Open URL"),
                     Form(
                         Input(
                             type="url",
@@ -332,7 +332,7 @@ class BrowserAutomation:
                             value=display_value,
                             cls="contrast"
                         ),
-                        Button("Open URL 🪄", type="submit", cls="primary"),
+                        Button("Open URL", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -342,7 +342,7 @@ class BrowserAutomation:
             )
 
     async def step_01_submit(self, request):
-        """Process the URL submission and open it with Selenium."""
+        """Process the Open URL submission and open it with Selenium."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -421,7 +421,7 @@ class BrowserAutomation:
 
         # Create widget without reopen button
         url_widget = Div(
-            P(f"URL configured: ", B(url)),
+            P(f"URL opened (and closed): ", B(url)),
             Div(id=f"{step_id}-status")
         )
 
@@ -429,7 +429,7 @@ class BrowserAutomation:
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show}: {url}",
+            message=f"Open URL: {url}",
             widget=url_widget,
             steps=steps
         )
@@ -506,7 +506,7 @@ class BrowserAutomation:
             return P(error_msg, style=pip.get_style("error")) 
 
     async def step_02(self, request):
-        """Handles GET request for Step 2 URL input (identical to Step 1, independent state)."""
+        """Handles GET request for Crawl URL step (identical to Step 1, independent state, crawl semantics)."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -522,8 +522,8 @@ class BrowserAutomation:
         if "finalized" in finalize_data and url_value:
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}"),
-                    P(f"URL configured: ", B(url_value)),
+                    H3(f"🔒 Crawl URL"),
+                    P(f"URL crawled and saved: ", B(url_value)),
                     Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -535,9 +535,9 @@ class BrowserAutomation:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"{step.show}: {url_value}",
+                message=f"Crawl URL: {url_value}",
                 widget=Div(
-                    P(f"URL configured: ", B(url_value)),
+                    P(f"URL crawled and saved: ", B(url_value)),
                     Div(id=f"{step_id}-status")
                 ),
                 steps=steps
@@ -548,11 +548,11 @@ class BrowserAutomation:
                 id=step_id
             )
         else:
-            await self.message_queue.add(pip, "Enter the URL you want to open with Selenium (Step 2):", verbatim=True)
+            await self.message_queue.add(pip, "Enter the URL you want to crawl:", verbatim=True)
             display_value = url_value if step.refill and url_value else "https://example.com"
             return Div(
                 Card(
-                    H3(f"{step.show}"),
+                    H3("Crawl URL"),
                     Form(
                         Input(
                             type="url",
@@ -562,7 +562,7 @@ class BrowserAutomation:
                             value=display_value,
                             cls="contrast"
                         ),
-                        Button("Open URL 🪄", type="submit", cls="primary"),
+                        Button("Crawl URL", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit", 
                         hx_target=f"#{step_id}"
                     )
@@ -572,7 +572,7 @@ class BrowserAutomation:
             )
 
     async def step_02_submit(self, request):
-        """Process the Step 2 URL submission and open it with Selenium (identical to Step 1, independent state)."""
+        """Process the Crawl URL submission and open it with Selenium (identical to Step 1, independent state, crawl semantics)."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -623,7 +623,7 @@ class BrowserAutomation:
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
             # Open the URL
-            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
+            await self.message_queue.add(pip, f"Crawling URL with Selenium: {url}", verbatim=True)
             driver.get(url)
 
             # Wait a moment to ensure the page loads
@@ -642,7 +642,7 @@ class BrowserAutomation:
             shutil.rmtree(profile_dir, ignore_errors=True)
 
         except Exception as e:
-            error_msg = f"Error opening URL with Selenium: {str(e)}"
+            error_msg = f"Error crawling URL with Selenium: {str(e)}"
             logger.error(error_msg)
             # Escape angle brackets for logging
             safe_error_msg = error_msg.replace("<", "&lt;").replace(">", "&gt;")
@@ -651,7 +651,7 @@ class BrowserAutomation:
 
         # Create widget without reopen button
         url_widget = Div(
-            P(f"URL configured: ", B(url)),
+            P(f"URL crawled and saved: ", B(url)),
             Div(id=f"{step_id}-status")
         )
 
@@ -659,7 +659,7 @@ class BrowserAutomation:
         content_container = pip.widget_container(
             step_id=step_id,
             app_name=app_name,
-            message=f"{step.show}: {url}",
+            message=f"Crawl URL: {url}",
             widget=url_widget,
             steps=steps
         )
