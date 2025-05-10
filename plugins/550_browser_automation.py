@@ -294,22 +294,12 @@ class BrowserAutomation:
                 Card(
                     H3(f"🔒 {step.show}"),
                     P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
                     Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+
         # Check if step is complete and not being reverted to
         if url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
@@ -318,16 +308,6 @@ class BrowserAutomation:
                 message=f"{step.show}: {url_value}",
                 widget=Div(
                     P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
                     Div(id=f"{step_id}-status")
                 ),
                 steps=steps
@@ -339,10 +319,7 @@ class BrowserAutomation:
             )
         else:
             await self.message_queue.add(pip, "Enter the URL you want to open with Selenium:", verbatim=True)
-            
-            # Use existing value if available, otherwise use default
-            display_value = url_value if step.refill and url_value else "https://example.com/"
-            
+            display_value = url_value if step.refill and url_value else "https://example.com"
             return Div(
                 Card(
                     H3(f"{step.show}"),
@@ -350,7 +327,7 @@ class BrowserAutomation:
                         Input(
                             type="url",
                             name="url",
-                            placeholder="https://example.com/",
+                            placeholder="https://example.com",
                             required=True,
                             value=display_value,
                             cls="contrast"
@@ -376,16 +353,14 @@ class BrowserAutomation:
         # Get and validate URL
         form = await request.form()
         url = form.get("url", "").strip()
-        
         if not url:
             return P("Error: URL is required", style=pip.get_style("error"))
-        
         if not url.startswith(("http://", "https://")):
             url = f"https://{url}"
-        
+
         # Store URL in state
         await pip.update_step_state(pipeline_id, step_id, url, steps)
-        
+
         try:
             # Set up Chrome options
             chrome_options = Options()
@@ -394,16 +369,16 @@ class BrowserAutomation:
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--new-window")  # Force new window
             chrome_options.add_argument("--start-maximized")  # Start maximized
-            
+
             # Create a temporary profile directory
             import tempfile
             profile_dir = tempfile.mkdtemp()
             chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-            
+
             # Log the current OS and environment
             effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
             await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
-            
+
             # Initialize the Chrome driver
             if effective_os == "darwin":
                 # On macOS, use webdriver-manager
@@ -413,29 +388,29 @@ class BrowserAutomation:
                 # On Linux, use system Chrome
                 await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
                 service = Service()
-            
+
             await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
             driver = webdriver.Chrome(service=service, options=chrome_options)
-            
+
             # Open the URL
             await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
             driver.get(url)
-            
+
             # Wait a moment to ensure the page loads
             await asyncio.sleep(2)
-            
+
             # Get the page title to confirm it loaded
             title = driver.title
             await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
-            
+
             # Close the browser
             driver.quit()
             await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
-            
+
             # Clean up the temporary profile directory
             import shutil
             shutil.rmtree(profile_dir, ignore_errors=True)
-            
+
         except Exception as e:
             error_msg = f"Error opening URL with Selenium: {str(e)}"
             logger.error(error_msg)
@@ -443,23 +418,13 @@ class BrowserAutomation:
             safe_error_msg = error_msg.replace("<", "&lt;").replace(">", "&gt;")
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error"))
-        
-        # Create widget with reopen button
+
+        # Create widget without reopen button
         url_widget = Div(
             P(f"URL configured: ", B(url)),
-            Form(
-                Input(type="hidden", name="url", value=url),
-                Button(
-                    "Open URL Again 🪄",
-                    type="submit",
-                    cls="secondary"
-                ),
-                hx_post=f"/{app_name}/reopen_url",
-                hx_target=f"#{step_id}-status"
-            ),
             Div(id=f"{step_id}-status")
         )
-        
+
         # Create content container
         content_container = pip.widget_container(
             step_id=step_id,
@@ -468,7 +433,7 @@ class BrowserAutomation:
             widget=url_widget,
             steps=steps
         )
-        
+
         # Return with chain reaction to next step
         return Div(
             content_container,
@@ -559,16 +524,6 @@ class BrowserAutomation:
                 Card(
                     H3(f"🔒 {step.show}"),
                     P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
                     Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -583,16 +538,6 @@ class BrowserAutomation:
                 message=f"{step.show}: {url_value}",
                 widget=Div(
                     P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
                     Div(id=f"{step_id}-status")
                 ),
                 steps=steps
@@ -704,19 +649,9 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error"))
 
-        # Create widget with reopen button
+        # Create widget without reopen button
         url_widget = Div(
             P(f"URL configured: ", B(url)),
-            Form(
-                Input(type="hidden", name="url", value=url),
-                Button(
-                    "Open URL Again 🪄",
-                    type="submit",
-                    cls="secondary"
-                ),
-                hx_post=f"/{app_name}/reopen_url",
-                hx_target=f"#{step_id}-status"
-            ),
             Div(id=f"{step_id}-status")
         )
 
