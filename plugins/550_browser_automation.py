@@ -24,6 +24,23 @@ This workflow demonstrates Selenium-based browser automation capabilities:
 - URL opening and verification
 """
 
+def get_safe_path(url):
+    """Convert URL to filesystem-safe path while maintaining reversibility."""
+    parsed = urlparse(url)
+    domain = parsed.netloc
+    path = quote(parsed.path + ('?' + parsed.query if parsed.query else ''), safe='')
+    return domain, path
+
+def reconstruct_url(domain, path):
+    """Reconstruct URL from filesystem components."""
+    return f"https://{domain}{path}"
+
+def ensure_crawl_dir(app_name, domain, date_slug):
+    """Ensure crawl directory exists and return its path."""
+    base_dir = os.path.join("downloads", app_name, domain, date_slug)
+    os.makedirs(base_dir, exist_ok=True)
+    return base_dir
+
 # Model for a workflow step
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -508,23 +525,6 @@ class BrowserAutomation:
             return P(error_msg, style=pip.get_style("error")) 
 
     # Helper functions for crawl/save logic
-
-    def get_safe_path(url):
-        """Convert URL to filesystem-safe path while maintaining reversibility."""
-        parsed = urlparse(url)
-        domain = parsed.netloc
-        path = quote(parsed.path + ('?' + parsed.query if parsed.query else ''), safe='')
-        return domain, path
-
-    def reconstruct_url(domain, path):
-        """Reconstruct URL from filesystem components."""
-        return f"https://{domain}{path}"
-
-    def ensure_crawl_dir(app_name, domain, date_slug):
-        """Ensure crawl directory exists and return its path."""
-        base_dir = os.path.join("downloads", app_name, domain, date_slug)
-        os.makedirs(base_dir, exist_ok=True)
-        return base_dir
 
     async def step_02(self, request):
         """Handles GET request for Crawl URL step (identical to Step 1, independent state, crawl semantics)."""
