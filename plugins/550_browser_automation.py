@@ -7,6 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from urllib.parse import urlparse, quote
+from seleniumwire import webdriver as wire_webdriver
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -505,6 +507,25 @@ class BrowserAutomation:
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error")) 
 
+    # Helper functions for crawl/save logic
+
+    def get_safe_path(url):
+        """Convert URL to filesystem-safe path while maintaining reversibility."""
+        parsed = urlparse(url)
+        domain = parsed.netloc
+        path = quote(parsed.path + ('?' + parsed.query if parsed.query else ''), safe='')
+        return domain, path
+
+    def reconstruct_url(domain, path):
+        """Reconstruct URL from filesystem components."""
+        return f"https://{domain}{path}"
+
+    def ensure_crawl_dir(app_name, domain, date_slug):
+        """Ensure crawl directory exists and return its path."""
+        base_dir = os.path.join("downloads", app_name, domain, date_slug)
+        os.makedirs(base_dir, exist_ok=True)
+        return base_dir
+
     async def step_02(self, request):
         """Handles GET request for Crawl URL step (identical to Step 1, independent state, crawl semantics)."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -572,7 +593,7 @@ class BrowserAutomation:
             )
 
     async def step_02_submit(self, request):
-        """Process the Crawl URL submission and open it with Selenium (identical to Step 1, independent state, crawl semantics)."""
+        """Process the Crawl URL submission, open with Selenium-wire, and save crawl data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
@@ -588,17 +609,13 @@ class BrowserAutomation:
         if not url.startswith(("http://", "https://")):
             url = f"https://{url}"
 
-        # Store URL in state
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
-
         try:
             # Set up Chrome options
             chrome_options = Options()
-            # chrome_options.add_argument("--headless")  # Commented out for visibility
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--new-window")  # Force new window
-            chrome_options.add_argument("--start-maximized")  # Start maximized
+            chrome_options.add_argument("--new-window")
+            chrome_options.add_argument("--start-maximized")
 
             # Create a temporary profile directory
             import tempfile
@@ -609,18 +626,16 @@ class BrowserAutomation:
             effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
             await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
 
-            # Initialize the Chrome driver
+            # Initialize the Chrome driver (seleniumwire)
             if effective_os == "darwin":
-                # On macOS, use webdriver-manager
                 await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
                 service = Service(ChromeDriverManager().install())
             else:
-                # On Linux, use system Chrome
                 await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
                 service = Service()
 
             await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            driver = wire_webdriver.Chrome(service=service, options=chrome_options)
 
             # Open the URL
             await self.message_queue.add(pip, f"Crawling URL with Selenium: {url}", verbatim=True)
@@ -629,9 +644,39 @@ class BrowserAutomation:
             # Wait a moment to ensure the page loads
             await asyncio.sleep(2)
 
-            # Get the page title to confirm it loaded
+            # Get page data
             title = driver.title
-            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            source = driver.page_source
+            dom = driver.execute_script("return document.documentElement.outerHTML;")
+
+            # Get response data from seleniumwire
+            main_request = None
+            for request in driver.requests:
+                if request.url == url and request.response:
+                    main_request = request
+                    break
+
+            if main_request and main_request.response:
+                headers = dict(main_request.response.headers)
+                status = main_request.response.status_code
+            else:
+                headers = {}
+                status = 200  # Default to 200 if we can't get the actual status
+
+            # Prepare directory structure
+            domain, path = self.get_safe_path(url)
+            date_slug = datetime.now().strftime("%Y%m%d")
+            base_dir = self.ensure_crawl_dir(app_name, domain, date_slug)
+            crawl_dir = os.path.join(base_dir, path)
+            os.makedirs(crawl_dir, exist_ok=True)
+
+            # Save files
+            with open(os.path.join(crawl_dir, "headers.json"), "w") as f:
+                json.dump(headers, f, indent=2)
+            with open(os.path.join(crawl_dir, "source.html"), "w") as f:
+                f.write(source)
+            with open(os.path.join(crawl_dir, "dom.html"), "w") as f:
+                f.write(dom)
 
             # Close the browser
             driver.quit()
@@ -641,32 +686,48 @@ class BrowserAutomation:
             import shutil
             shutil.rmtree(profile_dir, ignore_errors=True)
 
+            # Store crawl data in state (including reconstructed URL)
+            reconstructed_url = self.reconstruct_url(domain, path)
+            crawl_data = {
+                "url": url,
+                "title": title,
+                "status": status,
+                "save_path": crawl_dir,
+                "timestamp": datetime.now().isoformat(),
+                "reconstructed_url": reconstructed_url
+            }
+            await pip.update_step_state(pipeline_id, step_id, crawl_data, steps)
+            await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+
+            # Create widget with summary and reconstructed URL
+            url_widget = Div(
+                P(f"URL crawled and saved: ", B(url)),
+                P(f"Title: {title}"),
+                P(f"Status: {status}"),
+                P(f"Saved to: {crawl_dir}"),
+                P(f"Reconstructed URL: {reconstructed_url}", style="color: #666; font-size: 0.9em;"),
+                Div(id=f"{step_id}-status")
+            )
+
+            # Create content container
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"Crawl URL: {url}",
+                widget=url_widget,
+                steps=steps
+            )
+
+            # Return with chain reaction to next step
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
         except Exception as e:
             error_msg = f"Error crawling URL with Selenium: {str(e)}"
             logger.error(error_msg)
-            # Escape angle brackets for logging
             safe_error_msg = error_msg.replace("<", "&lt;").replace(">", "&gt;")
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style("error"))
-
-        # Create widget without reopen button
-        url_widget = Div(
-            P(f"URL crawled and saved: ", B(url)),
-            Div(id=f"{step_id}-status")
-        )
-
-        # Create content container
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"Crawl URL: {url}",
-            widget=url_widget,
-            steps=steps
-        )
-
-        # Return with chain reaction to next step
-        return Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        ) 
+            return P(error_msg, style=pip.get_style("error")) 
