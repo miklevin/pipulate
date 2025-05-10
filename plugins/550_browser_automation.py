@@ -582,6 +582,7 @@ class BrowserAutomation:
                                hx_post=f"/{app_name}/handle_revert",
                                hx_vals=f'{{"step_id": "{step_id}"}}'),
                         hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
                     ),
                 ),
                 Div(id=next_step_id),
@@ -604,12 +605,12 @@ class BrowserAutomation:
         pip.write_state(pipeline_id, state)
         await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        response = Div(
+        
+        return Div(
             Card(
                 H4(f"{step.show} Complete"),
                 P("Proceeding to next step..."),
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        )
-        return response 
+        ) 
