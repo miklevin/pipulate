@@ -495,7 +495,7 @@ class DesignerWorkflow:
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error"))
-        
+
         # Create widget with reopen button
         url_widget = Div(
             P(f"URL configured: ", B(url)),

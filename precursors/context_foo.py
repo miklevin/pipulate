@@ -24,13 +24,19 @@ FILES_TO_INCLUDE = """\
 server.py
 flake.nix
 requirements.txt
-README.md
-/home/mike/repos/pipulate/plugins/010_tasks.py
-/home/mike/repos/pipulate/plugins/020_hello_workflow.py
-/home/mike/repos/pipulate/training/workflow_implementation_guide.md
-/home/mike/repos/pipulate/plugins/540_url_opener.py
-/home/mike/repos/browser/flake.nix
-/home/mike/repos/browser/test_selenium.py
+/home/mike/repos/pipulate/plugins/550_browser_automation.py
+# /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
+# /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
+# /home/mike/repos/MikeLev.in/_posts/2025-05-09-webmaster-nix-selenium-http-status-browser-control.md
+/home/mike/repos/MikeLev.in/_posts/2025-05-09-ai-assisted-browser-automation-selenium-nix-flakes.md
+# README.md
+# /home/mike/repos/pipulate/plugins/020_hello_workflow.py
+# /home/mike/repos/pipulate/precursors/context_foo.py
+# /home/mike/repos/pipulate/training/workflow_implementation_guide.md
+# /home/mike/repos/pipulate/plugins/010_tasks.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/browser/test_selenium.py
+# /home/mike/repos/browser/flake.nix
 # /home/mike/repos/pipulate/static/chat-interface.js
 # /home/mike/repos/pipulate/static/chat-scripts.js
 # /home/mike/repos/pipulate/static/chat-styles.css
@@ -277,8 +283,6 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
     total_combined_tokens = files_tokens + prompt_tokens
     
     print(f"Total tokens: {format_token_count(total_combined_tokens)}")
-    print(f"Maximum allowed: {format_token_count(max_tokens)}")
-    print(f"Remaining: {format_token_count(max_tokens - total_combined_tokens)}")
     print("\n=== End Prompt Structure ===\n")
 
 # -------------------------------------------------------------------------
@@ -325,16 +329,7 @@ prompt_templates = [
         "pre_prompt": create_xml_element("context", [
             create_xml_element("system_info", """
 This codebase uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages.
-Key things to know:
-- Always run `nix develop` before any commands in a new terminal
-- FastHTML objects must be converted with to_xml() before returning responses
-- The project is organized as a server with plugin-based workflows
 """),
-            create_xml_element("key_points", [
-                "<point>Always run `nix develop` before any commands in a new terminal</point>",
-                "<point>FastHTML objects must be converted with to_xml() before returning responses</point>",
-                "<point>The project is organized as a server with plugin-based workflows</point>"
-            ])
         ]),
         "post_prompt": create_xml_element("analysis_request", [
             create_xml_element("introduction", """
@@ -928,12 +923,6 @@ prompt_tokens = pre_prompt_tokens + post_prompt_tokens
 
 # Calculate total
 token_counts = calculate_total_tokens(files_tokens_dict, prompt_tokens)
-
-# Debug information for XML token counting
-print(f"\nToken Summary:")
-print(f"  Files tokens: {format_token_count(token_counts['files'])}")
-print(f"  Prompt tokens: {format_token_count(prompt_tokens)}")
-print(f"  Total: {format_token_count(token_counts['total'])}")
 
 # Update the token summary in the output
 output_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<context schema="pipulate-context" version="1.0">\n{create_xml_element("manifest", manifest)}\n{create_xml_element("pre_prompt", pre_prompt)}\n{create_xml_element("content", "\n".join(lines))}\n{create_xml_element("post_prompt", post_prompt)}\n{create_xml_element("token_summary", [
