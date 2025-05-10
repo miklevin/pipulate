@@ -650,12 +650,18 @@ class BrowserAutomation:
             dom = driver.execute_script("return document.documentElement.outerHTML;")
 
             # Get response data from seleniumwire
+            # Try to find the main request (handle redirects, trailing slashes, etc.)
             main_request = None
             for request in driver.requests:
-                if request.url == url and request.response:
+                if request.response and request.url.startswith(url):
                     main_request = request
                     break
-
+            # If not found, fallback to first request with a response
+            if not main_request:
+                for request in driver.requests:
+                    if request.response:
+                        main_request = request
+                        break
             if main_request and main_request.response:
                 headers = dict(main_request.response.headers)
                 status = main_request.response.status_code
