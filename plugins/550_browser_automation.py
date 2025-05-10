@@ -67,6 +67,12 @@ class BrowserAutomation:
                 show='Enter URL',
                 refill=True,  # Allow URL reuse
             ),
+            Step(
+                id='step_02',
+                done='placeholder',
+                show='Placeholder Step',
+                refill=True,
+            ),
         ]
         
         # Register standard workflow routes
@@ -433,7 +439,9 @@ class BrowserAutomation:
         except Exception as e:
             error_msg = f"Error opening URL with Selenium: {str(e)}"
             logger.error(error_msg)
-            await self.message_queue.add(pip, error_msg, verbatim=True)
+            # Escape angle brackets for logging
+            safe_error_msg = error_msg.replace("<", "&lt;").replace(">", "&gt;")
+            await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error"))
         
         # Create widget with reopen button
@@ -531,3 +539,77 @@ class BrowserAutomation:
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error")) 
+
+    async def step_02(self, request):
+        """Handles GET request for placeholder step 2."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            return Div(
+                Card(
+                    H4(f"🔒 {step.show}: Completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            await self.message_queue.add(pip, f"{step.show}: Click Proceed to continue to the next step.", verbatim=True)
+            return Div(
+                Card(
+                    H4(f"{step.show}"),
+                    P("Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Proceed", type="submit", cls="primary"),
+                        Button("Revert", type="button", cls="secondary",
+                               hx_post=f"/{app_name}/handle_revert",
+                               hx_vals=f'{{"step_id": "{step_id}"}}'),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                    ),
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_02_submit(self, request):
+        """Process the submission for placeholder step 2."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_02"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+
+        # Store minimal state data
+        placeholder_value = "completed"
+        state = pip.read_state(pipeline_id)
+        state[step.done] = placeholder_value
+        pip.write_state(pipeline_id, state)
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        response = Div(
+            Card(
+                H4(f"{step.show} Complete"),
+                P("Proceeding to next step..."),
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        return response 
