@@ -9,10 +9,14 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urlparse, quote
 from seleniumwire import webdriver as wire_webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+from starlette.responses import HTMLResponse, JSONResponse
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
-from starlette.responses import HTMLResponse
 
 """
 Pipulate Browser Automation Workflow
@@ -758,150 +762,108 @@ class BrowserAutomation:
         profile_path.mkdir(parents=True, exist_ok=True)
         return str(profile_path)
 
+    def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str = "google_session") -> tuple[str, str]:
+        """Get the user data directory and profile directory paths for Chrome.
+        
+        Returns a tuple of (user_data_dir_path, profile_directory_name) where:
+        - user_data_dir_path is the parent directory for Chrome's user data
+        - profile_directory_name is the specific profile to use within that directory
+        """
+        from pathlib import Path
+        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
+        
+        # This directory will be the root for Chrome's user data for this pipeline instance.
+        # It can contain multiple profiles, though we'll only use one.
+        user_data_root_for_pipeline = Path("data") / self.app_name / "selenium_user_data" / safe_pipeline_id
+        user_data_root_for_pipeline.mkdir(parents=True, exist_ok=True)
+        
+        # This is the name of the specific profile directory *within* user_data_root_for_pipeline.
+        # e.g., data/browser/selenium_user_data/my_profile-browser-01/google_session/
+        return str(user_data_root_for_pipeline), desired_profile_leaf_name
+
     async def step_03(self, request):
         """Handles GET request for Google session persistence test."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-
-        # Handle finalized state
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and step_data.get(step.done):
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P("Google login session persistence test was completed."),
-                    P(f"Profile directory used: {step_data.get('profile_dir', 'N/A')}")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
+        # Get pipeline ID from db for consistency
+        pipeline_id = self.db.get("pipeline_id", "unknown")
+        if not pipeline_id or pipeline_id == "unknown":
+            return JSONResponse(
+                status_code=400,
+                content={"error": "No pipeline ID found in db"}
             )
 
-        # If step is marked as complete and not being reverted to
-        if step_data.get(step.done) and state.get("_revert_target") != step_id:
-            return Div(
-                pip.widget_container(
-                    step_id=step_id, app_name=app_name, steps=steps,
-                    message=f"{step.show}: Test Completed",
-                    widget=P(f"Google login session persistence test completed. Profile directory: {step_data.get('profile_dir', 'N/A')}")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-
-        # UI for the interactive test
-        profile_action = step_data.get("profile_action", "initial_open")
-        button_label = "Open Google & Log In"
-        instructions = "Click the button to open Google.com. Please log in with your Google account, then manually close the browser window and return here."
+        # Get profile paths using new helper
+        user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
         
-        if profile_action == "reopen":
-            button_label = "Open Google Again"
-            instructions = "Click the button to reopen Google.com. You should see your previous login session. You can log out/in, then close the browser and try again."
-
-        await self.message_queue.add(pip, instructions, verbatim=True)
         return Div(
             Card(
-                H3(step.show),
-                P(instructions),
+                H3("Google Session Persistence Test"),
+                P(f"User Data Directory: {user_data_dir}"),
+                P(f"Profile Directory: {profile_dir}"),
                 Form(
-                    Button(button_label, type="submit", cls="primary"),
-                    Input(type="hidden", name="profile_action", value=profile_action),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                ),
-                P(f"Profile will be stored in: {self._get_persistent_profile_dir(pipeline_id)}", style="color: #666; font-size: 0.9em;")
+                    Button("Test Google Login Session", type="submit", cls="primary"),
+                    hx_post=f"/{self.app_name}/step_03_submit",
+                    hx_target="#step_03"
+                )
             ),
-            Div(id=next_step_id),
-            id=step_id
+            id="step_03"
         )
 
     async def step_03_submit(self, request):
-        """Process the submission for Google session persistence test."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        form = await request.form()
-        profile_action = form.get("profile_action", "initial_open")
-
-        profile_dir_path = self._get_persistent_profile_dir(pipeline_id)
-        google_url = "https://www.google.com/"
-
-        await self.message_queue.add(pip, f"Action: {profile_action}. Using profile: {profile_dir_path}", verbatim=True)
-
+        """Handles POST request for Google session persistence test."""
         try:
+            # Get pipeline ID from db for consistency
+            pipeline_id = self.db.get("pipeline_id", "unknown")
+            if not pipeline_id or pipeline_id == "unknown":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "No pipeline ID found in db"}
+                )
+
+            # Get profile paths using new helper
+            user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
+            
+            # Configure Chrome options
             chrome_options = Options()
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument(f"--user-data-dir={profile_dir_path}")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1920,1080")
+            chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+            chrome_options.add_argument(f"--profile-directory={profile_dir}")
             
-            # Add browser cloaking options to avoid detection
-            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            chrome_options.add_experimental_option("useAutomationExtension", False)
+            # Initialize Chrome driver
+            driver = webdriver.Chrome(options=chrome_options)
             
-            # Set a realistic user agent
-            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-
-            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
-            service_args = []
-
-            if effective_os == "darwin":
-                service = Service(ChromeDriverManager().install(), service_args=service_args)
-            else:
-                service = Service(service_args=service_args)
-            
-            await self.message_queue.add(pip, "Initializing Chrome driver for session test...", verbatim=True)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            await self.message_queue.add(pip, f"Opening URL: {google_url}", verbatim=True)
-            driver.get(google_url)
-            
-            # Update state for the next phase of this step
-            current_step_data = pip.get_step_data(pipeline_id, step_id, {})
-            current_step_data["profile_action"] = "reopen"
-            current_step_data["profile_dir"] = profile_dir_path
-            current_step_data[step.done] = True
-            
-            # Preserve other step data if any
-            state = pip.read_state(pipeline_id)
-            state[step_id] = current_step_data
-            if "_revert_target" in state:
-                del state["_revert_target"]
-            pip.write_state(pipeline_id, state)
-
-            action_message = "Google opened. Please log in and close the browser."
-            if profile_action == "reopen":
-                action_message = "Google reopened. Check your login status, then close the browser."
-            
-            await self.message_queue.add(pip, action_message, verbatim=True)
-
+            try:
+                # Navigate to Google
+                driver.get("https://www.google.com")
+                
+                # Wait for page to load
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.NAME, "q"))
+                )
+                
+                # Check if user is logged in by looking for profile picture
+                try:
+                    profile_pic = WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
+                    )
+                    is_logged_in = True
+                except TimeoutException:
+                    is_logged_in = False
+                
+                return JSONResponse(content={
+                    "success": True,
+                    "is_logged_in": is_logged_in,
+                    "user_data_dir": user_data_dir,
+                    "profile_dir": profile_dir
+                })
+                
+            finally:
+                driver.quit()
+                
         except Exception as e:
-            error_msg = f"Error during Selenium session test: {str(e)}"
-            logger.error(error_msg)
-            await self.message_queue.add(pip, error_msg.replace("<", "&lt;").replace(">", "&gt;"), verbatim=True)
-            return Card(
-                H3(step.show),
-                P("An error occurred:", style=pip.get_style("error")),
-                Pre(error_msg, style="white-space: pre-wrap;"),
-                Form(
-                    Button("Try Again", type="submit", cls="secondary"),
-                    Input(type="hidden", name="profile_action", value=profile_action),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                ),
-                id=step_id
-            )
-
-        # Re-render the current step's UI
-        step_ui_after_action = await self.step_03(request)
-        
-        return step_ui_after_action 
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)}
+            ) 
