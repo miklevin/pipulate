@@ -629,7 +629,15 @@ class BrowserAutomation:
             )
         else:
             await self.message_queue.add(pip, "Enter the URL you want to crawl:", verbatim=True)
-            display_value = url_value if step.refill and url_value else "https://example.com"
+            # Extract just the URL from crawl data if it exists
+            display_value = ""
+            if step.refill and url_value:
+                if isinstance(url_value, dict) and "url" in url_value:
+                    display_value = url_value["url"]
+                else:
+                    display_value = url_value
+            if not display_value:
+                display_value = "https://example.com"
             return Div(
                 Card(
                     H3("Crawl URL"),
