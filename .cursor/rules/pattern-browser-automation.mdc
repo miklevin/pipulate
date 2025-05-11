@@ -3,6 +3,11 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Browser automation patterns and best practices
+globs: ["**/*.py"]
+alwaysApply: false
+---
 # Browser Automation Pattern
 
 ## Overview
@@ -22,31 +27,13 @@ else:
     service = Service()
 ```
 
-### 2. Clean Browser Sessions
-```python
-# Create temporary profile
-profile_dir = tempfile.mkdtemp()
-chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-
-# Cleanup after use
-shutil.rmtree(profile_dir, ignore_errors=True)
-```
-
-### 3. Chrome Options Configuration
+### 2. Chrome Options Configuration
 ```python
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--new-window")
 chrome_options.add_argument("--start-maximized")
-```
-
-### 4. Session Persistence
-```python
-# Persistent profile management
-def _get_selenium_profile_paths(self, pipeline_id: str, profile_name: str = "google_session"):
-    user_data_root = Path("data") / self.app_name / "selenium_user_data" / safe_pipeline_id
-    return str(user_data_root), profile_name
 ```
 
 ## Implementation Patterns
@@ -69,19 +56,7 @@ title = driver.title
 driver.quit()
 ```
 
-### 2. Session Testing Pattern
-```python
-# Check login status
-try:
-    profile_pic = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
-    )
-    is_logged_in = True
-except TimeoutException:
-    is_logged_in = False
-```
-
-### 3. Error Handling Pattern
+### 2. Error Handling Pattern
 ```python
 try:
     # Browser operations
@@ -94,29 +69,29 @@ except Exception as e:
 
 ## Best Practices
 
-1. **Profile Management**
-   - Use temporary profiles for one-off operations
-   - Use persistent profiles for session testing
-   - Always clean up temporary profiles
-   - Store profiles in workflow-specific directories
+1. **Resource Management**
+   - Always close browser in finally block
+   - Clean up temporary files
+   - Handle cleanup errors
+   - Monitor resource usage
 
 2. **Error Handling**
-   - Always close browser in finally block
    - Log detailed error messages
    - Provide user-friendly error display
-   - Clean up resources on error
+   - Handle platform-specific errors
+   - Implement proper cleanup
 
-3. **Session Management**
-   - Use persistent profiles for login testing
-   - Implement proper session verification
-   - Handle session timeouts gracefully
-   - Provide clear session status feedback
+3. **Platform Support**
+   - Handle OS-specific configurations
+   - Use appropriate driver management
+   - Test cross-platform compatibility
+   - Document platform differences
 
-4. **Resource Cleanup**
-   - Close browser instances
-   - Remove temporary directories
-   - Clear browser data
-   - Handle cleanup errors
+4. **Performance**
+   - Optimize page load waits
+   - Handle async operations properly
+   - Manage resource cleanup
+   - Monitor memory usage
 
 ## Common Pitfalls
 
@@ -128,23 +103,23 @@ except Exception as e:
 
 2. **Timing Issues**
    - Insufficient page load waits
-   - Race conditions in session checks
+   - Race conditions in async operations
    - Premature cleanup
    - Async operation timing
 
 3. **Platform Differences**
    - Driver path issues
-   - Profile directory permissions
    - Chrome version compatibility
    - OS-specific configurations
+   - Permission handling
 
 ## Testing Considerations
 
-1. **Session Testing**
-   - Verify login persistence
-   - Check session cookies
-   - Test profile isolation
-   - Validate cleanup
+1. **Basic Testing**
+   - URL opening functionality
+   - Page load verification
+   - Error handling
+   - Resource cleanup
 
 2. **Error Scenarios**
    - Network failures
@@ -155,10 +130,11 @@ except Exception as e:
 3. **Platform Testing**
    - Cross-OS compatibility
    - Driver installation
-   - Profile management
    - Resource handling
+   - Error scenarios
 
 ## Related Rules
+- [Browser Session Management](mdc:pattern-browser-session.mdc)
 - [Chain Reaction Pattern](mdc:pattern-chain-reaction.mdc)
 - [Widget Implementation](mdc:pattern-widget-implementation.mdc)
 - [Error Handling](mdc:implementation-widget-error.mdc)
