@@ -94,9 +94,9 @@ class BrowserAutomation:
             ),
             Step(
                 id='step_03',
-                done='placeholder',
-                show='Placeholder Step',
-                refill=True,
+                done='session_test_complete',
+                show='Google Session Test',
+                refill=False,
             ),
         ]
         
@@ -744,70 +744,161 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error")) 
 
+    def _get_persistent_profile_dir(self, pipeline_id: str, profile_name: str = "google_session") -> str:
+        """Get or create a persistent profile directory for Selenium."""
+        from pathlib import Path
+        # Ensure the base directory for profiles exists
+        base_profiles_dir = Path("data") / self.app_name / "profiles"
+        base_profiles_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Sanitize pipeline_id for use as a directory name
+        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
+        
+        profile_path = base_profiles_dir / safe_pipeline_id / profile_name
+        profile_path.mkdir(parents=True, exist_ok=True)
+        return str(profile_path)
+
     async def step_03(self, request):
-        """Handles GET request for placeholder step 3."""
+        """Handles GET request for Google session persistence test."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
+        
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
 
-        # Check if workflow is finalized
+        # Handle finalized state
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+        if "finalized" in finalize_data and step_data.get(step.done):
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")
+                    H3(f"🔒 {step.show}"),
+                    P("Google login session persistence test was completed."),
+                    P(f"Profile directory used: {step_data.get('profile_dir', 'N/A')}")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
 
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+        # If step is marked as complete and not being reverted to
+        if step_data.get(step.done) and state.get("_revert_target") != step_id:
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.widget_container(
+                    step_id=step_id, app_name=app_name, steps=steps,
+                    message=f"{step.show}: Test Completed",
+                    widget=P(f"Google login session persistence test completed. Profile directory: {step_data.get('profile_dir', 'N/A')}")
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
-                    Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}"
-                    )
+
+        # UI for the interactive test
+        profile_action = step_data.get("profile_action", "initial_open")
+        button_label = "Open Google & Log In"
+        instructions = "Click the button to open Google.com. Please log in with your Google account, then manually close the browser window and return here."
+        
+        if profile_action == "reopen":
+            button_label = "Open Google Again"
+            instructions = "Click the button to reopen Google.com. You should see your previous login session. You can log out/in, then close the browser and try again."
+
+        await self.message_queue.add(pip, instructions, verbatim=True)
+        return Div(
+            Card(
+                H3(step.show),
+                P(instructions),
+                Form(
+                    Button(button_label, type="submit", cls="primary"),
+                    Input(type="hidden", name="profile_action", value=profile_action),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
                 ),
-                Div(id=next_step_id),
-                id=step_id
-            )
+                P(f"Profile will be stored in: {self._get_persistent_profile_dir(pipeline_id)}", style="color: #666; font-size: 0.9em;")
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
 
     async def step_03_submit(self, request):
-        """Process the submission for placeholder Step 3."""
+        """Process the submission for Google session persistence test."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+
+        form = await request.form()
+        profile_action = form.get("profile_action", "initial_open")
+
+        profile_dir_path = self._get_persistent_profile_dir(pipeline_id)
+        google_url = "https://www.google.com/"
+
+        await self.message_queue.add(pip, f"Action: {profile_action}. Using profile: {profile_dir_path}", verbatim=True)
+
+        try:
+            chrome_options = Options()
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument(f"--user-data-dir={profile_dir_path}")
+
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            service_args = []
+
+            if effective_os == "darwin":
+                service = Service(ChromeDriverManager().install(), service_args=service_args)
+            else:
+                service = Service(service_args=service_args)
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver for session test...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            await self.message_queue.add(pip, f"Opening URL: {google_url}", verbatim=True)
+            driver.get(google_url)
+            
+            # Update state for the next phase of this step
+            current_step_data = pip.get_step_data(pipeline_id, step_id, {})
+            current_step_data["profile_action"] = "reopen"
+            current_step_data["profile_dir"] = profile_dir_path
+            current_step_data[step.done] = True
+            
+            # Preserve other step data if any
+            state = pip.read_state(pipeline_id)
+            state[step_id] = current_step_data
+            if "_revert_target" in state:
+                del state["_revert_target"]
+            pip.write_state(pipeline_id, state)
+
+            action_message = "Google opened. Please log in and close the browser."
+            if profile_action == "reopen":
+                action_message = "Google reopened. Check your login status, then close the browser."
+            
+            await self.message_queue.add(pip, action_message, verbatim=True)
+
+        except Exception as e:
+            error_msg = f"Error during Selenium session test: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg.replace("<", "&lt;").replace(">", "&gt;"), verbatim=True)
+            return Card(
+                H3(step.show),
+                P("An error occurred:", style=pip.get_style("error")),
+                Pre(error_msg, style="white-space: pre-wrap;"),
+                Form(
+                    Button("Try Again", type="submit", cls="secondary"),
+                    Input(type="hidden", name="profile_action", value=profile_action),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                ),
+                id=step_id
+            )
+
+        # Re-render the current step's UI
+        step_ui_after_action = await self.step_03(request)
+        next_step_placeholder_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            step_ui_after_action,
+            Div(id=next_step_placeholder_id, hx_get=f"/{app_name}/{next_step_placeholder_id}", hx_trigger="load" if current_step_data.get(step.done) else "none"),
             id=step_id
         ) 

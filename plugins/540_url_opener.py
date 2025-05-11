@@ -641,7 +641,7 @@ class BlankWorkflow:
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+
         # Check if step is complete and not being reverted to
         if url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
@@ -704,7 +704,7 @@ class BlankWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-
+        
         # Get and validate URL
         form = await request.form()
         url = form.get("url", "").strip()

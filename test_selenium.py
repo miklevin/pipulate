@@ -143,13 +143,13 @@ def run_selenium_test():
         else:
             print("Warning: Could not find main request in selenium-wire requests.")
             # Fallback to Performance API for status code
-            status_code = None
-            try:
-                status_code = driver.execute_script("""
-                    return window.performance.getEntriesByType('navigation')[0].responseStatus;
-                """)
-            except Exception as e:
-                print(f"Warning: Could not get status code via Performance API: {e}")
+        status_code = None
+        try:
+            status_code = driver.execute_script("""
+                return window.performance.getEntriesByType('navigation')[0].responseStatus;
+            """)
+        except Exception as e:
+            print(f"Warning: Could not get status code via Performance API: {e}")
         
         title = driver.title
         print(f"Page title: '{title}'")
