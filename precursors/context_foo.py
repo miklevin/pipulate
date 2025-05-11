@@ -21,11 +21,13 @@ from typing import Dict, List, Optional, Union
 # allows for clean multi-line string formatting.
 
 FILES_TO_INCLUDE = """\
-server.py
+README.md
 flake.nix
 requirements.txt
+server.py
+/home/mike/repos/pipulate/plugins/020_hello_workflow.py
+/home/mike/repos/.cursor/rules/workflow_implementation_guide.md
 /home/mike/repos/pipulate/plugins/550_browser_automation.py
-# README.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-webmaster-nix-selenium-http-status-browser-control.md
