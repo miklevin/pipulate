@@ -903,10 +903,5 @@ class BrowserAutomation:
 
         # Re-render the current step's UI
         step_ui_after_action = await self.step_03(request)
-        next_step_placeholder_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         
-        return Div(
-            step_ui_after_action,
-            Div(id=next_step_placeholder_id, hx_get=f"/{app_name}/{next_step_placeholder_id}", hx_trigger="load" if current_step_data.get(step.done) else "none"),
-            id=step_id
-        ) 
+        return step_ui_after_action 
