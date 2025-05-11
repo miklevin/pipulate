@@ -729,22 +729,43 @@ async def step_XX(self, request):
     next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
     pipeline_id = db.get("pipeline_id", "unknown")
     state = pip.read_state(pipeline_id)
+    step_data = pip.get_step_data(pipeline_id, step_id, {})
+    placeholder_value = step_data.get(step.done, "")
     
-    # Simple form with just a proceed button
+    # Check workflow finalization
+    finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+    if "finalized" in finalize_data and placeholder_value:
         return Div(
             Card(
-            H4(f"{step.show}"),
-            P("Click Proceed to continue to the next step."),
+                H3(f"🔒 {step.show}"),
+                P("Placeholder step completed")
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+    # Check completion status
+    if placeholder_value and state.get("_revert_target") != step_id:
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    else:
+        # Show minimal UI with just a Proceed button
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                P("This is a placeholder step. Click Proceed to continue to the next step."),
                 Form(
                     Button("Proceed", type="submit", cls="primary"),
-                Button("Revert", type="button", cls="secondary",
-                       hx_post=f"/{app_name}/handle_revert",
-                       hx_vals=f'{{"step_id": "{step_id}"}}'),
                     hx_post=f"/{app_name}/{step_id}_submit", 
+                    hx_target=f"#{step_id}"
+                )
             ),
-        ),
-        # CRITICAL: Chain reaction to next step - DO NOT MODIFY OR REMOVE
-        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            Div(id=next_step_id),  # Note: No hx_trigger="load" here to prevent auto-progression
             id=step_id
         )
 ```
@@ -752,14 +773,14 @@ async def step_XX(self, request):
 ### 3. Create the POST Handler Method
 ```python
 async def step_XX_submit(self, request):
-    """Process the submission for placeholder step."""
+    """Process the submission for placeholder Step XX."""
     pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
     step_id = "step_XX"
     step_index = self.steps_indices[step_id]
     step = steps[step_index]
     pipeline_id = db.get("pipeline_id", "unknown")
     next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-    
+
     # Set a fixed completion value
     placeholder_value = "completed"
     
@@ -768,7 +789,7 @@ async def step_XX_submit(self, request):
     await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
     
     # Return with revert control and chain reaction to next step
-    return Div(
+        return Div(
         pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
         Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
         id=step_id
@@ -982,3 +1003,399 @@ async def step_XX_submit(self, request):
 - **DO NOT** implement alternative flow mechanisms without extensive testing
 
 Such changes will appear to work in limited testing but will inevitably break more complex workflows.
+
+## Error Recovery and Resilience
+
+### 1. Error States
+```python
+# In step handler
+try:
+    # Operation
+except Exception as e:
+    # Log error
+    await self.message_queue.add(pip, f"Error in {step_id}: {str(e)}", verbatim=True)
+    
+    # Return error UI with retry option
+    return Div(
+        Card(
+            H3("Error Occurred"),
+            P(f"An error occurred: {str(e)}"),
+            Form(
+                Button("Retry", type="submit", cls="primary"),
+                hx_post=f"/{app_name}/{step_id}_submit"
+            )
+        ),
+        id=step_id
+    )
+```
+
+### 2. State Recovery
+```python
+# After error recovery
+state = pip.read_state(pipeline_id)
+if state.get("_error_state"):
+    # Restore from error state
+    error_data = state["_error_state"]
+    await pip.update_step_state(pipeline_id, step_id, error_data["value"], steps)
+    state.pop("_error_state")
+    pip.write_state(pipeline_id, state)
+```
+
+## Workflow Lifecycle Management
+
+### 1. Initialization
+```python
+async def initialize_workflow(self, request):
+    """Initialize workflow state and resources."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    
+    # Clear any existing state
+    pip.clear_state(pipeline_id)
+    
+    # Initialize step indices
+    self.steps_indices = {step.id: i for i, step in enumerate(self.steps)}
+    
+    # Set initial state
+    state = {
+        "_workflow_start": datetime.now().isoformat(),
+        "_current_step": "landing"
+    }
+    pip.write_state(pipeline_id, state)
+```
+
+### 2. Cleanup
+```python
+async def cleanup_workflow(self, request):
+    """Clean up workflow resources."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    
+    # Archive state if needed
+    if self.should_archive_state():
+        await self.archive_workflow_state(pipeline_id)
+    
+    # Clear state
+    pip.clear_state(pipeline_id)
+```
+
+## State Persistence Patterns
+
+### 1. Temporary State
+```python
+# For short-lived data
+state["_temp_data"] = {
+    "timestamp": datetime.now().isoformat(),
+    "value": temporary_value
+}
+```
+
+### 2. Persistent State
+```python
+# For data that should survive workflow restarts
+state["persistent_data"] = {
+    "created_at": datetime.now().isoformat(),
+    "value": persistent_value,
+    "version": "1.0"
+}
+```
+
+### 3. State Versioning
+```python
+# When state structure changes
+state["_state_version"] = "2.0"
+if state.get("_state_version") != "2.0":
+    state = self.migrate_state(state)
+```
+
+## Advanced Chain Reaction Patterns
+
+### 1. Conditional Progression
+```python
+# Only progress if condition is met
+if should_progress:
+    return Div(
+        Card(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+else:
+    return Div(
+        Card(...),
+        id=step_id
+    )
+```
+
+### 2. Delayed Progression
+```python
+# Progress after delay
+return Div(
+    Card(...),
+    Div(
+        id=next_step_id,
+        hx_get=f"/{app_name}/{next_step_id}",
+        hx_trigger="load delay:2s"
+    ),
+    id=step_id
+)
+```
+
+### 3. Parallel Progression
+```python
+# Load multiple steps in parallel
+return Div(
+    Card(...),
+    Div(id="step_a", hx_get=f"/{app_name}/step_a", hx_trigger="load"),
+    Div(id="step_b", hx_get=f"/{app_name}/step_b", hx_trigger="load"),
+    id=step_id
+)
+```
+
+## Performance Optimization
+
+### 1. State Caching
+```python
+# Cache frequently accessed state
+@cached_property
+def workflow_state(self):
+    pipeline_id = db.get("pipeline_id", "unknown")
+    return pip.read_state(pipeline_id)
+```
+
+### 2. Lazy Loading
+```python
+# Load step data only when needed
+async def get_step_data(self, step_id):
+    if not hasattr(self, '_step_data_cache'):
+        self._step_data_cache = {}
+    if step_id not in self._step_data_cache:
+        self._step_data_cache[step_id] = await self.load_step_data(step_id)
+    return self._step_data_cache[step_id]
+```
+
+### 3. Batch Processing
+```python
+# Process multiple items in batches
+async def process_batch(self, items, batch_size=10):
+    for i in range(0, len(items), batch_size):
+        batch = items[i:i + batch_size]
+        await self.process_items(batch)
+        await self.message_queue.add(pip, f"Processed {i + len(batch)} items", verbatim=True)
+```
+
+## Security Considerations
+
+### 1. Input Validation
+```python
+# Validate all user inputs
+def validate_input(self, value, validation_rules):
+    for rule in validation_rules:
+        if not rule.validate(value):
+            raise ValidationError(f"Input failed validation: {rule.message}")
+    return True
+```
+
+### 2. State Sanitization
+```python
+# Sanitize state before storage
+def sanitize_state(self, state):
+    sanitized = {}
+    for key, value in state.items():
+        if key.startswith('_'):
+            sanitized[key] = value
+        else:
+            sanitized[key] = self.sanitize_value(value)
+    return sanitized
+```
+
+### 3. Access Control
+```python
+# Check user permissions
+async def check_permission(self, request, required_permission):
+    user = await self.get_current_user(request)
+    if not user.has_permission(required_permission):
+        raise PermissionError(f"User lacks required permission: {required_permission}")
+```
+
+## Workflow Debugging
+
+### 1. Debug Mode
+```python
+# Enable debug mode for a workflow
+async def enable_debug_mode(self, request):
+    """Enable debug mode for workflow development."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    state["_debug_mode"] = True
+    state["_debug_log"] = []
+    pip.write_state(pipeline_id, state)
+```
+
+### 2. Debug Logging
+```python
+# Log debug information
+async def debug_log(self, message, data=None):
+    """Log debug information if debug mode is enabled."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    if state.get("_debug_mode"):
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "message": message,
+            "data": data
+        }
+        state["_debug_log"].append(log_entry)
+        pip.write_state(pipeline_id, state)
+```
+
+### 3. State Inspection
+```python
+# Inspect workflow state
+async def inspect_state(self, request):
+    """Return current workflow state for debugging."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    return Div(
+        Card(
+            H3("Workflow State"),
+            Pre(json.dumps(state, indent=2)),
+            Button("Close", type="button", cls="secondary",
+                   hx_get=f"/{app_name}/close_debug")
+        ),
+        id="debug_panel"
+    )
+```
+
+## Workflow Monitoring
+
+### 1. Performance Metrics
+```python
+# Track step performance
+async def track_step_performance(self, step_id, start_time):
+    """Track performance metrics for a step."""
+    duration = (datetime.now() - start_time).total_seconds()
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    if "_performance_metrics" not in state:
+        state["_performance_metrics"] = {}
+    
+    if step_id not in state["_performance_metrics"]:
+        state["_performance_metrics"][step_id] = []
+    
+    state["_performance_metrics"][step_id].append({
+        "timestamp": datetime.now().isoformat(),
+        "duration": duration
+    })
+    
+    pip.write_state(pipeline_id, state)
+```
+
+### 2. Progress Tracking
+```python
+# Track workflow progress
+async def track_progress(self, step_id, status):
+    """Track progress of workflow steps."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    if "_progress" not in state:
+        state["_progress"] = {}
+    
+    state["_progress"][step_id] = {
+        "status": status,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    pip.write_state(pipeline_id, state)
+```
+
+### 3. Error Tracking
+```python
+# Track workflow errors
+async def track_error(self, step_id, error):
+    """Track errors that occur during workflow execution."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    
+    if "_errors" not in state:
+        state["_errors"] = []
+    
+    state["_errors"].append({
+        "step_id": step_id,
+        "error": str(error),
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    pip.write_state(pipeline_id, state)
+```
+
+## Monitoring Dashboard
+
+### 1. Performance Overview
+```python
+# Display performance metrics
+async def show_performance_metrics(self, request):
+    """Display performance metrics for the workflow."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    metrics = state.get("_performance_metrics", {})
+    
+    return Div(
+        Card(
+            H3("Performance Metrics"),
+            Table(
+                Tr(Th("Step"), Th("Avg Duration"), Th("Min"), Th("Max")),
+                *[Tr(
+                    Td(step_id),
+                    Td(f"{sum(m['duration'] for m in step_metrics) / len(step_metrics):.2f}s"),
+                    Td(f"{min(m['duration'] for m in step_metrics):.2f}s"),
+                    Td(f"{max(m['duration'] for m in step_metrics):.2f}s")
+                ) for step_id, step_metrics in metrics.items()]
+            )
+        ),
+        id="performance_metrics"
+    )
+```
+
+### 2. Progress Overview
+```python
+# Display workflow progress
+async def show_progress(self, request):
+    """Display current progress of the workflow."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    progress = state.get("_progress", {})
+    
+    return Div(
+        Card(
+            H3("Workflow Progress"),
+            *[Div(
+                H4(step_id),
+                P(f"Status: {data['status']}"),
+                P(f"Last Updated: {data['timestamp']}")
+            ) for step_id, data in progress.items()]
+        ),
+        id="progress_overview"
+    )
+```
+
+### 3. Error Overview
+```python
+# Display workflow errors
+async def show_errors(self, request):
+    """Display errors that occurred during workflow execution."""
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    errors = state.get("_errors", [])
+    
+    return Div(
+        Card(
+            H3("Workflow Errors"),
+            *[Div(
+                H4(error["step_id"]),
+                P(f"Error: {error['error']}"),
+                P(f"Time: {error['timestamp']}")
+            ) for error in errors]
+        ),
+        id="error_overview"
+    )
+```
