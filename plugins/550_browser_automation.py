@@ -92,6 +92,12 @@ class BrowserAutomation:
                 show='Placeholder Step',
                 refill=True,
             ),
+            Step(
+                id='step_03',
+                done='placeholder',
+                show='Placeholder Step',
+                refill=True,
+            ),
         ]
         
         # Register standard workflow routes
@@ -737,3 +743,71 @@ class BrowserAutomation:
             safe_error_msg = error_msg.replace("<", "&lt;").replace(">", "&gt;")
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error")) 
+
+    async def step_03(self, request):
+        """Handles GET request for placeholder step 3."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}: Completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Next ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_03_submit(self, request):
+        """Process the submission for placeholder Step 3."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        placeholder_value = "completed"
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        ) 

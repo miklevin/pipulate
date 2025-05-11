@@ -198,3 +198,23 @@ result = process3(data)     # Cell 3
 # Pipulate with placeholder
 step_01 -> placeholder_step -> step_03
 ```
+
+## Real-World Example: Browser Automation Integration
+
+A particularly effective example of the placeholder pattern was demonstrated in the browser automation integration:
+
+```python
+# Original prompt that worked well:
+"Splice in a blank placeholder to @550_browser_automation.py as Step 3, 
+per pattern-placeholder.mdc without throwing off the pattern-chain-reaction.mdc. 
+It's like going from @500_blank_workflow.py to @510_splice_workflow.py"
+```
+
+This example worked well because it:
+1. Explicitly referenced the target file (@550_browser_automation.py)
+2. Specified the exact step number (Step 3)
+3. Referenced both required patterns (placeholder and chain-reaction)
+4. Provided a clear analogy to existing workflow patterns
+5. Maintained the critical chain reaction mechanism
+
+The success of this prompt demonstrates how precise pattern references and clear analogies can lead to successful implementations that maintain workflow integrity.
