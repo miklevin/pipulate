@@ -813,6 +813,12 @@ class BrowserAutomation:
                     H3("Google Session Persistence Test"),
                     P("✅ Test completed and confirmed!"),
                     P(f"Profile directory: {user_data_dir}/{profile_dir}"),
+                    self.pipulate.revert_control(
+                        step_id="step_03",
+                        app_name=self.app_name,
+                        steps=self.steps,
+                        message="Google Session Test"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
@@ -1003,6 +1009,12 @@ class BrowserAutomation:
                     H3("Google Session Persistence Test"),
                     P("✅ Test completed and confirmed!"),
                     P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}"),
+                    self.pipulate.revert_control(
+                        step_id="step_03",
+                        app_name=self.app_name,
+                        steps=self.steps,
+                        message="Google Session Test"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
