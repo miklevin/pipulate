@@ -806,8 +806,12 @@ class BrowserAutomation:
         step_index = self.steps_indices["step_03"]
         next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
         
-        if is_confirmed:
-            # If confirmed, show completion state and trigger next step
+        # Get state to check if we're being reverted to
+        state = self.pipulate.read_state(pipeline_id)
+        is_being_reverted = state.get("_revert_target") == "step_03"
+        
+        if is_confirmed and not is_being_reverted:
+            # If confirmed and not being reverted, show completion state and trigger next step
             return Div(
                 Card(
                     H3("Google Session Persistence Test"),
@@ -823,8 +827,8 @@ class BrowserAutomation:
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
             )
-        elif is_completed:
-            # If completed but not confirmed, show confirmation button
+        elif is_completed or is_being_reverted:
+            # If completed but not confirmed, or being reverted to, show confirmation buttons
             return Div(
                 Card(
                     H3("Google Session Persistence Test"),
