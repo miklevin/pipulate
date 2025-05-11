@@ -781,3 +781,171 @@ In the `get_suggestion` method, add a simple text for the placeholder:
 '... existing code ...
 
 </rewritten_file> 
+```
+
+# ---
+# ADDENDUM: ADVANCED WORKFLOW PATTERNS AND REAL-WORLD EXAMPLES
+# ---
+
+## Advanced Chain Reaction and HTMX Patterns
+
+- **Polling and Terminal Steps:**
+  - For steps that require polling (e.g., waiting for a background job), use:
+    ```python
+    return Div(
+        result_card,
+        Progress(),
+        cls="polling-status no-chain-reaction",
+        hx_get=f"/{app_name}/check_status",
+        hx_trigger="load, every 2s",
+        hx_target=f"#{step_id}",
+        id=step_id
+    )
+    ```
+  - For terminal steps (e.g., download complete):
+    ```python
+    return Div(
+        Card(...),
+        download_button,
+        cls="terminal-response no-chain-reaction",
+        id=step_id
+    )
+    ```
+  - **Best Practice:** Always document and comment any break in the chain reaction.
+
+## Revert Control and State Clearing
+
+- **Pattern:**
+  - Use `pip.revert_control(...)` in completed step views to allow users to revert to any previous step.
+  - Example:
+    ```python
+    return Div(
+        pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+    ```
+- **State Clearing:**
+  - On revert, always clear all state from the reverted step forward:
+    ```python
+    await pip.clear_steps_from(pipeline_id, step_id, steps)
+    state = pip.read_state(pipeline_id)
+    state["_revert_target"] = step_id
+    pip.write_state(pipeline_id, state)
+    ```
+  - Then rebuild the UI from the reverted step.
+
+## Widget Container Usage
+
+- **Consistent UI:**
+  - Always wrap widgets in `pip.widget_container(...)` for consistent styling and DOM structure.
+  - Example:
+    ```python
+    content_container = pip.widget_container(
+        step_id=step_id,
+        app_name=app_name,
+        message=f"{step.show}: Configured",
+        widget=custom_widget,
+        steps=steps
+    )
+    return Div(
+        content_container,
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+    ```
+
+## Message Queue and LLM Context
+
+- **Pattern:**
+  - Use `await self.message_queue.add(...)` to provide user feedback and keep the LLM context up to date.
+  - Example:
+    ```python
+    await self.message_queue.add(pip, f"{step.show} complete: {value}", verbatim=True)
+    pip.append_to_history(f"[WIDGET CONTENT] {step.show}: {value}")
+    ```
+  - Use `verbatim=True` for direct user messages, and LLM context for internal state.
+
+## Advanced Widget and HTMX Integration
+
+- **Prism.js, Mermaid, Marked.js:**
+  - For widgets requiring client-side JS (syntax highlighting, diagrams, markdown), use unique widget IDs and HX-Trigger headers:
+    ```python
+    response.headers["HX-Trigger"] = json.dumps({
+        "initializePrism": {"targetId": widget_id},
+        "renderMermaid": {"targetId": f"{widget_id}_output", "diagram": diagram_syntax},
+        "initMarked": {"widgetId": widget_id}
+    })
+    ```
+  - See `520_widget_examples.py` for full patterns.
+
+## Error Handling and User Feedback
+
+- **Pattern:**
+  - Always validate input and provide clear error messages:
+    ```python
+    if not value:
+        return P("Error: Field is required", style=pip.get_style("error"))
+    ```
+  - For exceptions:
+    ```python
+    try:
+        # ...
+    except Exception as e:
+        error_msg = f"Error: {str(e)}"
+        logger.error(error_msg)
+        await self.message_queue.add(pip, error_msg, verbatim=True)
+        return P(error_msg, style=pip.get_style("error"))
+    ```
+
+## File and Browser Automation Patterns
+
+- **Selenium-wire and Download Structure:**
+  - For browser automation and crawling, use `selenium-wire` to capture headers and save crawl data:
+    ```python
+    # Save headers, source, and DOM in a deterministic, reversible path
+    save_dir = f"downloads/{app_name}/{hostname}/{date}/{encoded_path}/"
+    with open(os.path.join(save_dir, "headers.json"), "w") as f:
+        json.dump(headers, f, indent=2)
+    with open(os.path.join(save_dir, "source.html"), "w") as f:
+        f.write(page_source)
+    with open(os.path.join(save_dir, "dom.html"), "w") as f:
+        f.write(dom_html)
+    ```
+  - Always display the reconstructed URL and save path in the UI for verification.
+
+## Cross-Referencing Real Plugin Files
+
+- See these files for full, real-world patterns:
+  - `pipulate/plugins/510_splice_workflow.py`: Multi-step, chain reaction, revert, and suggestion patterns
+  - `pipulate/plugins/520_widget_examples.py`: Widget container, advanced JS widgets, and LLM context
+  - `pipulate/plugins/040_parameter_buster.py`: Polling, file handling, and error recovery
+  - `pipulate/plugins/550_browser_automation.py`: Browser automation, crawl/save, and error handling
+
+## Common Advanced Patterns
+
+- **Dynamic Step Insertion:**
+  - Insert new steps by updating the steps list and indices, and ensure all chain reactions are updated.
+- **Polling and Progress:**
+  - Use polling patterns for background jobs, and break the chain reaction with clear UI cues.
+- **Custom Widget Integration:**
+  - Use unique IDs and HX-Trigger for client-side widget initialization.
+- **Revert and State Flow:**
+  - Always clear state forward from the reverted step, and use refill as appropriate.
+
+## Troubleshooting and Debugging
+
+- **Chain Reaction Not Progressing:**
+  - Check for missing or incorrect `hx_trigger="load"` attributes.
+  - Ensure next_step_id is calculated correctly.
+- **Revert Not Working:**
+  - Verify state clearing logic and UI rebuild after revert.
+- **Widget Not Rendering:**
+  - Check for missing widget_container or incorrect widget IDs.
+  - Ensure HX-Trigger headers are set for JS widgets.
+- **File/Browser Automation Issues:**
+  - Check save paths, permissions, and error handling for browser steps.
+- **User Feedback Not Appearing:**
+  - Ensure all user-facing actions use `message_queue.add` and LLM context updates.
+
+--- 
