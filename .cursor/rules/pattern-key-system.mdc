@@ -3,6 +3,12 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Pattern for implementing key-based systems in Pipulate workflows, including key management and validation
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Key System Pattern Guide
 
 ## Overview

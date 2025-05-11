@@ -3,6 +3,12 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Patterns for integrating browser functionality into Pipulate workflows, including URL handling and browser control
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Browser Integration Pattern
 
 ## Overview

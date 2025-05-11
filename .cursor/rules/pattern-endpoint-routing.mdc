@@ -91,3 +91,9 @@ async def step_01(self, request):
 ## Reference Examples
 See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for route registration patterns.
 See [510_splice_workflow.py](mdc:pipulate/plugins/510_splice_workflow.py) for workflow endpoint examples.
+
+---
+description: Pattern for implementing endpoint routing in Pipulate workflows, including route registration and handler management
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---

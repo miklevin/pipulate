@@ -3,6 +3,12 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Core patterns for implementing widgets in Pipulate workflows, including UI components and interaction handling
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Widget Implementation Patterns
 
 ## Core Pattern

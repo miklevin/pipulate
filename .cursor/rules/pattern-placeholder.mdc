@@ -4,7 +4,7 @@ globs:
 alwaysApply: false
 ---
 ---
-description: Pattern for creating placeholder steps in workflow progression
+description: Pattern for creating and managing placeholder steps in workflow progression, including chain reaction mechanisms and state management
 globs: ["pipulate/plugins/*.py"]
 alwaysApply: false
 ---

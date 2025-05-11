@@ -3,6 +3,12 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Pattern for implementing atomic workflow steps with proper state management and progression
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Atomic Steps Pattern
 
 ## Overview

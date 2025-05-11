@@ -3,6 +3,12 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: Error handling patterns for widgets, including user feedback and error state management
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
+
 # Widget Error Handling Requirements
 
 ## Core Error Patterns

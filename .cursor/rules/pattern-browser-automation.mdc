@@ -4,8 +4,8 @@ globs:
 alwaysApply: false
 ---
 ---
-description: Browser automation patterns and best practices
-globs: ["**/*.py"]
+description: Core patterns for browser automation in Pipulate workflows, including cross-platform support, Chrome options, and error handling
+globs: ["pipulate/plugins/*.py"]
 alwaysApply: false
 ---
 # Browser Automation Pattern

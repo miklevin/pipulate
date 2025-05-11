@@ -1,7 +1,12 @@
 ---
-description: 
+description: Core documentation for Cursor Rules organization and structure, including file naming conventions, organization patterns, and rule relationships
 globs: 
 alwaysApply: false
+---
+---
+description: Core documentation for Cursor Rules organization and structure, including file naming conventions, organization patterns, and rule relationships
+globs: ["**/*.mdc"]
+alwaysApply: true
 ---
 # Cursor Rules Organization
 

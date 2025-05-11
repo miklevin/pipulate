@@ -102,3 +102,9 @@ The Browser Automation workflow (`550_browser_automation.py`) serves as the prim
 3. Once stable, extract reusable components
 4. Document any platform-specific considerations
 5. Update this rule with new capabilities
+
+---
+description: Selenium integration patterns for browser automation, including cross-platform support and ChromeDriver management
+globs: ["pipulate/plugins/*.py"]
+alwaysApply: false
+---
