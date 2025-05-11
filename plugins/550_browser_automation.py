@@ -867,16 +867,16 @@ class BrowserAutomation:
         if is_confirmed and not is_being_reverted:
             # If confirmed and not being reverted, show completion state and trigger next step
             return Div(
-                Card(
-                    H3("Google Session Persistence Test"),
-                    P("✅ Test completed and confirmed!"),
-                    P(f"Profile directory: {user_data_dir}/{profile_dir}"),
-                    self.pipulate.revert_control(
-                        step_id="step_03",
-                        app_name=self.app_name,
-                        steps=self.steps,
-                        message="Google Session Test"
-                    )
+                self.pipulate.widget_container(
+                    step_id="step_03",
+                    app_name=self.app_name,
+                    message="Google Session Test",
+                    widget=Div(
+                        H3("Google Session Persistence Test"),
+                        P("✅ Test completed and confirmed!"),
+                        P(f"Profile directory: {user_data_dir}/{profile_dir}")
+                    ),
+                    steps=self.steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
@@ -1061,16 +1061,16 @@ class BrowserAutomation:
 
         # Return completion UI with chain reaction
         return Div(
-            Card(
-                H3("Google Session Persistence Test"),
-                P("✅ Test completed and confirmed!"),
-                P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}"),
-                self.pipulate.revert_control(
-                    step_id="step_03",
-                    app_name=self.app_name,
-                    steps=self.steps,
-                    message="Google Session Test"
-                )
+            self.pipulate.widget_container(
+                step_id="step_03",
+                app_name=self.app_name,
+                message="Google Session Test",
+                widget=Div(
+                    H3("Google Session Persistence Test"),
+                    P("✅ Test completed and confirmed!"),
+                    P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}")
+                ),
+                steps=self.steps
             ),
             Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
             id="step_03"
