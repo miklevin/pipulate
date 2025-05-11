@@ -797,10 +797,13 @@ class BrowserAutomation:
         return Div(
             Card(
                 H3("Google Session Persistence Test"),
-                P(f"User Data Directory: {user_data_dir}"),
-                P(f"Profile Directory: {profile_dir}"),
+                P("Instructions:"),
+                P("1. Click the button below to open Google in a new browser window"),
+                P("2. Log in to your Google account"),
+                P("3. Close the browser window when done"),
+                P("4. Return here to check your session status"),
                 Form(
-                    Button("Test Google Login Session", type="submit", cls="primary"),
+                    Button("Open Google & Log In", type="submit", cls="primary"),
                     hx_post=f"/{self.app_name}/step_03_submit",
                     hx_target="#step_03"
                 )
@@ -831,8 +834,28 @@ class BrowserAutomation:
             chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
             chrome_options.add_argument(f"--profile-directory={profile_dir}")
             
+            # Add stealth options to avoid detection
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option("useAutomationExtension", False)
+            
             # Initialize Chrome driver
             driver = webdriver.Chrome(options=chrome_options)
+            
+            # Execute CDP commands to prevent detection
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5]
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en']
+                    });
+                """
+            })
             
             try:
                 # Navigate to Google
@@ -852,15 +875,41 @@ class BrowserAutomation:
                 except TimeoutException:
                     is_logged_in = False
                 
-                return JSONResponse(content={
-                    "success": True,
-                    "is_logged_in": is_logged_in,
-                    "user_data_dir": user_data_dir,
-                    "profile_dir": profile_dir
-                })
+                # Update step data to mark completion
+                step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
+                step_data["session_test_complete"] = True
+                step_data["is_logged_in"] = is_logged_in
+                step_data["user_data_dir"] = user_data_dir
+                step_data["profile_dir"] = profile_dir
                 
-            finally:
+                # Update state
+                state = self.pipulate.read_state(pipeline_id)
+                state["step_03"] = step_data
+                self.pipulate.write_state(pipeline_id, state)
+                
+                # Return updated UI with clearer instructions
+                return Div(
+                    Card(
+                        H3("Google Session Persistence Test"),
+                        P("Instructions:"),
+                        P("1. A new browser window has opened with Google"),
+                        P("2. Log in to your Google account in that window"),
+                        P("3. After logging in, close the browser window"),
+                        P("4. Return here and click the button below to check your session status"),
+                        P(f"Current Status: {'Logged In' if is_logged_in else 'Not Logged In'}"),
+                        Form(
+                            Button("Check Login Status", type="submit", cls="primary"),
+                            hx_post=f"/{self.app_name}/step_03_submit",
+                            hx_target="#step_03"
+                        )
+                    ),
+                    id="step_03"
+                )
+                
+            except Exception as e:
+                # If there's an error, make sure to close the browser
                 driver.quit()
+                raise e
                 
         except Exception as e:
             return JSONResponse(
