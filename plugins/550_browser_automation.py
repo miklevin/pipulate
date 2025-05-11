@@ -842,6 +842,14 @@ class BrowserAutomation:
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument(f"--user-data-dir={profile_dir_path}")
+            
+            # Add browser cloaking options to avoid detection
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option("useAutomationExtension", False)
+            
+            # Set a realistic user agent
+            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
 
             effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
             service_args = []
