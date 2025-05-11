@@ -25,11 +25,11 @@ server.py
 flake.nix
 requirements.txt
 /home/mike/repos/pipulate/plugins/550_browser_automation.py
+# README.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-webmaster-nix-selenium-http-status-browser-control.md
-/home/mike/repos/MikeLev.in/_posts/2025-05-09-ai-assisted-browser-automation-selenium-nix-flakes.md
-# README.md
+# /home/mike/repos/MikeLev.in/_posts/2025-05-09-ai-assisted-browser-automation-selenium-nix-flakes.md
 # /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 # /home/mike/repos/pipulate/precursors/context_foo.py
 # /home/mike/repos/pipulate/training/workflow_implementation_guide.md
