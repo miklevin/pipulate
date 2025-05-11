@@ -121,6 +121,9 @@ class BrowserAutomation:
             step_id = step.id
             routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
             routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+            # Add confirmation route for step_03
+            if step_id == "step_03":
+                routes.append((f"/{app_name}/{step_id}_confirm", getattr(self, f"{step_id}_confirm"), ["POST"]))
 
         # Register all routes with the FastHTML app
         for path, handler, *methods in routes:
@@ -794,22 +797,65 @@ class BrowserAutomation:
         # Get profile paths using new helper
         user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
         
-        return Div(
-            Card(
-                H3("Google Session Persistence Test"),
-                P("Instructions:"),
-                P("1. Click the button below to open Google in a new browser window"),
-                P("2. Log in to your Google account"),
-                P("3. Close the browser window when done"),
-                P("4. Return here to check your session status"),
-                Form(
-                    Button("Open Google & Log In", type="submit", cls="primary"),
-                    hx_post=f"/{self.app_name}/step_03_submit",
-                    hx_target="#step_03"
-                )
-            ),
-            id="step_03"
-        )
+        # Get step data to check if we're in a completed state
+        step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
+        is_completed = step_data.get("session_test_complete", False)
+        is_confirmed = step_data.get("session_test_confirmed", False)
+        
+        # Get next step ID for chain reaction
+        step_index = self.steps_indices["step_03"]
+        next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
+        
+        if is_confirmed:
+            # If confirmed, show completion state and trigger next step
+            return Div(
+                Card(
+                    H3("Google Session Persistence Test"),
+                    P("✅ Test completed and confirmed!"),
+                    P(f"Profile directory: {user_data_dir}/{profile_dir}"),
+                ),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id="step_03"
+            )
+        elif is_completed:
+            # If completed but not confirmed, show confirmation button
+            return Div(
+                Card(
+                    H3("Google Session Persistence Test"),
+                    P("✅ Test completed!"),
+                    P("Please confirm that you have successfully logged in and verified the session persistence."),
+                    P(f"Profile directory: {user_data_dir}/{profile_dir}"),
+                    Form(
+                        Button("Check Login Status", type="submit", cls="secondary"),
+                        hx_post=f"/{self.app_name}/step_03_submit",
+                        hx_target="#step_03"
+                    ),
+                    Form(
+                        Button("Confirm Test Completion", type="submit", cls="primary"),
+                        hx_post=f"/{self.app_name}/step_03_confirm",
+                        hx_target="#step_03"
+                    )
+                ),
+                id="step_03"
+            )
+        else:
+            # Initial state - show test instructions
+            return Div(
+                Card(
+                    H3("Google Session Persistence Test"),
+                    P("Instructions:"),
+                    P("1. Click the button below to open Google in a new browser window"),
+                    P("2. Log in to your Google account"),
+                    P("3. Close the browser window when done"),
+                    P("4. Return here to check your session status"),
+                    Form(
+                        Button("Open Google & Log In", type="submit", cls="primary"),
+                        hx_post=f"/{self.app_name}/step_03_submit",
+                        hx_target="#step_03"
+                    )
+                ),
+                id="step_03"
+            )
 
     async def step_03_submit(self, request):
         """Handles POST request for Google session persistence test."""
@@ -824,6 +870,10 @@ class BrowserAutomation:
 
             # Get profile paths using new helper
             user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
+            
+            # Get current step data
+            step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
+            is_completed = step_data.get("session_test_complete", False)
             
             # Configure Chrome options
             chrome_options = Options()
@@ -872,11 +922,12 @@ class BrowserAutomation:
                         EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
                     )
                     is_logged_in = True
+                    login_status = "✅ Logged In"
                 except TimeoutException:
                     is_logged_in = False
+                    login_status = "❌ Not Logged In"
                 
-                # Update step data to mark completion
-                step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
+                # Update step data
                 step_data["session_test_complete"] = True
                 step_data["is_logged_in"] = is_logged_in
                 step_data["user_data_dir"] = user_data_dir
@@ -887,7 +938,7 @@ class BrowserAutomation:
                 state["step_03"] = step_data
                 self.pipulate.write_state(pipeline_id, state)
                 
-                # Return updated UI with clearer instructions
+                # Return updated UI with confirmation button
                 return Div(
                     Card(
                         H3("Google Session Persistence Test"),
@@ -895,11 +946,16 @@ class BrowserAutomation:
                         P("1. A new browser window has opened with Google"),
                         P("2. Log in to your Google account in that window"),
                         P("3. After logging in, close the browser window"),
-                        P("4. Return here and click the button below to check your session status"),
-                        P(f"Current Status: {'Logged In' if is_logged_in else 'Not Logged In'}"),
+                        P("4. Return here and click the button below to confirm test completion"),
+                        P(f"Current Status: {login_status}"),
                         Form(
-                            Button("Check Login Status", type="submit", cls="primary"),
+                            Button("Check Login Status", type="submit", cls="secondary"),
                             hx_post=f"/{self.app_name}/step_03_submit",
+                            hx_target="#step_03"
+                        ),
+                        Form(
+                            Button("Confirm Test Completion", type="submit", cls="primary"),
+                            hx_post=f"/{self.app_name}/step_03_confirm",
                             hx_target="#step_03"
                         )
                     ),
@@ -911,6 +967,47 @@ class BrowserAutomation:
                 driver.quit()
                 raise e
                 
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)}
+            )
+
+    async def step_03_confirm(self, request):
+        """Handles confirmation of Google session persistence test."""
+        try:
+            # Get pipeline ID from db for consistency
+            pipeline_id = self.db.get("pipeline_id", "unknown")
+            if not pipeline_id or pipeline_id == "unknown":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "No pipeline ID found in db"}
+                )
+
+            # Update step data to mark confirmation
+            step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
+            step_data["session_test_confirmed"] = True
+            
+            # Update state
+            state = self.pipulate.read_state(pipeline_id)
+            state["step_03"] = step_data
+            self.pipulate.write_state(pipeline_id, state)
+            
+            # Get next step ID for chain reaction
+            step_index = self.steps_indices["step_03"]
+            next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
+            
+            # Return completion UI with chain reaction
+            return Div(
+                Card(
+                    H3("Google Session Persistence Test"),
+                    P("✅ Test completed and confirmed!"),
+                    P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}"),
+                ),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id="step_03"
+            )
+            
         except Exception as e:
             return JSONResponse(
                 status_code=500,
