@@ -1,0 +1,164 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Browser Automation Pattern
+
+## Overview
+This guide covers the implementation of browser automation in Pipulate workflows, as demonstrated in [550_browser_automation.py](mdc:pipulate/plugins/550_browser_automation.py).
+
+## Core Components
+
+### 1. Cross-Platform Support
+```python
+# Platform detection
+effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+
+# Driver initialization
+if effective_os == "darwin":
+    service = Service(ChromeDriverManager().install())
+else:
+    service = Service()
+```
+
+### 2. Clean Browser Sessions
+```python
+# Create temporary profile
+profile_dir = tempfile.mkdtemp()
+chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+
+# Cleanup after use
+shutil.rmtree(profile_dir, ignore_errors=True)
+```
+
+### 3. Chrome Options Configuration
+```python
+chrome_options = Options()
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--new-window")
+chrome_options.add_argument("--start-maximized")
+```
+
+### 4. Session Persistence
+```python
+# Persistent profile management
+def _get_selenium_profile_paths(self, pipeline_id: str, profile_name: str = "google_session"):
+    user_data_root = Path("data") / self.app_name / "selenium_user_data" / safe_pipeline_id
+    return str(user_data_root), profile_name
+```
+
+## Implementation Patterns
+
+### 1. URL Opening Pattern
+```python
+# Initialize driver
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# Open URL
+driver.get(url)
+
+# Wait for load
+await asyncio.sleep(2)
+
+# Verify load
+title = driver.title
+
+# Cleanup
+driver.quit()
+```
+
+### 2. Session Testing Pattern
+```python
+# Check login status
+try:
+    profile_pic = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
+    )
+    is_logged_in = True
+except TimeoutException:
+    is_logged_in = False
+```
+
+### 3. Error Handling Pattern
+```python
+try:
+    # Browser operations
+except Exception as e:
+    error_msg = f"Error: {str(e)}"
+    logger.error(error_msg)
+    await self.message_queue.add(pip, error_msg, verbatim=True)
+    return P(error_msg, style=pip.get_style("error"))
+```
+
+## Best Practices
+
+1. **Profile Management**
+   - Use temporary profiles for one-off operations
+   - Use persistent profiles for session testing
+   - Always clean up temporary profiles
+   - Store profiles in workflow-specific directories
+
+2. **Error Handling**
+   - Always close browser in finally block
+   - Log detailed error messages
+   - Provide user-friendly error display
+   - Clean up resources on error
+
+3. **Session Management**
+   - Use persistent profiles for login testing
+   - Implement proper session verification
+   - Handle session timeouts gracefully
+   - Provide clear session status feedback
+
+4. **Resource Cleanup**
+   - Close browser instances
+   - Remove temporary directories
+   - Clear browser data
+   - Handle cleanup errors
+
+## Common Pitfalls
+
+1. **Resource Leaks**
+   - Forgetting to close browser
+   - Not cleaning up temporary files
+   - Leaving zombie processes
+   - Memory leaks from unclosed sessions
+
+2. **Timing Issues**
+   - Insufficient page load waits
+   - Race conditions in session checks
+   - Premature cleanup
+   - Async operation timing
+
+3. **Platform Differences**
+   - Driver path issues
+   - Profile directory permissions
+   - Chrome version compatibility
+   - OS-specific configurations
+
+## Testing Considerations
+
+1. **Session Testing**
+   - Verify login persistence
+   - Check session cookies
+   - Test profile isolation
+   - Validate cleanup
+
+2. **Error Scenarios**
+   - Network failures
+   - Invalid URLs
+   - Timeout handling
+   - Resource cleanup
+
+3. **Platform Testing**
+   - Cross-OS compatibility
+   - Driver installation
+   - Profile management
+   - Resource handling
+
+## Related Rules
+- [Chain Reaction Pattern](mdc:pattern-chain-reaction.mdc)
+- [Widget Implementation](mdc:pattern-widget-implementation.mdc)
+- [Error Handling](mdc:implementation-widget-error.mdc)
