@@ -106,7 +106,7 @@ class BrowserAutomation:
                 id='step_04',
                 done='placeholder',
                 show='Step 4 Placeholder',
-                refill=True,
+                refill=False,
             ),
         ]
         
@@ -906,6 +906,8 @@ class BrowserAutomation:
                         hx_target="#step_03"
                     )
                 ),
+                # CRITICAL: Add chain reaction trigger to next step
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
             )
         else:
