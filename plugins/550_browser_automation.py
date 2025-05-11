@@ -168,7 +168,7 @@ class BrowserAutomation:
                 Form(
                     pip.wrap_with_inline_button(
                         Input(
-                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            placeholder="Existing or new 🔑 here (Enter for auto)", name="pipeline_id",
                             list="pipeline-ids", type="search", required=False, autofocus=True,
                             value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
                             cls="contrast"
@@ -984,48 +984,40 @@ class BrowserAutomation:
             )
 
     async def step_03_confirm(self, request):
-        """Handles confirmation of Google session persistence test."""
-        try:
-            # Get pipeline ID from db for consistency
-            pipeline_id = self.db.get("pipeline_id", "unknown")
-            if not pipeline_id or pipeline_id == "unknown":
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": "No pipeline ID found in db"}
-                )
+        """Handle confirmation of Google session persistence test."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_03"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
 
-            # Update step data to mark confirmation
-            step_data = self.pipulate.get_step_data(pipeline_id, "step_03", {})
-            step_data["session_test_confirmed"] = True
-            
-            # Update state
-            state = self.pipulate.read_state(pipeline_id)
-            state["step_03"] = step_data
-            self.pipulate.write_state(pipeline_id, state)
-            
-            # Get next step ID for chain reaction
-            step_index = self.steps_indices["step_03"]
-            next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
-            
-            # Return completion UI with chain reaction
-            return Div(
-                Card(
-                    H3("Google Session Persistence Test"),
-                    P("✅ Test completed and confirmed!"),
-                    P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}"),
-                    self.pipulate.revert_control(
-                        step_id="step_03",
-                        app_name=self.app_name,
-                        steps=self.steps,
-                        message="Google Session Test"
-                    )
-                ),
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
-                id="step_03"
-            )
-            
-        except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"error": str(e)}
-            ) 
+        # Get current state
+        state = pip.read_state(pipeline_id)
+        step_data = state.get(step_id, {})
+
+        # Mark step as confirmed and completed
+        step_data[step.done] = True
+        step_data['confirmed'] = True
+        state[step_id] = step_data
+        pip.write_state(pipeline_id, state)
+
+        # Send confirmation message
+        await self.message_queue.add(pip, "Google session test confirmed!", verbatim=True)
+
+        # Return completion UI with chain reaction
+        return Div(
+            Card(
+                H3("Google Session Persistence Test"),
+                P("✅ Test completed and confirmed!"),
+                P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}"),
+                self.pipulate.revert_control(
+                    step_id="step_03",
+                    app_name=self.app_name,
+                    steps=self.steps,
+                    message="Google Session Test"
+                )
+            ),
+            Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+            id="step_03"
+        ) 
