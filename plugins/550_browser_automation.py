@@ -235,7 +235,7 @@ class BrowserAutomation:
                     Form(
                         Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
                         hx_post=f"/{app_name}/unfinalize", 
-                        hx_target=f"#{app_name}-container"
+                        hx_target=f"#{finalize_step.id}"
                     ),
                     id=finalize_step.id
                 )
@@ -251,24 +251,70 @@ class BrowserAutomation:
                         Form(
                             Button("Finalize 🔒", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/finalize", 
-                            hx_target=f"#{app_name}-container"
+                            hx_target=f"#{finalize_step.id}"
                         ),
                         id=finalize_step.id
                     )
                 else:
                     return Div(id=finalize_step.id)
         else:
-            await pip.finalize_workflow(pipeline_id)
+            # Store the current state before finalizing
+            state = pip.read_state(pipeline_id)
+            # Preserve all step completion states
+            for step in steps[:-1]:
+                step_data = pip.get_step_data(pipeline_id, step.id, {})
+                if step.done in step_data:
+                    state[step.id] = step_data
+            # Add finalization flag
+            state["finalize"] = {"finalized": True}
+            state["updated"] = datetime.now().isoformat()
+            pip.write_state(pipeline_id, state)
+            
             await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            # Return just the finalize step UI instead of rebuilding everything
+            return Card(
+                H3("Workflow is locked."),
+                Form(
+                    Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                    hx_post=f"/{app_name}/unfinalize", 
+                    hx_target=f"#{finalize_step.id}"
+                ),
+                id=finalize_step.id
+            )
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
-        await pip.unfinalize_workflow(pipeline_id)
+        
+        # Read current state
+        state = pip.read_state(pipeline_id)
+        
+        # Remove finalization flag while preserving all other state
+        if "finalize" in state:
+            del state["finalize"]
+        
+        # Ensure step completion states are preserved
+        for step in steps[:-1]:
+            if step.id in state and step.done in state[step.id]:
+                # Keep the completion state
+                pass
+        
+        # Write the updated state
+        pip.write_state(pipeline_id, state)
+        
         await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
-        return pip.rebuild(app_name, steps)
+        # Return just the finalize step UI instead of rebuilding everything
+        return Card(
+            H3("All steps complete. Finalize?"),
+            P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+            Form(
+                Button("Finalize 🔒", type="submit", cls="primary"),
+                hx_post=f"/{app_name}/finalize", 
+                hx_target=f"#{steps[-1].id}"
+            ),
+            id=steps[-1].id
+        )
 
     async def jump_to_step(self, request):
         """Handles POST request from breadcrumb navigation to jump to a specific step."""
