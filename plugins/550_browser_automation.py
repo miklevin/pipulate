@@ -766,7 +766,7 @@ class BrowserAutomation:
 
             # Create widget with summary and reconstructed URL
             url_widget = Div(
-                P(f"URL crawled and saved: ", B(url)),
+                P(f"URL crawled and saved: ", B(crawl_data["url"])),
                 P(f"Title: {title}"),
                 P(f"Status: {status}"),
                 P(f"Saved to: {crawl_dir}"),
@@ -778,7 +778,7 @@ class BrowserAutomation:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"Crawl URL: {url}",
+                message=f"Crawl URL: {crawl_data['url']}",
                 widget=url_widget,
                 steps=steps
             )
