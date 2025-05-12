@@ -839,20 +839,6 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style("error")) 
 
-    def _get_persistent_profile_dir(self, pipeline_id: str, profile_name: str = "google_session") -> str:
-        """Get or create a persistent profile directory for Selenium."""
-        from pathlib import Path
-        # Ensure the base directory for profiles exists
-        base_profiles_dir = Path("data") / self.app_name / "profiles"
-        base_profiles_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Sanitize pipeline_id for use as a directory name
-        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
-        
-        profile_path = base_profiles_dir / safe_pipeline_id / profile_name
-        profile_path.mkdir(parents=True, exist_ok=True)
-        return str(profile_path)
-
     def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str = "google_session") -> tuple[str, str]:
         """Get the user data directory and profile directory paths for Chrome.
         
@@ -871,6 +857,21 @@ class BrowserAutomation:
         # This is the name of the specific profile directory *within* user_data_root_for_pipeline.
         # e.g., data/browser/selenium_user_data/my_profile-browser-01/google_session/
         return str(user_data_root_for_pipeline), desired_profile_leaf_name
+
+    def _get_persistent_profile_paths(self, pipeline_id: str) -> tuple[str, str]:
+        """Get the persistent user data directory and profile directory paths for Chrome.
+        
+        This version uses a fixed location that won't be cleared on server restart.
+        """
+        from pathlib import Path
+        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
+        
+        # Use a fixed location in the data directory that won't be cleared
+        user_data_root = Path("data") / self.app_name / "persistent_profiles" / safe_pipeline_id
+        user_data_root.mkdir(parents=True, exist_ok=True)
+        
+        # Use the same profile name as the ephemeral version
+        return str(user_data_root), "google_session"
 
     async def step_03(self, request):
         """Handles GET request for Ephemeral Login Test."""
@@ -1116,8 +1117,8 @@ class BrowserAutomation:
                 content={"error": "No pipeline ID found in db"}
             )
 
-        # Get profile paths using new helper
-        user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id, "persistent_session")
+        # Get profile paths using persistent helper
+        user_data_dir, profile_dir = self._get_persistent_profile_paths(pipeline_id)
         
         # Get step data to check if we're in a completed state
         step_data = self.pipulate.get_step_data(pipeline_id, "step_04", {})
@@ -1200,8 +1201,8 @@ class BrowserAutomation:
                     content={"error": "No pipeline ID found in db"}
                 )
 
-            # Get profile paths using new helper
-            user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id, "persistent_session")
+            # Get profile paths using persistent helper
+            user_data_dir, profile_dir = self._get_persistent_profile_paths(pipeline_id)
             
             # Get current step data
             step_data = self.pipulate.get_step_data(pipeline_id, "step_04", {})
