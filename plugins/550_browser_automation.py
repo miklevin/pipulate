@@ -32,7 +32,11 @@ def get_safe_path(url):
     """Convert URL to filesystem-safe path while maintaining reversibility."""
     parsed = urlparse(url)
     domain = parsed.netloc
-    path = quote(parsed.path + ('?' + parsed.query if parsed.query else ''), safe='')
+    # Ensure homepage URLs have a trailing slash
+    path = parsed.path
+    if not path or path == '/':
+        path = '/'
+    path = quote(path + ('?' + parsed.query if parsed.query else ''), safe='')
     return domain, path
 
 def reconstruct_url(domain, path):
