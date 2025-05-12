@@ -27,7 +27,8 @@ requirements.txt
 server.py
 /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 /home/mike/repos/.cursor/rules/workflow_implementation_guide.md
-/home/mike/repos/pipulate/plugins/550_browser_automation.py
+/home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/pipulate/plugins/550_browser_automation.py
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-webmaster-nix-selenium-http-status-browser-control.md
@@ -36,7 +37,6 @@ server.py
 # /home/mike/repos/pipulate/precursors/context_foo.py
 # /home/mike/repos/pipulate/training/workflow_implementation_guide.md
 # /home/mike/repos/pipulate/plugins/010_tasks.py
-# /home/mike/repos/pipulate/plugins/520_widget_examples.py
 # /home/mike/repos/browser/test_selenium.py
 # /home/mike/repos/browser/flake.nix
 # /home/mike/repos/pipulate/static/chat-interface.js
