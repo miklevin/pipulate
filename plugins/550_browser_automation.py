@@ -350,8 +350,20 @@ class BrowserAutomation:
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id: return P("Error: No step specified", style=self.pipulate.get_style("error"))
 
+        # Clear steps from the specified step forward
         await pip.clear_steps_from(pipeline_id, step_id, steps)
+        
+        # Get current state
         state = pip.read_state(pipeline_id)
+        
+        # For Step 3, we need to clear the confirmation state but keep the completion state
+        if step_id == "step_03":
+            step_data = state.get(step_id, {})
+            if "session_test_confirmed" in step_data:
+                del step_data["session_test_confirmed"]
+            state[step_id] = step_data
+        
+        # Set revert target
         state["_revert_target"] = step_id
         pip.write_state(pipeline_id, state)
 
@@ -870,25 +882,21 @@ class BrowserAutomation:
         state = self.pipulate.read_state(pipeline_id)
         is_being_reverted = state.get("_revert_target") == "step_03"
         
-        if is_confirmed and not is_being_reverted:
-            # If confirmed and not being reverted, show completion state and trigger next step
+        if is_confirmed:
+            # If confirmed, show completion state with revert button and trigger next step
             return Div(
-                self.pipulate.widget_container(
+                self.pipulate.revert_control(
                     step_id="step_03",
                     app_name=self.app_name,
                     message="Google Session Test",
-                    widget=Div(
-                        H3("Google Session Persistence Test"),
-                        P("✅ Test completed and confirmed!"),
-                        P(f"Profile directory: {user_data_dir}/{profile_dir}")
-                    ),
                     steps=self.steps
                 ),
+                # CRITICAL: Include trigger to next step
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_03"
             )
-        elif is_completed or is_being_reverted:
-            # If completed but not confirmed, or being reverted to, show confirmation buttons
+        elif is_completed and not is_being_reverted:
+            # If completed but not confirmed and not being reverted to, show confirmation buttons
             return Div(
                 Card(
                     H3("Google Session Persistence Test"),
@@ -1060,7 +1068,7 @@ class BrowserAutomation:
 
         # Mark step as confirmed and completed
         step_data[step.done] = True
-        step_data['confirmed'] = True
+        step_data['session_test_confirmed'] = True  # Add explicit confirmation flag
         state[step_id] = step_data
         pip.write_state(pipeline_id, state)
 
@@ -1069,20 +1077,16 @@ class BrowserAutomation:
 
         # Return completion UI with chain reaction
         return Div(
-            self.pipulate.widget_container(
-                step_id="step_03",
-                app_name=self.app_name,
+            pip.revert_control(
+                step_id=step_id,
+                app_name=app_name,
                 message="Google Session Test",
-                widget=Div(
-                    H3("Google Session Persistence Test"),
-                    P("✅ Test completed and confirmed!"),
-                    P(f"Profile directory: {step_data.get('user_data_dir')}/{step_data.get('profile_dir')}")
-                ),
-                steps=self.steps
+                steps=steps
             ),
-            Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
-            id="step_03"
-        ) 
+            # CRITICAL: Include trigger to next step
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
 
     async def step_04(self, request):
         """Handles GET request for Step 4 placeholder."""
