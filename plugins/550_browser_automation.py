@@ -621,7 +621,7 @@ class BrowserAutomation:
             return Div(
                 Card(
                     H3(f"🔒 Crawl URL"),
-                    P(f"URL crawled and saved: ", B(url_value)),
+                    P(f"URL crawled and saved: ", B(url_value.get("url", ""))),
                     Div(id=f"{step_id}-status")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -633,9 +633,13 @@ class BrowserAutomation:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
-                message=f"Crawl URL: {url_value}",
+                message=f"Crawl URL: {url_value.get('url', '')}",
                 widget=Div(
-                    P(f"URL crawled and saved: ", B(url_value)),
+                    P(f"URL crawled and saved: ", B(url_value.get("url", ""))),
+                    P(f"Title: {url_value.get('title', '')}"),
+                    P(f"Status: {url_value.get('status', '')}"),
+                    P(f"Saved to: {url_value.get('save_path', '')}"),
+                    P(f"Reconstructed URL: {url_value.get('reconstructed_url', '')}", style="color: #666; font-size: 0.9em;"),
                     Div(id=f"{step_id}-status")
                 ),
                 steps=steps
