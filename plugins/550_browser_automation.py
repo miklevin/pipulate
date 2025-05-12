@@ -104,8 +104,8 @@ class BrowserAutomation:
             ),
             Step(
                 id='step_04',
-                done='placeholder',
-                show='Step 4 Placeholder',
+                done='persistent_session_test_complete',
+                show='Persistent Session Test',
                 refill=False,
             ),
             Step(
@@ -133,8 +133,8 @@ class BrowserAutomation:
             step_id = step.id
             routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
             routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
-            # Add confirmation route for step_03
-            if step_id == "step_03":
+            # Add confirmation route for step_03 and step_04
+            if step_id in ["step_03", "step_04"]:
                 routes.append((f"/{app_name}/{step_id}_confirm", getattr(self, f"{step_id}_confirm"), ["POST"]))
 
         # Register all routes with the FastHTML app
@@ -1008,7 +1008,7 @@ class BrowserAutomation:
                 
                 # Check if user is logged in by looking for profile picture
                 try:
-                    profile_pic = WebDriverWait(driver, 0.5).until(  # Reduced from 5 to 0.5 seconds
+                    profile_pic = WebDriverWait(driver, 0.5).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
                     )
                     is_logged_in = True
@@ -1099,66 +1099,204 @@ class BrowserAutomation:
         )
 
     async def step_04(self, request):
-        """Handles GET request for Step 4 placeholder."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        """Handles GET request for Persistent Session Test."""
+        # Get pipeline ID from db for consistency
+        pipeline_id = self.db.get("pipeline_id", "unknown")
+        if not pipeline_id or pipeline_id == "unknown":
+            return JSONResponse(
+                status_code=400,
+                content={"error": "No pipeline ID found in db"}
+            )
 
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Keep LLM informed about finalized state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
-            
+        # Get profile paths using new helper
+        user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id, "persistent_session")
+        
+        # Get step data to check if we're in a completed state
+        step_data = self.pipulate.get_step_data(pipeline_id, "step_04", {})
+        is_completed = step_data.get("persistent_session_test_complete", False)
+        is_confirmed = step_data.get("persistent_session_test_confirmed", False)
+        
+        # Get next step ID for chain reaction
+        step_index = self.steps_indices["step_04"]
+        next_step_id = self.steps[step_index + 1].id if step_index < len(self.steps) - 1 else 'finalize'
+        
+        # Get state to check if we're being reverted to
+        state = self.pipulate.read_state(pipeline_id)
+        is_being_reverted = state.get("_revert_target") == "step_04"
+        
+        if is_confirmed:
+            # If confirmed, show completion state with revert button and trigger next step
             return Div(
-                Card(
-                    H3(f"🔒 {step.show}: Completed")
+                self.pipulate.revert_control(
+                    step_id="step_04",
+                    app_name=self.app_name,
+                    message="Persistent Session Test",
+                    steps=self.steps
                 ),
-                # CRITICAL: Include trigger to next step even in finalized state
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
+                # CRITICAL: Include trigger to next step
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id="step_04"
             )
-            
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Keep LLM informed about completed state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
-            
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                # CRITICAL: Include trigger to next step in completed state
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            # Keep LLM informed about showing input form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
+        elif is_completed and not is_being_reverted:
+            # If completed but not confirmed and not being reverted to, show confirmation buttons
             return Div(
                 Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    H3("Persistent Session Test"),
+                    P("✅ Test completed!"),
+                    P("Please confirm that you have successfully logged in and verified the session persistence."),
+                    P(f"Profile directory: {user_data_dir}/{profile_dir}"),
                     Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
+                        Button("Check Login Status", type="submit", cls="secondary"),
+                        hx_post=f"/{self.app_name}/step_04_submit",
+                        hx_target="#step_04"
+                    ),
+                    Form(
+                        Button("Confirm Test Completion", type="submit", cls="primary"),
+                        hx_post=f"/{self.app_name}/step_04_confirm",
+                        hx_target="#step_04"
                     )
                 ),
-                # Empty placeholder without trigger
-                Div(id=next_step_id),
-                id=step_id
+                # CRITICAL: Add chain reaction trigger to next step
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+                id="step_04"
+            )
+        else:
+            # Initial state - show test instructions
+            return Div(
+                Card(
+                    H3("Persistent Session Test"),
+                    P("Instructions:"),
+                    P("1. Click the button below to open Google in a new browser window"),
+                    P("2. Log in to your Google account"),
+                    P("3. Close the browser window when done"),
+                    P("4. Return here to check your session status"),
+                    Form(
+                        Button("Open Google & Log In", type="submit", cls="primary"),
+                        hx_post=f"/{self.app_name}/step_04_submit",
+                        hx_target="#step_04"
+                    )
+                ),
+                id="step_04"
             )
 
     async def step_04_submit(self, request):
-        """Process the submission for Step 4 placeholder."""
+        """Handles POST request for Persistent Session Test."""
+        try:
+            # Get pipeline ID from db for consistency
+            pipeline_id = self.db.get("pipeline_id", "unknown")
+            if not pipeline_id or pipeline_id == "unknown":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "No pipeline ID found in db"}
+                )
+
+            # Get profile paths using new helper
+            user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id, "persistent_session")
+            
+            # Get current step data
+            step_data = self.pipulate.get_step_data(pipeline_id, "step_04", {})
+            is_completed = step_data.get("persistent_session_test_complete", False)
+            
+            # Configure Chrome options
+            chrome_options = Options()
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1920,1080")
+            chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+            chrome_options.add_argument(f"--profile-directory={profile_dir}")
+            
+            # Add stealth options to avoid detection
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option("useAutomationExtension", False)
+            
+            # Initialize Chrome driver
+            driver = webdriver.Chrome(options=chrome_options)
+            
+            # Execute CDP commands to prevent detection
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5]
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en']
+                    });
+                """
+            })
+            
+            try:
+                # Navigate to Google
+                driver.get("https://www.google.com")
+                
+                # Wait for page to load
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.NAME, "q"))
+                )
+                
+                # Check if user is logged in by looking for profile picture
+                try:
+                    profile_pic = WebDriverWait(driver, 0.5).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
+                    )
+                    is_logged_in = True
+                    login_status = "✅ Logged In"
+                except TimeoutException:
+                    is_logged_in = False
+                    login_status = "❌ Not Logged In"
+                
+                # Update step data
+                step_data["persistent_session_test_complete"] = True
+                step_data["is_logged_in"] = is_logged_in
+                step_data["user_data_dir"] = user_data_dir
+                step_data["profile_dir"] = profile_dir
+                
+                # Update state
+                state = self.pipulate.read_state(pipeline_id)
+                state["step_04"] = step_data
+                self.pipulate.write_state(pipeline_id, state)
+                
+                # Return updated UI with confirmation button
+                return Div(
+                    Card(
+                        H3("Persistent Session Test"),
+                        P("Instructions:"),
+                        P("1. A new browser window has opened with Google"),
+                        P("2. Log in to your Google account in that window"),
+                        P("3. After logging in, close the browser window"),
+                        P("4. Return here and click the button below to confirm test completion"),
+                        P(f"Current Status: {login_status}"),
+                        Form(
+                            Button("Check Login Status", type="submit", cls="secondary"),
+                            hx_post=f"/{self.app_name}/step_04_submit",
+                            hx_target="#step_04"
+                        ),
+                        Form(
+                            Button("Confirm Test Completion", type="submit", cls="primary"),
+                            hx_post=f"/{self.app_name}/step_04_confirm",
+                            hx_target="#step_04"
+                        )
+                    ),
+                    id="step_04"
+                )
+                
+            except Exception as e:
+                # If there's an error, make sure to close the browser
+                driver.quit()
+                raise e
+                
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)}
+            )
+
+    async def step_04_confirm(self, request):
+        """Handle confirmation of Persistent Session Test."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1166,26 +1304,31 @@ class BrowserAutomation:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Process form data - customize as needed for your step
-        placeholder_value = "completed"
+        # Get current state
+        state = pip.read_state(pipeline_id)
+        step_data = state.get(step_id, {})
 
-        # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        
-        # Keep LLM informed about the step completion
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # CRITICAL: Return completion view WITH explicit trigger to next step
+        # Mark step as confirmed and completed
+        step_data[step.done] = True
+        step_data['persistent_session_test_confirmed'] = True  # Add explicit confirmation flag
+        state[step_id] = step_data
+        pip.write_state(pipeline_id, state)
+
+        # Send confirmation message
+        await self.message_queue.add(pip, "Persistent session test confirmed!", verbatim=True)
+
+        # Return completion UI with chain reaction
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            # CRITICAL: This explicit trigger activates the next step!
+            pip.revert_control(
+                step_id=step_id,
+                app_name=app_name,
+                message="Persistent Session Test",
+                steps=steps
+            ),
+            # CRITICAL: Include trigger to next step
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        ) 
+        )
 
     async def step_05(self, request):
         """Handles GET request for Step 5 placeholder."""
