@@ -998,7 +998,7 @@ class BrowserAutomation:
                 
                 # Check if user is logged in by looking for profile picture
                 try:
-                    profile_pic = WebDriverWait(driver, 5).until(
+                    profile_pic = WebDriverWait(driver, 0.5).until(  # Reduced from 5 to 0.5 seconds
                         EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='Google Account']"))
                     )
                     is_logged_in = True
