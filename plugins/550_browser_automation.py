@@ -847,16 +847,13 @@ class BrowserAutomation:
         - profile_directory_name is the specific profile to use within that directory
         """
         from pathlib import Path
-        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
         
-        # This directory will be the root for Chrome's user data for this pipeline instance.
-        # It can contain multiple profiles, though we'll only use one.
-        user_data_root_for_pipeline = Path("data") / self.app_name / "selenium_user_data" / safe_pipeline_id
-        user_data_root_for_pipeline.mkdir(parents=True, exist_ok=True)
+        # Use a single, app-wide profile directory
+        user_data_root = Path("data") / self.app_name / "selenium_user_data"
+        user_data_root.mkdir(parents=True, exist_ok=True)
         
-        # This is the name of the specific profile directory *within* user_data_root_for_pipeline.
-        # e.g., data/browser/selenium_user_data/my_profile-browser-01/google_session/
-        return str(user_data_root_for_pipeline), desired_profile_leaf_name
+        # Always use the same profile name for consistency
+        return str(user_data_root), "google_session"
 
     def _get_persistent_profile_paths(self, pipeline_id: str) -> tuple[str, str]:
         """Get the persistent user data directory and profile directory paths for Chrome.
@@ -864,10 +861,9 @@ class BrowserAutomation:
         This version uses a fixed location that won't be cleared on server restart.
         """
         from pathlib import Path
-        safe_pipeline_id = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in pipeline_id)
         
-        # Use a fixed location in the data directory that won't be cleared
-        user_data_root = Path("data") / self.app_name / "persistent_profiles" / safe_pipeline_id
+        # Use a single, app-wide persistent profile directory
+        user_data_root = Path("data") / self.app_name / "persistent_profiles"
         user_data_root.mkdir(parents=True, exist_ok=True)
         
         # Use the same profile name as the ephemeral version
@@ -1140,10 +1136,10 @@ class BrowserAutomation:
                     step_id="step_04",
                     app_name=self.app_name,
                     message="Persistent Login Test",
-                    steps=self.steps
-                ),
+                steps=self.steps
+            ),
                 # CRITICAL: Include trigger to next step
-                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
+            Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id="step_04"
             )
         elif is_completed and not is_being_reverted:
