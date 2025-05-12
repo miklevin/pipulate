@@ -8,12 +8,43 @@ alwaysApply: false
 ## Overview
 Pipulate integrates Selenium for browser automation with cross-platform support. The implementation is designed to work seamlessly on both Linux and macOS environments, with the primary development happening in the Browser Automation workflow.
 
+## Workflow Structure
+
+### Step Progression
+1. **URL Opening (Step 1)**
+   - Basic Selenium integration
+   - Clean browser sessions with temporary profiles
+   - URL validation and error handling
+
+2. **URL Crawling (Step 2)**
+   - Enhanced Selenium-wire integration
+   - Structured data saving and display
+   - Response headers and page content capture
+
+3. **Session Persistence (Step 3)**
+   - Persistent profile management
+   - Login state verification
+   - Multi-phase completion (run → confirm)
+
+4. **Workflow Completion (Step 4)**
+   - Placeholder for workflow finalization
+   - Demonstrates chain reaction patterns
+
+### State Management
+- Each step maintains three distinct states:
+  1. Data Collection: Initial input phase
+  2. Completion: Data present with revert option
+  3. Confirmation: Locked state after finalization
+- State transitions are handled through `pip.read_state` and `pip.write_state`
+- Revert functionality preserves appropriate state data
+
 ## Key Components
 
 ### Dependencies
 - `selenium`: Core browser automation library
 - `webdriver-manager`: Handles ChromeDriver installation and management
 - `chromium` and `chromedriver`: System packages for Linux environments
+- `selenium-wire`: Enhanced request/response capture
 
 ### Environment Setup
 The environment is configured in [flake.nix](mdc:flake.nix) with:
@@ -36,6 +67,7 @@ The implementation handles platform differences:
 - macOS: Uses `webdriver-manager` for ChromeDriver management
 - Linux: Uses system-provided Chrome and ChromeDriver
 - Temporary profile directories for clean browser sessions
+- Persistent profiles for session management
 
 ### URL Opening Implementation
 The URL opening functionality is implemented in [550_browser_automation.py](mdc:plugins/550_browser_automation.py) with:
@@ -44,12 +76,25 @@ The URL opening functionality is implemented in [550_browser_automation.py](mdc:
 - Consistent behavior across both opening methods
 - Detailed logging and error handling
 
+### Session Management
+- Temporary profiles for one-off operations
+- Persistent profiles for session-based operations
+- Profile directory management:
+  ```python
+  user_data_dir, profile_dir = self._get_selenium_profile_paths(pipeline_id)
+  chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+  chrome_options.add_argument(f"--profile-directory={profile_dir}")
+  ```
+
 ### Best Practices
 1. Always use temporary profile directories for clean sessions
 2. Implement proper cleanup of browser resources
 3. Include detailed logging for debugging
 4. Handle platform-specific configurations
 5. Provide user feedback through message queue
+6. Maintain consistent state transitions
+7. Implement proper revert functionality
+8. Use chain reaction triggers for step progression
 
 ### Error Handling
 The implementation includes comprehensive error handling:
@@ -58,6 +103,7 @@ The implementation includes comprehensive error handling:
 - Page loading verification
 - Resource cleanup
 - User-friendly error messages
+- State transition validation
 
 ### Usage Example
 ```python
@@ -86,6 +132,8 @@ driver.get(url)
 2. Browser Management: Cross-platform driver initialization
 3. User Interface: Status updates and error messages
 4. Resource Management: Cleanup of temporary files and browser instances
+5. State Management: Pipeline state and step transitions
+6. UI Components: Widget containers and revert controls
 
 ## Future Considerations
 1. Support for additional browsers
@@ -93,6 +141,8 @@ driver.get(url)
 3. Custom browser profiles
 4. Extended automation capabilities
 5. Performance optimizations
+6. Enhanced session management
+7. Improved state transition handling
 
 ## Development Guidelines
 The Browser Automation workflow (`550_browser_automation.py`) serves as the primary development ground for Selenium features in Pipulate. When implementing new browser automation capabilities:
@@ -102,6 +152,9 @@ The Browser Automation workflow (`550_browser_automation.py`) serves as the prim
 3. Once stable, extract reusable components
 4. Document any platform-specific considerations
 5. Update this rule with new capabilities
+6. Follow the established state management patterns
+7. Implement proper revert functionality
+8. Use chain reaction triggers for step progression
 
 ---
 description: Selenium integration patterns for browser automation, including cross-platform support and ChromeDriver management
