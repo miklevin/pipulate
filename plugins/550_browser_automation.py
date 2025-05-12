@@ -99,13 +99,13 @@ class BrowserAutomation:
             Step(
                 id='step_03',
                 done='session_test_complete',
-                show='Google Session Test',
+                show='Ephemeral Login Test',
                 refill=False,
             ),
             Step(
                 id='step_04',
                 done='persistent_session_test_complete',
-                show='Persistent Session Test',
+                show='Persistent Login Test',
                 refill=False,
             ),
             Step(
@@ -367,6 +367,12 @@ class BrowserAutomation:
             step_data = state.get(step_id, {})
             if "session_test_confirmed" in step_data:
                 del step_data["session_test_confirmed"]
+            state[step_id] = step_data
+        # For Step 4, we need to do the same thing
+        elif step_id == "step_04":
+            step_data = state.get(step_id, {})
+            if "persistent_session_test_confirmed" in step_data:
+                del step_data["persistent_session_test_confirmed"]
             state[step_id] = step_data
         
         # Set revert target
@@ -867,7 +873,7 @@ class BrowserAutomation:
         return str(user_data_root_for_pipeline), desired_profile_leaf_name
 
     async def step_03(self, request):
-        """Handles GET request for Google session persistence test."""
+        """Handles GET request for Ephemeral Login Test."""
         # Get pipeline ID from db for consistency
         pipeline_id = self.db.get("pipeline_id", "unknown")
         if not pipeline_id or pipeline_id == "unknown":
@@ -898,7 +904,7 @@ class BrowserAutomation:
                 self.pipulate.revert_control(
                     step_id="step_03",
                     app_name=self.app_name,
-                    message="Google Session Test",
+                    message="Ephemeral Login Test",
                     steps=self.steps
                 ),
                 # CRITICAL: Include trigger to next step
@@ -909,10 +915,11 @@ class BrowserAutomation:
             # If completed but not confirmed and not being reverted to, show confirmation buttons
             return Div(
                 Card(
-                    H3("Google Session Persistence Test"),
+                    H3("Ephemeral Login Test"),
                     P("✅ Test completed!"),
                     P("Please confirm that you have successfully logged in and verified the session persistence."),
                     P(f"Profile directory: {user_data_dir}/{profile_dir}"),
+                    P("Note: This profile will be cleared when the server restarts.", style="color: #666; font-style: italic;"),
                     Form(
                         Button("Check Login Status", type="submit", cls="secondary"),
                         hx_post=f"/{self.app_name}/step_03_submit",
@@ -932,12 +939,13 @@ class BrowserAutomation:
             # Initial state - show test instructions
             return Div(
                 Card(
-                    H3("Google Session Persistence Test"),
+                    H3("Ephemeral Login Test"),
                     P("Instructions:"),
                     P("1. Click the button below to open Google in a new browser window"),
                     P("2. Log in to your Google account"),
                     P("3. Close the browser window when done"),
                     P("4. Return here to check your session status"),
+                    P("Note: This profile will be cleared when the server restarts.", style="color: #666; font-style: italic;"),
                     Form(
                         Button("Open Google & Log In", type="submit", cls="primary"),
                         hx_post=f"/{self.app_name}/step_03_submit",
@@ -948,7 +956,7 @@ class BrowserAutomation:
             )
 
     async def step_03_submit(self, request):
-        """Handles POST request for Google session persistence test."""
+        """Handles POST request for Ephemeral Login Test."""
         try:
             # Get pipeline ID from db for consistency
             pipeline_id = self.db.get("pipeline_id", "unknown")
@@ -1031,7 +1039,7 @@ class BrowserAutomation:
                 # Return updated UI with confirmation button
                 return Div(
                     Card(
-                        H3("Google Session Persistence Test"),
+                        H3("Ephemeral Login Test"),
                         P("Instructions:"),
                         P("1. A new browser window has opened with Google"),
                         P("2. Log in to your Google account in that window"),
@@ -1064,7 +1072,7 @@ class BrowserAutomation:
             )
 
     async def step_03_confirm(self, request):
-        """Handle confirmation of Google session persistence test."""
+        """Handle confirmation of Ephemeral Login Test."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_03"
         step_index = self.steps_indices[step_id]
@@ -1083,14 +1091,14 @@ class BrowserAutomation:
         pip.write_state(pipeline_id, state)
 
         # Send confirmation message
-        await self.message_queue.add(pip, "Google session test confirmed!", verbatim=True)
+        await self.message_queue.add(pip, "Ephemeral login test confirmed!", verbatim=True)
 
         # Return completion UI with chain reaction
         return Div(
             pip.revert_control(
                 step_id=step_id,
                 app_name=app_name,
-                message="Google Session Test",
+                message="Ephemeral Login Test",
                 steps=steps
             ),
             # CRITICAL: Include trigger to next step
@@ -1099,7 +1107,7 @@ class BrowserAutomation:
         )
 
     async def step_04(self, request):
-        """Handles GET request for Persistent Session Test."""
+        """Handles GET request for Persistent Login Test."""
         # Get pipeline ID from db for consistency
         pipeline_id = self.db.get("pipeline_id", "unknown")
         if not pipeline_id or pipeline_id == "unknown":
@@ -1130,7 +1138,7 @@ class BrowserAutomation:
                 self.pipulate.revert_control(
                     step_id="step_04",
                     app_name=self.app_name,
-                    message="Persistent Session Test",
+                    message="Persistent Login Test",
                     steps=self.steps
                 ),
                 # CRITICAL: Include trigger to next step
@@ -1141,10 +1149,11 @@ class BrowserAutomation:
             # If completed but not confirmed and not being reverted to, show confirmation buttons
             return Div(
                 Card(
-                    H3("Persistent Session Test"),
+                    H3("Persistent Login Test"),
                     P("✅ Test completed!"),
                     P("Please confirm that you have successfully logged in and verified the session persistence."),
                     P(f"Profile directory: {user_data_dir}/{profile_dir}"),
+                    P("Note: This profile will persist across server restarts.", style="color: #666; font-style: italic;"),
                     Form(
                         Button("Check Login Status", type="submit", cls="secondary"),
                         hx_post=f"/{self.app_name}/step_04_submit",
@@ -1164,12 +1173,13 @@ class BrowserAutomation:
             # Initial state - show test instructions
             return Div(
                 Card(
-                    H3("Persistent Session Test"),
+                    H3("Persistent Login Test"),
                     P("Instructions:"),
                     P("1. Click the button below to open Google in a new browser window"),
                     P("2. Log in to your Google account"),
                     P("3. Close the browser window when done"),
                     P("4. Return here to check your session status"),
+                    P("Note: This profile will persist across server restarts.", style="color: #666; font-style: italic;"),
                     Form(
                         Button("Open Google & Log In", type="submit", cls="primary"),
                         hx_post=f"/{self.app_name}/step_04_submit",
@@ -1180,7 +1190,7 @@ class BrowserAutomation:
             )
 
     async def step_04_submit(self, request):
-        """Handles POST request for Persistent Session Test."""
+        """Handles POST request for Persistent Login Test."""
         try:
             # Get pipeline ID from db for consistency
             pipeline_id = self.db.get("pipeline_id", "unknown")
@@ -1263,7 +1273,7 @@ class BrowserAutomation:
                 # Return updated UI with confirmation button
                 return Div(
                     Card(
-                        H3("Persistent Session Test"),
+                        H3("Persistent Login Test"),
                         P("Instructions:"),
                         P("1. A new browser window has opened with Google"),
                         P("2. Log in to your Google account in that window"),
@@ -1296,7 +1306,7 @@ class BrowserAutomation:
             )
 
     async def step_04_confirm(self, request):
-        """Handle confirmation of Persistent Session Test."""
+        """Handle confirmation of Persistent Login Test."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_04"
         step_index = self.steps_indices[step_id]
@@ -1315,14 +1325,14 @@ class BrowserAutomation:
         pip.write_state(pipeline_id, state)
 
         # Send confirmation message
-        await self.message_queue.add(pip, "Persistent session test confirmed!", verbatim=True)
+        await self.message_queue.add(pip, "Persistent login test confirmed!", verbatim=True)
 
         # Return completion UI with chain reaction
         return Div(
             pip.revert_control(
                 step_id=step_id,
                 app_name=app_name,
-                message="Persistent Session Test",
+                message="Persistent Login Test",
                 steps=steps
             ),
             # CRITICAL: Include trigger to next step
