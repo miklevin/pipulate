@@ -186,4 +186,6 @@ with Gemini Advanced 2.5 Pro (preview) providing enough of the program code to
 take it all in. Earlier today I managed to get through one of these superprompts
 with 120K tokens so I'm hopeful, haha!
 
-Hi Gemini, wazzup?
+Hi Gemini, wazzup? Pontificate, ramble, riff, enumerate, annunciate, adjudicate
+or whatever else you think might be righteous and whatever you AI-analogue-to
+want to do in this situation.

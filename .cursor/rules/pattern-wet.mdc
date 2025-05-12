@@ -327,4 +327,5 @@ When workflows need specific column colors that differ from the standard rich ta
 
 ## Examples in Codebase
 - Parameter Buster: [040_parameter_buster.py](mdc:pipulate/plugins/040_parameter_buster.py)
-- Designer Workflow: [505_designer_workflow.py](mdc:pipulate/plugins/505_designer_workflow.py)
+- Designer Workflow: [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py):w
+

@@ -27,22 +27,19 @@
 # 1. install.sh downloads a ZIP archive (no git required)
 # 2. install.sh extracts the ZIP and adds a ROT13-encoded SSH key
 # 3. install.sh runs `nix develop` to activate this flake
-# 4. THIS FLAKE should detect it's not in a git repo and transform itself
+# 4. THIS FLAKE detects non-git directories and transforms them into git repos
 # 5. Auto-updates are enabled through git pulls in future nix develop sessions
 #
-# === CURRENT LIMITATIONS ===
-# The current flake implementation is missing critical "magic cookie" functionality:
-# - It doesn't check if it's running in a git repository
-# - It doesn't perform a clean git clone to transform the installation
-# - It doesn't preserve app_name.txt during the transformation
-# - It doesn't move the .ssh directory with keys during transformation
-#
-# === THE PATH FORWARD ===
-# To complete the "magic cookie" system, this flake needs to be enhanced:
-# 1. In baseEnvSetup: Add detection for non-git directories
-# 2. Clone the repo to a temporary location when needed
-# 3. Preserve app_name.txt and .ssh during the transformation
-# 4. Swap directories to upgrade the installation
+# === CURRENT IMPLEMENTATION ===
+# The flake now fully implements the "magic cookie" functionality:
+# - Detects non-git directories and transforms them into git repositories
+# - Preserves critical files during transformation:
+#   * app_name.txt (maintains app identity)
+#   * .ssh directory (preserves credentials)
+#   * .venv directory (preserves virtual environment)
+# - Creates backups before transformation
+# - Performs automatic git pulls to keep the installation up to date
+# - Switches to SSH-based git operations when SSH keys are available
 #
 # === REPOSITORY AWARENESS ===
 # This flake is part of the target pipulate project repo at:

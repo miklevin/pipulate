@@ -70,7 +70,7 @@ pip.append_to_history("[WIDGET VALIDATION] Validation results...")
 6. Maintain LLM context throughout
 
 ## Example Implementation
-See [505_designer_workflow.py](mdc:pipulate/plugins/505_designer_workflow.py) for a complete example.
+See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for a complete example.
 
 ## Widget Recipes
 Widget recipes are stored in `/home/mike/repos/pipulate/training/widget_recipes/` and serve as a growing catalog of reusable widget patterns.

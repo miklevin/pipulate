@@ -23,6 +23,10 @@ from typing import Dict, List, Optional, Union
 FILES_TO_INCLUDE = """\
 README.md
 flake.nix
+/home/mike/repos/Pipulate.com/install.sh
+/home/mike/repos/Pipulate.com/index.md
+/home/mike/repos/Pipulate.com/architecture.md
+/home/mike/repos/Pipulate.com/development.md
 requirements.txt
 server.py
 /home/mike/repos/pipulate/plugins/020_hello_workflow.py
