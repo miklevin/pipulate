@@ -207,6 +207,7 @@ class WidgetExamples:
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            (f"/{app_name}/reopen_url", self.reopen_url, ["POST"]),  # Added back the reopen_url route
         ]
 
         # Routes for each custom step
