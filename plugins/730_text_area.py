@@ -269,7 +269,11 @@ class TextAreaWidget:
             await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: {user_val}")
+                    H3(f"🔒 {step.show}"),
+                    Pre(
+                        user_val,
+                        style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+                    )
                 ),
                 Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
@@ -280,8 +284,24 @@ class TextAreaWidget:
             # Show completed view with Revert button
             completed_msg = f"Step 1 is complete. You entered: {user_val}"
             await self.message_queue.add(pip, completed_msg, verbatim=True)
+            
+            # Create the text widget with Pre tag to preserve formatting
+            text_widget = Pre(
+                user_val,
+                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+            )
+            
+            # Create content container with the widget
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=text_widget,
+                steps=steps
+            )
+            
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                content_container,
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
