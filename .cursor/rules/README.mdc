@@ -1,86 +1,118 @@
 ---
-description: Core documentation for Cursor Rules organization and structure, including file naming conventions, organization patterns, and rule relationships
+description: 
 globs: 
 alwaysApply: false
 ---
----
-description: Core documentation for Cursor Rules organization and structure, including file naming conventions, organization patterns, and rule relationships
-globs: ["**/*.mdc"]
-alwaysApply: true
----
 # Cursor Rules Organization
 
-## File Naming Conventions
+## Rule Types and Naming
 
-### Core Philosophy Files
-- `philosophy-*.mdc`: Core philosophical principles
-  - `philosophy-core.mdc`: Main philosophical principles
-  - `philosophy-simplicity.mdc`: Modern simplicity approach
-  - `philosophy-webmaster.mdc`: Webmaster era principles
-  - `philosophy-future.mdc`: Future-proofing principles
+### Pattern Rules
+Rules documenting reusable code patterns. Always prefix with `pattern-`:
+- `pattern-chain-reaction` - Step progression in workflows
+- `pattern-wet` - Write Everything Twice workflow development
+- `pattern-placeholder` - Placeholder step implementation
 
-### Architecture Files
-- `architecture-*.mdc`: System architecture and design
-  - `architecture-core.mdc`: Core architecture principles
-  - `architecture-state.mdc`: State management
-  - `architecture-workflow.mdc`: Workflow system
-  - `architecture-widget.mdc`: Widget system
+### Implementation Rules
+Rules for specific implementation details. Prefix with `implementation-`:
+- `implementation-nix-rules` - NixOS configuration guidelines
+- `implementation-htmx` - HTMX usage patterns
 
-### Implementation Guides
-- `implementation-*.mdc`: How to implement features
-  - `implementation-workflow.mdc`: Workflow implementation
-  - `implementation-widget.mdc`: Widget implementation
-  - `implementation-htmx.mdc`: HTMX implementation
-  - `implementation-nix.mdc`: Nix implementation
+### Guide Rules
+High-level architectural and conceptual guides. Prefix with `guide-`:
+- `guide-architecture` - System architecture overview
+- `guide-testing` - Testing practices
 
-### Pattern Files
-- `pattern-*.mdc`: Reusable patterns and conventions
-  - `pattern-chain-reaction.mdc`: Chain reaction pattern
-  - `pattern-placeholder.mdc`: Placeholder pattern
-  - `pattern-wet.mdc`: WET workflow pattern
-  - `pattern-button.mdc`: Button conventions
+### Configuration Rules
+System and deployment configuration. Prefix with `config-`:
+- `config-nix` - NixOS setup
+- `config-deployment` - Deployment procedures
 
-### Integration Files
-- `integration-*.mdc`: External system integration
-  - `integration-llm.mdc`: Local LLM integration
-  - `integration-minidataapi.mdc`: MiniDataAPI integration
-  - `integration-cookie.mdc`: Magic cookie system
+## Rule Discovery
 
-## File Organization
+When looking for rules:
 
-### Core Philosophy
-- High-level principles and approaches
-- System-wide decisions and rationale
-- Future direction and vision
+1. Check for pattern rules first:
+```bash
+ls .cursor/rules/pattern-*
+```
 
-### Architecture
-- System design and structure
-- Component relationships
-- State management
-- Data flow
+2. Check implementation rules:
+```bash
+ls .cursor/rules/implementation-*
+```
 
-### Implementation
-- Step-by-step guides
-- Code examples
-- Best practices
-- Common pitfalls
+3. Check guides and configs:
+```bash
+ls .cursor/rules/guide-* .cursor/rules/config-*
+```
 
-### Patterns
-- Reusable solutions
-- Conventions
-- Anti-patterns
-- Best practices
+## Rule Application
 
-### Integration
-- External system integration
-- API usage
-- Configuration
-- Security
+Rules are applied in this order:
+1. Implementation rules (most specific)
+2. Pattern rules (reusable patterns)
+3. Guide rules (high-level concepts)
+4. Config rules (system setup)
+
+## Rule Metadata
+
+Each rule should have:
+```markdown
+---
+description: Brief description of the rule's purpose
+globs: ["path/to/apply/*.ext"]  # Files where rule applies
+alwaysApply: false  # Whether to always show this rule
+---
+```
+
+## Rule Content Guidelines
+
+1. Start with clear overview
+2. Include concrete examples
+3. Link to reference implementations
+4. Document exceptions/edge cases
+5. Cross-reference related rules
+
+## Example Rule Structure
+
+```markdown
+# Rule Title
+
+## Overview
+Brief description of what this rule covers
+
+## Key Components
+Main concepts and patterns
+
+## Examples
+Concrete code examples
+
+## Common Pitfalls
+Things to watch out for
 
 ## Related Rules
-- [Philosophy Core](mdc:philosophy-core.mdc)
-- [Architecture Core](mdc:architecture-core.mdc)
-- [Implementation Core](mdc:implementation-core.mdc)
-- [Pattern Core](mdc:pattern-core.mdc)
-- [Integration Core](mdc:integration-core.mdc)
+- [pattern-xyz](mdc:pattern-xyz.mdc)
+- [implementation-abc](mdc:implementation-abc.mdc)
 
+## Reference Files
+- [example.py](mdc:path/to/example.py)
+```
+
+## Rule Maintenance
+
+When creating new rules:
+1. Check existing rules first using prefixes
+2. Follow established naming conventions
+3. Add appropriate metadata
+4. Cross-reference related rules
+5. Update this meta-rule if adding new categories
+
+## Quick Reference
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| pattern- | Reusable code patterns | pattern-chain-reaction |
+| implementation- | Specific implementations | implementation-htmx |
+| guide- | High-level concepts | guide-architecture |
+| config- | System configuration | config-deployment |
