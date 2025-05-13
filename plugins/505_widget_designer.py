@@ -51,9 +51,9 @@ class WidgetDesigner:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Widget Design Step',
-                refill=False,
+                done='file_uploads',
+                show='File Upload Widget',
+                refill=True,
             ),
             # Add more steps as needed
         ]
@@ -260,9 +260,13 @@ class WidgetDesigner:
     # --- Widget Design Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for the widget design step.
+        """Handles GET request for the file upload widget.
         
-        This is your widget design sandbox. Use this space to prototype and test your widget designs.
+        A reusable widget for handling multiple file uploads with:
+        - Multiple file selection
+        - File size reporting
+        - Automatic file saving
+        - Upload summary display
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -294,7 +298,7 @@ class WidgetDesigner:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("Previously uploaded files:"),
+                    P("Uploaded files:"),
                     Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
                     pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
                 ),
@@ -302,14 +306,14 @@ class WidgetDesigner:
                 id=step_id
             )
         else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing upload form")
             
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("Select multiple files to upload. You can review the selection before proceeding."),
+                    P("Select one or more files to upload. Files will be saved automatically."),
                     Form(
                         Input(
                             type="file",
@@ -329,7 +333,7 @@ class WidgetDesigner:
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for the widget design step."""
+        """Process the submission for the file upload widget."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
