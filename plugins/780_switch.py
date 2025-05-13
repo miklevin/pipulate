@@ -81,11 +81,26 @@ class SwitchWorkflow:
 
     # --- Switch Configuration ---
     SWITCH_CONFIG = {
-        "label": "Complete Step",
-        "description": "Toggle this switch to enable or disable the feature",
-        "default": False,
-        "show_state": True,  # Whether to show the current state
-        "auto_submit": False  # Whether to submit on change
+        "switches": [
+            {
+                "id": "switch_1",
+                "label": "First Switch",
+                "description": "This is the first switch",
+                "default": False
+            },
+            {
+                "id": "switch_2",
+                "label": "Second Switch",
+                "description": "This is the second switch",
+                "default": False
+            },
+            {
+                "id": "switch_3",
+                "label": "Complete Step",
+                "description": "Toggle this switch to complete the step",
+                "default": False
+            }
+        ]
     }
 
     # --- Initialization ---
@@ -107,7 +122,7 @@ class SwitchWorkflow:
                 done='switch_state',
                 show='Switch State',
                 refill=True,
-                transform=lambda prev_value: bool(prev_value) if prev_value is not None else self.SWITCH_CONFIG["default"]
+                transform=lambda prev_value: bool(prev_value) if prev_value is not None else self.SWITCH_CONFIG["switches"][-1]["default"]
             ),
             # Add more steps as needed
         ]
@@ -318,99 +333,98 @@ class SwitchWorkflow:
         logger.debug(f"State: {state}")
         logger.debug(f"Step data: {step_data}")
         
-        # Get the selected value if already completed
-        selected_value = step_data.get(step.done)
-        logger.debug(f"Selected value: {selected_value}")
+        # Get the selected values if already completed
+        selected_values = step_data.get(step.done, {})
+        if not isinstance(selected_values, dict):
+            selected_values = {}
+        logger.debug(f"Selected values: {selected_values}")
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and selected_value is not None:
-            # STEP STAGE: FINALIZED
-            # Keep LLM informed about the finalized widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{selected_value}")
-            
+        if "finalized" in finalize_data and selected_values:
+            # Show finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P(f"Switch is {'enabled' if selected_value else 'disabled'}", style="font-weight: bold;")
+                    P("Switch states:", style="font-weight: bold;"),
+                    Ul(*[
+                        Li(f"{switch['label']}: {'enabled' if selected_values.get(switch['id'], False) else 'disabled'}")
+                        for switch in self.SWITCH_CONFIG["switches"]
+                    ])
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         
         # Check if step is complete and not being reverted to
-        elif selected_value is not None and state.get("_revert_target") != step_id:
-            # STEP STAGE: REVERT
-            # Keep LLM informed about the completed widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{selected_value}")
-            
+        elif selected_values and state.get("_revert_target") != step_id and selected_values.get("switch_3", False):
+            # Show completed state
             return Div(
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: {'enabled' if selected_value else 'disabled'}",
+                    message=f"{step.show}: {', '.join([f'{switch['label']} ({'enabled' if selected_values.get(switch['id'], False) else 'disabled'})' for switch in self.SWITCH_CONFIG['switches']])}",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         
-        else:
-            # STEP STAGE: DATA COLLECTION
-            # Keep LLM informed about showing the input form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            
-            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
-                                    f"Complete {step.show}"), 
-                                    verbatim=True)
-            
-            try:
-                # Create switch input with configuration
+        # Show the switch form
+        await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
+                                f"Complete {step.show}"), 
+                                verbatim=True)
+        
+        try:
+            # Create switches
+            switches = []
+            for switch in self.SWITCH_CONFIG["switches"]:
                 switch_input = Label(
                     Input(
                         type="checkbox",
                         role="switch",
-                        name=step.done,
-                        id=step.done,
-                        checked=self.SWITCH_CONFIG["default"],
-                        _onchange=f"document.getElementById('{step.done}_submit').click()",
+                        name=switch["id"],
+                        id=switch["id"],
+                        checked=selected_values.get(switch["id"], switch["default"]),
+                        _onchange=f"if (this.id === 'switch_3') {{ document.getElementById('{step.done}_submit').click(); }}",
                         cls="contrast"
                     ),
-                    f" {self.SWITCH_CONFIG['label']}"
+                    f" {switch['label']}"
                 )
-                
-                # Hidden submit button for HTMX
-                submit_button = Input(
-                    type="submit",
-                    id=f"{step.done}_submit",
-                    style="display: none;"
-                )
-                
-                return Div(
-                    Card(
-                        H3(f"{step.show}"),
-                        P(self.SWITCH_CONFIG["description"], style="font-size: 0.9em; color: #666;"),
-                        Form(
-                            switch_input,
-                            submit_button,
-                            hx_post=f"/{app_name}/{step_id}_submit",
-                            hx_target=f"#{step_id}"
-                        )
-                    ),
-                    Div(id=next_step_id),  # Empty div for next step - DO NOT ADD hx_trigger HERE
-                    id=step_id
-                )
-                
-            except Exception as e:
-                logger.error(f"Error creating switch: {str(e)}")
-                logger.exception("Full traceback:")
-                return Div(
-                    Card(
-                        H3(f"{step.show}"),
-                        P(f"Error creating switch: {str(e)}", style=self.pipulate.get_style("error"))
-                    ),
-                    id=step_id
-                )
+                switches.append(switch_input)
+            
+            # Hidden submit button for HTMX
+            submit_button = Input(
+                type="submit",
+                id=f"{step.done}_submit",
+                style="display: none;"
+            )
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("Toggle the switches as needed. The last switch completes the step.", style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        *switches,
+                        submit_button,
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating switches: {str(e)}")
+            logger.exception("Full traceback:")
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P(f"Error creating switches: {str(e)}", style=self.pipulate.get_style("error"))
+                ),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
         """Handles POST request for switch state step."""
@@ -423,22 +437,61 @@ class SwitchWorkflow:
         
         # Get form data
         form = await request.form()
-        value = form.get(step.done, "") == "on"  # Convert checkbox value to boolean
+        values = {}
+        for switch in self.SWITCH_CONFIG["switches"]:
+            values[switch["id"]] = form.get(switch["id"], "") == "on"
         
-        # Update state
-        await pip.update_step_state(pipeline_id, step_id, value, steps)
-        await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
-                                f"{step.show} complete: {'enabled' if value else 'disabled'}"), 
-                                verbatim=True)
-        
-        # Return with revert control and chain reaction
-        return Div(
-            pip.revert_control(
-                step_id=step_id, 
-                app_name=app_name, 
-                message=f"{step.show}: {'enabled' if value else 'disabled'}",
-                steps=steps
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        ) 
+        # Only update state if the last switch is toggled
+        if values.get("switch_3", False):
+            # Update state
+            await pip.update_step_state(pipeline_id, step_id, values, steps)
+            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
+                                    f"{step.show} complete: {', '.join([f'{switch['label']} ({'enabled' if values.get(switch['id'], False) else 'disabled'})' for switch in self.SWITCH_CONFIG['switches']])}"), 
+                                    verbatim=True)
+            
+            # Return with revert control and chain reaction
+            return Div(
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {', '.join([f'{switch['label']} ({'enabled' if values.get(switch['id'], False) else 'disabled'})' for switch in self.SWITCH_CONFIG['switches']])}",
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Just update the state without completing the step
+            await pip.update_step_state(pipeline_id, step_id, values, steps)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("Toggle the switches as needed. The last switch completes the step.", style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        *[
+                            Label(
+                                Input(
+                                    type="checkbox",
+                                    role="switch",
+                                    name=switch["id"],
+                                    id=switch["id"],
+                                    checked=values.get(switch["id"], False),
+                                    _onchange=f"document.getElementById('{step.done}_submit').click()",
+                                    cls="contrast"
+                                ),
+                                f" {switch['label']}"
+                            )
+                            for switch in self.SWITCH_CONFIG["switches"]
+                        ],
+                        Input(
+                            type="submit",
+                            id=f"{step.done}_submit",
+                            style="display: none;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            ) 
