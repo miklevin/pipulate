@@ -48,9 +48,10 @@ class TextFieldWidget:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Step 1 Placeholder',
-                refill=False,
+                done='text_input',        # Field to store the input value
+                show='Text Input',        # User-friendly name
+                refill=True,              # Allow refilling for better UX
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""  # Optional transform
             ),
             # Add more steps as needed
         ]
@@ -88,7 +89,7 @@ class TextFieldWidget:
         # Create default messages for each step
         for step in steps:
             self.step_messages[step.id] = {
-                "input": f"{pip.fmt(step.id)}: Please complete {step.show}.",
+                "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                 "complete": f"{step.show} complete. Continue to next step."
             }
 
@@ -248,6 +249,7 @@ class TextFieldWidget:
 
     # --- Placeholder Step Methods ---
     async def step_01(self, request):
+        """ Handles GET request for Step 1: Displays input form or completed value. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -256,71 +258,123 @@ class TextFieldWidget:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        user_val = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
-            
+        if "finalized" in finalize_data and user_val:
+            # Show locked view
+            locked_msg = f"🔒 Text input is set to: {user_val}"
+            await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")
+                    H3(f"🔒 {step.show}: {user_val}")
                 ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
-            
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
-                    Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
 
+        # Check if step is complete and we are NOT reverting to it
+        if user_val and state.get("_revert_target") != step_id:
+            # Show completed view with Revert button
+            completed_msg = f"Step 1 is complete. You entered: {user_val}"
+            await self.message_queue.add(pip, completed_msg, verbatim=True)
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+        else:
+            # Show the input form for this step
+            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            
+            # Let LLM know we're showing an empty form via message queue
+            form_msg = "Showing text input form. No text has been entered yet."
+            await self.message_queue.add(pip, form_msg, verbatim=True)
+            
+            # Add prompt message to UI
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            # Add explanation to both UI and LLM context
+            explanation = "This is a simple text input widget. Enter any text you'd like to store."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            
+            # Render the card with the form
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        pip.wrap_with_inline_button(
+                            Input(
+                                type="text",
+                                name=step.done,
+                                value=display_value,
+                                placeholder=f"Enter {step.show}",
+                                required=True,
+                                autofocus=True,
+                                _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+                                style="min-height: 44px;",  # Mobile touch target
+                                aria_required="true",
+                                aria_labelledby=f"{step_id}-form-title",
+                                aria_describedby=f"{step_id}-form-instruction"
+                            ),
+                            button_label="Next ▸"
+                        ),
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+
     async def step_01_submit(self, request):
+        """Process the submission for Step 1."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Process and save data...
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        
-        # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # Return the completed view with explicit next step trigger
+
+        # Boilerplate: Check finalized state (optional, submit shouldn't be possible)
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "").strip() # Get value for 'text_input' field
+
+        # Let LLM know we received a submission via message queue
+        submit_msg = f"User submitted text: {user_val}"
+        await self.message_queue.add(pip, submit_msg, verbatim=True)
+
+        # --- Custom Validation ---
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            error_msg = f"Text validation failed: {error_msg}"
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return error_component
+
+        # --- Custom Processing ---
+        processed_val = user_val # Keep it simple for template
+        # --- End Custom Processing ---
+
+        # Save the processed value to this step's state
+        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+
+        # Send confirmation message to UI and LLM via message queue
+        confirm_msg = f"{step.show}: {processed_val}"
+        await self.message_queue.add(pip, confirm_msg, verbatim=True)
+
+        # Check if this was the last step before finalize
+        if pip.check_finalize_needed(step_index, steps):
+            finalize_msg = self.step_messages["finalize"]["ready"]
+            await self.message_queue.add(pip, finalize_msg, verbatim=True)
+
+        # Return the standard navigation controls (Revert button + trigger for next step)
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         ) 
