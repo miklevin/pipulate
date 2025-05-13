@@ -55,7 +55,6 @@ class DropdownWidget:
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
-        logger.debug("Initializing DropdownWidget")
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
@@ -64,9 +63,6 @@ class DropdownWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-
-        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
-        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
 
         # Define workflow steps
         steps = [
@@ -120,7 +116,6 @@ class DropdownWidget:
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
-        logger.debug("DropdownWidget initialization complete")
 
     # --- Core Workflow Engine Methods ---
 
@@ -223,48 +218,25 @@ class DropdownWidget:
                         P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
                         Form(
                             Button("Finalize 🔒", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/finalize",
+                            hx_post=f"/{app_name}/finalize", 
                             hx_target=f"#{app_name}-container"
                         ),
                         id=finalize_step.id
                     )
                 else:
-                    return Card(
-                        H3("Not ready to finalize."),
-                        P("Complete all steps first.", style="font-size: 0.9em; color: #666;"),
-                        id=finalize_step.id
-                    )
-        else:  # POST request
-            # Store finalization in state
-            await pip.update_step_state(pipeline_id, finalize_step.id, "finalized", steps)
+                    return Div(id=finalize_step.id)
+        else:
+            await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
-            
-            # Return the finalized view
-            return Card(
-                H3("Workflow is locked."),
-                Form(
-                    Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
-                    hx_post=f"/{app_name}/unfinalize", 
-                    hx_target=f"#{app_name}-container"
-                ),
-                id=finalize_step.id
-            )
+            return pip.rebuild(app_name, steps)
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
-        finalize_step = steps[-1]
-        
-        # Clear finalization from state
-        await pip.update_step_state(pipeline_id, finalize_step.id, "", steps)
-        await self.message_queue.add(pip, "Workflow unlocked. You can now make changes.", verbatim=True)
-        
-        # Return to the first step
-        return Div(
-            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
-            id=f"{app_name}-container"
-        )
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
 
     async def jump_to_step(self, request):
         """Handles POST request to jump to a specific step."""
@@ -273,7 +245,7 @@ class DropdownWidget:
         step_id = form.get("step_id", "")
         
         if step_id not in self.steps_indices:
-            return P("Error: Invalid step", style=self.pipulate.get_style("error"))
+            return P("Error: Invalid step", style=pip.ERROR_STYLE)
         
         return Div(
             Div(id=step_id, hx_get=f"/{app_name}/{step_id}", hx_trigger="load"),
@@ -291,7 +263,7 @@ class DropdownWidget:
         step_id = form.get("step_id", "")
         
         if step_id not in self.steps_indices:
-            return P("Error: Invalid step", style=self.pipulate.get_style("error"))
+            return P("Error: Invalid step", style=pip.ERROR_STYLE)
         
         pipeline_id = db.get("pipeline_id", "unknown")
         
@@ -308,6 +280,74 @@ class DropdownWidget:
             Div(id=step_id, hx_get=f"/{app_name}/{step_id}", hx_trigger="load"),
             id=f"{app_name}-container"
         )
+
+    async def get_options(self, pipeline_id):
+        """Get options based on SOURCE_TYPE and SOURCE_CONFIG."""
+        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
+        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
+        
+        if self.SOURCE_TYPE == "static":
+            # Get options directly from SOURCE_CONFIG
+            logger.debug("Getting static options")
+            options = self.SOURCE_CONFIG.get("options", [])
+            logger.debug(f"Retrieved options: {options}")
+            if not options:
+                raise ValueError("No options configured in SOURCE_CONFIG")
+            return options
+        
+        elif self.SOURCE_TYPE == "api":
+            if not self.SOURCE_CONFIG["api_url"]:
+                raise ValueError("API URL not configured")
+            # TODO: Implement API call
+            return []
+        
+        elif self.SOURCE_TYPE == "file":
+            if not self.SOURCE_CONFIG["file_path"]:
+                raise ValueError("File path not configured")
+            # TODO: Implement file reading
+            return []
+        
+        elif self.SOURCE_TYPE == "db":
+            if not self.SOURCE_CONFIG["db_query"]:
+                raise ValueError("Database query not configured")
+            # TODO: Implement database query
+            return []
+        
+        elif self.SOURCE_TYPE == "previous_step":
+            if not self.SOURCE_CONFIG["previous_step"]:
+                raise ValueError("Previous step not configured")
+            # TODO: Implement previous step data retrieval
+            return []
+        
+        else:
+            raise ValueError(f"Unknown source type: {self.SOURCE_TYPE}")
+
+    async def format_option(self, option):
+        """Format an option for display."""
+        logger.debug(f"Formatting option: {option}")
+        
+        # Get field names from config
+        value_field = self.SOURCE_CONFIG.get("value_field", "value")
+        label_field = self.SOURCE_CONFIG.get("label_field", "label")
+        group_field = self.SOURCE_CONFIG.get("group_field", "group")
+        description_field = self.SOURCE_CONFIG.get("description_field", "description")
+        
+        logger.debug(f"Field names - value: {value_field}, label: {label_field}, group: {group_field}, description: {description_field}")
+        
+        # Extract values with defaults
+        value = option.get(value_field, "")
+        label = option.get(label_field, value)
+        group = option.get(group_field, "Ungrouped")
+        description = option.get(description_field, "")
+        
+        logger.debug(f"Extracted values - value: {value}, label: {label}, group: {group}, description: {description}")
+        
+        return {
+            "value": value,
+            "label": label,
+            "group": group,
+            "description": description
+        }
 
     async def step_01(self, request):
         """Handles GET request for dropdown selection step."""
@@ -381,7 +421,7 @@ class DropdownWidget:
             
             logger.debug(f"Grouped options: {grouped_options}")
             
-            # Create select element with option groups
+            # Create select element with all children at once
             select = Select(
                 *[
                     Optgroup(
@@ -420,7 +460,7 @@ class DropdownWidget:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P(f"Error loading options: {str(e)}", style=self.pipulate.ERROR_STYLE)
+                    P(f"Error loading options: {str(e)}", style=pip.ERROR_STYLE)
                 ),
                 id=step_id
             )
@@ -439,7 +479,7 @@ class DropdownWidget:
         value = form.get(step.done, "").strip()
         
         if not value:
-            return P("Error: Please select an option", style=self.pipulate.ERROR_STYLE)
+            return P("Error: Please select an option", style=pip.ERROR_STYLE)
         
         # Update state
         await pip.update_step_state(pipeline_id, step_id, value, steps)
@@ -457,72 +497,4 @@ class DropdownWidget:
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        )
-
-    async def get_options(self, pipeline_id):
-        """Get options based on SOURCE_TYPE and SOURCE_CONFIG."""
-        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
-        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
-        
-        if self.SOURCE_TYPE == "static":
-            # Get options directly from SOURCE_CONFIG
-            logger.debug("Getting static options")
-            options = self.SOURCE_CONFIG.get("options", [])
-            logger.debug(f"Retrieved options: {options}")
-            if not options:
-                raise ValueError("No options configured in SOURCE_CONFIG")
-            return options
-        
-        elif self.SOURCE_TYPE == "api":
-            if not self.SOURCE_CONFIG["api_url"]:
-                raise ValueError("API URL not configured")
-            # TODO: Implement API call
-            return []
-        
-        elif self.SOURCE_TYPE == "file":
-            if not self.SOURCE_CONFIG["file_path"]:
-                raise ValueError("File path not configured")
-            # TODO: Implement file reading
-            return []
-        
-        elif self.SOURCE_TYPE == "db":
-            if not self.SOURCE_CONFIG["db_query"]:
-                raise ValueError("Database query not configured")
-            # TODO: Implement database query
-            return []
-        
-        elif self.SOURCE_TYPE == "previous_step":
-            if not self.SOURCE_CONFIG["previous_step"]:
-                raise ValueError("Previous step not configured")
-            # TODO: Implement previous step data retrieval
-            return []
-        
-        else:
-            raise ValueError(f"Unknown source type: {self.SOURCE_TYPE}")
-
-    async def format_option(self, option):
-        """Format an option for display."""
-        logger.debug(f"Formatting option: {option}")
-        
-        # Get field names from config
-        value_field = self.SOURCE_CONFIG.get("value_field", "value")
-        label_field = self.SOURCE_CONFIG.get("label_field", "label")
-        group_field = self.SOURCE_CONFIG.get("group_field", "group")
-        description_field = self.SOURCE_CONFIG.get("description_field", "description")
-        
-        logger.debug(f"Field names - value: {value_field}, label: {label_field}, group: {group_field}, description: {description_field}")
-        
-        # Extract values with defaults
-        value = option.get(value_field, "")
-        label = option.get(label_field, value)
-        group = option.get(group_field, "Ungrouped")
-        description = option.get(description_field, "")
-        
-        logger.debug(f"Extracted values - value: {value}, label: {label}, group: {group}, description: {description}")
-        
-        return {
-            "value": value,
-            "label": label,
-            "group": group,
-            "description": description
-        } 
+        ) 
