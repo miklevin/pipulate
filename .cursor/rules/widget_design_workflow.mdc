@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Widget Design Workflow
+
+This guide explains how to use the Widget Designer workflow for prototyping and testing new widgets in isolation.
+
+## Overview
+
+The Widget Designer workflow (`[505_widget_designer.py](mdc:pipulate/plugins/505_widget_designer.py)`) is a specialized environment for developing and testing widgets without the complexity of a full workflow implementation. It's created by copying and modifying the blank workflow template (`[500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py)`).
+
+## Key Components
+
+1. **Workflow Identity**
+   - `APP_NAME`: Must be unique to avoid collisions with other workflows
+   - `DISPLAY_NAME`: User-friendly name shown in the UI
+   - `ENDPOINT_MESSAGE`: Clear instructions about the widget design environment
+
+2. **Step Structure**
+   - Each widget is implemented in `step_01` and `step_01_submit`
+   - Maintains standard workflow patterns for state management and progression
+   - Includes proper error handling and user feedback
+
+3. **Development Process**
+   - Start with basic UI components
+   - Add functionality incrementally
+   - Test each phase before proceeding
+   - Maintain proper state management
+   - Keep the LLM informed via `append_to_history`
+
+## Best Practices
+
+1. **State Management**
+   - Use `pip.update_step_state` to store widget data
+   - Include clear summaries in the state for review
+   - Maintain proper workflow progression
+
+2. **User Feedback**
+   - Use `message_queue.add` for important notifications
+   - Display clear success/error messages
+   - Provide options to revert or retry
+
+3. **Error Handling**
+   - Wrap file operations in try-except blocks
+   - Log errors with `logger.error`
+   - Show user-friendly error messages
+
+4. **Code Organization**
+   - Keep widget-specific code in `step_01` methods
+   - Maintain standard workflow engine methods
+   - Document widget behavior clearly
+
+## Integration Steps
+
+Once a widget is designed and tested in the Widget Designer:
+
+1. Copy the relevant code to the target workflow
+2. Update the `APP_NAME` and other identifiers
+3. Integrate with the workflow's specific requirements
+4. Test in the new context
+
+## Example
+
+The multi-file upload widget demonstrates these patterns:
+- Basic file selection UI
+- File information display
+- File saving with error handling
+- Proper workflow progression
+- Clear user feedback

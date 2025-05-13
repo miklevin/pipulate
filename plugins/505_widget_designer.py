@@ -1,6 +1,7 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
+from pathlib import Path
 
 from fasthtml.common import * # type: ignore
 from loguru import logger
@@ -271,12 +272,12 @@ class WidgetDesigner:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        file_summary = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+        if "finalized" in finalize_data and file_summary:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{file_summary}")
             
             return Div(
                 Card(
@@ -287,11 +288,16 @@ class WidgetDesigner:
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+        if file_summary and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
             
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Card(
+                    H3(f"{step.show}"),
+                    P("Previously uploaded files:"),
+                    Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
+                    pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
@@ -312,7 +318,7 @@ class WidgetDesigner:
                             required="true",
                             cls="contrast"
                         ),
-                        Button("Review Files ▸", type="submit", cls="primary"),
+                        Button("Upload Files ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit",
                         hx_target=f"#{step_id}",
                         enctype="multipart/form-data"
@@ -328,6 +334,7 @@ class WidgetDesigner:
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
         # Get the uploaded files
@@ -348,7 +355,7 @@ class WidgetDesigner:
                             required="true",
                             cls="contrast"
                         ),
-                        Button("Review Files ▸", type="submit", cls="primary"),
+                        Button("Upload Files ▸", type="submit", cls="primary"),
                         hx_post=f"/{app_name}/{step_id}_submit",
                         hx_target=f"#{step_id}",
                         enctype="multipart/form-data"
@@ -357,45 +364,66 @@ class WidgetDesigner:
                 id=step_id
             )
         
-        # Create a list of file information
+        # Create save directory
+        save_directory = Path("downloads") / self.app_name / pipeline_id
+        try:
+            save_directory.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            error_msg = f"Error creating save directory: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P("Error creating save directory. Please try again.", style=pip.get_style("error"))
+        
+        # Create a list of file information and save files
         file_info = []
         total_size = 0
+        saved_files = []
+        
         for file in uploaded_files:
-            file_size = len(await file.read())
-            total_size += file_size
-            file_info.append(f"📄 {file.filename} ({file_size:,} bytes)")
-            # Reset file pointer for potential future reads
-            await file.seek(0)
+            try:
+                # Read file content
+                contents = await file.read()
+                file_size = len(contents)
+                total_size += file_size
+                
+                # Save file
+                file_save_path = save_directory / file.filename
+                with open(file_save_path, "wb") as f:
+                    f.write(contents)
+                
+                # Add to saved files list
+                saved_files.append((file.filename, str(file_save_path)))
+                file_info.append(f"📄 {file.filename} ({file_size:,} bytes) -> {file_save_path}")
+                
+            except Exception as e:
+                error_msg = f"Error saving file {file.filename}: {str(e)}"
+                logger.error(error_msg)
+                await self.message_queue.add(pip, error_msg, verbatim=True)
+                return P(f"Error saving file {file.filename}. Please try again.", style=pip.get_style("error"))
         
         # Create a summary of the files
         file_summary = "\n".join(file_info)
         file_summary += f"\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes"
+        file_summary += f"\nSaved to: {save_directory}"
         
         # Update step state with file information
         await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
         
         # Keep LLM informed about the widget content and state
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files selected")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")
         
         # Send user-visible confirmation
-        await self.message_queue.add(pip, f"Selected {len(uploaded_files)} files. Review the list below.", verbatim=True)
+        await self.message_queue.add(pip, f"Successfully saved {len(uploaded_files)} files to {save_directory}", verbatim=True)
         
-        # Return the file list display with options to proceed or start over
+        # Return the file list display with workflow progression
         return Div(
             Card(
                 H3(f"{step.show}"),
-                P("Selected files:"),
+                P("Files saved successfully:"),
                 Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
-                Div(
-                    Form(
-                        Button("Upload More Files", type="submit", cls="secondary"),
-                        hx_get=f"/{app_name}/{step_id}",
-                        hx_target=f"#{step_id}",
-                        hx_swap="outerHTML"
-                    ),
-                    style="margin-top: 1em;"
-                )
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
             ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         ) 
