@@ -944,3 +944,339 @@ implementation plan for the code assistant AI in Cursor please. Bank small wins!
 You can describe the whole project but explicitly tell it to STOP at the first
 point that creates a good git checkpoint. And then it can go onto the next step.
 Please and thank you!
+
+---
+
+```python
+FILES_TO_INCLUDE = """\
+README.md
+flake.nix
+requirements.txt
+server.py
+/home/mike/repos/pipulate/plugins/020_hello_workflow.py
+/home/mike/repos/.cursor/rules/workflow_implementation_guide.md
+/home/mike/repos/pipulate/plugins/520_widget_examples.py
+/home/mike/repos/pipulate/plugins/505_widget_designer.py
+""".strip().splitlines()
+```
+
+```shell
+[mike@nixos:~/repos/pipulate/precursors]$ python context_foo.py --prompt prompt.md
+Using prompt file: /home/mike/repos/pipulate/precursors/prompt.md
+Using template 1: Material Analysis Mode
+Output will be written to: foo.txt
+
+=== Prompt Structure ===
+
+--- Pre-Prompt ---
+System Information:
+  
+You are about to review a codebase and related documentation. Please study and understand
+the provided materials thoroughly before responding.
+Key things to know about this codebase:
+- It uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages
+- Always run `nix develop` before any commands in a new terminal
+- FastHTML objects must be converted with to_xml() before returning responses
+- The project is organized as a server with plugin-based workflows
+
+Key Points:
+  • Focus on understanding the architecture and patterns in the codebase
+  • Note how existing patterns could be leveraged in your response
+  • Consider both technical and conceptual aspects in your analysis
+
+--- Files Included ---
+• README.md (6,918 tokens)
+• flake.nix (5,033 tokens)
+• requirements.txt (125 tokens)
+• server.py (31,550 tokens)
+• /home/mike/repos/pipulate/plugins/020_hello_workflow.py (6,900 tokens)
+• /home/mike/repos/.cursor/rules/workflow_implementation_guide.md (8,428 tokens)
+• /home/mike/repos/pipulate/plugins/520_widget_examples.py (24,472 tokens)
+• /home/mike/repos/pipulate/plugins/505_widget_designer.py (3,323 tokens)
+• /home/mike/repos/pipulate/precursors/prompt.md (10,232 tokens)
+
+--- Post-Prompt ---
+
+--- Token Summary ---
+Total tokens: 97,463 tokens
+
+=== End Prompt Structure ===
+
+Output written to 'foo.txt'
+Output copied to clipboard
+
+Script finished.
+```
+
+---
+
+## Gemini's Implementation Plan: Checkpoint 1
+
+Okay, I've reviewed the materials and the request. This is a well-documented project with a clear philosophy! The "human-in-the-loop" approach for downloads, pivoting to a user-driven upload, makes a lot of sense given the complexities of browser automation and download path inconsistencies.
+
+Here's an implementation plan for the multi-file upload widget within the `pipulate/plugins/505_widget_designer.py` workflow. We'll follow your "bank small wins" approach.
+
+**Implementation Plan: Multi-File Upload Widget**
+
+**Target File:** `pipulate/plugins/505_widget_designer.py`
+
+**Overall Goal:** Create a widget in the "Widget Designer" workflow that allows users to select multiple files, upload them to a server-side directory structured as `downloads/APP_NAME/PIPELINE_ID/`, and then displays a confirmation of the uploaded files.
+
+---
+
+**Step 1: Basic Multi-File Input Form and Displaying Selected Files**
+
+**Goal:** Modify `step_01` in `WidgetDesigner` to display a form that accepts multiple files. The `step_01_submit` handler will initially just list the names and sizes of the files selected by the user, without actually saving them. This confirms the client-side and server-side plumbing for file selection is working.
+
+**Tasks for the AI Code Assistant:**
+
+1.  **Modify `WidgetDesigner.step_01` method (GET handler):**
+    * Change the existing form to include an `<input type="file" name="uploaded_files" multiple="true" required="true">`.
+    * Ensure the `Form` tag has `enctype="multipart/form-data"`.
+    * The form should `hx_post` to `/{app_name}/step_01_submit`.
+    * The `hx_target` should be `#{step_id}` (i.e., `#step_01`) to replace the content of the current step.
+
+2.  **Modify `WidgetDesigner.step_01_submit` method (POST handler):**
+    * Adapt the handler to receive multiple files. Based on Daniel Corin's example and Starlette's capabilities, this will involve:
+        ```python
+        form_data = await request.form()
+        uploaded_files = form_data.getlist("uploaded_files") # "uploaded_files" matches the input name
+        ```
+    * Create a list of strings, where each string contains information about a file (e.g., `f"Filename: {file.filename}, Size: {file.size} bytes"`).
+    * For this initial checkpoint, **do not save the files**.
+    * Return a FastHTML `Div` (or `Card`) that displays this list of file information.
+    * Crucially, for now, this response should **not** include the standard chain reaction `Div` for the next step. Instead, after displaying the file list, include a simple "Start Over" button or a revert control that allows the user to go back to the `step_01` input form. This makes `step_01` a temporary terminal point for testing the upload display.
+        * Example for a "Start Over" button:
+            ```python
+            # In step_01_submit, after displaying file info
+            start_over_button = Form(
+                Button("Upload More Files", type="submit", cls="secondary"),
+                hx_get=f"/{app_name}/step_01", # Gets the form again
+                hx_target=f"#{step_id}",      # Replaces the current content
+                hx_swap="outerHTML"           # Ensures the whole step_01 div is replaced
+            )
+            # Add this button to the returned Div
+            ```
+    * Ensure `pip.update_step_state` is called with some representation of the file list (e.g., a simple string "Files selected: N") to mark the step as "done" conceptually for this phase.
+    * Use `self.message_queue.add` to provide user feedback (e.g., "Files selected. Review the list below.").
+
+**Code Assistant Instructions:**
+
+"Please implement Step 1 as outlined above in `pipulate/plugins/505_widget_designer.py`. Focus on creating the multi-file input form in `step_01` and modifying `step_01_submit` to display the names and sizes of the selected files. Do not implement file saving yet. The `step_01_submit` should allow the user to easily return to the file input form. Ensure all HTMX attributes are correctly set for this behavior."
+
+---
+
+**Next Checkpoint (After AI implements Step 1):**
+
+Once Step 1 is complete and tested (we can select multiple files and see their names/sizes displayed), the next phase will be to implement the actual file saving logic within `step_01_submit` and then reinstate the proper chain reaction to `finalize` (or a subsequent step if we add more to the designer).
+
+Let me know when you're ready for the AI to proceed with these instructions.
+
+---
+
+## Over To Claude For Implementation
+
+> OMFG, excuse my blasphemy but Claude gets this correct on the first try! It's
+> not the complete file upload, but it is banking a very good first-win
+> checkpoint. File multi-select and listing them is working. This is such a sign
+> of things to come.
+
+I'll help you implement Step 1 of the multi-file upload widget in the Widget Designer workflow. Let's modify the `step_01` and `step_01_submit` methods to handle multiple file selection and display.
+
+```python
+// ... existing code ...
+
+    async def step_01(self, request):
+        """Handles GET request for the widget design step.
+        
+        This is your widget design sandbox. Use this space to prototype and test your widget designs.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}: Completed")
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("Select multiple files to upload. You can review the selection before proceeding."),
+                    Form(
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Review Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        """Process the submission for the widget design step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        pipeline_id = db.get("pipeline_id", "unknown")
+        
+        # Get the uploaded files
+        form_data = await request.form()
+        uploaded_files = form_data.getlist("uploaded_files")
+        
+        if not uploaded_files:
+            await self.message_queue.add(pip, "No files selected. Please try again.", verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("No files were selected. Please try again."),
+                    Form(
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Review Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
+                    )
+                ),
+                id=step_id
+            )
+        
+        # Create a list of file information
+        file_info = []
+        total_size = 0
+        for file in uploaded_files:
+            file_size = len(await file.read())
+            total_size += file_size
+            file_info.append(f"📄 {file.filename} ({file_size:,} bytes)")
+            # Reset file pointer for potential future reads
+            await file.seek(0)
+        
+        # Create a summary of the files
+        file_summary = "\n".join(file_info)
+        file_summary += f"\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes"
+        
+        # Update step state with file information
+        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+        
+        # Keep LLM informed about the widget content and state
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files selected")
+        
+        # Send user-visible confirmation
+        await self.message_queue.add(pip, f"Selected {len(uploaded_files)} files. Review the list below.", verbatim=True)
+        
+        # Return the file list display with options to proceed or start over
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                P("Selected files:"),
+                Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
+                Div(
+                    Form(
+                        Button("Upload More Files", type="submit", cls="secondary"),
+                        hx_get=f"/{app_name}/{step_id}",
+                        hx_target=f"#{step_id}",
+                        hx_swap="outerHTML"
+                    ),
+                    style="margin-top: 1em;"
+                )
+            ),
+            id=step_id
+        )
+
+// ... existing code ...
+```
+
+I've implemented Step 1 of the multi-file upload widget in the Widget Designer workflow. Here are the key changes made:
+
+1. Modified `step_01` (GET handler):
+   - Added a file input with `multiple="true"` and `required="true"`
+   - Set the form's `enctype="multipart/form-data"` for file uploads
+   - Updated the button text to "Review Files ▸"
+   - Added clear instructions for users
+
+2. Modified `step_01_submit` (POST handler):
+   - Added file handling using `form_data.getlist("uploaded_files")`
+   - Implemented error handling for when no files are selected
+   - Created a detailed file summary showing:
+     - Individual file names and sizes
+     - Total number of files and total size
+   - Added a "Upload More Files" button that returns to the file selection form
+   - Used `Pre` tag with proper styling for file list display
+   - Maintained proper state management with `pip.update_step_state`
+   - Added appropriate user feedback via `message_queue`
+
+The implementation follows the "bank small wins" approach by:
+1. First establishing the basic file selection UI
+2. Then implementing the file information display
+3. Providing clear feedback and easy way to start over
+4. Maintaining proper state management for future steps
+
+The widget now allows users to:
+1. Select multiple files
+2. See a detailed list of selected files with sizes
+3. Start over with new file selection
+4. Get clear feedback about their actions
+
+This sets us up well for the next phase where we'll implement the actual file saving functionality. The current implementation ensures all the basic plumbing is working correctly before we add the complexity of file storage.
+
+Would you like to test this implementation before we proceed to the next phase?
+
+---
+
+I did test it and it's working like a charm! This is so friggn hard to believe
+that things are at this stage. When I started out with this project I could
+hardly get the AI coding assistants to understand that FastHTML is not FastAPI
+and stop it from using the wrong patterns, subtly undermining my work at every
+turn. Now, I have one command to create a complete copy/paste of an extremely
+FastHTML-esque program cleanly making the changes to avoid plugin collision, and
+a second command to alter a widget placeholder from a blank into a multi-select
+file requester. And this is the dumbest they're ever going to be!
+
+Sorry, no offense Gemini. Frankly I think Claude could take it from here. But I
+wanted to show you the good progress and give you a chance to directionally
+tweak and steer the next baby-step to bank the next small win.
