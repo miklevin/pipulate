@@ -88,12 +88,8 @@ class RangeSelectorWorkflow:
         "label": "Select a value",
         "description": "Use the slider to select a value between 0 and 100",
         "show_value": True,  # Whether to show the current value
-        "show_ticks": True,  # Whether to show tick marks
-        "tick_labels": {     # Optional labels for specific values
-            "0": "Min",
-            "50": "Middle",
-            "100": "Max"
-        }
+        "show_ticks": False,  # Whether to show tick marks
+        "tick_labels": {}     # Optional labels for specific values
     }
 
     # --- Initialization ---
@@ -403,21 +399,6 @@ class RangeSelectorWorkflow:
                     _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"
                 )
                 
-                # Create tick marks if enabled
-                tick_marks = None
-                if self.RANGE_CONFIG["show_ticks"]:
-                    tick_marks = Div(
-                        *[
-                            Span(
-                                self.RANGE_CONFIG["tick_labels"].get(str(value), str(value)),
-                                style=f"position: absolute; left: {((int(value) - self.RANGE_CONFIG['min']) / (self.RANGE_CONFIG['max'] - self.RANGE_CONFIG['min'])) * 100}%; transform: translateX(-50%);"
-                            )
-                            for value in range(self.RANGE_CONFIG["min"], self.RANGE_CONFIG["max"] + 1, self.RANGE_CONFIG["step"])
-                            if str(value) in self.RANGE_CONFIG["tick_labels"]
-                        ],
-                        style="position: relative; height: 1em; margin-top: 0.5em;"
-                    )
-                
                 return Div(
                     Card(
                         H3(f"{step.show}"),
@@ -432,7 +413,6 @@ class RangeSelectorWorkflow:
                                 number_input,
                                 style="display: flex; align-items: center; gap: 10px; margin: 1em 0;"
                             ),
-                            tick_marks,
                             Button("Submit", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/{step_id}_submit",
                             hx_target=f"#{step_id}"
