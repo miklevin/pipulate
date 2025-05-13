@@ -413,7 +413,7 @@ class BrowserAutomation:
             )
 
         # Check if step is complete and not being reverted to
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
@@ -645,7 +645,7 @@ class BrowserAutomation:
             )
 
         # Check if step is complete and not being reverted to
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,

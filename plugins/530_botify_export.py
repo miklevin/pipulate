@@ -435,7 +435,7 @@ class BotifyExport:
                 id=step_id
             )
 
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -567,7 +567,7 @@ class BotifyExport:
             )
 
         # If step is complete and not being reverted, show revert control
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -702,7 +702,7 @@ class BotifyExport:
             )
 
         # If step is complete and not being reverted, show revert control
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -888,7 +888,7 @@ class BotifyExport:
 
         # Check if step is complete and either not being reverted, or has the preserve flag
         # The _preserve_completed flag ensures the step stays in completed state after unfinalization
-        if user_val and (state.get("_revert_target") != step_id or step_data.get("_preserve_completed")):
+        elif user_val and (state.get("_revert_target") != step_id or step_data.get("_preserve_completed")):
             job_id = user_val.split("/")[-1] if user_val else "Unknown"
             download_url = step_data.get('download_url')
             local_file = step_data.get('local_file')

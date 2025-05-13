@@ -444,7 +444,7 @@ class ParameterBusterWorkflow:
             )
             
         # Check if step is complete and not being reverted to
-        if project_data and state.get("_revert_target") != step_id:
+        elif project_data and state.get("_revert_target") != step_id:
             # CUSTOMIZE_COMPLETE: Enhanced completion display
             project_name = project_data.get('project_name', '')
             username = project_data.get('username', '')
@@ -607,7 +607,7 @@ class ParameterBusterWorkflow:
             )
         
         # Check if step is complete and not being reverted to
-        if selected_slug and state.get("_revert_target") != step_id:
+        elif selected_slug and state.get("_revert_target") != step_id:
             # Show completed state with analysis result
             return Div(
                 pip.revert_control(
@@ -800,7 +800,7 @@ class ParameterBusterWorkflow:
             )
         
         # Check if step is complete and not being reverted to
-        if check_result and state.get("_revert_target") != step_id:
+        elif check_result and state.get("_revert_target") != step_id:
             # Show completed state with check result
             has_logs = check_result.get("has_logs", False)
             status_text = "HAS web logs" if has_logs else "does NOT have web logs"
@@ -941,7 +941,7 @@ class ParameterBusterWorkflow:
             )
         
         # Check if step is complete and not being reverted to
-        if check_result and state.get("_revert_target") != step_id:
+        elif check_result and state.get("_revert_target") != step_id:
             # Show completed state with check result
             has_search_console = check_result.get("has_search_console", False)
             status_text = "HAS Search Console data" if has_search_console else "does NOT have Search Console data"
@@ -1172,7 +1172,7 @@ class ParameterBusterWorkflow:
                 )
 
         # Check if step is complete and not being reverted to
-        if optimization_result and state.get("_revert_target") != step_id:
+        elif optimization_result and state.get("_revert_target") != step_id:
             try:
                 # Create visualization placeholder for revert state
                 visualization_widget = self.create_parameter_visualization_placeholder(optimization_result)
@@ -1548,7 +1548,7 @@ class ParameterBusterWorkflow:
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the prism widget from the existing code
             try:
                 # Parse the JSON data and get the js_code
@@ -4792,7 +4792,7 @@ User-agent: *
             return response
                 
         # Check if step is complete and not being reverted to
-        if markdown_content and state.get("_revert_target") != step_id:
+        elif markdown_content and state.get("_revert_target") != step_id:
             # Create markdown widget for completed state
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
             

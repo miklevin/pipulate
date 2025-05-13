@@ -385,7 +385,7 @@ class HelloFlow:
             )
 
         # Boilerplate: Check if step is complete and we are NOT reverting to it
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button - message queue handles history
             completed_msg = f"Step 1 is complete. You entered: {user_val}"
             await self.message_queue.add(pip, completed_msg, verbatim=True)
@@ -502,7 +502,7 @@ class HelloFlow:
             )
 
         # Boilerplate: Check if step is complete and we are NOT reverting to it
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button
              return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),

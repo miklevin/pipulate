@@ -329,7 +329,7 @@ class TextAreaWidget:
             )
 
         # Check if step is complete and we are NOT reverting to it
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button
             completed_msg = f"Step 1 is complete. You entered: {user_val}"
             await self.message_queue.add(pip, completed_msg, verbatim=True)

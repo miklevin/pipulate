@@ -572,7 +572,7 @@ This step serves as a placeholder for future widget types."""
             )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the simple widget from the existing data
             simple_widget = Pre(
                 user_val,
@@ -740,7 +740,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the marked widget from the existing content
             try:
                 widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -928,7 +928,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the mermaid diagram widget from the existing content
             try:
                 widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1117,7 +1117,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the table widget from the existing data
             try:
                 table_widget = self.create_pandas_table(user_val)
@@ -1338,7 +1338,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the prism widget from the existing code
             try:
                 # Check if user specified a language in format: ```language\ncode```
@@ -1573,7 +1573,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if user_val and state.get("_revert_target") != step_id:
+        elif user_val and state.get("_revert_target") != step_id:
             # Create the JS widget from the existing code
             try:
                 widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
@@ -2050,7 +2050,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not reverting
-        if counter_data and state.get("_revert_target") != step_id:
+        elif counter_data and state.get("_revert_target") != step_id:
             # Create the histogram widget from the existing data
             try:
                 histogram_widget = self.create_matplotlib_histogram(counter_data)
@@ -2207,7 +2207,7 @@ This step serves as a placeholder for future widget types."""
             )
             
         # Check if step is complete and not reverting
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
@@ -2451,7 +2451,7 @@ This step serves as a placeholder for future widget types."""
                 )
             
         # Check if step is complete and not being reverted to
-        if table_data and state.get("_revert_target") != step_id:
+        elif table_data and state.get("_revert_target") != step_id:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
@@ -2650,7 +2650,7 @@ This step serves as a placeholder for future widget types."""
             )
             
         # Check if step is complete and not being reverted to
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
@@ -2827,7 +2827,7 @@ This step serves as a placeholder for future widget types."""
             )
             
         # Check if step is complete and not being reverted to
-        if file_summary and state.get("_revert_target") != step_id:
+        elif file_summary and state.get("_revert_target") != step_id:
             # Keep LLM informed about completed state
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
             

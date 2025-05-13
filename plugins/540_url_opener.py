@@ -372,7 +372,7 @@ class BlankWorkflow:
             )
             
         # Check if step is complete and not being reverted to
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,
@@ -506,7 +506,7 @@ class BlankWorkflow:
             )
             
         # Check if step is complete and not being reverted to
-        if query_value and state.get("_revert_target") != step_id:
+        elif query_value and state.get("_revert_target") != step_id:
             search_url = f"https://www.google.com/search?q={query_value}"
             content_container = pip.widget_container(
                 step_id=step_id,
@@ -643,7 +643,7 @@ class BlankWorkflow:
             )
 
         # Check if step is complete and not being reverted to
-        if url_value and state.get("_revert_target") != step_id:
+        elif url_value and state.get("_revert_target") != step_id:
             content_container = pip.widget_container(
                 step_id=step_id,
                 app_name=app_name,

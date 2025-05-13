@@ -343,7 +343,7 @@ class WidgetDesigner:
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
+        elif placeholder_value and state.get("_revert_target") != step_id:
             # Keep LLM informed about the completed widget content
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
             

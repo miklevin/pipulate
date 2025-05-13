@@ -432,7 +432,7 @@ class DropdownWidget:
             )
         
         # Check if step is complete and not being reverted to
-        if selected_value and state.get("_revert_target") != step_id:
+        elif selected_value and state.get("_revert_target") != step_id:
             # Show completed state
             return Div(
                 pip.revert_control(

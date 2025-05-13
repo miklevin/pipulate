@@ -292,7 +292,7 @@ class WidgetDesigner:
             )
             
         # Check if step is complete and not being reverted to
-        if file_summary and state.get("_revert_target") != step_id:
+        elif file_summary and state.get("_revert_target") != step_id:
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
             
             return Div(
