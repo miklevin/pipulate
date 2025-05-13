@@ -79,6 +79,23 @@ class RangeSelectorWorkflow:
         "of a full workflow implementation."
     )
 
+    # --- Range Selector Configuration ---
+    RANGE_CONFIG = {
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "default": 50,
+        "label": "Select a value",
+        "description": "Use the slider to select a value between 0 and 100",
+        "show_value": True,  # Whether to show the current value
+        "show_ticks": True,  # Whether to show tick marks
+        "tick_labels": {     # Optional labels for specific values
+            "0": "Min",
+            "50": "Middle",
+            "100": "Max"
+        }
+    }
+
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
@@ -95,9 +112,10 @@ class RangeSelectorWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Step 1 Placeholder',
-                refill=False,
+                done='range_value',
+                show='Range Selection',
+                refill=True,
+                transform=lambda prev_value: int(prev_value) if prev_value else self.RANGE_CONFIG["default"]
             ),
             # Add more steps as needed
         ]
@@ -293,21 +311,8 @@ class RangeSelectorWorkflow:
         )
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        - LLM context updates for widget content
-        """
+        """Handles GET request for range selection step."""
+        logger.debug("Entering step_01")
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -316,70 +321,137 @@ class RangeSelectorWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
-
+        
+        logger.debug(f"Pipeline ID: {pipeline_id}")
+        logger.debug(f"State: {state}")
+        logger.debug(f"Step data: {step_data}")
+        
+        # Get the selected value if already completed
+        selected_value = step_data.get(step.done, self.RANGE_CONFIG["default"])
+        logger.debug(f"Selected value: {selected_value}")
+        
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
+        if "finalized" in finalize_data and selected_value:
+            # STEP STAGE: FINALIZED
             # Keep LLM informed about the finalized widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{selected_value}")
             
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")  # Combined headline with completion status
+                    H3(f"🔒 {step.show}"),
+                    P(f"Selected value: {selected_value}", style="font-weight: bold;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+        
         # Check if step is complete and not being reverted to
-        elif placeholder_value and state.get("_revert_target") != step_id:
+        elif step_data.get(step.done) and state.get("_revert_target") != step_id:
+            # STEP STAGE: REVERT
             # Keep LLM informed about the completed widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{selected_value}")
             
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {selected_value}",
+                    steps=steps
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
+        
         else:
+            # STEP STAGE: DATA COLLECTION
             # Keep LLM informed about showing the input form
             pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
             
-            # CUSTOMIZE_FORM: Replace with your widget's input form
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
+                                    f"Complete {step.show}"), 
+                                    verbatim=True)
             
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
-                    Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
+            try:
+                # Create range input with configuration
+                range_input = Input(
+                    type="range",
+                    name=step.done,
+                    min=self.RANGE_CONFIG["min"],
+                    max=self.RANGE_CONFIG["max"],
+                    step=self.RANGE_CONFIG["step"],
+                    value=selected_value,
+                    title=self.RANGE_CONFIG["description"],
+                    required=True,
+                    autofocus=True
+                )
+                
+                # Create value display if enabled
+                value_display = None
+                if self.RANGE_CONFIG["show_value"]:
+                    value_display = P(
+                        f"Current value: {selected_value}",
+                        id=f"{step_id}-value",
+                        style="margin-top: 0.5em; font-weight: bold;"
                     )
-                ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
-                id=step_id
-            )
+                
+                # Create tick marks if enabled
+                tick_marks = None
+                if self.RANGE_CONFIG["show_ticks"]:
+                    tick_marks = Div(
+                        *[
+                            Span(
+                                self.RANGE_CONFIG["tick_labels"].get(str(value), str(value)),
+                                style=f"position: absolute; left: {((int(value) - self.RANGE_CONFIG['min']) / (self.RANGE_CONFIG['max'] - self.RANGE_CONFIG['min'])) * 100}%; transform: translateX(-50%);"
+                            )
+                            for value in range(self.RANGE_CONFIG["min"], self.RANGE_CONFIG["max"] + 1, self.RANGE_CONFIG["step"])
+                            if str(value) in self.RANGE_CONFIG["tick_labels"]
+                        ],
+                        style="position: relative; height: 1em; margin-top: 0.5em;"
+                    )
+                
+                # Add JavaScript for live value updates
+                js_update = Script("""
+                    document.querySelector('input[type="range"]').addEventListener('input', function(e) {
+                        document.getElementById('step_01-value').textContent = 'Current value: ' + e.target.value;
+                    });
+                """)
+                
+                return Div(
+                    Card(
+                        H3(f"{step.show}"),
+                        P(self.RANGE_CONFIG["description"], style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Label(
+                                self.RANGE_CONFIG["label"],
+                                range_input,
+                                style="display: block; margin: 1em 0;"
+                            ),
+                            value_display,
+                            tick_marks,
+                            Button("Submit", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/{step_id}_submit",
+                            hx_target=f"#{step_id}"
+                        ),
+                        js_update
+                    ),
+                    Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                    id=step_id
+                )
+                
+            except Exception as e:
+                logger.error(f"Error creating range selector: {str(e)}")
+                logger.exception("Full traceback:")
+                return Div(
+                    Card(
+                        H3(f"{step.show}"),
+                        P(f"Error creating range selector: {str(e)}", style=pip.ERROR_STYLE)
+                    ),
+                    id=step_id
+                )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
-        
-        Chain Reaction Pattern:
-        When a step completes, it MUST explicitly trigger the next step by including
-        a div for the next step with hx-trigger="load". While this may seem redundant,
-        it is more reliable than depending on HTMX event bubbling.
-        
-        LLM Context Pattern:
-        Always keep the LLM informed about:
-        1. What was submitted (widget content)
-        2. Any transformations or processing applied
-        3. The final state of the widget
-        Use pip.append_to_history() for this to avoid cluttering the chat interface.
-        """
+        """Handles POST request for range selection step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -387,20 +459,36 @@ class RangeSelectorWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # Process and save data...
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        # Get form data
+        form = await request.form()
+        value = form.get(step.done, "").strip()
         
-        # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        if not value:
+            return P("Error: Please select a value", style=pip.ERROR_STYLE)
         
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        try:
+            # Convert to integer and validate range
+            value = int(value)
+            if value < self.RANGE_CONFIG["min"] or value > self.RANGE_CONFIG["max"]:
+                return P(f"Error: Value must be between {self.RANGE_CONFIG['min']} and {self.RANGE_CONFIG['max']}", 
+                        style=pip.ERROR_STYLE)
+        except ValueError:
+            return P("Error: Invalid value", style=pip.ERROR_STYLE)
         
-        # CRITICAL: Return the completed view WITH explicit next step trigger
+        # Update state
+        await pip.update_step_state(pipeline_id, step_id, value, steps)
+        await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
+                                f"{step.show} complete: {value}"), 
+                                verbatim=True)
+        
+        # Return with revert control and chain reaction
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {value}",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         ) 
