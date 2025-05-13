@@ -6,37 +6,36 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 
 """
-Pipulate Workflow Template
-A minimal starter template for creating step-based Pipulate workflows.
+Text Area Widget Workflow
+A specialized workflow for handling multi-line text input with a textarea widget.
 """
 
 # Model for a workflow step
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class WidgetDesigner:
+class TextAreaWidget:
     """
-    Widget Designer Workflow
+    Text Area Widget Workflow
     
-    A focused environment for designing and testing new widgets in isolation.
+    A specialized workflow for handling multi-line text input with a textarea widget.
+    Provides a clean interface for entering and managing longer text content.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "design_widget"       # Unique identifier for this workflow's routes and data (most be different from plugin name from filename)
-    DISPLAY_NAME = "Widget Designer" # User-friendly name shown in the UI
-    ENDPOINT_MESSAGE = (             # Message shown on the workflow's landing page
-        "Welcome to the Widget Designer! This is a focused environment for designing and testing new widgets in isolation. "
-        "Use this space to prototype and refine your widget designs without distractions."
+    APP_NAME = "text_area_widget"          # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Text Area Widget"      # User-friendly name shown in the UI
+    ENDPOINT_MESSAGE = (
+        "Welcome to the Text Area Widget! This workflow provides a clean interface for "
+        "entering and managing longer text content. Use the textarea to input multiple lines of text."
     )
     TRAINING_PROMPT = (
-        "This is a specialized workflow for designing and testing widgets in isolation. "
-        "It provides a clean environment to focus on widget development without the complexity "
-        "of a full workflow implementation."
+        "This is a specialized workflow for handling multi-line text input. "
+        "It provides a clean interface for entering and managing longer text content."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
+    PRESERVE_REFILL = True                  # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
-        """Initialize the workflow, define steps, and register routes."""
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
@@ -50,9 +49,10 @@ class WidgetDesigner:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Step 1 Placeholder',
-                refill=False,
+                done='text_area',        # Field to store the input value
+                show='Text Area',        # User-friendly name
+                refill=True,             # Allow refilling for better UX
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""  # Optional transform
             ),
             # Add more steps as needed
         ]
@@ -90,7 +90,7 @@ class WidgetDesigner:
         # Create default messages for each step
         for step in steps:
             self.step_messages[step.id] = {
-                "input": f"{pip.fmt(step.id)}: Please complete {step.show}.",
+                "input": f"{pip.fmt(step.id)}: Please enter {step.show}.",
                 "complete": f"{step.show} complete. Continue to next step."
             }
 
@@ -99,9 +99,7 @@ class WidgetDesigner:
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     # --- Core Workflow Engine Methods ---
-
     async def landing(self):
-        """Renders the initial landing page with the key input form."""
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         title = f"{self.DISPLAY_NAME or app_name.title()}"
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
@@ -119,7 +117,7 @@ class WidgetDesigner:
                         Input(
                             placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
                             list="pipeline-ids", type="search", required=False, autofocus=True,
-                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
                             cls="contrast"
                         ),
                         button_label=f"Enter 🔑", button_class="secondary"
@@ -132,7 +130,6 @@ class WidgetDesigner:
         )
 
     async def init(self, request):
-        """Handles the key submission, initializes state, and renders the step UI placeholders."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         user_input = form.get("pipeline_id", "").strip()
@@ -171,7 +168,6 @@ class WidgetDesigner:
         )
 
     async def finalize(self, request):
-        """Handles GET request to show Finalize button and POST request to lock the workflow."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         finalize_step = steps[-1]
@@ -212,7 +208,6 @@ class WidgetDesigner:
             return pip.rebuild(app_name, steps)
 
     async def unfinalize(self, request):
-        """Handles POST request to unlock the workflow."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
         await pip.unfinalize_workflow(pipeline_id)
@@ -220,7 +215,6 @@ class WidgetDesigner:
         return pip.rebuild(app_name, steps)
 
     async def jump_to_step(self, request):
-        """Handles POST request from breadcrumb navigation to jump to a specific step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
@@ -228,7 +222,6 @@ class WidgetDesigner:
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
-        """Gets a suggested input value for a step, often using the previous step's transformed output."""
         pip, db, steps = self.pipulate, self.db, self.steps
         step = next((s for s in steps if s.id == step_id), None)
         if not step or not step.transform: return ""
@@ -240,7 +233,6 @@ class WidgetDesigner:
         return step.transform(prev_value) if prev_value else ""
 
     async def handle_revert(self, request):
-        """Handles POST request to revert to a previous step, clearing subsequent step data."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
@@ -256,24 +248,9 @@ class WidgetDesigner:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
 
-    # --- Placeholder Step Methods ---
-
+    # --- Text Area Step Methods ---
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        - LLM context updates for widget content
-        """
+        """ Handles GET request for Step 1: Displays textarea form or completed value. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -282,91 +259,124 @@ class WidgetDesigner:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
+        user_val = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Keep LLM informed about the finalized widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
-            
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+        if "finalized" in finalize_data and user_val:
+            # Show locked view
+            locked_msg = f"🔒 Text area content is set to: {user_val}"
+            await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")  # Combined headline with completion status
+                    H3(f"🔒 {step.show}: {user_val}")
                 ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-        # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
-            # Keep LLM informed about the completed widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
-            
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
-            return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-        else:
-            # Keep LLM informed about showing the input form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
-            
-            # CUSTOMIZE_FORM: Replace with your widget's input form
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
-                    Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
 
+        # Check if step is complete and we are NOT reverting to it
+        if user_val and state.get("_revert_target") != step_id:
+            # Show completed view with Revert button
+            completed_msg = f"Step 1 is complete. You entered: {user_val}"
+            await self.message_queue.add(pip, completed_msg, verbatim=True)
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
+            )
+        else:
+            # Show the input form for this step
+            if step.refill and user_val and self.PRESERVE_REFILL:
+                display_value = user_val
+            else:
+                display_value = await self.get_suggestion(step_id, state)
+            
+            # Let LLM know we're showing an empty form via message queue
+            form_msg = "Showing text area form. No text has been entered yet."
+            await self.message_queue.add(pip, form_msg, verbatim=True)
+            
+            # Add prompt message to UI
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            # Add explanation to both UI and LLM context
+            explanation = "This is a text area widget for entering multiple lines of text. Use it to input longer content that may span multiple lines."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            
+            # Render the card with the form
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step.id)}: Enter {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        pip.wrap_with_inline_button(
+                            Textarea(
+                                display_value,
+                                name=step.done,
+                                placeholder=f"Enter {step.show}",
+                                required=True,
+                                autofocus=True,
+                                style="min-height: 200px; width: 100%; padding: 8px;",  # Mobile touch target
+                                aria_required="true",
+                                aria_labelledby=f"{step_id}-form-title",
+                                aria_describedby=f"{step_id}-form-instruction"
+                            ),
+                            button_label="Next ▸"
+                        ),
+                        hx_post=f"/{app_name}/{step.id}_submit",
+                        hx_target=f"#{step.id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step.id
+            )
+
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
-        
-        Chain Reaction Pattern:
-        When a step completes, it MUST explicitly trigger the next step by including
-        a div for the next step with hx-trigger="load". While this may seem redundant,
-        it is more reliable than depending on HTMX event bubbling.
-        
-        LLM Context Pattern:
-        Always keep the LLM informed about:
-        1. What was submitted (widget content)
-        2. Any transformations or processing applied
-        3. The final state of the widget
-        Use pip.append_to_history() for this to avoid cluttering the chat interface.
-        """
+        """Process the submission for Step 1."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Process and save data...
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
-        
-        # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # CRITICAL: Return the completed view WITH explicit next step trigger
+
+        # Boilerplate: Check finalized state (optional, submit shouldn't be possible)
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+
+        # Get form data
+        form = await request.form()
+        user_val = form.get(step.done, "").strip() # Get value for 'text_area' field
+
+        # Let LLM know we received a submission via message queue
+        submit_msg = f"User submitted text: {user_val}"
+        await self.message_queue.add(pip, submit_msg, verbatim=True)
+
+        # --- Custom Validation ---
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            error_msg = f"Text validation failed: {error_msg}"
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return error_component
+
+        # --- Custom Processing ---
+        processed_val = user_val # Keep it simple for template
+        # --- End Custom Processing ---
+
+        # Save the processed value to this step's state
+        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+
+        # Send confirmation message to UI and LLM via message queue
+        confirm_msg = f"{step.show}: {processed_val}"
+        await self.message_queue.add(pip, confirm_msg, verbatim=True)
+
+        # Check if this was the last step before finalize
+        if pip.check_finalize_needed(step_index, steps):
+            finalize_msg = self.step_messages["finalize"]["ready"]
+            await self.message_queue.add(pip, finalize_msg, verbatim=True)
+
+        # Return the standard navigation controls (Revert button + trigger for next step)
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        )
+        ) 
