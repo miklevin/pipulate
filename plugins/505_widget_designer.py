@@ -303,11 +303,19 @@ class WidgetDesigner:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is your widget design sandbox. Use this space to prototype and test your widget designs."),
+                    P("Select multiple files to upload. You can review the selection before proceeding."),
                     Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Review Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
                     )
                 ),
                 Div(id=next_step_id),
@@ -320,22 +328,74 @@ class WidgetDesigner:
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # Process and save data...
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        # Get the uploaded files
+        form_data = await request.form()
+        uploaded_files = form_data.getlist("uploaded_files")
+        
+        if not uploaded_files:
+            await self.message_queue.add(pip, "No files selected. Please try again.", verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("No files were selected. Please try again."),
+                    Form(
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Review Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
+                    )
+                ),
+                id=step_id
+            )
+        
+        # Create a list of file information
+        file_info = []
+        total_size = 0
+        for file in uploaded_files:
+            file_size = len(await file.read())
+            total_size += file_size
+            file_info.append(f"📄 {file.filename} ({file_size:,} bytes)")
+            # Reset file pointer for potential future reads
+            await file.seek(0)
+        
+        # Create a summary of the files
+        file_summary = "\n".join(file_info)
+        file_summary += f"\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes"
+        
+        # Update step state with file information
+        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
         
         # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files selected")
         
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        # Send user-visible confirmation
+        await self.message_queue.add(pip, f"Selected {len(uploaded_files)} files. Review the list below.", verbatim=True)
         
+        # Return the file list display with options to proceed or start over
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            Card(
+                H3(f"{step.show}"),
+                P("Selected files:"),
+                Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
+                Div(
+                    Form(
+                        Button("Upload More Files", type="submit", cls="secondary"),
+                        hx_get=f"/{app_name}/{step_id}",
+                        hx_target=f"#{step_id}",
+                        hx_swap="outerHTML"
+                    ),
+                    style="margin-top: 1em;"
+                )
+            ),
             id=step_id
         ) 
