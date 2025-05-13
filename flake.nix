@@ -74,6 +74,9 @@
   # Outputs define what our Flake produces
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
+    let
+      version = "1.0.0";  # Define version here in the outputs scope
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
         # We're creating a custom instance of nixpkgs
@@ -132,6 +135,12 @@
           APP_NAME=$(cat app_name.txt)
           PROPER_APP_NAME=$(echo "$APP_NAME" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
           figlet "$PROPER_APP_NAME"
+          echo "Version: ${version}"
+          if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then 
+            echo "✓ In Nix shell v${version} - you can run python server.py"
+          else 
+            echo "✗ Not in Nix shell - please run nix develop"
+          fi
           echo "Welcome to the $PROPER_APP_NAME development environment on ${system}!"
           echo 
 
@@ -337,7 +346,7 @@
           echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS (for browser automation context)"
           
           # Add isnix alias for environment checking
-          alias isnix='if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then echo "✓ In Nix shell - you can run python server.py"; else echo "✗ Not in Nix shell - please run nix develop"; fi'
+          alias isnix='if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then echo "✓ In Nix shell v${version} - you can run python server.py"; else echo "✗ Not in Nix shell - please run nix develop"; fi'
           
           # MAGIC COOKIE TRANSFORMATION
           if [ ! -d .git ]; then
