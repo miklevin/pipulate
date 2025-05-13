@@ -2715,9 +2715,68 @@ This step serves as a placeholder for future widget types."""
         # Process form data
         form = await request.form()
         url = form.get("url", "").strip()
-
+        
+        if not url:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+        
         # Store state data
         await pip.update_step_state(pipeline_id, step_id, url, steps)
+        
+        try:
+            # Set up Chrome options
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless")  # Commented out for visibility
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")  # Force new window
+            chrome_options.add_argument("--start-maximized")  # Start maximized
+            
+            # Create a temporary profile directory
+            import tempfile
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            # Initialize the Chrome driver
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin":
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else:
+                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                service = Service()
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            # Open the URL
+            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
+            driver.get(url)
+            
+            # Wait a moment to ensure the page loads
+            await asyncio.sleep(2)
+            
+            # Get the page title to confirm it loaded
+            title = driver.title
+            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
+            
+            # Close the browser
+            driver.quit()
+            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
+            
+            # Clean up the temporary profile directory
+            import shutil
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            
+        except Exception as e:
+            error_msg = f"Error opening URL with Selenium: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P(error_msg, style=pip.get_style("error"))
         
         # Keep LLM informed about the step completion
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{url}")
