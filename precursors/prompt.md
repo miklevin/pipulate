@@ -500,7 +500,7 @@ It's also a wonderful way to get the AI coding assistant to go get that general
 broad understanding of the system.
 
 **Me**: Make a non-coliding copy of @500_blank_workflow.py called
-505_widget_designer.py that only changes enough about the file it's copying in
+505_widget_shim.py that only changes enough about the file it's copying in
 order to auto-register without colliding and to give the user a few words of
 instruction that this is where we design new widgets isolated from distraction.
 
@@ -515,7 +515,7 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 
 """
-Widget Designer Workflow
+Widget Shim Workflow
 A focused environment for designing and testing new widgets in isolation.
 """
 
@@ -525,15 +525,15 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class WidgetDesigner:
     """
-    Widget Designer Workflow
+    Widget Shim Workflow
     
     A focused environment for designing and testing new widgets in isolation.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "widget_designer"              # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Widget Designer" # User-friendly name shown in the UI
+    APP_NAME = "widget_shim"              # Unique identifier for this workflow's routes and data
+    DISPLAY_NAME = "Widget Shim" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "Welcome to the Widget Designer! This is a focused environment for designing and testing new widgets in isolation. "
+        "Welcome to the Widget Shim! This is a focused environment for designing and testing new widgets in isolation. "
         "Use this space to prototype and refine your widget designs without distractions."
     )
     TRAINING_PROMPT = (
@@ -858,11 +858,11 @@ Let me continue with the rest of the file, making sure to update the class name 
         )
 ```
 
-I've created a new file `505_widget_designer.py` that's a modified version of the blank workflow template. Here are the key changes I made to make it a focused widget design environment:
+I've created a new file `505_widget_shim.py` that's a modified version of the blank workflow template. Here are the key changes I made to make it a focused widget design environment:
 
 1. Changed the class name from `BlankWorkflow` to `WidgetDesigner`
-2. Updated the `APP_NAME` to `"widget_designer"` to avoid collisions
-3. Modified the `DISPLAY_NAME` to `"Widget Designer"`
+2. Updated the `APP_NAME` to `"widget_shim"` to avoid collisions
+3. Modified the `DISPLAY_NAME` to `"Widget Shim"`
 4. Updated the `ENDPOINT_MESSAGE` to provide clear instructions about the widget design environment
 5. Updated the `TRAINING_PROMPT` to reflect its specialized purpose
 6. Changed the step name from "Step 1 Placeholder" to "Widget Design Step"
@@ -881,11 +881,11 @@ The file is now ready to use. When users access this workflow, they'll see a cle
 > another for internal use. The former can be changed and the later can't. And
 > the 2 identities can't be identical.
 
-Claude does this nearly perfectly and I now have `Widget Designer` on the
+Claude does this nearly perfectly and I now have `Widget Shim` on the
 dropdown menu as a new scratchpad place to work. The only problem is that it did
 it a little too perfectly and the filename
-`pipulate/plugins/505_widget_designer.py` which controls the user-facing
-endpoint (URL) is too similar to the `APP_NAME` = `widget_designer` that
+`pipulate/plugins/505_widget_shim.py` which controls the user-facing
+endpoint (URL) is too similar to the `APP_NAME` = `widget_shim` that
 controls the invisible URLs and app identity. The former can freely be changed
 without corrupting database integrity and the later can't. See? The "identity"
 of an app as controlled by its filename and `DISPLAY_NAME` can be changed.
@@ -895,7 +895,7 @@ workflow they belong to. Anwyay, that's a long way of describing why I had to
 change:
 
 ```python
-    APP_NAME = "widget_designer"              # Unique identifier for this workflow's routes and data
+    APP_NAME = "widget_shim"              # Unique identifier for this workflow's routes and data
 ```
 
 ...to:
@@ -909,7 +909,7 @@ dropdown menus (the way a filename/APP_NAME collision manifests) pops back. And
 we have a perfect starting point.
 
 Okay, Gemini I want you to make an implementation plan for a multi-file upload
-widget in `pipulate/plugins/505_widget_designer.py` based on the sample code
+widget in `pipulate/plugins/505_widget_shim.py` based on the sample code
 above. Also, here's the signature a [FastHTML Form FT
 component](https://docs.fastht.ml/api/xtend.html#form):
 
@@ -956,7 +956,7 @@ server.py
 /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 /home/mike/repos/.cursor/rules/workflow_implementation_guide.md
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/pipulate/plugins/505_widget_designer.py
+/home/mike/repos/pipulate/plugins/505_widget_shim.py
 """.strip().splitlines()
 ```
 
@@ -992,7 +992,7 @@ Key Points:
 • /home/mike/repos/pipulate/plugins/020_hello_workflow.py (6,900 tokens)
 • /home/mike/repos/.cursor/rules/workflow_implementation_guide.md (8,428 tokens)
 • /home/mike/repos/pipulate/plugins/520_widget_examples.py (24,472 tokens)
-• /home/mike/repos/pipulate/plugins/505_widget_designer.py (3,323 tokens)
+• /home/mike/repos/pipulate/plugins/505_widget_shim.py (3,323 tokens)
 • /home/mike/repos/pipulate/precursors/prompt.md (10,232 tokens)
 
 --- Post-Prompt ---
@@ -1014,13 +1014,13 @@ Script finished.
 
 Okay, I've reviewed the materials and the request. This is a well-documented project with a clear philosophy! The "human-in-the-loop" approach for downloads, pivoting to a user-driven upload, makes a lot of sense given the complexities of browser automation and download path inconsistencies.
 
-Here's an implementation plan for the multi-file upload widget within the `pipulate/plugins/505_widget_designer.py` workflow. We'll follow your "bank small wins" approach.
+Here's an implementation plan for the multi-file upload widget within the `pipulate/plugins/505_widget_shim.py` workflow. We'll follow your "bank small wins" approach.
 
 **Implementation Plan: Multi-File Upload Widget**
 
-**Target File:** `pipulate/plugins/505_widget_designer.py`
+**Target File:** `pipulate/plugins/505_widget_shim.py`
 
-**Overall Goal:** Create a widget in the "Widget Designer" workflow that allows users to select multiple files, upload them to a server-side directory structured as `downloads/APP_NAME/PIPELINE_ID/`, and then displays a confirmation of the uploaded files.
+**Overall Goal:** Create a widget in the "Widget Shim" workflow that allows users to select multiple files, upload them to a server-side directory structured as `downloads/APP_NAME/PIPELINE_ID/`, and then displays a confirmation of the uploaded files.
 
 ---
 
@@ -1062,7 +1062,7 @@ Here's an implementation plan for the multi-file upload widget within the `pipul
 
 **Code Assistant Instructions:**
 
-"Please implement Step 1 as outlined above in `pipulate/plugins/505_widget_designer.py`. Focus on creating the multi-file input form in `step_01` and modifying `step_01_submit` to display the names and sizes of the selected files. Do not implement file saving yet. The `step_01_submit` should allow the user to easily return to the file input form. Ensure all HTMX attributes are correctly set for this behavior."
+"Please implement Step 1 as outlined above in `pipulate/plugins/505_widget_shim.py`. Focus on creating the multi-file input form in `step_01` and modifying `step_01_submit` to display the names and sizes of the selected files. Do not implement file saving yet. The `step_01_submit` should allow the user to easily return to the file input form. Ensure all HTMX attributes are correctly set for this behavior."
 
 ---
 
@@ -1081,7 +1081,7 @@ Let me know when you're ready for the AI to proceed with these instructions.
 > checkpoint. File multi-select and listing them is working. This is such a sign
 > of things to come.
 
-I'll help you implement Step 1 of the multi-file upload widget in the Widget Designer workflow. Let's modify the `step_01` and `step_01_submit` methods to handle multiple file selection and display.
+I'll help you implement Step 1 of the multi-file upload widget in the Widget Shim workflow. Let's modify the `step_01` and `step_01_submit` methods to handle multiple file selection and display.
 
 ```python
 // ... existing code ...
@@ -1231,7 +1231,7 @@ I'll help you implement Step 1 of the multi-file upload widget in the Widget Des
 // ... existing code ...
 ```
 
-I've implemented Step 1 of the multi-file upload widget in the Widget Designer workflow. Here are the key changes made:
+I've implemented Step 1 of the multi-file upload widget in the Widget Shim workflow. Here are the key changes made:
 
 1. Modified `step_01` (GET handler):
    - Added a file input with `multiple="true"` and `required="true"`

@@ -9,7 +9,7 @@ This guide documents the patterns and best practices for implementing file uploa
 
 ## Overview
 
-File uploads in Pipulate follow a "human-in-the-loop" approach, where users select files from their system and upload them into the workflow. This pattern is demonstrated in the Widget Designer workflow (`[505_widget_designer.py](mdc:pipulate/plugins/505_widget_designer.py)`).
+File uploads in Pipulate follow a "human-in-the-loop" approach, where users select files from their system and upload them into the workflow. This pattern is demonstrated in the Widget Shim workflow (`[505_widget_shim.py](mdc:pipulate/plugins/505_widget_shim.py)`).
 
 ## Implementation Components
 
@@ -88,7 +88,7 @@ This structure:
 
 To add file upload to a workflow:
 
-1. Copy the form structure from the Widget Designer
+1. Copy the form structure from the Widget Shim
 2. Update the `APP_NAME` and other identifiers
 3. Implement the file processing logic
 4. Add proper error handling

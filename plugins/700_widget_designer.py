@@ -59,15 +59,15 @@ Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], default
 
 class WidgetDesigner:
     """
-    Widget Designer Workflow
+    Widget Shim Workflow
     
     A focused environment for designing and testing new widgets in isolation.
     """
     # --- Workflow Configuration ---
     APP_NAME = "design_widget"       # Unique identifier for this workflow's routes and data (most be different from plugin name from filename)
-    DISPLAY_NAME = "Widget Designer" # User-friendly name shown in the UI
+    DISPLAY_NAME = "Widget Shim" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (             # Message shown on the workflow's landing page
-        "Welcome to the Widget Designer! This is a focused environment for designing and testing new widgets in isolation. "
+        "Welcome to the Widget Shim! This is a focused environment for designing and testing new widgets in isolation. "
         "Use this space to prototype and refine your widget designs without distractions."
     )
     TRAINING_PROMPT = (

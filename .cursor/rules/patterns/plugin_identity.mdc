@@ -22,8 +22,8 @@ class MyWorkflow:
 - Controlled by `DISPLAY_NAME` in the workflow class
 - Can be freely changed without affecting data integrity
 - Appears in the UI dropdown menu
-- Example: `DISPLAY_NAME = "Widget Designer"`
-- Use spaces for readability (e.g., "Widget Designer")
+- Example: `DISPLAY_NAME = "Widget Shim"`
+- Use spaces for readability (e.g., "Widget Shim")
 
 ### 2. Internal Identity (System-facing)
 - Controlled by `APP_NAME` in the workflow class
@@ -86,7 +86,7 @@ DISPLAY_NAME = "My Plugin"       # Can be updated
 ### 2. Identity Management
 - Keep `APP_NAME` short and descriptive
 - Use underscores for `APP_NAME` (e.g., `design_widget`)
-- Use spaces for `DISPLAY_NAME` (e.g., "Widget Designer")
+- Use spaces for `DISPLAY_NAME` (e.g., "Widget Shim")
 - Never change `APP_NAME` after workflow is in use
 - Comment the `APP_NAME` line to explain its purpose
 - Document any identity-related decisions in workflow docstring
@@ -99,11 +99,11 @@ DISPLAY_NAME = "My Plugin"       # Can be updated
   ```python
   # Good
   APP_NAME = "design_widget"        # Internal routes/data
-  DISPLAY_NAME = "Widget Designer"  # UI display
+  DISPLAY_NAME = "Widget Shim"  # UI display
   
   # Bad - causes collisions
-  APP_NAME = "widget_designer"      # Too similar to filename
-  DISPLAY_NAME = "Widget Designer"  # Same as APP_NAME
+  APP_NAME = "widget_shim"      # Too similar to filename
+  DISPLAY_NAME = "Widget Shim"  # Same as APP_NAME
   ```
 
 ## Common Pitfalls
@@ -129,4 +129,4 @@ DISPLAY_NAME = "My Plugin"       # Can be updated
 ## Reference Examples
 See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for template pattern.
 See [510_splice_workflow.py](mdc:pipulate/plugins/510_splice_workflow.py) for implementation examples.
-See [700_widget_designer.py](mdc:pipulate/plugins/700_widget_designer.py) for development workflow example.
+See [700_widget_shim.py](mdc:pipulate/plugins/700_widget_shim.py) for development workflow example.

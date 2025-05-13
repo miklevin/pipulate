@@ -173,5 +173,5 @@ async def step_xx(self, request):
 - [validation](mdc:patterns/validation.mdc)
 
 ## Reference Files
-- [700_widget_designer.py](mdc:pipulate/plugins/700_widget_designer.py)
+- [700_widget_shim.py](mdc:pipulate/plugins/700_widget_shim.py)
 - [750_checkboxes.py](mdc:pipulate/plugins/750_checkboxes.py)

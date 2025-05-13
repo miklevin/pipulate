@@ -28,7 +28,7 @@ server.py
 /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 /home/mike/repos/.cursor/rules/workflow_implementation_guide.md
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/pipulate/plugins/505_widget_designer.py
+/home/mike/repos/pipulate/plugins/505_widget_shim.py
 # /home/mike/repos/Pipulate.com/install.sh
 # /home/mike/repos/Pipulate.com/index.md
 # /home/mike/repos/Pipulate.com/architecture.md
