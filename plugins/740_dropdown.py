@@ -34,9 +34,28 @@ class DropdownWidget:
     )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
+    # --- Dropdown Configuration ---
+    SOURCE_TYPE = "static"  # static, api, file, db, previous_step
+    SOURCE_CONFIG = {
+        "api_url": None,
+        "file_path": None,
+        "db_query": None,
+        "previous_step": None,
+        "value_field": "value",
+        "label_field": "label",
+        "group_field": "group",
+        "description_field": "description",
+        "options": [
+            {"value": "1", "label": "Option 1", "group": "Group A"},
+            {"value": "2", "label": "Option 2", "group": "Group A"},
+            {"value": "3", "label": "Option 3", "group": "Group B"}
+        ]
+    }
+
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
+        logger.debug("Initializing DropdownWidget")
         self.app = app
         self.app_name = app_name
         self.pipulate = pipulate
@@ -46,13 +65,17 @@ class DropdownWidget:
         pip = self.pipulate
         self.message_queue = pip.message_queue
 
+        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
+        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
+
         # Define workflow steps
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Step 1 Placeholder',
-                refill=False,
+                done='dropdown_selection',
+                show='Dropdown Selection',
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
             ),
             # Add more steps as needed
         ]
@@ -97,6 +120,7 @@ class DropdownWidget:
         # Add the finalize step internally
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        logger.debug("DropdownWidget initialization complete")
 
     # --- Core Workflow Engine Methods ---
 
@@ -249,7 +273,7 @@ class DropdownWidget:
         step_id = form.get("step_id", "")
         
         if step_id not in self.steps_indices:
-            return P("Error: Invalid step", style=pip.get_style("error"))
+            return P("Error: Invalid step", style=self.pipulate.get_style("error"))
         
         return Div(
             Div(id=step_id, hx_get=f"/{app_name}/{step_id}", hx_trigger="load"),
@@ -267,7 +291,7 @@ class DropdownWidget:
         step_id = form.get("step_id", "")
         
         if step_id not in self.steps_indices:
-            return P("Error: Invalid step", style=pip.get_style("error"))
+            return P("Error: Invalid step", style=self.pipulate.get_style("error"))
         
         pipeline_id = db.get("pipeline_id", "unknown")
         
@@ -286,7 +310,8 @@ class DropdownWidget:
         )
 
     async def step_01(self, request):
-        """Handles GET request for Step 1."""
+        """Handles GET request for dropdown selection step."""
+        logger.debug("Entering step_01")
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -296,63 +321,112 @@ class DropdownWidget:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         
-        # Get the value if already completed
-        value = step_data.get(step.done, "")
+        logger.debug(f"Pipeline ID: {pipeline_id}")
+        logger.debug(f"State: {state}")
+        logger.debug(f"Step data: {step_data}")
+        
+        # Get the selected value if already completed
+        selected_value = step_data.get(step.done, "")
+        logger.debug(f"Selected value: {selected_value}")
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and value:
+        if "finalized" in finalize_data and selected_value:
             # Show finalized state
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P(f"Value: {value}", style="font-weight: bold;")
+                    P(f"Selected: {selected_value}", style="font-weight: bold;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         
         # Check if step is complete and not being reverted to
-        if value and state.get("_revert_target") != step_id:
+        if selected_value and state.get("_revert_target") != step_id:
             # Show completed state
             return Div(
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: {value}",
+                    message=f"{step.show}: {selected_value}",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         
-        # Show the input form
+        # Show the dropdown form
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
                                 f"Complete {step.show}"), 
                                 verbatim=True)
         
-        return Div(
-            Card(
-                H3(f"{step.show}"),
-                Form(
-                    Input(
-                        type="text",
-                        name=step.done,
-                        value=value if value else "",
-                        required=True,
-                        autofocus=True
-                    ),
-                    Button("Submit", type="submit", cls="primary"),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        try:
+            logger.debug("About to get options")
+            # Get options based on source configuration
+            raw_options = await self.get_options(pipeline_id)
+            logger.debug(f"Got raw options: {raw_options}")
+            
+            # Format options
+            options = [await self.format_option(option) for option in raw_options]
+            logger.debug(f"Formatted options: {options}")
+            
+            # Group options by group field
+            grouped_options = {}
+            for option in options:
+                group = option["group"]
+                if group not in grouped_options:
+                    grouped_options[group] = []
+                grouped_options[group].append(option)
+            
+            logger.debug(f"Grouped options: {grouped_options}")
+            
+            # Create select element with option groups
+            select = Select(
+                *[
+                    Optgroup(
+                        *[Option(
+                            option["label"],
+                            value=option["value"],
+                            selected=option["value"] == selected_value,
+                            title=option["description"] if option["description"] else None
+                        ) for option in group_options],
+                        label=group
+                    )
+                    for group, group_options in grouped_options.items()
+                ],
+                name=step.done,
+                required=True,
+                autofocus=True
+            )
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    Form(
+                        select,
+                        Button("Submit", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting options: {str(e)}")
+            logger.exception("Full traceback:")
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P(f"Error loading options: {str(e)}", style=self.pipulate.ERROR_STYLE)
+                ),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
-        """Handles POST request for Step 1."""
+        """Handles POST request for dropdown selection step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -365,7 +439,7 @@ class DropdownWidget:
         value = form.get(step.done, "").strip()
         
         if not value:
-            return P("Error: Field is required", style=pip.get_style("error"))
+            return P("Error: Please select an option", style=self.pipulate.ERROR_STYLE)
         
         # Update state
         await pip.update_step_state(pipeline_id, step_id, value, steps)
@@ -383,4 +457,72 @@ class DropdownWidget:
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        ) 
+        )
+
+    async def get_options(self, pipeline_id):
+        """Get options based on SOURCE_TYPE and SOURCE_CONFIG."""
+        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
+        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
+        
+        if self.SOURCE_TYPE == "static":
+            # Get options directly from SOURCE_CONFIG
+            logger.debug("Getting static options")
+            options = self.SOURCE_CONFIG.get("options", [])
+            logger.debug(f"Retrieved options: {options}")
+            if not options:
+                raise ValueError("No options configured in SOURCE_CONFIG")
+            return options
+        
+        elif self.SOURCE_TYPE == "api":
+            if not self.SOURCE_CONFIG["api_url"]:
+                raise ValueError("API URL not configured")
+            # TODO: Implement API call
+            return []
+        
+        elif self.SOURCE_TYPE == "file":
+            if not self.SOURCE_CONFIG["file_path"]:
+                raise ValueError("File path not configured")
+            # TODO: Implement file reading
+            return []
+        
+        elif self.SOURCE_TYPE == "db":
+            if not self.SOURCE_CONFIG["db_query"]:
+                raise ValueError("Database query not configured")
+            # TODO: Implement database query
+            return []
+        
+        elif self.SOURCE_TYPE == "previous_step":
+            if not self.SOURCE_CONFIG["previous_step"]:
+                raise ValueError("Previous step not configured")
+            # TODO: Implement previous step data retrieval
+            return []
+        
+        else:
+            raise ValueError(f"Unknown source type: {self.SOURCE_TYPE}")
+
+    async def format_option(self, option):
+        """Format an option for display."""
+        logger.debug(f"Formatting option: {option}")
+        
+        # Get field names from config
+        value_field = self.SOURCE_CONFIG.get("value_field", "value")
+        label_field = self.SOURCE_CONFIG.get("label_field", "label")
+        group_field = self.SOURCE_CONFIG.get("group_field", "group")
+        description_field = self.SOURCE_CONFIG.get("description_field", "description")
+        
+        logger.debug(f"Field names - value: {value_field}, label: {label_field}, group: {group_field}, description: {description_field}")
+        
+        # Extract values with defaults
+        value = option.get(value_field, "")
+        label = option.get(label_field, value)
+        group = option.get(group_field, "Ungrouped")
+        description = option.get(description_field, "")
+        
+        logger.debug(f"Extracted values - value: {value}, label: {label}, group: {group}, description: {description}")
+        
+        return {
+            "value": value,
+            "label": label,
+            "group": group,
+            "description": description
+        } 
