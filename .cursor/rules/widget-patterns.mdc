@@ -1,0 +1,346 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Widget Implementation Patterns
+
+## Overview
+This guide provides comprehensive patterns for implementing widgets in Pipulate workflows, combining best practices for design, implementation, accessibility, error handling, and mobile responsiveness.
+
+## Development Workflow
+
+### 1. Initial Setup
+```python
+# Filename: xx_my_widget.py (during development)
+class MyWidget:
+    APP_NAME = "my_widget"          # Set permanent internal identity
+    DISPLAY_NAME = "My Widget"      # User-friendly name
+```
+- Use `xx_` prefix during development to prevent auto-loading
+- Set unique `APP_NAME` that differs from filename
+- Choose distinct `DISPLAY_NAME`
+
+### 2. Development Process
+1. Start with basic UI components
+2. Add functionality incrementally
+3. Test each phase before proceeding
+4. Maintain proper state management
+5. Keep the LLM informed via `append_to_history`
+
+### 3. Deployment Steps
+1. Copy template with `xx_` prefix
+2. Set unique `APP_NAME`
+3. Set distinct `DISPLAY_NAME`
+4. Test configuration
+5. Choose final filename/position
+6. Remove `xx_` prefix to deploy
+
+## Core Widget Pattern
+
+### 1. Widget Identity
+```python
+class MyWidget:
+    APP_NAME = "my_widget"          # Internal identity - MUST differ from filename
+    DISPLAY_NAME = "My Widget"      # User-friendly name
+    ENDPOINT_MESSAGE = "Clear instructions about widget purpose"
+```
+
+### 2. Step Structure
+```python
+Step(
+    id='step_01',
+    done='field_name',     # State storage field
+    show='Widget Name',    # User-friendly name
+    refill=True,           # Allow refilling if needed
+    transform=lambda x: x  # Optional transform
+)
+```
+
+### 3. Chain Reaction Pattern
+```python
+Div(
+    Card(...), # Current step's content
+    # CRITICAL: This inner Div triggers loading of the next step
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+## Implementation Requirements
+
+### 1. State Management
+- Use `pip.update_step_state()` for state updates
+- Access state via `step_data.get(step.done)`
+- Handle state during reverts properly
+- Include clear summaries in state for review
+- Use `_preserve_completed` flag for download steps
+
+### 2. LLM Context Pattern
+```python
+# Configuration
+pip.append_to_history("[WIDGET CONFIG] Configuration details...")
+
+# State Updates
+pip.append_to_history("[WIDGET STATE] Current state...")
+
+# Content Changes
+pip.append_to_history("[WIDGET CONTENT] Content details...")
+
+# User Interactions
+pip.append_to_history("[WIDGET INTERACTION] Interaction details...")
+
+# Validation Results
+pip.append_to_history("[WIDGET VALIDATION] Validation results...")
+```
+
+### 3. Error Handling
+```python
+# Input Validation
+try:
+    form = await request.form()
+    value = form.get(step.done, "").strip()
+except Exception as e:
+    return P(
+        f"Error processing form: {str(e)}", 
+        style=pip.get_style("error"),
+        role="alert"
+    )
+
+# State Recovery
+if not pip.read_state(pipeline_id):
+    return P(
+        "Error: Invalid state", 
+        style=pip.get_style("error"),
+        role="alert"
+    )
+
+# API Error Handling
+try:
+    result = await api_call()
+except Exception as e:
+    return P(
+        f"Error: {str(e)}", 
+        style=pip.get_style("error"),
+        role="alert"
+    )
+
+# File Operation Errors
+try:
+    with open(filepath, 'w') as f:
+        f.write(content)
+except Exception as e:
+    return P(
+        f"Error saving file: {str(e)}", 
+        style=pip.get_style("error"),
+        role="alert"
+    )
+```
+
+### 4. Accessibility Requirements
+```python
+# Form Input
+Input(
+    type="text",
+    name=step.done,
+    required=True,
+    aria_required="true",
+    aria_labelledby=f"{step_id}-title",
+    aria_describedby=f"{step_id}-description"
+)
+
+# Buttons
+Button(
+    "Submit",
+    type="submit",
+    aria_label="Submit form",
+    role="button"
+)
+
+# Containers
+Div(
+    role="region",
+    aria_labelledby=f"{step_id}-title",
+    aria_live="polite"  # For dynamic content
+)
+
+# Error Messages
+P(
+    "Error message",
+    style=pip.get_style("error"),
+    role="alert",
+    aria_live="assertive"
+)
+```
+
+### 5. Mobile Responsiveness
+```python
+# Touch Targets
+Button(
+    "Submit",
+    type="submit",
+    style="min-height: 44px; min-width: 44px;"
+)
+
+# Form Inputs
+Input(
+    type="text",
+    style="min-height: 44px; padding: 8px;"
+)
+
+# Loading States
+Div(
+    "Loading...",
+    cls="loading-indicator",
+    style="display: none;",
+    _="on htmx:beforeRequest show me end on htmx:afterRequest hide me end"
+)
+
+# Responsive Layout
+Div(
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1vh;"
+)
+
+# Responsive Table
+Div(
+    Table(...),
+    style="max-width: 100%; overflow-x: auto;"
+)
+```
+
+### Device Considerations
+- Smartphones (320px - 480px)
+- Tablets (481px - 768px)
+- Small laptops (769px - 1024px)
+- Large screens (1025px+)
+
+### Mobile-Specific Features
+- Handle keyboard appearance
+- Consider viewport constraints
+- Support different orientations
+- Use flexible layouts
+- Test with different screen sizes
+
+## Implementation Phases
+
+### 1. GET Handler Pattern
+```python
+async def step_01(self, request):
+    # Value access
+    value = step_data.get(step.done, "")
+
+    # Display finalized state
+    if "finalized" in finalize_data:
+        return Div(
+            Card(...),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    # Complete state
+    return Div(
+        pip.revert_control(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+
+    # Input form
+    return Div(
+        Card(
+            Form(...)
+        ),
+        Div(id=next_step_id),
+        id=step_id
+    )
+```
+
+### 2. SUBMIT Handler Pattern
+```python
+async def step_01_submit(self, request):
+    # Form processing
+    form = await request.form()
+    value = form.get(step.done)
+
+    # Validation
+    if not value:
+        return P("Error: Required field", style=pip.get_style("error"))
+
+    # State storage
+    await pip.update_step_state(pipeline_id, step_id, value, steps)
+
+    # Return with chain reaction
+    return Div(
+        pip.revert_control(...),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+## Widget Recipes
+Widget recipes are stored in `/home/mike/repos/pipulate/training/widget_recipes/` and serve as a growing catalog of reusable widget patterns. Each recipe includes:
+- Complete implementation
+- Usage examples
+- Configuration options
+- Common variations
+- Testing scenarios
+
+## Common Pitfalls
+
+### 1. Syntax and Linter Issues
+- Use string quotes for HTML/JS attributes: `_onfocus='this.setSelectionRange(...)'`
+- Use underscores for attributes: `aria_required` not `aria-required`
+- Never use assignment (`=`) in attribute values
+- Check for missing or mismatched quotes
+
+### 2. Implementation Issues
+- Removing chain reaction div
+- Missing error handling
+- Inadequate mobile support
+- Poor accessibility
+- Incorrect state management
+- Missing validation
+- Poor error messages
+- Incomplete keyboard support
+
+### 3. State Management Issues
+- Not handling finalized state
+- Missing revert functionality
+- Poor state validation
+- Incomplete error recovery
+- Missing state summaries
+
+### 4. Development Issues
+- Using same name for APP_NAME and DISPLAY_NAME
+- Changing APP_NAME after deployment
+- Not using xx_ prefix during development
+- Poor error handling during development
+- Incomplete testing before deployment
+
+## Testing Checklist
+- [ ] Input validation works
+- [ ] Preview displays correctly
+- [ ] Finalized state is locked
+- [ ] Error handling is complete
+- [ ] LLM context is maintained
+- [ ] Accessibility is considered
+- [ ] Styling is self-contained
+- [ ] Mobile responsiveness works
+- [ ] Keyboard navigation works
+- [ ] Screen reader compatibility
+- [ ] State management is correct
+- [ ] Error recovery works
+- [ ] Loading states work
+- [ ] Development workflow tested
+- [ ] Deployment process verified
+- [ ] Widget recipe documented
+- [ ] Device compatibility verified
+- [ ] Error scenarios tested
+- [ ] State recovery tested
+- [ ] Performance validated
+- [ ] Security reviewed
+
+## References
+- [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py): Template pattern
+- [720_text_field.py](mdc:pipulate/plugins/720_text_field.py): Text input example
+- [020_hello_workflow.py](mdc:pipulate/plugins/020_hello_workflow.py): Multi-step example
+- [505_widget_designer.py](mdc:pipulate/plugins/505_widget_designer.py): Development environment
