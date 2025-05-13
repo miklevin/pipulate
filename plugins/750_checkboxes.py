@@ -67,9 +67,9 @@ class CheckboxWorkflow:
     """
     # --- Workflow Configuration ---
     APP_NAME = "checkbox_workflow"    # Unique identifier for this workflow's routes and data
-    DISPLAY_NAME = "Checkbox Designer" # User-friendly name shown in the UI
+    DISPLAY_NAME = "Checkbox Widget" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (             # Message shown on the workflow's landing page
-        "Welcome to the Checkbox Designer! This is a focused environment for designing and testing "
+        "Welcome to the Checkbox Widget! This is a focused environment for designing and testing "
         "checkbox-based interactions in isolation. Use this space to prototype and refine your "
         "checkbox designs without distractions."
     )
@@ -78,6 +78,24 @@ class CheckboxWorkflow:
         "It provides a clean environment to focus on checkbox development without the complexity "
         "of a full workflow implementation."
     )
+
+    # --- Checkbox Configuration ---
+    SOURCE_TYPE = "static"  # static, api, file, db, previous_step
+    SOURCE_CONFIG = {
+        "api_url": None,
+        "file_path": None,
+        "db_query": None,
+        "previous_step": None,
+        "value_field": "value",
+        "label_field": "label",
+        "group_field": "group",
+        "description_field": "description",
+        "options": [
+            {"value": "1", "label": "Option 1", "group": "Group A", "description": "First option"},
+            {"value": "2", "label": "Option 2", "group": "Group A", "description": "Second option"},
+            {"value": "3", "label": "Option 3", "group": "Group B", "description": "Third option"}
+        ]
+    }
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -95,9 +113,10 @@ class CheckboxWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Step 1 Placeholder',
-                refill=False,
+                done='checkbox_selection',
+                show='Checkbox Selection',
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
             ),
             # Add more steps as needed
         ]
@@ -295,21 +314,8 @@ class CheckboxWorkflow:
     # --- Placeholder Step Methods ---
 
     async def step_01(self, request):
-        """Handles GET request for placeholder Step 1.
-        
-        Widget Conversion Points:
-        1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
-        2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
-        3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
-        4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
-        
-        Critical Elements to Preserve:
-        - Chain reaction with next_step_id
-        - Finalization state handling pattern
-        - Revert control mechanism
-        - Overall Div structure and ID patterns
-        - LLM context updates for widget content
-        """
+        """Handles GET request for checkbox selection step."""
+        logger.debug("Entering step_01")
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -318,70 +324,121 @@ class CheckboxWorkflow:
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")  # CUSTOMIZE_VALUE_ACCESS: Rename to match your data field
-
+        
+        logger.debug(f"Pipeline ID: {pipeline_id}")
+        logger.debug(f"State: {state}")
+        logger.debug(f"Step data: {step_data}")
+        
+        # Get the selected values if already completed
+        selected_values = step_data.get(step.done, [])
+        if isinstance(selected_values, str):
+            selected_values = [selected_values]
+        logger.debug(f"Selected values: {selected_values}")
+        
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
-            # Keep LLM informed about the finalized widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
-            
-            # CUSTOMIZE_DISPLAY: Enhanced finalized state display for your widget
+        if "finalized" in finalize_data and selected_values:
+            # Show finalized state
             return Div(
                 Card(
-                    H3(f"🔒 {step.show}: Completed")  # Combined headline with completion status
+                    H3(f"🔒 {step.show}"),
+                    P("Selected options:", style="font-weight: bold;"),
+                    Ul(*[Li(value) for value in selected_values])
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-            
+        
         # Check if step is complete and not being reverted to
-        elif placeholder_value and state.get("_revert_target") != step_id:
-            # Keep LLM informed about the completed widget content
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
-            
-            # CUSTOMIZE_COMPLETE: Enhanced completion display for your widget
+        elif selected_values and state.get("_revert_target") != step_id:
+            # Show completed state
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                pip.revert_control(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f"{step.show}: {', '.join(selected_values)}",
+                    steps=steps
+                ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
-        else:
-            # Keep LLM informed about showing the input form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+        
+        # Show the checkbox form
+        await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("input", 
+                                f"Complete {step.show}"), 
+                                verbatim=True)
+        
+        try:
+            logger.debug("About to get options")
+            # Get options based on source configuration
+            raw_options = await self.get_options(pipeline_id)
+            logger.debug(f"Got raw options: {raw_options}")
             
-            # CUSTOMIZE_FORM: Replace with your widget's input form
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            # Format options
+            options = [await self.format_option(option) for option in raw_options]
+            logger.debug(f"Formatted options: {options}")
+            
+            # Group options by group field
+            grouped_options = {}
+            for option in options:
+                group = option["group"]
+                if group not in grouped_options:
+                    grouped_options[group] = []
+                grouped_options[group].append(option)
+            
+            logger.debug(f"Grouped options: {grouped_options}")
+            
+            # Create checkbox groups
+            checkbox_groups = []
+            for group, group_options in grouped_options.items():
+                group_checkboxes = []
+                for option in group_options:
+                    checkbox = Label(
+                        Input(
+                            type="checkbox",
+                            name=step.done,
+                            value=option["value"],
+                            checked=option["value"] in selected_values,
+                            title=option["description"] if option["description"] else None
+                        ),
+                        f" {option['label']}"
+                    )
+                    group_checkboxes.append(checkbox)
+                
+                checkbox_groups.append(
+                    Fieldset(
+                        Legend(group),
+                        *group_checkboxes
+                    )
+                )
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
                     Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        *checkbox_groups,
+                        Button("Submit", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
                         hx_target=f"#{step_id}"
                     )
                 ),
-                Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                Div(id=next_step_id),
+                id=step_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting options: {str(e)}")
+            logger.exception("Full traceback:")
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P(f"Error loading options: {str(e)}", style=self.pipulate.ERROR_STYLE)
+                ),
                 id=step_id
             )
 
     async def step_01_submit(self, request):
-        """Process the submission for placeholder Step 1.
-        
-        Chain Reaction Pattern:
-        When a step completes, it MUST explicitly trigger the next step by including
-        a div for the next step with hx-trigger="load". While this may seem redundant,
-        it is more reliable than depending on HTMX event bubbling.
-        
-        LLM Context Pattern:
-        Always keep the LLM informed about:
-        1. What was submitted (widget content)
-        2. Any transformations or processing applied
-        3. The final state of the widget
-        Use pip.append_to_history() for this to avoid cluttering the chat interface.
-        """
+        """Handles POST request for checkbox selection step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -389,20 +446,95 @@ class CheckboxWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
-        # Process and save data...
-        placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        # Get form data - checkbox values come as a list
+        form = await request.form()
+        values = form.getlist(step.done)
         
-        # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        if not values:
+            return P("Error: Please select at least one option", style=self.pipulate.ERROR_STYLE)
         
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        # Update state
+        await self.pipulate.update_step_state(pipeline_id, step_id, values, steps)
+        await self.message_queue.add(self.pipulate, self.step_messages.get(step_id, {}).get("complete", 
+                                f"{step.show} complete: {', '.join(values)}"), 
+                                verbatim=True)
         
-        # CRITICAL: Return the completed view WITH explicit next step trigger
+        # Return with revert control and chain reaction
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            self.pipulate.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: {', '.join(values)}",
+                steps=steps
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        ) 
+        )
+
+    async def get_options(self, pipeline_id):
+        """Get options based on SOURCE_TYPE and SOURCE_CONFIG."""
+        logger.debug(f"SOURCE_TYPE: {self.SOURCE_TYPE}")
+        logger.debug(f"SOURCE_CONFIG: {self.SOURCE_CONFIG}")
+        
+        if self.SOURCE_TYPE == "static":
+            # Get options directly from SOURCE_CONFIG
+            logger.debug("Getting static options")
+            options = self.SOURCE_CONFIG.get("options", [])
+            logger.debug(f"Retrieved options: {options}")
+            if not options:
+                raise ValueError("No options configured in SOURCE_CONFIG")
+            return options
+        
+        elif self.SOURCE_TYPE == "api":
+            if not self.SOURCE_CONFIG["api_url"]:
+                raise ValueError("API URL not configured")
+            # TODO: Implement API call
+            return []
+        
+        elif self.SOURCE_TYPE == "file":
+            if not self.SOURCE_CONFIG["file_path"]:
+                raise ValueError("File path not configured")
+            # TODO: Implement file reading
+            return []
+        
+        elif self.SOURCE_TYPE == "db":
+            if not self.SOURCE_CONFIG["db_query"]:
+                raise ValueError("Database query not configured")
+            # TODO: Implement database query
+            return []
+        
+        elif self.SOURCE_TYPE == "previous_step":
+            if not self.SOURCE_CONFIG["previous_step"]:
+                raise ValueError("Previous step not configured")
+            # TODO: Implement previous step data retrieval
+            return []
+        
+        else:
+            raise ValueError(f"Unknown source type: {self.SOURCE_TYPE}")
+
+    async def format_option(self, option):
+        """Format an option for display."""
+        logger.debug(f"Formatting option: {option}")
+        
+        # Get field names from config
+        value_field = self.SOURCE_CONFIG.get("value_field", "value")
+        label_field = self.SOURCE_CONFIG.get("label_field", "label")
+        group_field = self.SOURCE_CONFIG.get("group_field", "group")
+        description_field = self.SOURCE_CONFIG.get("description_field", "description")
+        
+        logger.debug(f"Field names - value: {value_field}, label: {label_field}, group: {group_field}, description: {description_field}")
+        
+        # Extract values with defaults
+        value = option.get(value_field, "")
+        label = option.get(label_field, value)
+        group = option.get(group_field, "Ungrouped")
+        description = option.get(description_field, "")
+        
+        logger.debug(f"Extracted values - value: {value}, label: {label}, group: {group}, description: {description}")
+        
+        return {
+            "value": value,
+            "label": label,
+            "group": group,
+            "description": description
+        } 
