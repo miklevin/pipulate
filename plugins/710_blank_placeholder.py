@@ -103,7 +103,6 @@ class BlankPlaceholder:
         routes = [
             (f"/{app_name}", self.landing),
             (f"/{app_name}/init", self.init, ["POST"]),
-            (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
@@ -259,14 +258,6 @@ class BlankPlaceholder:
         pipeline_id = db.get("pipeline_id", "unknown")
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
-        return pip.rebuild(app_name, steps)
-
-    async def jump_to_step(self, request):
-        """Handles POST request from breadcrumb navigation to jump to a specific step."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        db["step_id"] = step_id
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):

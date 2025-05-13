@@ -166,7 +166,6 @@ class BotifyExport:
         routes = [
             (f"/{app_name}", self.landing),
             (f"/{app_name}/init", self.init, ["POST"]),
-            (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]),
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
@@ -2870,24 +2869,6 @@ class BotifyExport:
         prev_word = prev_data.get(prev_step.done, "")
         return step.transform(prev_word) if prev_word else ""
 
-    async def jump_to_step(self, request):
-        """
-        Jump to a specific step in the workflow.
-        
-        This method updates the step_id in the database and rebuilds the UI
-        to show the workflow from the selected step.
-        
-        Args:
-            request: The HTTP request object containing the step_id
-            
-        Returns:
-            FastHTML components showing the workflow from the selected step
-        """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        db["step_id"] = step_id
-        return pip.rebuild(app_name, steps)
 
 # ============================================================================
 # 9. UTILITY FUNCTIONS

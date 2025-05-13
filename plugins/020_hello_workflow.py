@@ -83,7 +83,7 @@ class HelloFlow:
         * `_preserve_completed`: You can manually set `state[step_id]['_preserve_completed'] = True` (e.g., in `unfinalize` or `handle_revert`) if you want a specific step (like one involving a download) to remain in its "completed" view even after unfinalizing or reverting *past* it.
 
     * **Core Methods vs. Custom Handlers:**
-        * Core methods (`landing`, `init`, `finalize`, `unfinalize`, `handle_revert`, `jump_to_step`, `get_suggestion`, `run_all_cells`) provide the workflow engine. Avoid deleting or significantly modifying them.
+        * Core methods (`landing`, `init`, `finalize`, `unfinalize`, `handle_revert`, `get_suggestion`, `run_all_cells`) provide the workflow engine. Avoid deleting or significantly modifying them.
         * Custom Handlers (`step_XX`, `step_XX_submit`) contain your specific workflow logic for each step. Modify these extensively.
     """
     # --- Workflow Configuration (CHANGE THESE) ---
@@ -136,7 +136,6 @@ class HelloFlow:
         routes = [
             (f"/{app_name}", self.landing),                             # GET landing page
             (f"/{app_name}/init", self.init, ["POST"]),                 # POST init workflow
-            (f"/{app_name}/jump_to_step", self.jump_to_step, ["POST"]), # POST jump to step
             (f"/{app_name}/revert", self.handle_revert, ["POST"]),      # POST revert step
             (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),  # GET/POST finalize
             (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),      # POST unfinalize
@@ -309,15 +308,6 @@ class HelloFlow:
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
         # Rebuild the entire UI to show unlocked state
-        return pip.rebuild(app_name, steps)
-
-    async def jump_to_step(self, request):
-        """ Handles POST request from breadcrumb navigation to jump to a specific step. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        form = await request.form()
-        step_id = form.get("step_id")
-        db["step_id"] = step_id # Update current step context
-        # Rebuild UI from the jumped-to step
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
