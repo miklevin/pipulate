@@ -191,6 +191,12 @@ class WidgetExamples:
                 show='Selenium URL Opener',  # Changed from 'Placeholder Step'
                 refill=True,
             ),
+            Step(
+                id='step_11',
+                done='placeholder',
+                show='Step 11 Placeholder',
+                refill=True,
+            ),
         ]
         
         # Standard workflow routes
@@ -2697,7 +2703,7 @@ This step serves as a placeholder for future widget types."""
             )
 
     async def step_10_submit(self, request):
-        """Process the URL submission and open it with Selenium."""
+        """Process the submission for Step 10."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_10"
         step_index = self.steps_indices[step_id]
@@ -2705,103 +2711,117 @@ This step serves as a placeholder for future widget types."""
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
 
-        # Get and validate URL
+        # Process form data
         form = await request.form()
         url = form.get("url", "").strip()
-        
-        if not url:
-            return P("Error: URL is required", style=pip.get_style("error"))
-        
-        if not url.startswith(("http://", "https://")):
-            url = f"https://{url}"
-        
-        # Store URL in state
+
+        # Store state data
         await pip.update_step_state(pipeline_id, step_id, url, steps)
         
-        try:
-            # Set up Chrome options
-            chrome_options = Options()
-            # chrome_options.add_argument("--headless")  # Commented out for visibility
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--new-window")  # Force new window
-            chrome_options.add_argument("--start-maximized")  # Start maximized
-            
-            # Create a temporary profile directory
-            import tempfile
-            profile_dir = tempfile.mkdtemp()
-            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-            
-            # Log the current OS and environment
-            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
-            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
-            
-            # Initialize the Chrome driver
-            if effective_os == "darwin":
-                # On macOS, use webdriver-manager
-                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
-                service = Service(ChromeDriverManager().install())
-            else:
-                # On Linux, use system Chrome
-                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
-                service = Service()
-            
-            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Open the URL
-            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
-            driver.get(url)
-            
-            # Wait a moment to ensure the page loads
-            await asyncio.sleep(2)
-            
-            # Get the page title to confirm it loaded
-            title = driver.title
-            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
-            
-            # Close the browser
-            driver.quit()
-            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
-            
-            # Clean up the temporary profile directory
-            import shutil
-            shutil.rmtree(profile_dir, ignore_errors=True)
-            
-        except Exception as e:
-            error_msg = f"Error opening URL with Selenium: {str(e)}"
-            logger.error(error_msg)
-            await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style("error"))
+        # Keep LLM informed about the step completion
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{url}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
         
-        # Create widget with reopen button
-        url_widget = Div(
-            P(f"URL configured: ", B(url)),
-            Form(
-                Input(type="hidden", name="url", value=url),
-                Button(
-                    "Open URL Again 🪄",
-                    type="submit",
-                    cls="secondary"
-                ),
-                hx_post=f"/{app_name}/reopen_url",
-                hx_target=f"#{step_id}-status"
-            ),
-            Div(id=f"{step_id}-status")
-        )
+        # Send user-visible confirmation via message queue
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
-        # Create content container
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: {url}",
-            widget=url_widget,
-            steps=steps
-        )
-        
-        # Return with chain reaction to next step
+        # Return completion view with explicit trigger to next step
         return Div(
-            content_container,
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+
+    async def step_11(self, request):
+        """Handles GET request for Step 11.
+        
+        This is a placeholder step that follows the chain reaction pattern.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_11"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        placeholder_value = step_data.get(step.done, "")
+
+        # Check if workflow is finalized
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and placeholder_value:
+            # Keep LLM informed about finalized state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}: Completed")
+                ),
+                # CRITICAL: Include trigger to next step even in finalized state
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+            
+        # Check if step is complete and not being reverted to
+        if placeholder_value and state.get("_revert_target") != step_id:
+            # Keep LLM informed about completed state
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            
+            return Div(
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                # CRITICAL: Include trigger to next step in completed state
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            # Keep LLM informed about showing input form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    Form(
+                        Button("Next ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", 
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                # Empty placeholder without trigger
+                Div(id=next_step_id),
+                id=step_id
+            )
+
+    async def step_11_submit(self, request):
+        """Process the submission for Step 11.
+        
+        This is a placeholder step that follows the chain reaction pattern.
+        """
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_11"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        # For placeholder, we use a fixed value
+        placeholder_value = "completed"
+
+        # Store state data
+        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        
+        # Keep LLM informed about the step completion
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        
+        # Send user-visible confirmation via message queue
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        # Return completion view with explicit trigger to next step
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
