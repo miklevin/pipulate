@@ -8,6 +8,49 @@ from loguru import logger
 """
 Pipulate Workflow Template
 A minimal starter template for creating step-based Pipulate workflows.
+
+RULE NAVIGATION GUIDE:
+--------------------
+1. Starting Point:
+   - See: patterns/workflow-patterns.mdc
+   - Key sections: "Implementation Steps", "Basic Widget Pattern"
+   - Essential for understanding the minimal widget structure
+
+2. State Management:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Widget State Management", "Common Pitfalls"
+   - Critical for proper state handling
+
+3. UI Construction:
+   - See: implementation/implementation-workflow.mdc
+   - Review: "Widget Container Structure", "UI Patterns"
+   - Important for maintaining consistent UI
+
+4. Testing Guidelines:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Widget Testing Checklist"
+   - Essential for ensuring widget reliability
+
+5. Recovery Process:
+   - See: patterns/workflow-patterns.mdc
+   - Review: "Recovery Process", "Prevention Guidelines"
+   - Critical for handling workflow breaks
+
+CONVERSION POINTS:
+----------------
+When converting this template to a new widget:
+1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
+2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
+3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
+4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
+
+CRITICAL ELEMENTS TO PRESERVE:
+----------------------------
+- Chain reaction with next_step_id
+- Finalization state handling pattern
+- Revert control mechanism
+- Overall Div structure and ID patterns
+- LLM context updates for widget content
 """
 
 # Model for a workflow step

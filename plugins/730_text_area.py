@@ -8,6 +8,55 @@ from loguru import logger
 """
 Text Area Widget Workflow
 A specialized workflow for handling multi-line text input with a textarea widget.
+
+RULE NAVIGATION GUIDE:
+--------------------
+1. Text Area Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Key sections: "Text Area Widget Pattern", "Multi-line Input"
+   - Critical for understanding text area implementation
+
+2. State Management:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Widget State Management", "Text Area State"
+   - Essential for proper text area state handling
+
+3. UI Construction:
+   - See: implementation/implementation-workflow.mdc
+   - Review: "Text Area UI Patterns", "Form Structure"
+   - Important for maintaining consistent text area UI
+
+4. Formatting Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Text Formatting", "Pre Tag Usage"
+   - Critical for text area display
+
+5. Recovery Process:
+   - See: patterns/workflow-patterns.mdc
+   - Review: "Recovery Process", "Text Area Recovery"
+   - Essential for handling text area workflow breaks
+
+IMPLEMENTATION NOTES:
+-------------------
+1. Text Area Specifics:
+   - Uses multi-line textarea with formatting
+   - Preserves input on revert (PRESERVE_REFILL)
+   - Includes transform for text processing
+
+2. State Management:
+   - Stores text in 'text_area' field
+   - Handles line breaks and whitespace
+   - Maintains text formatting
+
+3. UI Considerations:
+   - Minimum height for usability
+   - Monospace font for code
+   - Pre tag for formatting
+
+4. Common Pitfalls:
+   - Line break handling
+   - Whitespace preservation
+   - Formatting consistency
 """
 
 # Model for a workflow step

@@ -8,6 +8,55 @@ from loguru import logger
 """
 Pipulate Dropdown Widget
 A standalone dropdown widget workflow for selecting from a list of options.
+
+RULE NAVIGATION GUIDE:
+--------------------
+1. Dropdown Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Key sections: "Dropdown Widget Pattern", "Option Management"
+   - Critical for understanding dropdown implementation
+
+2. State Management:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Widget State Management", "Selection State"
+   - Essential for proper dropdown state handling
+
+3. UI Construction:
+   - See: implementation/implementation-workflow.mdc
+   - Review: "Dropdown UI Patterns", "Option Grouping"
+   - Important for maintaining consistent dropdown UI
+
+4. Option Management:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Dynamic Options", "Option Groups"
+   - Critical for dropdown functionality
+
+5. Recovery Process:
+   - See: patterns/workflow-patterns.mdc
+   - Review: "Recovery Process", "Selection Recovery"
+   - Essential for handling dropdown workflow breaks
+
+IMPLEMENTATION NOTES:
+-------------------
+1. Dropdown Specifics:
+   - Uses select element with option groups
+   - Handles dynamic option updates
+   - Includes option formatting
+
+2. State Management:
+   - Stores selection in 'dropdown_value' field
+   - Handles option changes
+   - Maintains selection state
+
+3. UI Considerations:
+   - Grouped options for clarity
+   - Clear selection display
+   - Consistent option formatting
+
+4. Common Pitfalls:
+   - Option group handling
+   - Selection state preservation
+   - Dynamic option updates
 """
 
 # Model for a workflow step

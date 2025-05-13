@@ -8,6 +8,55 @@ from loguru import logger
 """
 Text Field Widget Workflow
 A minimal template for creating a text field widget workflow, based on the blank placeholder pattern.
+
+RULE NAVIGATION GUIDE:
+--------------------
+1. Text Input Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Key sections: "Text Input Widget Pattern", "Input Validation"
+   - Critical for understanding text field implementation
+
+2. State Management:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Widget State Management", "Text Input State"
+   - Essential for proper text field state handling
+
+3. UI Construction:
+   - See: implementation/implementation-workflow.mdc
+   - Review: "Text Input UI Patterns", "Form Structure"
+   - Important for maintaining consistent text input UI
+
+4. Validation Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Input Validation", "Error Handling"
+   - Critical for text field validation
+
+5. Recovery Process:
+   - See: patterns/workflow-patterns.mdc
+   - Review: "Recovery Process", "Text Input Recovery"
+   - Essential for handling text field workflow breaks
+
+IMPLEMENTATION NOTES:
+-------------------
+1. Text Field Specifics:
+   - Uses single-line input with validation
+   - Preserves input on revert (PRESERVE_REFILL)
+   - Includes transform for text processing
+
+2. State Management:
+   - Stores text in 'text_input' field
+   - Handles empty and whitespace cases
+   - Maintains text formatting
+
+3. UI Considerations:
+   - Mobile-friendly input height
+   - Clear validation feedback
+   - Consistent text display
+
+4. Common Pitfalls:
+   - Whitespace handling
+   - Empty input validation
+   - State preservation on revert
 """
 
 # Model for a workflow step
