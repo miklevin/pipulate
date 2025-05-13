@@ -3231,6 +3231,14 @@ def create_app_menu(menux):
 
         # Only show core items in the first pass
         if not show_all or is_core_plugin(item):
+            # Handle separator plugin specially
+            if item == "separator":
+                menu_items.append(Li(
+                    Hr(style="margin: 0.5rem 0;"),
+                    style="display: block;"
+                ))
+                continue
+
             # Normalize both the current selection and menu item for comparison
             norm_menux = normalize_menu_path(menux)
             norm_item = normalize_menu_path(item)
@@ -3256,6 +3264,14 @@ def create_app_menu(menux):
         # Add non-core items
         for item in MENU_ITEMS:
             if item != profile_app.name and not is_core_plugin(item):
+                # Handle separator plugin specially
+                if item == "separator":
+                    menu_items.append(Li(
+                        Hr(style="margin: 0.5rem 0;"),
+                        style="display: block;"
+                    ))
+                    continue
+
                 norm_menux = normalize_menu_path(menux)
                 norm_item = normalize_menu_path(item)
 

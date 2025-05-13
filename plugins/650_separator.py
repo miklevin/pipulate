@@ -46,16 +46,10 @@ class SeparatorPlugin:
                 logger.error(f"Error in separator plugin: {str(e)}")
                 # Continue even if messaging fails - the diagram will still show
         
-        # Create the mermaid diagram container - leave empty for now
-        mermaid_diagram = Div(
-            id=unique_id, 
-            style="width: 100%; padding: 10px; background-color: #f9f9f9; border-radius: 5px; margin: 15px 0;"
-        )
-        
-        
-        return Div(
-            H2("Project Separator"),
-            P("Separator"),
+        # Return a horizontal line element that matches the style of other separators
+        return Li(
+            Hr(style="margin: 0.5rem 0;"),
+            style="display: block;"
         )
 
 # Don't register here - let the discovery process handle it
