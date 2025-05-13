@@ -1,0 +1,90 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Workflow Identity Patterns
+
+## Dual Identity System
+
+Every Pipulate workflow has two distinct identities:
+
+1. **External Identity** (User-facing)
+   - Controlled by `DISPLAY_NAME` in the workflow class
+   - Can be freely changed without affecting data integrity
+   - Appears in the UI dropdown menu
+   - Example: `DISPLAY_NAME = "Widget Designer"`
+
+2. **Internal Identity** (System-facing)
+   - Controlled by `APP_NAME` in the workflow class
+   - Must remain stable to maintain database integrity
+   - Used for routes and data storage
+   - Example: `APP_NAME = "design_widget"`
+
+## Naming Collision Prevention
+
+To avoid naming collisions:
+
+1. **File Naming**
+   - Use numeric prefixes (e.g., `700_widget_designer.py`)
+   - Avoid using the same prefix as other workflows
+   - Example: `700_widget_designer.py` vs `500_blank_workflow.py`
+
+2. **Internal/External Separation**
+   - Never use the same name for both `APP_NAME` and `DISPLAY_NAME`
+   - Keep `APP_NAME` distinct from the filename
+   - Example:
+     ```python
+     # Good
+     APP_NAME = "design_widget"        # Internal routes/data
+     DISPLAY_NAME = "Widget Designer"  # UI display
+     
+     # Bad - causes collisions
+     APP_NAME = "widget_designer"      # Too similar to filename
+     DISPLAY_NAME = "Widget Designer"  # Same as APP_NAME
+     ```
+
+## Best Practices
+
+1. **File Organization**
+   - Use numeric prefixes to control workflow order in dropdown
+   - Higher numbers (e.g., 700+) for experimental/development workflows
+   - Lower numbers (e.g., 100-500) for production workflows
+
+2. **Identity Management**
+   - Keep `APP_NAME` short and descriptive
+   - Use underscores for `APP_NAME` (e.g., `design_widget`)
+   - Use spaces for `DISPLAY_NAME` (e.g., "Widget Designer")
+   - Never change `APP_NAME` after workflow is in use
+
+3. **Documentation**
+   - Comment the `APP_NAME` line to explain its purpose
+   - Document any identity-related decisions in workflow docstring
+   - Keep track of used `APP_NAME`s to avoid duplicates
+
+## Example Implementation
+
+```python
+class WidgetDesigner:
+    """
+    Widget Designer Workflow
+    
+    A focused environment for designing and testing new widgets in isolation.
+    """
+    APP_NAME = "design_widget"              # Unique identifier for routes/data
+    DISPLAY_NAME = "Widget Designer"        # User-friendly name in UI
+```
+
+## Common Pitfalls
+
+1. **Identity Collision**
+   - Using same name for both internal and external identity
+   - Results in UI navigation issues and potential data corruption
+
+2. **Filename Collision**
+   - Using similar names in filename and `APP_NAME`
+   - Can cause confusion and maintenance issues
+
+3. **Changing Internal Identity**
+   - Modifying `APP_NAME` after workflow is in use
+   - Breaks database associations and data integrity

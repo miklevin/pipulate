@@ -31,12 +31,19 @@ class MyWorkflow:
 - Should remain constant after initial deployment
 - Used in database keys and internal routing
 
+### DISPLAY_NAME Identity (UI)
+- User-friendly name shown in dropdown menu
+- Can be changed without affecting data integrity
+- Should be distinct from both filename and APP_NAME
+- Example: `DISPLAY_NAME = "Widget Designer"`
+
 ## Development States
 
 ### 1. Development State
 ```python
 # Filename: xx_my_plugin.py
 APP_NAME = "my_internal_name"    # Set permanent internal identity
+DISPLAY_NAME = "My Plugin"       # User-friendly name
 ```
 - `xx_` prefix prevents auto-loading
 - Safe to experiment with configuration
@@ -45,6 +52,7 @@ APP_NAME = "my_internal_name"    # Set permanent internal identity
 ```python
 # Filename: 035_my_plugin.py
 APP_NAME = "my_internal_name"    # Remains unchanged
+DISPLAY_NAME = "My Plugin"       # Can be updated
 ```
 - Number prefix sets menu position
 - Filename creates public endpoints
@@ -53,6 +61,7 @@ APP_NAME = "my_internal_name"    # Remains unchanged
 ```python
 # Filename: 020_my_plugin.py     # Only filename changes
 APP_NAME = "my_internal_name"    # Stays constant
+DISPLAY_NAME = "My Plugin"       # Can be updated
 ```
 - Can safely rename for menu reordering
 - Internal relationships preserved
@@ -62,6 +71,7 @@ APP_NAME = "my_internal_name"    # Stays constant
 2. Never change APP_NAME after deployment
 3. Use `xx_` prefix during initial development
 4. Choose menu position number based on desired grouping
+5. Keep DISPLAY_NAME distinct from both filename and APP_NAME
 
 ## Common Patterns
 
@@ -72,6 +82,7 @@ APP_NAME = "my_internal_name"    # Stays constant
 030_connect_*.py      # Connection plugins
 500_blank_*.py        # Templates
 520_widget_*.py       # Widget examples
+700_*_designer.py     # Development workflows
 ```
 
 ### Safe Rename Examples
@@ -79,24 +90,29 @@ APP_NAME = "my_internal_name"    # Stays constant
 # Original
 035_url_opener.py  # Public: /url_opener/*
 APP_NAME="open_url"  # Internal: db keys, etc.
+DISPLAY_NAME="URL Opener"  # UI display
 
 # After reorganization
 020_url_tool.py    # Public: /url_tool/*
 APP_NAME="open_url"  # Internal: unchanged!
+DISPLAY_NAME="URL Tool"  # UI display updated
 ```
 
 ### Development Workflow
 1. Copy template with `xx_` prefix
 2. Set unique APP_NAME
-3. Test configuration
-4. Choose final filename/position
-5. Remove `xx_` prefix to deploy
+3. Set distinct DISPLAY_NAME
+4. Test configuration
+5. Choose final filename/position
+6. Remove `xx_` prefix to deploy
 
 ## Error Prevention
 - Navigation disappears if APP_NAME matches filename
 - Database corruption if APP_NAME changes after deployment
 - Plugin conflicts if APP_NAME duplicated
+- UI issues if DISPLAY_NAME matches APP_NAME
 
 ## Reference Examples
 See [500_blank_workflow.py](mdc:pipulate/plugins/500_blank_workflow.py) for template pattern.
 See [510_splice_workflow.py](mdc:pipulate/plugins/510_splice_workflow.py) for implementation examples.
+See [700_widget_designer.py](mdc:pipulate/plugins/700_widget_designer.py) for development workflow example.

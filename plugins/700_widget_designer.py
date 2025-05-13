@@ -14,22 +14,23 @@ A minimal starter template for creating step-based Pipulate workflows.
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class BlankWorkflow:
+class WidgetDesigner:
     """
-    Blank Workflow Template
+    Widget Designer Workflow
     
-    A minimal starting point for creating new workflows.
+    A focused environment for designing and testing new widgets in isolation.
     """
     # --- Workflow Configuration ---
-    APP_NAME = "blank"              # Unique identifier for this workflow's routes and data (most be different from plugin name from filename)
-    DISPLAY_NAME = "Blank Workflow" # User-friendly name shown in the UI
+    APP_NAME = "design_widget"              # Unique identifier for this workflow's routes and data (most be different from plugin name from filename)
+    DISPLAY_NAME = "Widget Designer" # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "This is a blank workflow template. Use it as a starting point for creating new workflows."
+        "Welcome to the Widget Designer! This is a focused environment for designing and testing new widgets in isolation. "
+        "Use this space to prototype and refine your widget designs without distractions."
     )
     TRAINING_PROMPT = (
-        "This is a minimal workflow template that demonstrates the core patterns "
-        "of Pipulate workflows. It shows how to structure steps, handle state, "
-        "and implement the standard workflow lifecycle methods."
+        "This is a specialized workflow for designing and testing widgets in isolation. "
+        "It provides a clean environment to focus on widget development without the complexity "
+        "of a full workflow implementation."
     )
     PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
