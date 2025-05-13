@@ -376,24 +376,32 @@ class RangeSelectorWorkflow:
                 # Create range input with configuration
                 range_input = Input(
                     type="range",
-                    name=step.done,
+                    name=f"{step.done}_slider",
+                    id=f"{step.done}_slider",
                     min=self.RANGE_CONFIG["min"],
                     max=self.RANGE_CONFIG["max"],
                     step=self.RANGE_CONFIG["step"],
                     value=selected_value,
                     title=self.RANGE_CONFIG["description"],
                     required=True,
-                    autofocus=True
+                    style="flex-grow: 1; margin: 0 10px;",
+                    _oninput=f"document.getElementById('{step.done}').value = this.value;"
                 )
                 
-                # Create value display if enabled
-                value_display = None
-                if self.RANGE_CONFIG["show_value"]:
-                    value_display = P(
-                        f"Current value: {selected_value}",
-                        id=f"{step_id}-value",
-                        style="margin-top: 0.5em; font-weight: bold;"
-                    )
+                # Create numeric input
+                number_input = Input(
+                    type="number",
+                    name=step.done,
+                    id=step.done,
+                    min=self.RANGE_CONFIG["min"],
+                    max=self.RANGE_CONFIG["max"],
+                    step=self.RANGE_CONFIG["step"],
+                    value=selected_value,
+                    required=True,
+                    style="width: 100px;",
+                    _oninput=f"document.getElementById('{step.done}_slider').value = this.value;",
+                    _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"
+                )
                 
                 # Create tick marks if enabled
                 tick_marks = None
@@ -410,30 +418,25 @@ class RangeSelectorWorkflow:
                         style="position: relative; height: 1em; margin-top: 0.5em;"
                     )
                 
-                # Add JavaScript for live value updates
-                js_update = Script("""
-                    document.querySelector('input[type="range"]').addEventListener('input', function(e) {
-                        document.getElementById('step_01-value').textContent = 'Current value: ' + e.target.value;
-                    });
-                """)
-                
                 return Div(
                     Card(
                         H3(f"{step.show}"),
                         P(self.RANGE_CONFIG["description"], style="font-size: 0.9em; color: #666;"),
                         Form(
-                            Label(
-                                self.RANGE_CONFIG["label"],
+                            Div(
+                                Label(
+                                    self.RANGE_CONFIG["label"],
+                                    style="min-width: 180px;"
+                                ),
                                 range_input,
-                                style="display: block; margin: 1em 0;"
+                                number_input,
+                                style="display: flex; align-items: center; gap: 10px; margin: 1em 0;"
                             ),
-                            value_display,
                             tick_marks,
                             Button("Submit", type="submit", cls="primary"),
                             hx_post=f"/{app_name}/{step_id}_submit",
                             hx_target=f"#{step_id}"
-                        ),
-                        js_update
+                        )
                     ),
                     Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
                     id=step_id
