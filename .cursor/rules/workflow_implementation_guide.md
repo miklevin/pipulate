@@ -19,216 +19,375 @@ Follow these established philosophies:
 - [Modern Simplicity](mdc:.cursor/rules/philosophy-simplicity.mdc): Design approach
 - [Future-Proofing](mdc:.cursor/rules/philosophy-future-proofing.mdc): Long-term considerations
 
-## Workflow Structure
+## Core Principles
 
-### 1. Basic Workflow (Landing → Finalize)
-```
-┌─────────────┐                  ┌───────────┐
-│   landing   │                  │  finalize │
-│  (method)   │ ---------------> │  (method) │
-└─────────────┘                  └───────────┘
-```
+### 1. State Management
+- Widgets should never manage workflow state directly
+- Use core workflow methods for state transitions
+- Maintain widget state within workflow state
+- Never manipulate state directly
+- Use `pip.finalize_workflow()` for locking
+- Use `pip.unfinalize_workflow()` for unlocking
+- Use `pip.rebuild()` for UI updates
 
-Key Code Pattern:
+### 2. UI Construction
+- Follow template patterns for widget UI
+- Use standard components
+- Maintain consistent structure
+- Keep container hierarchy consistent
+- Use proper HTMX triggers
+- Follow template layout
+
+### 3. Error Handling
+- Use standard error patterns
+- Provide clear error messages
+- Handle edge cases gracefully
+- Validate all inputs
+- Use consistent error presentation
+- Handle edge cases gracefully
+
+## Critical Patterns
+
+### 1. Chain Reaction Pattern
 ```python
-# In landing method return statement
+# CRITICAL: This pattern is IMMUTABLE
 return Div(
-    Card(...),
-    # Chain reaction initiator - NEVER REMOVE OR MODIFY THIS PATTERN
-    Div(id="finalize", hx_get=f"/{app_name}/finalize", hx_trigger="load"),
-    id="landing"
+    Card(...), # Current step's content
+    # CRITICAL: This inner Div triggers loading of the next step
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
 )
 ```
 
-### 2. Adding Steps
-Follow the [Atomic Steps Pattern](mdc:.cursor/rules/pattern-atomic-steps.mdc) when adding new steps:
-
+### 2. Widget Container Pattern
 ```python
-Step(
-    id='step_01',
-    done='result_key',
-    show='User-Friendly Name',
-    refill=True,  # Allow value reuse
+# Standard widget container structure
+return Div(
+    Card(
+        H3(f"{step.show}"),
+        Form(
+            Input(...),
+            Button(...),
+            hx_post=f"/{app_name}/{step_id}_submit"
+        )
+    ),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
 )
 ```
 
-### 3. Step Implementation
-Each step requires:
-
-1. GET Handler:
+### 3. State Management Pattern
 ```python
-async def step_XX(self, request):
-    """Handles GET request for Step XX."""
+# Reading state
+state = pip.read_state(pipeline_id)
+step_data = pip.get_step_data(pipeline_id, step_id, {})
+
+# Updating state
+await pip.update_step_state(pipeline_id, step_id, value, steps)
+
+# Finalizing state
+await pip.finalize_workflow(pipeline_id)
+return pip.rebuild(app_name, steps)
+```
+
+## Common Widget Patterns
+
+### 1. Dropdown Widget
+```python
+async def step_01(self, request):
     pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-    step_id = "step_XX"
-    step_index = self.steps_indices[step_id]
-    step = steps[step_index]
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    step_id = "step_01"
+    pipeline_id = db.get("pipeline_id", "unknown")
     
-    # Follow Widget Implementation Pattern for UI components
+    # Get options using core methods
+    options = await self.get_options(pipeline_id)
+    
+    # Format options using standard patterns
+    formatted_options = [await self.format_option(opt) for opt in options]
+    
+    # Return using standard container structure
     return Div(
-        Card(...),
-        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        Card(
+            H3(f"{step.show}"),
+            Form(
+                Select(*formatted_options),
+                Button("Submit", type="submit")
+            )
+        ),
         id=step_id
     )
 ```
 
-2. POST Handler:
+### 2. Text Input Widget
 ```python
-async def step_XX_submit(self, request):
-    """Process the submission for Step XX."""
+async def step_01(self, request):
     pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-    step_id = "step_XX"
-    step_index = self.steps_indices[step_id]
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+    step_id = "step_01"
+    pipeline_id = db.get("pipeline_id", "unknown")
     
-    # Follow Error Handling Pattern
-    try:
-        # Process form data
-        form = await request.form()
-        value = form.get("field_name", "")
-        
-        if not value:
-            return P("Error: Field is required", style=pip.get_style("error"))
-        
-        # Update state following State Management Pattern
-        await pip.update_step_state(pipeline_id, step_id, value, steps)
-        
-        # Return with chain reaction
-        return Div(
-            pip.widget_container(...),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-    except Exception as e:
-        return P(f"Error: {str(e)}", style=pip.get_style("error"))
-```
-
-## Critical Patterns
-
-### Chain Reaction
-The chain reaction pattern is IMMUTABLE. Never modify these elements:
-```python
-Div(
-    id=next_step_id,
-    hx_get=f"/{app_name}/{next_step_id}",
-    hx_trigger="load"
-)
-```
-
-### Widget Structure
-Follow the [Widget Implementation Pattern](mdc:.cursor/rules/pattern-widget-implementation.mdc):
-```python
-Card(
-    H3(f"{step.show}"),
-    Form(
-        Input(...),
-        Button(...),
-        hx_post=f"/{app_name}/{step_id}_submit"
+    # Get current value using core methods
+    current_value = pip.get_step_data(pipeline_id, step_id, {}).get(step.done, "")
+    
+    # Return using standard container structure
+    return Div(
+        Card(
+            H3(f"{step.show}"),
+            Form(
+                Input(value=current_value),
+                Button("Submit", type="submit")
+            )
+        ),
+        id=step_id
     )
-)
 ```
-
-### State Management
-Use Pipulate's state management helpers:
-```python
-# Read state
-state = pip.read_state(pipeline_id)
-step_data = pip.get_step_data(pipeline_id, step_id, {})
-
-# Update state
-await pip.update_step_state(pipeline_id, step_id, value, steps)
-```
-
-## Development Workflow
-
-1. Start with Placeholders
-   - Use the [Placeholder Pattern](mdc:.cursor/rules/pattern-placeholder.mdc)
-   - Maintain chain reaction
-   - Plan step progression
-
-2. Evolve to Widgets
-   - Follow [Widget Implementation](mdc:.cursor/rules/pattern-widget-implementation.mdc)
-   - Add form elements
-   - Implement validation
-
-3. Add Functionality
-   - Follow [Browser Integration](mdc:.cursor/rules/pattern-browser-integration.mdc) if needed
-   - Implement error handling
-   - Add user feedback
-
-## Testing and Validation
-
-1. Chain Reaction
-   - Verify progression works
-   - Test revert functionality
-   - Check finalization
-
-2. State Management
-   - Test state persistence
-   - Verify revert behavior
-   - Check refill functionality
-
-3. Error Handling
-   - Test validation
-   - Check error messages
-   - Verify recovery paths
 
 ## Common Pitfalls
 
-1. Chain Reaction Breaks
-   - Missing `hx_trigger="load"`
-   - Incorrect next_step_id calculation
-   - Broken progression chain
+### 1. Direct State Manipulation
+```python
+# ❌ Broken Pattern
+state = pip.read_state(pipeline_id)
+state["widget_value"] = value
+pip.write_state(pipeline_id, state)
 
-2. State Management Issues
-   - Not clearing subsequent steps on revert
-   - Missing state updates
-   - Incorrect refill behavior
+# ✅ Correct Pattern
+await pip.update_step_state(pipeline_id, step_id, value, steps)
+```
 
-3. UI/UX Problems
-   - Inconsistent button placement
-   - Missing error feedback
-   - Poor progression indicators
+### 2. Manual UI Construction
+```python
+# ❌ Broken Pattern
+return Card(
+    H3("Widget Title"),
+    Form(
+        Input(value=value),
+        Button("Submit")
+    )
+)
+
+# ✅ Correct Pattern
+return Div(
+    Card(
+        H3(f"{step.show}"),
+        Form(
+            Input(value=value),
+            Button("Submit", type="submit")
+        )
+    ),
+    id=step_id
+)
+```
+
+### 3. Inconsistent Container Structure
+```python
+# ❌ Broken Pattern
+return Div(
+    Card(...),
+    id=step_id
+)
+
+# ✅ Correct Pattern
+return Div(
+    Card(...),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+## Recovery Process
+
+### 1. Identify the Break
+- Look for direct state manipulation
+- Check for manual UI construction
+- Verify container structure
+- Check for missing chain reactions
+- Verify state transitions
+
+### 2. Apply the Fix
+- Replace direct state updates with core methods
+- Use standard rebuild patterns
+- Restore container hierarchy
+- Fix chain reactions
+- Update state transitions
+
+### 3. Verify the Recovery
+- Check state transitions
+- Validate UI structure
+- Confirm workflow behavior
+- Test revert functionality
+- Verify error handling
+
+## Prevention Guidelines
+
+### 1. State Management
+- Use core workflow methods
+- Never manipulate state directly
+- Maintain consistent state structure
+- Use proper state transitions
+- Handle finalization correctly
+
+### 2. UI Construction
+- Follow template patterns
+- Use standard components
+- Maintain consistent structure
+- Keep container hierarchy
+- Use proper HTMX triggers
+
+### 3. Error Handling
+- Use standard error patterns
+- Provide clear error messages
+- Handle edge cases gracefully
+- Validate all inputs
+- Use consistent error presentation
+
+## Recovery Checklist
+
+### 1. State Management
+- [ ] Using core workflow methods
+- [ ] No direct state manipulation
+- [ ] Consistent state structure
+- [ ] Proper state transitions
+- [ ] Correct finalization
+
+### 2. UI Construction
+- [ ] Using standard components
+- [ ] Following template patterns
+- [ ] Proper container structure
+- [ ] Correct chain reactions
+- [ ] Proper HTMX triggers
+
+### 3. Error Handling
+- [ ] Using standard error patterns
+- [ ] Clear error messages
+- [ ] Edge case handling
+- [ ] Input validation
+- [ ] Error recovery
+
+### 4. Container Structure
+- [ ] Correct hierarchy
+- [ ] Proper HTMX triggers
+- [ ] Consistent layout
+- [ ] Chain reaction intact
+- [ ] Proper widget containers
+
+## Implementation Steps
+
+### 1. Widget Setup
+1. Define widget configuration
+2. Set unique APP_NAME
+3. Set distinct DISPLAY_NAME
+4. Configure widget options
+5. Set up error handling
+
+### 2. Core Implementation
+1. Implement core methods
+2. Handle state management
+3. Construct UI elements
+4. Handle form submission
+5. Manage error cases
+
+### 3. Testing and Validation
+1. Test widget behavior
+2. Verify state management
+3. Check error handling
+4. Test edge cases
+5. Document implementation
+
+## Advanced Patterns
+
+### 1. Polling and Terminal Steps
+```python
+# Polling pattern
+return Div(
+    result_card,
+    progress_indicator,
+    cls="polling-status no-chain-reaction",
+    hx_get=f"/{app_name}/check_status",
+    hx_trigger="load, every 2s",
+    hx_target=f"#{step_id}",
+    id=step_id
+)
+
+# Terminal pattern
+return Div(
+    result_card,
+    download_button,
+    cls="terminal-response no-chain-reaction",
+    id=step_id
+)
+```
+
+### 2. Revert Control
+```python
+# Revert control pattern
+return Div(
+    pip.revert_control(
+        step_id=step_id,
+        app_name=app_name,
+        message=f"{step.show}: {value}",
+        steps=steps
+    ),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+### 3. Message Queue
+```python
+# Message queue pattern
+await self.message_queue.add(
+    pip,
+    message,
+    verbatim=True,
+    spaces_before=0,
+    spaces_after=1
+)
+```
 
 ## Best Practices
 
-1. Follow Atomic Design
-   - One clear purpose per step
-   - Combine related actions
-   - Maintain user mental model
+### 1. Development
+1. Start with placeholders
+2. Add functionality incrementally
+3. Test each phase
+4. Maintain proper state
+5. Keep LLM informed
 
-2. Preserve Patterns
-   - Use established widget structures
-   - Maintain chain reaction
-   - Follow state management conventions
+### 2. Implementation
+1. Follow template patterns
+2. Use standard components
+3. Maintain consistent structure
+4. Handle errors properly
+5. Test thoroughly
 
-3. Error Handling
-   - Validate all inputs
-   - Provide clear feedback
-   - Handle edge cases
+### 3. Deployment
+1. Test configuration
+2. Verify state management
+3. Check error handling
+4. Test edge cases
+5. Document implementation
 
 ## Reference Examples
 
-1. Basic Workflows
-   - [20_hello_workflow.py](mdc:pipulate/plugins/20_hello_workflow.py): Template
-   - [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py): URL handling
+### 1. Basic Workflows
+- [20_hello_workflow.py](mdc:pipulate/plugins/20_hello_workflow.py): Template
+- [035_url_opener.py](mdc:pipulate/plugins/035_url_opener.py): URL handling
 
-2. Complex Workflows
-   - [50_botify_export.py](mdc:pipulate/plugins/50_botify_export.py): Multi-step
-   - [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py): Widget patterns
+### 2. Complex Workflows
+- [50_botify_export.py](mdc:pipulate/plugins/50_botify_export.py): Multi-step
+- [60_widget_examples.py](mdc:pipulate/plugins/60_widget_examples.py): Widget patterns
 
 ## Additional Resources
 
-1. Implementation Guides
-   - [HTMX Integration](mdc:.cursor/rules/implementation-htmx.mdc)
-   - [Error Handling](mdc:.cursor/rules/implementation-widget-error.mdc)
-   - [Mobile Support](mdc:.cursor/rules/implementation-widget-mobile.mdc)
-   - [Accessibility](mdc:.cursor/rules/implementation-widget-accessibility.mdc)
+### 1. Implementation Guides
+- [HTMX Integration](mdc:.cursor/rules/implementation-htmx.mdc)
+- [Error Handling](mdc:.cursor/rules/implementation-widget-error.mdc)
+- [Mobile Support](mdc:.cursor/rules/implementation-widget-mobile.mdc)
+- [Accessibility](mdc:.cursor/rules/implementation-widget-accessibility.mdc)
 
-2. Architecture Guides
-   - [Core Architecture](mdc:.cursor/rules/architecture-core.mdc)
-   - [State Management](mdc:.cursor/rules/architecture-state.mdc)
+### 2. Architecture Guides
+- [Core Architecture](mdc:.cursor/rules/architecture-core.mdc)
+- [State Management](mdc:.cursor/rules/architecture-state.mdc)
 
 Remember: Workflows are intentionally WET (Write Everything Twice) to allow maximum customization while maintaining consistent patterns. Follow the established patterns but feel free to adapt them to your specific needs.
 
@@ -732,7 +891,7 @@ async def step_XX(self, request):
     
     # Simple form with just a proceed button
         return Div(
-            Card(
+        Card(
             H4(f"{step.show}"),
             P("Click Proceed to continue to the next step."),
                 Form(
