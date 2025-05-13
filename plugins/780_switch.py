@@ -74,10 +74,19 @@ class SwitchWorkflow:
         "switch designs without distractions."
     )
     TRAINING_PROMPT = (
-        "This is a specialized workflow for designing and testing switch/toggle interactions in isolation. "
+        "This is a specialized workflow for designing and testing switch interactions in isolation. "
         "It provides a clean environment to focus on switch development without the complexity "
         "of a full workflow implementation."
     )
+
+    # --- Switch Configuration ---
+    SWITCH_CONFIG = {
+        "label": "Enable Feature",
+        "description": "Toggle this switch to enable or disable the feature",
+        "default": False,
+        "show_state": True,  # Whether to show the current state
+        "auto_submit": False  # Whether to submit on change
+    }
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -95,9 +104,10 @@ class SwitchWorkflow:
         steps = [
             Step(
                 id='step_01',
-                done='placeholder',
-                show='Placeholder Step',
+                done='switch_state',
+                show='Switch State',
                 refill=True,
+                transform=lambda prev_value: bool(prev_value) if prev_value is not None else self.SWITCH_CONFIG["default"]
             ),
             # Add more steps as needed
         ]
@@ -274,7 +284,7 @@ class SwitchWorkflow:
         step_id = form.get("step_id", "")
         
         if step_id not in self.steps_indices:
-            return P("Error: Invalid step", style=pip.ERROR_STYLE)
+            return P("Error: Invalid step", style=self.pipulate.get_style("error"))
         
         pipeline_id = db.get("pipeline_id", "unknown")
         
@@ -293,7 +303,7 @@ class SwitchWorkflow:
         )
 
     async def step_01(self, request):
-        """Handles GET request for placeholder step."""
+        """Handles GET request for switch state step."""
         logger.debug("Entering step_01")
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
@@ -314,7 +324,7 @@ class SwitchWorkflow:
         
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and selected_value:
+        if "finalized" in finalize_data and selected_value is not None:
             # STEP STAGE: FINALIZED
             # Keep LLM informed about the finalized widget content
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{selected_value}")
@@ -322,14 +332,14 @@ class SwitchWorkflow:
             return Div(
                 Card(
                     H3(f"🔒 {step.show}"),
-                    P(f"Selected value: {selected_value}", style="font-weight: bold;")
+                    P(f"Switch is {'enabled' if selected_value else 'disabled'}", style="font-weight: bold;")
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         
         # Check if step is complete and not being reverted to
-        elif step_data.get(step.done) and state.get("_revert_target") != step_id:
+        elif selected_value is not None and state.get("_revert_target") != step_id:
             # STEP STAGE: REVERT
             # Keep LLM informed about the completed widget content
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{selected_value}")
@@ -338,7 +348,7 @@ class SwitchWorkflow:
                 pip.revert_control(
                     step_id=step_id, 
                     app_name=app_name, 
-                    message=f"{step.show}: {selected_value}",
+                    message=f"{step.show}: {'enabled' if selected_value else 'disabled'}",
                     steps=steps
                 ),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -355,33 +365,55 @@ class SwitchWorkflow:
                                     verbatim=True)
             
             try:
+                # Create switch input with configuration
+                switch_input = Label(
+                    Input(
+                        type="checkbox",
+                        role="switch",
+                        name=step.done,
+                        id=step.done,
+                        checked=self.SWITCH_CONFIG["default"],
+                        _onchange=f"document.getElementById('{step.done}_submit').click()",
+                        cls="contrast"
+                    ),
+                    f" {self.SWITCH_CONFIG['label']}"
+                )
+                
+                # Hidden submit button for HTMX
+                submit_button = Input(
+                    type="submit",
+                    id=f"{step.done}_submit",
+                    style="display: none;"
+                )
+                
                 return Div(
                     Card(
                         H3(f"{step.show}"),
-                        P("This is a placeholder step.", style="font-size: 0.9em; color: #666;"),
+                        P(self.SWITCH_CONFIG["description"], style="font-size: 0.9em; color: #666;"),
                         Form(
-                            Button("Proceed", type="submit", cls="primary"),
+                            switch_input,
+                            submit_button,
                             hx_post=f"/{app_name}/{step_id}_submit",
                             hx_target=f"#{step_id}"
                         )
                     ),
-                    Div(id=next_step_id),  # PRESERVE: Empty div for next step - DO NOT ADD hx_trigger HERE
+                    Div(id=next_step_id),  # Empty div for next step - DO NOT ADD hx_trigger HERE
                     id=step_id
                 )
                 
             except Exception as e:
-                logger.error(f"Error creating step: {str(e)}")
+                logger.error(f"Error creating switch: {str(e)}")
                 logger.exception("Full traceback:")
                 return Div(
                     Card(
                         H3(f"{step.show}"),
-                        P(f"Error creating step: {str(e)}", style=pip.ERROR_STYLE)
+                        P(f"Error creating switch: {str(e)}", style=self.pipulate.get_style("error"))
                     ),
                     id=step_id
                 )
 
     async def step_01_submit(self, request):
-        """Handles POST request for placeholder step."""
+        """Handles POST request for switch state step."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_01"
         step_index = self.steps_indices[step_id]
@@ -389,10 +421,14 @@ class SwitchWorkflow:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
         
+        # Get form data
+        form = await request.form()
+        value = form.get(step.done, "") == "on"  # Convert checkbox value to boolean
+        
         # Update state
-        await pip.update_step_state(pipeline_id, step_id, "placeholder_value", steps)
+        await pip.update_step_state(pipeline_id, step_id, value, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
-                                f"{step.show} complete"), 
+                                f"{step.show} complete: {'enabled' if value else 'disabled'}"), 
                                 verbatim=True)
         
         # Return with revert control and chain reaction
@@ -400,7 +436,7 @@ class SwitchWorkflow:
             pip.revert_control(
                 step_id=step_id, 
                 app_name=app_name, 
-                message=f"{step.show}: placeholder_value",
+                message=f"{step.show}: {'enabled' if value else 'disabled'}",
                 steps=steps
             ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
