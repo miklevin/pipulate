@@ -1,0 +1,134 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Step Anatomy Pattern
+
+## Overview
+Every step in a Pipulate workflow has two parts: a visible UI part and an invisible submit handler. This pattern is modeled after Jupyter Notebook cells, where each cell has both a visible input and an invisible output state.
+
+## Key Components
+
+### 1. Step Definition
+```python
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+```
+
+### 2. Step Parts
+Each step consists of two methods:
+1. `step_xx` - Builds the user interface
+2. `step_xx_submit` - Handles form submission
+
+### 3. Step Stages
+Every `step_xx` method has three distinct stages:
+
+```python
+async def step_xx(self, request):
+    # Stage 1: Finalized State
+    if "finalized" in finalize_data and placeholder_value:
+        # Show locked/finalized view
+        return Div(
+            Card(H3(f"🔒 {step.show}: Completed")),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    
+    # Stage 2: Revert State
+    elif placeholder_value and state.get("_revert_target") != step_id:
+        # Show completed but editable view
+        return Div(
+            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    
+    # Stage 3: Data Collection
+    else:
+        # Show input form
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                Form(
+                    # Your form elements here
+                    Button("Next ▸", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}"
+                )
+            ),
+            Div(id=next_step_id),  # Empty div for next step
+            id=step_id
+        )
+```
+
+## Critical Elements
+
+1. **Stage Order**
+   - Finalized check must come first
+   - Revert check must come second
+   - Data collection must be last
+
+2. **Chain Reaction**
+   - Finalized stage must include chain reaction
+   - Revert stage must include chain reaction
+   - Data collection stage must NOT include chain reaction
+
+3. **Div Structure**
+   - Every stage must return a Div with the step's ID
+   - Chain reaction stages must include the next step's container
+   - Data collection stage must have an empty next step container
+
+## Common Pitfalls
+
+1. **Incorrect Stage Order**
+   ```python
+   # ❌ Wrong Order
+   if placeholder_value:  # Revert check first
+       return ...
+   elif "finalized" in finalize_data:  # Finalized check second
+       return ...
+   ```
+
+2. **Missing Chain Reaction**
+   ```python
+   # ❌ Missing Chain Reaction
+   return Div(
+       Card(...),
+       id=step_id
+   )
+   ```
+
+3. **Incorrect Div Structure**
+   ```python
+   # ❌ Wrong Structure
+   return Card(
+       H3(f"{step.show}"),
+       Form(...)
+   )
+   ```
+
+## Best Practices
+
+1. **State Management**
+   - Always check finalized state first
+   - Always check revert state second
+   - Always include state checks in order
+
+2. **UI Construction**
+   - Always wrap content in Card
+   - Always include step ID in outer Div
+   - Always include next step container when chaining
+
+3. **Form Handling**
+   - Always use hx_post for form submission
+   - Always target the current step's container
+   - Always include a submit button
+
+## Related Rules
+- @pattern-chain-reaction
+- @pattern-state-management
+- @pattern-wet
+
+## Reference Files
+- @700_widget_designer.py
+- @750_checkboxes.py

@@ -68,7 +68,6 @@ class ParameterBusterWorkflow:
         "It uses the widget_container pattern to display parameter breakdowns "
         "and provides insights into URL structure and tracking mechanisms."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

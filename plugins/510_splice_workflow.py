@@ -51,7 +51,6 @@ class SpliceWorkflow:
         "Enter an ID to start or resume your workflow."
     )
     TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

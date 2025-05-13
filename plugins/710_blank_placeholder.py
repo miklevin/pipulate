@@ -74,7 +74,6 @@ class BlankPlaceholder:
         "This is a minimal template for creating new workflows with placeholder steps. "
         "It provides a clean starting point for workflow development."
     )
-    PRESERVE_REFILL = True                  # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

@@ -122,7 +122,6 @@ class BotifyExport:
         "Press Enter to start a new workflow or enter an existing key to resume. "
     )
     TRAINING_PROMPT = "botify_export.md"
-    PRESERVE_REFILL = True
     USE_TREE_DISPLAY = True  # Toggle between tree and box display
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -440,7 +439,7 @@ class BotifyExport:
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
         else:
-            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
 
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             return Div(

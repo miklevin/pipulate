@@ -30,7 +30,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         f"You can find your API token at {account_url}"
     )
     TRAINING_PROMPT = "botify_workflow.md"  # markdown file from /training or plain text
-    PRESERVE_REFILL = True  # <-- Whether to preserve refill values on revert
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """

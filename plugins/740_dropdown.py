@@ -81,7 +81,6 @@ class DropdownWidget:
         "It provides a clean environment to focus on dropdown development without the complexity "
         "of a full workflow implementation."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Dropdown Configuration ---
     SOURCE_TYPE = "static"  # static, api, file, db, previous_step

@@ -78,7 +78,6 @@ class CheckboxWorkflow:
         "It provides a clean environment to focus on checkbox development without the complexity "
         "of a full workflow implementation."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

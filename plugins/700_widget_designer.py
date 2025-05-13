@@ -75,7 +75,6 @@ class WidgetDesigner:
         "It provides a clean environment to focus on widget development without the complexity "
         "of a full workflow implementation."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

@@ -113,7 +113,6 @@ class WidgetExamples:
         "Enter an ID to start or resume your workflow."
     )
     TRAINING_PROMPT = "widget_examples.md"
-    PRESERVE_REFILL = True
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

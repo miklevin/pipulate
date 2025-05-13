@@ -94,7 +94,6 @@ class HelloFlow:
         "Keys are arbitrary (PROFILE + APP + Number-of-Runs by convention)."
     )
     TRAINING_PROMPT = "hello_workflow.md" # Filename (in /training) or text for AI context
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization (Framework Setup - Generally Do Not Modify Core Logic) ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -385,7 +384,7 @@ class HelloFlow:
             )
         else:
             # Show the input form for this step
-            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
             
             # Let LLM know we're showing an empty form via message queue
             form_msg = "Showing name input form. No name has been entered yet."
@@ -502,7 +501,7 @@ class HelloFlow:
         else:
             # Show the input form for this step
             # Determine value: Use existing if refill enabled, otherwise get suggestion (uses transform)
-            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
             # Add prompt message to UI
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             # Render the card with the form

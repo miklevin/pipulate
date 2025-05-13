@@ -31,7 +31,6 @@ class BlankWorkflow:
         "of Pipulate workflows. It shows how to structure steps, handle state, "
         "and implement the standard workflow lifecycle methods."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

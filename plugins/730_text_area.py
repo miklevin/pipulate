@@ -40,7 +40,6 @@ IMPLEMENTATION NOTES:
 -------------------
 1. Text Area Specifics:
    - Uses multi-line textarea with formatting
-   - Preserves input on revert (PRESERVE_REFILL)
    - Includes transform for text processing
 
 2. State Management:
@@ -81,7 +80,6 @@ class TextAreaWidget:
         "This is a specialized workflow for handling multi-line text input. "
         "It provides a clean interface for entering and managing longer text content."
     )
-    PRESERVE_REFILL = True                  # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -347,7 +345,7 @@ class TextAreaWidget:
             )
         else:
             # Show the input form for this step
-            if step.refill and user_val and self.PRESERVE_REFILL:
+            if step.refill and user_val:
                 display_value = user_val
             else:
                 display_value = await self.get_suggestion(step_id, state)

@@ -40,7 +40,6 @@ IMPLEMENTATION NOTES:
 -------------------
 1. Text Field Specifics:
    - Uses single-line input with validation
-   - Preserves input on revert (PRESERVE_REFILL)
    - Includes transform for text processing
 
 2. State Management:
@@ -80,7 +79,6 @@ class TextFieldWidget:
         "This is a minimal template for creating a text field widget workflow. "
         "It provides a clean starting point for widget development."
     )
-    PRESERVE_REFILL = True                  # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -326,7 +324,7 @@ class TextFieldWidget:
             )
         else:
             # Show the input form for this step
-            display_value = user_val if (step.refill and user_val and self.PRESERVE_REFILL) else await self.get_suggestion(step_id, state)
+            display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
             
             # Let LLM know we're showing an empty form via message queue
             form_msg = "Showing text input form. No text has been entered yet."

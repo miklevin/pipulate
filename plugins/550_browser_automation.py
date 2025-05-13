@@ -72,7 +72,6 @@ class BrowserAutomation:
         "It uses webdriver-manager for cross-platform compatibility and "
         "provides a foundation for developing more advanced automation features."
     )
-    PRESERVE_REFILL = True          # Whether to keep input values when reverting
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

@@ -19,7 +19,6 @@ class WorkflowName:
     DISPLAY_NAME = "User Name"      # UI display name
     ENDPOINT_MESSAGE = "..."        # User guidance
     TRAINING_PROMPT = "name.md"     # Training file
-    PRESERVE_REFILL = True/False    # State preservation
 ```
 
 ## Required Files
