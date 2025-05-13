@@ -193,8 +193,8 @@ class WidgetExamples:
             ),
             Step(
                 id='step_11',
-                done='placeholder',
-                show='Step 11 Placeholder',
+                done='file_uploads',  # Changed from 'placeholder'
+                show='File Upload Widget',  # Changed from 'Step 11 Placeholder'
                 refill=True,
             ),
         ]
@@ -2733,9 +2733,13 @@ This step serves as a placeholder for future widget types."""
         )
 
     async def step_11(self, request):
-        """Handles GET request for Step 11.
+        """Handles GET request for the file upload widget.
         
-        This is a placeholder step that follows the chain reaction pattern.
+        A reusable widget for handling multiple file uploads with:
+        - Multiple file selection
+        - File size reporting
+        - Automatic file saving
+        - Upload summary display
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_11"
@@ -2745,13 +2749,13 @@ This step serves as a placeholder for future widget types."""
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        placeholder_value = step_data.get(step.done, "")
+        file_summary = step_data.get(step.done, "")
 
         # Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and placeholder_value:
+        if "finalized" in finalize_data and file_summary:
             # Keep LLM informed about finalized state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{placeholder_value}")
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{file_summary}")
             
             return Div(
                 Card(
@@ -2763,30 +2767,43 @@ This step serves as a placeholder for future widget types."""
             )
             
         # Check if step is complete and not being reverted to
-        if placeholder_value and state.get("_revert_target") != step_id:
+        if file_summary and state.get("_revert_target") != step_id:
             # Keep LLM informed about completed state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}")
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
             
             return Div(
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Card(
+                    H3(f"{step.show}"),
+                    P("Uploaded files:"),
+                    Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
+                    pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
+                ),
                 # CRITICAL: Include trigger to next step in completed state
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
                 id=step_id
             )
         else:
-            # Keep LLM informed about showing input form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            # Keep LLM informed about showing upload form
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing upload form")
             
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
             
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue to the next step."),
+                    P("Select one or more files to upload. Files will be saved automatically."),
                     Form(
-                        Button("Next ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Upload Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
                     )
                 ),
                 # Empty placeholder without trigger
@@ -2795,33 +2812,101 @@ This step serves as a placeholder for future widget types."""
             )
 
     async def step_11_submit(self, request):
-        """Process the submission for Step 11.
-        
-        This is a placeholder step that follows the chain reaction pattern.
-        """
+        """Process the submission for the file upload widget."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_11"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get("pipeline_id", "unknown")
-
-        # For placeholder, we use a fixed value
-        placeholder_value = "completed"
-
-        # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
         
-        # Keep LLM informed about the step completion
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        # Get the uploaded files
+        form_data = await request.form()
+        uploaded_files = form_data.getlist("uploaded_files")
         
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        if not uploaded_files:
+            await self.message_queue.add(pip, "No files selected. Please try again.", verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("No files were selected. Please try again."),
+                    Form(
+                        Input(
+                            type="file",
+                            name="uploaded_files",
+                            multiple="true",
+                            required="true",
+                            cls="contrast"
+                        ),
+                        Button("Upload Files ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}",
+                        enctype="multipart/form-data"
+                    )
+                ),
+                id=step_id
+            )
         
-        # Return completion view with explicit trigger to next step
+        # Create save directory
+        save_directory = Path("downloads") / self.app_name / pipeline_id
+        try:
+            save_directory.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            error_msg = f"Error creating save directory: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            return P("Error creating save directory. Please try again.", style=pip.get_style("error"))
+        
+        # Create a list of file information and save files
+        file_info = []
+        total_size = 0
+        saved_files = []
+        
+        for file in uploaded_files:
+            try:
+                # Read file content
+                contents = await file.read()
+                file_size = len(contents)
+                total_size += file_size
+                
+                # Save file
+                file_save_path = save_directory / file.filename
+                with open(file_save_path, "wb") as f:
+                    f.write(contents)
+                
+                # Add to saved files list
+                saved_files.append((file.filename, str(file_save_path)))
+                file_info.append(f"📄 {file.filename} ({file_size:,} bytes) -> {file_save_path}")
+                
+            except Exception as e:
+                error_msg = f"Error saving file {file.filename}: {str(e)}"
+                logger.error(error_msg)
+                await self.message_queue.add(pip, error_msg, verbatim=True)
+                return P(f"Error saving file {file.filename}. Please try again.", style=pip.get_style("error"))
+        
+        # Create a summary of the files
+        file_summary = "\n".join(file_info)
+        file_summary += f"\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes"
+        file_summary += f"\nSaved to: {save_directory}"
+        
+        # Update step state with file information
+        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+        
+        # Keep LLM informed about the widget content and state
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")
+        
+        # Send user-visible confirmation
+        await self.message_queue.add(pip, f"Successfully saved {len(uploaded_files)} files to {save_directory}", verbatim=True)
+        
+        # Return the file list display with workflow progression
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Card(
+                H3(f"{step.show}"),
+                P("Files saved successfully:"),
+                Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
+                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
+            ),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
