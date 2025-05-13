@@ -394,9 +394,24 @@ class TextAreaWidget:
             finalize_msg = self.step_messages["finalize"]["ready"]
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
 
-        # Return the standard navigation controls (Revert button + trigger for next step)
+        # Create the text widget with Pre tag to preserve formatting
+        text_widget = Pre(
+            processed_val,
+            style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
+        )
+        
+        # Create content container with the widget
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show} Configured",
+            widget=text_widget,
+            steps=steps
+        )
+        
+        # Return the standard navigation controls
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {processed_val}", steps=steps),
+            content_container,
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         ) 
