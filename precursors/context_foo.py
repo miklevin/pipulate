@@ -23,15 +23,16 @@ from typing import Dict, List, Optional, Union
 FILES_TO_INCLUDE = """\
 README.md
 flake.nix
-/home/mike/repos/Pipulate.com/install.sh
-/home/mike/repos/Pipulate.com/index.md
-/home/mike/repos/Pipulate.com/architecture.md
-/home/mike/repos/Pipulate.com/development.md
 requirements.txt
 server.py
 /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 /home/mike/repos/.cursor/rules/workflow_implementation_guide.md
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
+/home/mike/repos/pipulate/plugins/505_widget_designer.py
+# /home/mike/repos/Pipulate.com/install.sh
+# /home/mike/repos/Pipulate.com/index.md
+# /home/mike/repos/Pipulate.com/architecture.md
+# /home/mike/repos/Pipulate.com/development.md
 # /home/mike/repos/pipulate/plugins/550_browser_automation.py
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
