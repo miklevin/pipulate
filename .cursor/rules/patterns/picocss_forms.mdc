@@ -1,0 +1,201 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# PicoCSS Forms with FastHTML
+
+## Core Concepts
+- **FastHTML Integration**: Python-based HTML generation with PicoCSS styling
+- **Semantic HTML**: Proper HTML structure for PicoCSS styling
+- **HTMX Integration**: Dynamic form interactions
+- **Form Components**: Input fields, textareas, selects, checkboxes, etc.
+- **Validation States**: Form validation with PicoCSS styling
+
+## Implementation Pattern
+
+### 1. Basic Form Structure
+```python
+from fasthtml.common import Html, Head, Link, Body, Title, Form, Label, Input, Small
+
+def basic_form():
+    return Html(
+        Head(
+            Title("PicoCSS Form"),
+            Link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css")
+        ),
+        Body(
+            Form(
+                Label("Username", **{'for': 'username'}),
+                Input(type="text", id="username", name="username", placeholder="Enter username"),
+                Small("Required field"),
+                hx_post="/submit",
+                hx_target="#result"
+            )
+        )
+    )
+```
+
+### 2. Form Validation
+```python
+def validated_input(is_valid):
+    return [
+        Label("Email", **{'for': 'email'}),
+        Input(
+            type="email",
+            id="email",
+            name="email",
+            placeholder="Enter email",
+            **{'aria-invalid': str(not is_valid).lower()}
+        ),
+        Small("Please enter a valid email." if not is_valid else "Looks good!")
+    ]
+```
+
+## Critical Patterns
+
+### 1. Input Fields
+- Use proper input types
+- Include labels and helper text
+- Set validation states
+- Support disabled/readonly states
+- Handle validation feedback
+
+### 2. Form Layout
+- Group related fields
+- Use proper spacing
+- Include helper text
+- Show validation states
+- Support responsive design
+
+### 3. Form Components
+- Text inputs
+- Textareas
+- Select dropdowns
+- Checkboxes
+- Radio buttons
+- Range sliders
+- Switch toggles
+
+### 4. Validation
+- Client-side validation
+- Server-side validation
+- Error messages
+- Success states
+- ARIA attributes
+
+## Common Pitfalls
+1. **Missing Labels**: Always include labels for inputs
+2. **Validation Timing**: Don't validate too early
+3. **Error Messages**: Show clear, helpful errors
+4. **Accessibility**: Include proper ARIA attributes
+5. **Mobile Support**: Test on mobile devices
+6. **HTMX Integration**: Handle loading states
+7. **State Management**: Preserve form state
+8. **Security**: Validate server-side
+
+## Best Practices
+
+### 1. Form Structure
+- Use semantic HTML
+- Include proper labels
+- Add helper text
+- Group related fields
+- Support keyboard navigation
+
+### 2. Validation
+- Validate on blur
+- Show clear errors
+- Support custom rules
+- Handle all states
+- Preserve state
+
+### 3. Accessibility
+- Use proper labels
+- Include ARIA attributes
+- Support screen readers
+- Handle keyboard nav
+- Show clear feedback
+
+### 4. HTMX Integration
+- Handle loading states
+- Show validation feedback
+- Update form state
+- Handle errors
+- Preserve context
+
+## Component Examples
+
+### 1. Text Input
+```python
+def text_input():
+    return [
+        Label("Name", **{'for': 'name'}),
+        Input(type="text", id="name", name="name", placeholder="Enter name"),
+        Small("Required field")
+    ]
+```
+
+### 2. Textarea
+```python
+def textarea():
+    return [
+        Label("Message", **{'for': 'message'}),
+        Textarea(id="message", name="message", placeholder="Enter message"),
+        Small("Maximum 500 characters")
+    ]
+```
+
+### 3. Select
+```python
+def select():
+    return [
+        Label("Country", **{'for': 'country'}),
+        Select(
+            Option("Select country...", value="", disabled=True, selected=True),
+            Option("USA", value="us"),
+            Option("Canada", value="ca"),
+            id="country",
+            name="country"
+        )
+    ]
+```
+
+### 4. Checkbox
+```python
+def checkbox():
+    return Label(
+        Input(type="checkbox", id="terms", name="terms"),
+        " I agree to the terms"
+    )
+```
+
+### 5. Radio Group
+```python
+def radio_group():
+    return Fieldset(
+        Legend("Select option:"),
+        Label(
+            Input(type="radio", id="opt1", name="option", value="1"),
+            " Option 1"
+        ),
+        Label(
+            Input(type="radio", id="opt2", name="option", value="2"),
+            " Option 2"
+        )
+    )
+```
+
+### 6. Range Slider
+```python
+def range_slider():
+    return [
+        Label("Volume", **{'for': 'volume'}),
+        Input(type="range", id="volume", name="volume", min="0", max="100", value="50")
+    ]
+```
+
+## Related Patterns
+- See: patterns/text_input.mdc
+- See: patterns/validation.mdc
+- See: patterns/widget_implementation.mdc
