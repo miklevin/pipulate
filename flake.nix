@@ -336,6 +336,9 @@
           fi
           echo "INFO: EFFECTIVE_OS set to: $EFFECTIVE_OS (for browser automation context)"
           
+          # Add isnix alias for environment checking
+          alias isnix='if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then echo "✓ In Nix shell - you can run python server.py"; else echo "✗ Not in Nix shell - please run nix develop"; fi'
+          
           # MAGIC COOKIE TRANSFORMATION
           if [ ! -d .git ]; then
             echo "🔄 Transforming installation into git repository..."
