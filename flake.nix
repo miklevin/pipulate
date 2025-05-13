@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.0";  # Define version here in the outputs scope
+      version = "1.0.1";  # Define version here in the outputs scope
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -347,6 +347,12 @@
           
           # Add isnix alias for environment checking
           alias isnix='if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then echo "✓ In Nix shell v${version} - you can run python server.py"; else echo "✗ Not in Nix shell - please run nix develop"; fi'
+          
+          # Add a more visible prompt when in Nix shell
+          if [ -n "$IN_NIX_SHELL" ] || [[ "$PS1" == *"(nix)"* ]]; then
+            export PS1="(nix) $PS1"
+            echo "You are now in the Nix development environment. Type 'exit' to leave it."
+          fi
           
           # MAGIC COOKIE TRANSFORMATION
           if [ ! -d .git ]; then
