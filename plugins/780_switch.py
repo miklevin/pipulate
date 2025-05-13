@@ -81,7 +81,7 @@ class SwitchWorkflow:
 
     # --- Switch Configuration ---
     SWITCH_CONFIG = {
-        "label": "Enable Feature",
+        "label": "Complete Step",
         "description": "Toggle this switch to enable or disable the feature",
         "default": False,
         "show_state": True,  # Whether to show the current state
