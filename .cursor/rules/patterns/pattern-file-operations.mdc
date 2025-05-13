@@ -1,0 +1,171 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# File Operations Pattern
+
+## Core Concepts
+- **File Generation**: Create files asynchronously
+- **File Serving**: Serve files securely
+- **Progress Tracking**: Monitor file generation progress
+- **Error Handling**: Manage file system errors
+- **Cleanup**: Remove temporary files
+
+## Implementation Pattern
+
+### 1. File Generation
+```python
+async def generate_file(self, job_id, parameters):
+    """Generate a file asynchronously."""
+    try:
+        # Create output directory
+        output_dir = os.path.join(os.getcwd(), 'downloads')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Generate unique filename
+        filename = f"{job_id}.csv"
+        filepath = os.path.join(output_dir, filename)
+        
+        # Update job state
+        self.operation_jobs[job_id]['filepath'] = filepath
+        
+        # Generate file content
+        with open(filepath, 'w') as f:
+            # Write file content
+            f.write("column1,column2,column3\n")
+            f.write("value1,value2,value3\n")
+            f.write("value4,value5,value6\n")
+        
+        # Update job state
+        self.operation_jobs[job_id]['status'] = 'COMPLETED'
+        self.operation_jobs[job_id]['result'] = filename
+        
+    except Exception as e:
+        self.operation_jobs[job_id]['status'] = 'ERROR'
+        self.operation_jobs[job_id]['error'] = str(e)
+        # Cleanup on error
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        raise
+```
+
+### 2. File Serving
+```python
+async def serve_file(self, request):
+    """Serve a generated file."""
+    try:
+        # Get filename from query parameter
+        filename = request.query_params.get('file')
+        if not filename:
+            return HTMLResponse(
+                "Error: No file specified", 
+                status_code=400
+            )
+        
+        # Construct full path
+        filepath = os.path.join(os.getcwd(), 'downloads', filename)
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            return HTMLResponse(
+                "Error: File not found", 
+                status_code=404
+            )
+        
+        # Serve the file as a download
+        return FileResponse(
+            filepath,
+            media_type='text/csv',
+            filename=filename,
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        return HTMLResponse(
+            f"Error serving file: {str(e)}", 
+            status_code=500
+        )
+```
+
+### 3. File Cleanup
+```python
+async def cleanup_file(self, job_id):
+    """Clean up temporary files."""
+    try:
+        job = self.operation_jobs.get(job_id)
+        if job and 'filepath' in job:
+            filepath = job['filepath']
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    except Exception as e:
+        logger.error(f"Error cleaning up file: {str(e)}")
+```
+
+## Critical Patterns
+
+### 1. File Security
+- Validate file paths
+- Check file existence
+- Use secure file permissions
+- Clean up temporary files
+- Handle file system errors
+
+### 2. Progress Tracking
+- Track file generation progress
+- Update UI with progress
+- Handle generation errors
+- Provide clear status messages
+
+### 3. Error Handling
+- Handle file system errors
+- Clean up on failure
+- Provide clear error messages
+- Allow retry mechanisms
+
+### 4. File Serving
+- Use proper MIME types
+- Set correct headers
+- Handle missing files
+- Support large files
+
+## Common Pitfalls
+1. **Path Traversal**: Don't allow directory traversal
+2. **File Permissions**: Set proper file permissions
+3. **Cleanup**: Always clean up temporary files
+4. **Error Handling**: Handle file system errors
+5. **Progress**: Track generation progress
+6. **Security**: Validate file paths
+7. **Headers**: Set proper content headers
+8. **Large Files**: Handle large file downloads
+
+## Best Practices
+1. **File Generation**
+   - Use unique filenames
+   - Track generation progress
+   - Handle errors gracefully
+   - Clean up on failure
+
+2. **File Serving**
+   - Validate file paths
+   - Check file existence
+   - Set proper headers
+   - Handle errors gracefully
+
+3. **Error Recovery**
+   - Handle file system errors
+   - Clean up temporary files
+   - Provide clear error messages
+   - Allow retry mechanisms
+
+4. **Security**
+   - Validate file paths
+   - Set proper permissions
+   - Clean up temporary files
+   - Handle errors securely
+
+## Related Patterns
+- See: pattern-async-polling.mdc
+- See: pattern-widget-implementation.mdc
+- See: pattern-chain-reaction.mdc
