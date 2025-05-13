@@ -325,17 +325,16 @@ The project aims for a flat, understandable structure:
 
 ```plaintext
     .
+    ├── .cursor               # Guidelines for AI code editing (if using Cursor)
     ├── .venv/                # Virtual environment (shared by server & Jupyter)
-    ├── apps/                 # CRUD application plugins (e.g., profiles_app.py)
     ├── data/
     │   └── data.db           # SQLite database
     ├── downloads/            # Default location for workflow outputs (e.g., CSVs)
     ├── logs/
     │   └── server.log        # Server logs (useful for debugging / AI context)
     ├── static/               # JS, CSS, images
+    ├── plugins/              # Workflow plugins (e.g., hello_flow.py)
     ├── training/             # Markdown files for AI context/prompts
-    ├── workflows/            # Workflow plugins (e.g., hello_flow.py)
-    ├── .cursorrules          # Guidelines for AI code editing (if using Cursor)
     ├── flake.nix             # Nix flake definition for reproducibility
     ├── LICENSE
     ├── README.md             # This file
