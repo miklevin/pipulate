@@ -336,7 +336,6 @@ class SwitchWorkflow:
             switch_inputs.append(
                 Div(
                     Label(
-                        switch["label"],
                         Input(
                             type="checkbox",
                             role="switch",
@@ -344,7 +343,7 @@ class SwitchWorkflow:
                             checked=current_state,
                             cls="contrast"
                         ),
-                        Small(switch["description"])
+                        Span(switch["label"], style="margin-left: 0.5rem;")
                     ),
                     style="margin-bottom: 1rem;"
                 )
