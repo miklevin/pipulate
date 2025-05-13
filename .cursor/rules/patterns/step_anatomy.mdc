@@ -124,11 +124,54 @@ async def step_xx(self, request):
    - Always target the current step's container
    - Always include a submit button
 
+## Special Cases
+
+1. **Terminal Steps**
+   ```python
+   # For steps that end the workflow
+   return Div(
+       Card(
+           H3("Workflow Complete"),
+           P("All steps finished successfully")
+       ),
+       id=step_id
+   )
+   ```
+
+2. **Polling Operations**
+   ```python
+   # For steps that need to poll for status
+   return Div(
+       Card(
+           H3("Processing"),
+           P("Please wait...")
+       ),
+       cls="polling-status no-chain-reaction",
+       hx_get=f"/{app_name}/check_status",
+       hx_trigger="load, every 2s",
+       hx_target=f"#{step_id}",
+       id=step_id
+   )
+   ```
+
+3. **File Downloads**
+   ```python
+   # For steps that trigger file downloads
+   return Div(
+       Card(
+           H3("Download Ready"),
+           A("Download File", href=f"/{app_name}/download", download=True)
+       ),
+       cls="no-chain-reaction",
+       id=step_id
+   )
+   ```
+
 ## Related Rules
-- @pattern-chain-reaction
-- @pattern-state-management
-- @pattern-wet
+- [chain_reaction](mdc:patterns/chain_reaction.mdc)
+- [wet](mdc:patterns/wet.mdc)
+- [validation](mdc:patterns/validation.mdc)
 
 ## Reference Files
-- @700_widget_designer.py
-- @750_checkboxes.py
+- [700_widget_designer.py](mdc:pipulate/plugins/700_widget_designer.py)
+- [750_checkboxes.py](mdc:pipulate/plugins/750_checkboxes.py)
