@@ -58,7 +58,7 @@ alwaysApply: false
    state, error = pip.initialize_if_missing(pipeline_id, initial_state)
    
    # Update
-   await pip.update_step_state(pipeline_id, step_id, data, steps)
+   await pip.set_step_data(pipeline_id, step_id, data, steps)
    
    # Read
    data = pip.get_step_data(pipeline_id, step_id, default={})

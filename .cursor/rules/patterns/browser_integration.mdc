@@ -59,7 +59,7 @@ webbrowser.open(url)  # Opens URL in default browser
 ### URL Opening Widget
 ```python
 # Store URL in state
-await pip.update_step_state(pipeline_id, step_id, url, steps)
+await pip.set_step_data(pipeline_id, step_id, url, steps)
 
 # Open URL
 import webbrowser

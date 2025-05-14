@@ -395,7 +395,7 @@ class PandasTableWidget:
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f"[WIDGET CONTENT] {step.show} (JSON Data):\n{user_val}")
 
         # Create a pandas table from the JSON data

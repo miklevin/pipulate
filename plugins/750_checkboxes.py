@@ -454,7 +454,7 @@ class CheckboxWorkflow:
             return P("Error: Please select at least one option", style=self.pipulate.ERROR_STYLE)
         
         # Update state
-        await self.pipulate.update_step_state(pipeline_id, step_id, values, steps)
+        await self.pipulate.set_step_data(pipeline_id, step_id, values, steps)
         await self.message_queue.add(self.pipulate, self.step_messages.get(step_id, {}).get("complete", 
                                 f"{step.show} complete: {', '.join(values)}"), 
                                 verbatim=True)

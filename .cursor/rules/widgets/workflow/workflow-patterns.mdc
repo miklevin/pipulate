@@ -80,7 +80,7 @@ Every workflow in Pipulate follows these key patterns:
 
 2. **State Operations**
    - Initialize: `pip.initialize_if_missing()`
-   - Update: `pip.update_step_state()`
+   - Update: `pip.set_step_data()`
    - Read: `pip.get_step_data()`
    - Clear: `pip.clear_steps_from()`
 

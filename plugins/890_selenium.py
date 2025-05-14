@@ -383,7 +383,7 @@ class SeleniumUrlOpenerWidget:
         if not url_to_open.startswith(("http://", "https://")):
             url_to_open = f"https://{url_to_open}"
         
-        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
         
         success, message = await self._execute_selenium_open(url_to_open)
         

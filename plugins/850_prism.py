@@ -425,7 +425,7 @@ for (let i = 0; i < 10; i++) {
             return error_component # This will show "Code Content cannot be empty" if only ``` was entered.
         
         # Save the raw user input (including ```lang if provided) to state, as that's what they'd expect to see on revert.
-        await pip.update_step_state(pipeline_id, step_id, user_val_raw, steps) # Save the original raw value
+        await pip.set_step_data(pipeline_id, step_id, user_val_raw, steps) # Save the original raw value
         pip.append_to_history(f"[WIDGET CONTENT] {step.show} ({language}):\n{code_to_highlight}")
         
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"

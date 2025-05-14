@@ -116,7 +116,7 @@ async def step_XX_submit(self, request):
     pip.write_state(pipeline_id, state)
     
     # Update progress and message
-    await pip.update_step_state(pipeline_id, step_id, value, steps)
+    await pip.set_step_data(pipeline_id, step_id, value, steps)
     await self.message_queue.add(pip, f"{step.show} complete: {value}", verbatim=True)
     
     # Return response with chain reaction
@@ -142,7 +142,7 @@ For placeholder steps, see the placeholder-step-pattern rule.
 - Use Pipulate helpers for state:
   - `pip.read_state(pipeline_id)`
   - `pip.get_step_data(pipeline_id, step_id, {})`
-  - `pip.update_step_state(pipeline_id, step_id, val, steps)`
+  - `pip.set_step_data(pipeline_id, step_id, val, steps)`
 - Handle finalization properly
 - Clear state appropriately on revert
 

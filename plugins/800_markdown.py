@@ -399,7 +399,7 @@ def hello_world():
         if not is_valid:
             return error_component
 
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
         
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"

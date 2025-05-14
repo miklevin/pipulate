@@ -658,7 +658,7 @@ class BotifyExport:
             return error_component
 
         # Update state using helper
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Send confirmation message
         await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)
@@ -790,7 +790,7 @@ class BotifyExport:
             return error_component
 
         # Update state using helper
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Send confirmation message
         await self.message_queue.add(pip, f"{step.show}: {user_val}", verbatim=True)

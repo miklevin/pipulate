@@ -400,7 +400,7 @@ class TextFieldWidget:
         # --- End Custom Processing ---
 
         # Save the processed value to this step's state
-        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
 
         # Send confirmation message to UI and LLM via message queue
         confirm_msg = f"{step.show}: {processed_val}"

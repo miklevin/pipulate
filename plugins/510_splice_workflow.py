@@ -398,7 +398,7 @@ class SpliceWorkflow:
         
         STEP PATTERN: Each step_XX_submit method follows this pattern:
         1. Process and validate form data
-        2. Store state data with pip.update_step_state()
+        2. Store state data with pip.set_step_data()
         3. Return completion view WITH explicit trigger to next step
         
         CRITICAL: The return MUST include:
@@ -422,7 +422,7 @@ class SpliceWorkflow:
         placeholder_value = "completed"
 
         # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         
         # Keep LLM informed about the step completion
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
@@ -534,7 +534,7 @@ class SpliceWorkflow:
         placeholder_value = "completed"
 
         # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         
         # Keep LLM informed about the step completion
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")
@@ -647,7 +647,7 @@ class SpliceWorkflow:
         placeholder_value = "completed"
 
         # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         
         # Keep LLM informed about the final step completion
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")

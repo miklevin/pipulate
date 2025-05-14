@@ -642,7 +642,7 @@ This step serves as a placeholder for future widget types."""
             return error_component
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the widget content
         pip.append_to_history(f"[WIDGET CONTENT] Simple Text Widget:\n{user_val}")
@@ -825,7 +825,7 @@ This step serves as a placeholder for future widget types."""
             return error_component
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the markdown content
         pip.append_to_history(f"[WIDGET CONTENT] Markdown Widget:\n{user_val}")
@@ -1024,7 +1024,7 @@ This step serves as a placeholder for future widget types."""
             return error_component
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the mermaid diagram
         pip.append_to_history(f"[WIDGET CONTENT] Mermaid Diagram:\n{user_val}")
@@ -1201,7 +1201,7 @@ This step serves as a placeholder for future widget types."""
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the table data
         pip.append_to_history(f"[WIDGET CONTENT] Pandas Table Data:\n{user_val}")
@@ -1451,7 +1451,7 @@ This step serves as a placeholder for future widget types."""
             return error_component
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the code content
         pip.append_to_history(f"[WIDGET CONTENT] Code Syntax Highlighting ({language}):\n{user_val}")
@@ -1676,7 +1676,7 @@ This step serves as a placeholder for future widget types."""
             return error_component
 
         # Save the value to state
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
 
         # Keep LLM informed about the JavaScript code
         pip.append_to_history(f"[WIDGET CONTENT] JavaScript Widget Code:\n{user_val}")
@@ -2129,7 +2129,7 @@ This step serves as a placeholder for future widget types."""
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save the counter data to state
-        await pip.update_step_state(pipeline_id, step_id, counter_data, steps)
+        await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
 
         # Create the matplotlib histogram widget
         try:
@@ -2275,7 +2275,7 @@ This step serves as a placeholder for future widget types."""
             url = f"https://{url}"
 
         # Save URL to state
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await pip.set_step_data(pipeline_id, step_id, url, steps)
         await self.message_queue.add(pip, f"URL set to: {url}", verbatim=True)
         
         # Open URL in default browser
@@ -2530,7 +2530,7 @@ This step serves as a placeholder for future widget types."""
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save to state
-        await pip.update_step_state(pipeline_id, step_id, table_data, steps)
+        await pip.set_step_data(pipeline_id, step_id, table_data, steps)
 
         # Create the rich table widget
         try:
@@ -2713,7 +2713,7 @@ This step serves as a placeholder for future widget types."""
             url = f"https://{url}"
         
         # Store state data
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await pip.set_step_data(pipeline_id, step_id, url, steps)
         
         try:
             # Set up Chrome options
@@ -2940,7 +2940,7 @@ This step serves as a placeholder for future widget types."""
         file_summary += f"\nSaved to: {save_directory}"
         
         # Update step state with file information
-        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+        await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
         
         # Keep LLM informed about the widget content and state
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")

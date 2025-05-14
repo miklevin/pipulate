@@ -459,7 +459,7 @@ class RangeSelectorWorkflow:
             return P("Error: Invalid value", style=pip.ERROR_STYLE)
         
         # Update state
-        await pip.update_step_state(pipeline_id, step_id, value, steps)
+        await pip.set_step_data(pipeline_id, step_id, value, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
                                 f"{step.show} complete: {value}"), 
                                 verbatim=True)

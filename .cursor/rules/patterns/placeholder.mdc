@@ -82,7 +82,7 @@ async def step_XX_submit(self, request):
     pip.write_state(pipeline_id, state)
     
     # Confirm completion and configure next step display
-    await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+    await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
     await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
     
     # Return response with chain reaction to next step

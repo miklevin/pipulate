@@ -1495,7 +1495,7 @@ class Pipulate:
 
         return True, "", None
 
-    async def update_step_state(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
+    async def set_step_data(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
         """
         Update the state for a step and handle reverting.
 

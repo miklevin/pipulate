@@ -344,7 +344,7 @@ class BlankWorkflow:
         
         # Process and save data...
         placeholder_value = "completed"
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         
         # Keep LLM informed about the widget content and state
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")

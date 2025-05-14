@@ -461,7 +461,7 @@ class BrowserAutomation:
             url = f"https://{url}"
 
         # Store URL in state
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await pip.set_step_data(pipeline_id, step_id, url, steps)
 
         try:
             # Set up Chrome options
@@ -797,7 +797,7 @@ class BrowserAutomation:
                 "timestamp": datetime.now().isoformat(),
                 "reconstructed_url": reconstructed_url
             }
-            await pip.update_step_state(pipeline_id, step_id, crawl_data, steps)
+            await pip.set_step_data(pipeline_id, step_id, crawl_data, steps)
             await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
 
             # Create widget with summary and reconstructed URL
@@ -1403,7 +1403,7 @@ class BrowserAutomation:
         placeholder_value = "completed"
 
         # Store state data
-        await pip.update_step_state(pipeline_id, step_id, placeholder_value, steps)
+        await pip.set_step_data(pipeline_id, step_id, placeholder_value, steps)
         
         # Keep LLM informed about the step completion
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{placeholder_value}")

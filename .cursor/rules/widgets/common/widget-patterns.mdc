@@ -34,7 +34,7 @@ Every widget in Pipulate follows a consistent pattern:
 ## Widget State Management
 
 1. **State Storage**
-   - Use `pip.update_step_state()` to save data
+   - Use `pip.set_step_data()` to save data
    - Store in workflow-specific state
    - Include metadata for widget type
 

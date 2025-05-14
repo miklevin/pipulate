@@ -409,7 +409,7 @@ class MatplotlibWidget:
             return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
         # Save the counter data to state
-        await pip.update_step_state(pipeline_id, step_id, counter_data, steps)
+        await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
 
         # Create the matplotlib histogram widget
         try:

@@ -165,7 +165,7 @@ Please perform the following steps to extract the Markdown MarkedJS widget:
       * **Key elements to transpose:**
           * Retrieve `user_val` from the form (named `markdown_content`).
           * Perform validation (e.g., using `pip.validate_step_input`).
-          * Call `await pip.update_step_state(pipeline_id, step_id, user_val, steps)`.
+          * Call `await pip.set_step_data(pipeline_id, step_id, user_val, steps)`.
           * Call `pip.append_to_history()` with the markdown content for LLM context.
           * Generate `widget_id`.
           * Call `self.create_marked_widget(user_val, widget_id)`.
@@ -624,7 +624,7 @@ async def step_01_submit(self, request):
     if not is_valid:
         return error_component
 
-    await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+    await pip.set_step_data(pipeline_id, step_id, user_val, steps)
     pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
     
     widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1096,7 +1096,7 @@ def hello_world():
         if not is_valid:
             return error_component
 
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
         
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -1220,7 +1220,7 @@ Please perform the following steps to extract the Mermaid Diagram widget:
       * **Key elements to transpose:**
           * Retrieve `user_val` (Mermaid syntax) from the form.
           * Validate input.
-          * Call `await pip.update_step_state(...)`.
+          * Call `await pip.set_step_data(...)`.
           * Call `pip.append_to_history()`.
           * Generate `widget_id`.
           * Call `self.create_mermaid_widget()`.
@@ -1620,7 +1620,7 @@ class MermaidWidget:
         if not is_valid:
             return error_component
 
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
         
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -2043,7 +2043,7 @@ class MermaidWidget:
         if not is_valid:
             return error_component
 
-        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
         
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -2164,7 +2164,7 @@ Please perform the following steps to extract the Pandas Table widget:
           * Perform validation:
               * Basic validation using `pip.validate_step_input`.
               * JSON format validation (ensure it's a list of objects, or list of lists for header/rows).
-          * Call `await pip.update_step_state(...)`.
+          * Call `await pip.set_step_data(...)`.
           * Call `pip.append_to_history()`.
           * Call `self.create_pandas_table(user_val)` to generate the HTML table. Handle potential errors during table creation.
           * Use `pip.widget_container` to wrap the `table_container` (which includes the HTML table).
@@ -2586,7 +2586,7 @@ async def step_01_submit(self, request):
     except json.JSONDecodeError:
         return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
 
-    await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+    await pip.set_step_data(pipeline_id, step_id, user_val, steps)
     pip.append_to_history(f"[WIDGET CONTENT] {step.show} (JSON Data):\n{user_val}")
     
     try:
@@ -2695,7 +2695,7 @@ Please perform the following steps to extract the PrismJS Code Highlighter widge
           * Retrieve `user_val` (code content) from the form.
           * Implement language detection from `user_val` as in the GET handler.
           * Validate input.
-          * Call `await pip.update_step_state(...)`.
+          * Call `await pip.set_step_data(...)`.
           * Call `pip.append_to_history()` (include the detected language).
           * Generate `widget_id`.
           * Call `self.create_prism_widget(code_to_display, widget_id, language)`.
@@ -3126,7 +3126,7 @@ for (let i = 0; i < 10; i++) {
             return error_component # This will show "Code Content cannot be empty" if only ``` was entered.
         
         # Save the raw user input (including ```lang if provided) to state, as that's what they'd expect to see on revert.
-        await pip.update_step_state(pipeline_id, step_id, user_val_raw, steps) # Save the original raw value
+        await pip.set_step_data(pipeline_id, step_id, user_val_raw, steps) # Save the original raw value
         pip.append_to_history(f"[WIDGET CONTENT] {step.show} ({language}):\n{code_to_highlight}")
         
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -3229,7 +3229,7 @@ Please perform the following steps to extract the Matplotlib Graph widget:
           * Perform validation:
               * Basic validation using `pip.validate_step_input`.
               * JSON format validation (ensure it's a dictionary for counter data).
-          * Call `await pip.update_step_state(...)`.
+          * Call `await pip.set_step_data(...)`.
           * Call `pip.append_to_history()`.
           * Call `self.create_matplotlib_histogram(user_val)` to generate the histogram image. Handle potential errors during image creation.
           * Use `pip.widget_container` to wrap the `histogram_widget`.
@@ -3339,7 +3339,7 @@ Please perform the following steps to extract the Executable JavaScript widget:
       * **Key elements to transpose:**
           * Retrieve `user_val` (JavaScript code) from the form.
           * Validate input.
-          * Call `await pip.update_step_state(...)`.
+          * Call `await pip.set_step_data(...)`.
           * Call `pip.append_to_history()`.
           * Generate `widget_id` and `target_id`.
           * Create the JavaScript widget display (target `P` and "Re-run" `Button` with appropriate `_onclick`).
@@ -3445,7 +3445,7 @@ Please perform the following steps to extract the File Upload widget:
               * Collect information for the `file_summary` (filename, size, path).
               * Handle potential errors during file saving for individual files.
           * Create the final `file_summary` string (including total files, size, and save directory).
-          * Call `await pip.update_step_state(...)` to save the `file_summary`.
+          * Call `await pip.set_step_data(...)` to save the `file_summary`.
           * Call `pip.append_to_history()` with the `file_summary`.
           * Use `self.message_queue.add()` to provide user feedback.
           * Construct the `response_content` `Div` showing the success message, the `file_summary` (e.g., in a `Pre` tag), `pip.revert_control`, AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
@@ -3836,7 +3836,7 @@ async def step_01_submit(self, request):
     file_summary += f"\n\nTotal: {len(file_info_list)} files, {total_size:,} bytes"
     file_summary += f"\nSaved to directory: {save_directory.resolve()}" # Use resolve for absolute path
 
-    await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+    await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
     
     pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
     pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")
@@ -3934,7 +3934,7 @@ Please perform the following steps to extract the `webbrowser` URL Opener widget
       * **Key elements to transpose:**
           * Retrieve `url` from the form (named `url_to_open`).
           * Validate the URL (check if empty, prepend `https://` if no scheme).
-          * Call `await pip.update_step_state(...)` to save the URL.
+          * Call `await pip.set_step_data(...)` to save the URL.
           * Use `self.message_queue.add()` to inform the user.
           * Call `webbrowser.open(url)` to open the URL.
           * Call `pip.append_to_history()` with the URL.
@@ -4288,7 +4288,7 @@ class WebbrowserUrlOpenerWidget:
         if not url_to_open.startswith(("http://", "https://")):
             url_to_open = f"https://{url_to_open}"
         
-        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
         
         try:
             webbrowser.open(url_to_open)
@@ -4415,7 +4415,7 @@ Please perform the following steps to extract the Selenium URL Opener widget:
       * **Key elements to transpose:**
           * Retrieve `url` from the form (named `selenium_url`).
           * Validate the URL (check if empty, prepend `https://` if no scheme).
-          * Call `await pip.update_step_state(...)` to save the URL.
+          * Call `await pip.set_step_data(...)` to save the URL.
           * **Crucially, transpose the Selenium WebDriver logic:**
               * Set up Chrome options (headless commented out, no-sandbox, disable-dev-shm-usage, new-window, start-maximized, temporary user-data-dir).
               * Initialize `Service` using `ChromeDriverManager().install()` or system Chrome based on `EFFECTIVE_OS` (this logic should be replicated).
@@ -4845,7 +4845,7 @@ class SeleniumUrlOpenerWidget:
         if not url_to_open.startswith(("http://", "https://")):
             url_to_open = f"https://{url_to_open}"
         
-        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
         
         success, message = await self._execute_selenium_open(url_to_open)
         
@@ -5291,7 +5291,7 @@ class SeleniumUrlOpenerWidget:
         if not url_to_open.startswith(("http://", "https://")):
             url_to_open = f"https://{url_to_open}"
         
-        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
         
         success, message = await self._execute_selenium_open(url_to_open)
         
@@ -5577,7 +5577,7 @@ These asynchronous methods define the behavior of the workflow.
       * This method processes the data submitted from the step's input form.
       * It retrieves form data: `form = await request.form()`, then `user_val = form.get(step.done, "")`.
       * It should validate the input (e.g., using `pip.validate_step_input()`).
-      * It updates the workflow's state: `await pip.update_step_state(pipeline_id, step_id, user_val, self.steps)`. This saves `user_val` into the JSON blob in the `pipeline` table, associated with `pipeline_id`, under the key `step_id`, and within that, under the key defined by `step.done`.
+      * It updates the workflow's state: `await pip.set_step_data(pipeline_id, step_id, user_val, self.steps)`. This saves `user_val` into the JSON blob in the `pipeline` table, associated with `pipeline_id`, under the key `step_id`, and within that, under the key defined by `step.done`.
       * It updates the LLM's context with the submitted data: `pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")`.
       * It sends a confirmation message to the user via `self.message_queue.add(...)`.
       * **Continues the Chain Reaction:** This is a critical part. The method returns an HTML response that typically includes:
@@ -6296,7 +6296,7 @@ Because of the web UI, each step typically involves two key methods in your work
     This method *processes the data* submitted from the step's input form. Its key responsibilities are:
 
       * Retrieving and validating the submitted data.
-      * Updating the workflow's persistent state with the new data (using `self.pipulate.update_step_state()`).
+      * Updating the workflow's persistent state with the new data (using `self.pipulate.set_step_data()`).
       * Performing any actions associated with the step (e.g., opening a URL, generating an image, calling an API).
       * Informing the user and the LLM about the outcome.
       * **Returning an HTML response that shows the "Completed State" UI for the current step AND explicitly includes the HTMX trigger (`hx_trigger="load"`) for the *next* step.** This is what propels the workflow forward.

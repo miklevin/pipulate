@@ -526,7 +526,7 @@ class ParameterBusterWorkflow:
         project_data_str = json.dumps(project_data)
 
         # CUSTOMIZE_STATE_STORAGE: Save to state with JSON
-        await pip.update_step_state(pipeline_id, step_id, project_data_str, steps)
+        await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete: {project_data['project_name']}", verbatim=True)
 
         # CUSTOMIZE_WIDGET_DISPLAY: Create project info widget
@@ -717,7 +717,7 @@ class ParameterBusterWorkflow:
         analysis_result_str = json.dumps(analysis_result)
         
         # Store in state
-        await pip.update_step_state(pipeline_id, step_id, analysis_result_str, steps)
+        await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
         
         # Return the progress indicator immediately
         return Card(
@@ -1069,7 +1069,7 @@ class ParameterBusterWorkflow:
                 
                 # Store the check result
                 check_result_str = json.dumps(check_result)
-                await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             
             # Return completed step with chain reaction
             status_text = "HAS" if has_search_console else "does NOT have"
@@ -1432,7 +1432,7 @@ class ParameterBusterWorkflow:
             
             # Store the parameter summary
             summary_str = json.dumps(parameter_summary)
-            await pip.update_step_state(pipeline_id, step_id, summary_str, steps)
+            await pip.set_step_data(pipeline_id, step_id, summary_str, steps)
 
             # Add a single consolidated summary message instead of multiple detailed ones
             await self.message_queue.add(
@@ -2123,7 +2123,7 @@ removeWastefulParams();
             user_val = json.dumps(threshold_data)
             
             # Save the values to state
-            await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+            await pip.set_step_data(pipeline_id, step_id, user_val, steps)
             
             # Generate unique widget ID for this step and pipeline
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -2476,7 +2476,7 @@ removeWastefulParams();
                 
                 # Store the updated check result
                 check_result_str = json.dumps(check_result)
-                await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+                await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
                 return
                 
             # Need to do the export and download
@@ -2645,7 +2645,7 @@ removeWastefulParams();
             
             # Update state with download info
             check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
             
         except Exception as e:
             logging.exception(f"Error in process_search_console_data: {e}")
@@ -2656,7 +2656,7 @@ removeWastefulParams();
                 "error": str(e)
             })
             check_result_str = json.dumps(check_result)
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, self.steps)
+            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
             
             # Add error message to queue
             await self.message_queue.add(pip, f"❌ Error processing Search Console data: {str(e)}", verbatim=True)
@@ -3258,7 +3258,7 @@ removeWastefulParams();
             
             # Update state with complete analysis info including download results
             analysis_result_str = json.dumps(analysis_result)
-            await pip.update_step_state(pipeline_id, step_id, analysis_result_str, self.steps)
+            await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
             
             # Return the completed view
             return Div(
@@ -3479,7 +3479,7 @@ removeWastefulParams();
                             check_result_str = json.dumps(check_result)
                             
                             # Store in state
-                            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+                            await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
                             
                             # Return result display with chain reaction to next step
                             return Div(
@@ -3575,7 +3575,7 @@ removeWastefulParams();
             check_result_str = json.dumps(check_result)
             
             # Store in state
-            await pip.update_step_state(pipeline_id, step_id, check_result_str, steps)
+            await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             
             # Return result display with chain reaction to next step
             status_color = "green" if has_logs else "red"

@@ -77,7 +77,7 @@ class HelloFlow:
     * **State Management (`pipulate` helpers)**
         * `pip.read_state(pipeline_id)`: Reads the entire workflow state dictionary.
         * `pip.get_step_data(pipeline_id, step_id, default={})`: Reads the dictionary for a specific step.
-        * `await pip.update_step_state(pipeline_id, step_id, value, steps)`: *Recommended way* to save the primary `done` value for a step. Also updates internal step tracking.
+        * `await pip.set_step_data(pipeline_id, step_id, value, steps)`: *Recommended way* to save the primary `done` value for a step. Also updates internal step tracking.
         * `pip.write_state(pipeline_id, state)`: Saves the entire state dictionary (use carefully).
         * `_revert_target`: A key automatically added to the state by `handle_revert` indicating which step the user reverted to. Check `state.get('_revert_target') == step_id` in `step_XX` handlers to decide whether to show the input form or the completed view.
         * `_preserve_completed`: You can manually set `state[step_id]['_preserve_completed'] = True` (e.g., in `unfinalize` or `handle_revert`) if you want a specific step (like one involving a download) to remain in its "completed" view even after unfinalizing or reverting *past* it.
@@ -449,7 +449,7 @@ class HelloFlow:
         # --- End Custom Processing ---
 
         # Save the processed value to this step's state
-        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
 
         # Send confirmation message to UI and LLM via message queue
         confirm_msg = f"{step.show}: {processed_val}"
@@ -550,7 +550,7 @@ class HelloFlow:
         # --- End Custom Processing ---
 
         # Save the processed value to this step's state
-        await pip.update_step_state(pipeline_id, step_id, processed_val, steps)
+        await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
 
         # Send confirmation message to UI
         await self.message_queue.add(pip, f"{step.show}: {processed_val}", verbatim=True)

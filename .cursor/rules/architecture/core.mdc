@@ -95,7 +95,7 @@ The server.py file contains the main application setup. Plugins are automaticall
    - **POST Handler** processes submitted data and must include chain reaction:
      ```python
      # Process form data, validate, and store
-     await pip.update_step_state(pipeline_id, step_id, value, steps)
+     await pip.set_step_data(pipeline_id, step_id, value, steps)
      
      return Div(
          pip.revert_control(...),  # Shows completed step with revert option

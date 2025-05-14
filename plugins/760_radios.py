@@ -517,7 +517,7 @@ class RadioButtonWorkflow:
             return P("Error: Please select an option", style=self.pipulate.ERROR_STYLE)
         
         # Update state
-        await self.pipulate.update_step_state(pipeline_id, step_id, value, steps)
+        await self.pipulate.set_step_data(pipeline_id, step_id, value, steps)
         await self.message_queue.add(self.pipulate, self.step_messages.get(step_id, {}).get("complete", 
                                 f"{step.show} complete: {value}"), 
                                 verbatim=True)

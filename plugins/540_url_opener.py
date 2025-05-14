@@ -431,7 +431,7 @@ class BlankWorkflow:
             url = f"https://{url}"
         
         # Store URL in state
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await pip.set_step_data(pipeline_id, step_id, url, steps)
         
         # Open URL immediately
         import webbrowser
@@ -563,7 +563,7 @@ class BlankWorkflow:
             return P("Error: Search query is required", style=pip.get_style("error"))
         
         # Store query in state
-        await pip.update_step_state(pipeline_id, step_id, query, steps)
+        await pip.set_step_data(pipeline_id, step_id, query, steps)
         
         # Construct and open search URL
         search_url = f"https://www.google.com/search?q={query}"
@@ -707,7 +707,7 @@ class BlankWorkflow:
             url = f"https://{url}"
         
         # Store URL in state
-        await pip.update_step_state(pipeline_id, step_id, url, steps)
+        await pip.set_step_data(pipeline_id, step_id, url, steps)
         
         try:
             # Set up Chrome options

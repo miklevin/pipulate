@@ -407,7 +407,7 @@ class FileUploadWidget:
         file_summary += f"\n\nTotal: {len(file_info_list)} files, {total_size:,} bytes"
         file_summary += f"\nSaved to directory: {save_directory.resolve()}"
 
-        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+        await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
         
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
         pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")

@@ -388,7 +388,7 @@ class SwitchWorkflow:
             switch_state[switch["id"]] = form.get(f"switch_{switch['id']}") == "on"
         
         # Update state
-        await pip.update_step_state(pipeline_id, step_id, switch_state, steps)
+        await pip.set_step_data(pipeline_id, step_id, switch_state, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get("complete", 
                                 f"{step.show} complete: {switch_state}"), 
                                 verbatim=True)

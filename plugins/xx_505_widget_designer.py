@@ -402,7 +402,7 @@ class WidgetDesigner:
         file_summary += f"\nSaved to: {save_directory}"
         
         # Update step state with file information
-        await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+        await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
         
         # Keep LLM informed about the widget content and state
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")

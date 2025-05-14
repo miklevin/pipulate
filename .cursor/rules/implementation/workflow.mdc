@@ -76,7 +76,7 @@ step_data = pip.get_step_data(pipeline_id, step_id, {})
 # Update state
 state[step.done] = user_input
 pip.write_state(pipeline_id, state)
-await pip.update_step_state(pipeline_id, step_id, user_input, steps)
+await pip.set_step_data(pipeline_id, step_id, user_input, steps)
 ```
 
 ## Data Transformation Between Steps

@@ -90,7 +90,7 @@ Step(
    - Display configured values with `B()` tags
 
 ## State Management
-- Store values using `pip.update_step_state()`
+- Store values using `pip.set_step_data()`
 - Check finalized state before rendering
 - Use `refill=True` for reusable inputs
 - Preserve values when reverting with `_revert_target`

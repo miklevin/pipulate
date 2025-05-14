@@ -78,7 +78,7 @@ state = pip.read_state(pipeline_id)
 step_data = pip.get_step_data(pipeline_id, step_id, {})
 
 # Updating state
-await pip.update_step_state(pipeline_id, step_id, value, steps)
+await pip.set_step_data(pipeline_id, step_id, value, steps)
 
 # Finalizing state
 await pip.finalize_workflow(pipeline_id)
@@ -225,7 +225,7 @@ state["widget_value"] = value
 pip.write_state(pipeline_id, state)
 
 # ✅ Correct Pattern
-await pip.update_step_state(pipeline_id, step_id, value, steps)
+await pip.set_step_data(pipeline_id, step_id, value, steps)
 ```
 
 ### 2. Manual UI Construction
@@ -681,7 +681,7 @@ state = pip.read_state(pipeline_id)
 step_data = pip.get_step_data(pipeline_id, step_id, {})
 
 # Updating state
-await pip.update_step_state(pipeline_id, step_id, value, steps)
+await pip.set_step_data(pipeline_id, step_id, value, steps)
 
 # Finalizing state
 await pip.finalize_workflow(pipeline_id)
