@@ -1,0 +1,237 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Testing Patterns and Best Practices
+
+## Test Structure
+
+1. **Test Class**
+   ```python
+   class TestWidget:
+       def setup_method(self):
+           self.app = FastHTML()
+           self.pipulate = Pipulate()
+           self.pipeline = Pipeline()
+           self.db = {}
+           self.widget = WidgetWorkflow(
+               self.app,
+               self.pipulate,
+               self.pipeline,
+               self.db
+           )
+   ```
+
+2. **Test Methods**
+   ```python
+   async def test_widget_initialization(self):
+       assert self.widget.APP_NAME == "widget_name"
+       assert self.widget.DISPLAY_NAME == "Widget Display Name"
+   ```
+
+3. **Test Fixtures**
+   ```python
+   @pytest.fixture
+   async def widget_state():
+       return {
+           "app_name": "widget_name",
+           "step_01": {
+               "data_field": "test_value"
+           }
+       }
+   ```
+
+## Unit Testing
+
+1. **State Management**
+   ```python
+   async def test_state_management(self):
+       # Test initialization
+       state, error = await self.widget.init_state()
+       assert not error
+       assert state["app_name"] == self.widget.APP_NAME
+       
+       # Test update
+       await self.widget.update_state("step_01", "new_value")
+       state = self.widget.get_state()
+       assert state["step_01"]["data_field"] == "new_value"
+   ```
+
+2. **File Operations**
+   ```python
+   async def test_file_operations(self):
+       # Test file upload
+       file = MockFile("test.txt", b"test content")
+       result = await self.widget.handle_file_upload(file)
+       assert result["success"]
+       assert result["path"].exists()
+       
+       # Test file deletion
+       await self.widget.delete_file(result["path"])
+       assert not result["path"].exists()
+   ```
+
+3. **UI Components**
+   ```python
+   async def test_ui_components(self):
+       # Test form rendering
+       form = await self.widget.render_form()
+       assert "input" in form
+       assert "button" in form
+       
+       # Test error display
+       error = await self.widget.render_error("test error")
+       assert "error" in error
+       assert "test error" in error
+   ```
+
+## Integration Testing
+
+1. **Workflow Testing**
+   ```python
+   async def test_workflow(self):
+       # Test initialization
+       response = await self.widget.landing()
+       assert response.status_code == 200
+       
+       # Test step completion
+       response = await self.widget.step_01_submit({
+           "field": "test_value"
+       })
+       assert response.status_code == 200
+       
+       # Test finalization
+       response = await self.widget.finalize()
+       assert response.status_code == 200
+   ```
+
+2. **State Transitions**
+   ```python
+   async def test_state_transitions(self):
+       # Test step progression
+       await self.widget.step_01_submit({"field": "value1"})
+       state = self.widget.get_state()
+       assert state["step_01"]["data_field"] == "value1"
+       
+       # Test revert
+       await self.widget.handle_revert("step_01")
+       state = self.widget.get_state()
+       assert "step_01" not in state
+   ```
+
+3. **Error Handling**
+   ```python
+   async def test_error_handling(self):
+       # Test invalid input
+       response = await self.widget.step_01_submit({})
+       assert response.status_code == 400
+       assert "error" in response.text
+       
+       # Test file errors
+       response = await self.widget.handle_file_upload(None)
+       assert response.status_code == 400
+       assert "error" in response.text
+   ```
+
+## Mocking
+
+1. **File System**
+   ```python
+   @pytest.fixture
+   def mock_fs():
+       with patch("pathlib.Path") as mock_path:
+           mock_path.return_value.exists.return_value = True
+           yield mock_path
+   ```
+
+2. **Database**
+   ```python
+   @pytest.fixture
+   def mock_db():
+       with patch("pipulate.db") as mock_db:
+           mock_db.get.return_value = {}
+           yield mock_db
+   ```
+
+3. **HTTP Client**
+   ```python
+   @pytest.fixture
+   def mock_client():
+       with patch("httpx.AsyncClient") as mock_client:
+           mock_client.return_value.post.return_value = MockResponse(200)
+           yield mock_client
+   ```
+
+## Test Data
+
+1. **Sample Files**
+   ```python
+   class MockFile:
+       def __init__(self, filename, content):
+           self.filename = filename
+           self.content = content
+           self.size = len(content)
+   ```
+
+2. **Sample State**
+   ```python
+   SAMPLE_STATE = {
+       "app_name": "test_widget",
+       "step_01": {
+           "data_field": "test_value"
+       }
+   }
+   ```
+
+3. **Sample Responses**
+   ```python
+   class MockResponse:
+       def __init__(self, status_code, text=""):
+           self.status_code = status_code
+           self.text = text
+   ```
+
+## Test Coverage
+
+1. **State Coverage**
+   - Test all state transitions
+   - Verify state persistence
+   - Check state cleanup
+
+2. **UI Coverage**
+   - Test all form submissions
+   - Verify error displays
+   - Check success messages
+
+3. **File Coverage**
+   - Test file uploads
+   - Verify file processing
+   - Check file cleanup
+
+## Best Practices
+
+1. **Test Organization**
+   - Group related tests
+   - Use descriptive names
+   - Follow AAA pattern
+
+2. **Test Isolation**
+   - Use fixtures
+   - Clean up resources
+   - Avoid dependencies
+
+3. **Error Testing**
+   - Test edge cases
+   - Verify error messages
+   - Check recovery
+
+4. **Performance**
+   - Mock slow operations
+   - Use async testing
+   - Optimize test data
+
+5. **Maintenance**
+   - Document test cases
+   - Keep tests simple
+   - Update with changes

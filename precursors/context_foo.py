@@ -27,7 +27,8 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/patterns/workflow_patterns.mdc
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
 /home/mike/repos/pipulate/plugins/700_widget_shim.py
-/home/mike/repos/pipulate/plugins/850_prism.py
+/home/mike/repos/pipulate/plugins/860_javascript.py
+# /home/mike/repos/pipulate/plugins/850_prism.py
 # /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/760_radios.py
 # /home/mike/repos/pipulate/plugins/770_range.py

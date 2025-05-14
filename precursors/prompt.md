@@ -3269,3 +3269,102 @@ After implementing these changes for `plugins/840_matplotlib.py`, please **STOP*
 ---
 
 That went flawlessly! Let's do the real Executable JavaScript next.
+
+---
+
+**Gemini**: Okay, the Matplotlib widget extraction was another success\! We're building a solid rhythm here.
+
+Next on the list is the **Executable JavaScript Code Widget**.
+
+We will extract the JavaScript execution functionality from `step_06` of `plugins/520_widget_examples.py` into a new file, `plugins/860_javascript.py`. We'll continue to use `plugins/700_widget_shim.py` as our base template and adhere to the established extraction strategy, paying close attention to how JavaScript is triggered and executed within the HTMX lifecycle.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the Executable JavaScript widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/860_javascript.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/860_javascript.py`:**
+
+      * Rename the class `WidgetDesigner` to `JavaScriptWidget`.
+      * Set `APP_NAME = "javascript_widget"`
+      * Set `DISPLAY_NAME = "Executable JavaScript Widget"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates a widget that executes user-provided JavaScript code within a designated area."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the JavaScript execution widget. The user will input JavaScript code, which will then be run in the browser, potentially manipulating a target element."`
+
+3.  **Adapt Step Definition in `__init__` of `JavaScriptWidget`:**
+
+      * Modify the `steps` list to define a single primary step for JavaScript code input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='js_content',  # Field to store the JavaScript code string
+                show='JavaScript Code', # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter JavaScript code to execute."`, complete message: `"JavaScript code processed."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `860_javascript.py`.
+      * The logic for this method should be based on `step_06` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `js_content`).
+          * **Finalized View:** If the workflow is finalized and `user_val` exists:
+              * Generate `widget_id` and `target_id`.
+              * Create the JavaScript widget display: a `Div` with a target `P` element (where JS will run) and a "Re-run JavaScript" `Button`. The button's `_onclick` should call the global `runJsWidget` function, passing the `widget_id`, the (escaped) `user_val` (JavaScript code), and the `target_id`.
+              * Return an `HTMLResponse` containing the `Card` with the locked widget display and the next step trigger `Div`. Crucially, include the `HX-Trigger` header for `runJavaScript`, passing `widgetId`, `code` (the `user_val`), and `targetId`.
+          * **Completed View (Not Reverting):** If `user_val` exists and the user is not reverting:
+              * Generate `widget_id` and `target_id`.
+              * Create the JavaScript widget display as above.
+              * Use `pip.widget_container` to wrap this `js_widget`.
+              * Return an `HTMLResponse` containing this `content_container`, the next step trigger `Div`, and the `HX-Trigger` header for `runJavaScript`.
+          * **Input Form View:**
+              * Display a `Textarea` for JavaScript code input (name should be `step.done`, i.e., `js_content`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `860_javascript.py`.
+      * The logic should be based on `step_06_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `user_val` (JavaScript code) from the form.
+          * Validate input.
+          * Call `await pip.update_step_state(...)`.
+          * Call `pip.append_to_history()`.
+          * Generate `widget_id` and `target_id`.
+          * Create the JavaScript widget display (target `P` and "Re-run" `Button` with appropriate `_onclick`).
+          * Use `pip.widget_container` to wrap the `js_widget`.
+          * Construct the `response_content` `Div` including the `content_container` AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))` and set the `HX-Trigger` header for `runJavaScript` (passing `widgetId`, `code`, `targetId`).
+
+6.  **Helper Method for Widget Creation (Optional but Recommended):**
+
+      * Consider creating a small helper method within `JavaScriptWidget` like `_create_js_display(self, js_code, widget_id, target_id)` that constructs the `Div` containing the target `P` element and the "Re-run JavaScript" `Button`. This can be used by both the GET (for finalized/completed views) and POST handlers.
+      * The `Button`'s `_onclick` attribute should be carefully constructed: `_onclick=f"runJsWidget('{widget_id}', \`{js\_code.replace('\`', '\\\\`')}\`, '{target\_id}')"\` (note the escaping of backticks within the JavaScript string).
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `860_javascript.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return the example JavaScript code (e.g., the counter example) previously used for `step_06` in `plugins/520_widget_examples.py`.
+
+8.  **Imports:**
+
+      * Ensure necessary imports are present: `asyncio`, `json`, `collections.namedtuple`, `datetime`, `fasthtml.common.*`, `loguru.logger`, `starlette.responses.HTMLResponse`.
+
+**Important Note on JavaScript Execution:** The actual JavaScript execution relies on a global function (e.g., `runJsWidget` from `static/widget-scripts.js`) being available in the browser context. This extraction focuses on correctly setting up the Python-side workflow to trigger this existing client-side functionality.
+
+After implementing these changes for `plugins/860_javascript.py`, please **STOP**. I will then review, test, and commit this file.
+
+---
+
+That went extremely smoothly as well. Your instructions are perfect. Let's do
+the file uploader next please.

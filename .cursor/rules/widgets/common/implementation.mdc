@@ -1,5 +1,48 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Widget Implementation Patterns
+
+## Core Structure
+All widgets follow a consistent pattern:
+1. Class-based implementation inheriting from base workflow
+2. Standard workflow configuration (APP_NAME, DISPLAY_NAME, etc.)
+3. Step-based data collection and processing
+4. Widget creation and rendering methods
+
+## Common Methods
+```python
+def create_widget(self, data, widget_id):
+    """Create and return a widget component."""
+    return Div(
+        # Widget content
+        id=widget_id
+    )
+
+async def step_01(self, request):
+    """Handle GET request for widget configuration."""
+    # Standard step handling
+
+async def step_01_submit(self, request):
+    """Process widget configuration submission."""
+    # Standard submission handling
+```
+
+## State Management
+- Use `pip.get_step_data()` to retrieve widget state
+- Store widget data in step-specific fields
+- Handle finalized state appropriately
+
+## Error Handling
+- Validate input data before processing
+- Provide clear error messages
+- Handle edge cases gracefully
+
+## Best Practices
+1. Keep widget creation logic separate from workflow logic
+2. Use consistent naming conventions
+3. Implement proper error handling
+4. Document widget requirements and limitations
+5. Support both finalized and unfinalized states
