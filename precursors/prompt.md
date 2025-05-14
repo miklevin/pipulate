@@ -2099,7 +2099,7 @@ continue this process with the Pandas table extraction.
 
 ---
 
-Gemini: Okay, we've had two successful extractions. Let's continue with the **Pandas Table Widget**.
+**Gemini**: Okay, we've had two successful extractions. Let's continue with the **Pandas Table Widget**.
 
 We will extract the Pandas Table functionality from `step_04` of `plugins/520_widget_examples.py` into a new file, `plugins/820_pandas.py`, following the same established strategy.
 
@@ -3159,3 +3159,113 @@ for (let i = 0; i < 10; i++) {
 ---
 
 Again, that worked great! Let's do matplotlib next.
+
+---
+
+**Gemini**: Okay, the Markdown and Mermaid widget extractions were successful, and the PrismJS extraction also went well. We're making excellent progress\!
+
+Next up is the **Matplotlib Graph Widget**.
+
+We will extract the Matplotlib histogram functionality from `step_07` of `plugins/520_widget_examples.py` into a new file, `plugins/840_matplotlib.py`, adhering to our established extraction methodology.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the Matplotlib Graph widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/840_matplotlib.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/840_matplotlib.py`:**
+
+      * Rename the class `WidgetDesigner` to `MatplotlibWidget`.
+      * Set `APP_NAME = "matplotlib_widget"`
+      * Set `DISPLAY_NAME = "Matplotlib Histogram Widget"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates a Matplotlib histogram rendering widget. Enter JSON counter data to see it rendered as an image."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the Matplotlib histogram widget. The user will input JSON formatted counter data (keys and values), and the system will render it as a histogram image."`
+
+3.  **Adapt Step Definition in `__init__` of `MatplotlibWidget`:**
+
+      * Modify the `steps` list to define a single primary step for JSON counter data input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='counter_data',  # Field to store the JSON string for counter
+                show='Counter Data (JSON)', # User-friendly name
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter JSON counter data for the histogram."`, complete message: `"Counter data processed and histogram rendered."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `840_matplotlib.py`.
+      * The logic for this method should be based on `step_07` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `counter_data`).
+          * **Finalized View:** If the workflow is finalized and `user_val` (JSON string) exists:
+              * Call `self.create_matplotlib_histogram(user_val)` to get the histogram widget (which should be an `Img` tag or a `Div` containing it).
+              * Return a `Div` containing the `Card` with the locked histogram widget and the next step trigger `Div`.
+          * **Completed View (Not Reverting):** If `user_val` exists and the user is not reverting:
+              * Call `self.create_matplotlib_histogram(user_val)`.
+              * Use `pip.widget_container` to wrap the `histogram_widget`.
+              * Return a `Div` containing this `content_container` and the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Textarea` for JSON counter data input (name should be `step.done`, i.e., `counter_data`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `840_matplotlib.py`.
+      * The logic should be based on `step_07_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `user_val` (JSON string for counter data) from the form.
+          * Perform validation:
+              * Basic validation using `pip.validate_step_input`.
+              * JSON format validation (ensure it's a dictionary for counter data).
+          * Call `await pip.update_step_state(...)`.
+          * Call `pip.append_to_history()`.
+          * Call `self.create_matplotlib_histogram(user_val)` to generate the histogram image. Handle potential errors during image creation.
+          * Use `pip.widget_container` to wrap the `histogram_widget`.
+          * Construct the `response_content` `Div` including the `content_container` AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))`. No special `HX-Trigger` for widget JS initialization is needed as it's a server-rendered image.
+
+6.  **Copy Helper Method `create_matplotlib_histogram`:**
+
+      * Copy the `def create_matplotlib_histogram(self, data_str):` method from the `WidgetExamples` class in `plugins/520_widget_examples.py` into the `MatplotlibWidget` class in `plugins/840_matplotlib.py`.
+      * Ensure it correctly uses `NotStr(f'<img src="data:image/png;base64,{img_str}" ... />')` for embedding the base64 image.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `840_matplotlib.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return the example JSON counter data string previously used for `step_07` in `520_widget_examples.py`.
+        ```python
+        async def get_suggestion(self, step_id, state):
+            if step_id == 'step_01':
+                return """{
+        "apples": 35,
+        "oranges": 42,
+        "bananas": 28,
+        "grapes": 51,
+        "peaches": 22,
+        "plums": 18,
+        "mangoes": 39
+        }"""
+            return "" # Default for other steps if any were added
+        ```
+
+8.  **Imports:**
+
+      * Ensure necessary imports are present: `asyncio`, `json`, `collections.namedtuple`, `datetime`, `fasthtml.common.*`, `loguru.logger`, `starlette.responses.HTMLResponse`.
+      * Crucially, add imports for Matplotlib: `import matplotlib.pyplot as plt`, `from io import BytesIO`, `import base64`, and `from collections import Counter`.
+
+After implementing these changes for `plugins/840_matplotlib.py`, please **STOP**. I will then review, test, and commit this file.
+
+---
+
+That went flawlessly! Let's do the real Executable JavaScript next.
