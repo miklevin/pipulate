@@ -3368,3 +3368,501 @@ After implementing these changes for `plugins/860_javascript.py`, please **STOP*
 
 That went extremely smoothly as well. Your instructions are perfect. Let's do
 the file uploader next please.
+
+---
+
+**Gemini**: Excellent progress\! The systematic extraction seems to be working very effectively.
+
+Let's proceed with the next widget: the **File Upload Widget**.
+
+We will extract the file upload functionality from `step_11` of `plugins/520_widget_examples.py` into a new file, `plugins/870_upload.py`. We'll continue to use `plugins/700_widget_shim.py` as our base template and apply the same meticulous extraction strategy.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the File Upload widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/870_upload.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/870_upload.py`:**
+
+      * Rename the class `WidgetDesigner` to `FileUploadWidget`.
+      * Set `APP_NAME = "file_upload_widget"`
+      * Set `DISPLAY_NAME = "File Upload Widget"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates a file upload widget. Select one or more files to upload and save them to the server."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the file upload widget. The user will select files, which are then uploaded and saved to a designated server directory."`
+
+3.  **Adapt Step Definition in `__init__` of `FileUploadWidget`:**
+
+      * Modify the `steps` list to define a single primary step for file uploads:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='file_summary',  # Field to store the summary of uploaded files
+                show='Upload Files',    # User-friendly name for this step
+                refill=True, # If a summary exists, it can be shown on revert
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please select files to upload."`, complete message: `"Files uploaded successfully."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `870_upload.py`.
+      * The logic for this method should be based on `step_11` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `file_summary`).
+          * **Finalized View:** If the workflow is finalized and `file_summary` exists:
+              * Display a `Card` showing a locked state and the `file_summary` (e.g., in a `Pre` tag for formatted text).
+              * Include the next step trigger `Div`.
+          * **Completed View (Not Reverting):** If `file_summary` exists and the user is not reverting:
+              * Display a `Card` showing the `file_summary` (e.g., in a `Pre` tag).
+              * Use `pip.revert_control` to show the completion status and allow reverting.
+              * Include the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Form` with an `Input` of `type="file"`, `name="uploaded_files"`, and `multiple="true"`.
+              * The form's `enctype` **must be** `"multipart/form-data"`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `860_javascript.py`.
+      * The logic should be based on `step_11_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `uploaded_files` from the form using `form_data.getlist("uploaded_files")`.
+          * Handle the case where no files are selected, re-displaying the form with a message.
+          * Create the save directory: `Path("downloads") / self.app_name / pipeline_id`. Handle potential errors during directory creation.
+          * Iterate through `uploaded_files`:
+              * Read file content (`await file.read()`).
+              * Determine file size.
+              * Construct `file_save_path`.
+              * Write the file to the `file_save_path`.
+              * Collect information for the `file_summary` (filename, size, path).
+              * Handle potential errors during file saving for individual files.
+          * Create the final `file_summary` string (including total files, size, and save directory).
+          * Call `await pip.update_step_state(...)` to save the `file_summary`.
+          * Call `pip.append_to_history()` with the `file_summary`.
+          * Use `self.message_queue.add()` to provide user feedback.
+          * Construct the `response_content` `Div` showing the success message, the `file_summary` (e.g., in a `Pre` tag), `pip.revert_control`, AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))`. No special `HX-Trigger` for client-side JS is needed for this widget.
+
+6.  **Helper Methods:** The file upload logic in `520_widget_examples.py` is mostly contained within the submit handler. No separate `create_..._widget` helper method is strictly necessary unless you want to encapsulate the success view generation.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `870_upload.py`, the `async def get_suggestion(self, step_id, state):` method. For `step_id == 'step_01'`, this widget doesn't typically have a textual "suggestion" for an input field. It can simply return an empty string or a general prompt like "Ready to upload files."
+        ```python
+        async def get_suggestion(self, step_id, state):
+            if step_id == 'step_01':
+                return "No pre-fill for file uploads. Please select files." # Or just ""
+            return ""
+        ```
+
+8.  **Imports:**
+
+      * Ensure necessary imports: `asyncio`, `json`, `collections.namedtuple`, `datetime`, `pathlib.Path`, `os`.
+      * From `fasthtml.common import *`.
+      * From `loguru import logger`.
+      * From `starlette.responses import HTMLResponse`.
+      * `import shutil` if you decide to implement cleanup of temporary files or directories, though the original example saves directly.
+
+**Important Note on File Paths and Security:**
+The current example saves files to a subdirectory within `downloads/`. For a production system, more robust path validation, security checks (file types, size limits), and potentially isolated storage would be necessary. This extraction aims to replicate the *existing* functionality.
+
+After implementing these changes for `plugins/870_upload.py`, please **STOP**. I will then review, test, and commit this file.\`\`\`python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+import os
+import shutil \# Added for potential cleanup, though not used in current example
+
+from fasthtml.common import \* \# type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+
+"""
+Pipulate File Upload Widget Workflow
+A workflow for demonstrating the file upload widget.
+"""
+
+# Model for a workflow step
+
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class FileUploadWidget:
+"""
+File Upload Widget Workflow
+
+```
+Demonstrates uploading one or more files and saving them to the server.
+"""
+
+# --- Workflow Configuration ---
+APP_NAME = "file_upload_widget"
+DISPLAY_NAME = "File Upload Widget"
+ENDPOINT_MESSAGE = (
+    "This workflow demonstrates a file upload widget. "
+    "Select one or more files to upload and save them to the server."
+)
+TRAINING_PROMPT = (
+    "This workflow is for demonstrating and testing the file upload widget. "
+    "The user will select files, which are then uploaded and saved to a designated server directory."
+)
+
+# --- Initialization ---
+def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+    """Initialize the workflow, define steps, and register routes."""
+    self.app = app
+    self.app_name = app_name
+    self.pipulate = pipulate
+    self.pipeline = pipeline
+    self.steps_indices = {}
+    self.db = db
+    pip = self.pipulate
+    self.message_queue = pip.message_queue
+
+    # Define workflow steps
+    steps = [
+        Step(
+            id='step_01',
+            done='file_summary',  # Field to store the summary of uploaded files
+            show='Upload Files',    # User-friendly name for this step
+            refill=True, # If a summary exists, it can be shown on revert
+            transform=lambda prev_value: prev_value.strip() if prev_value else ""
+        ),
+    ]
+    
+    # Register standard workflow routes
+    routes = [
+        (f"/{app_name}", self.landing),
+        (f"/{app_name}/init", self.init, ["POST"]),
+        (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+        (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+        (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+    ]
+    # Register routes for each step
+    self.steps = steps
+    for step in steps:
+        step_id = step.id
+        routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+        routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+    
+    # Register all routes with the FastHTML app
+    for path, handler, *methods in routes:
+        method_list = methods[0] if methods else ["GET"]
+        app.route(path, methods=method_list)(handler)
+
+    # Define UI messages
+    self.step_messages = {
+        "finalize": {
+            "ready": "All steps complete. Ready to finalize workflow.",
+            "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+        },
+        "step_01": {
+            "input": "Please select files to upload.",
+            "complete": "Files uploaded successfully."
+        }
+    }
+    # Add the finalize step internally
+    steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+    self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+# --- Core Workflow Engine Methods (Copied from Shim/Previous Widgets) ---
+async def landing(self):
+    pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+    title = f"{self.DISPLAY_NAME or app_name.title()}"
+    full_key, prefix, user_part = pip.generate_pipeline_key(self)
+    default_value = full_key
+    pipeline.xtra(app_name=app_name)
+    matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+    datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+    return Container(
+        Card(
+            H2(title),
+            P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+            Form(
+                pip.wrap_with_inline_button(
+                    Input(
+                        placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                        list="pipeline-ids", type="search", required=False, autofocus=True,
+                        value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                        cls="contrast"
+                    ),
+                    button_label=f"Enter 🔑", button_class="secondary"
+                ),
+                pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+            )
+        ),
+        Div(id=f"{app_name}-container")
+    )
+
+async def init(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    form = await request.form()
+    user_input = form.get("pipeline_id", "").strip()
+    if not user_input:
+        from starlette.responses import Response
+        response = Response("")
+        response.headers["HX-Refresh"] = "true"
+        return response
+    
+    context = pip.get_plugin_context(self)
+    profile_name = context['profile_name'] or "default"
+    plugin_name = context['plugin_name'] or app_name
+    profile_part = profile_name.replace(" ", "_")
+    plugin_part = plugin_name.replace(" ", "_")
+    expected_prefix = f"{profile_part}-{plugin_part}-"
+    
+    if user_input.startswith(expected_prefix):
+        pipeline_id = user_input
+    else:
+        _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+        pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+        
+    db["pipeline_id"] = pipeline_id
+    state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+    if error: return error
+    await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+    await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+    
+    return Div(
+        Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+        id=f"{app_name}-container"
+    )
+
+async def finalize(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    pipeline_id = db.get("pipeline_id", "unknown")
+    finalize_step = steps[-1] 
+    finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+    if request.method == "GET":
+        if finalize_step.done in finalize_data:
+            return Card(
+                H3("Workflow is locked."),
+                Form(
+                    Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                    hx_post=f"/{app_name}/unfinalize", 
+                    hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                ),
+                id=finalize_step.id
+            )
+        else:
+            all_steps_complete = all(
+                pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                for step in steps[:-1] 
+            )
+            if all_steps_complete:
+                return Card(
+                    H3("All steps complete. Finalize?"),
+                    P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        Button("Finalize 🔒", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/finalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                return Div(id=finalize_step.id) 
+    else: # POST request
+        await pip.finalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+async def unfinalize(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    pipeline_id = db.get("pipeline_id", "unknown")
+    await pip.unfinalize_workflow(pipeline_id)
+    await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+    return pip.rebuild(app_name, steps)
+
+async def get_suggestion(self, step_id, state):
+    if step_id == 'step_01':
+        return "No pre-fill for file uploads. Please select files."
+    return ""
+
+async def handle_revert(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    form = await request.form()
+    step_id = form.get("step_id")
+    pipeline_id = db.get("pipeline_id", "unknown")
+    if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+    await pip.clear_steps_from(pipeline_id, step_id, steps)
+    state = pip.read_state(pipeline_id)
+    state["_revert_target"] = step_id
+    pip.write_state(pipeline_id, state)
+    message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+    await self.message_queue.add(pip, message, verbatim=True)
+    return pip.rebuild(app_name, steps)
+
+# --- Step 1: File Upload ---
+async def step_01(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = 'finalize' 
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    step_data = pip.get_step_data(pipeline_id, step_id, {})
+    file_summary = step_data.get(step.done, "") 
+
+    finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+    if "finalized" in finalize_data and file_summary:
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{file_summary}")
+        return Div(
+            Card(
+                H3(f"🔒 {step.show}: Completed"),
+                P("Uploaded files summary:"),
+                Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);")
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    
+    elif file_summary and state.get("_revert_target") != step_id:
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
+        return Div(
+            pip.revert_control(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: Files previously uploaded.", 
+                steps=steps,
+                widget=Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);") # Display summary as widget
+            ),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+    else:
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing upload form")
+        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+        
+        explanation = "Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow and pipeline ID."
+        await self.message_queue.add(pip, explanation, verbatim=True)
+
+        return Div(
+            Card(
+                H3(f"{pip.fmt(step_id)}: {step.show}"),
+                P(explanation, style=pip.get_style("muted")),
+                Form(
+                    Input(
+                        type="file",
+                        name="uploaded_files",
+                        multiple="true", # Allow multiple files
+                        required="true",
+                        cls="contrast"
+                    ),
+                    Button("Upload Files ▸", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/{step_id}_submit",
+                    hx_target=f"#{step_id}",
+                    enctype="multipart/form-data" # CRITICAL for file uploads
+                )
+            ),
+            Div(id=next_step_id), 
+            id=step_id
+        )
+
+async def step_01_submit(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = 'finalize'
+    pipeline_id = db.get("pipeline_id", "unknown")
+    
+    form_data = await request.form()
+    uploaded_files = form_data.getlist("uploaded_files")
+
+    if not uploaded_files or not uploaded_files[0].filename : # Check if first file has a name (means files were selected)
+        await self.message_queue.add(pip, "No files selected. Please try again.", verbatim=True)
+        # Re-render the input form
+        explanation = "Select one or more files. They will be saved to the `downloads` directory."
+        return Div(
+            Card(
+                H3(f"{pip.fmt(step_id)}: {step.show}"),
+                P("No files were selected. Please try again.", style=pip.get_style("error")),
+                P(explanation, style=pip.get_style("muted")),
+                Form(
+                    Input(type="file", name="uploaded_files", multiple="true", required="true", cls="contrast"),
+                    Button("Upload Files ▸", type="submit", cls="primary"),
+                    hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}", enctype="multipart/form-data"
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+
+    save_directory = Path("downloads") / app_name / pipeline_id 
+    try:
+        save_directory.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        error_msg = f"Error creating save directory {save_directory}: {str(e)}"
+        logger.error(error_msg)
+        await self.message_queue.add(pip, error_msg, verbatim=True)
+        return P(f"Error creating save directory. Please check permissions or disk space. Details: {error_msg}", style=pip.get_style("error"))
+
+    file_info_list = []
+    total_size = 0
+    
+    for uploaded_file in uploaded_files:
+        if not uploaded_file.filename: continue # Skip if no filename (e.g. empty file input)
+        try:
+            contents = await uploaded_file.read()
+            file_size = len(contents)
+            total_size += file_size
+            
+            file_save_path = save_directory / uploaded_file.filename
+            with open(file_save_path, "wb") as f:
+                f.write(contents)
+            
+            file_info_list.append(f"📄 {uploaded_file.filename} ({file_size:,} bytes) -> {file_save_path}")
+        except Exception as e:
+            error_msg = f"Error saving file {uploaded_file.filename}: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            # Optionally, decide if one file error should stop all, or just skip this file
+            # For now, we'll show an error and stop for this file.
+            return P(f"Error saving file {uploaded_file.filename}. Details: {error_msg}", style=pip.get_style("error"))
+
+    file_summary = "\n".join(file_info_list)
+    file_summary += f"\n\nTotal: {len(file_info_list)} files, {total_size:,} bytes"
+    file_summary += f"\nSaved to directory: {save_directory.resolve()}" # Use resolve for absolute path
+
+    await pip.update_step_state(pipeline_id, step_id, file_summary, steps)
+    
+    pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
+    pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")
+    
+    await self.message_queue.add(pip, f"Successfully saved {len(file_info_list)} files to {save_directory}", verbatim=True)
+    
+    # Display the summary and revert control
+    return Div(
+         pip.revert_control(
+            step_id=step_id, 
+            app_name=app_name, 
+            message=f"{step.show}: Files Uploaded Successfully!", 
+            steps=steps,
+            widget=Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);")
+        ),
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+```
+
+```
+```
+
+---
+
+That went great! And we're continuing our widget extraction, but now we get to
+the first of shifting gears to URL openers. They are going to be verbatim code
+extractiosn still from the widget examples. Let's do the one based on the Python
+webbrowser standard library next.
