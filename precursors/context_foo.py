@@ -22,7 +22,6 @@ from typing import Dict, List, Optional, Union
 
 FILES_TO_INCLUDE = """\
 README.md
-flake.nix
 requirements.txt
 server.py
 /home/mike/repos/pipulate/.cursor/rules/patterns/workflow_patterns.mdc
@@ -30,9 +29,8 @@ server.py
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
 /home/mike/repos/pipulate/plugins/700_widget_shim.py
 /home/mike/repos/pipulate/plugins/720_text_field.py
-/home/mike/repos/pipulate/plugins/730_text_area.py
 /home/mike/repos/pipulate/plugins/740_dropdown.py
-/home/mike/repos/pipulate/plugins/750_checkboxes.py
+/home/mike/repos/pipulate/plugins/800_markdown.py
 # /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/760_radios.py
 # /home/mike/repos/pipulate/plugins/770_range.py
