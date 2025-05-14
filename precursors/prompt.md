@@ -2096,3 +2096,592 @@ Would you like me to make any adjustments to the implementation?
 
 And so now we're up to the 3rd extraction. Please provide the instructions to
 continue this process with the Pandas table extraction.
+
+---
+
+Gemini: Okay, we've had two successful extractions. Let's continue with the **Pandas Table Widget**.
+
+We will extract the Pandas Table functionality from `step_04` of `plugins/520_widget_examples.py` into a new file, `plugins/820_pandas.py`, following the same established strategy.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the Pandas Table widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/820_pandas.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/820_pandas.py`:**
+
+      * Rename the class `WidgetDesigner` to `PandasTableWidget`.
+      * Set `APP_NAME = "pandas_table_widget"`
+      * Set `DISPLAY_NAME = "Pandas Table Widget"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates a Pandas DataFrame to HTML table rendering widget. Enter JSON data to see it rendered as a styled table."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the Pandas table widget. The user will input JSON data, and the system will render it as an HTML table using Pandas."`
+
+3.  **Adapt Step Definition in `__init__` of `PandasTableWidget`:**
+
+      * Modify the `steps` list to define a single primary step for JSON data input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='table_data',  # Field to store the JSON string for the table
+                show='Table Data (JSON)', # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter JSON data for the table."`, complete message: `"JSON data processed and table rendered."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `820_pandas.py`.
+      * The logic for this method should be based on `step_04` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `table_data`).
+          * **Finalized View:** If the workflow is finalized and `user_val` (JSON string) exists:
+              * Call `self.create_pandas_table(user_val)` to get the table widget.
+              * Return a `Div` containing the `Card` with the locked table widget and the next step trigger `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * **Completed View (Not Reverting):** If `user_val` exists and the user is not reverting:
+              * Call `self.create_pandas_table(user_val)`.
+              * Use `pip.widget_container` to wrap the `table_widget`.
+              * Return a `Div` containing this `content_container` and the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Textarea` for JSON input (name should be `step.done`, i.e., `table_data`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `820_pandas.py`.
+      * The logic should be based on `step_04_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `user_val` (JSON string for table) from the form.
+          * Perform validation:
+              * Basic validation using `pip.validate_step_input`.
+              * JSON format validation (ensure it's a list of objects, or list of lists for header/rows).
+          * Call `await pip.update_step_state(...)`.
+          * Call `pip.append_to_history()`.
+          * Call `self.create_pandas_table(user_val)` to generate the HTML table. Handle potential errors during table creation.
+          * Use `pip.widget_container` to wrap the `table_container` (which includes the HTML table).
+          * Construct the `response_content` `Div` including the `content_container` AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))`. Note: No special `HX-Trigger` for widget JS initialization is needed for Pandas tables as they are server-rendered HTML.
+
+6.  **Copy Helper Method `create_pandas_table`:**
+
+      * Copy the `def create_pandas_table(self, data_str):` method from the `WidgetExamples` class in `plugins/520_widget_examples.py` into the `PandasTableWidget` class in `plugins/820_pandas.py`.
+      * Ensure that this method uses `NotStr()` when embedding the HTML table into a FastHTML `Div` to prevent double-escaping, like so: `Div(NotStr(html_table), style="overflow-x: auto; max-width: 100%;")`.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `820_pandas.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return the example JSON string for a table, previously used for `step_04` in `520_widget_examples.py`.
+        ```python
+        async def get_suggestion(self, step_id, state):
+            if step_id == 'step_01':
+                return """[
+        ```
+
+    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},
+    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},
+    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},
+    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},
+    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}
+    ]"""
+    return "" \# Default for other steps if any were added
+    \`\`\`
+
+8.  **Imports:**
+
+      * Ensure necessary imports are present: `asyncio`, `json`, `collections.namedtuple`, `datetime`, `fasthtml.common.*`, `loguru.logger`, `starlette.responses.HTMLResponse`.
+      * Crucially, add `import pandas as pd` and `from fasthtml.common import NotStr` (though `NotStr` should be available via `fasthtml.common.*`).
+
+After implementing these changes for `plugins/820_pandas.py`, please **STOP**. I will then review, test, and commit this file.\`\`\`python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from fasthtml.common import \* \# type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+import pandas as pd
+
+# from fasthtml.common import NotStr \# Already imported by \*
+
+"""
+Pipulate Pandas Table Widget Workflow
+A workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.
+"""
+
+# Model for a workflow step
+
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class PandasTableWidget:
+"""
+Pandas Table Widget Workflow
+
+```
+Demonstrates rendering JSON data as an HTML table using Pandas.
+"""
+# --- Workflow Configuration ---
+APP_NAME = "pandas_table_widget"
+DISPLAY_NAME = "Pandas Table Widget"
+ENDPOINT_MESSAGE = (
+    "This workflow demonstrates a Pandas DataFrame to HTML table rendering widget. "
+    "Enter JSON data to see it rendered as a styled table."
+)
+TRAINING_PROMPT = (
+    "This workflow is for demonstrating and testing the Pandas table widget. "
+    "The user will input JSON data, and the system will render it as an HTML table using Pandas."
+)
+
+# --- Initialization ---
+def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+    """Initialize the workflow, define steps, and register routes."""
+    self.app = app
+    self.app_name = app_name
+    self.pipulate = pipulate
+    self.pipeline = pipeline
+    self.steps_indices = {}
+    self.db = db
+    pip = self.pipulate
+    self.message_queue = pip.message_queue
+
+    # Define workflow steps
+    steps = [
+        Step(
+            id='step_01',
+            done='table_data',  # Field to store the JSON string for the table
+            show='Table Data (JSON)', # User-friendly name for this step
+            refill=True,
+            transform=lambda prev_value: prev_value.strip() if prev_value else ""
+        ),
+    ]
+    
+    # Register standard workflow routes
+    routes = [
+        (f"/{app_name}", self.landing),
+        (f"/{app_name}/init", self.init, ["POST"]),
+        (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+        (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+        (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+    ]
+    # Register routes for each step
+    self.steps = steps
+    for step in steps:
+        step_id = step.id
+        routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+        routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+    
+    # Register all routes with the FastHTML app
+    for path, handler, *methods in routes:
+        method_list = methods[0] if methods else ["GET"]
+        app.route(path, methods=method_list)(handler)
+
+    # Define UI messages
+    self.step_messages = {
+        "finalize": {
+            "ready": "All steps complete. Ready to finalize workflow.",
+            "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+        },
+        "step_01": {
+            "input": "Please enter JSON data for the table.",
+            "complete": "JSON data processed and table rendered."
+        }
+    }
+    # Add the finalize step internally
+    steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+    self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+# --- Core Workflow Engine Methods (Copied from Shim/Previous Widgets) ---
+async def landing(self):
+    pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+    title = f"{self.DISPLAY_NAME or app_name.title()}"
+    full_key, prefix, user_part = pip.generate_pipeline_key(self)
+    default_value = full_key
+    pipeline.xtra(app_name=app_name)
+    matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+    datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+    return Container(
+        Card(
+            H2(title),
+            P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+            Form(
+                pip.wrap_with_inline_button(
+                    Input(
+                        placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                        list="pipeline-ids", type="search", required=False, autofocus=True,
+                        value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                        cls="contrast"
+                    ),
+                    button_label=f"Enter 🔑", button_class="secondary"
+                ),
+                pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+            )
+        ),
+        Div(id=f"{app_name}-container")
+    )
+
+async def init(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    form = await request.form()
+    user_input = form.get("pipeline_id", "").strip()
+    if not user_input:
+        from starlette.responses import Response 
+        response = Response("")
+        response.headers["HX-Refresh"] = "true"
+        return response
+        
+    context = pip.get_plugin_context(self)
+    profile_name = context['profile_name'] or "default"
+    plugin_name = context['plugin_name'] or app_name
+    profile_part = profile_name.replace(" ", "_")
+    plugin_part = plugin_name.replace(" ", "_")
+    expected_prefix = f"{profile_part}-{plugin_part}-"
+    
+    if user_input.startswith(expected_prefix):
+        pipeline_id = user_input
+    else:
+        _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+        pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+        
+    db["pipeline_id"] = pipeline_id
+    state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+    if error: return error
+    await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+    await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+    
+    return Div(
+        Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+        id=f"{app_name}-container"
+    )
+
+async def finalize(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    pipeline_id = db.get("pipeline_id", "unknown")
+    finalize_step = steps[-1] 
+    finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+    if request.method == "GET":
+        if finalize_step.done in finalize_data:
+            return Card(
+                H3("Workflow is locked."),
+                Form(
+                    Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                    hx_post=f"/{app_name}/unfinalize", 
+                    hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                ),
+                id=finalize_step.id
+            )
+        else:
+            all_steps_complete = all(
+                pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                for step in steps[:-1] 
+            )
+            if all_steps_complete:
+                return Card(
+                    H3("All steps complete. Finalize?"),
+                    P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                    Form(
+                        Button("Finalize 🔒", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/finalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                return Div(id=finalize_step.id) 
+    else: # POST request
+        await pip.finalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+async def unfinalize(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    pipeline_id = db.get("pipeline_id", "unknown")
+    await pip.unfinalize_workflow(pipeline_id)
+    await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+    return pip.rebuild(app_name, steps)
+
+async def get_suggestion(self, step_id, state):
+    if step_id == 'step_01':
+        return """[
+{"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},
+{"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},
+{"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},
+{"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},
+{"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}
+```
+
+]"""
+return ""
+
+```
+async def handle_revert(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    form = await request.form()
+    step_id = form.get("step_id")
+    pipeline_id = db.get("pipeline_id", "unknown")
+    if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+    await pip.clear_steps_from(pipeline_id, step_id, steps)
+    state = pip.read_state(pipeline_id)
+    state["_revert_target"] = step_id
+    pip.write_state(pipeline_id, state)
+    message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+    await self.message_queue.add(pip, message, verbatim=True)
+    return pip.rebuild(app_name, steps)
+
+# --- Helper method from 520_widget_examples.py for Pandas Table ---
+def create_pandas_table(self, data_str):
+    try:
+        data = json.loads(data_str)
+        if not isinstance(data, list) or not data:
+             return Div(NotStr("<div style='color: red;'>Invalid JSON: Must be a non-empty array.</div>"), _raw=True)
+
+        if all(isinstance(item, dict) for item in data):
+            df = pd.DataFrame(data)
+        elif all(isinstance(item, list) for item in data) and len(data) > 1:
+             # Data is a list of lists, with first row as headers
+            headers = data[0]
+            rows = data[1:]
+            df = pd.DataFrame(rows, columns=headers)
+        else:
+            return Div(NotStr("<div style='color: red;'>Unsupported data format. Please provide a list of objects or a list of lists (with headers).</div>"), _raw=True)
+
+        html_table = df.to_html(
+            index=False,
+            classes='table', 
+            border=0,
+            escape=True,
+            justify='left'
+        )
+        table_container = Div(
+            H5("Pandas DataFrame Table:"),
+            Div(
+                NotStr(html_table), # Use NotStr here
+                style="overflow-x: auto; max-width: 100%;"
+            ),
+            style="margin-top: 1rem;"
+        )
+        return table_container
+    except Exception as e:
+        logger.error(f"Error creating pandas table: {e}")
+        return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
+
+# --- Step 1: JSON Data Input for Pandas Table ---
+async def step_01(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = 'finalize' 
+    pipeline_id = db.get("pipeline_id", "unknown")
+    state = pip.read_state(pipeline_id)
+    step_data = pip.get_step_data(pipeline_id, step_id, {})
+    user_val = step_data.get(step.done, "") # table_data (JSON string)
+
+    finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+    if "finalized" in finalize_data and user_val:
+        try:
+            table_widget = self.create_pandas_table(user_val)
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    table_widget
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        except Exception as e:
+            logger.error(f"Error creating table widget in finalized view: {str(e)}")
+            return Div(
+                Card(f"🔒 {step.show}: <content locked, error rendering table>"),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+    elif user_val and state.get("_revert_target") != step_id:
+        try:
+            table_widget = self.create_pandas_table(user_val)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=table_widget,
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        except Exception as e:
+            logger.error(f"Error creating table widget: {str(e)}")
+            state["_revert_target"] = step_id # Force revert to input form
+            pip.write_state(pipeline_id, state)
+            # Fall through to show input form again after setting revert target
+
+    # Show input form
+    display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+    await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+    
+    explanation = "Enter table data as JSON array of objects. Example is pre-populated. Format: `[{\"name\": \"value\", \"value1\": number, ...}, {...}]`"
+    await self.message_queue.add(pip, explanation, verbatim=True)
+    return Div(
+        Card(
+            H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+            P(explanation, style=pip.get_style("muted")),
+            Form(
+                Div(
+                    Textarea(
+                        display_value,
+                        name=step.done, # table_data
+                        placeholder="Enter JSON array of objects for the DataFrame",
+                        required=True,
+                        rows=10,
+                        style="width: 100%; font-family: monospace;"
+                    ),
+                    Div(
+                        Button("Draw Table ▸", type="submit", cls="primary"),
+                        style="margin-top: 1vh; text-align: right;"
+                    ),
+                    style="width: 100%;"
+                ),
+                hx_post=f"/{app_name}/{step_id}_submit",
+                hx_target=f"#{step_id}"
+            )
+        ),
+        Div(id=next_step_id), 
+        id=step_id
+    )
+
+async def step_01_submit(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    step_index = self.steps_indices[step_id]
+    step = steps[step_index]
+    next_step_id = 'finalize' 
+    pipeline_id = db.get("pipeline_id", "unknown")
+
+    form = await request.form()
+    user_val = form.get(step.done, "").strip() # table_data (JSON string)
+
+    is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+    if not is_valid:
+        return error_component
+        
+    try:
+        json_data_val = json.loads(user_val) # Validate JSON early
+        if not isinstance(json_data_val, list) or not json_data_val:
+            return P("Invalid JSON: Must be a non-empty array.", style=pip.get_style("error"))
+        # Further check if it's list of dicts or list of lists (for header/row)
+        if not (all(isinstance(item, dict) for item in json_data_val) or \
+                (all(isinstance(item, list) for item in json_data_val) and len(json_data_val) > 1)):
+             return P("Invalid JSON: Array must contain objects or be a list of lists (for header/rows).", style=pip.get_style("error"))
+
+    except json.JSONDecodeError:
+        return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
+
+    await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+    pip.append_to_history(f"[WIDGET CONTENT] {step.show} (JSON Data):\n{user_val}")
+    
+    try:
+        table_widget = self.create_pandas_table(user_val)
+        if isinstance(table_widget, Div) and "Error creating table" in str(table_widget): # Check if helper returned an error
+             return table_widget # Propagate the error message Div
+    except Exception as e: # Catch any unexpected error during table creation
+        logger.error(f"Unexpected error creating pandas table widget: {e}")
+        return P(f"Unexpected error creating table: {str(e)}", style=pip.get_style("error"))
+
+
+    content_container = pip.widget_container(
+        step_id=step_id,
+        app_name=app_name,
+        message=f"{step.show}: Table rendered from pandas DataFrame",
+        widget=table_widget,
+        steps=steps
+    )
+    
+    response_content = Div(
+        content_container,
+        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+        id=step_id
+    )
+    
+    await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
+    if pip.check_finalize_needed(step_index, steps):
+         await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+    return HTMLResponse(to_xml(response_content))
+```
+
+```
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+date: Tue May 13, 2025, 18:39
+---
+
+I'll help analyze the widgets from `520_widget_examples.py` and suggest a logical order for extraction, starting with the markdown widget. Let me first examine the widgets and their dependencies.
+
+From analyzing `520_widget_examples.py`, here are the widgets in order of complexity and dependencies:
+
+1. Markdown Widget (Step 2) - Uses marked.js for rendering
+2. Mermaid Diagram Widget (Step 3) - Uses mermaid.js for diagrams
+3. Pandas Table Widget (Step 4) - Uses pandas for data display
+4. Code Syntax Highlighter (Step 5) - Uses Prism.js for syntax highlighting
+5. JavaScript Execution Widget (Step 6) - Pure JavaScript execution
+6. Matplotlib Histogram (Step 7) - Uses matplotlib for visualization
+7. URL Opener Widget (Step 8) - Simple URL handling
+8. Rich Table Widget (Step 9) - Custom styled table
+9. Selenium URL Opener (Step 10) - Advanced URL handling with Selenium
+10. File Upload Widget (Step 11) - File handling and storage
+
+Let's start with the Markdown widget. Here are the two magic prompts:
+
+1. First prompt to create the file:
+```
+Copy the file pipulate/plugins/700_widget_shim.py to pipulate/plugins/800_markdown.py and modify the class name to MarkdownWidget, APP_NAME to "markdown_widget", DISPLAY_NAME to "Markdown Widget", and ENDPOINT_MESSAGE to "Welcome to the Markdown Widget! This is a focused environment for designing and testing markdown rendering in isolation. Use this space to prototype and refine your markdown designs without distractions."
+```
+
+2. Second prompt to implement the widget:
+```
+In pipulate/plugins/800_markdown.py, implement the markdown widget functionality by:
+1. Adding a SWITCH_CONFIG-like constant called MARKDOWN_CONFIG with default markdown content
+2. Modifying the step_01 and step_01_submit methods to handle markdown input and rendering
+3. Adding a create_marked_widget helper method that creates the markdown rendering container
+4. Ensuring proper initialization of marked.js via HX-Trigger headers
+5. Maintaining the same workflow pattern but focused solely on markdown rendering
+```
+
+The markdown widget is a good starting point because:
+1. It's relatively self-contained
+2. It has clear dependencies (marked.js)
+3. It demonstrates client-side rendering patterns
+4. It's a common use case that other widgets might build upon
+5. It has a clear input/output pattern
+
+Would you like me to proceed with implementing the markdown widget, or would you prefer to see the analysis for the next widget in the sequence?
+
+---
+
+That one was tricker. I included the result file elsewhere in the XML
+/home/mike/repos/pipulate/plugins/820_pandas.py since it was a long discussion
+to get to implementation. But the issues might be the same on the Rich Table
+widget which comes next, so give me the prompt for the coding assistant for that
+one next.
