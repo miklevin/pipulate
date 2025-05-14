@@ -3436,8 +3436,8 @@ def create_poke_button():
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
 
-    # Common button style for smaller buttons
-    button_style = "margin-right: 5px; font-size: 0.85rem; padding: 0.4rem 0.2rem;"
+    # Common button style for smaller buttons - remove margin-right if using gap
+    button_style = "font-size: 0.85rem; padding: 0.4rem 0.3rem;"  # Slightly adjusted padding for clarity
     
     # Create button elements list
     buttons = []
@@ -3511,16 +3511,25 @@ def create_poke_button():
         )
     )
     
+    # New styling for the floating panel
+    panel_style = (
+        "position: fixed; "
+        "bottom: 20px; "
+        "right: 20px; "
+        "z-index: 1000; "  # Ensure it's above most other content
+        "display: flex; "
+        "align-items: center; "
+        "gap: 0.5rem; "  # Spacing between buttons within the panel
+        "background-color: var(--pico-card-background-color); "  # Use card background for consistency
+        "padding: 0.75rem; "  # Padding inside the panel
+        "border-radius: var(--pico-border-radius); "  # Consistent rounding
+        "border: 1px solid var(--pico-muted-border-color); "  # Subtle border
+        "box-shadow: 0 4px 12px rgba(0,0,0,0.2); "  # A slightly more pronounced shadow for depth
+    )
+    
     return Div(
         *buttons,  # Unpack the buttons list
-        style=(
-            "bottom: 20px; "
-            "position: fixed; "
-            "right: 20px; "
-            "z-index: 1000; "
-            "display: flex; "
-            "align-items: center; "
-        )
+        style=panel_style
     )
 
 
