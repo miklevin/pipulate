@@ -229,7 +229,7 @@ for (let i = 0; i < 10; i++) {
         return pip.rebuild(app_name, steps)
 
     def create_prism_widget(self, code, widget_id, language='javascript'):
-        """Create a Prism.js code highlighting widget."""
+        """Create a Prism.js syntax highlighting widget with copy functionality."""
         textarea_id = f"{widget_id}_raw_code"
         container = Div(
             Div(
@@ -241,10 +241,11 @@ for (let i = 0; i < 10; i++) {
                 ),
                 Pre(
                     Code(
-                        code, # Display raw code initially, Prism will highlight it
-                        cls=f"language-{language}"
+                        code,
+                        cls=f"language-{language}",
+                        style="position: relative; white-space: inherit; padding: 0 0 0 0;"
                     ),
-                    cls="line-numbers" # Enable line numbers plugin if loaded
+                    cls="line-numbers"
                 ),
                 style="margin-top: 1rem;"
             ),
