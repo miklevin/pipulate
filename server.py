@@ -35,6 +35,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 import sqlite3
+import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
@@ -3217,91 +3218,90 @@ def normalize_menu_path(path):
 
 def create_app_menu(menux):
     menu_items = []
-    show_all = db.get("show_all_plugins", "0") == "1"
-    
-    # First add all core items
-    for item in MENU_ITEMS:
-        # Skip profile app in Apps menu
-        if item == profile_app.name:
-            continue
-            
-        # Skip non-core items unless show_all is enabled
-        if not show_all and not is_core_plugin(item):
+    show_all_user_plugins = db.get("show_all_plugins", "0") == "1"
+    developer_mode_active = db.get("developer_plugins_visible", "0") == "1" and get_current_environment() == "Development"
+
+    logger.debug(f"App Menu: show_all_user_plugins={show_all_user_plugins}, developer_mode_active={developer_mode_active}")
+
+    # Temporary list to hold (display_name, item_key, is_selected, original_filename)
+    eligible_plugins_with_details = []
+
+    for item_key in MENU_ITEMS:  # MENU_ITEMS contains the app_names (e.g., "hello_workflow")
+        if item_key == profile_app.name:  # Skip profile app in Apps menu
             continue
 
-        # Only show core items in the first pass
-        if not show_all or is_core_plugin(item):
-            # Handle separator plugin specially
-            if item == "separator":
-                menu_items.append(Li(
-                    Hr(style="margin: 0.5rem 0;"),
-                    style="display: block;"
-                ))
-                continue
-
-            # Normalize both the current selection and menu item for comparison
+        plugin_module = discovered_modules.get(item_key)  # Get module to access _original_filename
+        if not plugin_module:
+            logger.warning(f"No module found for plugin key {item_key} in discovered_modules.")
+            original_filename = item_key  # Fallback
+        else:
+            original_filename = getattr(plugin_module, '_original_filename', item_key)
+        
+        is_developer_plugin = original_filename.startswith("9")  # Assuming 9xx_ prefix for dev plugins
+        is_core = is_core_plugin(item_key)
+        
+        display_this_plugin = False
+        if developer_mode_active:
+            display_this_plugin = True  # Developer mode shows everything registered
+        elif show_all_user_plugins:  # "Show All User-Facing Plugins"
+            if not is_developer_plugin:
+                display_this_plugin = True
+        else:  # "Show Core Plugins Only"
+            if is_core and not is_developer_plugin:  # Core plugins that are not dev-only
+                display_this_plugin = True
+        
+        if display_this_plugin:
             norm_menux = normalize_menu_path(menux)
-            norm_item = normalize_menu_path(item)
-
+            norm_item = normalize_menu_path(item_key)
             is_selected = norm_item == norm_menux
-            item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
-            menu_items.append(Li(
-                A(endpoint_name(item), 
-                  href=f"/redirect/{item}", 
-                  cls="dropdown-item", 
-                  style=f"{NOWRAP_STYLE} {item_style}"), 
-                style="display: block;"
-            ))
+            eligible_plugins_with_details.append(
+                (endpoint_name(item_key), item_key, is_selected, original_filename)
+            )
     
-    # If showing all plugins, add non-core items after a divider
-    if show_all:
-        # Add a divider after core plugins
+    # Sort plugins: Core first, then by original filename (which includes numeric prefix)
+    def sort_key(plugin_detail_tuple):
+        name, key, selected, orig_fn = plugin_detail_tuple
+        score = 0
+        if is_core_plugin(key) and not orig_fn.startswith("9"): 
+            score -= 2000  # Core non-dev first
+        if orig_fn.startswith("9"): 
+            score += 1000  # Dev plugins later
+        # Use numeric part of original_filename for primary sort within categories
+        numeric_prefix_match = re.match(r'^(\d+)_', orig_fn)
+        if numeric_prefix_match:
+            score += int(numeric_prefix_match.group(1))
+        else:
+            score += 3000  # Non-prefixed last within a category
+        return score
+
+    sorted_plugins = sorted(eligible_plugins_with_details, key=sort_key)
+
+    for display_name_str, item_key_str, is_selected_bool, _ in sorted_plugins:
+        if item_key_str == "separator":  # Handle separator if it's a conceptual item
+            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+            continue
+        item_style = "background-color: var(--pico-primary-background); " if is_selected_bool else ""
         menu_items.append(Li(
-            Hr(style="margin: 0.5rem 0;"),
+            A(display_name_str, 
+              href=f"/redirect/{item_key_str}", 
+              cls="dropdown-item", 
+              style=f"{NOWRAP_STYLE} {item_style}"), 
             style="display: block;"
         ))
-        
-        # Add non-core items
-        for item in MENU_ITEMS:
-            if item != profile_app.name and not is_core_plugin(item):
-                # Handle separator plugin specially
-                if item == "separator":
-                    menu_items.append(Li(
-                        Hr(style="margin: 0.5rem 0;"),
-                        style="display: block;"
-                    ))
-                    continue
-
-                norm_menux = normalize_menu_path(menux)
-                norm_item = normalize_menu_path(item)
-
-                is_selected = norm_item == norm_menux
-                item_style = "background-color: var(--pico-primary-background); "if is_selected else ""
-                menu_items.append(Li(
-                    A(endpoint_name(item), 
-                      href=f"/redirect/{item}", 
-                      cls="dropdown-item", 
-                      style=f"{NOWRAP_STYLE} {item_style}"), 
-                    style="display: block;"
-                ))
     
-    # Add a divider before the Show All toggle
-    menu_items.append(Li(
-        Hr(style="margin: 0.5rem 0;"),
-        style="display: block;"
-    ))
+    # Add "Show All/Core" toggle, respecting developer_mode_active
+    if not developer_mode_active:  # Only show this toggle if not in full developer view
+        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+        menu_items.append(Li(
+            A("Show Core Plugins..." if show_all_user_plugins else "Show All User-Facing...",
+              hx_post="/toggle_show_all",  # Existing endpoint
+              hx_target="body",  # Existing target
+              hx_swap="outerHTML",  # Existing swap
+              cls="dropdown-item",
+              style=NOWRAP_STYLE),
+            style="display: block;"
+        ))
     
-    # Add the Show All toggle
-    menu_items.append(Li(
-        A("Show All Plugins..." if not show_all else "Show Core Plugins...",
-          hx_post="/toggle_show_all",
-          hx_target="body",
-          hx_swap="outerHTML",
-          cls="dropdown-item",
-          style=NOWRAP_STYLE),
-        style="display: block;"
-    ))
-
     return Details(
         Summary(
             f"APP: {endpoint_name(menux)}", 
@@ -3315,14 +3315,22 @@ def create_app_menu(menux):
 # Add the toggle endpoint
 @rt('/toggle_show_all', methods=['POST'])
 async def toggle_show_all(request):
-    """Toggle between showing all plugins or just core plugins."""
     current = db.get("show_all_plugins", "0")
     db["show_all_plugins"] = "1" if current == "0" else "0"
-    
-    # Get the current URL to redirect back to
-    redirect_url = db.get("last_visited_url", "/")
-    return Redirect(redirect_url)
+    return HTMLResponse("", headers={"HX-Refresh": "true"})
 
+@rt('/toggle_developer_plugins_visibility', methods=['POST'])
+async def toggle_developer_plugins_visibility(request):
+    """Toggle the visibility of developer-specific plugins in the menu."""
+    current_visibility = db.get("developer_plugins_visible", "0")
+    new_visibility = "1" if current_visibility == "0" else "0"
+    db["developer_plugins_visible"] = new_visibility
+    logger.info(f"Developer plugins visibility set to: {'Visible' if new_visibility == '1' else 'Hidden'}")
+    
+    # Force a full page refresh to rebuild the menu and potentially other UI elements
+    response = HTMLResponse("") # Empty body is fine as we're just refreshing
+    response.headers["HX-Refresh"] = "true"
+    return response
 
 async def create_outer_container(current_profile_id, menux):
     # Create nav group (now includes breadcrumb)
@@ -3475,8 +3483,21 @@ def create_poke_button():
                 )
             )
     
-    # Add dev tools button only in development mode
+    # Add dev tools buttons only in development mode
     if get_current_environment() == "Development":
+        # Add Developer Plugins Toggle
+        dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
+        buttons.append(
+            A(
+                "Hide Dev Plugins" if dev_plugins_visible else "Show Dev Plugins",
+                hx_post="/toggle_developer_plugins_visibility",
+                hx_swap="none",  # Page will refresh via HX-Refresh header
+                cls="button secondary",  # Using secondary to distinguish
+                style=button_style
+            )
+        )
+        
+        # Add Clear DB button
         buttons.append(
             A(
                 "Clear DB",
