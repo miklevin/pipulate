@@ -253,9 +253,12 @@ for (let i = 0; i < 10; i++) {
         init_script = Script(
             f"""
             (function() {{
-                // This script block is primarily for HX-Trigger based initialization.
-                // The actual highlighting is triggered by server.py via HX-Trigger.
-                console.log('Prism widget container {widget_id} loaded. Awaiting HX-Trigger for highlighting.');
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
                 document.body.addEventListener('initializePrism', function(event) {{
                     if (event.detail.targetId === '{widget_id}') {{
                         console.log('Received initializePrism event for {widget_id}');
