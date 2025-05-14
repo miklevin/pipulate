@@ -136,6 +136,85 @@ async def step_01(self, request):
     )
 ```
 
+## Advanced Widget Patterns
+
+### 1. File Upload Pattern
+```python
+# Form structure
+Form(
+    Input(
+        type="file",
+        name="uploaded_files",
+        multiple="true",
+        required="true",
+        cls="contrast"
+    ),
+    Button("Upload Files ▸", type="submit", cls="primary"),
+    hx_post=f"/{app_name}/{step_id}_submit",
+    hx_target=f"#{step_id}",
+    enctype="multipart/form-data"
+)
+
+# File processing
+form_data = await request.form()
+uploaded_files = form_data.getlist("uploaded_files")
+```
+
+### 2. Polling Pattern
+```python
+# Polling pattern
+return Div(
+    result_card,
+    progress_indicator,
+    cls="polling-status no-chain-reaction",
+    hx_get=f"/{app_name}/check_status",
+    hx_trigger="load, every 2s",
+    hx_target=f"#{step_id}",
+    id=step_id
+)
+```
+
+### 3. Terminal Pattern
+```python
+# Terminal pattern
+return Div(
+    result_card,
+    download_button,
+    cls="terminal-response no-chain-reaction",
+    id=step_id
+)
+```
+
+## Widget Testing Checklist
+
+### 1. State Management
+- [ ] State transitions work correctly
+- [ ] Values persist between steps
+- [ ] Revert functionality works
+- [ ] Finalization locks state properly
+- [ ] State updates trigger UI updates
+
+### 2. UI Construction
+- [ ] Using standard components
+- [ ] Following template patterns
+- [ ] Proper container structure
+- [ ] Correct chain reactions
+- [ ] Proper HTMX triggers
+
+### 3. Error Handling
+- [ ] Using standard error patterns
+- [ ] Clear error messages
+- [ ] Edge case handling
+- [ ] Input validation
+- [ ] Error recovery
+
+### 4. Container Structure
+- [ ] Correct hierarchy
+- [ ] Proper HTMX triggers
+- [ ] Consistent layout
+- [ ] Chain reaction intact
+- [ ] Proper widget containers
+
 ## Common Pitfalls
 
 ### 1. Direct State Manipulation
@@ -497,3 +576,312 @@ class Step:
 - See: pattern-validation.mdc
 - See: pattern-async-polling.mdc
 - See: pattern-file-operations.mdc
+
+## Step Anatomy and Phases
+
+### Step Structure
+
+Each step in a Pipulate workflow is modeled after a Jupyter Notebook cell, with two distinct parts:
+
+1. **Visible Part** (`step_xx`): Builds the user interface for data collection
+2. **Invisible Part** (`step_xx_submit`): Handles form submission and state management
+
+### Step Phases
+
+Each step goes through three distinct phases:
+
+```python
+if "finalized" in finalize_data and placeholder_value:
+    # STEP STAGE: FINALIZED
+    # - Workflow is locked
+    # - Data is read-only
+    # - Shows final state
+elif placeholder_value and state.get("_revert_target") != step_id:
+    # STEP STAGE: REVERT
+    # - User has reverted to this step
+    # - Previous data is preserved
+    # - Allows modification
+else:
+    # STEP STAGE: DATA COLLECTION
+    # - Initial data entry
+    # - Form is active
+    # - No previous data
+```
+
+### Chain Reaction Pattern
+
+Steps are connected through a chain reaction pattern that enables automatic progression:
+
+```python
+return Div(
+    Card(...),  # Current step content
+    # This inner Div triggers loading of the next step
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+Key points about chain reactions:
+- Each step must include the next step's container
+- The `hx_trigger="load"` attribute enables automatic progression
+- This creates a "Run All Cells" experience similar to Jupyter Notebooks
+- Chain reactions maintain the linear workflow model
+
+### Step Definition
+
+Steps are defined using a named tuple with specific fields:
+
+```python
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+```
+
+Where:
+- `id`: Unique identifier for the step (e.g., 'step_01')
+- `done`: Field name to store step data in state
+- `show`: User-friendly name displayed in UI
+- `refill`: Whether to preserve data on revert
+- `transform`: Optional function to transform step data
+
+### Best Practices
+
+1. **State Management**:
+   - Use the pipeline object for state management
+   - Store step data in the `done` field
+   - Use transforms for data processing
+
+2. **UI Design**:
+   - Keep the visible part focused on data collection
+   - Use the submit part for state updates
+   - Maintain consistent UI patterns
+
+3. **Chain Reactions**:
+   - Never remove `hx_trigger="load"`
+   - Always include the next step's container
+   - Preserve the linear progression model
+
+4. **Error Handling**:
+   - Validate data in the submit handler
+   - Provide clear error messages
+   - Handle edge cases gracefully
+
+Remember: While the step structure may seem verbose, this WET (Write Everything Twice) approach allows for maximum customization while maintaining consistent patterns.
+
+## Widget Implementation Patterns
+
+### 1. Widget Categories
+- **Input Widgets**: Text fields, text areas, dropdowns, checkboxes, radio buttons, switches, range selectors
+- **Display Widgets**: Tables, markdown, mermaid diagrams, code syntax highlighting
+- **Operation Widgets**: File uploads, API requests, data processing
+- **Integration Widgets**: Browser interactions, search functionality
+
+### 2. Widget State Management
+```python
+# Reading state
+state = pip.read_state(pipeline_id)
+step_data = pip.get_step_data(pipeline_id, step_id, {})
+
+# Updating state
+await pip.update_step_state(pipeline_id, step_id, value, steps)
+
+# Finalizing state
+await pip.finalize_workflow(pipeline_id)
+return pip.rebuild(app_name, steps)
+```
+
+### 3. Widget UI Construction
+```python
+# Standard widget container structure
+return Div(
+    Card(
+        H3(f"{step.show}"),
+        Form(
+            # Widget-specific input elements
+            Button("Submit ▸", type="submit", cls="primary"),
+            hx_post=f"/{app_name}/{step_id}_submit",
+            hx_target=f"#{step_id}"
+        )
+    ),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+### 4. Widget Recovery Process
+```python
+# Revert control pattern
+return Div(
+    pip.revert_control(
+        step_id=step_id,
+        app_name=app_name,
+        message=f"{step.show}: {value}",
+        steps=steps
+    ),
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+## Widget Design Philosophy
+
+### 1. Core Principles
+- **Atomic Steps**: Each step should have a clear, focused purpose
+- **State Preservation**: Maintain user inputs for reuse and review
+- **Progressive Enhancement**: Start simple and evolve based on needs
+- **Consistent UI**: Follow established patterns for visual consistency
+- **Error Recovery**: Provide clear paths for error handling and recovery
+
+### 2. Implementation Guidelines
+1. **Start with Placeholders**
+   - Use blank placeholder pattern for new widgets
+   - Add functionality incrementally
+   - Test each phase thoroughly
+
+2. **State Management**
+   - Never manage workflow state directly
+   - Use core workflow methods for state transitions
+   - Maintain widget state within workflow state
+   - Preserve values when reverting
+
+3. **UI Construction**
+   - Follow template patterns for widget UI
+   - Use standard components
+   - Maintain consistent structure
+   - Keep container hierarchy consistent
+   - Use proper HTMX triggers
+
+4. **Error Handling**
+   - Use standard error patterns
+   - Provide clear error messages
+   - Handle edge cases gracefully
+   - Validate all inputs
+   - Use consistent error presentation
+
+### 3. Common Widget Patterns
+
+#### Text Input Widget
+```python
+async def step_01(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    pipeline_id = db.get("pipeline_id", "unknown")
+    
+    # Get current value
+    current_value = pip.get_step_data(pipeline_id, step_id, {}).get(step.done, "")
+    
+    # Return using standard container structure
+    return Div(
+        Card(
+            H3(f"{step.show}"),
+            Form(
+                Input(value=current_value),
+                Button("Submit ▸", type="submit", cls="primary")
+            )
+        ),
+        id=step_id
+    )
+```
+
+#### Dropdown Widget
+```python
+async def step_01(self, request):
+    pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+    step_id = "step_01"
+    pipeline_id = db.get("pipeline_id", "unknown")
+    
+    # Get options using core methods
+    options = await self.get_options(pipeline_id)
+    
+    # Format options using standard patterns
+    formatted_options = [await self.format_option(opt) for opt in options]
+    
+    # Return using standard container structure
+    return Div(
+        Card(
+            H3(f"{step.show}"),
+            Form(
+                Select(*formatted_options),
+                Button("Submit ▸", type="submit", cls="primary")
+            )
+        ),
+        id=step_id
+    )
+```
+
+### 4. Advanced Widget Patterns
+
+#### File Upload Pattern
+```python
+# Form structure
+Form(
+    Input(
+        type="file",
+        name="uploaded_files",
+        multiple="true",
+        required="true",
+        cls="contrast"
+    ),
+    Button("Upload Files ▸", type="submit", cls="primary"),
+    hx_post=f"/{app_name}/{step_id}_submit",
+    hx_target=f"#{step_id}",
+    enctype="multipart/form-data"
+)
+
+# File processing
+form_data = await request.form()
+uploaded_files = form_data.getlist("uploaded_files")
+```
+
+#### Polling Pattern
+```python
+# Polling pattern
+return Div(
+    result_card,
+    progress_indicator,
+    cls="polling-status no-chain-reaction",
+    hx_get=f"/{app_name}/check_status",
+    hx_trigger="load, every 2s",
+    hx_target=f"#{step_id}",
+    id=step_id
+)
+```
+
+#### Terminal Pattern
+```python
+# Terminal pattern
+return Div(
+    result_card,
+    download_button,
+    cls="terminal-response no-chain-reaction",
+    id=step_id
+)
+```
+
+## Widget Testing Checklist
+
+### 1. State Management
+- [ ] State transitions work correctly
+- [ ] Values persist between steps
+- [ ] Revert functionality works
+- [ ] Finalization locks state properly
+- [ ] State updates trigger UI updates
+
+### 2. UI Construction
+- [ ] Using standard components
+- [ ] Following template patterns
+- [ ] Proper container structure
+- [ ] Correct chain reactions
+- [ ] Proper HTMX triggers
+
+### 3. Error Handling
+- [ ] Using standard error patterns
+- [ ] Clear error messages
+- [ ] Edge case handling
+- [ ] Input validation
+- [ ] Error recovery
+
+### 4. Container Structure
+- [ ] Correct hierarchy
+- [ ] Proper HTMX triggers
+- [ ] Consistent layout
+- [ ] Chain reaction intact
+- [ ] Proper widget containers

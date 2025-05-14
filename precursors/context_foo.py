@@ -25,10 +25,19 @@ README.md
 flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/plugins/020_hello_workflow.py
-/home/mike/repos/.cursor/rules/workflow_implementation_guide.md
+/home/mike/repos/pipulate/.cursor/rules/patterns/workflow_patterns.mdc
+/home/mike/repos/pipulate/.cursor/rules/patterns/atomic_steps.mdc
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/pipulate/plugins/505_widget_shim.py
+/home/mike/repos/pipulate/plugins/700_widget_shim.py
+/home/mike/repos/pipulate/plugins/720_text_field.py
+/home/mike/repos/pipulate/plugins/730_text_area.py
+/home/mike/repos/pipulate/plugins/740_dropdown.py
+/home/mike/repos/pipulate/plugins/750_checkboxes.py
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/760_radios.py
+# /home/mike/repos/pipulate/plugins/770_range.py
+# /home/mike/repos/pipulate/plugins/780_switch.py
+# /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 # /home/mike/repos/Pipulate.com/install.sh
 # /home/mike/repos/Pipulate.com/index.md
 # /home/mike/repos/Pipulate.com/architecture.md
@@ -40,7 +49,6 @@ server.py
 # /home/mike/repos/MikeLev.in/_posts/2025-05-09-ai-assisted-browser-automation-selenium-nix-flakes.md
 # /home/mike/repos/pipulate/plugins/020_hello_workflow.py
 # /home/mike/repos/pipulate/precursors/context_foo.py
-# /home/mike/repos/pipulate/training/workflow_implementation_guide.md
 # /home/mike/repos/pipulate/plugins/010_tasks.py
 # /home/mike/repos/browser/test_selenium.py
 # /home/mike/repos/browser/flake.nix
@@ -65,7 +73,6 @@ server.py
 # /home/mike/repos/pipulate/training/system_prompt.md
 # /home/mike/repos/pipulate/training/tasks.md
 # /home/mike/repos/pipulate/training/widget_examples.md
-# /home/mike/repos/pipulate/training/widget_implementation_guide.md
 """.strip().splitlines()
 
 # Filter out any commented lines
