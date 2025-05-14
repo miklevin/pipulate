@@ -1151,3 +1151,948 @@ Would you like me to commit this change now? After that, we can proceed with ext
 This was a complete success! Claude did the implementation perfectly from your
 instructions on the 1st shot! Thank you! Now let's repeat this process for the
 Mermaid Diagrams, please and thank you!
+
+---
+
+**Gemini**: Excellent\! I'm glad the first extraction was a success. Let's proceed with the next widget: **Mermaid Diagrams**.
+
+We will extract the Mermaid Diagram functionality from `step_03` of `plugins/520_widget_examples.py` into a new file, `plugins/810_mermaid.py`, following the same established strategy.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the Mermaid Diagram widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/810_mermaid.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/810_mermaid.py`:**
+
+      * Rename the class `WidgetDesigner` to `MermaidWidget`.
+      * Set `APP_NAME = "mermaid_widget"`
+      * Set `DISPLAY_NAME = "Mermaid Diagram Widget"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates a Mermaid.js diagram rendering widget. Enter Mermaid syntax to see it rendered as a diagram."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the Mermaid diagram widget. The user will input Mermaid diagram syntax, and the system will render it graphically."`
+
+3.  **Adapt Step Definition in `__init__` of `MermaidWidget`:**
+
+      * Modify the `steps` list to define a single primary step for Mermaid syntax input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='mermaid_syntax',  # Field to store the Mermaid syntax
+                show='Mermaid Syntax',     # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter Mermaid diagram syntax."`, complete message: `"Mermaid diagram syntax processed."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `810_mermaid.py`.
+      * The logic for this method should be based on `step_03` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `mermaid_syntax`).
+          * **Finalized View:** If the workflow is finalized and `user_val` exists:
+              * Generate `widget_id` (e.g., `f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"`).
+              * Call `self.create_mermaid_widget(user_val, widget_id)`.
+              * Return an `HTMLResponse` with the rendered widget and the `HX-Trigger` header for `renderMermaid` (containing `targetId` and `diagram` data).
+              * Include the next step trigger `Div`.
+          * **Completed View (Not Reverting):** If `user_val` exists and not reverting:
+              * Generate `widget_id` and call `self.create_mermaid_widget()`.
+              * Use `pip.widget_container` to wrap the `mermaid_widget`.
+              * Return an `HTMLResponse` with the `HX-Trigger` for `renderMermaid`.
+              * Include the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Textarea` for Mermaid syntax input (name should be `step.done`, i.e., `mermaid_syntax`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but without `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `810_mermaid.py`.
+      * The logic should be based on `step_03_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `user_val` (Mermaid syntax) from the form.
+          * Validate input.
+          * Call `await pip.update_step_state(...)`.
+          * Call `pip.append_to_history()`.
+          * Generate `widget_id`.
+          * Call `self.create_mermaid_widget()`.
+          * Use `pip.widget_container`.
+          * Construct `response_content` `Div` including the next step trigger with `hx_trigger="load"`.
+          * Return an `HTMLResponse(to_xml(response_content))` and set the `HX-Trigger` header for `renderMermaid`.
+
+6.  **Copy Helper Method `create_mermaid_widget`:**
+
+      * Copy the `def create_mermaid_widget(self, diagram_syntax, widget_id):` method from the `WidgetExamples` class in `plugins/520_widget_examples.py` into the `MermaidWidget` class in `plugins/810_mermaid.py`.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `810_mermaid.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return the example Mermaid syntax previously used for `step_03` in `520_widget_examples.py`.
+
+8.  **Imports:**
+
+      * Ensure necessary imports are present (`asyncio`, `json`, `namedtuple`, `datetime`, `fasthtml.common.*`, `logger`, `starlette.responses.HTMLResponse`).
+
+After implementing these changes for `plugins/810_mermaid.py`, please **STOP**. I will then review, test, and commit this file.
+
+```python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from fasthtml.common import * # type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+
+"""
+Pipulate Mermaid Diagram Widget Workflow
+A workflow for demonstrating the Mermaid.js diagram rendering widget.
+"""
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class MermaidWidget:
+    """
+    Mermaid Diagram Widget Workflow
+    
+    Demonstrates rendering Mermaid diagram syntax using Mermaid.js.
+    """
+    # --- Workflow Configuration ---
+    APP_NAME = "mermaid_widget"
+    DISPLAY_NAME = "Mermaid Diagram Widget"
+    ENDPOINT_MESSAGE = (
+        "This workflow demonstrates a Mermaid.js diagram rendering widget. "
+        "Enter Mermaid syntax to see it rendered as a diagram."
+    )
+    TRAINING_PROMPT = (
+        "This workflow is for demonstrating and testing the Mermaid diagram widget. "
+        "The user will input Mermaid diagram syntax, and the system will render it graphically."
+    )
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+        # Define workflow steps
+        steps = [
+            Step(
+                id='step_01',
+                done='mermaid_syntax',  # Field to store the Mermaid syntax
+                show='Mermaid Syntax',     # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        
+        # Register standard workflow routes
+        routes = [
+            (f"/{app_name}", self.landing),
+            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+        ]
+        # Register routes for each step
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+        # Register all routes with the FastHTML app
+        for path, handler, *methods in routes:
+            method_list = methods[0] if methods else ["GET"]
+            app.route(path, methods=method_list)(handler)
+        # Define UI messages
+        self.step_messages = {
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_01": {
+                "input": "Please enter Mermaid diagram syntax.",
+                "complete": "Mermaid diagram syntax processed."
+            }
+        }
+        # Add the finalize step internally
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- Core Workflow Engine Methods (Copied from Shim/Markdown) ---
+    async def landing(self):
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(
+            Card(
+                H2(title),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑", button_class="secondary"
+                    ),
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        if not user_input:
+            from starlette.responses import Response # Ensure Response is imported
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        context = pip.get_plugin_context(self)
+        profile_name = context['profile_name'] or "default"
+        plugin_name = context['plugin_name'] or app_name # Use actual plugin name
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
+        else:
+            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+            
+        db["pipeline_id"] = pipeline_id
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+        if error: return error
+        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        
+        return Div(
+            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+            id=f"{app_name}-container"
+        )
+
+    async def finalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1] 
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                return Card(
+                    H3("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                all_steps_complete = all(
+                    pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                    for step in steps[:-1] 
+                )
+                if all_steps_complete:
+                    return Card(
+                        H3("All steps complete. Finalize?"),
+                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Button("Finalize 🔒", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/finalize", 
+                            hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                        ),
+                        id=finalize_step.id
+                    )
+                else:
+                    return Div(id=finalize_step.id) 
+        else: 
+            await pip.finalize_workflow(pipeline_id)
+            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            return pip.rebuild(app_name, steps)
+
+    async def unfinalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        if step_id == 'step_01':
+            return """graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[Result 1]
+    D --> F[Result 2]
+    E --> G[End]
+    F --> G"""
+        return ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    # --- Helper method from 520_widget_examples.py for Mermaid ---
+    def create_mermaid_widget(self, diagram_syntax, widget_id):
+        """Create a mermaid diagram widget container."""
+        container = Div(
+            Div(
+                H5("Rendered Diagram:"),
+                Div(
+                    Div(
+                        diagram_syntax,
+                        cls="mermaid",
+                        style="width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;"
+                    ),
+                    id=f"{widget_id}_output" 
+                )
+            ),
+            id=widget_id
+        )
+        init_script = Script(
+            f"""
+            (function() {{
+                setTimeout(function() {{
+                    if (typeof mermaid !== 'undefined') {{
+                        try {{
+                            mermaid.initialize({{ 
+                                startOnLoad: false, 
+                                theme: 'dark', 
+                                securityLevel: 'loose',
+                                flowchart: {{ htmlLabels: true }}
+                            }});
+                            const container = document.getElementById('{widget_id}');
+                            if (!container) return;
+                            const mermaidDiv = container.querySelector('.mermaid');
+                            if (mermaidDiv) {{
+                                void container.offsetWidth; 
+                                if (typeof mermaid.run === 'function') {{
+                                    mermaid.run({{ nodes: [mermaidDiv] }});
+                                }} else {{
+                                    mermaid.init(undefined, mermaidDiv);
+                                }}
+                                console.log('Mermaid rendering successful for {widget_id}');
+                            }}
+                        }} catch(e) {{
+                            console.error("Mermaid rendering error for {widget_id}:", e);
+                        }}
+                    }} else {{
+                        console.error("Mermaid library not found for {widget_id}.");
+                    }}
+                }}, 300); 
+            }})();
+            """
+        )
+        return Div(container, init_script)
+
+    # --- Step 1: Mermaid Syntax Input ---
+    async def step_01(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "") # mermaid_syntax
+
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        Card(
+                            H3(f"🔒 {step.show}"),
+                            mermaid_widget
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
+            )
+            response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+            return response
+
+        elif user_val and state.get("_revert_target") != step_id:
+            widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=mermaid_widget,
+                steps=steps
+            )
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        content_container,
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
+            )
+            response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+            return response
+        else:
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            explanation = "Enter Mermaid diagram syntax for the widget. Example is pre-populated. Supports flowcharts, sequence diagrams, class diagrams, etc."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                     P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        Div(
+                            Textarea(
+                                display_value,
+                                name=step.done, # mermaid_syntax
+                                placeholder="Enter Mermaid diagram syntax",
+                                required=True,
+                                rows=15,
+                                style="width: 100%; font-family: monospace;"
+                            ),
+                            Div(
+                                Button("Create Diagram ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        form = await request.form()
+        user_val = form.get(step.done, "").strip() # mermaid_syntax
+
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
+        
+        widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+        
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Client-side Mermaid diagram rendering",
+            widget=mermaid_widget,
+            steps=steps
+        )
+        
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        response = HTMLResponse(to_xml(response_content))
+        response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+        
+        await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+             await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+        return response
+```
+
+---
+
+## Claude Implements Mermaid Diagram Workflow Widget Extraction
+
+> Again, perfect on the first pass!
+
+I'll help you extract the Mermaid Diagram widget into a standalone workflow file. Let me first create the new file by copying the template:
+
+
+```bash
+cp pipulate/plugins/700_widget_shim.py pipulate/plugins/810_mermaid.py
+```
+Now I'll edit the new file to implement the Mermaid widget workflow:
+
+```python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from fasthtml.common import * # type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+
+"""
+Pipulate Mermaid Diagram Widget Workflow
+A workflow for demonstrating the Mermaid.js diagram rendering widget.
+"""
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class MermaidWidget:
+    """
+    Mermaid Diagram Widget Workflow
+    
+    Demonstrates rendering Mermaid diagram syntax using Mermaid.js.
+    """
+    # --- Workflow Configuration ---
+    APP_NAME = "mermaid_widget"
+    DISPLAY_NAME = "Mermaid Diagram Widget"
+    ENDPOINT_MESSAGE = (
+        "This workflow demonstrates a Mermaid.js diagram rendering widget. "
+        "Enter Mermaid syntax to see it rendered as a diagram."
+    )
+    TRAINING_PROMPT = (
+        "This workflow is for demonstrating and testing the Mermaid diagram widget. "
+        "The user will input Mermaid diagram syntax, and the system will render it graphically."
+    )
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+        # Define workflow steps
+        steps = [
+            Step(
+                id='step_01',
+                done='mermaid_syntax',  # Field to store the Mermaid syntax
+                show='Mermaid Syntax',     # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        
+        # Register standard workflow routes
+        routes = [
+            (f"/{app_name}", self.landing),
+            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+        ]
+        # Register routes for each step
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+        # Register all routes with the FastHTML app
+        for path, handler, *methods in routes:
+            method_list = methods[0] if methods else ["GET"]
+            app.route(path, methods=method_list)(handler)
+        # Define UI messages
+        self.step_messages = {
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_01": {
+                "input": "Please enter Mermaid diagram syntax.",
+                "complete": "Mermaid diagram syntax processed."
+            }
+        }
+        # Add the finalize step internally
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- Core Workflow Engine Methods ---
+    async def landing(self):
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(
+            Card(
+                H2(title),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑", button_class="secondary"
+                    ),
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        context = pip.get_plugin_context(self)
+        profile_name = context['profile_name'] or "default"
+        plugin_name = context['plugin_name'] or app_name # Use actual plugin name
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
+        else:
+            # If user input doesn't match the expected prefix for *this* plugin,
+            # it implies they might be trying to create a new ID or mistyped.
+            # We use the user_input as the basis for the user_part of the key.
+            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+            # However, ensure the prefix is correct for THIS plugin
+            pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+
+        db["pipeline_id"] = pipeline_id
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) # Ensure app_name is stored
+        if error: return error
+        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        
+        return Div(
+            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+            id=f"{app_name}-container"
+        )
+
+    async def finalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1] 
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                return Card(
+                    H3("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                all_steps_complete = all(
+                    pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                    for step in steps[:-1] 
+                )
+                if all_steps_complete:
+                    return Card(
+                        H3("All steps complete. Finalize?"),
+                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Button("Finalize 🔒", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/finalize", 
+                            hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                        ),
+                        id=finalize_step.id
+                    )
+                else:
+                    return Div(id=finalize_step.id) # Empty div if not all steps complete
+        else: # POST request
+            await pip.finalize_workflow(pipeline_id)
+            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            return pip.rebuild(app_name, steps)
+
+    async def unfinalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        if step_id == 'step_01':
+            return """graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[Result 1]
+    D --> F[Result 2]
+    E --> G[End]
+    F --> G"""
+        return ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    def create_mermaid_widget(self, diagram_syntax, widget_id):
+        """Create a mermaid diagram widget container."""
+        container = Div(
+            Div(
+                H5("Rendered Diagram:"),
+                Div(
+                    Div(
+                        diagram_syntax,
+                        cls="mermaid",
+                        style="width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;"
+                    ),
+                    id=f"{widget_id}_output" 
+                )
+            ),
+            id=widget_id
+        )
+        init_script = Script(
+            f"""
+            (function() {{
+                setTimeout(function() {{
+                    if (typeof mermaid !== 'undefined') {{
+                        try {{
+                            mermaid.initialize({{ 
+                                startOnLoad: false, 
+                                theme: 'dark', 
+                                securityLevel: 'loose',
+                                flowchart: {{ htmlLabels: true }}
+                            }});
+                            const container = document.getElementById('{widget_id}');
+                            if (!container) return;
+                            const mermaidDiv = container.querySelector('.mermaid');
+                            if (mermaidDiv) {{
+                                void container.offsetWidth; 
+                                if (typeof mermaid.run === 'function') {{
+                                    mermaid.run({{ nodes: [mermaidDiv] }});
+                                }} else {{
+                                    mermaid.init(undefined, mermaidDiv);
+                                }}
+                                console.log('Mermaid rendering successful for {widget_id}');
+                            }}
+                        }} catch(e) {{
+                            console.error("Mermaid rendering error for {widget_id}:", e);
+                        }}
+                    }} else {{
+                        console.error("Mermaid library not found for {widget_id}.");
+                    }}
+                }}, 300); 
+            }})();
+            """
+        )
+        return Div(container, init_script)
+
+    async def step_01(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "") # mermaid_syntax
+
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        Card(
+                            H3(f"🔒 {step.show}"),
+                            mermaid_widget
+                        ),
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
+            )
+            response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+            return response
+
+        elif user_val and state.get("_revert_target") != step_id:
+            widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Configured",
+                widget=mermaid_widget,
+                steps=steps
+            )
+            response = HTMLResponse(
+                to_xml(
+                    Div(
+                        content_container,
+                        Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                        id=step_id
+                    )
+                )
+            )
+            response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+            return response
+        else:
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            explanation = "Enter Mermaid diagram syntax for the widget. Example is pre-populated. Supports flowcharts, sequence diagrams, class diagrams, etc."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        Div(
+                            Textarea(
+                                display_value,
+                                name=step.done, # mermaid_syntax
+                                placeholder="Enter Mermaid diagram syntax",
+                                required=True,
+                                rows=15,
+                                style="width: 100%; font-family: monospace;"
+                            ),
+                            Div(
+                                Button("Create Diagram ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        form = await request.form()
+        user_val = form.get(step.done, "").strip() # mermaid_syntax
+
+        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        if not is_valid:
+            return error_component
+
+        await pip.update_step_state(pipeline_id, step_id, user_val, steps)
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
+        
+        widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
+        
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: Client-side Mermaid diagram rendering",
+            widget=mermaid_widget,
+            steps=steps
+        )
+        
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        response = HTMLResponse(to_xml(response_content))
+        response.headers["HX-Trigger"] = json.dumps({"renderMermaid": {"targetId": f"{widget_id}_output", "diagram": user_val}})
+        
+        await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+             await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+        return response
+```
+
+I've successfully created the Mermaid widget workflow by adapting the template and implementing the specific functionality. The key changes include:
+
+1. Updated the class name to `MermaidWidget` and modified the workflow configuration settings
+2. Implemented a single step for Mermaid syntax input with appropriate field names and transformations
+3. Added the `create_mermaid_widget` helper method for rendering Mermaid diagrams
+4. Implemented the step handlers with proper Mermaid diagram rendering and state management
+5. Added appropriate UI messages and explanations
+6. Included example Mermaid syntax in the `get_suggestion` method
+7. Added proper HTMX triggers for Mermaid rendering
+
+The workflow now allows users to:
+1. Enter Mermaid diagram syntax in a textarea
+2. See the rendered diagram in real-time
+3. Save and finalize their diagram
+4. Revert changes if needed
+
+The implementation maintains all the critical workflow patterns while providing a focused interface for Mermaid diagram creation and rendering.
+
+Would you like me to make any adjustments to the implementation?
+
+---
+
+And so now we're up to the 3rd extraction. Please provide the instructions to
+continue this process with the Pandas table extraction.
