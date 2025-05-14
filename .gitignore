@@ -16,6 +16,7 @@ data/
 downloads/*
 flake.lock
 foo.txt
+*kungfu_workflow.py
 logs/
 service_account.txt
 wip/*
