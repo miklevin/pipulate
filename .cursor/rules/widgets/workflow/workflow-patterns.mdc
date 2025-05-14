@@ -3,3 +3,210 @@ description:
 globs:
 alwaysApply: false
 ---
+# Workflow Patterns and Implementation
+
+## Workflow Structure
+
+Every workflow in Pipulate follows these key patterns:
+
+1. **Class Definition**
+   ```python
+   class WidgetWorkflow:
+       APP_NAME = "widget_name"
+       DISPLAY_NAME = "Widget Display Name"
+       ENDPOINT_MESSAGE = "Description of widget functionality"
+   ```
+
+2. **Step Management**
+   - Define steps using `Step` namedtuple
+   - Each step has unique ID and data field
+   - Support for step transformation and refill
+
+3. **Route Management**
+   - Standard workflow routes
+   - Step-specific routes
+   - Custom widget routes
+
+## Workflow Lifecycle
+
+1. **Initialization**
+   ```python
+   async def init(self, request):
+       # Generate pipeline ID
+       # Initialize state
+       # Set up message queue
+       # Trigger first step
+   ```
+
+2. **Step Processing**
+   ```python
+   async def step_XX(self, request):
+       # Handle GET request
+       # Show form or completed state
+       # Support revert functionality
+   ```
+
+3. **Step Submission**
+   ```python
+   async def step_XX_submit(self, request):
+       # Process form data
+       # Update state
+       # Show completion
+       # Trigger next step
+   ```
+
+4. **Finalization**
+   ```python
+   async def finalize(self, request):
+       # Lock workflow state
+       # Show locked view
+       # Support unfinalize
+   ```
+
+## State Management
+
+1. **State Structure**
+   ```python
+   {
+       "app_name": "widget_name",
+       "step_01": {
+           "data_field": "value"
+       },
+       "finalize": {
+           "finalized": true
+       }
+   }
+   ```
+
+2. **State Operations**
+   - Initialize: `pip.initialize_if_missing()`
+   - Update: `pip.update_step_state()`
+   - Read: `pip.get_step_data()`
+   - Clear: `pip.clear_steps_from()`
+
+## UI Patterns
+
+1. **Landing Page**
+   ```python
+   Container(
+       Card(
+           H2(title),
+           P(description),
+           Form(
+               Input(placeholder="Pipeline ID"),
+               Button("Enter")
+           )
+       )
+   )
+   ```
+
+2. **Step Container**
+   ```python
+   Div(
+       Card(
+           H3(step_title),
+           P(instructions),
+           Form(
+               # Widget-specific inputs
+           )
+       ),
+       Div(id=next_step_id)
+   )
+   ```
+
+3. **Completion View**
+   ```python
+   pip.widget_container(
+       step_id=step_id,
+       app_name=app_name,
+       message=completion_message,
+       widget=widget_content,
+       steps=steps
+   )
+   ```
+
+## Message Handling
+
+1. **Message Queue**
+   - Use `message_queue.add()` for user feedback
+   - Include verbatim messages for clarity
+   - Support error messages
+
+2. **History Tracking**
+   - Use `pip.append_to_history()` for LLM context
+   - Track widget content and state
+   - Include error information
+
+## Error Handling
+
+1. **Input Validation**
+   - Validate form data
+   - Check file uploads
+   - Handle missing data
+
+2. **Error Display**
+   ```python
+   P(
+       error_message,
+       style=pip.get_style("error")
+   )
+   ```
+
+3. **Recovery**
+   - Support retry functionality
+   - Clear error states
+   - Maintain user context
+
+## File Operations
+
+1. **File Upload**
+   ```python
+   Form(
+       Input(type="file", multiple=True),
+       enctype="multipart/form-data"
+   )
+   ```
+
+2. **File Processing**
+   - Create save directories
+   - Handle file contents
+   - Track file metadata
+
+3. **File Storage**
+   - Use workflow-specific directories
+   - Track file paths
+   - Handle file errors
+
+## Security Considerations
+
+1. **Input Sanitization**
+   - Validate file types
+   - Sanitize file paths
+   - Check file sizes
+
+2. **State Protection**
+   - Validate pipeline IDs
+   - Check finalization state
+   - Protect against tampering
+
+3. **File Security**
+   - Validate file contents
+   - Check permissions
+   - Handle cleanup
+
+## Testing Guidelines
+
+1. **Unit Testing**
+   - Test state management
+   - Verify file operations
+   - Check error handling
+
+2. **Integration Testing**
+   - Test workflow lifecycle
+   - Verify UI updates
+   - Check message handling
+
+3. **Security Testing**
+   - Test input validation
+   - Verify file security
+   - Check state protection

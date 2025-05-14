@@ -3866,3 +3866,2544 @@ That went great! And we're continuing our widget extraction, but now we get to
 the first of shifting gears to URL openers. They are going to be verbatim code
 extractiosn still from the widget examples. Let's do the one based on the Python
 webbrowser standard library next.
+
+---
+
+**Gemini**: Okay, the PrismJS widget extraction has been successfully implemented. We are maintaining a good pace.
+
+The next widget in line for extraction is the **URL Opener (using Python's `webbrowser` standard library)**.
+
+We will extract the `webbrowser` URL opening functionality from `step_08` of `plugins/520_widget_examples.py` into a new file, `plugins/880_webbrowser.py`. We'll continue with our established method, using `plugins/700_widget_shim.py` as the template.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the `webbrowser` URL Opener widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/880_webbrowser.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/880_webbrowser.py`:**
+
+      * Rename the class `WidgetDesigner` to `WebbrowserUrlOpenerWidget`.
+      * Set `APP_NAME = "webbrowser_url_opener"`
+      * Set `DISPLAY_NAME = "Webbrowser URL Opener"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates opening a URL in the default system browser using Python's webbrowser module."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the webbrowser URL opener. The user will input a URL, which will then be opened in their default browser."`
+
+3.  **Adapt Step Definition in `__init__` of `WebbrowserUrlOpenerWidget`:**
+
+      * Modify the `steps` list to define a single primary step for URL input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='url_to_open',  # Field to store the URL string
+                show='URL to Open',    # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter the URL to open."`, complete message: `"URL processed."`).
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `880_webbrowser.py`.
+      * The logic for this method should be based on `step_08` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `url_to_open`).
+          * **Finalized View:** If the workflow is finalized and `user_val` exists:
+              * Display a `Card` showing a locked state, the configured URL (e.g., `P(f"URL configured: ", B(user_val))`), and a `Button` with `_onclick=f"window.open('{user_val}', '_blank')"` to allow client-side reopening.
+              * Include the next step trigger `Div`.
+          * **Completed View (Not Reverting):** If `user_val` exists and the user is not reverting:
+              * Create a `url_widget` `Div` containing the configured URL text and the client-side "Open URL Again" `Button` (as in the finalized view).
+              * Use `pip.widget_container` to wrap this `url_widget`, setting the `message` to indicate the URL (e.g., `f"{step.show}: {user_val}"`).
+              * Return a `Div` containing this `content_container` and the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Form` with an `Input` of `type="url"`, `name="url_to_open"` (matching `step.done`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `880_webbrowser.py`.
+      * The logic should be based on `step_08_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `url` from the form (named `url_to_open`).
+          * Validate the URL (check if empty, prepend `https://` if no scheme).
+          * Call `await pip.update_step_state(...)` to save the URL.
+          * Use `self.message_queue.add()` to inform the user.
+          * Call `webbrowser.open(url)` to open the URL.
+          * Call `pip.append_to_history()` with the URL.
+          * Create the `url_widget` `Div` (configured URL text and client-side "Open URL Again" button) as in the GET handler.
+          * Use `pip.widget_container` to wrap this `url_widget`.
+          * Construct the `response_content` `Div` including the `content_container` AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))`. No special `HX-Trigger` for client-side JS is needed for this widget beyond the `_onclick`.
+
+6.  **Helper Methods:** No specific `create_..._widget` helper was used for this in `520_widget_examples.py` as the display logic is simple and embedded directly. You can choose to create one if it clarifies the code (e.g., `_create_url_display(self, url_value)`), but it's not strictly necessary if the logic is directly in the GET/POST handlers. The original `reopen_url` endpoint in `520_widget_examples.py` was for the Selenium example, so it's not needed here.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `880_webbrowser.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return an example URL, e.g., `"https://example.com"`.
+        ```python
+        async def get_suggestion(self, step_id, state):
+            if step_id == 'step_01':
+                return "https://example.com"
+            return "" # Default for other steps if any were added
+        ```
+
+8.  **Imports:**
+
+      * Ensure necessary imports: `asyncio`, `json`, `collections.namedtuple`, `datetime`.
+      * From `fasthtml.common import *`.
+      * From `loguru import logger`.
+      * From `starlette.responses import HTMLResponse`.
+      * Crucially, add `import webbrowser`.
+
+After implementing these changes for `plugins/880_webbrowser.py`, please **STOP**. I will then review, test, and commit this file before we proceed to the next widget.
+
+```python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from fasthtml.common import * # type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+import webbrowser
+
+"""
+Pipulate Webbrowser URL Opener Widget Workflow
+A workflow for demonstrating opening a URL in the default system browser.
+"""
+
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class WebbrowserUrlOpenerWidget:
+    """
+    Webbrowser URL Opener Widget Workflow
+    
+    Demonstrates opening a URL using Python's webbrowser module.
+    """
+    # --- Workflow Configuration ---
+    APP_NAME = "webbrowser_url_opener"
+    DISPLAY_NAME = "Webbrowser URL Opener"
+    ENDPOINT_MESSAGE = (
+        "This workflow demonstrates opening a URL in the default system browser "
+        "using Python's webbrowser module."
+    )
+    TRAINING_PROMPT = (
+        "This workflow is for demonstrating and testing the webbrowser URL opener. "
+        "The user will input a URL, which will then be opened in their default browser."
+    )
+
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+        # Define workflow steps
+        steps = [
+            Step(
+                id='step_01',
+                done='url_to_open',  # Field to store the URL string
+                show='URL to Open',    # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        
+        # Register standard workflow routes
+        routes = [
+            (f"/{app_name}", self.landing),
+            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+        ]
+        # Register routes for each step
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+        
+        # Register all routes with the FastHTML app
+        for path, handler, *methods in routes:
+            method_list = methods[0] if methods else ["GET"]
+            app.route(path, methods=method_list)(handler)
+
+        # Define UI messages
+        self.step_messages = {
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_01": {
+                "input": "Please enter the URL to open.",
+                "complete": "URL processed."
+            }
+        }
+        # Add the finalize step internally
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- Core Workflow Engine Methods (Copied from Shim/Previous Widgets) ---
+    async def landing(self):
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(
+            Card(
+                H2(title),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑", button_class="secondary"
+                    ),
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        if not user_input:
+            from starlette.responses import Response # Ensure Response is imported
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        
+        context = pip.get_plugin_context(self)
+        profile_name = context['profile_name'] or "default"
+        plugin_name = context['plugin_name'] or app_name # Use actual plugin name
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
+        else:
+            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+            
+        db["pipeline_id"] = pipeline_id
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+        if error: return error
+        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        
+        return Div(
+            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+            id=f"{app_name}-container"
+        )
+
+    async def finalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1] 
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                return Card(
+                    H3("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                all_steps_complete = all(
+                    pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                    for step in steps[:-1] 
+                )
+                if all_steps_complete:
+                    return Card(
+                        H3("All steps complete. Finalize?"),
+                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Button("Finalize 🔒", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/finalize", 
+                            hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                        ),
+                        id=finalize_step.id
+                    )
+                else:
+                    return Div(id=finalize_step.id) 
+        else: # POST request
+            await pip.finalize_workflow(pipeline_id)
+            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            return pip.rebuild(app_name, steps)
+
+    async def unfinalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        if step_id == 'step_01':
+            return "https://example.com"
+        return ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    def _create_url_display(self, url_value):
+        """Helper method to create the display for the URL and reopen button."""
+        return Div(
+            P(f"URL configured: ", B(url_value)),
+            Button(
+                "Open URL Again ▸",
+                type="button",
+                _onclick=f"window.open('{url_value}', '_blank')", # Client-side reopen
+                cls="secondary"
+            )
+        )
+
+    # --- Step 1: URL Input ---
+    async def step_01(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "") # url_to_open
+
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        if "finalized" in finalize_data and user_val:
+            url_widget_display = self._create_url_display(user_val)
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    url_widget_display
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        elif user_val and state.get("_revert_target") != step_id:
+            url_widget_display = self._create_url_display(user_val)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {user_val}",
+                widget=url_widget_display,
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            explanation = "Enter a URL to open in your default browser (e.g., https://example.com)."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        Div(
+                            Input(
+                                type="url",
+                                name=step.done, # url_to_open
+                                placeholder="https://example.com",
+                                required=True,
+                                value=display_value,
+                                cls="contrast"
+                            ),
+                            Div(
+                                Button("Open URL ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+
+        form = await request.form()
+        url_to_open = form.get(step.done, "").strip() # url_to_open
+
+        if not url_to_open:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url_to_open.startswith(("http://", "https://")):
+            url_to_open = f"https://{url_to_open}"
+        
+        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        
+        try:
+            webbrowser.open(url_to_open)
+            await self.message_queue.add(pip, f"Attempting to open URL: {url_to_open}", verbatim=True)
+        except Exception as e:
+            error_msg = f"Error opening URL with webbrowser: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            # Return an error message to the UI but still show the revert control
+            error_widget = P(error_msg, style=pip.get_style("error"))
+            url_widget_display_on_error = self._create_url_display(url_to_open) # Show what was attempted
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: Error Opening URL",
+                widget=Div(error_widget, url_widget_display_on_error),
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+
+        pip.append_to_history(f"[WIDGET ACTION] {step.show}: Opened URL {url_to_open}")
+        
+        url_widget_display = self._create_url_display(url_to_open)
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: URL opened - {url_to_open}",
+            widget=url_widget_display,
+            steps=steps
+        )
+        
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        await self.message_queue.add(pip, f"{step.show} complete. URL opened.", verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+            await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+        return HTMLResponse(to_xml(response_content))
+
+```
+
+---
+
+Excellent! That worked like a charm. Next is the most straight forward Selenium
+automation, which is also just opening (and closing) a URL and is also just an
+extraction from the widget examples.
+
+---
+
+**Gemini**: Okay, we've successfully extracted several widgets, and the process is indeed going smoothly\!
+
+Next up is the **Selenium URL Opener**. This is an important one as it involves browser automation.
+
+We will extract the Selenium URL opening functionality from `step_10` (and its associated `reopen_url` handler) of `plugins/520_widget_examples.py` into a new file, `plugins/890_selenium.py`. We'll stick to our proven methodology, using `plugins/700_widget_shim.py` as the base.
+
+**Instructions for AI Coding Assistant (You, Gemini):**
+
+Please perform the following steps to extract the Selenium URL Opener widget:
+
+1.  **Create the New Workflow File:**
+
+      * Duplicate the file `plugins/700_widget_shim.py`.
+      * Rename the duplicated file to `plugins/890_selenium.py`.
+
+2.  **Update Class and Workflow Configuration in `plugins/890_selenium.py`:**
+
+      * Rename the class `WidgetDesigner` to `SeleniumUrlOpenerWidget`.
+      * Set `APP_NAME = "selenium_url_opener"`
+      * Set `DISPLAY_NAME = "Selenium URL Opener"`
+      * Update `ENDPOINT_MESSAGE` to: `"This workflow demonstrates opening a URL in a new Chrome browser window controlled by Selenium."`
+      * Update `TRAINING_PROMPT` to: `"This workflow is for demonstrating and testing the Selenium URL opener. The user will input a URL, which will then be opened in a Selenium-controlled Chrome browser."`
+
+3.  **Adapt Step Definition in `__init__` of `SeleniumUrlOpenerWidget`:**
+
+      * Modify the `steps` list to define a single primary step for URL input:
+        ```python
+        steps = [
+            Step(
+                id='step_01',
+                done='selenium_url', # Field to store the URL string for Selenium
+                show='URL for Selenium',    # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        ```
+      * Ensure `self.step_messages` for `step_01` is updated appropriately (e.g., input message: `"Please enter the URL to open with Selenium."`, complete message: `"URL processed for Selenium."`).
+      * **Crucially, add the route for `reopen_selenium_url` in the `routes` list within `__init__`**. This new handler will manage reopening the URL via Selenium.
+        ```python
+        # Inside __init__, after defining standard routes and step routes:
+        routes.append((f"/{app_name}/reopen_selenium_url", self.reopen_selenium_url, ["POST"]))
+        ```
+
+4.  **Transpose `step_01` (GET Handler) Logic:**
+
+      * Adapt the `async def step_01(self, request):` method in `890_selenium.py`.
+      * The logic for this method should be based on `step_10` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieval of `pipeline_id`, `state`, `step_data`, and `user_val` (which will be `selenium_url`).
+          * **Finalized View:** If the workflow is finalized and `user_val` exists:
+              * Display a `Card` showing a locked state, the configured URL, and a `Form` with a "Open URL Again 🪄" `Button`. This form should `POST` to the new `reopen_selenium_url` endpoint (`hx_post=f"/{app_name}/reopen_selenium_url"`) and target a status `Div` (e.g., `hx_target=f"#{step_id}-status"`).
+              * Include the next step trigger `Div`.
+          * **Completed View (Not Reverting):** If `user_val` exists and the user is not reverting:
+              * Create a `url_widget_display` `Div` containing the configured URL text and the "Open URL Again 🪄" `Form` (same as in the finalized view).
+              * Use `pip.widget_container` to wrap this `url_widget_display`, setting the `message` to indicate the URL (e.g., `f"{step.show}: {user_val}"`).
+              * Return a `Div` containing this `content_container` and the next step trigger `Div`.
+          * **Input Form View:**
+              * Display a `Form` with an `Input` of `type="url"`, `name="selenium_url"` (matching `step.done`).
+              * Pre-populate using `await self.get_suggestion(step_id, state)`.
+              * The form should POST to `f"/{app_name}/{step_id}_submit"`.
+              * The next step trigger `Div` should be present but *without* `hx_trigger="load"`.
+
+5.  **Transpose `step_01_submit` (POST Handler) Logic:**
+
+      * Adapt the `async def step_01_submit(self, request):` method in `890_selenium.py`.
+      * The logic should be based on `step_10_submit` from `plugins/520_widget_examples.py`.
+      * **Key elements to transpose:**
+          * Retrieve `url` from the form (named `selenium_url`).
+          * Validate the URL (check if empty, prepend `https://` if no scheme).
+          * Call `await pip.update_step_state(...)` to save the URL.
+          * **Crucially, transpose the Selenium WebDriver logic:**
+              * Set up Chrome options (headless commented out, no-sandbox, disable-dev-shm-usage, new-window, start-maximized, temporary user-data-dir).
+              * Initialize `Service` using `ChromeDriverManager().install()` or system Chrome based on `EFFECTIVE_OS` (this logic should be replicated).
+              * Inform the user via `message_queue` about OS detection and driver initialization.
+              * Create `webdriver.Chrome` instance.
+              * Call `driver.get(url)`.
+              * Wait (`asyncio.sleep(2)`).
+              * Get `driver.title` and inform user.
+              * Call `driver.quit()`.
+              * Clean up temporary profile directory (`shutil.rmtree`).
+              * Wrap this entire Selenium block in a `try...except` to catch and display errors.
+          * Call `pip.append_to_history()` with the URL.
+          * Create the `url_widget_display` `Div` (configured URL text and "Open URL Again 🪄" `Form`) as in the GET handler.
+          * Use `pip.widget_container` to wrap this `url_widget_display`.
+          * Construct the `response_content` `Div` including the `content_container` AND the critical next step trigger: `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`.
+          * Return an `HTMLResponse(to_xml(response_content))`.
+
+6.  **Implement `reopen_selenium_url` Handler:**
+
+      * Create a new method `async def reopen_selenium_url(self, request):` in `SeleniumUrlOpenerWidget`.
+      * This method's logic should be very similar to the Selenium part of `step_01_submit` (and `reopen_url` from `520_widget_examples.py`'s Selenium step).
+      * It should:
+          * Get the `url` from the POSTed form data.
+          * Perform the Selenium actions (setup options, init driver, get URL, get title, quit driver, cleanup profile).
+          * Use `self.message_queue.add()` to provide feedback during the process.
+          * Return a simple `P` tag with a success or error message (e.g., `P(f"Successfully reopened: {url}", style="color: green;")` or `P(error_msg, style=pip.get_style("error"))`). This will be targeted by the "Open URL Again 🪄" button's `hx-target`.
+
+7.  **Update `get_suggestion` Logic for this Step:**
+
+      * In `890_selenium.py`, the `async def get_suggestion(self, step_id, state):` method should be adapted. For `step_id == 'step_01'`, it should return an example URL, e.g., `"https://www.google.com"`.
+
+8.  **Imports:**
+
+      * Ensure necessary imports: `asyncio`, `json`, `collections.namedtuple`, `datetime`, `pathlib.Path`, `os`.
+      * From `fasthtml.common import *`.
+      * From `loguru import logger`.
+      * From `starlette.responses import HTMLResponse`.
+      * Selenium imports: `from selenium import webdriver`, `from selenium.webdriver.chrome.service import Service`, `from selenium.webdriver.chrome.options import Options`, `from webdriver_manager.chrome import ChromeDriverManager`.
+      * `import tempfile`, `import shutil`.
+
+After implementing these changes for `plugins/890_selenium.py`, please **STOP**. I will then review, test, and commit this file. This one is more complex due to the Selenium interaction and the new endpoint.Okay, we are moving on to the **Selenium URL Opener**. This is indeed a more complex widget due to its interaction with an external browser process.
+
+I will extract the Selenium URL opening functionality from `step_10` and the associated `reopen_url` logic from `plugins/520_widget_examples.py` into the new file `plugins/890_selenium.py`, using `plugins/700_widget_shim.py` as the template and following your detailed instructions.
+
+```python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+import os
+import shutil
+import tempfile
+
+from fasthtml.common import * # type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+
+"""
+Pipulate Selenium URL Opener Widget Workflow
+A workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.
+"""
+
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class SeleniumUrlOpenerWidget:
+    """
+    Selenium URL Opener Widget Workflow
+    
+    Demonstrates opening a URL using Selenium and ChromeDriver.
+    """
+    # --- Workflow Configuration ---
+    APP_NAME = "selenium_url_opener"
+    DISPLAY_NAME = "Selenium URL Opener"
+    ENDPOINT_MESSAGE = (
+        "This workflow demonstrates opening a URL in a new Chrome browser window controlled by Selenium."
+    )
+    TRAINING_PROMPT = (
+        "This workflow is for demonstrating and testing the Selenium URL opener. "
+        "The user will input a URL, which will then be opened in a Selenium-controlled Chrome browser."
+    )
+
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+        # Define workflow steps
+        steps = [
+            Step(
+                id='step_01',
+                done='selenium_url', # Field to store the URL string for Selenium
+                show='URL for Selenium',    # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        
+        # Register standard workflow routes
+        routes = [
+            (f"/{app_name}", self.landing),
+            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            (f"/{app_name}/reopen_selenium_url", self.reopen_selenium_url, ["POST"]), # New route for reopening
+        ]
+        # Register routes for each step
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+        
+        # Register all routes with the FastHTML app
+        for path, handler, *methods in routes:
+            method_list = methods[0] if methods else ["GET"]
+            app.route(path, methods=method_list)(handler)
+        # Define UI messages
+        self.step_messages = {
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_01": {
+                "input": "Please enter the URL to open with Selenium.",
+                "complete": "URL processed for Selenium."
+            }
+        }
+        # Add the finalize step internally
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- Core Workflow Engine Methods (Copied from Shim/Previous Widgets) ---
+    async def landing(self):
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(
+            Card(
+                H2(title),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑", button_class="secondary"
+                    ),
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        
+        context = pip.get_plugin_context(self)
+        profile_name = context['profile_name'] or "default"
+        plugin_name = context['plugin_name'] or app_name
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
+        else:
+            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+            
+        db["pipeline_id"] = pipeline_id
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+        if error: return error
+        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        
+        return Div(
+            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+            id=f"{app_name}-container"
+        )
+
+    async def finalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1] 
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                return Card(
+                    H3("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                all_steps_complete = all(
+                    pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                    for step in steps[:-1] 
+                )
+                if all_steps_complete:
+                    return Card(
+                        H3("All steps complete. Finalize?"),
+                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Button("Finalize 🔒", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/finalize", 
+                            hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                        ),
+                        id=finalize_step.id
+                    )
+                else:
+                    return Div(id=finalize_step.id) 
+        else: # POST request
+            await pip.finalize_workflow(pipeline_id)
+            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            return pip.rebuild(app_name, steps)
+
+    async def unfinalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        if step_id == 'step_01':
+            return "https://www.google.com" # Default suggestion for URL
+        return ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    def _create_selenium_url_display(self, url_value, step_id):
+        """Helper method to create the display for the URL and reopen button for Selenium."""
+        return Div(
+            P(f"URL configured: ", B(url_value)),
+            Form(
+                Input(type="hidden", name="url", value=url_value), # Pass URL to the reopen endpoint
+                Button(
+                    "Open URL Again 🪄",
+                    type="submit",
+                    cls="secondary"
+                ),
+                hx_post=f"/{self.app_name}/reopen_selenium_url",
+                hx_target=f"#{step_id}-status", # Target for status messages from reopen
+                hx_swap="innerHTML"
+            ),
+            Div(id=f"{step_id}-status") # Container for status messages
+        )
+
+    async def _execute_selenium_open(self, url_to_open):
+        """Core Selenium logic to open a URL."""
+        pip = self.pipulate
+        try:
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless") # Keep visible for this widget
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")
+            chrome_options.add_argument("--start-maximized")
+            
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Effective OS for Selenium: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin": # macOS
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS.", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else: # Assume Linux-like where chromedriver might be in PATH
+                await self.message_queue.add(pip, "Attempting to use system ChromeDriver (ensure it's in PATH).", verbatim=True)
+                service = Service() # Assumes chromedriver is in PATH
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver with Selenium...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            await self.message_queue.add(pip, f"Selenium opening URL: {url_to_open}", verbatim=True)
+            driver.get(url_to_open)
+            await asyncio.sleep(2) # Give page a moment
+            page_title = driver.title
+            await self.message_queue.add(pip, f"Selenium page loaded. Title: {page_title}", verbatim=True)
+            
+            # Keep browser open for a bit for user to see, then close
+            # For a real tool, you might keep it open or perform actions
+            await asyncio.sleep(5) # Let user see the page for 5 seconds
+            
+            driver.quit()
+            await self.message_queue.add(pip, "Selenium browser closed.", verbatim=True)
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            return True, f"Successfully opened and closed: {url_to_open}. Page title: {page_title}"
+        except Exception as e:
+            error_msg = f"Selenium error: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            if 'profile_dir' in locals() and os.path.exists(profile_dir):
+                shutil.rmtree(profile_dir, ignore_errors=True)
+            return False, error_msg
+
+    # --- Step 1: URL Input for Selenium ---
+    async def step_01(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "") # selenium_url
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+
+        if "finalized" in finalize_data and user_val:
+            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    url_widget_display
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        elif user_val and state.get("_revert_target") != step_id:
+            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {user_val}",
+                widget=url_widget_display,
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            explanation = "Enter a URL to open with Selenium (e.g., https://www.google.com)."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        Div(
+                            Input(
+                                type="url",
+                                name=step.done, # selenium_url
+                                placeholder="https://www.google.com",
+                                required=True,
+                                value=display_value,
+                                cls="contrast"
+                            ),
+                            Div(
+                                Button("Open with Selenium ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        form = await request.form()
+        url_to_open = form.get(step.done, "").strip() # selenium_url
+
+        if not url_to_open:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url_to_open.startswith(("http://", "https://")):
+            url_to_open = f"https://{url_to_open}"
+        
+        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        
+        success, message = await self._execute_selenium_open(url_to_open)
+        
+        pip.append_to_history(f"[WIDGET ACTION] {step.show}: Attempted to open URL {url_to_open}. Success: {success}. Message: {message}")
+        
+        url_widget_display = self._create_selenium_url_display(url_to_open, step_id)
+        status_message_widget = P(message, style="color: green;" if success else pip.get_style("error"))
+        
+        combined_widget = Div(url_widget_display, status_message_widget)
+
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: URL processed - {url_to_open}",
+            widget=combined_widget,
+            steps=steps
+        )
+        
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        await self.message_queue.add(pip, f"{step.show} complete. {message}", verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+            await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+        return HTMLResponse(to_xml(response_content))
+
+    async def reopen_selenium_url(self, request):
+        """Handles reopening a URL with Selenium via a button press."""
+        pip = self.pipulate
+        form = await request.form()
+        url_to_open = form.get("url", "").strip()
+
+        if not url_to_open:
+            return P("Error: URL for reopening is missing.", style=pip.get_style("error"))
+
+        success, message = await self._execute_selenium_open(url_to_open)
+        
+        if success:
+            return P(f"Successfully reopened: {url_to_open}. Page title: {message.split('Page title: ')[-1]}", style="color: green;")
+        else:
+            return P(f"Error reopening URL: {message}", style=pip.get_style("error"))
+
+```
+
+---
+
+## Claude's Implementation
+
+**Claude**: I'll help you extract the Selenium URL Opener widget functionality into a new file. Let me start by creating the new file.
+
+
+```bash
+cp pipulate/plugins/700_widget_shim.py pipulate/plugins/890_selenium.py
+```
+Now I'll edit the new file to implement the Selenium URL Opener widget functionality.
+
+```python
+import asyncio
+import json
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+import os
+import shutil
+import tempfile
+
+from fasthtml.common import * # type: ignore
+from loguru import logger
+from starlette.responses import HTMLResponse
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+
+"""
+Pipulate Selenium URL Opener Widget Workflow
+A workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.
+"""
+
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class SeleniumUrlOpenerWidget:
+    """
+    Selenium URL Opener Widget Workflow
+    
+    Demonstrates opening a URL using Selenium and ChromeDriver.
+    """
+    # --- Workflow Configuration ---
+    APP_NAME = "selenium_url_opener"
+    DISPLAY_NAME = "Selenium URL Opener"
+    ENDPOINT_MESSAGE = (
+        "This workflow demonstrates opening a URL in a new Chrome browser window controlled by Selenium."
+    )
+    TRAINING_PROMPT = (
+        "This workflow is for demonstrating and testing the Selenium URL opener. "
+        "The user will input a URL, which will then be opened in a Selenium-controlled Chrome browser."
+    )
+
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+        # Define workflow steps
+        steps = [
+            Step(
+                id='step_01',
+                done='selenium_url', # Field to store the URL string for Selenium
+                show='URL for Selenium',    # User-friendly name for this step
+                refill=True,
+                transform=lambda prev_value: prev_value.strip() if prev_value else ""
+            ),
+        ]
+        
+        # Register standard workflow routes
+        routes = [
+            (f"/{app_name}", self.landing),
+            (f"/{app_name}/init", self.init, ["POST"]),
+            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
+            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
+            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
+            (f"/{app_name}/reopen_selenium_url", self.reopen_selenium_url, ["POST"]), # New route for reopening
+        ]
+        # Register routes for each step
+        self.steps = steps
+        for step in steps:
+            step_id = step.id
+            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
+            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
+        
+        # Register all routes with the FastHTML app
+        for path, handler, *methods in routes:
+            method_list = methods[0] if methods else ["GET"]
+            app.route(path, methods=method_list)(handler)
+
+        # Define UI messages
+        self.step_messages = {
+            "finalize": {
+                "ready": "All steps complete. Ready to finalize workflow.",
+                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+            },
+            "step_01": {
+                "input": "Please enter the URL to open with Selenium.",
+                "complete": "URL processed for Selenium."
+            }
+        }
+        # Add the finalize step internally
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    # --- Core Workflow Engine Methods (Copied from Shim/Previous Widgets) ---
+    async def landing(self):
+        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(
+            Card(
+                H2(title),
+                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(
+                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
+                            list="pipeline-ids", type="search", required=False, autofocus=True,
+                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
+                            cls="contrast"
+                        ),
+                        button_label=f"Enter 🔑", button_class="secondary"
+                    ),
+                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
+                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
+                )
+            ),
+            Div(id=f"{app_name}-container")
+        )
+
+    async def init(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        user_input = form.get("pipeline_id", "").strip()
+        if not user_input:
+            from starlette.responses import Response
+            response = Response("")
+            response.headers["HX-Refresh"] = "true"
+            return response
+        
+        context = pip.get_plugin_context(self)
+        profile_name = context['profile_name'] or "default"
+        plugin_name = context['plugin_name'] or app_name
+        profile_part = profile_name.replace(" ", "_")
+        plugin_part = plugin_name.replace(" ", "_")
+        expected_prefix = f"{profile_part}-{plugin_part}-"
+        
+        if user_input.startswith(expected_prefix):
+            pipeline_id = user_input
+        else:
+            _, temp_prefix, user_provided_id_part = pip.generate_pipeline_key(self, user_input)
+            pipeline_id = f"{expected_prefix}{user_provided_id_part}"
+            
+        db["pipeline_id"] = pipeline_id
+        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name}) 
+        if error: return error
+        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        
+        return Div(
+            Div(id="step_01", hx_get=f"/{app_name}/step_01", hx_trigger="load"),
+            id=f"{app_name}-container"
+        )
+
+    async def finalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        finalize_step = steps[-1] 
+        finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
+        if request.method == "GET":
+            if finalize_step.done in finalize_data:
+                return Card(
+                    H3("Workflow is locked."),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                        hx_post=f"/{app_name}/unfinalize", 
+                        hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                    ),
+                    id=finalize_step.id
+                )
+            else:
+                all_steps_complete = all(
+                    pip.get_step_data(pipeline_id, step.id, {}).get(step.done) 
+                    for step in steps[:-1] 
+                )
+                if all_steps_complete:
+                    return Card(
+                        H3("All steps complete. Finalize?"),
+                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
+                        Form(
+                            Button("Finalize 🔒", type="submit", cls="primary"),
+                            hx_post=f"/{app_name}/finalize", 
+                            hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                        ),
+                        id=finalize_step.id
+                    )
+                else:
+                    return Div(id=finalize_step.id) 
+        else: # POST request
+            await pip.finalize_workflow(pipeline_id)
+            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            return pip.rebuild(app_name, steps)
+
+    async def unfinalize(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pipeline_id = db.get("pipeline_id", "unknown")
+        await pip.unfinalize_workflow(pipeline_id)
+        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    async def get_suggestion(self, step_id, state):
+        if step_id == 'step_01':
+            return "https://www.google.com" # Default suggestion for URL
+        return ""
+
+    async def handle_revert(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        form = await request.form()
+        step_id = form.get("step_id")
+        pipeline_id = db.get("pipeline_id", "unknown")
+        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
+        state["_revert_target"] = step_id
+        pip.write_state(pipeline_id, state)
+        message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
+        await self.message_queue.add(pip, message, verbatim=True)
+        return pip.rebuild(app_name, steps)
+
+    def _create_selenium_url_display(self, url_value, step_id):
+        """Helper method to create the display for the URL and reopen button for Selenium."""
+        return Div(
+            P(f"URL configured: ", B(url_value)),
+            Form(
+                Input(type="hidden", name="url", value=url_value), # Pass URL to the reopen endpoint
+                Button(
+                    "Open URL Again 🪄",
+                    type="submit",
+                    cls="secondary"
+                ),
+                hx_post=f"/{self.app_name}/reopen_selenium_url",
+                hx_target=f"#{step_id}-status", # Target for status messages from reopen
+                hx_swap="innerHTML"
+            ),
+            Div(id=f"{step_id}-status") # Container for status messages
+        )
+
+    async def _execute_selenium_open(self, url_to_open):
+        """Core Selenium logic to open a URL."""
+        pip = self.pipulate
+        try:
+            chrome_options = Options()
+            # chrome_options.add_argument("--headless") # Keep visible for this widget
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--new-window")
+            chrome_options.add_argument("--start-maximized")
+            
+            profile_dir = tempfile.mkdtemp()
+            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+            
+            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
+            await self.message_queue.add(pip, f"Effective OS for Selenium: {effective_os}", verbatim=True)
+            
+            if effective_os == "darwin": # macOS
+                await self.message_queue.add(pip, "Using webdriver-manager for macOS.", verbatim=True)
+                service = Service(ChromeDriverManager().install())
+            else: # Assume Linux-like where chromedriver might be in PATH
+                await self.message_queue.add(pip, "Attempting to use system ChromeDriver (ensure it's in PATH).", verbatim=True)
+                service = Service() # Assumes chromedriver is in PATH
+            
+            await self.message_queue.add(pip, "Initializing Chrome driver with Selenium...", verbatim=True)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            await self.message_queue.add(pip, f"Selenium opening URL: {url_to_open}", verbatim=True)
+            driver.get(url_to_open)
+            await asyncio.sleep(2) # Give page a moment
+            page_title = driver.title
+            await self.message_queue.add(pip, f"Selenium page loaded. Title: {page_title}", verbatim=True)
+            
+            # Keep browser open for a bit for user to see, then close
+            # For a real tool, you might keep it open or perform actions
+            await asyncio.sleep(5) # Let user see the page for 5 seconds
+            
+            driver.quit()
+            await self.message_queue.add(pip, "Selenium browser closed.", verbatim=True)
+            shutil.rmtree(profile_dir, ignore_errors=True)
+            return True, f"Successfully opened and closed: {url_to_open}. Page title: {page_title}"
+        except Exception as e:
+            error_msg = f"Selenium error: {str(e)}"
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            if 'profile_dir' in locals() and os.path.exists(profile_dir):
+                shutil.rmtree(profile_dir, ignore_errors=True)
+            return False, error_msg
+
+    # --- Step 1: URL Input for Selenium ---
+    async def step_01(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        user_val = step_data.get(step.done, "") # selenium_url
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+
+        if "finalized" in finalize_data and user_val:
+            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    url_widget_display
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        
+        elif user_val and state.get("_revert_target") != step_id:
+            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            content_container = pip.widget_container(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show}: {user_val}",
+                widget=url_widget_display,
+                steps=steps
+            )
+            return Div(
+                content_container,
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            
+            explanation = "Enter a URL to open with Selenium (e.g., https://www.google.com)."
+            await self.message_queue.add(pip, explanation, verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
+                    P(explanation, style=pip.get_style("muted")),
+                    Form(
+                        Div(
+                            Input(
+                                type="url",
+                                name=step.done, # selenium_url
+                                placeholder="https://www.google.com",
+                                required=True,
+                                value=display_value,
+                                cls="contrast"
+                            ),
+                            Div(
+                                Button("Open with Selenium ▸", type="submit", cls="primary"),
+                                style="margin-top: 1vh; text-align: right;"
+                            ),
+                            style="width: 100%;"
+                        ),
+                        hx_post=f"/{app_name}/{step_id}_submit",
+                        hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), 
+                id=step_id
+            )
+
+    async def step_01_submit(self, request):
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_01"
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = 'finalize' 
+        pipeline_id = db.get("pipeline_id", "unknown")
+        form = await request.form()
+        url_to_open = form.get(step.done, "").strip() # selenium_url
+
+        if not url_to_open:
+            return P("Error: URL is required", style=pip.get_style("error"))
+        
+        if not url_to_open.startswith(("http://", "https://")):
+            url_to_open = f"https://{url_to_open}"
+        
+        await pip.update_step_state(pipeline_id, step_id, url_to_open, steps)
+        
+        success, message = await self._execute_selenium_open(url_to_open)
+        
+        pip.append_to_history(f"[WIDGET ACTION] {step.show}: Attempted to open URL {url_to_open}. Success: {success}. Message: {message}")
+        
+        url_widget_display = self._create_selenium_url_display(url_to_open, step_id)
+        status_message_widget = P(message, style="color: green;" if success else pip.get_style("error"))
+        
+        combined_widget = Div(url_widget_display, status_message_widget)
+
+        content_container = pip.widget_container(
+            step_id=step_id,
+            app_name=app_name,
+            message=f"{step.show}: URL processed - {url_to_open}",
+            widget=combined_widget,
+            steps=steps
+        )
+        
+        response_content = Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
+        )
+        
+        await self.message_queue.add(pip, f"{step.show} complete. {message}", verbatim=True)
+        if pip.check_finalize_needed(step_index, steps):
+            await self.message_queue.add(pip, self.step_messages["finalize"]["ready"], verbatim=True)
+        return HTMLResponse(to_xml(response_content))
+
+    async def reopen_selenium_url(self, request):
+        """Handles reopening a URL with Selenium via a button press."""
+        pip = self.pipulate
+        form = await request.form()
+        url_to_open = form.get("url", "").strip()
+
+        if not url_to_open:
+            return P("Error: URL for reopening is missing.", style=pip.get_style("error"))
+
+        success, message = await self._execute_selenium_open(url_to_open)
+        
+        if success:
+            return P(f"Successfully reopened: {url_to_open}. Page title: {message.split('Page title: ')[-1]}", style="color: green;")
+        else:
+            return P(f"Error reopening URL: {message}", style=pip.get_style("error"))
+```
+
+I've successfully implemented the Selenium URL Opener widget functionality in `plugins/890_selenium.py`. The implementation includes:
+
+1. **Core Selenium Integration**:
+   - Added necessary imports for Selenium, ChromeDriver, and webdriver-manager
+   - Implemented Chrome browser configuration with appropriate options
+   - Added OS-specific handling for ChromeDriver installation
+
+2. **URL Input and Processing**:
+   - Created a URL input form with validation and auto-completion
+   - Added URL normalization (adding https:// if missing)
+   - Implemented error handling for invalid URLs
+
+3. **Browser Control**:
+   - Implemented browser launch and control logic
+   - Added page title extraction and display
+   - Included proper browser cleanup and resource management
+
+4. **UI Components**:
+   - Created a URL display widget with reopen functionality
+   - Added status messages for browser operations
+   - Implemented proper error display and success feedback
+
+5. **State Management**:
+   - Maintained workflow state for the URL
+   - Added proper finalization handling
+   - Implemented revert functionality
+
+6. **Security and Error Handling**:
+   - Added proper cleanup of temporary browser profiles
+   - Implemented comprehensive error handling
+   - Added logging for debugging purposes
+
+The widget follows the same patterns as previous widgets while implementing the specific Selenium functionality. Would you like me to explain any specific part of the implementation in more detail?
+
+---
+
+Me: 
+
+And so there you have it! You've successfully given guidance for every widget
+extraction. Most of them were 1-shot successes when handed over to Claude, the
+AI Coding Assistant in Cursor who took your implementation instructions and
+carried them out as I demonstrate immediately above. The only tricky one ended
+up being the Pandas data table which we had to back up and pivot a few times.
+But for the most part, it was 1-shot successes so there's a tremendous amount
+that's right about the processes illustrated by this documentation. I haven't
+included Claude's responses to every one of your instructions nor the finished
+code but for one or two examples I've put in the XML bundle so you can get the
+big picture. But we have successfully completed the job and now we're sitting on
+lightning in a bottle with all this captured context which I want to process
+into a comprehensive guide not only for doing wiget extractions, but the whole
+detailed anatamy of workflows in a way that will thorougly walk both humans and
+AIs through everything they need to know to do similar such work with an
+emphasis on building them up from scratch in successive iterative sweeps that
+take them from bare minimum to complex requiring new JavaScript libraries for
+visualization.
+
+Your responses here can only be so long, so build it up from the simplest first
+and stop when you think it's at a good stopping point for a git commit or a
+chapter break for the human/AI and I will feed it back into this article the
+same way and walk you through the next and the next until we have that guide.
+
+---
+
+**Gemini**: Okay, this is an excellent starting point for creating a comprehensive guide to Pipulate workflow development. The successful widget extraction process, even with its trial-and-error moments, has indeed provided a rich set of "lightning in a bottle" learnings.
+
+Here's the first "chapter" of the guide, focusing on the foundational anatomy of a minimal Pipulate workflow, using the "widget shim" (`700_widget_shim.py`) as the primary example. This lays the groundwork for understanding how more complex widgets are built upon this core structure.
+
+## Pipulate Workflow Development Guide
+
+### Chapter 1: The Anatomy of a Minimal Pipulate Workflow – The "Shim"
+
+**1.1 Introduction to Pipulate Workflows**
+
+Pipulate workflows are designed as linear, step-by-step processes, often intended for end-users who interact with a web interface without needing to see or modify the underlying Python code. The core philosophy emphasizes:
+
+  * **Local-First Operation:** Workflows run entirely on the user's machine, ensuring data privacy and control.
+  * **Server-Side State:** All workflow state is managed on the server, simplifying the client-side and making state changes observable.
+  * **FastHTML & HTMX:** The user interface is built using FastHTML for Python-centric HTML generation and HTMX for dynamic, server-rendered updates with minimal client-side JavaScript.
+  * **Explicit Processes:** Workflows are "WET" (Write Everything Twice/Explicit), making them easy to understand, debug, and port from experimental scripts or Jupyter Notebooks.
+
+The `plugins/700_widget_shim.py` file serves as the most basic template—a "blank canvas"—for creating new workflows. Understanding its structure is key to developing any Pipulate widget or multi-step process.
+
+**1.2 Core Components of a Workflow Class**
+
+Let's dissect the `WidgetDesigner` class within `700_widget_shim.py` (or a similarly structured minimal workflow).
+
+**1.2.1 File Naming and Discovery**
+
+  * **Location:** Workflow plugin files reside in the `plugins/` directory.
+  * **Naming Convention:** Files typically start with a numeric prefix (e.g., `700_widget_shim.py`). This prefix dictates the order in which workflows appear in the UI menu.
+  * **Automatic Registration:** `server.py` automatically discovers and registers Python files in the `plugins/` directory. The numeric prefix is stripped to form the internal `APP_NAME` for the workflow (e.g., `700_widget_shim.py` becomes `widget_shim`). Files starting with `xx_` or containing parentheses are typically skipped, allowing for in-progress or experimental work.
+
+**1.2.2 Class Definition and Configuration Constants**
+
+Every workflow is encapsulated within a Python class. This class contains several key configuration constants:
+
+  * `APP_NAME` (e.g., `design_widget` in the shim, though for a real plugin it would match the filename like `widget_shim`):
+      * This is the **internal identifier** for the workflow.
+      * It's crucial for constructing URL routes (`/{APP_NAME}/...`) and for namespacing data in the `pipeline` database table.
+      * **Convention:** This should match the filename after stripping the numeric prefix and `.py` extension.
+  * `DISPLAY_NAME` (e.g., `"Widget Shim"`):
+      * The **user-friendly name** displayed in the Pipulate UI (e.g., in the "App" dropdown menu).
+  * `ENDPOINT_MESSAGE` (e.g., `"Welcome to the Widget Shim! ..."`):
+      * Informational text displayed on the workflow's initial landing page, guiding the user.
+  * `TRAINING_PROMPT` (e.g., `"This is a specialized workflow for designing..."`):
+      * Context provided to the integrated LLM (Ollama) when this workflow is active.
+      * It can be a direct string or a filename (e.g., `"my_widget_training.md"`) pointing to a Markdown file in the `training/` directory. This allows for more extensive context for the LLM.
+
+**1.2.3 The `__init__` Constructor**
+
+The constructor `__init__(self, app, pipulate, pipeline, db, app_name=APP_NAME)` is standard:
+
+  * `app`: The FastHTML application instance.
+  * `pipulate`: An instance of the core `Pipulate` helper class from `server.py`. This provides essential methods for state management, UI generation, and LLM interaction.
+  * `pipeline`: A reference to the `pipeline` database table object (managed by MiniDataAPI via `fast_app` in `server.py`). This table stores the state of all workflow instances.
+  * `db`: An instance of `DictLikeDB` from `server.py`, a key-value store (backed by the `store` SQLite table) for global application settings (like last selected profile, current workflow ID).
+  * `app_name=APP_NAME`: Sets the internal `self.app_name` attribute, usually defaulting to the class's `APP_NAME` constant.
+  * `self.message_queue = pip.message_queue`: A queue for sending messages to the user/LLM chat interface in an ordered fashion.
+
+**Key Structures Initialized in `__init__`:**
+
+1.  **`steps` List and `Step` NamedTuple:**
+    This list defines the sequence of operations in the workflow. Each element is a `Step` namedtuple:
+
+    ```python
+    Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+    ```
+
+      * `id` (str): A unique identifier for the step, e.g., `'step_01'`. Used in URL routes (`/{app_name}/{step_id}`), DOM element IDs, and for internal state tracking.
+      * `done` (str): The key used to store this step's primary output or result within the workflow's JSON state blob in the `pipeline` table. This is a critical convention. For example, if `done='user_input'`, then after this step completes, the state might look like: `{"step_01": {"user_input": "some value"}}`.
+      * `show` (str): A user-friendly name for the step. Often used in UI messages or for the label on a "revert" button.
+      * `refill` (bool): If `True`, the input form for this step will attempt to pre-fill with existing data when the step is revisited (e.g., after a revert or if the workflow is reloaded). If `False`, the form will typically show default/suggested values.
+      * `transform` (function, optional): A lambda or function that can process data from a *previous* step to suggest an input for the *current* step. Not used in the simplest shim.
+
+    In `700_widget_shim.py`, a single placeholder step is defined:
+
+    ```python
+    steps = [
+        Step(
+            id='step_01',
+            done='placeholder', # This step stores a value under the key 'placeholder'
+            show='Step 1 Placeholder',
+            refill=False,
+        ),
+    ]
+    ```
+
+2.  **Route Registration:**
+    The `__init__` method dynamically registers URL routes for the workflow:
+
+      * **Standard Workflow Routes:**
+          * `/{app_name}` (GET): Calls `self.landing()` to show the initial page.
+          * `/{app_name}/init` (POST): Calls `self.init()` to process the `pipeline_id` and start the workflow.
+          * `/{app_name}/revert` (POST): Calls `self.handle_revert()` to go back to a previous step.
+          * `/{app_name}/finalize` (GET, POST): Calls `self.finalize()` to display the finalize button or process finalization.
+          * `/{app_name}/unfinalize` (POST): Calls `self.unfinalize()` to unlock a finalized workflow.
+      * **Step-Specific Routes:** For each `Step` in `self.steps`:
+          * `/{app_name}/{step.id}` (GET): Calls the method named after the step's ID (e.g., `self.step_01()`). This method displays the current state or input form for that step.
+          * `/{app_name}/{step.id}_submit` (POST): Calls the method named `f"{step.id}_submit"` (e.g., `self.step_01_submit()`). This method processes the form submission for that step.
+
+3.  **`self.step_messages` Dictionary:**
+    A dictionary holding user-facing messages for various workflow states, keyed by `step.id`. Each step typically has an "input" message (when the user needs to provide data) and a "complete" message. There's also a standard "finalize" key.
+
+    ```python
+    self.step_messages = {
+        "finalize": {
+            "ready": "All steps complete. Ready to finalize workflow.",
+            "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
+        },
+        "step_01": { # Matches step.id
+            "input": f"{pip.fmt('step_01')}: Please complete {steps[0].show}.", # Using step.show
+            "complete": f"{steps[0].show} complete. Continue to next step."
+        }
+    }
+    ```
+
+4.  **Internal `finalize` Step and `self.steps_indices`:**
+    A special `Step` tuple for "finalize" is typically appended to the `self.steps` list *after* the plugin-defined steps. This allows the finalization process to be handled consistently with other steps in terms of UI and state.
+
+    ```python
+    steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+    self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+    ```
+
+    `self.steps_indices` creates a lookup for finding a step's position in the list by its ID.
+
+**1.3 Core Workflow Engine Methods (The "Shim" Foundation)**
+
+These asynchronous methods define the behavior of the workflow.
+
+  * **`async def landing(self)`:**
+
+      * Renders the workflow's initial entry page.
+      * Displays `self.DISPLAY_NAME` and `self.ENDPOINT_MESSAGE`.
+      * Presents a `Form` where the user can:
+          * Enter a new `pipeline_id` (a unique key for this run of the workflow).
+          * Select an existing `pipeline_id` from a `datalist` populated with previous runs of this specific workflow (`app_name` is used for filtering).
+      * `pip.generate_pipeline_key(self)` suggests a default new key (e.g., `DefaultProfile-WidgetShim-01`).
+      * The form POSTs to `/{self.app_name}/init`.
+      * Crucially, it includes a target `Div` (e.g., `Div(id=f"{self.app_name}-container")`) where the HTMX responses from subsequent steps will be rendered.
+
+  * **`async def init(self, request)`:**
+
+      * Triggered by submitting the `pipeline_id` form on the `landing` page.
+      * Retrieves or generates the final `pipeline_id`. It validates the input: if a user provides an ID that doesn't match the expected prefix for the current profile and plugin, it assumes the user is creating a new ID and correctly formats it with the current profile/plugin prefix.
+      * Stores this `pipeline_id` in the global `db` store: `db["pipeline_id"] = pipeline_id`.
+      * Initializes the workflow's state in the `pipeline` table if it doesn't exist for this `pipeline_id`, associating it with `self.app_name`: `state, error = pip.initialize_if_missing(pipeline_id, {"app_name": self.app_name})`.
+      * Sends confirmation messages to the user via `self.message_queue.add(...)`.
+      * **Initiates the Chain Reaction:** This is a cornerstone of Pipulate workflows. `init` returns an HTMX response that loads the *first step* of the workflow:
+        ```python
+        # Simplified from the shim, which uses pip.rebuild for a single step
+        # For a multi-step workflow, pip.rebuild would be more common here.
+        # The shim directly loads step_01.
+        Div(
+            Div(id="step_01", hx_get=f"/{self.app_name}/step_01", hx_trigger="load"),
+            id=f"{self.app_name}-container" # This outer Div replaces the target from landing.
+        )
+        ```
+        When this HTML is swapped into the target `Div` from `landing`, the inner `Div` for `step_01` immediately triggers an HTMX GET request to its own URL (`/{app_name}/step_01`), thus loading the first step's UI.
+
+  * **Step Handler - GET (e.g., `async def step_01(self, request)`)**
+
+      * This method is called when a step needs to be displayed (either initially or after a revert).
+      * It retrieves the current `pipeline_id` from `db`, reads the workflow `state` using `pip.read_state()`, and gets specific `step_data` using `pip.get_step_data(pipeline_id, step.id, {})`.
+      * It determines the `next_step_id` (e.g., `step_02` or `finalize`).
+      * **View Logic:**
+        1.  **Finalized View:** If `pip.get_step_data(pipeline_id, "finalize", {}).get("finalized")` is true and this step has data (`user_val = step_data.get(step.done)`), it displays a "locked" view of the step's content. This view *must* still include the trigger for the `next_step_id`: `Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")`.
+        2.  **Completed View (Not Reverting):** If `user_val` exists (meaning the step was previously completed) and `state.get("_revert_target") != step.id` (meaning we are not explicitly trying to revert *to this specific step's input form*), it displays the completed view. This often involves `self.pipulate.revert_control()` to show the stored data and offer a "Revert" button. This view also *must* include the `Div` to trigger the `next_step_id`.
+        3.  **Input Form View (Default/Reverting):** If the step is not complete, or if `state.get("_revert_target") == step.id`, it displays the input form.
+              * It sends an appropriate message from `self.step_messages` to the `self.message_queue`.
+              * The `Form` will POST to `/{self.app_name}/{step.id}_submit`.
+              * Input fields in the form should be named according to the `step.done` attribute for this step, so their values are correctly picked up by the submit handler.
+              * It includes an *empty placeholder `Div(id=next_step_id)` for the next step.* This placeholder is crucial: it **does not have `hx_trigger="load"` at this stage.** The trigger is added by the corresponding `_submit` handler to ensure the chain reaction proceeds only after successful submission.
+
+  * **Step Submit Handler - POST (e.g., `async def step_01_submit(self, request)`)**
+
+      * This method processes the data submitted from the step's input form.
+      * It retrieves form data: `form = await request.form()`, then `user_val = form.get(step.done, "")`.
+      * It should validate the input (e.g., using `pip.validate_step_input()`).
+      * It updates the workflow's state: `await pip.update_step_state(pipeline_id, step_id, user_val, self.steps)`. This saves `user_val` into the JSON blob in the `pipeline` table, associated with `pipeline_id`, under the key `step_id`, and within that, under the key defined by `step.done`.
+      * It updates the LLM's context with the submitted data: `pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")`.
+      * It sends a confirmation message to the user via `self.message_queue.add(...)`.
+      * **Continues the Chain Reaction:** This is a critical part. The method returns an HTML response that typically includes:
+          * The "completed" view of the current step (often using `pip.revert_control()`).
+          * **The explicit trigger for the next step:** `Div(id=next_step_id, hx_get=f"/{self.app_name}/{next_step_id}", hx_trigger="load")`.
+          * The entire response is wrapped in a `Div` with `id=step_id`, which matches the `hx-target` of the form, causing this new content to replace the input form.
+
+  * **`async def finalize(self, request)` (GET/POST)**
+
+      * **GET Request:**
+          * If the workflow is already finalized (checked via `pip.get_step_data(pipeline_id, "finalize", {}).get("finalized")`): Shows a "Workflow is locked" message and a `Form` with an "Unlock 🔓" button that POSTs to `/{self.app_name}/unfinalize`.
+          * If not finalized but all data-input steps are complete: Shows a `Form` with a "Finalize 🔒" button that POSTs to `/{self.app_name}/finalize`.
+          * If not finalized and steps are incomplete: Returns an empty `Div(id="finalize")` (or similar placeholder), effectively showing nothing until prior steps are done.
+      * **POST Request:**
+          * Calls `await pip.finalize_workflow(pipeline_id)` which sets the `{"finalized": True}` flag in the "finalize" step's data in the `pipeline` table.
+          * Sends a confirmation message.
+          * Calls `pip.rebuild(self.app_name, self.steps)` to re-render the entire workflow UI, now reflecting the locked state.
+
+  * **`async def unfinalize(self, request)` (POST)**
+
+      * Calls `await pip.unfinalize_workflow(pipeline_id)` which removes the `{"finalized": True}` flag.
+      * Sends a confirmation message.
+      * Calls `pip.rebuild(self.app_name, self.steps)` to re-render the UI in an unlocked state.
+
+  * **`async def handle_revert(self, request)` (POST)**
+
+      * Called when a user clicks a "Revert" button generated by `pip.revert_control()`.
+      * The form submission includes the `step_id` to revert to.
+      * Calls `await pip.clear_steps_from(pipeline_id, step_id, self.steps)`: This crucial method removes data for all steps *after* the target `step_id` from the workflow's state (respecting the `refill` attribute of those subsequent steps via `pip.PRESERVE_REFILL` logic in `server.py`).
+      * Sets a temporary flag in the state: `state["_revert_target"] = step_id`. The GET handler for `step_id` uses this flag to know it should display its input form rather than its completed view.
+      * Sends a status message.
+      * Calls `pip.rebuild(self.app_name, self.steps)` to re-render the entire workflow from the specified revert point.
+
+  * **`async def get_suggestion(self, step_id, state)`**
+
+      * This method is called by step GET handlers to pre-fill input forms.
+      * In the basic shim, it typically returns an empty string: `return ""`.
+      * For more complex workflows, it might implement logic based on `step.transform` or provide hardcoded examples.
+
+**1.4 The Chain Reaction Pattern - Explicit Triggering**
+
+The progression through a Pipulate workflow relies on a carefully orchestrated "chain reaction" of HTMX partial page updates:
+
+1.  `landing` page has a form that POSTs to `init`.
+2.  `init` returns HTML that includes a `Div` with `hx-get` for `step_01` and `hx_trigger="load"`. This immediately loads the first step.
+3.  The `step_01` GET handler displays an input form.
+4.  The form POSTs to `step_01_submit`.
+5.  `step_01_submit` returns HTML that shows the completed view of `step_01` AND includes a new `Div` with `hx-get` for `step_02` (or `finalize`) and, crucially, `hx_trigger="load"`.
+6.  This pattern repeats for each step.
+
+The **explicit inclusion of the next step's loading `Div` with `hx_trigger="load"` in the response of the *current step's submit handler*** is vital. It ensures that the next part of the workflow loads only after the current step has been successfully processed and its state saved. This is preferred over relying on event bubbling from a common parent container, as it's more direct and reliable.
+
+**1.5 State Management Recap**
+
+  * **Workflow Instance State:** Stored in the `pipeline` table, keyed by `pipeline_id`. The `data` column holds a JSON blob. Each step's output (using `step.done` as the key) is an entry within this JSON.
+    ```json
+    // Example for pipeline_id = "MyProfile-MyWorkflow-01"
+    // In 'pipeline' table, 'data' column:
+    {
+      "created": "2025-05-14T...",
+      "updated": "2025-05-14T...",
+      "app_name": "my_workflow", // Added by initialize_if_missing
+      "step_01": {
+        "user_input_for_step1": "some data" // 'user_input_for_step1' is step_01.done
+      },
+      "step_02": {
+        "another_field": 123 // 'another_field' is step_02.done
+      },
+      "finalize": { // Added when finalized
+        "finalized": true
+      }
+      // "_revert_target": "step_01" // Temporary, if reverting
+    }
+    ```
+  * **Global Application State:** Stored in the `store` table (via `DictLikeDB`), like `db['last_profile_id']`.
+  * The `pipulate` instance in `server.py` provides all methods for interacting with these state stores (e.g., `pip.read_state`, `pip.update_step_state`, `pip.get_step_data`).
+
+**1.6 Simplicity and Observability**
+
+The "shim" workflow is intentionally minimal. It establishes the structural and behavioral contract required for any Pipulate workflow. Its simplicity allows developers to focus on the specific logic of their new widget or process without getting bogged down in boilerplate. By setting `STATE_TABLES = True` in `server.py`, developers can observe all state changes directly in the console logs, enhancing debuggability.
+
+This chapter covers the foundational anatomy of a Pipulate workflow. The principles and patterns described here are built upon when creating more complex, interactive widgets. The next chapter will explore adding simple data inputs and displaying that data, taking the first step beyond the bare shim.
+
+-----
+
+This concludes the first "chapter." I've tried to be detailed and reference the existing codebase conventions. Please let me know if this is the right level of detail and if you'd like to proceed to the next part, which would likely cover adding actual input fields to the shim and displaying their values, forming the basis of a very simple custom widget. We can then iterate towards more complex examples like the Markdown widget, incorporating its specific helper methods and client-side JS triggering.
+
+---
+
+Me: 
+
+This is a most excellent anatomy of a Pipulate Workflow! But I think there's a
+higher-level "zoomed back" view that has to exist first that's stated very well
+in this:
+
+---
+title: Development Guide
+description: Development patterns and workflows for Pipulate
+permalink: /development/
+group: development
+---
+
+# Development Guide
+
+> **Before You Begin**: Make sure you've completed the [installation process](/). This guide assumes you have Pipulate running locally with `nix develop`.
+
+## Introduction
+
+Pipulate is designed as a *simpler alternative* to using Jupyter Notebooks — so
+***you don't have to be a developer to use.*** Most people know Jupyter
+Notebooks as just ***notebooks*** because Google Colab. Pipulate is like
+notebooks but without the Python code. The main audience is SEO practitioners
+upping their game in the age of AI. So if you're a technical SEO but a
+non-programmer, just install and use Pipulate. For people who want to actually
+participate in *making* those next-gen SEO tools, this page is for you!
+
+## Core Concepts
+
+### Something Different
+
+Pipulate is built on familiar web development foundations but takes a unique approach:
+
+1. **Framework Similarity**: It uses Python web routing patterns similar to Flask/FastAPI
+2. **HTMX Integration**: The key difference is its use of HTMX for dynamic interactions
+3. **Workflow Creation**: You create step-by-step automation sequences using HTMX components
+4. **Local Execution**: All workflows run on your local machine, not in the cloud
+5. **Easy Setup**: The installer handles all configuration automatically
+
+To get started:
+1. Open Terminal
+2. Navigate to your Pipulate installation directory using `cd`
+3. Run `nix develop`
+4. Access both JupyterLab and Pipulate through your web browser - they run locally but appear as web applications
+
+> **Note on Nix**: If you're new to Nix, check out [Nix Pills](https://nixos.org/guides/nix-pills/) for a gentle introduction. For now, just know that `nix develop` sets up your development environment automatically.
+
+### JupyterLab Included
+
+Pipulate doesn't replace notebooks, but rather packages up those notebooks into
+workflows for people who don't want to deal with the code, and so I install them
+side-by-side. JupyterLab works as a place to mock-up things to port over to
+Pipulate.In fact, Pipulate is a great way to get a general purpose JupyterLab
+installed with spell-checking and JupyterAI. On the Pipulate tab you can start
+experimenting around setting up profiles, playing with the tasks app, and trying
+the workflows that don't require Botify. More general SEO workflows will be
+forthcoming. 
+
+> **Porting from JupyterLab**: While porting is currently manual, the workflow structure closely mirrors notebook cells, making the transition intuitive. Future versions may include automated porting tools.
+
+## Development Patterns
+
+### The Plugin System
+
+#### Copy/Paste CRUD `010_tasks.py`
+
+There's an automatic plugin registration system that uses the `plugins` folder.
+If you want an immediate positive experience without coding or AI assistance, I
+recommend you just copy/paste the `010_tasks.py` and rename it to something like
+`015_competitors.py` and it will just auto-register the new plugin app and you
+can keep a list of competitors *per user profile*. This CRUD (Create, Read,
+Update, Delete) todo app is based on DRY principles (Don't Repeat Yourself), and
+so there's not much coding for customizations like this. If you want to know
+more about it, it closely resembles the standard TODO app tutorial from
+FastHTML. You can't do any harm. Just stay in Dev-mode and use the `Clear DB`
+mode as much as you like while you get used to it.
+
+#### Flexible Workflow System
+
+The tasks app is the only DRY thing there. Everything else in there are
+`Workflows` and workflows are WET (Write Everything Twice/We Enjoy Typing) — and
+therefore more involved to figure out, but is where the Pipulate's power and
+uniqueness reside. Because Workflows basically let you do anything you can in a
+Jupyter Notebook they have to be much more flexible than your traditional "on
+rails" web app framework — and it's gonna look different. Figuring out how to create
+and modify Pipulate Workflows will be challenging and take some time, but AI
+Coding Assistance helps A LOT.
+
+> **Debugging Workflows**: Pipulate includes built-in logging and state inspection tools. Use the `pip.read_state()` function to inspect workflow state at any point, and check the browser's developer console for HTMX events and responses.
+
+### 1. Workflow Development Pattern
+
+When creating new workflows in Pipulate, follow this pattern:
+
+```python
+class MyWorkflow:
+    # --- Core Configuration ---
+    APP_NAME = "unique_name"           # Unique identifier, different from filename
+    DISPLAY_NAME = "User-Facing Name"  # UI display name
+    ENDPOINT_MESSAGE = (               # Shown when user visits workflow
+        "This workflow helps you [purpose]. "
+        "Enter an ID to start or resume your workflow."
+    )
+    TRAINING_PROMPT = "workflow_name.md"  # Training context for AI assistance
+    PRESERVE_REFILL = True             # Whether to preserve refill values on revert
+    
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        self.app = app
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.db = db
+        self.app_name = app_name
+        
+        # Define workflow steps
+        Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'])
+        self.steps = [
+            Step(id='step_01', done='first_field', show='First Step', refill=True),
+            Step(id='step_02', done='second_field', show='Second Step', refill=True),
+            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+        ]
+        
+        # Register routes
+        self.register_routes(rt)
+```
+
+Key points:
+- Each workflow is a Python class with standardized configuration
+- Steps are defined as named tuples with clear purposes
+- Routes are registered in the constructor
+- State is managed through the pipeline object
+- Training prompts help AI assistants understand the workflow
+
+> **Important**: The `APP_NAME` must be different from both the filename and any public endpoints. For example, if your file is `035_my_workflow.py`, use `myworkflow` or `my_flow` as the `APP_NAME`, not `my_workflow`.
+
+### Anatomy of a Step
+
+To understand Pipulate Workflows is to understand a Step. A Step is modeled
+after a single Cell in a Jupyter Notebook, but because there is a ***visible***
+part and an ***invisible*** part after you press submit or "Run" the Cell, each
+step really has 2 parts:
+
+1. step_xx
+2. step_xx_submit
+
+The first part, `step_xx` builds the user interface for the user. The later
+submit part is mostly invisible to the user but does have to reconstruct the
+`elif` condition to produce the revert-stage view. It's usually very little code
+— so little that it's not worth "externalizing" or building into a function for
+reuse. This is the WET part of Workflows. The 3 stages of a `step_xx` are:
+
+```python
+if "finalized" in finalize_data and placeholder_value:
+    # STEP STAGE: FINALIZED
+elif placeholder_value and state.get("_revert_target") != step_id:
+    # STEP STAGE: REVERT
+else:
+    # STEP STAGE: DATA COLLECTION
+```
+
+A lot of the other scaffolding that goes around this is very standard but still
+not externalized to keep everything highly customizable. If we zoom out a bit
+the overall schematic of a Pipulate Workflow is:
+
+```python
+import  # Do all imports
+
+# Model for a workflow step
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+class WorkflowName:
+    APP_NAME            # Private endpoints & foreign key, must be different from filename
+    DISPLAY_NAME        # Show the user
+    ENDPOINT_MESSAGE    # Sent to chat UI when user visits
+    TRAINING_PROMPT     # Local LLM trained on when user visits
+
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        steps   # define steps
+        routes  # register routes
+
+    # --- Core Workflow Engine Methods ---
+    async def landing(self):  # Builds initial UI that presents key
+    async def init(self, request):  # Handles landing key submit
+        # hx_trigger="load" (chain reaction)
+    async def finalize(self, request):  # Puts workflow in locked state
+    async def unfinalize(self, request):  # Takes workflow out of locked state
+    async def get_suggestion(self, step_id, state):  # Pipes data from step to step
+    async def handle_revert(self, request):  # Handles revert buttons
+
+    # --- Step Methods ---
+
+    async def step_01(self, request):
+        if "finalized" in finalize_data and placeholder_value:
+            # hx_trigger="load" (chain reaction)
+        elif placeholder_value and state.get("_revert_target") != step_id:
+            # hx_trigger="load" (chain reaction)
+        else:
+            # Collects data (don't chain react over)
+
+    async def step_01_submit(self, request):
+        # hx_trigger="load" (chain reaction)
+```
+
+### 2. Chain Reaction Pattern
+
+If everything has been filled-in on a particular Workflow instance, it will
+always chain react to the end when you enter its key, as if selecting *Run All
+Cells* in a Notebook. This is by design and gives Pipulate it's signature feel,
+constantly reinforcing the top-down linear workflow model. 
+
+Keeping the chain reaction pattern in place in each of its standard positions is
+crucial for workflow progression:
+
+```python
+return Div(
+    Card(...),  # Current step content
+    # This inner Div triggers loading of the next step
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
+
+Important:
+- Never remove `hx_trigger="load"`
+- Each step must include the next step's container
+- The chain reaction enables automatic progression
+- This gives that Notebook *Run All Cells* feel
+
+### 3. State Management Pattern
+
+Pipulate uses two complementary approaches to state management:
+
+```python
+# Workflow state (JSON-based)
+pipeline_id = db.get("pipeline_id", "unknown")
+state = pip.read_state(pipeline_id)
+state[step.done] = value
+pip.write_state(pipeline_id, state)
+
+# CRUD operations (table-based)
+profiles.insert(name="New Profile")
+profiles.update(1, name="Updated Profile")
+profiles.delete(1)
+all_profiles = profiles()
+```
+
+### 4. Plugin Development Pattern
+
+Creating new plugins follows a specific workflow:
+
+1. **Copy a Template**: Start with a template (e.g., `700_widget_shim.py`) → `xx_my_workflow.py`)
+2. **Modify**: Develop your workflow (won't auto-register with parentheses in name)
+3. **Test**: Rename to `xx_my_flow.py` for testing (server auto-reloads but won't register)
+4. **Deploy**: Rename to `XX_my_flow.py` (e.g., `035_my_workflow.py`) to assign menu order and activate
+
+## AI Assistance Making a Workflow
+
+AI Code Assistants can help enormously with workflow development. Here's a templated approach:
+
+1. **Initial Setup Prompt**:
+```
+Create a new workflow based on the widget shim template that:
+- Has a unique APP_NAME different from the filename
+- Includes a clear DISPLAY_NAME for the UI
+- Provides an informative ENDPOINT_MESSAGE
+- Uses a training prompt file for AI context
+- Follows the standard workflow pattern
+```
+
+2. **Step Definition Prompt**:
+```
+Define the steps for this workflow:
+- Each step should have a clear purpose
+- Include appropriate refill settings
+- Add transforms where needed
+- End with a finalize step
+```
+
+3. **Implementation Prompt**:
+```
+Implement the workflow methods:
+- Landing page with key input
+- Step handlers with proper state management
+- Submit handlers with chain reactions
+- Finalize/unfinalize functionality
+```
+
+4. **Testing Prompt**:
+```
+Test the workflow by:
+- Verifying state management
+- Checking chain reactions
+- Testing revert functionality
+- Validating finalization
+```
+
+The AI assistant will help you:
+1. Create the initial workflow structure
+2. Define appropriate steps
+3. Implement the required methods
+4. Test and debug the workflow
+5. Add proper error handling
+6. Ensure state management works correctly
+
+Remember to:
+- Keep the workflow focused on a single purpose
+- Use clear, descriptive names
+- Include proper error handling
+- Test thoroughly before deployment
+- Document any special requirements
+
+## Running and Maintenance
+
+### Running, Interrupting & Re-running
+
+Pipulate is a FastHTML app, which means it is much like a Flask or FastAPI app.
+It's being started with the familiar `python server.py` command, but
+automatically by `nix develop` which sets up the `nix` environment. When you
+`Ctrl`+`c` out of it you may have some question whether you are still in nix or
+not, which determines which command you use to get it re-started:
+
+- `nix develop`
+- `python server.py`
+
+...and it's based on whether you see: `(nix)` in the prompt or not. If you do
+see it there, then use `python server.py`. If you don't, then use `nix develop`.
+
+## Magic Cookie System
+
+Pipulate uses a "Magic Cookie" system for seamless installation and updates. This approach enables:
+
+- **Git-less Installation**: Users don't need git installed
+- **Automatic Updates**: Software stays current without manual intervention (using git)
+- **Cross-Platform**: Works identically on macOS, Linux, and Windows (WSL)
+- **White-Label Ready**: Easy to rebrand for different organizations
+
+### How It Works
+
+1. **Initial Installation**:
+```bash
+curl -L https://pipulate.com/install.sh | sh -s AppName
+```
+
+This downloads a ZIP archive containing:
+- The application code
+- A ROT13-encoded SSH key (the "magic cookie")
+- Configuration files
+
+2. **First Run Transformation**:
+When `nix develop` runs for the first time:
+- Detects non-git directory
+- Clones the repository
+- Preserves app identity and credentials
+- Sets up the environment
+
+3. **Automatic Updates**:
+The system performs git pulls:
+- On shell entry
+- Before server startup
+- During application runs
+
+> **Security Note**: The ROT13-encoded SSH key is used as a read-only deploy key with restricted repository access. The security of this system relies on proper repository permissions rather than the encoding itself.
+
+### White-Labeling Process
+
+To create a white-labeled version of Pipulate:
+
+1. **Custom Branding**:
+```bash
+# Install with custom name
+curl -L https://pipulate.com/install.sh | sh -s YourBrandName
+```
+
+2. **Configuration Files**:
+- `app_name.txt`: Contains the application identity
+- `.ssh/rot`: ROT13-encoded deployment key
+- `flake.nix`: Environment configuration
+
+3. **Customization Points**:
+- Application name and branding
+- Default workflows and plugins
+- Environment variables
+- Database schema
+
+4. **Deployment Options**:
+- Direct installation from pipulate.com
+- Self-hosted installation script
+- Custom domain deployment
+
+### Best Practices for White-Labeling
+
+1. **Branding Consistency**:
+- Use consistent naming across all files
+- Update all UI elements and documentation
+- Maintain version tracking
+
+2. **Security Considerations**:
+- Keep deployment keys secure
+- Use ROT13 encoding for SSH keys
+- Maintain proper file permissions
+
+3. **Update Management**:
+- Test updates in development first
+- Maintain separate deployment keys
+- Monitor update logs
+
+4. **User Experience**:
+- Provide clear installation instructions
+- Document customization options
+- Include troubleshooting guides
+
+### Magic Cookie System: Installation & Transformation Flow
+
+The following diagram illustrates how the magic cookie system works to bootstrap, transform, and update a Pipulate installation without requiring git at the start:
+
+```
+User runs install.sh (via curl)           Nix Flake Activation & Transformation
+┌──────────────────────────────┐         ┌────────────────────────────────────────────┐
+│ 1. Download install.sh       │         │ 5. User runs 'nix develop'                 │
+│ 2. Download ZIP from GitHub  │         │ 6. Flake detects non-git directory         │
+│ 3. Extract ZIP to ~/AppName  │         │ 7. Flake clones repo to temp dir           │
+│ 4. Download ROT13 SSH key    │         │ 8. Preserves app_name.txt, .ssh, .venv     │
+│    to .ssh/rot               │         │ 9. Moves git repo into place               │
+└─────────────┬────────────────┘         │10. Sets up SSH key for git                 │
+              │                          │11. Transforms into git repo                │
+              ▼                          │12. Enables auto-update via git pull        │
+      ┌─────────────────────────────────────────────────────────────────────────────┐
+      │ Result: Fully functional, auto-updating, git-based Pipulate installation    │
+      └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Legend:**
+- Steps 1–4: Performed by the install.sh script (no git required)
+- Steps 5–12: Performed by the flake.nix logic on first nix develop
+
+## Development Workflow
+
+When developing white-labeled versions:
+
+1. **Local Development**:
+
+```bash
+# Start with a copy
+cp 20_hello_workflow.py 20_hello_workflow (Copy).py
+
+# Develop and test
+# Rename to xx_ for testing
+mv "20_hello_workflow (Copy).py" xx_my_workflow.py
+
+# Deploy when ready
+mv xx_my_workflow.py 30_my_workflow.py
+```
+
+{:start="2"}
+2. **Testing Updates**:
+- Use `xx_` prefix for development versions
+- Test in isolated environments
+- Verify update mechanisms
+
+{:start="3"}
+3. **Deployment**:
+- Use numbered prefixes for menu order
+- Maintain consistent naming
+- Document all customizations
+
+## Best Practices
+
+1. **Keep it simple.** Avoid complex patterns when simple ones will work.
+2. **Stay local and single-user.** Embrace the benefits of local-first design.
+3. **Be explicit over implicit.** WET code that's clear is better than DRY code that's obscure.
+4. **Preserve the chain reaction.** Maintain the core progression mechanism in workflows.
+5. **Embrace observability.** Make state changes visible and debuggable.
+
+[Read more about our development philosophy and best practices on our blog →](/blog/)
+
+## Contributing
+
+When contributing to Pipulate, please adhere to these principles:
+
+* Maintain Local-First Simplicity (No multi-tenant patterns, complex ORMs, heavy client-side state)
+* Respect Server-Side State (Use DictLikeDB/JSON for workflows, MiniDataAPI for CRUD)
+* Preserve the Workflow Pipeline Pattern (Keep steps linear, state explicit)
+* Honor Integrated Features (Don't disrupt core LLM/Jupyter integration)
+
+> **Note on LLM Integration**: The `TRAINING_PROMPT` field enables local LLM training for workflow-specific assistance. Future documentation will cover advanced LLM integration techniques.
+
+...and I think this should be worked into the introduction to that Chapter 1 in
+a way that talks about the workflow from the most abstract schema that just has
+section labels of the plugin file to one that expands it a little bit accordion
+style to show the anatomy of a step, particularly the 3 stages of step_xx part
+surrounded by the if finalized, elif revertable else collect data normally
+block. The next part should talk about the htmx trigger events that keeps
+progression through the workflows going smoothly according to an overarching
+system that simulates Jupyter's Run All Cells rather than calling for complex
+invention every time you make a new workflow. This boils a workflow down into
+its simplest form that prepares then for that anatomy of a workflow Chapter 1
+that you just wrote. The user should be able to go into it feeling prepared.
+
+---
+
+**Gemini**: You've got it. We've successfully laid out the groundwork by extracting individual widgets and have a solid "Chapter 1" detailing the anatomy of the minimal workflow shim.
+
+Now, let's create that higher-level "Chapter 0" to provide the necessary context and zoomed-out perspective before diving into the specifics. This chapter will bridge the gap from a general understanding of Pipulate development to the intricacies of workflow construction.
+
+## Pipulate Workflow Development Guide
+
+### Chapter 0: Understanding Pipulate Workflow Concepts
+
+**0.1 Introduction: Beyond Jupyter Notebooks**
+
+Pipulate aims to simplify complex processes, making them accessible much like Jupyter Notebooks do, but often without exposing end-users (like SEO practitioners) to the underlying Python code. While Pipulate is designed for ease of use, it also provides a powerful framework for developers to create these "no-code" experiences.
+
+If you're looking to build these next-generation tools, this guide is for you. Pipulate runs locally, leveraging a Python web framework pattern (akin to Flask/FastAPI) but with a unique, deep integration of HTMX for dynamic, server-rendered user interfaces. Workflows are the heart of Pipulate's custom tooling, allowing you to sequence operations step-by-step.
+
+Before diving into the code, remember:
+
+  * **Local First:** Everything runs on your machine.
+  * **Nix Environment:** `nix develop` is your entry point, setting up both Pipulate and an integrated JupyterLab environment.
+  * **JupyterLab for Prototyping:** JupyterLab is included side-by-side, serving as an excellent scratchpad for mocking up logic before porting it into a structured Pipulate workflow.
+
+**0.2 The Pipulate Plugin System**
+
+Pipulate features an automatic plugin registration system centered around the `plugins/` directory.
+
+  * **Simple CRUD Apps (DRY):** For straightforward data management (Create, Read, Update, Delete), you can quickly create new applications. A good starting point is to copy `plugins/010_tasks.py`, rename it (e.g., `015_competitors.py`), and it will auto-register. These CRUD apps are built on "Don't Repeat Yourself" (DRY) principles and are highly reusable.
+  * **Flexible Workflows (WET):** For more complex, multi-step processes, Pipulate uses "Workflows." These are intentionally "Write Everything Twice/We Enjoy Typing" (WET), prioritizing explicitness and customizability over strict DRY-ness. This flexibility is where Pipulate's unique power lies, allowing you to encapsulate almost any process you might script in a Jupyter Notebook.
+
+**0.3 Anatomy of a Workflow File: The Blueprint**
+
+At its core, a Pipulate workflow is a Python class within a `.py` file in the `plugins/` directory. Here's a high-level schematic:
+
+```python
+# -------------------
+# IMPORTS
+# -------------------
+# (e.g., asyncio, json, namedtuple, fasthtml.common, logger, etc.)
+# For specific widgets: pandas, matplotlib, webbrowser, selenium, etc.
+
+# -------------------
+# STEP DEFINITION
+# -------------------
+# Typically a namedtuple for defining workflow steps
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
+# -------------------
+# WORKFLOW CLASS
+# -------------------
+class YourWorkflowName:
+    # --- Static Configuration ---
+    APP_NAME = "internal_workflow_slug"  # Private for routes & DB, different from filename
+    DISPLAY_NAME = "User-Friendly Workflow Name" # For UI menus
+    ENDPOINT_MESSAGE = "Welcome message for this workflow's landing page." # For chat UI
+    TRAINING_PROMPT = "your_workflow_training.md" # Context for the local LLM
+
+    # --- Initialization ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        # Store injected dependencies (app, pipulate instances, pipeline & db table objects)
+        # Define self.steps (list of Step namedtuples)
+        # Define self.step_messages (dict of UI messages for steps)
+        # Register routes (standard workflow routes + routes for each step)
+
+    # --- Core Workflow Engine Methods ---
+    async def landing(self, request):
+        # Renders the initial page for this workflow (usually key input form)
+        pass # ... implementation ...
+
+    async def init(self, request):
+        # Processes key from landing page, initializes state, starts chain reaction
+        pass # ... implementation ...
+        # CRITICAL: Returns HTML that triggers loading the first step via hx_trigger="load"
+
+    async def finalize(self, request):
+        # Handles GET (show finalize button) and POST (lock workflow)
+        pass # ... implementation ...
+
+    async def unfinalize(self, request):
+        # Handles POST to unlock a finalized workflow
+        pass # ... implementation ...
+
+    async def get_suggestion(self, step_id, state):
+        # Provides default/suggested values for step inputs (can use previous step data)
+        pass # ... implementation ...
+
+    async def handle_revert(self, request):
+        # Clears data from subsequent steps and re-renders UI from the revert point
+        pass # ... implementation ...
+
+    # --- Step-Specific Methods (Example for one step) ---
+    async def step_01(self, request): # Corresponds to Step(id='step_01', ...)
+        # Renders the UI for step_01 based on current state (finalized, completed, or input)
+        pass # ... implementation ...
+        # If rendering input form, it includes an EMPTY Div for the next step.
+        # If rendering completed/finalized, includes Div for next step WITH hx_trigger="load"
+
+    async def step_01_submit(self, request): # Corresponds to Step(id='step_01', ...)
+        # Processes form submission for step_01, updates state
+        pass # ... implementation ...
+        # CRITICAL: Returns HTML for completed step_01 AND the Div for step_02 WITH hx_trigger="load"
+    
+    # ... (methods for step_02, step_03, etc.) ...
+
+    # --- Helper Methods (Optional) ---
+    # (e.g., self._create_custom_widget_display(), self._process_data())
+```
+
+**Key Configuration Constants (explained in more detail in Chapter 1.2.2):**
+
+  * `APP_NAME`: The internal routing and database key for the workflow. **Must be unique and different from the filename.**
+  * `DISPLAY_NAME`: How the workflow appears in the UI.
+  * `ENDPOINT_MESSAGE`: Initial guidance text shown in the chat interface when the user navigates to this workflow.
+  * `TRAINING_PROMPT`: Context provided to the local LLM to help it understand and assist with this specific workflow. Can be a string or a filename (e.g., "my\_workflow.md" in the `training/` directory).
+
+**0.4 The Heart of a Workflow: Steps**
+
+A Pipulate workflow progresses through a series of defined "steps." Each step conceptually mirrors a cell in a Jupyter Notebook – it has an input phase (where the user provides data or configuration) and an execution/output phase.
+
+Because of the web UI, each step typically involves two key methods in your workflow class:
+
+1.  **`async def step_XX(self, request)` (GET request):**
+    This method is responsible for *rendering the UI* for a specific step. It checks the current state of the workflow and the step to decide what to display. There are generally three main UI states a step can be in:
+
+      * **Finalized State:** If the entire workflow has been marked as "finalized" (locked) and this step has completed data, it shows a read-only view of the step's output or result. Even in this state, it includes an HTMX trigger to load the *next* finalized step, ensuring the "Run All Cells" feel is maintained.
+      * **Completed/Revertable State:** If the step has been completed (data is saved for it) but the workflow is not yet finalized (or the user is not trying to revert to this step's input form), it typically displays the step's result along with a "Revert" button. This button allows the user to go back and change the input for this step. This view also includes an HTMX trigger to load the *next* step.
+      * **Data Collection State (Input Form):** If the step has not yet been completed, or if the user has explicitly reverted to this step, this method renders the input form for the user. This form will POST to the `step_XX_submit` method. Crucially, when rendering the input form, the placeholder for the next step *does not* yet have the `hx_trigger="load"` attribute.
+
+2.  **`async def step_XX_submit(self, request)` (POST request):**
+    This method *processes the data* submitted from the step's input form. Its key responsibilities are:
+
+      * Retrieving and validating the submitted data.
+      * Updating the workflow's persistent state with the new data (using `self.pipulate.update_step_state()`).
+      * Performing any actions associated with the step (e.g., opening a URL, generating an image, calling an API).
+      * Informing the user and the LLM about the outcome.
+      * **Returning an HTML response that shows the "Completed State" UI for the current step AND explicitly includes the HTMX trigger (`hx_trigger="load"`) for the *next* step.** This is what propels the workflow forward.
+
+**0.5 The Chain Reaction: Seamless Workflow Progression**
+
+Pipulate workflows aim to emulate the "Run All Cells" experience of a Jupyter Notebook. If a workflow instance has all its necessary data filled in, navigating to it will cause all steps to execute and display their outputs sequentially, down to the final step or the first incomplete one.
+
+This is achieved through a carefully orchestrated **chain reaction** pattern using HTMX:
+
+1.  **Initialization (`init` method):** After the user selects or creates a workflow `pipeline_id`, the `init` method returns an HTML snippet. This snippet contains a `Div` placeholder for the *first step*, and this `Div` has the attribute `hx_trigger="load"`.
+2.  **First Step Loads:** When this `Div` is injected into the page, HTMX sees `hx_trigger="load"` and immediately makes a GET request to the URL specified in `hx-get` (e.g., `/{app_name}/step_01`). This calls the `step_01` method, which renders the UI for the first step.
+3.  **Step Submission and Next Step Triggering:**
+      * If `step_01` renders an input form, the user fills it and submits. This POSTs to `step_01_submit`.
+      * The `step_01_submit` method processes the data, saves the state, and then returns an HTML snippet. This snippet shows the *completed view* of `step_01` AND, critically, includes a new `Div` placeholder for `step_02` (or `finalize`) which *also* has `hx_trigger="load"`.
+4.  **Continuation:** HTMX swaps in the response from `step_01_submit`. The `Div` for `step_02` is now in the DOM with `hx_trigger="load"`, causing an immediate GET request to `/{app_name}/step_02`, and the process repeats.
+
+This explicit, step-by-step triggering ensures reliable progression and makes the workflow's flow easy to follow in the HTMX requests and responses. The `pipulate.rebuild(app_name, steps)` method is a related utility that reconstructs the entire UI container for a workflow, typically used after major state changes like `finalize`, `unfinalize`, or `handle_revert`, effectively restarting the chain reaction from the current state.
+
+**0.6 Preparing for the Deep Dive**
+
+With this high-level understanding of workflow structure, the dual nature of steps, and the chain reaction pattern, you are now better prepared to delve into the detailed anatomy of a workflow. The next chapter will dissect the `700_widget_shim.py` file, line by line, to solidify these concepts and show how they are implemented in the most basic Pipulate workflow. This foundation will be essential as we then explore how to build upon this shim to create complex, interactive widgets.
+
+-----
+
+This "Chapter 0" provides the conceptual scaffolding. It introduces the core ideas from the development guide you provided and sets the stage for the more granular details in "Chapter 1".
+
+We can now proceed to integrate this into the larger guide and then, if you wish, move on to Chapter 2, which could focus on taking the "Widget Shim" and adding actual user input fields and displaying their values, creating a very simple custom data handling workflow. This would be the next logical step before tackling the complexities of the widgets you've already extracted.
+
+---
+
+Me: 
+
+Excellent, Gemini! You really nailed it. We have an excellent Pipulate Workflow
+Development Guide underway. Now let's assume we have a pretty good library of
+Lego-like building blocks, all the ones implied in the XML bundle accompanying
+this prompt. And now we're going to give advice on how to work with this system
+to glue together longer and longer workflows starting with a file very much like
+the `pipulate/plugins/700_widget_shim.py` we've been working with. See it's like
+a 1-step blank placeholder starting point. Being an empty shim as a starting
+place for widget development is the same thing as a 1-step bare minimum workflow
+that doesn't really do much. That file is by the way identical but nonetheless
+maintained as a separate file, next in the 700-series of plugin template
+examples: `pipulate/plugins/710_blank_placeholder.py`
+
+And so Chapter 2 should be the explicit prompting instructions you can give the
+AI Code Assistant built into editors like Cursor, Windsurf or now even VSCode
+natively in order to do very much like what we've been doing in this entire
+widget extraction process. And that is to copy/paste
+`pipulate/plugins/710_blank_placeholder.py` with a new name which will happen to
+automatically register it as a plugin when the watchdog system recognizes a new
+file and automatically restarts `server.py`. And consequently there is a certain
+art to making these prompts so that the plugin registers right away without
+conflict with existing plugins.
+
+The filename of what you copy/paste to becomes the user-exposed endpoint or URL
+of the workflow app. It has a significant marketing component because you tell
+people to visit `localhost:5001/this_or_that` as derived from the filename. The
+leading numbers get stripped off and control the order of the plugin in the
+dropdown menu, so `035_hello_universe.py` would become
+`http://localhost:5001/hello_universe`. Because this is key to the aesthetics of
+the app and you want to get it right for the user experience, it is subject and
+allowed to be changed. It therefore must be DIFFERENT from the internal
+`APP_NAME` value that is used for private endpoints that the user never sees and
+database foreign keys. Consequently, `APP_NAME` must be different from the part
+of the filename that's going to become the public endpoint, or else there's an
+endpoint registration collision and the UI gets messed up. So the `foo`
+component of `030_foo.py` must be different from the bar component of `APP_NAME
+= "bar"`. This detail must be worked into the prompt or the AI Coding Assistant
+is sure to get it wrong and use the same word in both places. The variable
+`DISPLAY_NAME` has no such restrictions and should be set to whatever is best
+for the user experience.
+
+Secondly, the first step of making a new workflow should really only be copying
+the blank placeholder source workflow changing the filename, class name and the
+few CONSTANTS that let it immediately register and appear on the dropdown menu
+without collisions. That's a huge win you want to accomplish and bank right
+away. The AI Coding assistant WILL want to do more than that and consolidate it
+into one step. For all the reasons these workflows are nuanced and fragile as
+laid out in Chapter 0, this should not be done. AI Coding Assistant ambition
+should be kept in check. Chapter 2 of this guide must be dedicated to
+constructing a prompt to successfully copy/paste the
+`pipulate/plugins/710_blank_placeholder.py` to a new name like
+`pipulate/plugins/035_kungfu_workflow.py`, changing the class name to something
+like `KungfuWorkflow`, `APP_NAME` to "kungfu", `DISPLAY_NAME` to "Kung Fu
+Download", `ENDPOINT_MESSAGE` to some campy message about how choosing this app
+has caused a Kung Fu download, and `TRAINING_PROMPT` to some corny message to
+the local LLM to make a reference to Neo from *The Matrix* if asked by the user
+to use Neo's quote: "I know Kung Fu!". Get it?
+
+The system honestly is modeled after that. The moment the user chooses one of
+these workflows from the dropdown menu where they auto-register and display, the
+user sees the endpoint message (which is inserted into the discussion history so
+the local LLM knows that) and also the local LLM receives instructions from the
+`TRAINING_PROMPT` which can be text you embed right into the workflow (make it
+easy) or the name of a `.md` document to be found in the `pipulate/training`
+directory. But for these examples we focus on embedding the LLM training message
+right into the workflow so that we don't have to worry about another file right
+away. However a fun and cute thing you can do to add over-the-top win to the
+already big early success this is going to create is to include a SECRET WORD in
+the training prompt and make part of your `TRAINING_PROMPT` value instructions
+to the local LLM to respond with the secret word if asked and provide assurance
+it has received the Kung Fu download. This secret word assurance is part of the
+real-time prompt injection Kung Fu! Meta, huh?
+
+And so there you have it. Chapter 1 is the prompt to magic hand-wave a brand
+spankin new Pipualte Workflow into existence in a way that auto-registers it
+with the plugin system cleanly and right away, fabulously enables users with an
+early easy big win, and sets the stage for Chapter 3 which will be splicing new
+blank placeholder steps. Please and thank you!
