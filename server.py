@@ -2561,7 +2561,9 @@ class DictLikeDB:
     def __delitem__(self, key):
         try:
             self.store.delete(key)
-            logger.warning(f"Deleted key from persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+            # Don't log warnings for temp_message deletions
+            if key != "temp_message":
+                logger.warning(f"Deleted key from persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
         except NotFoundError:
             logger.error(f"Attempted to delete non-existent key: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
             raise KeyError(key)
@@ -3231,6 +3233,16 @@ def create_app_menu(menux):
 
     for item_key in MENU_ITEMS:  # MENU_ITEMS contains the app_names (e.g., "hello_workflow")
         if item_key == profile_app.name:  # Skip profile app in Apps menu
+            continue
+
+        # Special handling for Home menu item
+        if item_key == "":
+            norm_menux = normalize_menu_path(menux)
+            norm_item = normalize_menu_path(item_key)
+            is_selected = norm_item == norm_menux
+            eligible_plugins_with_details.append(
+                ("Home", item_key, is_selected, "home")
+            )
             continue
 
         plugin_module = discovered_modules.get(item_key)  # Get module to access _original_filename
