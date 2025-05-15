@@ -3489,29 +3489,28 @@ MAX_INTRO_PAGES = 3  # Adjust as needed
 
 def get_intro_page_content(page_num_str: str):
     """
-    Returns the FastHTML content for a specific introduction page.
+    Returns the content for the given intro page number.
+    Each page's content is wrapped in a PicoCSS Card for consistent styling.
     """
     page_num = int(page_num_str)
-    # logger.debug(f"Getting content for intro page: {page_num}")
-
+    
     if page_num == 1:
-        return Div(
-            H2(f"Welcome to {APP_NAME} - Page 1"),
+        return Card(
+            H3(f"Welcome to {APP_NAME}"),
             P("This is the first page of instructions. Here's how Pipulate works:"),
             Ol(
                 Li("Profiles: Manage your different clients or projects. Each profile is a separate workspace."),
                 Li("APPs: Access various tools and workflows, like SEO audits or content generators."),
                 Li("Mode: Switch between 'Development' for testing and 'Production' for live work.")
             ),
-            H3("Getting Started"),
+            H4("Getting Started"),
             P("Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."),
             P(f"The chat interface on the right is powered by a local LLM ({MODEL}) to assist you."),
             id="intro-page-1-content"
         )
     elif page_num == 2:
-        return Div(
-            H2(f"{APP_NAME} Instructions - Page 2"),
-            P("Understanding the Interface:"),
+        return Card(
+            H3("Understanding the Interface"),
             Ul(
                 Li(Strong("Profiles Menu:"), " Click to switch between profiles or edit them. You can lock a profile to hide others during client presentations."),
                 Li(Strong("APPs Menu:"), " Select the workflow or tool you want to use."),
@@ -3521,19 +3520,20 @@ def get_intro_page_content(page_num_str: str):
             id="intro-page-2-content"
         )
     elif page_num == 3:
-        return Div(
-            H2(f"{APP_NAME} Instructions - Page 3"),
-            P("Tips for Effective Use:"),
+        return Card(
+            H3("Tips for Effective Use"),
             Ul(
                 Li("Local-First: All your data and processing happen on your machine. No cloud needed!"),
                 Li("Reproducibility: Nix ensures your environment is consistent, whether on macOS, Linux, or WSL."),
                 Li("WET Workflows: Workflows are designed to be explicit and step-by-step, making them easy to understand and debug."),
                 Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.")
             ),
-            P("You're all set to explore Pipulate!"),
             id="intro-page-3-content"
         )
-    return Div(P(f"Content for instruction page {page_num_str} not found."), id=f"intro-page-{page_num_str}-content")
+    return Card(
+        P(f"Content for instruction page {page_num_str} not found."),
+        id=f"intro-page-{page_num_str}-content"
+    )
 
 async def render_intro_page_with_navigation(page_num_str: str):
     """
