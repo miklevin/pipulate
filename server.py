@@ -3195,21 +3195,9 @@ def create_nav_menu():
         style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
     )
     
-    # Get the current profile lock state
-    profile_locked = db.get("profile_locked", "0") == "1"
-    
     # Add the breadcrumb at the beginning, followed by all dropdown menus
     nav_items = [
         breadcrumb,
-        Input(
-            type="checkbox", 
-            role="switch", 
-            checked=profile_locked,
-            hx_post="/toggle_profile_lock",
-            hx_target="body",
-            hx_swap="outerHTML",
-            style="margin-right: 10px;"
-        ),
         create_profile_menu(selected_profile_id, selected_profile_name),
         create_app_menu(menux),
         create_env_menu()  # Move ENV menu to the third position
@@ -3242,7 +3230,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     # Get profiles based on lock state
     if profile_locked:
         # When locked, only show the current profile
-        active_profiles = profiles("id=?", (selected_profile_id,))
+        active_profiles = profiles("id=?", (selected_profile_id,), order_by='priority')
     else:
         # When unlocked, show all active profiles
         active_profiles = profiles("active=?", (True,), order_by='priority')
@@ -3251,11 +3239,35 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         is_selected = str(profile.id) == str(selected_profile_id)
         item_style = get_selected_item_style(is_selected)
         menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
+    
+    # Add a divider before the lock switch
+    menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+    
+    # Add the lock switch
+    menu_items.append(Li(
+        Label(
+            Input(
+                type="checkbox",
+                role="switch",
+                checked=profile_locked,
+                hx_post="/toggle_profile_lock",
+                hx_target="body",
+                hx_swap="outerHTML",
+                style="margin-right: 10px;"
+            ),
+            "Lock Profile",
+            style="display: flex; align-items: center;"
+        ),
+        style="text-align: left;"
+    ))
+    
     return Details(
-        Summary(f"{profile_app.name.upper()}: {selected_profile_name}",
-                id="profile-id",
-                style="white-space: nowrap; display: inline-block; min-width: max-content;"),
-        Ul(*menu_items, style="padding-left: 0;"),
+        Summary(
+            f"{profile_app.name.upper()}: {selected_profile_name}",
+            style="white-space: nowrap; display: inline-block; min-width: max-content;",
+            id="profile-id"
+        ),
+        Ul(*menu_items, style="padding-left: 0;",),
         cls="dropdown",
         id="profile-dropdown-menu"  # Add this ID to target for refresh
     )
