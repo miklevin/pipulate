@@ -3192,6 +3192,7 @@ def create_nav_menu():
     # Add the breadcrumb at the beginning, followed by all dropdown menus
     nav_items = [
         breadcrumb,
+        Input(type="checkbox", role="switch", style="margin-right: 10px;"),
         create_profile_menu(selected_profile_id, selected_profile_name),
         create_app_menu(menux),
         create_env_menu()  # Move ENV menu to the third position
