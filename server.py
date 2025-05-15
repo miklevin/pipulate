@@ -3323,6 +3323,7 @@ def create_app_menu(menux):
     # Track if we've shown any plugins after the last separator
     last_was_separator = False
     plugins_since_last_separator = 0
+    last_was_core = False
 
     for display_name_str, item_key_str, is_selected_bool, original_filename in sorted_plugins:
         # Handle separator plugins
@@ -3334,6 +3335,13 @@ def create_app_menu(menux):
                 plugins_since_last_separator = 0
             continue
             
+        # Add separator between core and non-core plugins when showing all
+        is_core = is_core_plugin(item_key_str)
+        if show_all_user_plugins and not is_core and last_was_core and plugins_since_last_separator > 0:
+            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+            last_was_separator = True
+            plugins_since_last_separator = 0
+            
         item_style = "background-color: var(--pico-primary-background); " if is_selected_bool else ""
         menu_items.append(Li(
             A(display_name_str, 
@@ -3343,6 +3351,7 @@ def create_app_menu(menux):
             style="display: block;"
         ))
         last_was_separator = False
+        last_was_core = is_core
         plugins_since_last_separator += 1
     
     # Add "Show All/Core" toggle, respecting developer_mode_active
