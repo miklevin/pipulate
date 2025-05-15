@@ -3237,6 +3237,9 @@ def create_app_menu(menux):
         else:
             original_filename = getattr(plugin_module, '_original_filename', item_key)
         
+        # Check if this is a separator plugin
+        is_separator = item_key == "separator" or original_filename.endswith("_separator")
+        
         # Check if this is a developer plugin by parsing the numeric prefix
         is_developer_plugin = False
         numeric_prefix_match = re.match(r'^(\d+)_', original_filename)
@@ -3247,7 +3250,11 @@ def create_app_menu(menux):
         is_core = is_core_plugin(item_key)
         
         display_this_plugin = False
-        if developer_mode_active:
+        if is_separator:
+            # Only show separators if we're in developer mode or if they're before the 600+ plugins
+            if developer_mode_active or (numeric_prefix_match and prefix_num < 600):
+                display_this_plugin = True
+        elif developer_mode_active:
             display_this_plugin = True  # Developer mode shows everything registered
         elif show_all_user_plugins:  # "Show All User-Facing Plugins"
             if not is_developer_plugin:
@@ -3264,26 +3271,44 @@ def create_app_menu(menux):
                 (endpoint_name(item_key), item_key, is_selected, original_filename)
             )
     
-    # Sort plugins: Core first, then by original filename (which includes numeric prefix)
+    # Sort plugins: Home first, then core plugins, then by original filename
     def sort_key(plugin_detail_tuple):
         name, key, selected, orig_fn = plugin_detail_tuple
         score = 0
+        
+        # Home always comes first
+        if key == "":
+            return -9999
+            
+        # Core plugins come next
         if is_core_plugin(key): 
-            score -= 2000  # Core plugins first
+            score -= 2000
+            
         # Use numeric part of original_filename for primary sort within categories
         numeric_prefix_match = re.match(r'^(\d+)_', orig_fn)
         if numeric_prefix_match:
             score += int(numeric_prefix_match.group(1))
         else:
             score += 3000  # Non-prefixed last within a category
+            
         return score
 
     sorted_plugins = sorted(eligible_plugins_with_details, key=sort_key)
 
-    for display_name_str, item_key_str, is_selected_bool, _ in sorted_plugins:
-        if item_key_str == "divider":
-            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+    # Track if we've shown any plugins after the last separator
+    last_was_separator = False
+    plugins_since_last_separator = 0
+
+    for display_name_str, item_key_str, is_selected_bool, original_filename in sorted_plugins:
+        # Handle separator plugins
+        if item_key_str == "separator" or original_filename.endswith("_separator"):
+            # Only add separator if we've shown plugins since the last one
+            if plugins_since_last_separator > 0:
+                menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+                last_was_separator = True
+                plugins_since_last_separator = 0
             continue
+            
         item_style = "background-color: var(--pico-primary-background); " if is_selected_bool else ""
         menu_items.append(Li(
             A(display_name_str, 
@@ -3292,10 +3317,14 @@ def create_app_menu(menux):
               style=f"{NOWRAP_STYLE} {item_style}"), 
             style="display: block;"
         ))
+        last_was_separator = False
+        plugins_since_last_separator += 1
     
     # Add "Show All/Core" toggle, respecting developer_mode_active
     if not developer_mode_active:  # Only show this toggle if not in full developer view
-        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+        # Only add separator if we've shown plugins and the last item wasn't a separator
+        if plugins_since_last_separator > 0 and not last_was_separator:
+            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
         menu_items.append(Li(
             A("Show Core Plugins..." if show_all_user_plugins else "Show All User-Facing...",
               hx_post="/toggle_show_all",  # Existing endpoint
