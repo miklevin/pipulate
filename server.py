@@ -3914,6 +3914,7 @@ class ServerRestartHandler(FileSystemEventHandler):
 
 def run_server_with_watchdog():
     fig("SERVER RESTART")
+    fig(APP_NAME, font="standard")
     
     # Display current environment
     env = get_current_environment()
