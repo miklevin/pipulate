@@ -139,10 +139,12 @@ def setup_logging():
     3. Enable easy switching to DEBUG via the DEBUG_MODE constant
     4. Keep a single log file that's reset on server restart
     """
+    # Remove any existing handlers
+    logger.remove()
+
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
-    logger.remove()  # Remove default handlers
 
     # Create a function to sanitize HTML tags for the logger
     def sanitize_for_log(record):
@@ -166,11 +168,8 @@ def setup_logging():
             print(f"Failed to delete old log file {old_log}: {e}")
     
     # Define format strings for consistent display between console and file
-    time_format = "{time:YYYY-MM-DD HH:mm:ss}"
-    console_time_format = "<green>{time:HH:mm:ss}</green>"
-    
+    time_format = "{time:HH:mm:ss}"
     message_format = "{level: <8} | {name: <15} | {message}"
-    console_message_format = "<level>{level: <8}</level> | <cyan>{name: <15}</cyan> | <cyan>{message}</cyan>"
     
     # File logger - captures everything at the configured level
     logger.add(
@@ -185,27 +184,27 @@ def setup_logging():
     logger.add(
         sys.stderr,
         level=log_level,
-        format=f"{console_time_format} | {console_message_format}",
+        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | <cyan>{message}</cyan>",
         colorize=True,
         filter=sanitize_for_log
     )
     
-    # Log the current mode on startup
-    log_instance = logger.opt(colors=True)
-    if DEBUG_MODE:
-        log_instance.info(f"🔍 Running in <yellow>DEBUG</yellow> mode (verbose logging enabled)")
-    else:
-        log_instance.info(f"🚀 Running in <green>INFO</green> mode (edit server.py and set DEBUG_MODE=True for verbose logging)")
-        
     # Log state tables mode if enabled
     if STATE_TABLES:
-        log_instance.info(f"🔍 State tables <yellow>ENABLED</yellow> (🍪 and ➡️ tables will be displayed)")
+        logger.info(f"🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed)")
         
-    return log_instance
+    return logger
 
 
 # Initialize logger after setting up environment functions
 logger = setup_logging()
+
+# Log the current mode on startup only if this is the main module
+if __name__ == "__main__":
+    if DEBUG_MODE:
+        logger.info("🔍 Running in DEBUG mode (verbose logging enabled)")
+    else:
+        logger.info("🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)")
 
 # Log the current environment and database file
 # logger.info(f"Environment: {get_current_environment()}")
