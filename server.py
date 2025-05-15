@@ -3624,17 +3624,31 @@ def get_workflow_instance(workflow_name):
 
 async def create_grid_left(menux, render_items=None):
     """Create the left grid content based on the selected menu item."""
+    content_to_render = None  # Initialize the variable
+    
     if menux:
-        # Try to get the workflow instance for the selected menu item
-        workflow_instance = get_workflow_instance(menux)
-        if workflow_instance:
-            return await workflow_instance.landing()
+        # Handle profile app separately
+        if menux == profile_app.name:
+            content_to_render = await profile_render()
+        else:
+            # Try to get the workflow instance for the selected menu item
+            workflow_instance = get_workflow_instance(menux)
+            if workflow_instance:
+                content_to_render = await workflow_instance.landing()
     else:
         # Introduction page logic
         current_intro_page_num_str = db.get("intro_page_num", "1")
         logger.debug(f"Rendering intro page: {current_intro_page_num_str} for menux='{menux}'")
         # render_intro_page_with_navigation returns the inner content for the #grid-left-content div
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
+
+    # If no content was rendered, show a default message
+    if content_to_render is None:
+        content_to_render = Card(
+            H3("Welcome"),
+            P("Select a workflow from the menu to begin."),
+            style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
+        )
 
     # Wrap all possible content in a Div with the consistent ID for HTMX targeting.
     return Div(content_to_render, id="grid-left-content")
