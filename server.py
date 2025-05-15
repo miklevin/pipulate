@@ -399,14 +399,14 @@ class SSEBroadcaster:
     def __init__(self):
         if not self._initialized:
             self.queue = asyncio.Queue()
-            logger.info("SSE Broadcaster initialized")
+            logger.bind(name="sse").info("SSE Broadcaster initialized")
             self._initialized = True
 
     async def generator(self):
         while True:
             try:
                 message = await asyncio.wait_for(self.queue.get(), timeout=5.0)
-                logger.debug(f"SSE sending: {message}")
+                logger.bind(name="sse").debug(f"Sending: {message}")
                 if message:
                     formatted = '\n'.join(f"data: {line}"for line in message.split('\n'))
                     yield f"{formatted}\n\n"
@@ -415,7 +415,7 @@ class SSEBroadcaster:
                 yield f"data: Test ping at {now}\n\n"
 
     async def send(self, message):
-        logger.debug(f"Queueing message: {message}")
+        logger.bind(name="sse").debug(f"Queueing: {message}")
         await self.queue.put(message)
 
 
