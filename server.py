@@ -2631,7 +2631,8 @@ def populate_initial_data():
         'last_visited_url', 
         'last_profile_id', 
         'show_all_plugins',
-        'developer_plugins_visible'  # Add this to allowed keys
+        'developer_plugins_visible',
+        'profile_locked'  # Add profile_locked to allowed keys
     }
     for key in list(db.keys()):
         if key not in allowed_keys:
@@ -2655,6 +2656,11 @@ def populate_initial_data():
     if 'developer_plugins_visible' not in db:
         db['developer_plugins_visible'] = "0"
         logger.debug("Initialized developer_plugins_visible to '0'")
+        
+    # Initialize profile_locked if not present
+    if 'profile_locked' not in db:
+        db['profile_locked'] = "0"
+        logger.debug("Initialized profile_locked to '0'")
 
 
 populate_initial_data()
@@ -3189,10 +3195,21 @@ def create_nav_menu():
         style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
     )
     
+    # Get the current profile lock state
+    profile_locked = db.get("profile_locked", "0") == "1"
+    
     # Add the breadcrumb at the beginning, followed by all dropdown menus
     nav_items = [
         breadcrumb,
-        Input(type="checkbox", role="switch", style="margin-right: 10px;"),
+        Input(
+            type="checkbox", 
+            role="switch", 
+            checked=profile_locked,
+            hx_post="/toggle_profile_lock",
+            hx_target="body",
+            hx_swap="outerHTML",
+            style="margin-right: 10px;"
+        ),
         create_profile_menu(selected_profile_id, selected_profile_name),
         create_app_menu(menux),
         create_env_menu()  # Move ENV menu to the third position
@@ -3402,6 +3419,12 @@ async def toggle_developer_plugins_visibility(request):
     response = HTMLResponse("") # Empty body is fine as we're just refreshing
     response.headers["HX-Refresh"] = "true"
     return response
+
+@rt('/toggle_profile_lock', methods=['POST'])
+async def toggle_profile_lock(request):
+    current = db.get("profile_locked", "0")
+    db["profile_locked"] = "1" if current == "0" else "0"
+    return HTMLResponse("", headers={"HX-Refresh": "true"})
 
 async def create_outer_container(current_profile_id, menux):
     # Create nav group (now includes breadcrumb)
