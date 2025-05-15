@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -3459,34 +3459,18 @@ def create_poke_button():
     menux = db.get("last_app_choice", "App")
     workflow_display_name = "Pipeline"
 
-    # Common button style for smaller buttons - remove margin-right if using gap
     button_style = "font-size: 0.85rem; padding: 0.4rem 0.3rem;"  # Slightly adjusted padding for clarity
-    
+
     # Create button elements list
     buttons = []
-    
-    # Check if current plugin is in plugin_instances
     if menux and menux in plugin_instances:
         instance = plugin_instances.get(menux)
-        
-        # Get the display name for the current plugin if available
         if hasattr(instance, 'DISPLAY_NAME'):
             workflow_display_name = instance.DISPLAY_NAME
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-        
-        # Determine if this is a workflow plugin vs a CRUD plugin
-        # SIMPLER APPROACH: Check for key class properties
-        is_crud_plugin = (hasattr(instance, '__class__') and 
-                          instance.__class__.__name__ == 'CrudUI')
-        
-        # Consider it a workflow plugin if it's not a CRUD plugin
-        # and it's not the profile app or home page
-        is_workflow_plugin = (not is_crud_plugin and 
-                             menux != profile_app.name and 
-                             menux != "")
-        
-        # Only show Clear Pipeline button for workflow plugins
+        is_crud_plugin = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
+        is_workflow_plugin = (not is_crud_plugin and menux != profile_app.name and menux != "")
         if is_workflow_plugin:
             buttons.append(
                 A(
@@ -3497,22 +3481,17 @@ def create_poke_button():
                     style=button_style
                 )
             )
-    
-    # Add dev tools buttons only in development mode
     if get_current_environment() == "Development":
-        # Add Developer Plugins Toggle
         dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
         buttons.append(
             A(
                 "Hide Dev Plugins" if dev_plugins_visible else "Show Dev Plugins",
                 hx_post="/toggle_developer_plugins_visibility",
-                hx_swap="none",  # Page will refresh via HX-Refresh header
-                cls="button secondary",  # Using secondary to distinguish
+                hx_swap="none",
+                cls="button secondary",
                 style=button_style
             )
         )
-        
-        # Add Clear DB button
         buttons.append(
             A(
                 "Clear DB",
@@ -3523,8 +3502,6 @@ def create_poke_button():
                 style=button_style
             )
         )
-    
-    # Always add the poke button
     buttons.append(
         A(
             f"Poke",
@@ -3535,8 +3512,6 @@ def create_poke_button():
             style=button_style
         )
     )
-
-    # Add scroll to top button
     buttons.append(
         A(
             "Top",
@@ -3546,26 +3521,64 @@ def create_poke_button():
             style=button_style
         )
     )
-    
-    # New styling for the floating panel
-    panel_style = (
-        "position: fixed; "
-        "bottom: 20px; "
-        "right: 20px; "
-        "z-index: 1000; "  # Ensure it's above most other content
-        "display: flex; "
-        "align-items: center; "
-        "gap: 0.5rem; "  # Spacing between buttons within the panel
-        "background-color: var(--pico-card-background-color); "  # Use card background for consistency
-        "padding: 0.75rem; "  # Padding inside the panel
-        "border-radius: var(--pico-border-radius); "  # Consistent rounding
-        "border: 1px solid var(--pico-muted-border-color); "  # Subtle border
-        "box-shadow: 0 4px 12px rgba(0,0,0,0.2); "  # A slightly more pronounced shadow for depth
+    # Flyout/floating panel CSS
+    flyout_css = (
+        "position: fixed; bottom: 20px; right: 20px; z-index: 1000;"  # Container
+        "display: flex; flex-direction: column; align-items: flex-end;"
     )
-    
+    flyout_panel_css = (
+        "display: none; flex-direction: column; gap: 0.5rem; "
+        "background-color: var(--pico-card-background-color); "
+        "padding: 0.75rem; border-radius: var(--pico-border-radius); "
+        "border: 1px solid var(--pico-muted-border-color); "
+        "box-shadow: 0 4px 12px rgba(0,0,0,0.2); "
+        "margin-bottom: 0.5rem; min-width: 180px;"
+    )
+    flyout_button_css = (
+        "width: 48px; height: 48px; border-radius: 50%; background: var(--pico-primary-background); "
+        "display: flex; align-items: center; justify-content: center; cursor: pointer; "
+        "box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 1.5rem; border: none; outline: none;"
+    )
+    # The flyout logic: show panel on hover/focus of the icon or panel
+    script = Script("""
+    document.addEventListener('DOMContentLoaded', function() {
+        var flyout = document.getElementById('poke-flyout');
+        var icon = document.getElementById('poke-flyout-icon');
+        var panel = document.getElementById('poke-flyout-panel');
+        function showPanel() { panel.style.display = 'flex'; }
+        function hidePanel() { panel.style.display = 'none'; }
+        icon.addEventListener('mouseenter', showPanel);
+        icon.addEventListener('focus', showPanel);
+        icon.addEventListener('mouseleave', function(e) {
+            setTimeout(function() {
+                if (!panel.matches(':hover')) hidePanel();
+            }, 100);
+        });
+        panel.addEventListener('mouseenter', showPanel);
+        panel.addEventListener('mouseleave', hidePanel);
+        icon.addEventListener('click', function() {
+            // Toggle for mobile/touch
+            if (panel.style.display === 'flex') hidePanel();
+            else showPanel();
+        });
+    });
+    """)
     return Div(
-        *buttons,  # Unpack the buttons list
-        style=panel_style
+        Div(
+            # The flyout panel (hidden by default)
+            Div(*buttons, id="poke-flyout-panel", style=flyout_panel_css, tabindex="-1"),
+            # The small poke icon/button
+            Button(
+                "👆",  # You can use any emoji/icon here
+                id="poke-flyout-icon",
+                style=flyout_button_css,
+                title="Show quick actions",
+                tabindex="0"
+            ),
+            id="poke-flyout",
+            style=flyout_css
+        ),
+        script
     )
 
 
