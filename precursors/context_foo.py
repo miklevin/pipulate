@@ -20,54 +20,18 @@ from typing import Dict, List, Optional, Union
 # Simply add or remove file paths, one per line. The backslash at the start
 # allows for clean multi-line string formatting.
 
+# Here is the command I use to get the list of files:
+# ls -1 -d "$PWD"/*
+
 FILES_TO_INCLUDE = """\
 README.md
 flake.nix
 requirements.txt
 server.py
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/700_widget_shim.py
-# /home/mike/repos/pipulate/plugins/850_prism.py
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/760_radios.py
-# /home/mike/repos/pipulate/plugins/770_range.py
-# /home/mike/repos/pipulate/plugins/780_switch.py
-# /home/mike/repos/pipulate/plugins/020_hello_workflow.py
-# /home/mike/repos/Pipulate.com/install.sh
-# /home/mike/repos/Pipulate.com/index.md
-# /home/mike/repos/Pipulate.com/architecture.md
-# /home/mike/repos/Pipulate.com/development.md
-# /home/mike/repos/pipulate/plugins/550_browser_automation.py
-# /home/mike/repos/MikeLev.in/_posts/2025-05-09-nixos-selenium-host-browser-automation-nix-flakes.md
-# /home/mike/repos/MikeLev.in/_posts/2025-05-09-nix-flakes-normalize-dev-selenium-macos-linux.md
-# /home/mike/repos/MikeLev.in/_posts/2025-05-09-webmaster-nix-selenium-http-status-browser-control.md
-# /home/mike/repos/MikeLev.in/_posts/2025-05-09-ai-assisted-browser-automation-selenium-nix-flakes.md
-# /home/mike/repos/pipulate/plugins/020_hello_workflow.py
-# /home/mike/repos/pipulate/precursors/context_foo.py
-# /home/mike/repos/pipulate/plugins/010_tasks.py
-# /home/mike/repos/browser/test_selenium.py
-# /home/mike/repos/browser/flake.nix
-# /home/mike/repos/pipulate/static/chat-interface.js
-# /home/mike/repos/pipulate/static/chat-scripts.js
-# /home/mike/repos/pipulate/static/chat-styles.css
-# /home/mike/repos/pipulate/static/rich-table.css
-# /home/mike/repos/pipulate/static/script.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
-# /home/mike/repos/pipulate/plugins/030_connect_with_botify.py
-# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
-# /home/mike/repos/pipulate/plugins/500_blank_workflow.py
-# /home/mike/repos/pipulate/plugins/505_designer_workflow.py
-# /home/mike/repos/pipulate/plugins/510_splice_workflow.py
-# /home/mike/repos/pipulate/plugins/520_widget_examples.py
-# /home/mike/repos/pipulate/plugins/530_botify_export.py
-# /home/mike/repos/pipulate/plugins/600_stream_simulator.py
-# /home/mike/repos/pipulate/plugins/999_roadmap.py
-# /home/mike/repos/pipulate/training/botify_export.md
-# /home/mike/repos/pipulate/training/botify_workflow.md
-# /home/mike/repos/pipulate/training/hello_workflow.md
-# /home/mike/repos/pipulate/training/system_prompt.md
-# /home/mike/repos/pipulate/training/tasks.md
-# /home/mike/repos/pipulate/training/widget_examples.md
+/home/mike/repos/Pipulate.com/development.md
+/home/mike/repos/pipulate/precursors/create_workflow.py
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+/home/mike/repos/pipulate/plugins/715_splice_workflow.py
 """.strip().splitlines()
 
 # Filter out any commented lines
