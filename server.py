@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -3232,7 +3232,18 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
     menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
-    active_profiles = profiles("active=?", (True,), order_by='priority')
+    
+    # Check if profile is locked
+    profile_locked = db.get("profile_locked", "0") == "1"
+    
+    # Get profiles based on lock state
+    if profile_locked:
+        # When locked, only show the current profile
+        active_profiles = profiles("id=?", (selected_profile_id,))
+    else:
+        # When unlocked, show all active profiles
+        active_profiles = profiles("active=?", (True,), order_by='priority')
+    
     for profile in active_profiles:
         is_selected = str(profile.id) == str(selected_profile_id)
         item_style = get_selected_item_style(is_selected)
