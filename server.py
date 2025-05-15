@@ -3494,6 +3494,9 @@ def get_intro_page_content(page_num_str: str):
     """
     page_num = int(page_num_str)
     
+    # Common card style to ensure consistent height and spacing
+    card_style = "min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
+    
     if page_num == 1:
         return Card(
             H3(f"Welcome to {APP_NAME}"),
@@ -3506,6 +3509,7 @@ def get_intro_page_content(page_num_str: str):
             H4("Getting Started"),
             P("Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."),
             P(f"The chat interface on the right is powered by a local LLM ({MODEL}) to assist you."),
+            style=card_style,
             id="intro-page-1-content"
         )
     elif page_num == 2:
@@ -3517,6 +3521,7 @@ def get_intro_page_content(page_num_str: str):
                 Li(Strong("ENV Menu:"), " 'Dev' mode uses a separate test database (e.g., pipulate_dev.db). 'Prod' mode uses the main database (e.g., pipulate.db)."),
                 Li(Strong("Poke Button (Bottom-Right):"), " Access quick actions like clearing workflow data or the entire database (in Dev mode).")
             ),
+            style=card_style,
             id="intro-page-2-content"
         )
     elif page_num == 3:
@@ -3528,10 +3533,12 @@ def get_intro_page_content(page_num_str: str):
                 Li("WET Workflows: Workflows are designed to be explicit and step-by-step, making them easy to understand and debug."),
                 Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.")
             ),
+            style=card_style,
             id="intro-page-3-content"
         )
     return Card(
         P(f"Content for instruction page {page_num_str} not found."),
+        style=card_style,
         id=f"intro-page-{page_num_str}-content"
     )
 
