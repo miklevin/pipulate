@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -3479,6 +3479,122 @@ async def create_outer_container(current_profile_id, menux):
     )
 
 
+
+# Define the maximum number of introduction pages
+MAX_INTRO_PAGES = 3  # Adjust as needed
+
+def get_intro_page_content(page_num_str: str):
+    """
+    Returns the FastHTML content for a specific introduction page.
+    """
+    page_num = int(page_num_str)
+    # logger.debug(f"Getting content for intro page: {page_num}")
+
+    if page_num == 1:
+        return Div(
+            H2(f"Welcome to {APP_NAME} - Page 1"),
+            P("This is the first page of instructions. Here's how Pipulate works:"),
+            Ol(
+                Li("Profiles: Manage your different clients or projects. Each profile is a separate workspace."),
+                Li("APPs: Access various tools and workflows, like SEO audits or content generators."),
+                Li("Mode: Switch between 'Development' for testing and 'Production' for live work.")
+            ),
+            H3("Getting Started"),
+            P("Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."),
+            P(f"The chat interface on the right is powered by a local LLM ({MODEL}) to assist you."),
+            id="intro-page-1-content"
+        )
+    elif page_num == 2:
+        return Div(
+            H2(f"{APP_NAME} Instructions - Page 2"),
+            P("Understanding the Interface:"),
+            Ul(
+                Li(Strong("Profiles Menu:"), " Click to switch between profiles or edit them. You can lock a profile to hide others during client presentations."),
+                Li(Strong("APPs Menu:"), " Select the workflow or tool you want to use."),
+                Li(Strong("ENV Menu:"), " 'Dev' mode uses a separate test database (e.g., pipulate_dev.db). 'Prod' mode uses the main database (e.g., pipulate.db)."),
+                Li(Strong("Poke Button (Bottom-Right):"), " Access quick actions like clearing workflow data or the entire database (in Dev mode).")
+            ),
+            id="intro-page-2-content"
+        )
+    elif page_num == 3:
+        return Div(
+            H2(f"{APP_NAME} Instructions - Page 3"),
+            P("Tips for Effective Use:"),
+            Ul(
+                Li("Local-First: All your data and processing happen on your machine. No cloud needed!"),
+                Li("Reproducibility: Nix ensures your environment is consistent, whether on macOS, Linux, or WSL."),
+                Li("WET Workflows: Workflows are designed to be explicit and step-by-step, making them easy to understand and debug."),
+                Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.")
+            ),
+            P("You're all set to explore Pipulate!"),
+            id="intro-page-3-content"
+        )
+    return Div(P(f"Content for instruction page {page_num_str} not found."), id=f"intro-page-{page_num_str}-content")
+
+async def render_intro_page_with_navigation(page_num_str: str):
+    """
+    Renders the content for the given intro page number, including Next/Previous buttons.
+    This function returns the content that will be swapped into the #grid-left-content div.
+    """
+    page_num = int(page_num_str)
+    page_content_area = get_intro_page_content(page_num_str)
+
+    nav_buttons_list = []
+    # Previous Button
+    if page_num > 1:
+        nav_buttons_list.append(
+            Button("Previous",
+                   hx_post="/navigate_intro",
+                   hx_vals={"direction": "prev", "current_page": page_num_str},
+                   hx_target="#grid-left-content",  # Target the main container for intro content
+                   hx_swap="innerHTML",             # Swap its inner content
+                   cls="secondary outline"          # PicoCSS style
+            )
+        )
+    # Next Button
+    if page_num < MAX_INTRO_PAGES:
+        nav_buttons_list.append(
+            Button("Next",
+                   hx_post="/navigate_intro",
+                   hx_vals={"direction": "next", "current_page": page_num_str},
+                   hx_target="#grid-left-content",  # Target the main container
+                   hx_swap="innerHTML",             # Swap its inner content
+                   cls="primary"                    # PicoCSS style
+            )
+        )
+    
+    return Div(
+        page_content_area,
+        Group(*nav_buttons_list, style="margin-top: 1.5rem; display: flex; gap: 0.5rem; justify-content: flex-start;") if nav_buttons_list else "",
+        # The ID of this returned Div itself is not critical as long as the hx_target above is correct.
+    )
+
+@rt('/navigate_intro', methods=['POST'])
+async def navigate_intro_page_endpoint(request):
+    form = await request.form()
+    direction = form.get("direction")
+    current_page_str = form.get("current_page", "1")
+    
+    try:
+        current_page_num = int(current_page_str)
+    except ValueError:
+        logger.warning(f"Invalid current_page value received: {current_page_str}. Defaulting to 1.")
+        current_page_num = 1
+
+    next_page_num = current_page_num
+    if direction == "next":
+        next_page_num = min(current_page_num + 1, MAX_INTRO_PAGES)
+    elif direction == "prev":
+        next_page_num = max(current_page_num - 1, 1)
+    
+    db["intro_page_num"] = str(next_page_num)
+    logger.debug(f"Navigating intro. From: {current_page_num}, To: {next_page_num}, Direction: {direction}")
+
+    # Return the new page content with navigation, suitable for innerHTML swap
+    new_content = await render_intro_page_with_navigation(str(next_page_num))
+    return HTMLResponse(to_xml(new_content)) # Ensure FastHTML object is converted
+
+
 async def create_grid_left(menux, render_items=None):
     """Create the left grid content based on the selected menu item."""
     if menux:
@@ -3487,25 +3603,14 @@ async def create_grid_left(menux, render_items=None):
         if workflow_instance:
             return await workflow_instance.landing()
     else:
-        # Default welcome page explaining the three main menus
-        return Div(
-            H2(f"Welcome to {APP_NAME}"),
-            P("There are 3 menus: Profiles, APPs and Mode."),
-            Ol(
-                Li("You can switch Profiles (aka. Customers, Clients, etc.)"),
-                Li("You can switch APPs (todo-lists, workflows, etc.)"),
-                Li("And you can switch between Dev and Prod mode.")
-            ),
-            H3("Development Mode"),
-            P("Use Dev mode for practice and ", I("reset"), " everything with the ", I("Clear DB"), " under ", I("poke"), " in the lower-right. Try things, reset often."),
-            H3("Production Mode"),
-            P("Use Prod mode to actually put your list of Customers/Clients."),
-            Ul(
-                Li("Use Nicknames so you can't accidentally show them to each other."),
-                Li("Lock the profile to prevent even other Nicknames from showing.")
-            ),
-            id="welcome-content"
-        )
+        # Introduction page logic
+        current_intro_page_num_str = db.get("intro_page_num", "1")
+        logger.debug(f"Rendering intro page: {current_intro_page_num_str} for menux='{menux}'")
+        # render_intro_page_with_navigation returns the inner content for the #grid-left-content div
+        content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
+
+    # Wrap all possible content in a Div with the consistent ID for HTMX targeting.
+    return Div(content_to_render, id="grid-left-content")
 
 
 def create_chat_interface(autofocus=False):
@@ -3787,11 +3892,25 @@ async def chat_endpoint(request, message: str):
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
     path = request.path_params['path']
-    logger.debug(f"Redirecting to: {path}")
-    message = build_endpoint_messages(path)
-    hot_prompt_injection(message)
-    build_endpoint_training(path)
-    db["temp_message"] = message
+    
+    # If navigating to the home/introduction page (empty path), reset intro page counter
+    if not path: 
+        db["intro_page_num"] = "1"
+        logger.debug("Reset intro_page_num to 1 due to navigation to home via /redirect/.")
+
+    logger.debug(f"Redirecting to: /{path}")
+    message = build_endpoint_messages(path) # Fetches message based on path
+    
+    # It's important that build_endpoint_messages and build_endpoint_training
+    # are called AFTER potentially resetting intro_page_num, if their behavior
+    # depends on the intro page state (though currently they don't seem to).
+    
+    if message: # Hot inject only if a message is defined
+        hot_prompt_injection(message) # Appends message to chat history
+        db["temp_message"] = message # For display in chat on next load
+    
+    build_endpoint_training(path) # Appends training context to chat history
+
     return Redirect(f"/{path}")
 
 

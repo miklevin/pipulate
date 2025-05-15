@@ -21,8 +21,9 @@ from typing import Dict, List, Optional, Union
 # allows for clean multi-line string formatting.
 
 FILES_TO_INCLUDE = """\
-# README.md
-# requirements.txt
+README.md
+flake.nix
+requirements.txt
 server.py
 # /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/700_widget_shim.py
