@@ -72,6 +72,7 @@ MAX_CONVERSATION_LENGTH = 10000
 
 # Plugin configuration
 DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
+HOME_MENU_ITEM = "Introduction"  # The display name for the home/introduction menu item
 
 
 # Environment settings
@@ -123,7 +124,7 @@ LIST_SUFFIX = "List"
 
 # Near the top with other constants
 CORE_PLUGINS = {
-    "",  # Home
+    "",  # Home/Introduction
     "tasks",
     "connect_with_botify",
     "parameter_buster"
@@ -367,6 +368,8 @@ def title_name(word: str) -> str:
 
 
 def endpoint_name(endpoint: str) -> str:
+    if not endpoint:  # Handle empty string case
+        return HOME_MENU_ITEM
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
@@ -2466,7 +2469,7 @@ if not os.path.exists("plugins"):
 def build_endpoint_messages(endpoint):
     # Base dictionary for standard endpoints
     endpoint_messages = {
-        "": f"Welcome to {APP_NAME}. You are on the home page. Select an app from the menu to get started.",
+        "": f"Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.",
         "profile": ("This is where you add, edit, and delete profiles (aka clients). "
                     "The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."),
     }
@@ -2791,7 +2794,7 @@ discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules)
 
 # Ensure these dictionaries are initialized
-friendly_names = {"": "Home"}
+friendly_names = {"": HOME_MENU_ITEM}
 endpoint_training = {}
 
 
@@ -3072,7 +3075,7 @@ async def home(request):
     last_profile_name = get_profile_name()
     
     # Create a plain text title for the document title
-    page_title = f"{APP_NAME} - {title_name(last_profile_name)} - {endpoint_name(menux)}"
+    page_title = f"{APP_NAME} - {title_name(last_profile_name)} - {endpoint_name(menux) if menux else HOME_MENU_ITEM}"
     
     # Return the title and main content separately instead of using Titled()
     # We no longer need to include nav_header here as it's now in the nav_menu
@@ -3174,7 +3177,7 @@ def create_nav_menu():
     breadcrumb = H1(
         A(APP_NAME, 
           href="/redirect/", 
-          title="Go to Home", 
+          title=f"Go to {HOME_MENU_ITEM.lower()}", 
           style="text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;",
           onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';", 
           onmouseout="this.style.color='inherit'; this.style.textDecoration='none';"
@@ -3182,7 +3185,7 @@ def create_nav_menu():
         Span(" / ", style="padding: 0 0.3rem;"),
         Span(title_name(selected_profile_name), style="white-space: nowrap;"),
         Span(" / ", style="padding: 0 0.3rem;"),
-        Span(endpoint_name(menux), style="white-space: nowrap;"),
+        Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style="white-space: nowrap;"),
         style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
     )
     
@@ -3227,8 +3230,8 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
 
 
 def normalize_menu_path(path):
-    """Convert empty paths to 'home' and return the path otherwise."""
-    return "home" if path == "" else path
+    """Convert empty paths to empty string and return the path otherwise."""
+    return "" if path == "" else path
 
 
 def create_app_menu(menux):
@@ -3251,7 +3254,7 @@ def create_app_menu(menux):
             norm_item = normalize_menu_path(item_key)
             is_selected = norm_item == norm_menux
             eligible_plugins_with_details.append(
-                ("Home", item_key, is_selected, "home")
+                (HOME_MENU_ITEM, item_key, is_selected, "home")
             )
             continue
 
