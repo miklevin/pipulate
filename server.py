@@ -3956,7 +3956,37 @@ def run_server_with_watchdog():
         log.startup("Server starting on http://localhost:5001")
         # Configure Uvicorn logging based on DEBUG_MODE
         log_level = "debug" if DEBUG_MODE else "warning"
-        uvicorn.run(app, host="0.0.0.0", port=5001, log_level=log_level, access_log=DEBUG_MODE)
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=5001,
+            log_level=log_level,
+            access_log=DEBUG_MODE,  # Only show access logs in debug mode
+            log_config={
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {
+                    "default": {
+                        "()": "uvicorn.logging.DefaultFormatter",
+                        "fmt": "%(levelprefix)s %(asctime)s | %(message)s",
+                        "use_colors": True,
+                    },
+                },
+                "handlers": {
+                    "default": {
+                        "formatter": "default",
+                        "class": "logging.StreamHandler",
+                        "stream": "ext://sys.stderr",
+                    },
+                },
+                "loggers": {
+                    "uvicorn": {"handlers": ["default"], "level": log_level.upper()},
+                    "uvicorn.error": {"level": log_level.upper()},
+                    "uvicorn.access": {"handlers": ["default"], "level": log_level.upper(), "propagate": False},
+                    "uvicorn.asgi": {"handlers": ["default"], "level": log_level.upper(), "propagate": False},
+                },
+            }
+        )
     except KeyboardInterrupt:
         log.event("server", "Server shutdown requested by user")
         observer.stop()
