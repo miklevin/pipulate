@@ -3552,7 +3552,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
                hx_target="#grid-left-content",
                hx_swap="innerHTML",
                cls="primary outline" if page_num == 1 else "primary",
-               style="width: 120px;",
+               style="width: 140px; min-width: 140px;",
                disabled=page_num == 1
         ),
         
@@ -3563,7 +3563,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
                hx_target="#grid-left-content",
                hx_swap="innerHTML",
                cls="primary outline" if page_num == MAX_INTRO_PAGES else "primary",
-               style="width: 120px;",
+               style="width: 140px; min-width: 140px;",
                disabled=page_num == MAX_INTRO_PAGES
         )
     ]
@@ -3602,6 +3602,18 @@ async def navigate_intro_page_endpoint(request):
     new_content = await render_intro_page_with_navigation(str(next_page_num))
     return HTMLResponse(to_xml(new_content)) # Ensure FastHTML object is converted
 
+
+def get_workflow_instance(workflow_name):
+    """
+    Get a workflow instance from the plugin_instances dictionary.
+    
+    Args:
+        workflow_name: The name of the workflow to retrieve
+        
+    Returns:
+        The workflow instance if found, None otherwise
+    """
+    return plugin_instances.get(workflow_name)
 
 async def create_grid_left(menux, render_items=None):
     """Create the left grid content based on the selected menu item."""
