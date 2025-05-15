@@ -3954,7 +3954,9 @@ def run_server_with_watchdog():
     
     try:
         log.startup("Server starting on http://localhost:5001")
-        uvicorn.run(app, host="0.0.0.0", port=5001)
+        # Configure Uvicorn logging based on DEBUG_MODE
+        log_level = "debug" if DEBUG_MODE else "warning"
+        uvicorn.run(app, host="0.0.0.0", port=5001, log_level=log_level, access_log=DEBUG_MODE)
     except KeyboardInterrupt:
         log.event("server", "Server shutdown requested by user")
         observer.stop()
