@@ -208,8 +208,8 @@ def setup_logging():
 logger = setup_logging()
 
 # Log the current environment and database file
-logger.info(f"Environment: {get_current_environment()}")
-logger.info(f"Using database: {DB_FILENAME}")
+# logger.info(f"Environment: {get_current_environment()}")
+# logger.info(f"Using database: {DB_FILENAME}")
 
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
@@ -3921,9 +3921,6 @@ def run_server_with_watchdog():
     env_db = DB_FILENAME
     
     # Log startup information using our new log manager
-    log.startup(f"Starting {APP_NAME} server")
-    
-    # Display environment information with color based on environment
     if env == "Development":
         log.warning("Development mode active", details=f"Using database: {env_db}")
     else:
