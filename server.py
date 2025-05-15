@@ -3231,10 +3231,13 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     def get_selected_item_style(is_selected):
         return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
-    menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
     
     # Check if profile is locked
     profile_locked = db.get("profile_locked", "0") == "1"
+    
+    # Only show Edit Profiles link when not locked
+    if not profile_locked:
+        menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
     
     # Get profiles based on lock state
     if profile_locked:
