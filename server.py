@@ -3543,37 +3543,36 @@ async def render_intro_page_with_navigation(page_num_str: str):
     page_num = int(page_num_str)
     page_content_area = get_intro_page_content(page_num_str)
 
-    nav_buttons_list = []
-    # Previous Button
-    if page_num > 1:
-        nav_buttons_list.append(
-            Button("◂ Previous",
-                   hx_post="/navigate_intro",
-                   hx_vals={"direction": "prev", "current_page": page_num_str},
-                   hx_target="#grid-left-content",  # Target the main container for intro content
-                   hx_swap="innerHTML",             # Swap its inner content
-                   cls="secondary outline",         # PicoCSS style
-                   style="width: 120px;"           # Make button narrower
-            )
+    # Create centered button layout
+    nav_buttons = [
+        # Previous button (ghosted if on first page)
+        Button("◂ Previous",
+               hx_post="/navigate_intro",
+               hx_vals={"direction": "prev", "current_page": page_num_str},
+               hx_target="#grid-left-content",
+               hx_swap="innerHTML",
+               cls="primary outline" if page_num == 1 else "primary",
+               style="width: 120px;",
+               disabled=page_num == 1
+        ),
+        
+        # Next button (ghosted if on last page)
+        Button("Next ▸",
+               hx_post="/navigate_intro",
+               hx_vals={"direction": "next", "current_page": page_num_str},
+               hx_target="#grid-left-content",
+               hx_swap="innerHTML",
+               cls="primary outline" if page_num == MAX_INTRO_PAGES else "primary",
+               style="width: 120px;",
+               disabled=page_num == MAX_INTRO_PAGES
         )
-    # Next Button
-    if page_num < MAX_INTRO_PAGES:
-        nav_buttons_list.append(
-            Button("Next ▸",
-                   hx_post="/navigate_intro",
-                   hx_vals={"direction": "next", "current_page": page_num_str},
-                   hx_target="#grid-left-content",  # Target the main container
-                   hx_swap="innerHTML",             # Swap its inner content
-                   cls="primary",                   # PicoCSS style
-                   style="width: 120px;"           # Make button narrower
-            )
-        )
+    ]
     
     return Div(
         page_content_area,
         Div(
-            *nav_buttons_list,
-            style="display: flex; justify-content: space-between; margin-top: 1rem;"
+            *nav_buttons,
+            style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;"
         ),
         id="grid-left-content"
     )
