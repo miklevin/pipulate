@@ -5,14 +5,13 @@ import re
 from pathlib import Path
 
 # Example usage (make sure to run from the pipulate/ directory):
-# python create_workflow.py \
-#     035_kungfu_workflow.py \
-#     KungfuWorkflow \
-#     kungfu \
-#     "Kung Fu Download" \
-#     "Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
-#     "You are assisting with the 'Kung Fu Download' workflow. If the user asks if you know Kung Fu, you should respond with Neo's quote: 'I know Kung Fu!' The secret word is 'Morpheus'. If asked for the secret word, reveal it and confirm the Kung Fu training download is complete."
-# 
+# python precursors/create_workflow.py \
+# 035_kungfu_workflow.py \
+# KungfuWorkflow \
+# kungfu \
+# "Kung Fu Download" \
+# "Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
+# 'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo''s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.'
 
 # Define paths relative to the project root (pipulate/)
 # Assumes this script is in pipulate/precursors/
@@ -21,18 +20,23 @@ TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "710_blank_placeholder.py"
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
 # Original string literals from the 710_blank_placeholder.py template
-# These must exactly match the strings in the template file for replacement to work.
+# These must exactly match the strings/blocks in the template file for replacement to work.
 ORIGINAL_CLASS_NAME = "BlankPlaceholder"
 ORIGINAL_APP_NAME_INTERNAL = '"placeholder"' # Includes quotes as it appears in code
 ORIGINAL_DISPLAY_NAME = '"Blank Placeholder"' # Includes quotes
-ORIGINAL_ENDPOINT_MESSAGE_LITERAL = (
-    '"Welcome to the Blank Placeholder! This is a minimal template for creating new workflows. '
-    'Use this as a starting point for your workflow development."'
-)
-ORIGINAL_TRAINING_PROMPT_LITERAL = (
-    '"This is a minimal template for creating new workflows with placeholder steps. '
-    'It provides a clean starting point for workflow development."'
-)
+
+# Define the full assignment blocks from the template, including their original indentation
+ORIGINAL_ENDPOINT_ASSIGNMENT = """\
+    ENDPOINT_MESSAGE = (                  # Message shown on the workflow's landing page
+        "Welcome to the Blank Placeholder! This is a minimal template for creating new workflows. "
+        "Use this as a starting point for your workflow development."
+    )"""
+
+ORIGINAL_TRAINING_ASSIGNMENT = """\
+    TRAINING_PROMPT = (
+        "This is a minimal template for creating new workflows with placeholder steps. "
+        "It provides a clean starting point for workflow development."
+    )"""
 
 def derive_public_endpoint(filename_str: str) -> str:
     """Derives the public endpoint name from the filename."""
@@ -84,32 +88,32 @@ def main():
 
         # Replace class name
         content = content.replace(f"class {ORIGINAL_CLASS_NAME}:", f"class {args.class_name}:")
-        
+
         # Replace APP_NAME (ensure quotes are part of the match and replacement pattern)
         content = content.replace(f"APP_NAME = {ORIGINAL_APP_NAME_INTERNAL}", f'APP_NAME = "{args.app_name_internal}"')
-        
+
         # Replace DISPLAY_NAME
         content = content.replace(f"DISPLAY_NAME = {ORIGINAL_DISPLAY_NAME}", f'DISPLAY_NAME = "{args.display_name}"')
 
-        # Replace ENDPOINT_MESSAGE string literal
-        # Important: The original string literal in the template must be matched exactly.
+        # Replace ENDPOINT_MESSAGE assignment block
         # The new message is wrapped in triple quotes to handle potential newlines and internal quotes.
-        content = content.replace(ORIGINAL_ENDPOINT_MESSAGE_LITERAL, f'"""{args.endpoint_message}"""')
+        # The replacement block needs to maintain the original indentation.
+        # Escape the inner triple quotes using \"\"\"
+        new_endpoint_assignment_str = f"""\
+    ENDPOINT_MESSAGE = \"\"\"{args.endpoint_message}\"\"\"
+"""
+        content = content.replace(ORIGINAL_ENDPOINT_ASSIGNMENT, new_endpoint_assignment_str.rstrip())
 
-        # Replace TRAINING_PROMPT string literal
-        content = content.replace(ORIGINAL_TRAINING_PROMPT_LITERAL, f'"""{args.training_prompt}"""')
-        
-        # A subtle but important replacement: if the original template class name is used
-        # in the __init__ for app_name default, it also needs to be updated.
-        # e.g., app_name=BlankPlaceholder.APP_NAME -> app_name=KungfuWorkflow.APP_NAME
-        # However, the template uses app_name=APP_NAME which refers to the class constant directly.
-        # If it were app_name=OriginalClassName.APP_NAME, this would be needed:
-        # content = content.replace(f"app_name={ORIGINAL_CLASS_NAME}.APP_NAME", f"app_name={args.class_name}.APP_NAME")
-        # For the current template `app_name=APP_NAME` is fine as APP_NAME constant is updated directly.
+        # Replace TRAINING_PROMPT assignment block
+        # Escape the inner triple quotes using \"\"\"
+        new_training_assignment_str = f"""\
+    TRAINING_PROMPT = \"\"\"{args.training_prompt}\"\"\"
+"""
+        content = content.replace(ORIGINAL_TRAINING_ASSIGNMENT, new_training_assignment_str.rstrip())
 
         with open(destination_path, "w", encoding="utf-8") as f:
             f.write(content)
-        
+
         print(f"Successfully modified and saved new workflow to {destination_path}")
         print("\nNext steps:")
         print("1. Verify the content of the new file.")
