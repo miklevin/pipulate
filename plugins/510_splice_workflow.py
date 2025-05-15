@@ -50,7 +50,26 @@ class SpliceWorkflow:
         "This is a splice workflow template. "
         "Enter an ID to start or resume your workflow."
     )
-    TRAINING_PROMPT = "widget_implementation_guide.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = """You are an expert workflow developer. Your task is to implement a multi-step workflow with proper chain reaction behavior using HTMX.
+
+Key requirements:
+1. Each step must explicitly trigger the next step in sequence when completed
+2. Use div elements with hx_trigger="load" to trigger next steps
+3. Follow the pattern of showing completion state AND triggering next step
+4. Maintain explicit triggering rather than relying on event bubbling
+
+The workflow should:
+- Initialize with a placeholder for step_01
+- Process each step's data appropriately
+- Show completion states
+- Trigger subsequent steps explicitly
+- Handle the finalization process
+
+Remember to:
+- Keep the chain reaction pattern intact
+- Use proper error handling
+- Maintain clear step progression
+- Follow HTMX best practices for workflow implementation"""
 
     # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

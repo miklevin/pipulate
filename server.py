@@ -432,7 +432,17 @@ def read_training(prompt_or_filename):
                 logger.debug(f"Successfully loaded prompt: {content[:100]}...")
                 return content
         except FileNotFoundError:
-            logger.warning(f"No training file found for {prompt_or_filename}")
+            # Get the plugin name from the current context
+            plugin_name = None
+            for name, instance in plugin_instances.items():
+                if hasattr(instance, 'TRAINING_PROMPT') and instance.TRAINING_PROMPT == prompt_or_filename:
+                    plugin_name = instance.DISPLAY_NAME
+                    break
+            
+            if plugin_name:
+                logger.warning(f"No training file found for {prompt_or_filename} (used by {plugin_name})")
+            else:
+                logger.warning(f"No training file found for {prompt_or_filename}")
             return f"No training content available for {prompt_or_filename.replace('.md', '')}"
 
     return prompt_or_filename
