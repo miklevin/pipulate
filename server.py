@@ -3223,27 +3223,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     # Check if profile is locked
     profile_locked = db.get("profile_locked", "0") == "1"
     
-    # Only show Edit Profiles link when not locked
-    if not profile_locked:
-        menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
-    
-    # Get profiles based on lock state
-    if profile_locked:
-        # When locked, only show the current profile
-        active_profiles = profiles("id=?", (selected_profile_id,), order_by='priority')
-    else:
-        # When unlocked, show all active profiles
-        active_profiles = profiles("active=?", (True,), order_by='priority')
-    
-    for profile in active_profiles:
-        is_selected = str(profile.id) == str(selected_profile_id)
-        item_style = get_selected_item_style(is_selected)
-        menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
-    
-    # Add a divider before the lock switch
-    menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-    
-    # Add the lock switch
+    # Add the lock switch as the first item
     menu_items.append(Li(
         Label(
             Input(
@@ -3260,6 +3240,26 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         ),
         style="text-align: left;"
     ))
+    
+    # Add a divider after the lock switch
+    menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+    
+    # Only show Edit Profiles link when not locked
+    if not profile_locked:
+        menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
+    
+    # Get profiles based on lock state
+    if profile_locked:
+        # When locked, only show the current profile
+        active_profiles = profiles("id=?", (selected_profile_id,), order_by='priority')
+    else:
+        # When unlocked, show all active profiles
+        active_profiles = profiles("active=?", (True,), order_by='priority')
+    
+    for profile in active_profiles:
+        is_selected = str(profile.id) == str(selected_profile_id)
+        item_style = get_selected_item_style(is_selected)
+        menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
     
     return Details(
         Summary(
@@ -3480,18 +3480,30 @@ async def create_outer_container(current_profile_id, menux):
 
 
 async def create_grid_left(menux, render_items=None):
-    if menux == profile_app.name:
-        return await profile_render()
-    elif menux in plugin_instances:
-        workflow_instance = plugin_instances[menux]
-        if hasattr(workflow_instance, 'render'):
-            return await workflow_instance.render()
-        return await workflow_instance.landing()
+    """Create the left grid content based on the selected menu item."""
+    if menux:
+        # Try to get the workflow instance for the selected menu item
+        workflow_instance = get_workflow_instance(menux)
+        if workflow_instance:
+            return await workflow_instance.landing()
     else:
-        # Default to a simple welcome page if no specific menu is selected
+        # Default welcome page explaining the three main menus
         return Div(
             H2(f"Welcome to {APP_NAME}"),
-            P("Please select an option from the menu to get started."),
+            P("There are 3 menus: Profiles, APPs and Mode."),
+            Ol(
+                Li("You can switch Profiles (aka. Customers, Clients, etc.)"),
+                Li("You can switch APPs (todo-lists, workflows, etc.)"),
+                Li("And you can switch between Dev and Prod mode.")
+            ),
+            H3("Development Mode"),
+            P("Use Dev mode for practice and ", I("reset"), " everything with the ", I("Clear DB"), " under ", I("poke"), " in the lower-right. Try things, reset often."),
+            H3("Production Mode"),
+            P("Use Prod mode to actually put your list of Customers/Clients."),
+            Ul(
+                Li("Use Nicknames so you can't accidentally show them to each other."),
+                Li("Lock the profile to prevent even other Nicknames from showing.")
+            ),
             id="welcome-content"
         )
 
