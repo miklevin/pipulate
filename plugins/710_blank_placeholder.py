@@ -66,9 +66,8 @@ class BlankPlaceholder:
     # --- Workflow Configuration ---
     APP_NAME = "placeholder"          # Unique identifier for this workflow's routes and data (can not be the same as the plugin name from filename)
     DISPLAY_NAME = "Blank Placeholder"      # User-friendly name shown in the UI
-    ENDPOINT_MESSAGE = (                    # Message shown on the workflow's landing page
-        "Welcome to the Blank Placeholder! This is a minimal template for creating new workflows. "
-        "Use this as a starting point for your workflow development."
+    ENDPOINT_MESSAGE = (
+        "Welcome to the Blank Placeholder."
     )
     TRAINING_PROMPT = (
         "This is a minimal template for creating new workflows with placeholder steps. "

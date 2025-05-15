@@ -25,11 +25,26 @@ ORIGINAL_CLASS_NAME = "BlankPlaceholder"
 ORIGINAL_APP_NAME_INTERNAL = '"placeholder"' # Includes quotes as it appears in code
 ORIGINAL_DISPLAY_NAME = '"Blank Placeholder"' # Includes quotes
 
-# Define the full assignment blocks from the template, including their original indentation
+# !!! CRITICAL SECTION FOR ENDPOINT_MESSAGE !!!
+# The string assigned to ORIGINAL_ENDPOINT_ASSIGNMENT below MUST be an
+# EXACT byte-for-byte match of the corresponding block in your
+# 710_blank_placeholder.py file. This includes all leading/trailing
+# whitespace on each line, indentation, comments, and line endings
+# as they exist in that specific part of the template file.
+#
+# RECOMMENDED ACTION:
+# 1. Open your 710_blank_placeholder.py file.
+# 2. Carefully select and copy the entire block for ENDPOINT_MESSAGE,
+#    starting from the `    ENDPOINT_MESSAGE = (` line
+#    down to and including the closing `    )`.
+# 3. Paste this copied block directly as the value for the
+#    ORIGINAL_ENDPOINT_ASSIGNMENT variable below, ensuring it's
+#    within a triple-quoted string ( """your pasted block""" ).
+
+
 ORIGINAL_ENDPOINT_ASSIGNMENT = """\
-    ENDPOINT_MESSAGE = (                  # Message shown on the workflow's landing page
-        "Welcome to the Blank Placeholder! This is a minimal template for creating new workflows. "
-        "Use this as a starting point for your workflow development."
+    ENDPOINT_MESSAGE = (
+        "Welcome to the Blank Placeholder."
     )"""
 
 ORIGINAL_TRAINING_ASSIGNMENT = """\
@@ -86,30 +101,65 @@ def main():
         with open(destination_path, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # For debugging the ENDPOINT_MESSAGE mismatch:
+        # 1. Uncomment the block below.
+        # 2. In your terminal, run the script and redirect output to a file:
+        #    python your_script_name.py [args...] > debug_output.txt
+        # 3. Open debug_output.txt and compare the repr() output for
+        #    ORIGINAL_ENDPOINT_ASSIGNMENT with the repr() output of the
+        #    lines read from your template file. Look for differences in
+        #    spaces, newlines (\n, \r\n), or any other characters.
+        """
+        print("DEBUG: ORIGINAL_ENDPOINT_ASSIGNMENT")
+        print(f"'''{ORIGINAL_ENDPOINT_ASSIGNMENT}'''")
+        print(f"REPR: {repr(ORIGINAL_ENDPOINT_ASSIGNMENT)}")
+        print("-" * 30)
+        
+        # Find where this block might be in the content
+        try:
+            start_index = content.index("ENDPOINT_MESSAGE = (") - 100 # Look a bit before
+            end_index = start_index + len(ORIGINAL_ENDPOINT_ASSIGNMENT) + 200 # Look a bit after
+            snippet_from_content = content[max(0, start_index):end_index]
+            print("DEBUG: Snippet from template file (around where ENDPOINT_MESSAGE should be)")
+            print(f"'''{snippet_from_content}'''")
+            
+            # If you can isolate the exact block from content:
+            # actual_block_in_template = "..." # You'd need to extract this carefully
+            # print(f"REPR_TEMPLATE_BLOCK: {repr(actual_block_in_template)}")
+            # print(f"Match? {ORIGINAL_ENDPOINT_ASSIGNMENT == actual_block_in_template}")
+        except ValueError:
+            print("DEBUG: 'ENDPOINT_MESSAGE = (' not even found in content for snippet extraction.")
+        print("-" * 30)
+        """
+
         # Replace class name
         content = content.replace(f"class {ORIGINAL_CLASS_NAME}:", f"class {args.class_name}:")
 
-        # Replace APP_NAME (ensure quotes are part of the match and replacement pattern)
+        # Replace APP_NAME
         content = content.replace(f"APP_NAME = {ORIGINAL_APP_NAME_INTERNAL}", f'APP_NAME = "{args.app_name_internal}"')
 
         # Replace DISPLAY_NAME
         content = content.replace(f"DISPLAY_NAME = {ORIGINAL_DISPLAY_NAME}", f'DISPLAY_NAME = "{args.display_name}"')
 
         # Replace ENDPOINT_MESSAGE assignment block
-        # The new message is wrapped in triple quotes to handle potential newlines and internal quotes.
-        # The replacement block needs to maintain the original indentation.
-        # Escape the inner triple quotes using \"\"\"
         new_endpoint_assignment_str = f"""\
     ENDPOINT_MESSAGE = \"\"\"{args.endpoint_message}\"\"\"
 """
+        original_endpoint_len_before = len(content)
         content = content.replace(ORIGINAL_ENDPOINT_ASSIGNMENT, new_endpoint_assignment_str.rstrip())
+        if len(content) == original_endpoint_len_before:
+            print("WARNING: ENDPOINT_MESSAGE was not replaced. Check ORIGINAL_ENDPOINT_ASSIGNMENT string for exact match.")
+
 
         # Replace TRAINING_PROMPT assignment block
-        # Escape the inner triple quotes using \"\"\"
         new_training_assignment_str = f"""\
     TRAINING_PROMPT = \"\"\"{args.training_prompt}\"\"\"
 """
+        original_training_len_before = len(content)
         content = content.replace(ORIGINAL_TRAINING_ASSIGNMENT, new_training_assignment_str.rstrip())
+        if len(content) == original_training_len_before: # Should not happen given user feedback
+             print("WARNING: TRAINING_PROMPT was not replaced unexpectedly.")
+
 
         with open(destination_path, "w", encoding="utf-8") as f:
             f.write(content)
