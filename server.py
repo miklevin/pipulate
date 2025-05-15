@@ -496,32 +496,14 @@ def pipeline_operation(func):
     return wrapper
 
 
+# Plugin configuration
+DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
+
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
 
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
-    
-    # --- Core Architectural Patterns ---
-
-    ## Workflow Step Chain Reaction Pattern
-
-    Pipulate uses a two-level approach to ensuring reliable workflow progression:
-
-    1. Initial Setup (run_all_cells): Creates placeholders with event-based triggers
-       - First step: hx_trigger="load"
-       - Subsequent steps: hx_trigger="stepComplete-{previous_step.id} from:{previous_step.id}"
-
-    2. Step Implementation (explicit override): Each step's handlers EXPLICITLY trigger
-       the next step when completing
-       - GET handler (completed state): Returns Div with explicit hx_trigger="load"
-       - POST handler (submit): Returns Div with explicit hx_trigger="load"
-
-    This dual approach provides reliability across browsers and complex DOM structures.
-    The explicit triggering pattern in step handlers is REQUIRED and should not be
-    removed or refactored to rely solely on HTMX event bubbling.
-
-    See 80_splice_workflow.py for the canonical implementation of this pattern.
     """
     PRESERVE_REFILL = True
 
@@ -3245,14 +3227,14 @@ def create_app_menu(menux):
         numeric_prefix_match = re.match(r'^(\d+)_', original_filename)
         if numeric_prefix_match:
             prefix_num = int(numeric_prefix_match.group(1))
-            is_developer_plugin = prefix_num >= 600
+            is_developer_plugin = prefix_num >= DEVELOPER_PLUGIN_THRESHOLD
         
         is_core = is_core_plugin(item_key)
         
         display_this_plugin = False
         if is_separator:
-            # Only show separators if we're in developer mode or if they're before the 600+ plugins
-            if developer_mode_active or (numeric_prefix_match and prefix_num < 600):
+            # Only show separators if we're in developer mode or if they're before the developer plugins
+            if developer_mode_active or (numeric_prefix_match and prefix_num < DEVELOPER_PLUGIN_THRESHOLD):
                 display_this_plugin = True
         elif developer_mode_active:
             display_this_plugin = True  # Developer mode shows everything registered
