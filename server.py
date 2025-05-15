@@ -70,6 +70,10 @@ MODEL = "gemma3"
 MAX_LLM_RESPONSE_WORDS = 60
 MAX_CONVERSATION_LENGTH = 10000
 
+# Plugin configuration
+DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
+
+
 # Environment settings
 ENV_FILE = Path('data/environment.txt')
 
@@ -121,7 +125,6 @@ LIST_SUFFIX = "List"
 CORE_PLUGINS = {
     "",  # Home
     "tasks",
-    "hello_workflow",
     "connect_with_botify",
     "parameter_buster"
 }
@@ -515,9 +518,6 @@ def pipeline_operation(func):
         return result
     return wrapper
 
-
-# Plugin configuration
-DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
 
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
