@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -3237,7 +3237,13 @@ def create_app_menu(menux):
         else:
             original_filename = getattr(plugin_module, '_original_filename', item_key)
         
-        is_developer_plugin = original_filename.startswith("9")  # Assuming 9xx_ prefix for dev plugins
+        # Check if this is a developer plugin by parsing the numeric prefix
+        is_developer_plugin = False
+        numeric_prefix_match = re.match(r'^(\d+)_', original_filename)
+        if numeric_prefix_match:
+            prefix_num = int(numeric_prefix_match.group(1))
+            is_developer_plugin = prefix_num >= 600
+        
         is_core = is_core_plugin(item_key)
         
         display_this_plugin = False
@@ -3262,10 +3268,8 @@ def create_app_menu(menux):
     def sort_key(plugin_detail_tuple):
         name, key, selected, orig_fn = plugin_detail_tuple
         score = 0
-        if is_core_plugin(key) and not orig_fn.startswith("9"): 
-            score -= 2000  # Core non-dev first
-        if orig_fn.startswith("9"): 
-            score += 1000  # Dev plugins later
+        if is_core_plugin(key): 
+            score -= 2000  # Core plugins first
         # Use numeric part of original_filename for primary sort within categories
         numeric_prefix_match = re.match(r'^(\d+)_', orig_fn)
         if numeric_prefix_match:
@@ -3277,7 +3281,7 @@ def create_app_menu(menux):
     sorted_plugins = sorted(eligible_plugins_with_details, key=sort_key)
 
     for display_name_str, item_key_str, is_selected_bool, _ in sorted_plugins:
-        if item_key_str == "separator":  # Handle separator if it's a conceptual item
+        if item_key_str == "divider":
             menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
             continue
         item_style = "background-color: var(--pico-primary-background); " if is_selected_bool else ""
