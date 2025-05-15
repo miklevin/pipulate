@@ -3866,7 +3866,6 @@ for item in ALL_ROUTES:
 app.add_middleware(DOMSkeletonMiddleware)
 logger.debug("Application setup completed with DOMSkeletonMiddleware.")
 logger.debug(f"Using MODEL: {MODEL}")
-print_routes()
 
 
 def check_syntax(filename):
@@ -3932,10 +3931,13 @@ def run_server_with_watchdog():
     # Display state tables mode if enabled    
     if STATE_TABLES:
         log.startup("State tables enabled", details="Edit server.py and set STATE_TABLES=False to disable")
-        
-    # Display Alice mascot
-    with open('static/alice.txt', 'r') as file:
-        print(file.read())
+        print_routes()
+    else:
+        alice_buffer = 10
+        [print() for _ in range(alice_buffer)]
+        with open('static/alice.txt', 'r') as file:
+            print(file.read())
+        [print() for _ in range(alice_buffer)]
         
     event_handler = ServerRestartHandler()
     observer = Observer()
