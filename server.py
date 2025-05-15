@@ -388,15 +388,25 @@ def step_button(step: str, preserve: bool = False, revert_label: str = None) -> 
 
 
 class SSEBroadcaster:
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.queue = asyncio.Queue()
-        print("SSE Broadcaster initialized")
+        if not self._initialized:
+            self.queue = asyncio.Queue()
+            logger.info("SSE Broadcaster initialized")
+            self._initialized = True
 
     async def generator(self):
         while True:
             try:
                 message = await asyncio.wait_for(self.queue.get(), timeout=5.0)
-                print(f"SSE sending: {message}")
+                logger.debug(f"SSE sending: {message}")
                 if message:
                     formatted = '\n'.join(f"data: {line}"for line in message.split('\n'))
                     yield f"{formatted}\n\n"
@@ -405,10 +415,11 @@ class SSEBroadcaster:
                 yield f"data: Test ping at {now}\n\n"
 
     async def send(self, message):
-        print(f"Queueing message: {message}")
+        logger.debug(f"Queueing message: {message}")
         await self.queue.put(message)
 
 
+# Create a single global instance
 broadcaster = SSEBroadcaster()
 
 
