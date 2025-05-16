@@ -3890,20 +3890,20 @@ def create_poke_button():
         dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
         buttons.append(
             A(
-                "Hide Dev Plugins" if dev_plugins_visible else "Show Dev Plugins",
-                hx_post="/toggle_developer_plugins_visibility",
-                hx_swap="none",
-                cls="button secondary",
-                style=button_style
-            )
-        )
-        buttons.append(
-            A(
                 "Reset Entire Database",
                 hx_post="/clear-db",
                 hx_target="#msg-list",
                 hx_swap="innerHTML",
                 cls="button",
+                style=button_style
+            )
+        )
+        buttons.append(
+            A(
+                "Hide Dev Plugins" if dev_plugins_visible else "Show Dev Plugins",
+                hx_post="/toggle_developer_plugins_visibility",
+                hx_swap="none",
+                cls="button secondary",
                 style=button_style
             )
         )
