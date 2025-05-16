@@ -1,11 +1,11 @@
 ---
 ---
 
-## description: High-level architecture of Pipulate, its key components, and technology stack. globs: ["pipulate/\*\*/\*.py", "server.py", "flake.nix", "README.md"] alwaysApply: true
+## description: High-level architecture of Pipulate, its key components, and technology stack. globs: ["pipulate/**/*.py", "server.py", "flake.nix", "README.md"] alwaysApply: true
 
 # Pipulate Architecture Overview
 
-## 1\. Key Components & Data Flow
+## 1. Key Components & Data Flow
 
 ```
 
@@ -49,7 +49,7 @@ Browser (User Interface)
   * **SQLite (`data/data.db`)**: Single file database for all application and workflow state.
   * **JupyterLab**: Runs alongside, sharing the same Python environment for prototyping.
 
-## 2\. Technology Stack
+## 2. Technology Stack
 
   * **FastHTML**: Python web framework for server-rendered HTML with HTMX.
   * **HTMX**: Enables dynamic UIs directly in HTML, minimizing custom JavaScript.
@@ -60,7 +60,7 @@ Browser (User Interface)
   * **Uvicorn**: ASGI server for FastHTML.
   * **Watchdog**: Monitors file changes for live server reloading during development.
 
-## 3\. File Structure
+## 3. File Structure
 
   * `server.py`: Main application, router, core logic.
   * `flake.nix`: Nix environment definition.
@@ -73,7 +73,7 @@ Browser (User Interface)
   * `logs/`: Server logs.
   * `downloads/`: Default output for workflow-generated files.
 
-## 4\. Communication Channels
+## 4. Communication Channels
 
   * **HTTP/HTMX**: Primary for UI rendering and interactions.
   * **WebSockets**: Real-time LLM chat.

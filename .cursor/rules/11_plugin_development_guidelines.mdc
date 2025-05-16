@@ -1,20 +1,20 @@
 ---
 ---
 
-## description: Conventions and best practices for developing Pipulate plugins (Workflows and CRUD Apps). globs: ["pipulate/plugins/\*.py", "README.md"] alwaysApply: true
+## description: Conventions and best practices for developing Pipulate plugins (Workflows and CRUD Apps). globs: ["pipulate/plugins/*.py", "README.md"] alwaysApply: true
 
 # Plugin Development Guidelines
 
-## 1\. File Naming and Location
+## 1. File Naming and Location
 
   * **Directory**: All plugins (Workflows and CRUD Apps) reside in the `plugins/` directory.
   * **Naming Convention**: `[NNN_]plugin_name.py`
       * `NNN_`: An optional numeric prefix (e.g., `010_`, `120_`). This prefix determines the order in which plugins appear in the UI menus. Lower numbers appear first.
-      * `plugin_name.py`: A descriptive name for the plugin, using snake\_case.
+      * `plugin_name.py`: A descriptive name for the plugin, using snake_case.
   * **Internal `APP_NAME`**: Each workflow class defines an `APP_NAME` constant. This is its internal ID for routing and database storage. See `03_workflow_core.mdc`. It's often the `plugin_name` part of the filename but can differ.
   * **`DISPLAY_NAME`**: Each plugin class defines a `DISPLAY_NAME` constant for the UI.
 
-## 2\. Auto-Registration and Skipping Files
+## 2. Auto-Registration and Skipping Files
 
 `server.py` automatically discovers and attempts to register `.py` files in the `plugins/` directory.
 
@@ -23,7 +23,7 @@
       * Files starting with `xx_` or `XX_` (case-insensitive). Use this for experimental or work-in-progress plugins that shouldn't appear in the UI yet.
       * Files containing parentheses `(` or `)` in their name (e.g., `my_workflow (Copy).py`). Useful for temporary backups during development.
 
-## 3\. Typical Development Workflow for a New Plugin
+## 3. Typical Development Workflow for a New Plugin
 
 1.  **Copy Template**: Start by copying an existing simple plugin, e.g., `plugins/020_hello_workflow.py` (for a new workflow) or `plugins/010_tasks.py` (for a new CRUD app).
 2.  **Initial Rename (Development)**: Rename the copied file to include parentheses or the `xx_` prefix.
@@ -38,7 +38,7 @@
       * Test functionality thoroughly.
 5.  **Finalize Naming and Position**: Rename to the desired numeric prefix and final name (e.g., `075_my_new_workflow.py`) to set its position in the menu.
 
-## 4\. Git History and Renaming
+## 4. Git History and Renaming
 
   * When renaming files that are already tracked by Git (e.g., promoting `xx_my_flow.py` to `030_my_flow.py`), use `git mv` to preserve file history:
     ```bash
@@ -47,14 +47,14 @@
     ```
   * For more complex refactoring where `git mv` isn't straightforward, document the changes in commit messages.
 
-## 5\. Logging
+## 5. Logging
 
   * Use the `logger` instance available in `server.py` (which is Loguru).
   * Workflows can access it via `self.pipulate.logger` (if passed) or by importing `from server import logger`.
   * Use contextual logging: `logger.bind(plugin=self.APP_NAME).info("My message")`.
   * Prefer `DEBUG` level for verbose development logs and `INFO` for important operational messages.
 
-## 6\. Idempotency and State
+## 6. Idempotency and State
 
   * Workflows should strive to be idempotent where possible: running a step multiple times with the same input should yield the same state (though side effects like file creation might differ or need handling).
   * State is persisted. Ensure that resuming a workflow correctly reflects its previous state.

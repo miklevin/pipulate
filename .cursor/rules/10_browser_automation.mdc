@@ -5,18 +5,18 @@
 
 # Browser Automation with Selenium
 
-## 1\. Overview
+## 1. Overview
 
 Pipulate supports Selenium for automating browser interactions. Workflows can launch and control a Chrome browser.
 
-## 2\. Dependencies & Environment (`flake.nix`)
+## 2. Dependencies & Environment (`flake.nix`)
 
   * `selenium` (Python package)
   * `webdriver-manager` (Python package, primarily for macOS convenience)
   * System packages: `chromedriver` and `chromium` (for Linux, provided by Nix).
   * `EFFECTIVE_OS` env var (set in `flake.nix` `shellHook`): "darwin" or "linux". This helps scripts adapt.
 
-## 3\. ChromeDriver Setup
+## 3. ChromeDriver Setup
 
 Handled differently based on `EFFECTIVE_OS`:
 
@@ -34,7 +34,7 @@ Handled differently based on `EFFECTIVE_OS`:
     ```
     The `550_browser_automation.py` plugin demonstrates this conditional setup.
 
-## 4\. Chrome Options
+## 4. Chrome Options
 
 Standard options for automation:
 
@@ -49,7 +49,7 @@ chrome_options.add_argument("--start-maximized")
 # chrome_options.add_argument("--new-window")
 ```
 
-## 5\. WebDriver Initialization
+## 5. WebDriver Initialization
 
 ```python
 from selenium import webdriver
@@ -62,7 +62,7 @@ finally:
     driver.quit() # CRITICAL: Always quit the driver to free resources.
 ```
 
-## 6\. Session Management & Profiles
+## 6. Session Management & Profiles
 
   * **Temporary Profiles (Default for Clean Sessions)**: Selenium starts with a new, temporary profile by default.
   * **Persistent Profiles (for Logins, Cookies)**: To reuse a profile (e.g., to stay logged in):
@@ -83,7 +83,7 @@ finally:
       * Managing these profiles (creation, deletion, selection) needs to be part of the workflow logic.
       * Be mindful of disk space and data privacy with persistent profiles.
 
-## 7\. Using `selenium-wire` (Enhanced Request/Response Capture)
+## 7. Using `selenium-wire` (Enhanced Request/Response Capture)
 
 If a workflow needs to inspect network requests (e.g., `110_parameter_buster_workflow.py`):
 
@@ -100,7 +100,7 @@ driver = webdriver.Chrome(service=service, options=chrome_options, seleniumwire_
 driver.quit()
 ```
 
-## 8\. Asynchronous Considerations
+## 8. Asynchronous Considerations
 
 Selenium operations are blocking. If running them within an `async` workflow step:
 
@@ -112,7 +112,7 @@ Selenium operations are blocking. If running them within an `async` workflow ste
     title = await asyncio.to_thread(lambda: driver.title) # For properties
     ```
 
-## 9\. Error Handling & Cleanup
+## 9. Error Handling & Cleanup
 
   * Always use `try...finally` to ensure `driver.quit()` is called.
   * Catch specific Selenium exceptions (e.g., `TimeoutException`, `NoSuchElementException`).

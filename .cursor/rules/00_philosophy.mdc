@@ -1,14 +1,14 @@
 ---
 ---
 
-## description: Core philosophy of the Pipulate framework, emphasizing local-first, simplicity, and developer empowerment. globs: ["\*"] alwaysApply: true
+## description: Core philosophy of the Pipulate framework, emphasizing local-first, simplicity, and developer empowerment. globs: ["*"] alwaysApply: true
 
 # Pipulate Core Philosophy: The Digital Workbench
 
-## 1\. Fundamental Principles
+## 1. Fundamental Principles
 
   * **Local-First Reality**: Your data (SQLite), environment (Nix), and LLM (Ollama) reside and run on your machine. This ensures privacy, control, speed, and offline capability. Pipulate is designed as a single-tenant desktop app framework.
-  * **Modern Webmaster Thinking**: One person should be able\_understand and manage the entire stack. Server-side control is a feature. Explicit Python and clear HTML are preferred over opaque "magic."
+  * **Modern Webmaster Thinking**: One person should be able_understand and manage the entire stack. Server-side control is a feature. Explicit Python and clear HTML are preferred over opaque "magic."
   * **Simplicity & Observability ("Know EVERYTHING\!")**: Avoids complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via SQLite (MiniDataAPI) and JSON blobs for workflows (DictLikeDB). This transparency makes debugging intuitive.
   * **Reproducibility**: Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
   * **WET Workflows, DRY CRUD**:
@@ -16,7 +16,7 @@
       * Standard Create, Read, Update, Delete (CRUD) operations leverage a reusable `BaseCrud` class for efficiency ("Don't Repeat Yourself" - DRY).
   * **Future-Proofing**: Relies on durable technologies: standard HTTP/HTML (via HTMX), Python, Nix, and local AI (Ollama).
 
-## 2\. The "New LAMP" Stack & Tool-Centric Design
+## 2. The "New LAMP" Stack & Tool-Centric Design
 
   * **L**: Linux (via Nix) - Environment normalization.
   * **A**: ASGI (Uvicorn) - Asynchronous server.
@@ -24,13 +24,13 @@
   * **P**: Python + FastHTML/HTMX - Modern webmaster stack.
   * Pipulate is a workbench, not a platform. Each workflow is a specialized tool.
 
-## 3\. Technical Foundations
+## 3. Technical Foundations
 
   * **Server Authority**: The server is the source of truth for data and UI. FastHTML for explicit server-side rendering, HTMX for controlled interactivity.
   * **State Management**: SQLite via MiniDataAPI (structured data) and DictLikeDB (key-value & workflow JSON blobs).
   * **UI Philosophy**: HTML over JavaScript. HTMX over SPA frameworks. Explicit chain reactions for workflow progression.
 
-## 4\. Evolution Principles
+## 4. Evolution Principles
 
   * **Tool-First**: New features should feel like distinct, self-contained tools.
   * **Local-First Forever**: Strengthen local capabilities.

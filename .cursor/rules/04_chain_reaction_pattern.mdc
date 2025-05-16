@@ -1,17 +1,17 @@
 ---
 ---
 
-## description: The critical HTMX Chain Reaction pattern for workflow step progression in Pipulate. This pattern is IMMUTABLE. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+## description: The critical HTMX Chain Reaction pattern for workflow step progression in Pipulate. This pattern is IMMUTABLE. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 # The HTMX Chain Reaction Pattern (Immutable)
 
-## 1\. Overview
+## 1. Overview
 
 Pipulate workflows emulate a "Run All Cells" experience, similar to Jupyter Notebooks. This is achieved by an HTMX-driven "chain reaction." When a step completes, its response HTML includes a trigger for the next step to load automatically.
 
 **This pattern is critical and must be preserved exactly as implemented.** Modifying or removing `hx_trigger="load"` will break workflow progression.
 
-## 2\. The Core Pattern
+## 2. The Core Pattern
 
 The fundamental structure returned by a step's GET or POST handler that continues the chain:
 
@@ -39,7 +39,7 @@ return Div(
       * `hx_get=f"/{self.APP_NAME}/{next_step_id}"`: Specifies the URL to fetch the next step's UI.
       * `hx_trigger="load"`: This HTMX attribute instructs the browser to immediately make the `hx_get` request as soon as this `Div` is loaded into the DOM.
 
-## 3\. How the Chain Progresses
+## 3. How the Chain Progresses
 
 1.  **`init` Method**: After pipeline ID submission, `init` (or `pipulate.rebuild()`) returns HTML containing the placeholder for the first step with `hx_trigger="load"`.
     ```python
@@ -59,7 +59,7 @@ return Div(
       * HTMX swaps this new HTML into the `#step_01` target.
 4.  **Next Step Loads (GET `/{APP_NAME}/step_02`)**: The `Div` for `step_02` with `hx_trigger="load"` is now in the DOM, causing an immediate request. The cycle repeats.
 
-## 4\. Step Handler Responsibilities
+## 4. Step Handler Responsibilities
 
   * **GET Handler (`async def step_XX`)**:
       * If step is complete AND workflow not finalized AND not reverting to this step's input: Return completed view + trigger for next step.
@@ -69,7 +69,7 @@ return Div(
       * Process data, save state.
       * Return completed view of current step + trigger for next step.
 
-## 5\. Breaking the Chain (Intentional & Cautionary)
+## 5. Breaking the Chain (Intentional & Cautionary)
 
 The chain should only be broken intentionally:
 

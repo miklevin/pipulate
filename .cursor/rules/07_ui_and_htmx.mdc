@@ -1,18 +1,18 @@
 ---
 ---
 
-## description: Guidelines for building UI components, using HTMX for interactivity (beyond the core chain reaction), and PicoCSS form styling. globs: ["pipulate/plugins/\*.py", "server.py", "static/pico.css"] alwaysApply: true
+## description: Guidelines for building UI components, using HTMX for interactivity (beyond the core chain reaction), and PicoCSS form styling. globs: ["pipulate/plugins/*.py", "server.py", "static/pico.css"] alwaysApply: true
 
 # UI Patterns, HTMX, and PicoCSS Forms
 
-## 1\. Core UI Philosophy
+## 1. Core UI Philosophy
 
   * **Server-Rendered HTML**: FastHTML generates HTML directly from Python.
   * **HTMX for Dynamics**: Most UI updates are achieved via HTMX making requests and swapping HTML fragments returned by the server. Avoid extensive client-side JavaScript.
   * **PicoCSS**: Provides lightweight, semantic styling. Adhere to its classless or minimal-class approach where possible. Standard HTML form elements are styled automatically.
   * **Accessibility**: Use semantic HTML, ARIA attributes where appropriate, and ensure keyboard navigability.
 
-## 2\. Common FastHTML Components in Pipulate
+## 2. Common FastHTML Components in Pipulate
 
   * `Container`, `Grid`, `Card`, `Article`, `Section`
   * `H1`-`H6`, `P`, `A`, `Button`, `Img`, `Hr`, `Ul`, `Ol`, `Li`, `Details`, `Summary`
@@ -20,7 +20,7 @@
   * `Table`, `Thead`, `Tbody`, `Tr`, `Th`, `Td`, `Caption`
   * `Script`, `Link`, `Meta`, `Title`
 
-## 3\. Standard Page & Workflow Layout (Simplified)
+## 3. Standard Page & Workflow Layout (Simplified)
 
 ```python
 # server.py: home() method defines overall structure
@@ -39,7 +39,7 @@ Main( # Main container with theme, width, padding
 
   * Workflows primarily render content for the `create_grid_left` area, often targeting a specific `Div` (e.g., `#workflow_app_name-container`) for their main UI.
 
-## 4\. PicoCSS Forms
+## 4. PicoCSS Forms
 
 PicoCSS styles standard HTML form elements with minimal extra classes.
 
@@ -80,7 +80,7 @@ PicoCSS styles standard HTML form elements with minimal extra classes.
     P(error_message, style="color: var(--pico-form-element-invalid-active-border-color);") if error else P()
     ```
 
-## 5\. HTMX Usage (Beyond Chain Reaction)
+## 5. HTMX Usage (Beyond Chain Reaction)
 
   * **Targeted Updates**:
     ```python
@@ -108,7 +108,7 @@ PicoCSS styles standard HTML form elements with minimal extra classes.
     Or, more generically:
     `<div hx_indicator="#loading-spinner">Content that loads</div> <img id="loading-spinner" class="htmx-indicator" src="/spinner.gif">`
 
-## 6\. UI Consistency Helpers in `Pipulate` Class (`server.py`)
+## 6. UI Consistency Helpers in `Pipulate` Class (`server.py`)
 
   * `pipulate.revert_control(...)`: Standard UI for showing a completed step's value with a "Revert" button.
   * `pipulate.widget_container(...)`: Wraps a widget's content with a `revert_control` message.
@@ -116,6 +116,6 @@ PicoCSS styles standard HTML form elements with minimal extra classes.
   * `pipulate.wrap_with_inline_button(...)`: Styles an input field with an adjacent submit button (e.g., for pipeline key input).
   * `pipulate.get_style("error" | "success" | "muted")`: Provides consistent CSS for messages.
 
-## 7\. Dynamic Datalists
+## 7. Dynamic Datalists
 
 The `pipulate.update_datalist(datalist_id, options=None, clear=False)` helper is used with HTMX OOB swaps to dynamically update `<datalist>` options, often for the pipeline ID input.

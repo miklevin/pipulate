@@ -1,18 +1,18 @@
 ---
 ---
 
-## description: How workflow and application state is managed in Pipulate using SQLite via MiniDataAPI and DictLikeDB. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+## description: How workflow and application state is managed in Pipulate using SQLite via MiniDataAPI and DictLikeDB. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 # Pipulate State Management
 
-## 1\. Overview
+## 1. Overview
 
 Pipulate manages all state server-side within a single SQLite database file (`data/data.db`). This promotes simplicity, observability, and local-first operation. Two main mechanisms are used:
 
   * **`pipeline` Table (JSON Blobs for Workflows)**: Managed by `pipulate_instance.pipeline_table` (a MiniDataAPI object) and helper methods in the `Pipulate` class. Stores the state of each workflow run.
   * **`store` Table (Key-Value Store)**: Managed by `db` (a `DictLikeDB` instance). Used for global UI state, last choices, temporary messages, etc.
 
-## 2\. Workflow State (`pipeline` table)
+## 2. Workflow State (`pipeline` table)
 
   * **Storage**: Each workflow run is a single row in the `pipeline` table, keyed by `pipeline_id`. The `data` column stores a JSON string representing the workflow's state.
   * **Structure of `data` JSON blob**:
@@ -37,7 +37,7 @@ Pipulate manages all state server-side within a single SQLite database file (`da
       * Each step's data is stored under its `step.id` (e.g., `"step_01"`).
       * Within that, the primary data for the step is stored under the key defined by `step.done` for that step.
   * **Core `Pipulate` Class Helper Methods (in `server.py`)**:
-      * `pipulate.initialize_if_missing(pkey: str, initial_step_data: dict = None)`: Creates a new record in `pipeline_table` if `pkey` (pipeline\_id) doesn't exist. `initial_step_data` often includes `{"app_name": self.APP_NAME}`.
+      * `pipulate.initialize_if_missing(pkey: str, initial_step_data: dict = None)`: Creates a new record in `pipeline_table` if `pkey` (pipeline_id) doesn't exist. `initial_step_data` often includes `{"app_name": self.APP_NAME}`.
       * `pipulate.read_state(pkey: str) -> dict`: Reads the JSON data for `pkey`, returns a Python dict.
       * `pipulate.write_state(pkey: str, state: dict) -> None`: Writes the Python `state` dict back as JSON for `pkey`. Automatically updates `updated` timestamp.
       * `pipulate.get_step_data(pkey: str, step_id: str, default=None) -> dict`: Helper to get data for a specific step within the workflow state.
@@ -47,7 +47,7 @@ Pipulate manages all state server-side within a single SQLite database file (`da
       * `pipulate.finalize_workflow(pipeline_id: str)`: Sets `state["finalize"]["finalized"] = True`.
       * `pipulate.unfinalize_workflow(pipeline_id: str)`: Removes `state["finalize"]`.
 
-## 3\. Global UI/App State (`store` table - `DictLikeDB`)
+## 3. Global UI/App State (`store` table - `DictLikeDB`)
 
   * **Storage**: A simple key-value table. `db["key"] = "value"`.
   * **Usage**:
@@ -58,12 +58,12 @@ Pipulate manages all state server-side within a single SQLite database file (`da
       * `db["show_all_plugins"]`, `db["developer_plugins_visible"]`, `db["profile_locked"]`: UI toggle states.
   * **Access**: Directly via the `db` object, e.g., `current_pipeline_id = db.get("pipeline_id")`.
 
-## 4\. State Observability
+## 4. State Observability
 
   * Set `STATE_TABLES = True` in `server.py` to print the `store` (cookie) and `pipeline` tables to the console after each request. This is invaluable for debugging.
   * Workflow state is designed to be explicit and easily inspectable.
 
-## 5\. Initial State & Defaults
+## 5. Initial State & Defaults
 
   * `populate_initial_data()` in `server.py` ensures essential keys in `DictLikeDB` have default values on first run or after a full clear.
   * Workflows typically use `pipulate.initialize_if_missing()` in their `init` method to create the `pipeline` record.

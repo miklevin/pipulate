@@ -1,18 +1,18 @@
 ---
 ---
 
-## description: Core concepts for Pipulate workflow development, including plugin structure, APP\_NAME vs. filename, and **init** method. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+## description: Core concepts for Pipulate workflow development, including plugin structure, APP_NAME vs. filename, and **init** method. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 # Pipulate Workflow Core Concepts
 
-## 1\. Plugin System & Types
+## 1. Plugin System & Types
 
 Pipulate features an automatic plugin system. Files in the `plugins/` directory are auto-discovered.
 
   * **CRUD Apps (`BaseCrud`)**: For standard data management (Create, Read, Update, Delete). Inherit from `BaseCrud` in `server.py`. Examples: `profiles_app.py`, `010_tasks.py`. Follow DRY principles.
   * **Workflows (Plain Classes)**: For linear, step-by-step processes, often ported from Jupyter Notebooks. These are plain Python classes adhering to specific conventions. Follow WET (Write Everything Twice/Explicit) principles for clarity and customizability. Example: `020_hello_workflow.py`.
 
-## 2\. Workflow Identity: `APP_NAME` vs. Filename
+## 2. Workflow Identity: `APP_NAME` vs. Filename
 
 A critical distinction for workflows:
 
@@ -27,7 +27,7 @@ A critical distinction for workflows:
       * **CRITICAL**: `APP_NAME` should be unique across all workflows and **must remain stable** once workflows using it have stored data, otherwise existing data for that workflow type will be orphaned.
       * It's good practice for `APP_NAME` to be different from the filename (minus prefix) if you anticipate renaming files for UI/URL purposes but want to keep the underlying data association.
 
-## 3\. Workflow Class Structure (`__init__`)
+## 3. Workflow Class Structure (`__init__`)
 
 A typical workflow class:
 

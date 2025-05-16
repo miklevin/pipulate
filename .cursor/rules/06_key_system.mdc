@@ -1,15 +1,15 @@
 ---
 ---
 
-## description: Pipulate's workflow key system for identifying, resuming, and managing workflow instances. globs: ["pipulate/plugins/\*.py", "server.py", "\_posts/2025-04-13-understanding-keys.md"] alwaysApply: true
+## description: Pipulate's workflow key system for identifying, resuming, and managing workflow instances. globs: ["pipulate/plugins/*.py", "server.py", "_posts/2025-04-13-understanding-keys.md"] alwaysApply: true
 
 # Pipulate Workflow Key System
 
-## 1\. Overview
+## 1. Overview
 
 Each run of a Pipulate workflow is identified by a unique "pipeline key" (or `pipeline_id`). This key is central to state management, allowing workflows to be interruptible and resumable.
 
-## 2\. Key Structure & Generation
+## 2. Key Structure & Generation
 
   * **Format (Convention)**: `{ProfileName}-{WorkflowAppName}-{RunNumber}`
       * Example: `Default_Profile-Hello_Workflow-01`
@@ -24,7 +24,7 @@ Each run of a Pipulate workflow is identified by a unique "pipeline key" (or `pi
   * **User Input**: Users can type a full key to resume an existing workflow or manually create a new one (if the key doesn't exist, it will be created).
   * **Storage**: The active `pipeline_id` for the current session is stored in `db["pipeline_id"]`.
 
-## 3\. UI Interaction (Landing Page)
+## 3. UI Interaction (Landing Page)
 
   * The landing page of a workflow (`self.landing()`) typically presents an input field for the `pipeline_id`.
   * This field is often a `type="search"` input associated with a `<datalist>` populated with existing keys for that workflow type, allowing users to easily find and select past runs.
@@ -39,7 +39,7 @@ Each run of a Pipulate workflow is identified by a unique "pipeline key" (or `pi
     # Form POSTs to /self.APP_NAME/init
     ```
 
-## 4\. Resuming Workflows
+## 4. Resuming Workflows
 
 To resume a workflow:
 
@@ -48,18 +48,18 @@ To resume a workflow:
 3.  The `init` method loads the state associated with that `pipeline_id` from the `pipeline` table.
 4.  The chain reaction (see `04_chain_reaction_pattern.mdc`) then automatically progresses the UI to the last completed or current input step.
 
-## 5\. Key Uniqueness & Scope
+## 5. Key Uniqueness & Scope
 
   * While the `{Profile}-{App}-{Num}` format is a strong convention, the system technically treats `pipeline_id` as a unique string primary key in the `pipeline` table.
   * Auto-numbering is scoped by `ProfileName` and `WorkflowAppName`.
 
-## 6\. Cleaning Up Workflows
+## 6. Cleaning Up Workflows
 
   * **Specific Workflow**: Use the "🗑️ Delete Current Workflow" button (if implemented by the workflow, typically POSTs to `/delete-pipeline` with `pipeline_id`).
   * **All Workflows of a Type**: Use "🗑️ Delete All {WorkflowDisplayName} Workflows" (if implemented, POSTs to `/clear-pipeline`, which deletes all records for the current `APP_NAME` and profile).
   * These actions remove records from the `pipeline` table.
 
-## 7\. Relation to `APP_NAME`
+## 7. Relation to `APP_NAME`
 
 The `APP_NAME` (internal workflow ID from the class) is crucial for:
 

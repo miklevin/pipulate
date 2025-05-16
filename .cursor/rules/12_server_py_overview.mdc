@@ -5,7 +5,7 @@
 
 # `server.py` Overview for AI Assistants
 
-## 1\. Application Setup (`fast_app`)
+## 1. Application Setup (`fast_app`)
 
   * `app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(...)`
       * `app`: The main FastHTML/Starlette application instance.
@@ -14,7 +14,7 @@
   * Database schema for `store`, `profile`, `pipeline` is defined here.
   * Default HTML headers (`hdrs`) including CSS and JS are set up.
 
-## 2\. Core Global Instances
+## 2. Core Global Instances
 
 These are created in `server.py` and often passed to or used by plugins:
 
@@ -25,7 +25,7 @@ These are created in `server.py` and often passed to or used by plugins:
   * `profile_app`: Instance of `ProfileApp` (a `BaseCrud` subclass) for managing profiles.
   * `plugin_instances`: A dictionary storing instantiated plugin objects, keyed by their `module_name` (derived from filename).
 
-## 3\. Routing
+## 3. Routing
 
   * Static routes for core functionalities (e.g., `/`, `/sse`, `/chat`, `/poke`, `/select_profile`, `/clear-pipeline`).
   * Dynamic routes for plugins:
@@ -33,18 +33,18 @@ These are created in `server.py` and often passed to or used by plugins:
       * `ProfileApp` (and other CRUD apps) register routes for insert, update, delete, toggle, sort.
   * A catch-all route `/{path:path}` maps to `home(request)` to handle plugin landing pages.
 
-## 4\. Middleware (`DOMSkeletonMiddleware`)
+## 4. Middleware (`DOMSkeletonMiddleware`)
 
   * Logs incoming requests.
   * Optionally prints `db` (cookie) and `pipeline` state tables to console if `STATE_TABLES = True` (for debugging).
 
-## 5\. Plugin Discovery and Instantiation
+## 5. Plugin Discovery and Instantiation
 
   * `discover_plugin_files()`: Scans `plugins/` directory for `.py` files.
   * `find_plugin_classes()`: Inspects discovered modules for classes that look like plugins (e.g., have a `landing` method and `APP_NAME`/`DISPLAY_NAME`).
   * Found plugin classes are instantiated (passing `app`, `pipulate`, `pipeline`, `db`) and stored in `plugin_instances`.
 
-## 6\. Main Execution (`if __name__ == "__main__":`)
+## 6. Main Execution (`if __name__ == "__main__":`)
 
   * `run_server_with_watchdog()`:
       * Sets up Loguru and Uvicorn logging levels based on `DEBUG_MODE`.
@@ -52,7 +52,7 @@ These are created in `server.py` and often passed to or used by plugins:
       * Runs the Uvicorn server for the `app`.
   * `restart_server()`: Called by watchdog. Checks syntax of `server.py`, then uses `os.execv` to restart the Python process.
 
-## 7\. Key Settings & Constants (Top of `server.py`)
+## 7. Key Settings & Constants (Top of `server.py`)
 
   * `DEBUG_MODE`: Toggles verbose logging.
   * `STATE_TABLES`: Toggles console printing of DB state.

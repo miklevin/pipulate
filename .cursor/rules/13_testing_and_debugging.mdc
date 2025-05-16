@@ -1,15 +1,15 @@
 ---
 ---
 
-## description: General advice for testing and debugging Pipulate workflows and the application. globs: ["\*"] alwaysApply: false
+## description: General advice for testing and debugging Pipulate workflows and the application. globs: ["*"] alwaysApply: false
 
 # Testing and Debugging Pipulate
 
-## 1\. Debugging Workflow State and Progression
+## 1. Debugging Workflow State and Progression
 
   * **`STATE_TABLES = True`**: Set this at the top of `server.py`. After each HTTP request, the console will print:
       * 🍪 The contents of the `store` table (key-value store, `db` object).
-      * ➡️ The summary of the `pipeline` table (workflow states). This shows `pkey` (pipeline\_id), `created`, `updated`, and number of steps with data.
+      * ➡️ The summary of the `pipeline` table (workflow states). This shows `pkey` (pipeline_id), `created`, `updated`, and number of steps with data.
         This is invaluable for seeing how state changes after each interaction.
   * **LLM Context**: Use the chat interface. The LLM is often informed about UI changes and workflow state via the `OrderedMessageQueue`. Observing its responses can give clues about what it "thinks" is happening.
   * **Browser Developer Tools (Network Tab)**:
@@ -21,39 +21,39 @@
       * Set `DEBUG_MODE = True` in `server.py` for more verbose logging from Pipulate and Uvicorn.
       * Add `logger.debug(...)` statements in your workflow code.
 
-## 2\. Testing the Chain Reaction
+## 2. Testing the Chain Reaction
 
   * Verify that `hx_trigger="load"` is present on the `Div` for the *next* step in the HTML returned by `init()` and step `_submit` handlers, or by step GET handlers if they are showing a completed/finalized view.
   * If a workflow stalls, check the browser's network tab for the last successful HTMX request and the HTML it returned. The issue is often a missing or incorrect trigger for the subsequent step.
 
-## 3\. Testing Plugin Loading
+## 3. Testing Plugin Loading
 
   * Ensure your plugin file in `plugins/` does not start with `xx_` or contain `()`.
   * Check server startup logs. `server.py` logs discovered modules and instantiated plugins.
   * Verify `APP_NAME` and `DISPLAY_NAME` are correctly defined in your plugin class.
   * Ensure your plugin's `__init__` method calls `self.register_routes(self.app.route)` and that this method correctly defines routes for `landing`, `init`, steps, and `finalize`.
 
-## 4\. Testing State Persistence
+## 4. Testing State Persistence
 
   * Complete a few steps in a workflow.
   * Restart `server.py` (e.g., save a `.py` file to trigger watchdog, or `Ctrl+C` and rerun `nix develop`).
   * Navigate back to the workflow's landing page, enter the same `pipeline_id`.
   * The workflow should resume from where you left off. If not, check how state is being read in `step_XX()` methods and written in `step_XX_submit()` methods.
 
-## 5\. Python Debugging
+## 5. Python Debugging
 
   * You can use `breakpoint()` within your workflow Python code. When `nix develop` runs `server.py` in the foreground, the debugger will activate in that terminal.
   * For more complex debugging, consider running `server.py` manually from within `nix develop .#quiet` with your IDE's debugger attached.
 
-## 6\. Nix Environment Issues
+## 6. Nix Environment Issues
 
   * If Python packages are missing, add them to `requirements.txt` and re-enter `nix develop` (it will run `pip install -r requirements.txt`).
   * If system libraries are missing, they need to be added to `flake.nix` (more advanced).
 
-## 7\. `pipulate` Helper Methods
+## 7. `pipulate` Helper Methods
 
   * Many core functionalities (state updates, UI component generation) are in the `Pipulate` class in `server.py`. Understanding these methods (e.g., `set_step_data`, `revert_control`, `rebuild`) is key to debugging workflow logic.
 
-## 8\. Unit Testing (Future Consideration)
+## 8. Unit Testing (Future Consideration)
 
 While not heavily featured in the current documentation, a formal unit testing setup (e.g., using `pytest` and `httpx.AsyncClient` for testing routes, and mocking `db`/`pipeline_table` objects) would be beneficial for more rigorous testing of individual workflow logic and helper functions.

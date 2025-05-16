@@ -5,7 +5,7 @@
 
 # Environment Setup & Installation
 
-## 1\. Nix Flakes: The Foundation
+## 1. Nix Flakes: The Foundation
 
 Pipulate uses Nix Flakes for a consistent, reproducible environment across macOS, Linux, and Windows (via WSL).
 
@@ -13,7 +13,7 @@ Pipulate uses Nix Flakes for a consistent, reproducible environment across macOS
   * **CUDA Support**: Optionally leverages CUDA GPUs if detected (Linux-only).
   * **Python Packages**: `requirements.txt` lists Python packages, installed by `pip` within the Nix-managed `.venv`.
 
-## 2\. Installation: The "Magic Cookie" System
+## 2. Installation: The "Magic Cookie" System
 
 This system allows a simple `curl | sh` installation without requiring users to have `git` pre-installed.
 
@@ -28,7 +28,7 @@ This system allows a simple `curl | sh` installation without requiring users to 
     3.  It configures the git remote to use SSH if an SSH key is present.
   * **Auto-Updates**: `flake.nix` performs a `git pull` on entering `nix develop` and before server startup scripts, ensuring the installation stays up-to-date.
 
-## 3\. Using the Nix Environment
+## 3. Using the Nix Environment
 
   * **Activation**: **Always run `nix develop` from the project root (`~/pipulate` or custom install dir) in a new terminal before any other project commands.**
   * **Interactive Shell (`nix develop` or `nix develop .#default`)**:
@@ -43,7 +43,7 @@ This system allows a simple `curl | sh` installation without requiring users to 
       * Scripts like `run-server`, `run-jupyter`, `run-all` are available in `.venv/bin` for manual execution.
   * **Exiting**: Type `exit` or `Ctrl+D` to leave the Nix shell. `Ctrl+C` in the interactive shell stops `server.py`. `pkill tmux` stops all background services.
 
-## 4\. Dependency Management Conventions
+## 4. Dependency Management Conventions
 
   * **System Dependencies**: Managed in `flake.nix`.
   * **Python Packages**: Managed in `requirements.txt` (installed by `pip`).

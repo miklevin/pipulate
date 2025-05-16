@@ -1,16 +1,16 @@
 ---
 ---
 
-## description: Handling data persistence with MiniDataAPI, DictLikeDB, and managing file uploads/downloads. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+## description: Handling data persistence with MiniDataAPI, DictLikeDB, and managing file uploads/downloads. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 # Data Persistence & File Operations
 
-## 1\. SQLite as the Single Source of Truth
+## 1. SQLite as the Single Source of Truth
 
 All persistent data is stored in a single SQLite file: `data/data.db`.
 The schema is defined in `server.py` during `fast_app` initialization.
 
-## 2\. MiniDataAPI (for Structured Tables)
+## 2. MiniDataAPI (for Structured Tables)
 
   * Used for tables with a defined schema, like `profiles`.
   * `fast_app` returns a table object (e.g., `profiles`) and a dataclass (e.g., `Profile`).
@@ -23,7 +23,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
       * `profiles.xtra("WHERE active = ?", True)`: Custom SQL queries (use sparingly).
   * Used by `BaseCrud` and its subclasses (e.g., `ProfileApp`).
 
-## 3\. `DictLikeDB` (for Key-Value Store - `store` table)
+## 3. `DictLikeDB` (for Key-Value Store - `store` table)
 
   * A Python dictionary-like wrapper around the `store` table (`key` TEXT PK, `value` TEXT).
   * Accessed via the `db` object in `server.py` and workflow instances.
@@ -35,7 +35,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
       * `"my_key" in db`
   * Used for global UI state, last user choices, temporary messages. See `05_state_management.mdc`.
 
-## 4\. `pipeline` Table (for Workflow State - MiniDataAPI with JSON blobs)
+## 4. `pipeline` Table (for Workflow State - MiniDataAPI with JSON blobs)
 
   * Stores the state of each workflow run as a JSON string in the `data` column.
   * Accessed via `self.pipulate.pipeline_table` in workflows, but more commonly through `Pipulate` helper methods:
@@ -44,7 +44,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
       * `pipulate.set_step_data(...)`
   * See `05_state_management.mdc` for details on the JSON structure.
 
-## 5\. File Uploads
+## 5. File Uploads
 
   * **Form**: Must have `enctype="multipart/form-data"`. Input type is `file`.
     ```python
@@ -81,7 +81,7 @@ The schema is defined in `server.py` during `fast_app` initialization.
   * **Storage**: Conventionally, save to `downloads/{APP_NAME}/{pipeline_id}/{filename}`.
   * **State**: Store file metadata (path, name, size, type) in the workflow step's state.
 
-## 6\. File Downloads
+## 6. File Downloads
 
   * Workflows can generate files (e.g., CSVs, text files) and offer them for download.
   * Save generated files to a known location (e.g., `downloads/`).
