@@ -29,6 +29,10 @@ flake.nix
 requirements.txt
 server.py
 /home/mike/repos/MikeLev.in/_posts/2025-05-16-user-roles-developer-velocity.md
+/home/mike/repos/pipulate/plugins/010_tasks.py
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py
+/home/mike/repos/pipulate/plugins/030_connect_with_botify.py
+/home/mike/repos/pipulate/plugins/800_markdown.py
 """.strip().splitlines()
 
 # Filter out any commented lines
