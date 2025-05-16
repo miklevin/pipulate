@@ -1,0 +1,57 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## description: Meta-rule for routing to appropriate Pipulate framework rules based on query context. globs: ["*"] alwaysApply: true
+
+# Pipulate Framework Rule Routing Guide
+
+This meta-rule helps route queries to the most relevant detailed guidelines from our knowledge base.
+
+## Core Concepts & Architecture
+* For questions about core philosophy or high-level architecture:
+  * [00_philosophy.mdc](mdc:00_philosophy.mdc)
+  * [01_architecture_overview.mdc](mdc:01_architecture_overview.mdc)
+
+## Environment & Setup
+* For questions about environment, Nix, or installation:
+  * [02_environment_and_installation.mdc](mdc:02_environment_and_installation.mdc)
+
+## Workflow Development
+* For workflow development, step definitions, state management, APP_NAME, keys, or plugin structure:
+  * [03_workflow_core.mdc](mdc:03_workflow_core.mdc) - Basic workflow concepts
+  * [04_chain_reaction_pattern.mdc](mdc:04_chain_reaction_pattern.mdc) - HTMX step progression
+  * [05_state_management.mdc](mdc:05_state_management.mdc) - Workflow data management
+  * [06_key_system.mdc](mdc:06_key_system.mdc) - Pipeline ID management
+  * [11_plugin_development_guidelines.mdc](mdc:11_plugin_development_guidelines.mdc) - Plugin best practices
+
+## UI & Frontend
+* For UI, HTMX interactions, PicoCSS Forms, or FastHTML components:
+  * [07_ui_and_htmx.mdc](mdc:07_ui_and_htmx.mdc)
+
+## Data & Files
+* For database operations (MiniDataAPI, DictLikeDB), file uploads, or downloads:
+  * [09_data_and_file_operations.mdc](mdc:09_data_and_file_operations.mdc)
+
+## LLM Integration
+* For LLM integration (Ollama), chat context, or OrderedMessageQueue:
+  * [08_llm_integration.mdc](mdc:08_llm_integration.mdc)
+
+## Browser Automation
+* For Selenium browser automation:
+  * [10_browser_automation.mdc](mdc:10_browser_automation.mdc)
+
+## Server & Core
+* For server.py internals (app setup, routing, global instances):
+  * [12_server_py_overview.mdc](mdc:12_server_py_overview.mdc)
+
+## Testing & Debugging
+* For debugging issues or testing advice:
+  * [13_testing_and_debugging.mdc](mdc:13_testing_and_debugging.mdc)
+
+## Usage Notes
+1. This meta-rule is automatically included in every conversation
+2. Other rules are only included when specifically relevant to the query
+3. File references use the format `[filename.mdc](mdc:filename.mdc)` to link to actual rule files
+4. The routing guide helps quickly identify the most relevant detailed guidelines for any given query
