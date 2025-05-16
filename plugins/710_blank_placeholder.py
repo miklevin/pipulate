@@ -94,7 +94,7 @@ class BlankPlaceholder:
                 show='Step 1 Placeholder',
                 refill=False,
             ),
-            # Add more steps as needed
+            # --- STEPS_LIST_INSERTION_POINT ---
         ]
         
         # Register standard workflow routes
@@ -367,4 +367,8 @@ class BlankPlaceholder:
             pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
-        ) 
+        )
+
+    # --- STEP_METHODS_INSERTION_POINT ---
+
+# End of class BlankPlaceholder 

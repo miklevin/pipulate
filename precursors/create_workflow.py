@@ -5,13 +5,15 @@ import re
 from pathlib import Path
 
 # Example usage (make sure to run from the pipulate/ directory):
-# python create_workflow.py \
-# 035_kungfu_workflow.py \
-# KungfuWorkflow \
-# kungfu \
-# "Kung Fu Download" \
-# "Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
-# 'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo''s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.'
+"""
+python create_workflow.py \
+035_kungfu_workflow.py \
+KungfuWorkflow \
+kungfu \
+"Kung Fu Download" \
+"Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
+'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo''s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.'
+"""
 
 # Define paths relative to the project root (pipulate/)
 # Assumes this script is in pipulate/precursors/
