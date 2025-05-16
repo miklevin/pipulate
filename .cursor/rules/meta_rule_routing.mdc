@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ## description: Meta-rule for routing to appropriate Pipulate framework rules based on query context. globs: ["*"] alwaysApply: true
 
