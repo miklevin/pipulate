@@ -3495,7 +3495,13 @@ def create_app_menu(menux):
 @rt('/toggle_show_all', methods=['POST'])
 async def toggle_show_all(request):
     current = db.get("show_all_plugins", "0")
-    db["show_all_plugins"] = "1" if current == "0" else "0"
+    new_value = "1" if current == "0" else "0"
+    db["show_all_plugins"] = new_value
+    
+    # Store message in database for next page load
+    message = "Showing all user-facing plugins." if new_value == "1" else "Showing core plugins only."
+    db["temp_message"] = message
+    
     return HTMLResponse("", headers={"HX-Refresh": "true"})
 
 @rt('/toggle_developer_plugins_visibility', methods=['POST'])
@@ -3505,6 +3511,10 @@ async def toggle_developer_plugins_visibility(request):
     new_visibility = "1" if current_visibility == "0" else "0"
     db["developer_plugins_visible"] = new_visibility
     logger.info(f"Developer plugins visibility set to: {'Visible' if new_visibility == '1' else 'Hidden'}")
+    
+    # Store message in database for next page load
+    message = "Developer plugins are now visible." if new_visibility == "1" else "Developer plugins are now hidden."
+    db["temp_message"] = message
     
     # Force a full page refresh to rebuild the menu and potentially other UI elements
     response = HTMLResponse("") # Empty body is fine as we're just refreshing
@@ -3637,7 +3647,7 @@ def get_intro_page_content(page_num_str: str):
         title = "Tips for Effective Use"
         tips = [
             ("Botify Employees", "Use Connect With Botify to set up your API keys to activate workflows including Parameter Buster."),
-            ("Temporary Workflows", "Workflows should be considered temporary and disposable. Delete them. Start fresh. They are easily recreated."),
+            ("Temporary Workflows", "Workflows should be considered temporary and disposable. Delete them. Start fresh. They are easily recreated. Side-effects like .csv downloads stay on the machine and will reconnect given the same workflow inputs. 🤯"),
             ("Production Mode", "Switch to Production mode and set up real Client Nicknames in the Profiles menu. Conversely in Development mode, go wild!"),
             ("Profile Lock", "When using in front of a Client you can LOCK the Profile from either the Profile menu or the Poke button in order to avoid exposing other Client Nicknames.")
         ]
