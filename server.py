@@ -3492,6 +3492,7 @@ def get_intro_page_content(page_num_str: str):
     """
     Returns the content for the given intro page number.
     Each page's content is wrapped in a PicoCSS Card for consistent styling.
+    Also returns a context message for the LLM to keep it informed about what the user is seeing.
     """
     page_num = int(page_num_str)
     
@@ -3499,13 +3500,13 @@ def get_intro_page_content(page_num_str: str):
     card_style = "min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
     
     if page_num == 1:
-        return Card(
+        content = Card(
             H3(f"Welcome to {APP_NAME}"),
             P(f"Here's how {APP_NAME} works:"),
             Ol(
-                Li("Profiles: Manage your different clients or projects. Each profile is a separate workspace."),
-                Li("APPs: Access various tools and workflows, like SEO audits or content generators."),
-                Li("Mode: Switch between 'Development' for testing and 'Production' for live work.")
+                Li(Strong("Profiles:"), " Manage your different ", Strong("Customers"), " or ", Strong("Clients"), ". Each profile is a separate workspace."),
+                Li(Strong("APPs:"), " Access various tools and workflows, like To-Do lists and the Parameter Buster."),
+                Li(Strong("Mode:"), " Switch between 'Development' for testing and 'Production' for live work.")
             ),
             H4("Getting Started"),
             P("Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."),
@@ -3513,8 +3514,11 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id="intro-page-1-content"
         )
+        llm_context = "The user is viewing the Introduction page which explains how the app works, including Profiles, APPs, and Mode features."
+        return content, llm_context
+        
     elif page_num == 2:
-        return Card(
+        content = Card(
             H3("Experimenting"),
             Ol(
                 Li("Stay on ", Strong("Dev mode"), " and go wild!"),
@@ -3530,23 +3534,30 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id="intro-page-2-content"
         )
+        llm_context = "The user is viewing the Experimenting page which explains how to try things out in Dev mode and understand the interface components."
+        return content, llm_context
+        
     elif page_num == 3:
-        return Card(
+        content = Card(
             H3("Tips for Effective Use"),
             Ul(
-                Li("Local-First: All your data and processing happen on your machine. No cloud needed!"),
-                Li("Reproducibility: Nix ensures your environment is consistent, whether on macOS, Linux, or WSL."),
-                Li("WET Workflows: Workflows are designed to be explicit and step-by-step, making them easy to understand and debug."),
-                Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.")
+                Li("Botify Employees should use Connect With Botify to set up their API keys."),
+                Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps."),
+                Li("Switch to Production mode and set up real Client Nicknames in the Profiles menu."),
             ),
             style=card_style,
             id="intro-page-3-content"
         )
-    return Card(
+        llm_context = "The user is viewing the Tips page which explains the local-first approach, reproducibility with Nix, WET workflows, and LLM assistance features."
+        return content, llm_context
+        
+    content = Card(
         P(f"Content for instruction page {page_num_str} not found."),
         style=card_style,
         id=f"intro-page-{page_num_str}-content"
     )
+    llm_context = f"The user is viewing an unknown page ({page_num_str}) with no specific content."
+    return content, llm_context
 
 async def render_intro_page_with_navigation(page_num_str: str):
     """
@@ -3554,28 +3565,10 @@ async def render_intro_page_with_navigation(page_num_str: str):
     This function returns the content that will be swapped into the #grid-left-content div.
     """
     page_num = int(page_num_str)
-    page_content_area = get_intro_page_content(page_num_str)
-
+    page_content_area, llm_context = get_intro_page_content(page_num_str)
+    
     # Inform the LLM about the current intro page content
-    page_content = get_intro_page_content(page_num_str)
-    if page_num == 1:
-        append_to_conversation(
-            "The user is viewing the Introuction page which explains how the app works, including Profiles, APPs, and Mode features.",
-            role="system",
-            quiet=True
-        )
-    elif page_num == 2:
-        append_to_conversation(
-            "The user is viewing the Experimenting page which explains how to try things out in Dev mode and understand the interface components.",
-            role="system",
-            quiet=True
-        )
-    elif page_num == 3:
-        append_to_conversation(
-            "The user is viewing the Tips page which explains the local-first approach, reproducibility with Nix, WET workflows, and LLM assistance features.",
-            role="system",
-            quiet=True
-        )
+    append_to_conversation(llm_context, role="system", quiet=True)
 
     # Create centered button layout
     nav_buttons = [
