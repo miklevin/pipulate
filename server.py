@@ -3876,7 +3876,7 @@ def create_poke_button():
             # Add button to delete all workflows
             buttons.append(
                 A(
-                    f"Delete All {workflow_display_name} Workflows",
+                    f"🗑️ Delete All {workflow_display_name} Workflows",
                     hx_post="/clear-pipeline",
                     hx_swap="none",
                     cls="button",
@@ -3888,7 +3888,7 @@ def create_poke_button():
             if pipeline_id:
                 buttons.append(
                     A(
-                        f"Delete Current {workflow_display_name}",
+                        f"🗑️ Delete Current {workflow_display_name}",
                         hx_post="/delete-pipeline",
                         hx_vals=f'js:{{pipeline_id: "{pipeline_id}"}}',
                         hx_swap="none",
