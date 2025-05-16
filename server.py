@@ -2556,20 +2556,20 @@ class DictLikeDB:
     def __getitem__(self, key):
         try:
             value = self.store[key].value
-            logger.debug(f"Retrieved from DB: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+            logger.debug(f"Retrieved from DB: {key} = {value}")
             return value
         except NotFoundError:
-            logger.error(f"Key not found: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+            logger.error(f"Key not found: {key}")
             raise KeyError(key)
 
     @db_operation
     def __setitem__(self, key, value):
         try:
             self.store.update({"key": key, "value": value})
-            logger.debug(f"Updated persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+            logger.debug(f"Updated persistence store: {key} = {value}")
         except NotFoundError:
             self.store.insert({"key": key, "value": value})
-            logger.debug(f"Inserted new item in persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}> = <{COLOR_MAP['value']}>{value}</{COLOR_MAP['value']}>")
+            logger.debug(f"Inserted new item in persistence store: {key} = {value}")
 
     @db_operation
     def __delitem__(self, key):
@@ -2577,9 +2577,9 @@ class DictLikeDB:
             self.store.delete(key)
             # Don't log warnings for temp_message deletions
             if key != "temp_message":
-                logger.warning(f"Deleted key from persistence store: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+                logger.warning(f"Deleted key from persistence store: {key}")
         except NotFoundError:
-            logger.error(f"Attempted to delete non-existent key: <{COLOR_MAP['key']}>{key}</{COLOR_MAP['key']}>")
+            logger.error(f"Attempted to delete non-existent key: {key}")
             raise KeyError(key)
 
     @db_operation
