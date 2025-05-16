@@ -3102,18 +3102,6 @@ def get_profile_name():
 
 @rt('/delete-pipeline', methods=['POST'])
 async def delete_pipeline(request):
-    # Get the current workflow name and display name
-    menux = db.get("last_app_choice", "App")
-    workflow_display_name = "Pipeline"
-
-    # Get the display name for the current workflow if available
-    if menux and menux in plugin_instances:
-        instance = plugin_instances.get(menux)
-        if instance and hasattr(instance, 'DISPLAY_NAME'):
-            workflow_display_name = instance.DISPLAY_NAME
-        else:
-            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-
     # Get the pipeline ID from the request
     form = await request.form()
     pipeline_id = form.get("pipeline_id")
@@ -3122,30 +3110,24 @@ async def delete_pipeline(request):
 
     # Delete the specific pipeline record
     try:
+        # First check if the record exists
+        record = pipulate.table.get(pipeline_id)
+        if not record:
+            return P("Error: Workflow not found", style=pipulate.get_style("error"))
+            
+        # Delete the record
         pipulate.table.delete(pipeline_id)
         logger.debug(f"Deleted pipeline record: {pipeline_id}")
         
         # Clear the pipeline_id from the database if it matches
         if db.get("pipeline_id") == pipeline_id:
-            del db["pipeline_id"]
+            db.set("pipeline_id", "")
             logger.debug(f"Cleared pipeline_id from database")
+            
+        return P(f"Workflow {pipeline_id} deleted. You may need to refresh the page to see the updated list.")
     except Exception as e:
         logger.error(f"Error deleting pipeline record: {str(e)}")
-        return P(f"Error deleting {workflow_display_name}: {str(e)}", style=pipulate.get_style("error"))
-
-    # Create a response with an empty datalist and a refresh header
-    response = Div(
-        # Empty datalist with out-of-band swap to clear all options
-        pipulate.update_datalist("pipeline-ids", clear=True),
-        # Normal message displayed to the user
-        P(f"{workflow_display_name} deleted."),
-        cls="clear-message"
-    )
-
-    # Convert to HTTPResponse to add the refresh header
-    html_response = HTMLResponse(str(response))
-    html_response.headers["HX-Refresh"] = "true"
-    return html_response
+        return P(f"Error deleting workflow: {str(e)}", style=pipulate.get_style("error"))
 
 async def home(request):
     path = request.url.path.strip('/')
