@@ -3900,7 +3900,7 @@ def create_poke_button():
         dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
         buttons.append(
             A(
-                "Reset Entire Database",
+                "⚠️ Reset Entire Database",
                 hx_post="/clear-db",
                 hx_target="#msg-list",
                 hx_swap="innerHTML",
