@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = Table # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -2633,8 +2633,11 @@ def populate_initial_data():
         'last_profile_id', 
         'show_all_plugins',
         'developer_plugins_visible',
-        'profile_locked'  # Add profile_locked to allowed keys
+        'profile_locked',
+        'pipeline_id'  # Add pipeline_id to allowed keys
     }
+    
+    # Clean up non-essential keys
     for key in list(db.keys()):
         if key not in allowed_keys:
             try:
@@ -2642,11 +2645,24 @@ def populate_initial_data():
                 logger.debug(f"Deleted non-essential persistent key: {key}")
             except KeyError:
                 pass
+    
+    # Ensure default profile exists
     if not profiles():
-        default_profile = profiles.insert({"name": f"Default {profile_app.name.capitalize()}", "address": "", "code": "", "active": True, "priority": 0, })
+        default_profile = profiles.insert({
+            "name": f"Default {profile_app.name.capitalize()}", 
+            "address": "", 
+            "code": "", 
+            "active": True, 
+            "priority": 0
+        })
         logger.debug(f"Inserted default profile: {default_profile}")
+        # Set last_profile_id to the new default profile
+        db['last_profile_id'] = str(default_profile.id)
     else:
         default_profile = profiles()[0]
+        # Set last_profile_id to the first profile if not set
+        if 'last_profile_id' not in db:
+            db['last_profile_id'] = str(default_profile.id)
     
     # Initialize show_all_plugins if not present
     if 'show_all_plugins' not in db:
@@ -2662,6 +2678,21 @@ def populate_initial_data():
     if 'profile_locked' not in db:
         db['profile_locked'] = "0"
         logger.debug("Initialized profile_locked to '0'")
+        
+    # Initialize pipeline_id if not present
+    if 'pipeline_id' not in db:
+        db['pipeline_id'] = ""
+        logger.debug("Initialized pipeline_id to empty string")
+        
+    # Initialize last_app_choice if not present
+    if 'last_app_choice' not in db:
+        db['last_app_choice'] = ""
+        logger.debug("Initialized last_app_choice to empty string")
+        
+    # Initialize last_visited_url if not present
+    if 'last_visited_url' not in db:
+        db['last_visited_url'] = ""
+        logger.debug("Initialized last_visited_url to empty string")
 
 
 populate_initial_data()
