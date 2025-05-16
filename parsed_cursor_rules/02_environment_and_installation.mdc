@@ -1,0 +1,49 @@
+---
+---
+
+## description: Setting up and managing the Pipulate development environment using Nix and the Magic Cookie installation system. globs: ["flake.nix", "README.md", "install.sh"] alwaysApply: true
+
+# Environment Setup & Installation
+
+## 1\. Nix Flakes: The Foundation
+
+Pipulate uses Nix Flakes for a consistent, reproducible environment across macOS, Linux, and Windows (via WSL).
+
+  * **Source of Truth**: `flake.nix` defines system dependencies (Python version, libraries like gcc, zlib, chromedriver), and sets up the Python virtual environment (`.venv`).
+  * **CUDA Support**: Optionally leverages CUDA GPUs if detected (Linux-only).
+  * **Python Packages**: `requirements.txt` lists Python packages, installed by `pip` within the Nix-managed `.venv`.
+
+## 2\. Installation: The "Magic Cookie" System
+
+This system allows a simple `curl | sh` installation without requiring users to have `git` pre-installed.
+
+  * **Installer Script**: `install.sh` (hosted at `pipulate.com/install.sh`).
+    1.  Downloads a ZIP archive of the Pipulate repository.
+    2.  Extracts it.
+    3.  (Optionally) places a ROT13-encoded SSH key if provided for git operations.
+    4.  Runs `nix develop`.
+  * **`flake.nix` Role in Installation**:
+    1.  On first `nix develop` in a non-git directory, the `shellHook` in `flake.nix` transforms the directory into a proper git repository by cloning `github.com/miklevin/pipulate.git`.
+    2.  It preserves essential files like `app_name.txt` (for branding) and the `.ssh` directory.
+    3.  It configures the git remote to use SSH if an SSH key is present.
+  * **Auto-Updates**: `flake.nix` performs a `git pull` on entering `nix develop` and before server startup scripts, ensuring the installation stays up-to-date.
+
+## 3\. Using the Nix Environment
+
+  * **Activation**: **Always run `nix develop` from the project root (`~/pipulate` or custom install dir) in a new terminal before any other project commands.**
+  * **Interactive Shell (`nix develop` or `nix develop .#default`)**:
+      * Runs the full startup script (`run-script` defined in `flake.nix`).
+      * Performs `git pull`.
+      * Sets up Python `.venv` and installs/updates `requirements.txt`.
+      * Starts JupyterLab (background via `tmux`) and Pipulate server (`server.py` foreground).
+      * Opens browser tabs for Pipulate (localhost:5001) and JupyterLab (localhost:8888).
+  * **Quiet Shell (`nix develop .#quiet`)**:
+      * Activates the Nix environment and Python `.venv` *without* running the full startup script or starting servers.
+      * Ideal for running specific commands (e.g., `nix develop .#quiet --command python -m unittest`), debugging, or AI assistant interaction.
+      * Scripts like `run-server`, `run-jupyter`, `run-all` are available in `.venv/bin` for manual execution.
+  * **Exiting**: Type `exit` or `Ctrl+D` to leave the Nix shell. `Ctrl+C` in the interactive shell stops `server.py`. `pkill tmux` stops all background services.
+
+## 4\. Dependency Management Conventions
+
+  * **System Dependencies**: Managed in `flake.nix`.
+  * **Python Packages**: Managed in `requirements.txt` (installed by `pip`).

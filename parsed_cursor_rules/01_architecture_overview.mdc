@@ -1,0 +1,80 @@
+---
+---
+
+## description: High-level architecture of Pipulate, its key components, and technology stack. globs: ["pipulate/\*\*/\*.py", "server.py", "flake.nix", "README.md"] alwaysApply: true
+
+# Pipulate Architecture Overview
+
+## 1\. Key Components & Data Flow
+
+```
+
+```
+
+Browser (User Interface)
+↑ ↓ HTTP/HTMX, WebSockets
+
+```
+
++---------------------------------------+
+|       Nix Flake Shell (Host)          |
+| +-----------------+ +---------------+ |
+| |  FastHTML App   | | Ollama        | |  - Local LLM (Ollama)
+| |  (server.py)    | | (Local LLM)   | |  - Reproducible Env (Nix)
+| |    - HTMX UI    | +---------------+ |  - Python 3.12
+| |    - Workflows  |                   |
+| |    - CRUD Apps  |                   |
+| +-------↓---------+                   |
+|         | MiniDataAPI / DictLikeDB    |
+|         ↓                             |
+| +-----------------+                   |
+| |   SQLite DB     |                   |
+| | (data/data.db)  |                   |
+| +-----------------+                   |
++---------------------------------------+
+↑ ↓ Filesystem (Downloads, Logs)
+
+```
+
+  * **Browser**: Renders HTML served by FastHTML; HTMX handles partial page updates and interactions.
+  * **Nix Flake Shell**: Provides a reproducible Linux environment with all dependencies.
+  * **FastHTML App (`server.py`)**:
+      * Serves HTML generated directly from Python objects (no separate template language).
+      * Manages routing, WebSockets (for LLM chat), and Server-Sent Events (SSE for live updates).
+      * Hosts plugin-based Workflows and CRUD Apps.
+  * **Ollama**: Runs LLMs locally for chat, guidance, and automation.
+  * **MiniDataAPI & DictLikeDB**: Pythonic wrappers for SQLite.
+      * `MiniDataAPI`: For structured tables (e.g., `profiles`).
+      * `DictLikeDB`: For key-value store (`store` table) and JSON blob storage for workflow state (`pipeline` table).
+  * **SQLite (`data/data.db`)**: Single file database for all application and workflow state.
+  * **JupyterLab**: Runs alongside, sharing the same Python environment for prototyping.
+
+## 2\. Technology Stack
+
+  * **FastHTML**: Python web framework for server-rendered HTML with HTMX.
+  * **HTMX**: Enables dynamic UIs directly in HTML, minimizing custom JavaScript.
+  * **MiniDataAPI/DictLikeDB**: Lightweight SQLite interaction layers.
+  * **Ollama**: Local LLM serving.
+  * **Nix Flakes**: Manages dependencies and reproducible environments (Python, system libraries, CUDA support).
+  * **SQLite**: Primary data persistence.
+  * **Uvicorn**: ASGI server for FastHTML.
+  * **Watchdog**: Monitors file changes for live server reloading during development.
+
+## 3\. File Structure
+
+  * `server.py`: Main application, router, core logic.
+  * `flake.nix`: Nix environment definition.
+  * `requirements.txt`: Python package dependencies (managed by `pip` within Nix env).
+  * `plugins/`: Directory for Workflows and CRUD Apps.
+      * Naming: `XX_workflow_name.py` (numeric prefix for menu order).
+  * `data/`: Contains `data.db` (SQLite) and `environment.txt`.
+  * `static/`: CSS, JavaScript (htmx, fasthtml, prism, etc.), images.
+  * `training/`: Markdown files for LLM context.
+  * `logs/`: Server logs.
+  * `downloads/`: Default output for workflow-generated files.
+
+## 4\. Communication Channels
+
+  * **HTTP/HTMX**: Primary for UI rendering and interactions.
+  * **WebSockets**: Real-time LLM chat.
+  * **Server-Sent Events (SSE)**: Live UI updates (e.g., development reload).

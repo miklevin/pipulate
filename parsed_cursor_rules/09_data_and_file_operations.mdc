@@ -1,0 +1,111 @@
+---
+---
+
+## description: Handling data persistence with MiniDataAPI, DictLikeDB, and managing file uploads/downloads. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+
+# Data Persistence & File Operations
+
+## 1\. SQLite as the Single Source of Truth
+
+All persistent data is stored in a single SQLite file: `data/data.db`.
+The schema is defined in `server.py` during `fast_app` initialization.
+
+## 2\. MiniDataAPI (for Structured Tables)
+
+  * Used for tables with a defined schema, like `profiles`.
+  * `fast_app` returns a table object (e.g., `profiles`) and a dataclass (e.g., `Profile`).
+  * **Operations**:
+      * `profiles()`: Fetch all records.
+      * `profiles(pk_value)`: Fetch by primary key.
+      * `profiles.insert(dict_data)`: Insert new record.
+      * `profiles.update(pk_value, **update_data)` or `profiles.update(dataclass_instance)`: Update record.
+      * `profiles.delete(pk_value)`: Delete record.
+      * `profiles.xtra("WHERE active = ?", True)`: Custom SQL queries (use sparingly).
+  * Used by `BaseCrud` and its subclasses (e.g., `ProfileApp`).
+
+## 3\. `DictLikeDB` (for Key-Value Store - `store` table)
+
+  * A Python dictionary-like wrapper around the `store` table (`key` TEXT PK, `value` TEXT).
+  * Accessed via the `db` object in `server.py` and workflow instances.
+  * **Operations**:
+      * `db["my_key"] = "my_value"`
+      * `value = db["my_key"]`
+      * `value = db.get("my_key", default_value)`
+      * `del db["my_key"]`
+      * `"my_key" in db`
+  * Used for global UI state, last user choices, temporary messages. See `05_state_management.mdc`.
+
+## 4\. `pipeline` Table (for Workflow State - MiniDataAPI with JSON blobs)
+
+  * Stores the state of each workflow run as a JSON string in the `data` column.
+  * Accessed via `self.pipulate.pipeline_table` in workflows, but more commonly through `Pipulate` helper methods:
+      * `pipulate.read_state(pipeline_id)`
+      * `pipulate.write_state(pipeline_id, state_dict)`
+      * `pipulate.set_step_data(...)`
+  * See `05_state_management.mdc` for details on the JSON structure.
+
+## 5\. File Uploads
+
+  * **Form**: Must have `enctype="multipart/form-data"`. Input type is `file`.
+    ```python
+    Form(
+        Input(type="file", name="uploaded_files", multiple=True), # `multiple=True` for multi-file
+        Button("Upload ▸", type="submit"),
+        enctype="multipart/form-data",
+        # ... hx attributes ...
+    )
+    ```
+  * **Server-Side Processing (in `step_XX_submit`)**:
+    ```python
+    form_data = await request.form()
+    # For single file: file_upload = form_data.get("input_name")
+    # For multiple files:
+    uploaded_file_list = form_data.getlist("uploaded_files") # name attribute of input
+
+    if uploaded_file_list:
+        for file_upload in uploaded_file_list:
+            if file_upload.filename:
+                # file_upload is a Starlette UploadFile object
+                filename = file_upload.filename
+                # contents = await file_upload.read() # Read into memory
+                # For saving to disk:
+                save_path = Path("downloads") / self.APP_NAME / pipeline_id / filename
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(save_path, "wb") as f:
+                    # Stream large files
+                    async for chunk in file_upload.chunks():
+                        f.write(chunk)
+                # Store file info in workflow state
+                # await self.pipulate.set_step_data(...)
+    ```
+  * **Storage**: Conventionally, save to `downloads/{APP_NAME}/{pipeline_id}/{filename}`.
+  * **State**: Store file metadata (path, name, size, type) in the workflow step's state.
+
+## 6\. File Downloads
+
+  * Workflows can generate files (e.g., CSVs, text files) and offer them for download.
+  * Save generated files to a known location (e.g., `downloads/`).
+  * Provide a download link/button in the UI.
+    ```python
+    # In a step's GET handler, after file is generated and path is known:
+    file_path_obj = Path("downloads") / "my_report.csv"
+    # Ensure file_path_obj.name is URL-safe if directly used in URL.
+    # Better: pass a job_id or unique reference.
+    download_url = f"/{self.APP_NAME}/download_file?file_ref={file_path_obj.name}" # Example
+    return A("Download Report", href=download_url, download=file_path_obj.name) # `download` attribute prompts save dialog
+    ```
+  * **Download Route**: Create a route that serves the file using `FileResponse` from Starlette.
+    ```python
+    # In workflow's route registration
+    rt_decorator(f'/{self.APP_NAME}/download_file', methods=['GET'])(self.serve_generated_file)
+
+    async def serve_generated_file(self, request):
+        file_ref = request.query_params.get('file_ref')
+        # Securely map file_ref to actual file path
+        # Example: lookup path from workflow state or a job registry
+        file_path = Path("downloads") / file_ref # UNSAFE - VALIDATE AND SANITIZE file_ref
+        if file_path.exists() and file_path.is_file(): # And is within allowed dir
+            return FileResponse(file_path, media_type='application/octet-stream', filename=file_path.name)
+        return HTMLResponse("File not found.", status_code=404)
+    ```
+    **Security**: CRITICAL - Sanitize any user-provided parts of file paths (like `file_ref`) to prevent directory traversal attacks. Ensure paths are confined to designated download directories.

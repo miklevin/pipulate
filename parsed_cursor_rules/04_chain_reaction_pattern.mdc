@@ -1,0 +1,80 @@
+---
+---
+
+## description: The critical HTMX Chain Reaction pattern for workflow step progression in Pipulate. This pattern is IMMUTABLE. globs: ["pipulate/plugins/\*.py", "server.py"] alwaysApply: true
+
+# The HTMX Chain Reaction Pattern (Immutable)
+
+## 1\. Overview
+
+Pipulate workflows emulate a "Run All Cells" experience, similar to Jupyter Notebooks. This is achieved by an HTMX-driven "chain reaction." When a step completes, its response HTML includes a trigger for the next step to load automatically.
+
+**This pattern is critical and must be preserved exactly as implemented.** Modifying or removing `hx_trigger="load"` will break workflow progression.
+
+## 2\. The Core Pattern
+
+The fundamental structure returned by a step's GET or POST handler that continues the chain:
+
+```python
+# In a step's GET or POST handler (e.g., self.step_01_submit or self.step_01 if showing completed view)
+return Div(
+    # Content of the CURRENT step (e.g., Card showing completed data or input form)
+    Card(H3(f"{step.show}: {current_step_data}")), # Example of completed view
+
+    # CRITICAL: This inner Div triggers loading of the NEXT step.
+    # It MUST have hx_trigger="load".
+    Div(
+        id=next_step_id,  # e.g., "step_02" or "finalize"
+        hx_get=f"/{self.APP_NAME}/{next_step_id}",
+        hx_trigger="load" # This makes the magic happen. DO NOT REMOVE.
+    ),
+
+    id=current_step_id # e.g., "step_01". The hx-target of the form submission.
+)
+```
+
+  * **Outer `Div` (`id=current_step_id`)**: This is the container for the current step's UI. If this HTML is returned from a POST submit, it replaces the previous content of this `Div` (which was the input form).
+  * **Inner `Div` (`id=next_step_id`, `hx_trigger="load"`)**: This is the **chain link**.
+      * `id=next_step_id`: Provides a DOM target for the *next* step's content.
+      * `hx_get=f"/{self.APP_NAME}/{next_step_id}"`: Specifies the URL to fetch the next step's UI.
+      * `hx_trigger="load"`: This HTMX attribute instructs the browser to immediately make the `hx_get` request as soon as this `Div` is loaded into the DOM.
+
+## 3\. How the Chain Progresses
+
+1.  **`init` Method**: After pipeline ID submission, `init` (or `pipulate.rebuild()`) returns HTML containing the placeholder for the first step with `hx_trigger="load"`.
+    ```python
+    # From init() or pipulate.rebuild()
+    Div(
+        Div(id="step_01", hx_get=f"/{self.APP_NAME}/step_01", hx_trigger="load"),
+        # ... placeholders for other steps if rebuilding ...
+        id=f"{self.APP_NAME}-container"
+    )
+    ```
+2.  **First Step Loads (GET `/{APP_NAME}/step_01`)**:
+      * If `step_01` is incomplete, it renders its input form. This form's `hx-target` will be `#step_01`. The HTML for the input form includes an *empty* `Div(id="step_02")` (no `hx_trigger="load"` yet).
+      * If `step_01` is already complete (e.g., resuming workflow), it renders its completed view *and* the `Div` for `step_02` *with* `hx_trigger="load"`.
+3.  **User Submits Form (POST `/{APP_NAME}/step_01_submit`)**:
+      * The `step_01_submit` handler processes data and saves state.
+      * It returns HTML for the *completed view of `step_01`*. This HTML also includes the `Div` for `step_02` *with* `hx_trigger="load"`.
+      * HTMX swaps this new HTML into the `#step_01` target.
+4.  **Next Step Loads (GET `/{APP_NAME}/step_02`)**: The `Div` for `step_02` with `hx_trigger="load"` is now in the DOM, causing an immediate request. The cycle repeats.
+
+## 4\. Step Handler Responsibilities
+
+  * **GET Handler (`async def step_XX`)**:
+      * If step is complete AND workflow not finalized AND not reverting to this step's input: Return completed view + trigger for next step.
+      * If workflow finalized AND step complete: Return locked view + trigger for next step.
+      * Else (step incomplete or reverting to its input): Return input form + EMPTY placeholder for next step (NO `hx_trigger="load"`).
+  * **POST Handler (`async def step_XX_submit`)**:
+      * Process data, save state.
+      * Return completed view of current step + trigger for next step.
+
+## 5\. Breaking the Chain (Intentional & Cautionary)
+
+The chain should only be broken intentionally:
+
+  * **Input Forms**: A step rendering an input form does not trigger the next step until the form is submitted.
+  * **Terminal Responses**: If a step results in a final output (e.g., a file download link) and no further automatic progression is desired. The HTML returned would not include the `Div(id=next_step_id, hx_trigger="load")`.
+  * **Polling**: For long-running tasks, a step might return UI that polls a status endpoint. The polling `Div` itself would use `hx_trigger="load, every Xs"` and `hx_target="this"`. Only when polling indicates completion would the response include the trigger for the *next workflow step*.
+
+**Never remove `hx_trigger="load"` from a standard progression path.** Alternative implicit approaches (like event bubbling from a parent) are not used and are considered unreliable for this core pattern.

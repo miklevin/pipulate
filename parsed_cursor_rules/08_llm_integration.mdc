@@ -1,0 +1,77 @@
+---
+---
+
+## description: Integrating with local LLMs (Ollama), managing chat context, and using the OrderedMessageQueue for UI/LLM synchronization. globs: ["pipulate/plugins/\*.py", "server.py", ".cursor/rules/integration/llm\_context\_sync.mdc"] alwaysApply: true
+
+# LLM Integration and Context Synchronization
+
+## 1\. Local LLM (Ollama)
+
+  * Pipulate integrates with Ollama for local LLM capabilities (chat, assistance).
+  * Ensure Ollama is running (`ollama serve`) and models are pulled (e.g., `ollama pull gemma2`).
+  * Communication is via HTTP to `http://localhost:11434/api/chat`.
+  * Key settings in `server.py`: `MODEL` (default LLM model), `MAX_LLM_RESPONSE_WORDS`, `TONE`.
+
+## 2\. Chat Interface & WebSockets
+
+  * The right-hand pane in Pipulate is a chat interface.
+  * It uses WebSockets (`/ws` endpoint, handled by `Chat` class in `server.py`) for real-time, streaming communication with the LLM.
+  * User messages are sent to `server.py`, which then queries Ollama. Chunks of the LLM's response are streamed back to the UI.
+
+## 3\. Conversation History & Context Management
+
+  * A global conversation history (`global_conversation_history` in `server.py`) is maintained as a `deque`.
+  * `append_to_conversation(message, role, quiet)` adds messages to this history.
+  * The history includes a system prompt (`training/system_prompt.md`) and plugin-specific training prompts (`YourWorkflow.TRAINING_PROMPT`).
+  * Workflow actions (UI display, form submissions, errors) should update this history to keep the LLM aware of the user's context.
+
+## 4\. `OrderedMessageQueue` for UI/LLM Synchronization
+
+The `Pipulate.OrderedMessageQueue` (accessible via `self.message_queue` in workflows) is CRITICAL for synchronizing what the user sees with what the LLM knows.
+
+  * **Purpose**: Ensures messages are displayed in the UI and sent to the LLM conversation history in the correct order, reflecting the workflow's progression.
+  * **Usage**:
+    ```python
+    # In a workflow method (e.g., step_01_submit)
+    await self.message_queue.add(
+        self.pipulate, # The pipulate instance
+        "Step 1 processing complete. Value saved: XYZ.", # Message for UI & LLM
+        verbatim=True,  # True: display message as-is. False: send to LLM for a response.
+        role="system"   # "system", "user", or "assistant" for LLM history
+    )
+    ```
+  * **Automatic Context Markers**: The queue automatically adds markers to messages sent to the LLM history for better context:
+      * `[WORKFLOW STATE: Not yet started | Waiting for Step X input | Step X completed]`
+      * `[INFO] Your message` (for system messages)
+      * `[PROMPT] Your message` (for system messages asking for input)
+      * `[USER INPUT] Your message`
+      * `[RESPONSE] LLM's response`
+  * This system helps the LLM understand the current state of the workflow and the nature of the messages.
+
+## 5\. Informing the LLM via `Pipulate` Helpers & `message_queue`
+
+  * **Displaying UI Text**: When a workflow shows explanatory text or instructions to the user, also send it to the `message_queue` so the LLM sees it.
+    ```python
+    explanation = "This step requires you to enter your API key."
+    await self.message_queue.add(self.pipulate, explanation, verbatim=True, role="system")
+    # UI then shows: P(explanation)
+    ```
+  * **Form Submissions**: After processing a form, inform the LLM.
+    ```python
+    await self.message_queue.add(self.pipulate, f"{step.show} complete. Value: {user_input}", verbatim=True, role="system")
+    # This is often done by pipulate.set_step_data or pipulate.create_step_navigation
+    ```
+  * **Validation Errors**:
+    ```python
+    if not is_valid:
+        await self.message_queue.add(self.pipulate, f"Validation failed for {step.show}: {error_msg}", verbatim=True, role="system")
+    ```
+  * **General `pipulate.stream()`**:
+      * `pipulate.stream(message, verbatim=False)`: Sends `message` to the LLM for processing, streams response to UI, and adds both user message and LLM response to history.
+      * `pipulate.stream(message, verbatim=True)`: Sends `message` directly to UI, adds `message` to history.
+      * Prefer `message_queue.add()` for most workflow messages due to its ordering and context-marking benefits.
+
+## 6\. Training Prompts
+
+  * `YourWorkflow.TRAINING_PROMPT`: Specifies a Markdown file (e.g., `training/my_workflow_context.md`) or a direct string.
+  * This content is loaded by `read_training()` and typically injected into the conversation history when the user navigates to that workflow (via `build_endpoint_training()` in `server.py`). This primes the LLM for the specific workflow.

@@ -28,6 +28,7 @@ README.md
 flake.nix
 requirements.txt
 server.py
+/home/mike/repos/pipulate/plugins/010_tasks.py
 /home/mike/repos/.cursor/rules/architecture/core.mdc
 /home/mike/repos/.cursor/rules/architecture/future-development.mdc
 /home/mike/repos/.cursor/rules/implementation/about.mdc
@@ -80,10 +81,7 @@ server.py
 /home/mike/repos/.cursor/rules/widgets/ui/ui-patterns.mdc
 /home/mike/repos/.cursor/rules/widgets/workflow/integration.mdc
 /home/mike/repos/.cursor/rules/widgets/workflow/workflow-patterns.mdc
-/home/mike/repos/Pipulate.com/_posts/2025-04-06-local-first-revolution.md
 /home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-08-the-future-is-simple.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-09-beyond-colab.md
 /home/mike/repos/Pipulate.com/_posts/2025-04-13-understanding-keys.md
 /home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
 /home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
