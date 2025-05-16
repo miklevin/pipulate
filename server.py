@@ -39,7 +39,7 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = Table # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -3069,6 +3069,53 @@ def get_profile_name():
         return "Unknown Profile"
 
 
+@rt('/delete-pipeline', methods=['POST'])
+async def delete_pipeline(request):
+    # Get the current workflow name and display name
+    menux = db.get("last_app_choice", "App")
+    workflow_display_name = "Pipeline"
+
+    # Get the display name for the current workflow if available
+    if menux and menux in plugin_instances:
+        instance = plugin_instances.get(menux)
+        if instance and hasattr(instance, 'DISPLAY_NAME'):
+            workflow_display_name = instance.DISPLAY_NAME
+        else:
+            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
+
+    # Get the pipeline ID from the request
+    form = await request.form()
+    pipeline_id = form.get("pipeline_id")
+    if not pipeline_id:
+        return P("Error: No pipeline ID specified", style=pipulate.get_style("error"))
+
+    # Delete the specific pipeline record
+    try:
+        pipulate.table.delete(pipeline_id)
+        logger.debug(f"Deleted pipeline record: {pipeline_id}")
+        
+        # Clear the pipeline_id from the database if it matches
+        if db.get("pipeline_id") == pipeline_id:
+            del db["pipeline_id"]
+            logger.debug(f"Cleared pipeline_id from database")
+    except Exception as e:
+        logger.error(f"Error deleting pipeline record: {str(e)}")
+        return P(f"Error deleting {workflow_display_name}: {str(e)}", style=pipulate.get_style("error"))
+
+    # Create a response with an empty datalist and a refresh header
+    response = Div(
+        # Empty datalist with out-of-band swap to clear all options
+        pipulate.update_datalist("pipeline-ids", clear=True),
+        # Normal message displayed to the user
+        P(f"{workflow_display_name} deleted."),
+        cls="clear-message"
+    )
+
+    # Convert to HTTPResponse to add the refresh header
+    html_response = HTMLResponse(str(response))
+    html_response.headers["HX-Refresh"] = "true"
+    return html_response
+
 async def home(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
@@ -3576,16 +3623,16 @@ def get_intro_page_content(page_num_str: str):
         # Define the content structure once
         title = "Tips for Effective Use"
         tips = [
-            "Botify Employees should use Connect With Botify to set up their API keys.",
-            "LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.",
-            "Switch to Production mode and set up real Client Nicknames in the Profiles menu.",
-            "You can LOCK the Profile to not expose Client Nicknames to each other."
+            ("Botify Employees", "Use Connect With Botify to set up your API keys to activate workflows including Parameter Buster."),
+            ("Temporary Workflows", "Workflows should be considered temporary and disposable. Delete them. Start fresh. They are easily recreated."),
+            ("Production Mode", "Switch to Production mode and set up real Client Nicknames in the Profiles menu. Conversely in Development mode, go wild!"),
+            ("Profile Lock", "When using in front of a Client you can LOCK the Profile from either the Profile menu or the Poke button in order to avoid exposing other Client Nicknames.")
         ]
 
         # Create UI content
         content = Card(
             H3(title),
-            Ul(*[Li(tip) for tip in tips]),
+            Ol(*[Li(Strong(f"{name}:"), f" {desc}") for name, desc in tips]),
             style=card_style,
             id="intro-page-3-content"
         )
@@ -3594,7 +3641,7 @@ def get_intro_page_content(page_num_str: str):
         llm_context = f"""The user is viewing the Tips page which shows:
 
 {title}
-{chr(10).join(f"• {tip}" for tip in tips)}"""
+{chr(10).join(f"{i+1}. {name}: {desc}" for i, (name, desc) in enumerate(tips))}"""
         return content, llm_context
         
     # Handle unknown pages
@@ -3803,6 +3850,7 @@ def create_poke_button():
         is_crud_plugin = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
         is_workflow_plugin = (not is_crud_plugin and menux != profile_app.name and menux != "")
         if is_workflow_plugin:
+            # Add button to delete all workflows
             buttons.append(
                 A(
                     f"Delete All {workflow_display_name} Workflows",
@@ -3812,6 +3860,19 @@ def create_poke_button():
                     style=button_style
                 )
             )
+            # Add button to delete current workflow
+            pipeline_id = db.get("pipeline_id")
+            if pipeline_id:
+                buttons.append(
+                    A(
+                        f"Delete Current {workflow_display_name}",
+                        hx_post="/delete-pipeline",
+                        hx_vals=f'js:{{pipeline_id: "{pipeline_id}"}}',
+                        hx_swap="none",
+                        cls="button",
+                        style=button_style
+                    )
+                )
     if get_current_environment() == "Development":
         dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
         buttons.append(
@@ -4343,3 +4404,4 @@ if __name__ == "__main__":
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
+
