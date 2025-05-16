@@ -127,7 +127,8 @@ CORE_PLUGINS = {
     "",  # Home/Introduction
     "tasks",
     "connect_with_botify",
-    "parameter_buster"
+    "parameter_buster",
+    "kungfu_workflow"
 }
 
 def is_core_plugin(plugin_name):
@@ -3500,7 +3501,7 @@ def get_intro_page_content(page_num_str: str):
     if page_num == 1:
         return Card(
             H3(f"Welcome to {APP_NAME}"),
-            P("This is the first page of instructions. Here's how Pipulate works:"),
+            P(f"Here's how {APP_NAME} works:"),
             Ol(
                 Li("Profiles: Manage your different clients or projects. Each profile is a separate workspace."),
                 Li("APPs: Access various tools and workflows, like SEO audits or content generators."),
@@ -3514,12 +3515,17 @@ def get_intro_page_content(page_num_str: str):
         )
     elif page_num == 2:
         return Card(
+            H3("Experimenting"),
+            Ol(
+                Li("Stay on ", Strong("Dev mode"), " and go wild!"),
+                Li("Try things out and see what happens."),
+                Li("Use Poke / Reset Entire Database to start fresh.")
+            ),
             H3("Understanding the Interface"),
             Ul(
-                Li(Strong("Profiles Menu:"), " Click to switch between profiles or edit them. You can lock a profile to hide others during client presentations."),
-                Li(Strong("APPs Menu:"), " Select the workflow or tool you want to use."),
-                Li(Strong("ENV Menu:"), " 'Dev' mode uses a separate test database (e.g., pipulate_dev.db). 'Prod' mode uses the main database (e.g., pipulate.db)."),
-                Li(Strong("Poke Button (Bottom-Right):"), " Access quick actions like clearing workflow data or the entire database (in Dev mode).")
+                Li(Strong("Profiles Menu:"), " Set up Profiles (e.g., Clients). Give them nicknames."),
+                Li(Strong("APPs Menu:"), " Add To-Do items per Profile. Switch between Profiles."),
+                Li(Strong("Poke Button (Bottom-Right):"), " Reset everything! Try things out and see what happens.")
             ),
             style=card_style,
             id="intro-page-2-content"
@@ -3549,6 +3555,27 @@ async def render_intro_page_with_navigation(page_num_str: str):
     """
     page_num = int(page_num_str)
     page_content_area = get_intro_page_content(page_num_str)
+
+    # Inform the LLM about the current intro page content
+    page_content = get_intro_page_content(page_num_str)
+    if page_num == 1:
+        append_to_conversation(
+            "The user is viewing the Introuction page which explains how the app works, including Profiles, APPs, and Mode features.",
+            role="system",
+            quiet=True
+        )
+    elif page_num == 2:
+        append_to_conversation(
+            "The user is viewing the Experimenting page which explains how to try things out in Dev mode and understand the interface components.",
+            role="system",
+            quiet=True
+        )
+    elif page_num == 3:
+        append_to_conversation(
+            "The user is viewing the Tips page which explains the local-first approach, reproducibility with Nix, WET workflows, and LLM assistance features.",
+            role="system",
+            quiet=True
+        )
 
     # Create centered button layout
     nav_buttons = [
@@ -3737,7 +3764,7 @@ def create_poke_button():
         if is_workflow_plugin:
             buttons.append(
                 A(
-                    f"Clear {workflow_display_name}",
+                    f"Delete All {workflow_display_name} Workflows",
                     hx_post="/clear-pipeline",
                     hx_swap="none",
                     cls="button",
@@ -3757,7 +3784,7 @@ def create_poke_button():
         )
         buttons.append(
             A(
-                "Clear DB",
+                "Reset Entire Database",
                 hx_post="/clear-db",
                 hx_target="#msg-list",
                 hx_swap="innerHTML",
@@ -3767,7 +3794,7 @@ def create_poke_button():
         )
     buttons.append(
         A(
-            f"Poke",
+            f"Poke {MODEL}",
             hx_post="/poke",
             hx_target="#msg-list",
             hx_swap="innerHTML",
@@ -3777,7 +3804,7 @@ def create_poke_button():
     )
     buttons.append(
         A(
-            "Top",
+            "Scroll to Top",
             href="#",
             onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;",
             cls="button",

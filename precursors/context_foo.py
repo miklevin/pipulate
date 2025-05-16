@@ -35,6 +35,7 @@ server.py
 /home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
 /home/mike/repos/pipulate/precursors/create_workflow.py
 /home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
+/home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 /home/mike/repos/pipulate/plugins/715_splice_workflow.py
 """.strip().splitlines()
 

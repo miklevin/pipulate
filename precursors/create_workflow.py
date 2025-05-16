@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 # Example usage (make sure to run from the pipulate/ directory):
-# python precursors/create_workflow.py \
+# python create_workflow.py \
 # 035_kungfu_workflow.py \
 # KungfuWorkflow \
 # kungfu \
