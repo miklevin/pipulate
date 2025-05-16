@@ -90,8 +90,8 @@ class HelloFlow:
     APP_NAME = "hello"              # Unique identifier for this workflow's routes and data
     DISPLAY_NAME = "Hello Workflow"    # User-friendly name shown in the UI
     ENDPOINT_MESSAGE = (            # Message shown on the workflow's landing page
-        "Simply press Enter to start a new Workflow with this Key. "
-        "Keys are arbitrary (PROFILE + APP + Number-of-Runs by convention)."
+        "Press Enter to start a new Workflow with this Key. "
+        "Keys are arbitrary. Key standard is: Profile_Name-App_Name-XX"
     )
     TRAINING_PROMPT = "hello_workflow.md" # Filename (in /training) or text for AI context
 
