@@ -28,11 +28,7 @@ README.md
 flake.nix
 requirements.txt
 server.py
-plugins/710_blank_placeholder.py
-/home/mike/repos/pipulate/static/pico.css
-/home/mike/repos/pipulate/static/chat-styles.css
-/home/mike/repos/Pipulate.com/assets/css/styles.css
-/home/mike/repos/Pipulate.com/_posts/2025-04-13-understanding-keys.md
+/home/mike/repos/pipulate/plugins/010_tasks.py
 """.strip().splitlines()
 
 # Filter out any commented lines

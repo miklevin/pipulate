@@ -4036,12 +4036,13 @@ async def profile_render():
                         cls='sortable',
                         style="padding-left: 0;"
                     ),
-                    footer=Form(
+                    header=Form(
                         Group(
                             Input(
                                 placeholder="Nickname",
                                 name="profile_name",
-                                id="profile-name-input"
+                                id="profile-name-input",
+                                autofocus=True
                             ),
                             Input(
                                 placeholder=f"Real Name",
@@ -4068,19 +4069,12 @@ async def profile_render():
                         hx_target="#profile-list",
                         hx_swap="beforeend",
                         hx_swap_oob="true",
+                        hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
                     ),
                 ),
                 id="content-container",
             ),
         ),
-        Script("""
-            document.addEventListener('htmx:afterSwap', function(event) {
-                if (event.target.id === 'profile-list' && event.detail.successful) {
-                    const form = document.getElementById('add-profile-button').closest('form');
-                    form.reset();
-                }
-            });
-        """),
     )
 
 
