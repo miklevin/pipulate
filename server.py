@@ -3578,7 +3578,8 @@ def get_intro_page_content(page_num_str: str):
         tips = [
             "Botify Employees should use Connect With Botify to set up their API keys.",
             "LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.",
-            "Switch to Production mode and set up real Client Nicknames in the Profiles menu."
+            "Switch to Production mode and set up real Client Nicknames in the Profiles menu.",
+            "You can LOCK the Profile to not expose Client Nicknames to each other."
         ]
 
         # Create UI content
@@ -3832,6 +3833,19 @@ def create_poke_button():
                 style=button_style
             )
         )
+    
+    # Add Lock/Unlock Profile option
+    profile_locked = db.get("profile_locked", "0") == "1"
+    buttons.append(
+        A(
+            "Unlock Profile" if profile_locked else "Lock Profile",
+            hx_post="/toggle_profile_lock",
+            hx_swap="none",
+            cls="button",
+            style=button_style
+        )
+    )
+    
     buttons.append(
         A(
             f"Poke {MODEL}",
@@ -3901,9 +3915,9 @@ def create_poke_button():
             Button(
                 "👆",  # You can use any emoji/icon here
                 id="poke-flyout-icon",
-                style=flyout_button_css,
                 title="Show quick actions",
-                tabindex="0"
+                tabindex="0",
+                style=flyout_button_css
             ),
             id="poke-flyout",
             style=flyout_css
