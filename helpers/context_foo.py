@@ -30,7 +30,8 @@ requirements.txt
 server.py
 /home/mike/repos/MikeLev.in/_posts/2025-05-15-ai-coding-assistant-python-helpers.md
 /home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
-/home/mike/repos/pipulate/precursors/create_workflow.py
+/home/mike/repos/pipulate/helpers/create_workflow.py
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 """.strip().splitlines()
 
 # Filter out any commented lines

@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 import os
 
-# Define paths relative to this script's location (pipulate/precursors/)
+# Define paths relative to this script's location (pipulate/helpers/)
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 PLUGINS_DIR = PROJECT_ROOT / "plugins"

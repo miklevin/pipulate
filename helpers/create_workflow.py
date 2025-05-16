@@ -16,7 +16,7 @@ kungfu \
 """
 
 # Define paths relative to the project root (pipulate/)
-# Assumes this script is in pipulate/precursors/
+# Assumes this script is in pipulate/helpers/
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "710_blank_placeholder.py"
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
