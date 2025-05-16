@@ -3492,7 +3492,7 @@ def get_intro_page_content(page_num_str: str):
     """
     Returns the content for the given intro page number.
     Each page's content is wrapped in a PicoCSS Card for consistent styling.
-    Also returns a context message for the LLM to keep it informed about what the user is seeing.
+    The content is defined once and used for both UI display and LLM context.
     """
     page_num = int(page_num_str)
     
@@ -3500,63 +3500,110 @@ def get_intro_page_content(page_num_str: str):
     card_style = "min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
     
     if page_num == 1:
+        # Define the content structure once
+        title = f"Welcome to {APP_NAME}"
+        intro = f"Here's how {APP_NAME} works:"
+        features = [
+            ("Profiles", "Manage your different Customers or Clients. Each profile is a separate workspace."),
+            ("APPs", "Access various tools and workflows, like To-Do lists and the Parameter Buster."),
+            ("Mode", "Switch between 'Development' for testing and 'Production' for live work.")
+        ]
+        getting_started = "Getting Started"
+        nav_help = "Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."
+        llm_help = f"The chat interface on the right is powered by a local LLM ({MODEL}) to assist you."
+
+        # Create UI content
         content = Card(
-            H3(f"Welcome to {APP_NAME}"),
-            P(f"Here's how {APP_NAME} works:"),
-            Ol(
-                Li(Strong("Profiles:"), " Manage your different ", Strong("Customers"), " or ", Strong("Clients"), ". Each profile is a separate workspace."),
-                Li(Strong("APPs:"), " Access various tools and workflows, like To-Do lists and the Parameter Buster."),
-                Li(Strong("Mode:"), " Switch between 'Development' for testing and 'Production' for live work.")
-            ),
-            H4("Getting Started"),
-            P("Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs."),
-            P(f"The chat interface on the right is powered by a local LLM ({MODEL}) to assist you."),
+            H3(title),
+            P(intro),
+            Ol(*[Li(Strong(f"{name}:"), f" {desc}") for name, desc in features]),
+            H4(getting_started),
+            P(nav_help),
+            P(llm_help),
             style=card_style,
             id="intro-page-1-content"
         )
-        llm_context = "The user is viewing the Introduction page which explains how the app works, including Profiles, APPs, and Mode features."
+
+        # Create LLM context from the same content
+        llm_context = f"""The user is viewing the Introduction page which shows:
+
+{title}
+
+{intro}
+{chr(10).join(f"{i+1}. {name}: {desc}" for i, (name, desc) in enumerate(features))}
+
+{getting_started}
+{nav_help}
+{llm_help}"""
         return content, llm_context
         
     elif page_num == 2:
+        # Define the content structure once
+        experimenting_title = "Experimenting"
+        experimenting_steps = [
+            "Stay on Dev mode and go wild!",
+            "Try things out and see what happens.",
+            "Use Poke / Reset Entire Database to start fresh."
+        ]
+        interface_title = "Understanding the Interface"
+        interface_items = [
+            ("Profiles Menu", "Set up Profiles (e.g., Clients). Give them nicknames."),
+            ("APPs Menu", "Add To-Do items per Profile. Switch between Profiles."),
+            ("Poke Button (Bottom-Right)", "Reset everything! Try things out and see what happens.")
+        ]
+
+        # Create UI content
         content = Card(
-            H3("Experimenting"),
-            Ol(
-                Li("Stay on ", Strong("Dev mode"), " and go wild!"),
-                Li("Try things out and see what happens."),
-                Li("Use Poke / Reset Entire Database to start fresh.")
-            ),
-            H3("Understanding the Interface"),
-            Ul(
-                Li(Strong("Profiles Menu:"), " Set up Profiles (e.g., Clients). Give them nicknames."),
-                Li(Strong("APPs Menu:"), " Add To-Do items per Profile. Switch between Profiles."),
-                Li(Strong("Poke Button (Bottom-Right):"), " Reset everything! Try things out and see what happens.")
-            ),
+            H3(experimenting_title),
+            Ol(*[Li(step) for step in experimenting_steps]),
+            H3(interface_title),
+            Ul(*[Li(Strong(f"{name}:"), f" {desc}") for name, desc in interface_items]),
             style=card_style,
             id="intro-page-2-content"
         )
-        llm_context = "The user is viewing the Experimenting page which explains how to try things out in Dev mode and understand the interface components."
+
+        # Create LLM context from the same content
+        llm_context = f"""The user is viewing the Experimenting page which shows:
+
+{experimenting_title}
+{chr(10).join(f"{i+1}. {step}" for i, step in enumerate(experimenting_steps))}
+
+{interface_title}
+{chr(10).join(f"• {name}: {desc}" for name, desc in interface_items)}"""
         return content, llm_context
         
     elif page_num == 3:
+        # Define the content structure once
+        title = "Tips for Effective Use"
+        tips = [
+            "Botify Employees should use Connect With Botify to set up their API keys.",
+            "LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps.",
+            "Switch to Production mode and set up real Client Nicknames in the Profiles menu."
+        ]
+
+        # Create UI content
         content = Card(
-            H3("Tips for Effective Use"),
-            Ul(
-                Li("Botify Employees should use Connect With Botify to set up their API keys."),
-                Li("LLM Assistance: Use the chat to ask questions, get guidance, or even help with workflow steps."),
-                Li("Switch to Production mode and set up real Client Nicknames in the Profiles menu."),
-            ),
+            H3(title),
+            Ul(*[Li(tip) for tip in tips]),
             style=card_style,
             id="intro-page-3-content"
         )
-        llm_context = "The user is viewing the Tips page which explains the local-first approach, reproducibility with Nix, WET workflows, and LLM assistance features."
+
+        # Create LLM context from the same content
+        llm_context = f"""The user is viewing the Tips page which shows:
+
+{title}
+{chr(10).join(f"• {tip}" for tip in tips)}"""
         return content, llm_context
         
+    # Handle unknown pages
+    error_msg = f"Content for instruction page {page_num_str} not found."
     content = Card(
-        P(f"Content for instruction page {page_num_str} not found."),
+        P(error_msg),
         style=card_style,
         id=f"intro-page-{page_num_str}-content"
     )
-    llm_context = f"The user is viewing an unknown page ({page_num_str}) with no specific content."
+    llm_context = f"The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}"
     return content, llm_context
 
 async def render_intro_page_with_navigation(page_num_str: str):
