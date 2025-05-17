@@ -173,7 +173,6 @@ class CrudUI(PluginIdentityManager):
         sort_path = f"{prefix}_sort"
 
         routes_to_register = [
-            (f'{prefix}', self.app_instance.insert_item, ['POST']),
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
             (sort_path, self.app_instance.sort_items, ['POST']),
         ]
@@ -194,8 +193,6 @@ class CrudUI(PluginIdentityManager):
         items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
-        add_placeholder = f"Add new {self.pipulate.make_singular(self.name.lower())}"
-
         return Div(
             Card(
                 H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
@@ -204,21 +201,6 @@ class CrudUI(PluginIdentityManager):
                     id=self.LIST_ID,
                     cls='sortable',
                     style="padding-left: 0;"
-                ),
-                header=Form(
-                    Group(
-                        Input(
-                            placeholder=add_placeholder,
-                            id=self.INPUT_ID,
-                            name=self.FORM_FIELD_NAME,
-                            autofocus=True
-                        ),
-                        Button("Add", type="submit")
-                    ),
-                    hx_post=self.ENDPOINT_PREFIX,
-                    hx_swap="beforeend",
-                    hx_target=f"#{self.LIST_ID}",
-                    hx_on__after_request="this.reset(); document.getElementById(this.querySelector('input').id).focus();"
                 )
             ),
             id=self.CONTAINER_ID,
