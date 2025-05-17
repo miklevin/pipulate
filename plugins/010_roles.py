@@ -79,13 +79,27 @@ class CrudCustomizer(BaseCrud):
         current_profile_id = self.plugin.db_dictlike.get("last_profile_id", 1)
         logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.name}")
 
-        items_for_profile = self.table("profile_id = ?", [current_profile_id])
-        max_priority = max((i.priority or 0 for i in items_for_profile), default=-1) + 1
-        priority = int(form.get(f"{self.plugin.name}_priority", max_priority))
+        # Define the desired order of roles
+        role_order = {
+            'Core': 0,
+            'Botify Employee': 1,
+            'Tutorial': 2,
+            'Developer': 3,
+            'SEO Practitioner': 4
+        }
+
+        # If this is one of our predefined roles, use its specific priority
+        if text in role_order:
+            priority = role_order[text]
+        else:
+            # For any other roles, add them after the predefined ones
+            items_for_profile = self.table("profile_id = ?", [current_profile_id])
+            max_priority = max((i.priority or 0 for i in items_for_profile), default=4) + 1
+            priority = int(form.get(f"{self.plugin.name}_priority", max_priority))
 
         insert_data = {
             "text": text,
-            "done": False,
+            "done": text == "Core",  # Set done=True for Core role
             "priority": priority,
             "profile_id": current_profile_id,
         }
@@ -164,8 +178,35 @@ class CrudUI(PluginIdentityManager):
         self.register_plugin_routes()
         logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
 
-        # Later usage
+        # Initialize roles for the current profile
         current_profile_id = self.db_dictlike.get("last_profile_id", 1)
+        self.initialize_roles(current_profile_id)
+
+    def initialize_roles(self, profile_id):
+        """Initialize or reset roles in the correct order."""
+        # Define the desired order of roles
+        role_order = [
+            'Core',
+            'Botify Employee',
+            'Tutorial',
+            'Developer',
+            'SEO Practitioner'
+        ]
+
+        # Clear existing roles for this profile
+        existing_roles = self.table("profile_id = ?", [profile_id])
+        for role in existing_roles:
+            self.table.delete(role.id)
+
+        # Insert roles in the desired order
+        for priority, role_name in enumerate(role_order):
+            self.table.insert(
+                text=role_name,
+                done=(role_name == 'Core'),  # Only Core is done by default
+                priority=priority,
+                profile_id=profile_id
+            )
+        logger.debug(f"Initialized roles for profile {profile_id}")
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""
