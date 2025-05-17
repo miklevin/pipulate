@@ -152,13 +152,6 @@ def setup_logging():
     logs_dir.mkdir(parents=True, exist_ok=True)
     app_log_path = logs_dir / f'{APP_NAME}.log'
 
-    # Create a function to sanitize HTML tags for the logger
-    def sanitize_for_log(record):
-        if "message" in record and isinstance(record["message"], str):
-            # Replace angle brackets with their HTML entities to prevent logger from parsing HTML tags
-            record["message"] = record["message"].replace("<", "&lt;").replace(">", "&gt;")
-        return record
-
     # Use the DEBUG_MODE constant directly instead of environment variable
     log_level = "DEBUG" if DEBUG_MODE else "INFO"
     
@@ -182,17 +175,23 @@ def setup_logging():
         app_log_path,
         level=log_level,
         format=f"{time_format} | {message_format}",
-        enqueue=True,
-        filter=sanitize_for_log
+        enqueue=True
     )
 
     # Console logger - same content but with color
     logger.add(
         sys.stderr,
         level=log_level,
-        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | <cyan>{message}</cyan>",
+        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}",
         colorize=True,
-        filter=sanitize_for_log
+        filter=lambda record: (
+            # Only show important debug messages
+            record["level"].name != "DEBUG" or
+            any(key in record["message"] for key in [
+                "HTTP Request:", "Pipeline ID:", "State changed:",
+                "Creating", "Updated", "Plugin", "Role"
+            ])
+        )
     )
     
     # Log state tables mode if enabled
@@ -2778,54 +2777,52 @@ def discover_plugin_files():
 
 
 def find_plugin_classes(plugin_modules):
-    """Find plugin-compatible classes within imported modules.
-
-    Identifies plugin classes that have a 'landing' method
-    and the required attributes or properties. Supports:
-    - Workflow plugins with NAME/APP_NAME and DISPLAY_NAME attributes
-    - CRUD UI plugins with name/DISPLAY_NAME properties
-
+    """Find all plugin classes in the given modules.
+    
     Args:
-        plugin_modules (dict): Mapping of module names to module objects
-
+        plugin_modules: List of module objects to search through
+        
     Returns:
-        list: List of tuples (module_name, class_name, class_object) for each plugin class
+        List of tuples containing (module_name, class_name) for each plugin class found
     """
     plugin_classes = []
-
-    for module_name, module in plugin_modules.items():
-        logger.debug(f"Examining module: {module_name}")
-
-        for name, obj in inspect.getmembers(module):
-            logger.debug(f"Found member in {module_name}: {name}, type: {type(obj)}")
-
+    
+    for module in plugin_modules:
+        module_name = module.__name__
+        logger.debug(f"Searching for plugins in module: {module_name}")
+        
+        # Get all members of the module
+        for name, member in inspect.getmembers(module):
+            # Log the member we found
+            logger.debug(f"Found member in {module_name}: {name}, type: {type(member)}")
+            
             # Check if it's a class
-            if inspect.isclass(obj):
+            if inspect.isclass(member):
                 logger.debug(f"Class found: {module_name}.{name}")
-
-                # Check if the class has a landing method
-                if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
-                    # Check for direct attributes (workflow plugins)
-                    has_name_attribute = (
-                        hasattr(obj, 'NAME') or
-                        hasattr(obj, 'APP_NAME')  # Some plugins use APP_NAME instead
-                    )
-                    has_display_name = hasattr(obj, 'DISPLAY_NAME')
-                    has_attributes = has_name_attribute and has_display_name
-
-                    # Check for properties via class dictionary (CRUD UI plugins)
-                    has_properties = False
-                    if 'DISPLAY_NAME' in dir(obj) and not has_attributes:
-                        # For classes that use property decorators like CrudUI
-                        has_properties = True
-
-                    if has_attributes or has_properties:
-                        plugin_classes.append((module_name, name, obj))
-                        plugin_type = 'property-based' if has_properties else 'attribute-based'
-                        name_attr = 'APP_NAME' if hasattr(obj, 'APP_NAME') else 'NAME'
-                        logger.debug(f"Found plugin: {module_name}.{name} ({plugin_type}, using {name_attr})")
-
-    logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
+                
+                # Check if it has a landing method (required for all plugins)
+                if hasattr(member, 'landing'):
+                    # Check for required attributes/properties
+                    has_name = hasattr(member, 'NAME') or hasattr(member, 'name')
+                    has_app_name = hasattr(member, 'APP_NAME') or hasattr(member, 'app_name')
+                    has_display_name = hasattr(member, 'DISPLAY_NAME') or hasattr(member, 'display_name')
+                    
+                    if has_name and has_app_name and has_display_name:
+                        # Get the actual name value
+                        name_value = getattr(member, 'NAME', getattr(member, 'name', None))
+                        logger.debug(f"Found plugin: {module_name}.{name} (attribute-based, using NAME)")
+                        
+                        # Log roles if they exist
+                        if hasattr(member, 'ROLES'):
+                            roles = getattr(member, 'ROLES', [])
+                            logger.info(f"🔑 Plugin {module_name}.{name} has roles: {roles}")
+                        
+                        plugin_classes.append((module_name, name))
+                    else:
+                        logger.debug(f"Class {module_name}.{name} has landing method but missing required attributes")
+                else:
+                    logger.debug(f"Class {module_name}.{name} does not have landing method")
+    
     return plugin_classes
 
 
