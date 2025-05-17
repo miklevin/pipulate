@@ -3461,7 +3461,7 @@ def create_app_menu(menux):
 
         # Create menu item
         is_selected = menux == plugin_key
-        item_style = "background-color: var(--pico-primary-hover);" if is_selected else ""
+        item_style = "background-color: var(--pico-primary-focus);" if is_selected else ""
         
         menu_items.append(Li(
             Label(
@@ -3477,7 +3477,7 @@ def create_app_menu(menux):
                 display_name,
                 style="display: flex; align-items: center;"
             ),
-            style=f"text-align: left; {item_style}"
+            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE}"
         ))
 
     # Add developer options if in development environment
@@ -3500,7 +3500,7 @@ def create_app_menu(menux):
                 "Show All Plugins",
                 style="display: flex; align-items: center;"
             ),
-            style="text-align: left;"
+            style="text-align: left; padding: 0.5rem 1rem;"
         ))
 
         # Add toggle for developer plugins
@@ -3519,7 +3519,7 @@ def create_app_menu(menux):
                 "Show Developer Plugins",
                 style="display: flex; align-items: center;"
             ),
-            style="text-align: left;"
+            style="text-align: left; padding: 0.5rem 1rem;"
         ))
 
     return Details(
