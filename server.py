@@ -3205,28 +3205,48 @@ def create_env_menu():
     menu_items = []
     # Development option
     is_dev = current_env == "Development"
-    dev_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_dev else NOWRAP_STYLE
+    dev_style = "background-color: var(--pico-primary-background);" if is_dev else ""
     menu_items.append(Li(
-        A("Dev",
-          hx_post="/switch_environment",
-          hx_vals='{"environment": "Development"}',
-          hx_confirm="Switch to Development environment? This will restart the server.",
-          cls="dropdown-item",
-          style=dev_style),
-        style="display: block;"
+        Label(
+            Input(
+                type="radio",
+                name="env_radio_select",
+                value="Development",
+                checked=is_dev,
+                hx_post="/switch_environment",
+                hx_vals='{"environment": "Development"}',
+                hx_target="#dev-env-item",
+                hx_swap="outerHTML",
+                style="margin: 0; padding: 0;"
+            ),
+            "Dev",
+            style="display: inline-flex; align-items: center; margin: 0; padding: 0;"
+        ),
+        style=f"text-align: left; padding: 0.5rem 1rem; {dev_style}",
+        id="dev-env-item"
     ))
 
     # Production option
     is_prod = current_env == "Production"
-    prod_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_prod else NOWRAP_STYLE
+    prod_style = "background-color: var(--pico-primary-background);" if is_prod else ""
     menu_items.append(Li(
-        A("Prod",
-          hx_post="/switch_environment",
-          hx_vals='{"environment": "Production"}',
-          hx_confirm="Switch to Production environment? This will restart the server.",
-          cls="dropdown-item",
-          style=prod_style),
-        style="display: block;"
+        Label(
+            Input(
+                type="radio",
+                name="env_radio_select",
+                value="Production",
+                checked=is_prod,
+                hx_post="/switch_environment",
+                hx_vals='{"environment": "Production"}',
+                hx_target="#prod-env-item",
+                hx_swap="outerHTML",
+                style="margin: 0; padding: 0;"
+            ),
+            "Prod",
+            style="display: inline-flex; align-items: center; margin: 0; padding: 0;"
+        ),
+        style=f"text-align: left; padding: 0.5rem 1rem; {prod_style}",
+        id="prod-env-item"
     ))
 
     return Details(
@@ -3235,8 +3255,9 @@ def create_env_menu():
             id="env-id",
             style=env_summary_style
         ),
-        Ul(*menu_items, cls="dropdown-menu"),
+        Ul(*menu_items, style="padding-left: 0; min-width: max-content;", cls="dropdown-menu"),
         cls="dropdown",
+        id="env-dropdown-menu"
     )
 
 
