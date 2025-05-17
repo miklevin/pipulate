@@ -1,21 +1,30 @@
-from fasthtml.common import *
-from server import BaseCrud, DB_FILENAME, LIST_SUFFIX
-from loguru import logger
+from fasthtml.common import (
+    Container, Grid, Div, Card, H2, Ul, Form, Group, Input, Button, Li, Span, A, Hr,
+    Label, Details, Summary, Select, Option, Textarea, Script, Link, Meta, Title,
+    HTTPException, HTMLResponse, to_xml
+)
+from server import (
+    BaseCrud, DB_FILENAME, LIST_SUFFIX,
+    PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE, NOWRAP_STYLE,
+    get_current_profile_id,
+    db,
+    logger,
+    rt
+)
 import os
 import re
 import sys
 import fastlite
-import logging
+import json
 from typing import Optional, List, Dict, Any
 from pipulate.server import (
-    Container, Grid, Div, Card, H2, Ul, Form, Group, Input, Button,
-    Li, Span, LIST_SUFFIX, PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE,
-    get_current_profile_id, profiles, pipulate, logger, rt, BaseCrud
+    profiles, pipulate
 )
 
 # Constants
 PLACEHOLDER_ADDRESS = "Address (optional)"
 PLACEHOLDER_CODE = "Code (optional)"
+NOWRAP_STYLE = "white-space: nowrap;"
 
 ROLES = ['Core']
 
@@ -62,15 +71,10 @@ class PluginIdentityManager:
 class CrudCustomizer(BaseCrud):
     """Custom CRUD operations for profiles."""
     
-    def __init__(self, table, pipulate_instance=None):
-        """Initialize the CRUD customizer."""
-        super().__init__(
-            name="profiles",
-            table=table,
-            toggle_field="active",
-            sort_field="priority",
-            pipulate_instance=pipulate_instance
-        )
+    def __init__(self, plugin):
+        self.plugin = plugin
+        self.table = plugin.table
+        self.pipulate = plugin.pipulate
 
     def render_item(self, item):
         """Render a profile item."""
@@ -107,7 +111,7 @@ class CrudCustomizer(BaseCrud):
             self.table.update(profile)
 
             # Return updated profile item
-            return self.render_item(profile)
+            return render_profile(profile, self)
 
         except Exception as e:
             logger.error(f"Error toggling profile: {str(e)}")
@@ -201,81 +205,106 @@ class CrudCustomizer(BaseCrud):
             raise HTTPException(status_code=500, detail=str(e))
 
 def render_profile(profile, app_instance: CrudCustomizer):
-    plugin_name_attr = app_instance.plugin.name # e.g., 'profiles'
-    endpoint_prefix = app_instance.plugin.ENDPOINT_PREFIX # e.g., '/profiles'
-    item_dom_id = f'{plugin_name_attr}-{profile.id}'
+    """Render a profile item with HTMX functionality."""
+    # Construct HTMX URLs
+    delete_url = f"{app_instance.plugin.endpoint_prefix}/delete/{profile.id}"
+    toggle_url = f"{app_instance.plugin.endpoint_prefix}/toggle/{profile.id}"
+    update_url = f"{app_instance.plugin.endpoint_prefix}/update/{profile.id}"
 
-    delete_icon_visibility = 'inline' # Assuming profiles can always be deleted for now
-    delete_url = f"{endpoint_prefix}/delete/{profile.id}"
-    toggle_url = f"{endpoint_prefix}/toggle/{profile.id}"
-    update_url = f"{endpoint_prefix}/{profile.id}" # For submitting the update form
-
-    delete_icon = A(
-        '🗑', hx_delete=delete_url, hx_target=f'#{item_dom_id}', hx_swap='outerHTML',
-        style=f"cursor: pointer; display: {delete_icon_visibility}; text-decoration: none; margin-left: 10px;",
-        cls="delete-icon"
+    # Create delete icon
+    delete_icon = Span(
+        _class="delete-icon",
+        _style="cursor: pointer; color: red;",
+        _hx_delete=delete_url,
+        _hx_confirm="Are you sure you want to delete this profile?",
+        _hx_target="closest li",
+        _hx_swap="outerHTML",
+        content="🗑️"
     )
+
+    # Create active checkbox
     active_checkbox = Input(
-        type="checkbox", name="active", checked=profile.active,
-        hx_post=toggle_url, hx_target=f'#{item_dom_id}', hx_swap="outerHTML",
-        style="margin-right: 5px;"
+        type="checkbox",
+        name="active",
+        checked=profile.active,
+        _hx_post=toggle_url,
+        _hx_target="closest li",
+        _hx_swap="outerHTML"
     )
-    
-    update_form_id = f'update-form-{plugin_name_attr}-{profile.id}'
-    display_span_id = f'{plugin_name_attr}-text-display-{profile.id}'
-    
-    # Form fields for update
-    input_name_id = f"name-update-{plugin_name_attr}-{profile.id}"
-    input_real_name_id = f"real_name-update-{plugin_name_attr}-{profile.id}"
-    input_address_id = f"address-update-{plugin_name_attr}-{profile.id}"
-    input_code_id = f"code-update-{plugin_name_attr}-{profile.id}"
 
+    # Create update form
     update_form = Form(
-        Group(
-            Input(type="text", name="profile_name", value=profile.name, placeholder="Nickname", id=input_name_id),
-            Input(type="text", name="profile_real_name", value=profile.real_name, placeholder="Real Name", id=input_real_name_id),
-            Input(type="text", name="profile_address", value=profile.address, placeholder=PLACEHOLDER_ADDRESS, id=input_address_id),
-            Input(type="text", name="profile_code", value=profile.code, placeholder=PLACEHOLDER_CODE, id=input_code_id),
-            Button("Update", type="submit"),
-            Button("Cancel", type="button", cls="secondary", onclick=(
-                f"document.getElementById('{update_form_id}').style.display='none'; "
-                f"document.getElementById('{display_span_id}').style.display='inline'; "
-                f"document.getElementById('{item_dom_id}').style.alignItems='center';"
-            )),
-        ),
-        hx_post=update_url, hx_target=f'#{item_dom_id}', hx_swap='outerHTML',
-        style="display: none;", id=update_form_id
+        _class="update-form",
+        _style="display: none;",
+        _hx_put=update_url,
+        _hx_target="closest li",
+        _hx_swap="outerHTML",
+        content=[
+            Input(
+                type="text",
+                name="profile_name",
+                value=profile.name,
+                placeholder="Profile Name",
+                required=True
+            ),
+            Input(
+                type="text",
+                name="profile_real_name",
+                value=profile.real_name or "",
+                placeholder="Real Name (optional)"
+            ),
+            Input(
+                type="text",
+                name="profile_address",
+                value=profile.address or "",
+                placeholder=PLACEHOLDER_ADDRESS
+            ),
+            Input(
+                type="text",
+                name="profile_code",
+                value=profile.code or "",
+                placeholder=PLACEHOLDER_CODE
+            ),
+            Button(
+                type="submit",
+                content="Update"
+            )
+        ]
     )
 
-    title_link_span = Span(
-        f"{profile.name}", id=display_span_id, style="margin-left: 5px; cursor: pointer;",
-        onclick=(
-            f"document.getElementById('{display_span_id}').style.display='none'; "
-            f"document.getElementById('{update_form_id}').style.display='block'; " # Changed to block for better layout
-            f"document.getElementById('{item_dom_id}').style.alignItems='flex-start'; " # Align to top when form is open
-            f"document.getElementById('{input_name_id}').focus();"
-        )
+    # Create profile info
+    profile_info = Div(
+        _class="profile-info",
+        content=[
+            Span(
+                _class="profile-name",
+                _style="cursor: pointer;",
+                _onclick="this.parentElement.nextElementSibling.style.display = 'block'",
+                content=profile.name
+            ),
+            Span(
+                _class="profile-details",
+                content=[
+                    f"Real Name: {profile.real_name}" if profile.real_name else None,
+                    f"Address: {profile.address}" if profile.address else None,
+                    f"Code: {profile.code}" if profile.code else None
+                ]
+            )
+        ]
     )
 
-    contact_info = []
-    if profile.real_name: contact_info.append(f"Real: {profile.real_name}") # Added Real Name here
-    if profile.address: contact_info.append(profile.address)
-    if profile.code: contact_info.append(profile.code)
-    contact_info_span = Span(f" ({', '.join(contact_info)})", style="margin-left: 10px; font-size: smaller; color: grey;") if contact_info else Span()
-
+    # Create list item
     return Li(
-        Div(
-            active_checkbox,
-            title_link_span,
-            contact_info_span,
+        _class="profile-item",
+        _style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem;",
+        _data_priority=profile.priority,
+        _data_active=str(profile.active).lower(),
+        content=[
             delete_icon,
-            style="display: flex; align-items: center; flex-wrap: wrap;" # flex-wrap for responsiveness
-        ),
-        update_form, # Update form is now a sibling, visibility controlled by JS
-        id=item_dom_id,
-        data_id=profile.id, # For sortable
-        data_priority=profile.priority, # For sortable
-        style="list-style-type: none; margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);"
+            active_checkbox,
+            profile_info,
+            update_form
+        ]
     )
 
 # class ProfileApp(BaseCrud):
@@ -394,7 +423,7 @@ def render_profile(profile, app_instance: CrudCustomizer):
             self.table.update(profile)
 
             # Return updated profile item
-            return self.render_item(profile)
+            return render_profile(profile, self)
 
         except Exception as e:
             logger.error(f"Error toggling profile: {str(e)}")
