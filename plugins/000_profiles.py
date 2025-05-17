@@ -227,7 +227,8 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         title="Toggle Active Status"
     )
 
-    delete_icon_span = Span(
+    # Only create delete icon if this is not the Default Profile
+    delete_icon_span = "" if profile_record.name == "Default Profile" else Span(
         "🗑️",
         hx_delete=delete_url,
         hx_target=f"#{item_id_dom}",
