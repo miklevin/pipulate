@@ -2926,8 +2926,8 @@ additional_menu_items = []  # Remove 'mobile_chat' from here
 # Create a startup event handler to run synchronize_roles_to_db
 
 
-@app.on_event("startup")
-async def startup_event():  # noqa
+@app.on_event("startup")  # noqa
+async def startup_event():
     await synchronize_roles_to_db()
 
 # Get discovered plugins in the order they were discovered (based on numeric prefix)
