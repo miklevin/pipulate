@@ -3966,8 +3966,9 @@ def create_poke_button():
             cls="contrast outline",
             style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;",
             hx_post="/poke",
-            hx_swap="outerHTML",
-            hx_target="#flyout-panel"
+            hx_target="#chat-messages",
+            hx_swap="beforeend",
+            data_hx_post="/poke"  # Add this attribute for the JavaScript selector
         ),
         Div(
             Div(
@@ -3977,8 +3978,8 @@ def create_poke_button():
                         Button(
                             "🤖 Poke Model",
                             hx_post="/poke",
-                            hx_swap="outerHTML",
-                            hx_target="body",
+                            hx_target="#chat-messages",
+                            hx_swap="beforeend",
                             cls="secondary outline"
                         )
                     ),
@@ -4016,8 +4017,32 @@ def create_poke_button():
                 style="padding: 1rem;"
             ),
             id="flyout-panel",
-            style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
-        )
+            style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
+        ),
+        Script("""
+            document.addEventListener('DOMContentLoaded', function() {
+                const pokeButton = document.querySelector('button[data-hx-post="/poke"]');
+                const flyoutPanel = document.getElementById('flyout-panel');
+                
+                if (pokeButton && flyoutPanel) {
+                    pokeButton.addEventListener('mouseenter', () => {
+                        flyoutPanel.style.display = 'block';
+                    });
+                    
+                    flyoutPanel.addEventListener('mouseleave', () => {
+                        flyoutPanel.style.display = 'none';
+                    });
+                    
+                    pokeButton.addEventListener('mouseleave', (e) => {
+                        // Check if we're moving to the flyout panel
+                        const toElement = e.relatedTarget;
+                        if (!flyoutPanel.contains(toElement)) {
+                            flyoutPanel.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        """)
     )
 
 async def profile_render():
