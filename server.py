@@ -38,7 +38,7 @@ import sqlite3
 import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
-DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
+DEBUG_MODE = True   # Set to True for verbose logging (all DEBUG level logs)
 STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
@@ -2880,6 +2880,10 @@ for module_name, class_name, workflow_class in discovered_classes:
             plugin_instances[module_name] = instance
             logger.debug(f"Auto-registered workflow: {module_name}")
 
+            # Log roles if they exist
+            if hasattr(instance, 'ROLES'):
+                logger.debug(f"Plugin {module_name} has roles: {instance.ROLES}")
+
             # Retrieve and log the endpoint message using the new method
             endpoint_message = get_endpoint_message(module_name)
             logger.debug(f"Endpoint message for {module_name}: {endpoint_message}")
@@ -3773,6 +3777,9 @@ async def create_grid_left(menux, render_items=None):
             # Try to get the workflow instance for the selected menu item
             workflow_instance = get_workflow_instance(menux)
             if workflow_instance:
+                # Log roles if they exist and DEBUG_MODE is active
+                if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
+                    logger.debug(f"Selected plugin {menux} has roles: {workflow_instance.ROLES}")
                 content_to_render = await workflow_instance.landing()
     else:
         # Introduction page logic
