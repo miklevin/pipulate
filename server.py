@@ -3472,12 +3472,13 @@ def create_app_menu(menux):
                     checked=is_selected,
                     hx_post=f"/redirect/{plugin_key}",
                     hx_target="body",
-                    hx_swap="outerHTML"
+                    hx_swap="outerHTML",
+                    style="min-width: 1rem; margin-right: 0.5rem;"
                 ),
                 display_name,
-                style="display: flex; align-items: center;"
+                style="display: flex; align-items: center; flex: 1; min-width: 0;"
             ),
-            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE}"
+            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE} display: flex;"
         ))
 
     # Add developer options if in development environment
@@ -3495,12 +3496,12 @@ def create_app_menu(menux):
                     hx_post="/toggle_show_all",
                     hx_target="body",
                     hx_swap="outerHTML",
-                    style="margin-right: 10px;"
+                    style="margin-right: 10px; min-width: 1rem;"
                 ),
                 "Show All Plugins",
-                style="display: flex; align-items: center;"
+                style="display: flex; align-items: center; flex: 1; min-width: 0;"
             ),
-            style="text-align: left; padding: 0.5rem 1rem;"
+            style="text-align: left; padding: 0.5rem 1rem; display: flex;"
         ))
 
         # Add toggle for developer plugins
@@ -3514,12 +3515,12 @@ def create_app_menu(menux):
                     hx_post="/toggle_developer_plugins_visibility",
                     hx_target="body",
                     hx_swap="outerHTML",
-                    style="margin-right: 10px;"
+                    style="margin-right: 10px; min-width: 1rem;"
                 ),
                 "Show Developer Plugins",
-                style="display: flex; align-items: center;"
+                style="display: flex; align-items: center; flex: 1; min-width: 0;"
             ),
-            style="text-align: left; padding: 0.5rem 1rem;"
+            style="text-align: left; padding: 0.5rem 1rem; display: flex;"
         ))
 
     return Details(
@@ -3528,7 +3529,7 @@ def create_app_menu(menux):
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="app-id"
         ),
-        Ul(*menu_items, style="padding-left: 0; min-width: 300px;", cls="dropdown-menu"),
+        Ul(*menu_items, style="padding-left: 0; min-width: 390px;", cls="dropdown-menu"),
         cls="dropdown",
         id="app-dropdown-menu"
     )
