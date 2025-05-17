@@ -38,7 +38,7 @@ import sqlite3
 import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
-DEBUG_MODE = True   # Set to True for verbose logging (all DEBUG level logs)
+DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
 STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
