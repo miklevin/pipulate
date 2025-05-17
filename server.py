@@ -125,6 +125,7 @@ LIST_SUFFIX = "List"
 # Near the top with other constants
 CORE_PLUGINS = {
     "",  # Home/Introduction
+    "roles",
     "tasks",
     "connect_with_botify",
     "parameter_buster",
