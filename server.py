@@ -3452,19 +3452,18 @@ def create_app_menu(menux):
     
     # Get active roles from the roles table
     active_role_names = set()
-    current_profile_id = get_current_profile_id()
     roles_plugin = plugin_instances.get('roles')
     if roles_plugin and hasattr(roles_plugin, 'table'):
         try:
-            # Query for roles where done is True for the current profile_id
+            # Query for roles where done is True across ALL profiles
             active_role_records = list(roles_plugin.table(
-                where="profile_id = ? AND done = ?", 
-                args=(current_profile_id, True)
+                where="done = ?", 
+                where_args=(True,)
             ))
             active_role_names = {record.text for record in active_role_records}
-            logger.debug(f"Active roles for profile {current_profile_id}: {active_role_names}")
+            logger.debug(f"Globally active roles (done=True in any profile): {active_role_names}")
         except Exception as e:
-            logger.error(f"Error fetching active roles for profile {current_profile_id}: {e}")
+            logger.error(f"Error fetching globally active roles: {e}")
     else:
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
     
@@ -3502,10 +3501,10 @@ def create_app_menu(menux):
         has_matching_active_role = any(p_role in active_role_names for p_role in plugin_defined_roles)
 
         if not (is_core_plugin or has_matching_active_role):
-            logger.debug(f"Filtering out plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Profile Roles: {active_role_names}, Match: {has_matching_active_role}")
+            logger.debug(f"Filtering out plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
             continue
 
-        logger.debug(f"Including plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Profile Roles: {active_role_names}, Match: {has_matching_active_role}")
+        logger.debug(f"Including plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
         
         # For all other valid plugins, create a menu item
         # Get display name (use DISPLAY_NAME attribute from instance, or format plugin_key)

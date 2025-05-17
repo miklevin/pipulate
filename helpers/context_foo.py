@@ -28,10 +28,10 @@ README.md
 flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/static/chat-interface.js
-/home/mike/repos/pipulate/static/chat-scripts.js
-/home/mike/repos/pipulate/static/chat-styles.css
-/home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/chat-interface.js
+# /home/mike/repos/pipulate/static/chat-scripts.js
+# /home/mike/repos/pipulate/static/chat-styles.css
+# /home/mike/repos/pipulate/static/widget-scripts.js
 /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
 /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
@@ -49,7 +49,7 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
 # /home/mike/repos/pipulate/plugins/030_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/500_hello_workflow.py
-/home/mike/repos/pipulate/plugins/000_profiles.py
+# /home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
 # /home/mike/repos/pipulate/static/Sortable.js
 # /home/mike/repos/pipulate/plugins/020_tasks.py
