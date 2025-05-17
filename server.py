@@ -1687,7 +1687,7 @@ class Pipulate:
         return state
 
 
-async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
+async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:  # noqa
     url = "http://localhost:11434/api/chat"
     payload = {"MODEL": MODEL, "messages": messages, "stream": True}
     accumulated_response = []
@@ -1790,12 +1790,12 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
 
 
-class BaseCrud:
+class BaseCrud:  # noqa
     """
     CRUD base class for all Apps. The CRUD is DRY and the Workflows are WET!
     """
 
-    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None, chat_function=None):
+    def __init__(self, name, table, toggle_field=None, sort_field=None, sort_dict=None, pipulate_instance=None):  # Removed chat_function
         self.name = name
         self.table = table
         self.toggle_field = toggle_field
@@ -3836,7 +3836,7 @@ def get_workflow_instance(workflow_name):
     return plugin_instances.get(workflow_name)
 
 
-async def create_grid_left(menux, render_items=None):
+async def create_grid_left(menux, render_items=None):  # noqa
     content_to_render = None
     profiles_plugin_key = 'profiles'  # Key for the profiles plugin
 
