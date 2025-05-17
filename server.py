@@ -2702,6 +2702,91 @@ if "intro_page_num" not in db:
     db["intro_page_num"] = "1"
 
 
+async def synchronize_roles_to_db():
+    """
+    Ensures all roles defined in plugin ROLES constants exist in the 'roles' database table.
+    """
+    logger.info("Starting role synchronization to database...")
+    if not plugin_instances or 'roles' not in plugin_instances:
+        logger.warning("Roles plugin or plugin_instances not yet available. Skipping role synchronization.")
+        return
+
+    roles_plugin_instance = plugin_instances.get('roles')
+    if not roles_plugin_instance or not hasattr(roles_plugin_instance, 'app_instance'):
+        logger.warning("Roles plugin app_instance not found. Skipping role synchronization.")
+        return
+
+    roles_crud_handler = roles_plugin_instance.app_instance
+    roles_table = roles_crud_handler.table # This is the fastlite table object
+
+    discovered_roles_set = set()
+    for plugin_name, plugin_instance in plugin_instances.items():
+        if hasattr(plugin_instance, 'ROLES') and isinstance(plugin_instance.ROLES, list):
+            for role_name in plugin_instance.ROLES:
+                if isinstance(role_name, str) and role_name.strip():
+                    discovered_roles_set.add(role_name.strip())
+        # Also log the roles for the current plugin if DEBUG_MODE is on
+        if DEBUG_MODE and hasattr(plugin_instance, 'ROLES'):
+            logger.debug(f"Plugin '{plugin_name}' declares ROLES: {plugin_instance.ROLES}")
+
+    if not discovered_roles_set:
+        logger.info("No roles discovered in plugins. No synchronization needed.")
+        return
+
+    logger.debug(f"Discovered unique roles from all plugins: {discovered_roles_set}")
+
+    try:
+        # The 'roles' table is managed by a CRUD plugin that is profile-specific by default.
+        # We need a profile_id to associate these roles with.
+        # Using the 'last_profile_id' or a default. This assumes roles might be
+        # viewed/managed per profile initially, even if conceptually global.
+        current_profile_id = int(db.get("last_profile_id", 1)) # Default to profile_id 1
+
+        # Fetch existing role names for the current_profile_id to avoid duplicates *for this profile*
+        # The `010_roles.py` uses 'text' to store the role name.
+        existing_roles_in_db_for_profile = {
+            item.text for item in roles_table(profile_id=current_profile_id)
+        }
+        logger.debug(f"Existing roles in DB for profile_id {current_profile_id}: {existing_roles_in_db_for_profile}")
+
+        new_roles_added_count = 0
+        for role_name in discovered_roles_set:
+            if role_name not in existing_roles_in_db_for_profile:
+                # Data for the new role record
+                # The CrudCustomizer in 010_roles.py handles 'text', 'done', 'priority', 'profile_id'.
+                # We'll set 'done' (active) to False by default. Priority will be auto-calculated.
+                
+                # Use the CrudCustomizer's prepare_insert_data and create_item
+                # Form field name for roles plugin is 'roles-text'
+                simulated_form_data = {
+                    roles_crud_handler.plugin.FORM_FIELD_NAME: role_name
+                    # Priority will be auto-calculated by prepare_insert_data
+                }
+                
+                insert_data_dict = roles_crud_handler.prepare_insert_data(simulated_form_data)
+                
+                if insert_data_dict:
+                    # Ensure 'done' is set, prepare_insert_data for tasks sets it.
+                    # If roles.py's prepare_insert_data doesn't set 'done', set it here.
+                    if 'done' not in insert_data_dict:
+                         insert_data_dict['done'] = False # Default to inactive
+
+                    await roles_crud_handler.create_item(**insert_data_dict)
+                    logger.info(f"Added role '{role_name}' to the roles table for profile_id {current_profile_id}.")
+                    new_roles_added_count += 1
+                else:
+                    logger.warning(f"Could not prepare insert data for role: {role_name} for profile_id {current_profile_id}")
+        
+        if new_roles_added_count > 0:
+            logger.info(f"Successfully added {new_roles_added_count} new role(s) to the database.")
+        else:
+            logger.info("No new roles needed to be added to the database for this profile.")
+
+    except Exception as e:
+        logger.error(f"Error during role synchronization: {e}")
+        logger.error(traceback.format_exc())
+
+
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
 
@@ -2923,8 +3008,14 @@ for workflow_name, workflow_instance in plugin_instances.items():
         logger.debug(f"Setting endpoint message for {workflow_name}")
         endpoint_training[workflow_name] = endpoint_message
 
+# Initialize base menu items
 base_menu_items = ['']  # Remove 'profile' from here
 additional_menu_items = []  # Remove 'mobile_chat' from here
+
+# Create a startup event handler to run synchronize_roles_to_db
+@app.on_event("startup")
+async def startup_event():
+    await synchronize_roles_to_db()
 
 # Get discovered plugins in the order they were discovered (based on numeric prefix)
 ordered_plugins = []
