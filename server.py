@@ -2777,52 +2777,54 @@ def discover_plugin_files():
 
 
 def find_plugin_classes(plugin_modules):
-    """Find all plugin classes in the given modules.
-    
+    """Find plugin-compatible classes within imported modules.
+
+    Identifies plugin classes that have a 'landing' method
+    and the required attributes or properties. Supports:
+    - Workflow plugins with NAME/APP_NAME and DISPLAY_NAME attributes
+    - CRUD UI plugins with name/DISPLAY_NAME properties
+
     Args:
-        plugin_modules: List of module objects to search through
-        
+        plugin_modules (dict): Mapping of module names to module objects
+
     Returns:
-        List of tuples containing (module_name, class_name) for each plugin class found
+        list: List of tuples (module_name, class_name, class_object) for each plugin class
     """
     plugin_classes = []
-    
-    for module in plugin_modules:
-        module_name = module.__name__
-        logger.debug(f"Searching for plugins in module: {module_name}")
-        
-        # Get all members of the module
-        for name, member in inspect.getmembers(module):
-            # Log the member we found
-            logger.debug(f"Found member in {module_name}: {name}, type: {type(member)}")
-            
+
+    for module_name, module in plugin_modules.items():
+        logger.debug(f"Examining module: {module_name}")
+
+        for name, obj in inspect.getmembers(module):
+            logger.debug(f"Found member in {module_name}: {name}, type: {type(obj)}")
+
             # Check if it's a class
-            if inspect.isclass(member):
+            if inspect.isclass(obj):
                 logger.debug(f"Class found: {module_name}.{name}")
-                
-                # Check if it has a landing method (required for all plugins)
-                if hasattr(member, 'landing'):
-                    # Check for required attributes/properties
-                    has_name = hasattr(member, 'NAME') or hasattr(member, 'name')
-                    has_app_name = hasattr(member, 'APP_NAME') or hasattr(member, 'app_name')
-                    has_display_name = hasattr(member, 'DISPLAY_NAME') or hasattr(member, 'display_name')
-                    
-                    if has_name and has_app_name and has_display_name:
-                        # Get the actual name value
-                        name_value = getattr(member, 'NAME', getattr(member, 'name', None))
-                        logger.debug(f"Found plugin: {module_name}.{name} (attribute-based, using NAME)")
-                        
-                        # Log roles if they exist
-                        if hasattr(member, 'ROLES'):
-                            roles = getattr(member, 'ROLES', [])
-                            logger.info(f"🔑 Plugin {module_name}.{name} has roles: {roles}")
-                        
-                        plugin_classes.append((module_name, name))
-                    else:
-                        logger.debug(f"Class {module_name}.{name} has landing method but missing required attributes")
-                else:
-                    logger.debug(f"Class {module_name}.{name} does not have landing method")
-    
+
+                # Check if the class has a landing method
+                if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
+                    # Check for direct attributes (workflow plugins)
+                    has_name_attribute = (
+                        hasattr(obj, 'NAME') or
+                        hasattr(obj, 'APP_NAME')  # Some plugins use APP_NAME instead
+                    )
+                    has_display_name = hasattr(obj, 'DISPLAY_NAME')
+                    has_attributes = has_name_attribute and has_display_name
+
+                    # Check for properties via class dictionary (CRUD UI plugins)
+                    has_properties = False
+                    if 'DISPLAY_NAME' in dir(obj) and not has_attributes:
+                        # For classes that use property decorators like CrudUI
+                        has_properties = True
+
+                    if has_attributes or has_properties:
+                        plugin_classes.append((module_name, name, obj))
+                        plugin_type = 'property-based' if has_properties else 'attribute-based'
+                        name_attr = 'APP_NAME' if hasattr(obj, 'APP_NAME') else 'NAME'
+                        logger.debug(f"Found plugin: {module_name}.{name} ({plugin_type}, using {name_attr})")
+
+    logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
     return plugin_classes
 
 
