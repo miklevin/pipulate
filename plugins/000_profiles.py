@@ -40,33 +40,32 @@ class PluginIdentityManager:
         self.author = "Pipulate Team"
         self.roles = ROLES
         self.table = None
-        self.profile_app = None
         self.pipulate = None
+        self.endpoint_prefix = f"/{self.name}"
 
     def initialize(self, table, pipulate_instance=None):
         """Initialize the plugin with a table and pipulate instance."""
         self.table = table
         self.pipulate = pipulate_instance
-        self.profile_app = ProfileApp(table, pipulate_instance)
         return self
 
     def get_app(self):
         """Get the profile app instance."""
-        return self.profile_app
+        return self
 
     def register_plugin_routes(self):
         """Register plugin routes."""
-        if not self.profile_app:
-            logger.error("Profile app not initialized")
+        if not self.table:
+            logger.error("Profile table not initialized")
             return
 
         # Register the profile render route
         @rt(f"/{self.name}")
         async def profile_route(request):
-            return await self.profile_app.profile_render()
+            return await self.profile_render()
 
         # Register the profile actions routes
-        self.profile_app.register_routes(rt)
+        self.register_routes(rt)
 
 class CrudCustomizer(BaseCrud):
     """Custom CRUD operations for profiles."""
@@ -82,36 +81,41 @@ class CrudCustomizer(BaseCrud):
 
     async def insert_item(self, request):
         """Insert a new profile."""
-        form = await request.form()
-        data = self.prepare_insert_data(form)
-        
-        # Set default values
-        data['active'] = True
-        data['priority'] = len(self.table)  # Add to end of list
-        
-        # Create the profile
-        profile = await self.create_item(**data)
-        
-        # Return the rendered profile
-        return self.render_item(profile)
+        try:
+            form = await request.form()
+            data = self.prepare_insert_data(form)
+            if not data:
+                raise ValueError("Invalid profile data")
 
-    async def toggle_item(self, request):
+            # Set default values
+            data['active'] = True
+            data['priority'] = len(self.table)  # Add to end of list
+
+            # Create the profile
+            profile = await self.create_item(**data)
+            logger.info(f"Created new profile: {profile.name}")
+
+            # Return the rendered profile
+            return self.render_item(profile)
+
+        except Exception as e:
+            logger.error(f"Error inserting profile: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def toggle_item(self, request, item_id: int):
         """Toggle profile active state."""
         try:
-            profile_id = request.path_params.get('id')
-            if not profile_id:
-                raise ValueError("No profile ID provided")
-
-            profile = self.table.get(profile_id)
+            profile = self.table[item_id]
             if not profile:
-                raise ValueError(f"Profile not found: {profile_id}")
+                raise ValueError(f"Profile not found: {item_id}")
 
             # Toggle active state
             profile.active = not profile.active
-            self.table.update(profile)
+            self.table[item_id] = profile
+            logger.info(f"Toggled profile {profile.name} active state to {profile.active}")
 
             # Return updated profile item
-            return render_profile(profile, self)
+            return self.render_item(profile)
 
         except Exception as e:
             logger.error(f"Error toggling profile: {str(e)}")
@@ -119,21 +123,31 @@ class CrudCustomizer(BaseCrud):
 
     async def update_item(self, request, item_id: int):
         """Update a profile."""
-        form = await request.form()
-        data = self.prepare_update_data(form)
-        
-        # Get the profile
-        profile = self.table[item_id]
-        
-        # Update the profile
-        for key, value in data.items():
-            setattr(profile, key, value)
-        
-        # Save the profile
-        self.table[item_id] = profile
-        
-        # Return the rendered profile
-        return self.render_item(profile)
+        try:
+            form = await request.form()
+            data = self.prepare_update_data(form)
+            if not data:
+                raise ValueError("Invalid profile data")
+
+            # Get the profile
+            profile = self.table[item_id]
+            if not profile:
+                raise ValueError(f"Profile not found: {item_id}")
+
+            # Update the profile
+            for key, value in data.items():
+                setattr(profile, key, value)
+
+            # Save the profile
+            self.table[item_id] = profile
+            logger.info(f"Updated profile: {profile.name}")
+
+            # Return the rendered profile
+            return self.render_item(profile)
+
+        except Exception as e:
+            logger.error(f"Error updating profile: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     def prepare_insert_data(self, form):
         """Prepare data for profile insertion."""
@@ -143,7 +157,7 @@ class CrudCustomizer(BaseCrud):
             return None
 
         # Get all records to calculate max priority
-        records = self.table.all()
+        records = list(self.table.all())
         max_priority = max([r.priority for r in records], default=0)
 
         insert_data = {
@@ -173,26 +187,22 @@ class CrudCustomizer(BaseCrud):
         logger.debug(f"Prepared update data: {update_data}")
         return update_data
 
-    async def delete_item(self, request):
+    async def delete_item(self, request, item_id: int):
         """Delete a profile."""
         try:
-            profile_id = request.path_params.get('id')
-            if not profile_id:
-                raise ValueError("No profile ID provided")
-
-            profile = self.table.get(profile_id)
+            profile = self.table[item_id]
             if not profile:
-                raise ValueError(f"Profile not found: {profile_id}")
+                raise ValueError(f"Profile not found: {item_id}")
 
             # Check if profile is in use
-            records = self.pipulate.table()
-            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == profile_id]
+            records = list(self.pipulate.table.all())
+            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == item_id]
             if records_with_profile:
                 raise ValueError(f"Cannot delete profile: {len(records_with_profile)} records are using it")
 
             # Delete the profile
-            self.table.delete(profile_id)
-            logger.info(f"Deleted profile: {profile_id}")
+            self.table.delete(item_id)
+            logger.info(f"Deleted profile: {profile.name}")
 
             # Return empty response for HTMX to remove the element
             return ""
@@ -207,9 +217,9 @@ class CrudCustomizer(BaseCrud):
 def render_profile(profile, app_instance: CrudCustomizer):
     """Render a profile item with HTMX functionality."""
     # Construct HTMX URLs
-    delete_url = f"{app_instance.plugin.endpoint_prefix}/delete/{profile.id}"
-    toggle_url = f"{app_instance.plugin.endpoint_prefix}/toggle/{profile.id}"
-    update_url = f"{app_instance.plugin.endpoint_prefix}/update/{profile.id}"
+    delete_url = f"{app_instance.endpoint_prefix}/delete/{profile.id}"
+    toggle_url = f"{app_instance.endpoint_prefix}/toggle/{profile.id}"
+    update_url = f"{app_instance.endpoint_prefix}/update/{profile.id}"
 
     # Create delete icon
     delete_icon = Span(
@@ -265,128 +275,108 @@ def render_profile(profile, app_instance: CrudCustomizer):
                 value=profile.code or "",
                 placeholder=PLACEHOLDER_CODE
             ),
-            Button(
-                type="submit",
-                content="Update"
-            )
+            Button("Update", type="submit")
         ]
     )
 
-    # Create profile info
-    profile_info = Div(
-        _class="profile-info",
+    # Create profile content
+    profile_content = Div(
+        _class="profile-content",
         content=[
-            Span(
-                _class="profile-name",
-                _style="cursor: pointer;",
-                _onclick="this.parentElement.nextElementSibling.style.display = 'block'",
-                content=profile.name
+            Div(
+                _class="profile-header",
+                content=[
+                    Span(profile.name, _class="profile-name"),
+                    delete_icon
+                ]
             ),
-            Span(
+            Div(
                 _class="profile-details",
                 content=[
-                    f"Real Name: {profile.real_name}" if profile.real_name else None,
-                    f"Address: {profile.address}" if profile.address else None,
-                    f"Code: {profile.code}" if profile.code else None
+                    P(f"Real Name: {profile.real_name or 'Not set'}"),
+                    P(f"Address: {profile.address or 'Not set'}"),
+                    P(f"Code: {profile.code or 'Not set'}")
                 ]
-            )
-        ]
-    )
-
-    # Create list item
-    return Li(
-        _class="profile-item",
-        _style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem;",
-        _data_priority=profile.priority,
-        _data_active=str(profile.active).lower(),
-        content=[
-            delete_icon,
-            active_checkbox,
-            profile_info,
+            ),
             update_form
         ]
     )
 
-# class ProfileApp(BaseCrud):
-#     """Profile management application."""
-#     
-#     def __init__(self, table, pipulate_instance=None):
-#         """Initialize the profile app."""
-#         super().__init__(
-#             name="profiles",
-#             table=table,
-#             toggle_field="active",
-#             sort_field="priority",
-#             pipulate_instance=pipulate_instance
-#         )
-# 
-#     async def profile_render(self):
-#         """Render the profile list page."""
-#         all_profiles = profiles()
-#         logger.debug("Initial profile state:")
-#         for profile in all_profiles:
-#             logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-# 
-#         ordered_profiles = sorted(
-#             all_profiles,
-#             key=lambda p: p.priority if p.priority is not None else float('inf')
-#         )
-# 
-#         logger.debug("Ordered profile list:")
-#         for profile in ordered_profiles:
-#             logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-# 
-#         return Container(
-#             Grid(
-#                 Div(
-#                     Card(
-#                         H2(f"{self.name.capitalize()} {LIST_SUFFIX}"),
-#                         Ul(
-#                             *[self.render_item(profile) for profile in ordered_profiles],
-#                             id='profile-list',
-#                             cls='sortable',
-#                             style="padding-left: 0;"
-#                         ),
-#                         header=Form(
-#                             Group(
-#                                 Input(
-#                                     placeholder="Nickname",
-#                                     name="profile_name",
-#                                     id="profile-name-input",
-#                                     autofocus=True
-#                                 ),
-#                                 Input(
-#                                     placeholder=f"Real Name",
-#                                     name="profile_menu_name",
-#                                     id="profile-menu-name-input"
-#                                 ),
-#                                 Input(
-#                                     placeholder=PLACEHOLDER_ADDRESS,
-#                                     name="profile_address",
-#                                     id="profile-address-input"
-#                                 ),
-#                                 Input(
-#                                     placeholder=PLACEHOLDER_CODE,
-#                                     name="profile_code",
-#                                     id="profile-code-input"
-#                                 ),
-#                                 Button(
-#                                     "Add",
-#                                     type="submit",
-#                                     id="add-profile-button"
-#                                 ),
-#                             ),
-#                             hx_post=f"/{self.name}",
-#                             hx_target="#profile-list",
-#                             hx_swap="beforeend",
-#                             hx_swap_oob="true",
-#                             hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
-#                         ),
-#                     ),
-#                     id="content-container",
-#                 ),
-#             ),
-#         )
+    # Create the list item
+    return Li(
+        _class="profile-item",
+        content=[
+            active_checkbox,
+            profile_content
+        ]
+    )
+
+class ProfileApp(CrudCustomizer):
+    """Profile management app."""
+    
+    def __init__(self, table, pipulate_instance=None):
+        """Initialize the profile app."""
+        super().__init__(self)
+        self.table = table
+        self.pipulate = pipulate_instance
+        self.endpoint_prefix = f"/{self.name}"
+        logger.debug(f"ProfileApp initialized with table: {table}")
+
+    async def profile_render(self):
+        """Render the profiles page."""
+        try:
+            # Get all profiles, sorted by priority
+            profiles = list(self.table.all())
+            profiles.sort(key=lambda x: x.priority)
+
+            # Create the profiles list
+            profiles_list = Ul(
+                *[self.render_item(profile) for profile in profiles],
+                _class="profiles-list"
+            )
+
+            # Create the add profile form
+            add_form = Form(
+                _class="add-profile-form",
+                _hx_post=f"{self.endpoint_prefix}/insert",
+                _hx_target=".profiles-list",
+                _hx_swap="beforeend",
+                content=[
+                    Input(
+                        type="text",
+                        name="profile_name",
+                        placeholder="Profile Name",
+                        required=True
+                    ),
+                    Input(
+                        type="text",
+                        name="profile_real_name",
+                        placeholder="Real Name (optional)"
+                    ),
+                    Input(
+                        type="text",
+                        name="profile_address",
+                        placeholder=PLACEHOLDER_ADDRESS
+                    ),
+                    Input(
+                        type="text",
+                        name="profile_code",
+                        placeholder=PLACEHOLDER_CODE
+                    ),
+                    Button("Add Profile", type="submit")
+                ]
+            )
+
+            # Return the complete page
+            return Container(
+                H2("Profiles"),
+                add_form,
+                profiles_list
+            )
+
+        except Exception as e:
+            logger.error(f"Error rendering profiles: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     def render_item(self, profile):
         """Render a profile item."""
@@ -394,36 +384,41 @@ def render_profile(profile, app_instance: CrudCustomizer):
 
     async def insert_item(self, request):
         """Insert a new profile."""
-        form = await request.form()
-        data = self.prepare_insert_data(form)
-        
-        # Set default values
-        data['active'] = True
-        data['priority'] = len(self.table)  # Add to end of list
-        
-        # Create the profile
-        profile = await self.create_item(**data)
-        
-        # Return the rendered profile
-        return self.render_item(profile)
+        try:
+            form = await request.form()
+            data = self.prepare_insert_data(form)
+            if not data:
+                raise ValueError("Invalid profile data")
 
-    async def toggle_item(self, request):
+            # Set default values
+            data['active'] = True
+            data['priority'] = len(self.table)  # Add to end of list
+
+            # Create the profile
+            profile = await self.create_item(**data)
+            logger.info(f"Created new profile: {profile.name}")
+
+            # Return the rendered profile
+            return self.render_item(profile)
+
+        except Exception as e:
+            logger.error(f"Error inserting profile: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def toggle_item(self, request, item_id: int):
         """Toggle profile active state."""
         try:
-            profile_id = request.path_params.get('id')
-            if not profile_id:
-                raise ValueError("No profile ID provided")
-
-            profile = self.table.get(profile_id)
+            profile = self.table[item_id]
             if not profile:
-                raise ValueError(f"Profile not found: {profile_id}")
+                raise ValueError(f"Profile not found: {item_id}")
 
             # Toggle active state
             profile.active = not profile.active
-            self.table.update(profile)
+            self.table[item_id] = profile
+            logger.info(f"Toggled profile {profile.name} active state to {profile.active}")
 
             # Return updated profile item
-            return render_profile(profile, self)
+            return self.render_item(profile)
 
         except Exception as e:
             logger.error(f"Error toggling profile: {str(e)}")
@@ -431,21 +426,31 @@ def render_profile(profile, app_instance: CrudCustomizer):
 
     async def update_item(self, request, item_id: int):
         """Update a profile."""
-        form = await request.form()
-        data = self.prepare_update_data(form)
-        
-        # Get the profile
-        profile = self.table[item_id]
-        
-        # Update the profile
-        for key, value in data.items():
-            setattr(profile, key, value)
-        
-        # Save the profile
-        self.table[item_id] = profile
-        
-        # Return the rendered profile
-        return self.render_item(profile)
+        try:
+            form = await request.form()
+            data = self.prepare_update_data(form)
+            if not data:
+                raise ValueError("Invalid profile data")
+
+            # Get the profile
+            profile = self.table[item_id]
+            if not profile:
+                raise ValueError(f"Profile not found: {item_id}")
+
+            # Update the profile
+            for key, value in data.items():
+                setattr(profile, key, value)
+
+            # Save the profile
+            self.table[item_id] = profile
+            logger.info(f"Updated profile: {profile.name}")
+
+            # Return the rendered profile
+            return self.render_item(profile)
+
+        except Exception as e:
+            logger.error(f"Error updating profile: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     def prepare_insert_data(self, form):
         """Prepare data for profile insertion."""
@@ -455,7 +460,7 @@ def render_profile(profile, app_instance: CrudCustomizer):
             return None
 
         # Get all records to calculate max priority
-        records = self.table.all()
+        records = list(self.table.all())
         max_priority = max([r.priority for r in records], default=0)
 
         insert_data = {
@@ -485,26 +490,22 @@ def render_profile(profile, app_instance: CrudCustomizer):
         logger.debug(f"Prepared update data: {update_data}")
         return update_data
 
-    async def delete_item(self, request):
+    async def delete_item(self, request, item_id: int):
         """Delete a profile."""
         try:
-            profile_id = request.path_params.get('id')
-            if not profile_id:
-                raise ValueError("No profile ID provided")
-
-            profile = self.table.get(profile_id)
+            profile = self.table[item_id]
             if not profile:
-                raise ValueError(f"Profile not found: {profile_id}")
+                raise ValueError(f"Profile not found: {item_id}")
 
             # Check if profile is in use
-            records = self.pipulate.table()
-            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == profile_id]
+            records = list(self.pipulate.table.all())
+            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == item_id]
             if records_with_profile:
                 raise ValueError(f"Cannot delete profile: {len(records_with_profile)} records are using it")
 
             # Delete the profile
-            self.table.delete(profile_id)
-            logger.info(f"Deleted profile: {profile_id}")
+            self.table.delete(item_id)
+            logger.info(f"Deleted profile: {profile.name}")
 
             # Return empty response for HTMX to remove the element
             return ""
