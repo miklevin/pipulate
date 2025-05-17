@@ -3205,7 +3205,7 @@ def create_env_menu():
     menu_items = []
     # Development option
     is_dev = current_env == "Development"
-    dev_style = "background-color: var(--pico-primary-background);" if is_dev else ""
+    dev_style = "background-color: var(--pico-primary-focus);" if is_dev else ""
     menu_items.append(Li(
         Label(
             Input(
@@ -3217,18 +3217,20 @@ def create_env_menu():
                 hx_vals='{"environment": "Development"}',
                 hx_target="#dev-env-item",
                 hx_swap="outerHTML",
-                style="margin: 0; padding: 0;"
+                style="min-width: 1rem; margin-right: 0.5rem;"
             ),
             "Dev",
-            style="display: inline-flex; align-items: center; margin: 0; padding: 0;"
+            style="display: flex; align-items: center; flex: 1;"
         ),
-        style=f"text-align: left; padding: 0.5rem 1rem; {dev_style}",
+        style=f"text-align: left; padding: 0.35rem 0.75rem; {dev_style} display: flex; border-radius: var(--pico-border-radius);",
+        onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+        onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_dev else 'transparent'}';",
         id="dev-env-item"
     ))
 
     # Production option
     is_prod = current_env == "Production"
-    prod_style = "background-color: var(--pico-primary-background);" if is_prod else ""
+    prod_style = "background-color: var(--pico-primary-focus);" if is_prod else ""
     menu_items.append(Li(
         Label(
             Input(
@@ -3240,22 +3242,28 @@ def create_env_menu():
                 hx_vals='{"environment": "Production"}',
                 hx_target="#prod-env-item",
                 hx_swap="outerHTML",
-                style="margin: 0; padding: 0;"
+                style="min-width: 1rem; margin-right: 0.5rem;"
             ),
             "Prod",
-            style="display: inline-flex; align-items: center; margin: 0; padding: 0;"
+            style="display: flex; align-items: center; flex: 1;"
         ),
-        style=f"text-align: left; padding: 0.5rem 1rem; {prod_style}",
+        style=f"text-align: left; padding: 0.35rem 0.75rem; {prod_style} display: flex; border-radius: var(--pico-border-radius);",
+        onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+        onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_prod else 'transparent'}';",
         id="prod-env-item"
     ))
 
     return Details(
         Summary(
             "ENV",
-            id="env-id",
-            style=env_summary_style
+            style="white-space: nowrap; display: inline-block; min-width: max-content;",
+            id="env-id"
         ),
-        Ul(*menu_items, style="padding-left: 0; min-width: max-content;", cls="dropdown-menu"),
+        Ul(
+            *menu_items,
+            cls="dropdown-menu",
+            style="padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;"
+        ),
         cls="dropdown",
         id="env-dropdown-menu"
     )
