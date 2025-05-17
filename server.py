@@ -4430,15 +4430,6 @@ def run_server_with_watchdog():
         observer.join()
 
 
-if __name__ == "__main__":
-    run_server_with_watchdog()
-
-
-# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
-# isort server.py
-# vulture server.py
-# pylint --disable=all --enable=redefined-outer-name server.py
-
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
@@ -4451,3 +4442,13 @@ async def refresh_app_menu_endpoint(request):
     
     # Convert the FastHTML component to an HTML string and return as HTMLResponse
     return HTMLResponse(to_xml(app_menu_details_component))
+
+
+if __name__ == "__main__":
+    run_server_with_watchdog()
+
+
+# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
+# isort server.py
+# vulture server.py
+# pylint --disable=all --enable=redefined-outer-name server.py
