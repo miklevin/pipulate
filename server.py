@@ -2654,93 +2654,68 @@ logger.debug("Database wrapper initialized.")
 
 
 def populate_initial_data():
-    logger.debug("Populating initial data.")
-    allowed_keys = {
-        'last_app_choice', 
-        'last_visited_url', 
-        'last_profile_id', 
-        'show_all_plugins',
-        'developer_plugins_visible',
-        'profile_locked',
-        'pipeline_id'  # Add pipeline_id to allowed keys
-    }
-    
-    # Clean up non-essential keys
-    for key in list(db.keys()):
-        if key not in allowed_keys:
-            try:
-                del db[key]
-                logger.debug(f"Deleted non-essential persistent key: {key}")
-            except KeyError:
-                pass
-    
+    """Populate initial data in the database if it doesn't exist."""
     # Ensure default profile exists
-    if not profiles():
-        default_profile_display_name = "Profile"  # Sensible fallback
-        profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles(): 
+        default_profile_name_for_db_entry = "Default Profile" 
         
-        if profiles_plugin_inst:
-            # Access DISPLAY_NAME via the property in PluginIdentityManager
-            if hasattr(profiles_plugin_inst, 'DISPLAY_NAME'):
-                default_profile_display_name = profiles_plugin_inst.DISPLAY_NAME
-            else:  # Fallback if DISPLAY_NAME property is missing for some reason
-                default_profile_display_name = profiles_plugin_inst.name.capitalize()
+        # Corrected line: Use WHERE clause string for filtering
+        existing_default_list = list(profiles("name=?", (default_profile_name_for_db_entry,)))
+        
+        if not existing_default_list:
+            default_profile_data = {
+                "name": default_profile_name_for_db_entry,
+                "real_name": "Default User", 
+                "address": "",
+                "code": "",
+                "active": True,
+                "priority": 0 
+            }
+            default_profile = profiles.insert(default_profile_data)
+            logger.debug(f"Inserted default profile: {default_profile} with data {default_profile_data}")
+            
+            if default_profile and hasattr(default_profile, 'id'):
+                db['last_profile_id'] = str(default_profile.id)
+                logger.debug(f"Set last_profile_id to new default: {default_profile.id}")
+            else:
+                logger.error("Failed to retrieve ID from newly inserted default profile.")
         else:
-            logger.warning("Could not get 'profiles' plugin instance for default profile creation name. Using fallback.")
+            logger.debug(f"Default profile named '{default_profile_name_for_db_entry}' already exists. Skipping insertion.")
+            # If last_profile_id is not set and default exists, set it to the first found default
+            if 'last_profile_id' not in db and existing_default_list:
+                 db['last_profile_id'] = str(existing_default_list[0].id) 
+                 logger.debug(f"Set last_profile_id to existing default: {existing_default_list[0].id}")
 
-        default_profile_data = {
-            "name": f"Default {default_profile_display_name}",  # e.g., "Default Profiles"
-            "real_name": "Default User",  # Provide a default real_name
-            "address": "",
-            "code": "",
-            "active": True,
-            "priority": 0
-        }
-        # Ensure 'profiles' table object is used for insertion
-        default_profile = profiles.insert(default_profile_data)
-        logger.debug(f"Inserted default profile: {default_profile} with data {default_profile_data}")
-        
-        # Set last_profile_id to the new default profile
-        if default_profile and hasattr(default_profile, 'id'):
-            db['last_profile_id'] = str(default_profile.id)
-            logger.debug(f"Set last_profile_id to new default: {default_profile.id}")
+    elif 'last_profile_id' not in db: 
+        first_profile_list = list(profiles(order_by='priority, id', limit=1)) # Ensure it's a list
+        if first_profile_list:
+            db['last_profile_id'] = str(first_profile_list[0].id)
+            logger.debug(f"Set last_profile_id to first available profile: {first_profile_list[0].id}")
         else:
-            logger.error("Failed to retrieve ID from newly inserted default profile.")
-    else:
-        default_profile = profiles()[0]
-        # Set last_profile_id to the first profile if not set
-        if 'last_profile_id' not in db:
-            db['last_profile_id'] = str(default_profile.id)
-    
-    # Initialize show_all_plugins if not present
-    if 'show_all_plugins' not in db:
-        db['show_all_plugins'] = "0"
-        logger.debug("Initialized show_all_plugins to '0'")
-    
-    # Initialize developer_plugins_visible if not present
-    if 'developer_plugins_visible' not in db:
-        db['developer_plugins_visible'] = "0"
-        logger.debug("Initialized developer_plugins_visible to '0'")
-        
-    # Initialize profile_locked if not present
-    if 'profile_locked' not in db:
-        db['profile_locked'] = "0"
-        logger.debug("Initialized profile_locked to '0'")
-        
-    # Initialize pipeline_id if not present
-    if 'pipeline_id' not in db:
-        db['pipeline_id'] = ""
-        logger.debug("Initialized pipeline_id to empty string")
-        
-    # Initialize last_app_choice if not present
+            logger.warning("No profiles exist and 'last_profile_id' was not set. This might occur if default creation failed or DB is empty.")
+            # Consider re-attempting default profile creation or setting a placeholder ID
+            # For now, we'll let it proceed, but this state might cause issues later if no profiles exist at all.
+
+    # Ensure other essential keys are initialized if they don't exist
     if 'last_app_choice' not in db:
-        db['last_app_choice'] = ""
+        db['last_app_choice'] = ''
         logger.debug("Initialized last_app_choice to empty string")
-        
-    # Initialize last_visited_url if not present
-    if 'last_visited_url' not in db:
-        db['last_visited_url'] = ""
-        logger.debug("Initialized last_visited_url to empty string")
+
+    if 'show_all_plugins' not in db:
+        db['show_all_plugins'] = '0'
+        logger.debug("Initialized show_all_plugins to '0'")
+
+    if 'developer_plugins_visible' not in db:
+        db['developer_plugins_visible'] = '0'
+        logger.debug("Initialized developer_plugins_visible to '0'")
+
+    if 'current_environment' not in db:
+        db['current_environment'] = 'Development'
+        logger.debug("Initialized current_environment to 'Development'")
+
+    if 'profile_locked' not in db:
+        db['profile_locked'] = '0'
+        logger.debug("Initialized profile_locked to '0'")
 
 
 populate_initial_data()
@@ -3529,21 +3504,15 @@ def create_filler_item():
 
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
-    # Use our helper instead of passing in selected_profile_id
-    selected_profile_id = get_current_profile_id()
-
-    def get_selected_item_style(is_selected):
-        return "background-color: var(--pico-primary-background); "if is_selected else ""
     menu_items = []
-    
-    # Check if profile is locked
     profile_locked = db.get("profile_locked", "0") == "1"
-    
-    # Add the lock switch as the first item
+
+    # Add Lock Profile switch
     menu_items.append(Li(
         Label(
             Input(
                 type="checkbox",
+                name="profile_lock_switch",
                 role="switch",
                 checked=profile_locked,
                 hx_post="/toggle_profile_lock",
@@ -3556,76 +3525,68 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         ),
         style="text-align: left;"
     ))
-    
-    # Add a divider after the lock switch
     menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-    
+
     # Get profiles plugin instance
-    profiles_plugin_inst = plugin_instances.get('profiles')
-    if not profiles_plugin_inst:
-        logger.error("Could not get 'profiles' plugin instance for menu creation")
-        return Details(
-            Summary("PROFILES: Error", style="white-space: nowrap; display: inline-block; min-width: max-content;"),
-            Ul(*menu_items, style="padding-left: 0;"),
-            cls="dropdown",
-            id="profile-dropdown-menu"
-        )
-    
-    # Only show Edit Profiles link when not locked
-    if not profile_locked:
-        menu_items.append(Li(
-            A(
-                f"Edit {endpoint_name(profiles_plugin_inst.name)}s", 
-                href=f"/redirect/{profiles_plugin_inst.name}", 
-                cls="dropdown-item", 
-                style=(f"{NOWRAP_STYLE} "
-                      "font-weight: bold; "
-                      "border-bottom: 1px solid var(--pico-muted-border-color);"
-                      "display: block; "
-                      "text-align: center; ")
-            ), 
-            style=("display: block; "
-                  "text-align: center; ")
-        ))
-    
+    profiles_plugin = plugin_instances.get('profiles')
+    if not profiles_plugin:
+        logger.error("Profiles plugin instance ('profiles') not found! Profile menu will be impacted.")
+        summary_text = "PROFILES: Error"
+        menu_items.append(Li("Error: Profiles plugin not loaded."))
+    else:
+        # Use plugin's name for the summary
+        summary_text = f"{profiles_plugin.name.upper()}: {selected_profile_name}"
+        if not profile_locked:
+            menu_items.append(Li(
+                A(
+                    f"Edit {profiles_plugin.DISPLAY_NAME}",
+                    href=f"/redirect{profiles_plugin.ENDPOINT_PREFIX}",
+                    cls="dropdown-item",
+                    style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color);display: block; text-align: center;"
+                ),
+                style="display: block; text-align: center;"
+            ))
+
     # Get profiles based on lock state
     if profile_locked:
-        # When locked, only show the current profile
-        active_profiles = profiles("id=?", (selected_profile_id,), order_by='priority')
+        active_profiles_list = profiles(id=selected_profile_id, order_by='priority') if selected_profile_id else []
     else:
-        # When unlocked, show all active profiles
-        active_profiles = profiles("active=?", (True,), order_by='priority')
-    
-    for profile in active_profiles:
-        is_selected = str(profile.id) == str(selected_profile_id)
+        active_profiles_list = profiles(active=True, order_by='priority')
+
+    for profile_item in active_profiles_list:
+        is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = get_selected_item_style(is_selected)
         menu_items.append(Li(
             Label(
                 Input(
-                    type="radio", 
-                    name="profile", 
-                    value=str(profile.id), 
-                    checked=is_selected, 
-                    hx_post=f"/select_profile", 
-                    hx_vals=f'js:{{profile_id: "{profile.id}"}}', 
-                    hx_target="body", 
-                    hx_swap="outerHTML",
-                ), 
-                profile.name, 
+                    type="radio",
+                    name="profile_radio_select",
+                    value=str(profile_item.id),
+                    checked=is_selected,
+                    hx_post="/select_profile",
+                    hx_vals=json.dumps({"profile_id": str(profile_item.id)}),
+                    hx_target="body",
+                    hx_swap="outerHTML"
+                ),
+                profile_item.name,
                 style="display: flex; align-items: center;"
-            ), 
+            ),
             style=f"text-align: left; {item_style}"
         ))
-    
+
     return Details(
         Summary(
-            f"{profiles_plugin_inst.name.upper()}: {selected_profile_name}",
+            summary_text,
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="profile-id"
         ),
-        Ul(*menu_items, style="padding-left: 0;"),
+        Ul(
+            *menu_items,
+            style="padding-left: 0; min-width: var(--pico-dropdown-width);",
+            cls="dropdown-menu"
+        ),
         cls="dropdown",
-        id="profile-dropdown-menu"  # Add this ID to target for refresh
+        id="profile-dropdown-menu"
     )
 
 
@@ -3636,149 +3597,98 @@ def normalize_menu_path(path):
 
 def create_app_menu(menux):
     menu_items = []
-    show_all_user_plugins = db.get("show_all_plugins", "0") == "1"
-    developer_mode_active = db.get("developer_plugins_visible", "0") == "1" and get_current_environment() == "Development"
+    profiles_plugin_key = 'profiles'  # Key for the profiles plugin
 
-    logger.debug(f"App Menu: show_all_user_plugins={show_all_user_plugins}, developer_mode_active={developer_mode_active}")
+    # Get the current environment and visibility settings
+    current_env = get_current_environment()
+    show_all = db.get("show_all_plugins", "0") == "1"
+    show_dev = db.get("developer_plugins_visible", "0") == "1"
 
-    # Temporary list to hold (display_name, item_key, is_selected, original_filename)
-    eligible_plugins_with_details = []
+    # Sort plugins by their numeric prefix
+    sorted_plugins = sorted(
+        plugin_instances.items(),
+        key=lambda x: int(x[1].numeric_prefix) if hasattr(x[1], 'numeric_prefix') else float('inf')
+    )
 
-    for item_key in MENU_ITEMS:  # MENU_ITEMS contains the app_names (e.g., "hello_workflow")
-        if item_key == profiles_plugin_inst.name:  # Skip profile app in Apps menu
+    for plugin_key, plugin in sorted_plugins:
+        # Skip the profiles plugin as it has its own menu
+        if plugin_key == profiles_plugin_key:
             continue
 
-        # Special handling for Home menu item
-        if item_key == "":
-            norm_menux = normalize_menu_path(menux)
-            norm_item = normalize_menu_path(item_key)
-            is_selected = norm_item == norm_menux
-            eligible_plugins_with_details.append(
-                (HOME_MENU_ITEM, item_key, is_selected, "home")
-            )
+        # Skip non-core plugins unless show_all is True
+        if not show_all and not is_core_plugin(plugin_key):
             continue
 
-        plugin_module = discovered_modules.get(item_key)  # Get module to access _original_filename
-        if not plugin_module:
-            logger.warning(f"No module found for plugin key {item_key} in discovered_modules.")
-            original_filename = item_key  # Fallback
-        else:
-            original_filename = getattr(plugin_module, '_original_filename', item_key)
-        
-        # Check if this is a separator plugin
-        is_separator = item_key == "separator" or original_filename.endswith("_separator")
-        
-        # Check if this is a developer plugin by parsing the numeric prefix
-        is_developer_plugin = False
-        numeric_prefix_match = re.match(r'^(\d+)_', original_filename)
-        if numeric_prefix_match:
-            prefix_num = int(numeric_prefix_match.group(1))
-            is_developer_plugin = prefix_num >= DEVELOPER_PLUGIN_THRESHOLD
-        
-        is_core = is_core_plugin(item_key)
-        
-        display_this_plugin = False
-        if is_separator:
-            # Only show separators if we're in developer mode or if they're before the developer plugins
-            if developer_mode_active or (numeric_prefix_match and prefix_num < DEVELOPER_PLUGIN_THRESHOLD):
-                display_this_plugin = True
-        elif developer_mode_active:
-            display_this_plugin = True  # Developer mode shows everything registered
-        elif show_all_user_plugins:  # "Show All User-Facing Plugins"
-            if not is_developer_plugin:
-                display_this_plugin = True
-        else:  # "Show Core Plugins Only"
-            if is_core and not is_developer_plugin:  # Core plugins that are not dev-only
-                display_this_plugin = True
-        
-        if display_this_plugin:
-            norm_menux = normalize_menu_path(menux)
-            norm_item = normalize_menu_path(item_key)
-            is_selected = norm_item == norm_menux
-            eligible_plugins_with_details.append(
-                (endpoint_name(item_key), item_key, is_selected, original_filename)
-            )
-    
-    # Sort plugins: Home first, then core plugins, then by original filename
-    def sort_key(plugin_detail_tuple):
-        name, key, selected, orig_fn = plugin_detail_tuple
-        score = 0
-        
-        # Home always comes first
-        if key == "":
-            return -9999
-            
-        # Core plugins come next
-        if is_core_plugin(key): 
-            score -= 2000
-            
-        # Use numeric part of original_filename for primary sort within categories
-        numeric_prefix_match = re.match(r'^(\d+)_', orig_fn)
-        if numeric_prefix_match:
-            score += int(numeric_prefix_match.group(1))
-        else:
-            score += 3000  # Non-prefixed last within a category
-            
-        return score
-
-    sorted_plugins = sorted(eligible_plugins_with_details, key=sort_key)
-
-    # Track if we've shown any plugins after the last separator
-    last_was_separator = False
-    plugins_since_last_separator = 0
-    last_was_core = False
-
-    for display_name_str, item_key_str, is_selected_bool, original_filename in sorted_plugins:
-        # Handle separator plugins
-        if item_key_str == "separator" or original_filename.endswith("_separator"):
-            # Only add separator if we've shown plugins since the last one
-            if plugins_since_last_separator > 0:
-                menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-                last_was_separator = True
-                plugins_since_last_separator = 0
+        # Skip developer plugins unless show_dev is True
+        if not show_dev and hasattr(plugin, 'numeric_prefix') and int(plugin.numeric_prefix) >= DEVELOPER_PLUGIN_THRESHOLD:
             continue
-            
-        # Add separator between core and non-core plugins when showing all
-        is_core = is_core_plugin(item_key_str)
-        if show_all_user_plugins and not is_core and last_was_core and plugins_since_last_separator > 0:
-            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-            last_was_separator = True
-            plugins_since_last_separator = 0
-            
-        item_style = "background-color: var(--pico-primary-background); " if is_selected_bool else ""
+
+        # Get the display name
+        display_name = getattr(plugin, 'DISPLAY_NAME', plugin_key.replace('_', ' ').title())
+
+        # Create menu item
+        is_selected = menux == plugin_key
+        item_style = "background-color: var(--pico-primary-background);" if is_selected else ""
+        
         menu_items.append(Li(
-            A(display_name_str, 
-              href=f"/redirect/{item_key_str}", 
-              cls="dropdown-item", 
-              style=f"{NOWRAP_STYLE} {item_style}"), 
-            style="display: block;"
+            A(
+                display_name,
+                href=f"/redirect/{plugin_key}",
+                cls="dropdown-item",
+                style=f"{NOWRAP_STYLE} {item_style}"
+            ),
+            style="text-align: left;"
         ))
-        last_was_separator = False
-        last_was_core = is_core
-        plugins_since_last_separator += 1
-    
-    # Add "Show All/Core" toggle, respecting developer_mode_active
-    if not developer_mode_active:  # Only show this toggle if not in full developer view
-        # Only add separator if we've shown plugins and the last item wasn't a separator
-        if plugins_since_last_separator > 0 and not last_was_separator:
-            menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+
+    # Add environment selector if in development
+    if current_env == "development":
+        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
         menu_items.append(Li(
-            A("Show Core Plugins..." if show_all_user_plugins else "Show All User-Facing...",
-              hx_post="/toggle_show_all",  # Existing endpoint
-              hx_target="body",  # Existing target
-              hx_swap="outerHTML",  # Existing swap
-              cls="dropdown-item",
-              style=NOWRAP_STYLE),
-            style="display: block;"
+            Label(
+                Input(
+                    type="checkbox",
+                    name="show_all_switch",
+                    role="switch",
+                    checked=show_all,
+                    hx_post="/toggle_show_all",
+                    hx_target="body",
+                    hx_swap="outerHTML",
+                    style="margin-right: 10px;"
+                ),
+                "Show All Plugins",
+                style="display: flex; align-items: center;"
+            ),
+            style="text-align: left;"
         ))
-    
+        menu_items.append(Li(
+            Label(
+                Input(
+                    type="checkbox",
+                    name="developer_plugins_switch",
+                    role="switch",
+                    checked=show_dev,
+                    hx_post="/toggle_developer_plugins_visibility",
+                    hx_target="body",
+                    hx_swap="outerHTML",
+                    style="margin-right: 10px;"
+                ),
+                "Show Developer Plugins",
+                style="display: flex; align-items: center;"
+            ),
+            style="text-align: left;"
+        ))
+
     return Details(
         Summary(
             "APPS",
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="app-id"
         ),
-        Ul(*menu_items, style="padding-left: 0;"),
+        Ul(
+            *menu_items,
+            style="padding-left: 0; min-width: var(--pico-dropdown-width);",
+            cls="dropdown-menu"
+        ),
         cls="dropdown",
         id="app-dropdown-menu"
     )
@@ -4067,50 +3977,30 @@ def get_workflow_instance(workflow_name):
     return plugin_instances.get(workflow_name)
 
 async def create_grid_left(menux, render_items=None):
-    """Create the left grid content based on the selected menu item."""
-    content_to_render = None  # Initialize the variable
-    
-    # Get profiles plugin instance
-    profiles_plugin_inst = plugin_instances.get('profiles')
-    if not profiles_plugin_inst:
-        logger.error("Could not get 'profiles' plugin instance for grid creation")
-        return Div(
-            Card(
-                H3("Error"),
-                P("Profiles plugin not found. Please check the server configuration."),
-                style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
-            ),
-            id="grid-left-content"
-        )
-    
+    content_to_render = None
+    profiles_plugin_key = 'profiles'  # Key for the profiles plugin
+
     if menux:
-        # Handle profile app separately
-        if menux == profiles_plugin_inst.name:
-            content_to_render = await profile_render()
+        if menux == profiles_plugin_key:
+            profiles_instance = plugin_instances.get(profiles_plugin_key)
+            if profiles_instance:
+                content_to_render = await profiles_instance.landing()
+            else:
+                logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
+                content_to_render = Card(H3("Error"), P(f"Plugin '{profiles_plugin_key}' not found."))
         else:
-            # Try to get the workflow instance for the selected menu item
             workflow_instance = get_workflow_instance(menux)
             if workflow_instance:
-                # Log roles if they exist and DEBUG_MODE is active
                 if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
                     logger.debug(f"Selected plugin {menux} has roles: {workflow_instance.ROLES}")
                 content_to_render = await workflow_instance.landing()
-    else:
-        # Introduction page logic
+    else:  # Introduction page
         current_intro_page_num_str = db.get("intro_page_num", "1")
-        logger.debug(f"Rendering intro page: {current_intro_page_num_str} for menux='{menux}'")
-        # render_intro_page_with_navigation returns the inner content for the #grid-left-content div
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
 
-    # If no content was rendered, show a default message
-    if content_to_render is None:
-        content_to_render = Card(
-            H3("Welcome"),
-            P("Select a workflow from the menu to begin."),
-            style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
-        )
+    if content_to_render is None:  # Fallback if no content was generated
+        content_to_render = Card(H3("Welcome"), P("Select an option from the menu to begin."), style="min-height: 400px;")
 
-    # Wrap all possible content in a Div with the consistent ID for HTMX targeting.
     return Div(content_to_render, id="grid-left-content")
 
 
@@ -4179,182 +4069,95 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 def create_poke_button():
     # Get current workflow name from the app choice
-    menux = db.get("last_app_choice", "App")
-    workflow_display_name = "Pipeline"
+    menux = db.get("last_app_choice", "")
+    profiles_plugin_key = 'profiles'  # Key for the profiles plugin
 
-    button_style = "font-size: 0.85rem; padding: 0.4rem 0.3rem;"  # Slightly adjusted padding for clarity
-
-    # Get profiles plugin instance
-    profiles_plugin_inst = plugin_instances.get('profiles')
-    if not profiles_plugin_inst:
-        logger.error("Could not get 'profiles' plugin instance for poke button creation")
-        return Div(
-            Div(
-                Div(
-                    H3("Error"),
-                    P("Profiles plugin not found. Please check the server configuration."),
-                    style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
-                ),
-                id="poke-flyout-panel",
-                style="display: none; flex-direction: column; gap: 0.5rem; background-color: var(--pico-card-background-color); padding: 0.75rem; border-radius: var(--pico-border-radius); border: 1px solid var(--pico-muted-border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 0.5rem; min-width: 180px;"
-            ),
-            Button(
-                "👆",
-                id="poke-flyout-icon",
-                title="Show quick actions",
-                tabindex="0",
-                style="width: 48px; height: 48px; border-radius: 50%; background: var(--pico-primary-background); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 1.5rem; border: none; outline: none;"
-            ),
-            id="poke-flyout",
-            style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;"
-        )
-
-    # Create button elements list
-    buttons = []
-    if menux and menux in plugin_instances:
-        instance = plugin_instances.get(menux)
-        if hasattr(instance, 'DISPLAY_NAME'):
-            workflow_display_name = instance.DISPLAY_NAME
-        else:
-            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-        is_crud_plugin = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
-        is_workflow_plugin = (not is_crud_plugin and menux != profiles_plugin_inst.name and menux != "")
-        if is_workflow_plugin:
-            # Add button to delete all workflows
-            buttons.append(
-                A(
-                    f"🗑️ Delete All {workflow_display_name} Workflows",
-                    hx_post="/clear-pipeline",
-                    hx_swap="none",
-                    cls="button",
-                    style=button_style
-                )
-            )
-            # Add button to delete current workflow
-            pipeline_id = db.get("pipeline_id")
-            if pipeline_id:
-                buttons.append(
-                    A(
-                        f"🗑️ Delete Current {workflow_display_name}",
-                        hx_post="/delete-pipeline",
-                        hx_vals=f'js:{{pipeline_id: "{pipeline_id}"}}',
-                        hx_swap="none",
-                        cls="button",
-                        style=button_style
-                    )
-                )
-    if get_current_environment() == "Development":
-        dev_plugins_visible = db.get("developer_plugins_visible", "0") == "1"
-        buttons.append(
-            A(
-                "⚠️ Reset Entire Database",
-                hx_post="/clear-db",
-                hx_target="#msg-list",
-                hx_swap="innerHTML",
-                cls="button",
-                style=button_style
-            )
-        )
-        buttons.append(
-            A(
-                "Hide Dev Plugins" if dev_plugins_visible else "Show Dev Plugins",
-                hx_post="/toggle_developer_plugins_visibility",
-                hx_swap="none",
-                cls="button secondary",
-                style=button_style
-            )
-        )
-    
-    # Add Lock/Unlock Profile option
-    profile_locked = db.get("profile_locked", "0") == "1"
-    buttons.append(
-        A(
-            "Unlock Profile" if profile_locked else "Lock Profile",
-            hx_post="/toggle_profile_lock",
-            hx_swap="none",
-            cls="button",
-            style=button_style
-        )
-    )
-    
-    buttons.append(
-        A(
-            f"Poke {MODEL}",
+    # Create the poke button container
+    poke_container = Div(
+        Button(
+            "Poke",
+            id="poke-button",
+            cls="contrast outline",
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;",
             hx_post="/poke",
-            hx_target="#msg-list",
-            hx_swap="innerHTML",
-            cls="button",
-            style=button_style
-        )
-    )
-    buttons.append(
-        A(
-            "Scroll to Top",
-            href="#",
-            onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;",
-            cls="button",
-            style=button_style
-        )
-    )
-    # Flyout/floating panel CSS
-    flyout_css = (
-        "position: fixed; bottom: 20px; right: 20px; z-index: 1000;"  # Container
-        "display: flex; flex-direction: column; align-items: flex-end;"
-    )
-    flyout_panel_css = (
-        "display: none; flex-direction: column; gap: 0.5rem; "
-        "background-color: var(--pico-card-background-color); "
-        "padding: 0.75rem; border-radius: var(--pico-border-radius); "
-        "border: 1px solid var(--pico-muted-border-color); "
-        "box-shadow: 0 4px 12px rgba(0,0,0,0.2); "
-        "margin-bottom: 0.5rem; min-width: 180px;"
-    )
-    flyout_button_css = (
-        "width: 48px; height: 48px; border-radius: 50%; background: var(--pico-primary-background); "
-        "display: flex; align-items: center; justify-content: center; cursor: pointer; "
-        "box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 1.5rem; border: none; outline: none;"
-    )
-    # The flyout logic: show panel on hover/focus of the icon or panel
-    script = Script("""
-    document.addEventListener('DOMContentLoaded', function() {
-        var flyout = document.getElementById('poke-flyout');
-        var icon = document.getElementById('poke-flyout-icon');
-        var panel = document.getElementById('poke-flyout-panel');
-        function showPanel() { panel.style.display = 'flex'; }
-        function hidePanel() { panel.style.display = 'none'; }
-        icon.addEventListener('mouseenter', showPanel);
-        icon.addEventListener('focus', showPanel);
-        icon.addEventListener('mouseleave', function(e) {
-            setTimeout(function() {
-                if (!panel.matches(':hover')) hidePanel();
-            }, 100);
-        });
-        panel.addEventListener('mouseenter', showPanel);
-        panel.addEventListener('mouseleave', hidePanel);
-        icon.addEventListener('click', function() {
-            // Toggle for mobile/touch
-            if (panel.style.display === 'flex') hidePanel();
-            else showPanel();
-        });
-    });
-    """)
-    return Div(
-        Div(
-            # The flyout panel (hidden by default)
-            Div(*buttons, id="poke-flyout-panel", style=flyout_panel_css, tabindex="-1"),
-            # The small poke icon/button
-            Button(
-                "👆",  # You can use any emoji/icon here
-                id="poke-flyout-icon",
-                title="Show quick actions",
-                tabindex="0",
-                style=flyout_button_css
-            ),
-            id="poke-flyout",
-            style=flyout_css
+            hx_target="#chat-messages",
+            hx_swap="beforeend"
         ),
-        script
+        id="poke-container"
     )
+
+    # If no workflow is selected, just return the poke button
+    if not menux:
+        return poke_container
+
+    # Get the plugin instance
+    instance = plugin_instances.get(menux)
+    if not instance:
+        return poke_container
+
+    # Check if this is a workflow plugin (not a CRUD plugin and not the profiles plugin)
+    is_crud_plugin_by_class = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
+    is_profiles_plugin = (menux == profiles_plugin_key)
+    is_workflow_plugin = (not is_crud_plugin_by_class and not is_profiles_plugin and menux != "")
+
+    if is_workflow_plugin:
+        # Get workflow display name
+        workflow_display_name = getattr(instance, 'DISPLAY_NAME', menux.replace('_', ' ').title())
+
+        # Create the flyout panel
+        flyout_panel = Div(
+            Div(
+                H3(f"{workflow_display_name} Actions"),
+                Ul(
+                    Li(
+                        Button(
+                            "🗑️ Delete Current Workflow",
+                            cls="secondary outline",
+                            hx_post="/delete-pipeline",
+                            hx_confirm="Are you sure you want to delete this workflow?",
+                            hx_target="body",
+                            hx_swap="outerHTML"
+                        )
+                    ),
+                    Li(
+                        Button(
+                            "🗑️ Delete All Workflows",
+                            cls="secondary outline",
+                            hx_post="/clear-pipeline",
+                            hx_confirm="Are you sure you want to delete all workflows?",
+                            hx_target="body",
+                            hx_swap="outerHTML"
+                        )
+                    )
+                ),
+                style="padding: 1rem;"
+            ),
+            id="flyout-panel",
+            style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 999;"
+        )
+
+        # Add JavaScript to toggle the flyout panel
+        script = Script("""
+            document.getElementById('poke-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const panel = document.getElementById('flyout-panel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Close panel when clicking outside
+            document.addEventListener('click', function(e) {
+                const panel = document.getElementById('flyout-panel');
+                const button = document.getElementById('poke-button');
+                if (!panel.contains(e.target) && !button.contains(e.target)) {
+                    panel.style.display = 'none';
+                }
+            });
+        """)
+
+        # Return both the poke button and the flyout panel
+        return Div(poke_container, flyout_panel, script)
+
+    return poke_container
 
 
 async def profile_render():
