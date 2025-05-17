@@ -38,8 +38,8 @@ import sqlite3
 import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
-DEBUG_MODE = False   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = False # Set to True to display state tables (🍪 and ➡️)
+DEBUG_MODE = True   # Set to True for verbose logging (all DEBUG level logs)
+STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -2703,88 +2703,95 @@ if "intro_page_num" not in db:
 
 
 async def synchronize_roles_to_db():
-    """
-    Ensures all roles defined in plugin ROLES constants exist in the 'roles' database table.
-    """
-    logger.info("Starting role synchronization to database...")
-    if not plugin_instances or 'roles' not in plugin_instances:
-        logger.warning("Roles plugin or plugin_instances not yet available. Skipping role synchronization.")
-        return
-
-    roles_plugin_instance = plugin_instances.get('roles')
-    if not roles_plugin_instance or not hasattr(roles_plugin_instance, 'app_instance'):
-        logger.warning("Roles plugin app_instance not found. Skipping role synchronization.")
-        return
-
-    roles_crud_handler = roles_plugin_instance.app_instance
-    roles_table = roles_crud_handler.table # This is the fastlite table object
-
-    discovered_roles_set = set()
-    for plugin_name, plugin_instance in plugin_instances.items():
-        if hasattr(plugin_instance, 'ROLES') and isinstance(plugin_instance.ROLES, list):
-            for role_name in plugin_instance.ROLES:
-                if isinstance(role_name, str) and role_name.strip():
-                    discovered_roles_set.add(role_name.strip())
-        # Also log the roles for the current plugin if DEBUG_MODE is on
-        if DEBUG_MODE and hasattr(plugin_instance, 'ROLES'):
-            logger.debug(f"Plugin '{plugin_name}' declares ROLES: {plugin_instance.ROLES}")
-
-    if not discovered_roles_set:
-        logger.info("No roles discovered in plugins. No synchronization needed.")
-        return
-
-    logger.debug(f"Discovered unique roles from all plugins: {discovered_roles_set}")
-
+    """Ensure all roles defined in plugin ROLES constants exist in the 'roles' database table."""
     try:
-        # The 'roles' table is managed by a CRUD plugin that is profile-specific by default.
-        # We need a profile_id to associate these roles with.
-        # Using the 'last_profile_id' or a default. This assumes roles might be
-        # viewed/managed per profile initially, even if conceptually global.
-        current_profile_id = int(db.get("last_profile_id", 1)) # Default to profile_id 1
+        # Get the roles plugin and instances
+        roles_plugin = None
+        for name, instance in plugin_instances.items():
+            if name == 'roles':
+                roles_plugin = instance
+                break
 
-        # Fetch existing role names for the current_profile_id to avoid duplicates *for this profile*
-        # The `010_roles.py` uses 'text' to store the role name.
-        existing_roles_in_db_for_profile = {
-            item.text for item in roles_table(profile_id=current_profile_id)
-        }
-        logger.debug(f"Existing roles in DB for profile_id {current_profile_id}: {existing_roles_in_db_for_profile}")
+        if not roles_plugin:
+            logger.warning("Roles plugin not found - skipping role synchronization")
+            return
 
-        new_roles_added_count = 0
-        for role_name in discovered_roles_set:
-            if role_name not in existing_roles_in_db_for_profile:
-                # Data for the new role record
-                # The CrudCustomizer in 010_roles.py handles 'text', 'done', 'priority', 'profile_id'.
-                # We'll set 'done' (active) to False by default. Priority will be auto-calculated.
-                
-                # Use the CrudCustomizer's prepare_insert_data and create_item
-                # Form field name for roles plugin is 'roles-text'
-                simulated_form_data = {
-                    roles_crud_handler.plugin.FORM_FIELD_NAME: role_name
-                    # Priority will be auto-calculated by prepare_insert_data
-                }
-                
-                insert_data_dict = roles_crud_handler.prepare_insert_data(simulated_form_data)
-                
-                if insert_data_dict:
-                    # Ensure 'done' is set, prepare_insert_data for tasks sets it.
-                    # If roles.py's prepare_insert_data doesn't set 'done', set it here.
-                    if 'done' not in insert_data_dict:
-                         insert_data_dict['done'] = False # Default to inactive
+        # Get current profile
+        current_profile_id = get_current_profile_id()
+        if not current_profile_id:
+            logger.warning("No current profile - skipping role synchronization")
+            return
 
-                    await roles_crud_handler.create_item(**insert_data_dict)
-                    logger.info(f"Added role '{role_name}' to the roles table for profile_id {current_profile_id}.")
-                    new_roles_added_count += 1
-                else:
-                    logger.warning(f"Could not prepare insert data for role: {role_name} for profile_id {current_profile_id}")
-        
-        if new_roles_added_count > 0:
-            logger.info(f"Successfully added {new_roles_added_count} new role(s) to the database.")
-        else:
-            logger.info("No new roles needed to be added to the database for this profile.")
+        # Collect all unique roles from plugin ROLES constants
+        discovered_roles = set()
+        for name, instance in plugin_instances.items():
+            if hasattr(instance, 'ROLES'):
+                discovered_roles.update(instance.ROLES)
+
+        # Set the profile filter using xtra
+        roles_plugin.table.xtra(profile_id=current_profile_id)
+
+        # Get existing roles for current profile
+        existing_roles = {}
+        for role in roles_plugin.table():
+            existing_roles[role.text] = role
+
+        # Add any new roles
+        new_roles = []
+        for role_name in discovered_roles:
+            if role_name not in existing_roles:
+                # Find the highest priority
+                max_priority = 0
+                for role in existing_roles.values():
+                    max_priority = max(max_priority, role.priority)
+                
+                # Create new role
+                new_role = roles_plugin.table.insert({
+                    'text': role_name,
+                    'done': False,  # Inactive by default
+                    'priority': max_priority + 1,
+                    'profile_id': current_profile_id
+                })
+                new_roles.append(new_role)
+                logger.debug(f"Added new role: {role_name}")
+
+        # Log the roles table contents if in DEBUG mode or STATE_TABLES is True
+        if DEBUG_MODE or STATE_TABLES:
+            # Create a Rich table for roles
+            roles_table = Table(title="👥 Roles Table", show_header=True, header_style="bold magenta")
+            roles_table.add_column("ID", style="dim")
+            roles_table.add_column("Text", style="cyan")
+            roles_table.add_column("Done", style="green")
+            roles_table.add_column("Priority", style="yellow")
+            roles_table.add_column("Profile ID", style="blue")
+
+            # Add all roles to the table
+            all_roles = list(roles_plugin.table())
+            for role in all_roles:
+                roles_table.add_row(
+                    str(role.id),
+                    role.text,
+                    str(role.done),
+                    str(role.priority),
+                    str(role.profile_id)
+                )
+
+            # Print the table
+            console.print("\n")
+            console.print(roles_table)
+            console.print("\n")
+
+            # Log summary
+            logger.info(f"Roles synchronization complete:")
+            logger.info(f"  - Total roles: {len(all_roles)}")
+            logger.info(f"  - New roles added: {len(new_roles)}")
+            if new_roles:
+                logger.info(f"  - New roles: {', '.join(role.text for role in new_roles)}")
 
     except Exception as e:
-        logger.error(f"Error during role synchronization: {e}")
-        logger.error(traceback.format_exc())
+        logger.error(f"Error synchronizing roles: {str(e)}")
+        if DEBUG_MODE:
+            logger.exception("Detailed error information:")
 
 
 def discover_plugin_files():
