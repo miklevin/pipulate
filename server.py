@@ -3973,6 +3973,13 @@ def create_poke_button():
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
+    # Get the current workflow name from the app choice
+    current_app = db.get("last_app_choice", "")
+    
+    # Check if we're on a workflow by looking for the workflow instance
+    workflow_instance = get_workflow_instance(current_app)
+    is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
+    
     return Div(
         id="flyout-panel",
         style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;",
@@ -4002,7 +4009,7 @@ async def poke_flyout(request):
                         hx_target="body",
                         cls="secondary outline"
                     )
-                ),
+                ) if is_workflow else None,
                 Li(
                     Button(
                         "🗑️ Delete Workflows",
@@ -4012,7 +4019,7 @@ async def poke_flyout(request):
                         hx_target="body",
                         cls="secondary outline"
                     )
-                ),
+                ) if is_workflow else None,
                 Li(
                     Button(
                         "🗑️ Reset Database",
