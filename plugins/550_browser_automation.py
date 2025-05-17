@@ -18,6 +18,8 @@ from starlette.responses import HTMLResponse, JSONResponse
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Tutorial']
+
 """
 Pipulate Browser Automation Workflow
 

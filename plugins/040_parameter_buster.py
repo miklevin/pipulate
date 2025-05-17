@@ -20,6 +20,8 @@ from pathlib import Path
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Botify Employee']
+
 """
 Multi-Export Workflow
 A workflow for performing multiple CSV exports from Botify.

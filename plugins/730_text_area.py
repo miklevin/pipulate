@@ -5,6 +5,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Text Area Widget Workflow
 A specialized workflow for handling multi-line text input with a textarea widget.

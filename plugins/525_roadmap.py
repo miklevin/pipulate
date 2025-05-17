@@ -3,6 +3,8 @@ from fasthtml.common import *
 import logging
 import time
 
+ROLES = ['Tutorial']
+
 logger = logging.getLogger(__name__)
 
 class RoadmapPlugin:

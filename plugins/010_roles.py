@@ -10,6 +10,8 @@ from fasthtml.common import *
 from loguru import logger
 from server import DB_FILENAME, LIST_SUFFIX, BaseCrud
 
+ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 

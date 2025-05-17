@@ -5,6 +5,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Pipulate Dropdown Widget
 A standalone dropdown widget workflow for selecting from a list of options.

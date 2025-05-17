@@ -4,6 +4,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
+
 # Warning: This is an intentionally local-first app using server-side state and HTMX.
 # Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursorrules
 # for the design philosophy and contribution guidelines.

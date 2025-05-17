@@ -12,6 +12,8 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+ROLES = ['Tutorial']
+
 """
 Pipulate Workflow Template
 A minimal starter template for creating step-based Pipulate workflows.

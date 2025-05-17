@@ -6,6 +6,8 @@ import os
 from fasthtml.common import *
 from loguru import logger
 
+ROLES = ['Botify Employee']
+
 """
 Acquire a Botify API Key
 

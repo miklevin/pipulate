@@ -6,6 +6,8 @@ import json
 from loguru import logger
 from fasthtml.common import *
 
+ROLES = ['Tutorial']
+
 logger = logging.getLogger(__name__)
 
 # Remove direct imports from server

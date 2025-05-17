@@ -10,6 +10,8 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+ROLES = ['Developer']
+
 """
 File Upload Widget Workflow
 

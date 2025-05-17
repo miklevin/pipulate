@@ -13,6 +13,8 @@ from starlette.responses import HTMLResponse
 from loguru import logger
 from fastcore.xml import NotStr
 
+ROLES = ['Developer']
+
 """
 Matplotlib Histogram Widget
 

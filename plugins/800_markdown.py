@@ -6,6 +6,8 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+ROLES = ['Developer']
+
 """
 Pipulate Markdown MarkedJS Widget Workflow
 A workflow for demonstrating the Markdown MarkedJS rendering widget.

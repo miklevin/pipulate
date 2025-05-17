@@ -5,6 +5,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Pipulate Workflow Template
 A guide for creating multi-step workflows with proper chain reaction behavior.

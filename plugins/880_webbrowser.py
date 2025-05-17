@@ -7,6 +7,8 @@ from loguru import logger
 from starlette.responses import HTMLResponse
 import webbrowser
 
+ROLES = ['Developer']
+
 """
 Pipulate Webbrowser URL Opener Widget Workflow
 A workflow for demonstrating opening a URL in the default system browser.

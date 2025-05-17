@@ -6,6 +6,8 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+ROLES = ['Developer']
+
 """
 Pipulate Mermaid Diagram Widget Workflow
 A workflow for demonstrating the Mermaid.js diagram rendering widget.

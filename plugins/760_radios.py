@@ -5,6 +5,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Pipulate Radio Button Workflow
 A workflow for managing and testing radio button-based interactions.

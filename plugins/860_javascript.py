@@ -9,6 +9,8 @@ from fasthtml.common import * # type: ignore
 from starlette.responses import HTMLResponse
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Executable JavaScript Widget
 

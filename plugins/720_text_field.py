@@ -5,6 +5,8 @@ from datetime import datetime
 from fasthtml.common import * # type: ignore
 from loguru import logger
 
+ROLES = ['Developer']
+
 """
 Text Field Widget Workflow
 A minimal template for creating a text field widget workflow, based on the blank placeholder pattern.

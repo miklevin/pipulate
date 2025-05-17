@@ -6,6 +6,8 @@ from fasthtml.common import * # type: ignore
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+ROLES = ['Developer']
+
 """
 Pipulate Rich Table Widget Workflow
 A workflow for demonstrating the Rich Table widget with beautiful styling.

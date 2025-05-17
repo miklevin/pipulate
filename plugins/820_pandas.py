@@ -7,6 +7,8 @@ from loguru import logger
 from starlette.responses import HTMLResponse
 import pandas as pd
 
+ROLES = ['Developer']
+
 """
 Pipulate Pandas Table Widget Workflow
 A workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.

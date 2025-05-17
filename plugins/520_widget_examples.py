@@ -17,6 +17,8 @@ from rich.console import Console
 from rich.table import Table
 from fastcore.xml import NotStr
 
+ROLES = ['Tutorial']
+
 """
 Pipulate Widget Examples
 
