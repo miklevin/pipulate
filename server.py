@@ -4271,7 +4271,7 @@ async def switch_environment(request):
         # Schedule server restart
         asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
 
-        # Return a minimal response with a spinner using aria-busy
+        # Return a minimal response with a spinner using aria-busy and a style attribute to lock the UI
         return HTMLResponse(
             f"""<div 
                 aria-busy='true' 
@@ -4282,7 +4282,13 @@ async def switch_environment(request):
                     border-radius: var(--pico-border-radius);
                     min-height: 2.5rem;
                 "
-            >Switching</div>"""
+            >Switching</div>
+            <style>
+                body {{
+                    pointer-events: none;
+                    user-select: none;
+                }}
+            </style>"""
         )
 
     except Exception as e:
