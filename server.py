@@ -543,6 +543,7 @@ class Pipulate:
     # Content style constants
     CONTENT_STYLE = "margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;"
     FINALIZED_CONTENT_STYLE = "margin-top: 0.5vh; padding: 0.5vh 0;"
+    MENU_ITEM_PADDING = "padding: 1vh 0px 0px .5vw;"  # Standard padding for menu items and similar UI elements
 
     def __init__(self, pipeline_table, chat_instance=None):
         """Initialize Pipulate with required dependencies.
@@ -3220,12 +3221,11 @@ def create_env_menu():
                 style="min-width: 1rem; margin-right: 0.5rem;"
             ),
             "DEV",
-            style="display: flex; align-items: center; flex: 1;"
-        ),
-        style=f"text-align: left; padding: 0.35rem 0.75rem; {dev_style} display: flex; border-radius: var(--pico-border-radius);",
-        onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
-        onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_dev else 'transparent'}';",
-        id="dev-env-item"
+            style=f"text-align: left; {pipulate.MENU_ITEM_PADDING} {dev_style} display: flex; border-radius: var(--pico-border-radius);",
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_dev else 'transparent'}';",
+            id="dev-env-item"
+        )
     ))
 
     # Production option
@@ -3245,12 +3245,11 @@ def create_env_menu():
                 style="min-width: 1rem; margin-right: 0.5rem;"
             ),
             "Prod",
-            style="display: flex; align-items: center; flex: 1;"
-        ),
-        style=f"text-align: left; padding: 0.35rem 0.75rem; {prod_style} display: flex; border-radius: var(--pico-border-radius);",
-        onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
-        onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_prod else 'transparent'}';",
-        id="prod-env-item"
+            style=f"text-align: left; {pipulate.MENU_ITEM_PADDING} {prod_style} display: flex; border-radius: var(--pico-border-radius);",
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_prod else 'transparent'}';",
+            id="prod-env-item"
+        )
     ))
 
     return Details(
@@ -3392,7 +3391,9 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
                 ),
                 profile_item.name
             ),
-            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE}"
+            style=f"text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);",
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
         ))
 
     summary_profile_name_to_display = selected_profile_name
@@ -3522,10 +3523,13 @@ def create_app_menu(menux):
                     style="min-width: 1rem; margin-right: 0.5rem;" # PicoCSS friendly radio
                 ),
                 display_name, # Text for the label
-                style="display: flex; align-items: center; flex: 1;" 
+                style="text-align: left; display: flex; align-items: center; flex: 1;",
+                # Add a hover effect to the Li
+                onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+                onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
             ),
             # Apply styling to the Li for selection indication and layout
-            style=f"text-align: left; padding: 0.35rem 0.75rem; {item_style} display: flex; border-radius: var(--pico-border-radius);",
+            style=f"text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);",
             # Add a hover effect to the Li
             onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
             onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
@@ -4278,7 +4282,7 @@ async def switch_environment(request):
                 style="
                     display: flex; 
                     align-items: center; 
-                    padding: 0.35rem 0.75rem; 
+                    {pipulate.MENU_ITEM_PADDING}
                     border-radius: var(--pico-border-radius);
                     min-height: 2.5rem;
                 "
