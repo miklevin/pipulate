@@ -3539,7 +3539,7 @@ def create_app_menu(menux):
     return Details(
         Summary(
             "APP",
-            style=generate_menu_style(), # Use generate_menu_style()
+            style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="app-id" # This ID is important for HTMX targeting later
         ),
         Ul(
