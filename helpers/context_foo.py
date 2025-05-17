@@ -24,10 +24,10 @@ from typing import Dict, List, Optional, Union
 # ls -1 -d "$PWD"/*
 
 FILES_TO_INCLUDE = """\
-README.md
-flake.nix
-requirements.txt
-server.py
+# README.md
+# flake.nix
+# requirements.txt
+# server.py
 /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
 /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
@@ -43,8 +43,8 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
 /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
 /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
-# /home/mike/repos/pipulate/plugins/010_roles.py
-# /home/mike/repos/pipulate/plugins/020_tasks.py
+/home/mike/repos/pipulate/plugins/010_roles.py
+/home/mike/repos/pipulate/plugins/020_tasks.py
 /home/mike/repos/pipulate/plugins/000_profiles.py
 """.strip().splitlines()
 
