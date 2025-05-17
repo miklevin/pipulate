@@ -2776,55 +2776,46 @@ def discover_plugin_files():
     return plugin_modules
 
 
-def find_plugin_classes(plugin_modules):
-    """Find plugin-compatible classes within imported modules.
-
-    Identifies plugin classes that have a 'landing' method
-    and the required attributes or properties. Supports:
-    - Workflow plugins with NAME/APP_NAME and DISPLAY_NAME attributes
-    - CRUD UI plugins with name/DISPLAY_NAME properties
-
-    Args:
-        plugin_modules (dict): Mapping of module names to module objects
-
-    Returns:
-        list: List of tuples (module_name, class_name, class_object) for each plugin class
-    """
+def find_plugin_classes(plugin_modules, discovered_modules):
+    """Find all plugin classes in the given modules."""
     plugin_classes = []
-
-    for module_name, module in plugin_modules.items():
-        logger.debug(f"Examining module: {module_name}")
-
-        for name, obj in inspect.getmembers(module):
-            logger.debug(f"Found member in {module_name}: {name}, type: {type(obj)}")
-
-            # Check if it's a class
-            if inspect.isclass(obj):
-                logger.debug(f"Class found: {module_name}.{name}")
-
-                # Check if the class has a landing method
-                if hasattr(obj, 'landing') and callable(getattr(obj, 'landing')):
-                    # Check for direct attributes (workflow plugins)
-                    has_name_attribute = (
-                        hasattr(obj, 'NAME') or
-                        hasattr(obj, 'APP_NAME')  # Some plugins use APP_NAME instead
-                    )
-                    has_display_name = hasattr(obj, 'DISPLAY_NAME')
-                    has_attributes = has_name_attribute and has_display_name
-
-                    # Check for properties via class dictionary (CRUD UI plugins)
-                    has_properties = False
-                    if 'DISPLAY_NAME' in dir(obj) and not has_attributes:
-                        # For classes that use property decorators like CrudUI
-                        has_properties = True
-
-                    if has_attributes or has_properties:
-                        plugin_classes.append((module_name, name, obj))
-                        plugin_type = 'property-based' if has_properties else 'attribute-based'
-                        name_attr = 'APP_NAME' if hasattr(obj, 'APP_NAME') else 'NAME'
-                        logger.debug(f"Found plugin: {module_name}.{name} ({plugin_type}, using {name_attr})")
-
-    logger.debug(f"Discovered plugin classes: {[(m, c) for m, c, _ in plugin_classes]}")
+    
+    for module_or_name in plugin_modules:
+        try:
+            # Handle both module objects and module names
+            if isinstance(module_or_name, str):
+                module_name = module_or_name
+                # Get the original filename from the module if available
+                original_name = getattr(discovered_modules[module_name], '_original_filename', module_name)
+                module = importlib.import_module(f'plugins.{original_name}')
+            else:
+                module = module_or_name
+                module_name = module.__name__.split('.')[-1]
+            
+            # Find all classes in the module
+            for name, obj in inspect.getmembers(module):
+                if inspect.isclass(obj):
+                    logger.debug(f"Found member in {module_name}: {name}, type: {type(obj)}")
+                    # Check if it's a plugin class by looking for required attributes
+                    if hasattr(obj, 'landing'):
+                        logger.debug(f"Class found: {module_name}.{name}")
+                        # Check for required attributes
+                        if (hasattr(obj, 'NAME') or 
+                            hasattr(obj, 'APP_NAME') or 
+                            hasattr(obj, 'DISPLAY_NAME')):
+                            logger.debug(f"Found plugin: {module_name}.{name} (attribute-based, using NAME)")
+                            plugin_classes.append((module_name, name, obj))
+                        # Check for required properties
+                        elif (hasattr(obj, 'name') or 
+                              hasattr(obj, 'app_name') or 
+                              hasattr(obj, 'display_name')):
+                            logger.debug(f"Found plugin: {module_name}.{name} (property-based)")
+                            plugin_classes.append((module_name, name, obj))
+        except Exception as e:
+            logger.error(f"Error processing module {module_or_name}: {str(e)}")
+            continue
+    
+    logger.debug(f"Discovered plugin classes: {plugin_classes}")
     return plugin_classes
 
 
@@ -2833,7 +2824,7 @@ plugin_instances = {}
 
 # Discover plugin files and classes
 discovered_modules = discover_plugin_files()
-discovered_classes = find_plugin_classes(discovered_modules)
+discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 
 # Ensure these dictionaries are initialized
 friendly_names = {"": HOME_MENU_ITEM}
@@ -2875,17 +2866,39 @@ def get_endpoint_message(workflow_name):
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
         try:
-            instance = workflow_class(app, pipulate, pipeline, db)
-            plugin_instances[module_name] = instance
-            logger.debug(f"Auto-registered workflow: {module_name}")
+            # Get the original filename from the module if available
+            original_name = getattr(discovered_modules[module_name], '_original_filename', module_name)
+            # Get the module using the original filename
+            module = importlib.import_module(f'plugins.{original_name}')
+            # Get the class from the module
+            workflow_class = getattr(module, class_name)
+            
+            # Check if the class has the required attributes
+            if not hasattr(workflow_class, 'landing'):
+                logger.warning(f"Plugin class {module_name}.{class_name} missing required 'landing' method - skipping")
+                continue
+                
+            # Check if the class has any of the required name attributes
+            if not any(hasattr(workflow_class, attr) for attr in ['NAME', 'APP_NAME', 'DISPLAY_NAME', 'name', 'app_name', 'display_name']):
+                logger.warning(f"Plugin class {module_name}.{class_name} missing required name attributes - skipping")
+                continue
+            
+            # Create an instance of the workflow class
+            try:
+                instance = workflow_class(app, pipulate, pipeline, db)
+                plugin_instances[module_name] = instance
+                logger.debug(f"Auto-registered workflow: {module_name}")
 
-            # Log roles if they exist
-            if hasattr(instance, 'ROLES'):
-                logger.debug(f"Plugin {module_name} has roles: {instance.ROLES}")
+                # Log roles if they exist
+                if hasattr(instance, 'ROLES'):
+                    logger.debug(f"Plugin {module_name} has roles: {instance.ROLES}")
 
-            # Retrieve and log the endpoint message using the new method
-            endpoint_message = get_endpoint_message(module_name)
-            logger.debug(f"Endpoint message for {module_name}: {endpoint_message}")
+                # Retrieve and log the endpoint message using the new method
+                endpoint_message = get_endpoint_message(module_name)
+                logger.debug(f"Endpoint message for {module_name}: {endpoint_message}")
+            except Exception as e:
+                logger.warning(f"Error instantiating workflow {module_name}.{class_name}: {str(e)}")
+                continue
 
         except Exception as e:
             logger.warning(f"Issue with workflow {module_name}.{class_name} - continuing anyway")
