@@ -175,7 +175,6 @@ class CrudUI(PluginIdentityManager):
         routes_to_register = [
             (f'{prefix}', self.app_instance.insert_item, ['POST']),
             (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']),
-            (f'{prefix}/delete/{{item_id:int}}', self.app_instance.delete_item, ['DELETE']),
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
             (sort_path, self.app_instance.sort_items, ['POST']),
         ]
@@ -238,7 +237,6 @@ def render_item(item, app_instance):
     item_id = f'{app_instance.name}-{item.id}'
     logger.debug(f"Rendering {app_instance.plugin.name} ID {item.id} with text '{item.text}'")
 
-    delete_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/delete/{item.id}"
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
     update_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/{item.id}"
 
@@ -249,15 +247,6 @@ def render_item(item, app_instance):
         hx_post=toggle_url,
         hx_swap="outerHTML",
         hx_target=f"#{item_id}",
-    )
-
-    delete_icon = A(
-        '🗑',
-        hx_delete=delete_url,
-        hx_swap='outerHTML',
-        hx_target=f"#{item_id}",
-        style="cursor: pointer; display: inline; margin-left: 5px; text-decoration: none;",
-        cls="delete-icon"
     )
 
     update_input_id = f"{app_instance.name}_text_{item.id}"
@@ -303,7 +292,6 @@ def render_item(item, app_instance):
         checkbox,
         text_display,
         update_form,
-        delete_icon,
         id=item_id,
         cls='done' if item.done else '',
         style="list-style-type: none; display: flex; align-items: center; margin-bottom: 5px;",
