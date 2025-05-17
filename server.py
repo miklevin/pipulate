@@ -3528,7 +3528,7 @@ def create_app_menu(menux):
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="app-id"
         ),
-        Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
+        Ul(*menu_items, style="padding-left: 0; min-width: 300px;", cls="dropdown-menu"),
         cls="dropdown",
         id="app-dropdown-menu"
     )
