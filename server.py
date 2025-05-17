@@ -3540,12 +3540,12 @@ def create_app_menu(menux):
             style="padding: 0.5rem 1rem;"
         ))
 
-        # Delete all workflows button
+        # Delete workflows button
         menu_items.append(Li(
             Button(
-                "🗑️ Delete All Workflows",
+                "🗑️ Delete Workflows",
                 hx_post="/clear-pipeline",
-                hx_confirm="Are you sure you want to delete all workflows?",
+                hx_confirm="Are you sure you want to delete workflows?",
                 hx_swap="outerHTML",
                 hx_target="body",
                 cls="secondary outline",
@@ -4005,9 +4005,9 @@ async def poke_flyout(request):
                 ),
                 Li(
                     Button(
-                        "🗑️ Delete All Workflows",
+                        "🗑️ Delete Workflows",
                         hx_post="/clear-pipeline",
-                        hx_confirm="Are you sure you want to delete all workflows?",
+                        hx_confirm="Are you sure you want to delete workflows?",
                         hx_swap="outerHTML",
                         hx_target="body",
                         cls="secondary outline"
