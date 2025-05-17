@@ -3108,36 +3108,6 @@ def get_profile_name():
         return "Unknown Profile"
 
 
-@rt('/delete-pipeline', methods=['POST'])
-async def delete_pipeline(request):
-    # Get the pipeline ID from the request
-    form = await request.form()
-    pipeline_id = form.get("pipeline_id")
-    if not pipeline_id:
-        return P("Error: No pipeline ID specified", style=pipulate.get_style("error"))
-
-    # Delete the specific pipeline record
-    try:
-        # First check if the record exists
-        record = pipulate.table.get(pipeline_id)
-        if not record:
-            return P("Error: Workflow not found", style=pipulate.get_style("error"))
-
-        # Delete the record
-        pipulate.table.delete(pipeline_id)
-        logger.debug(f"Deleted pipeline record: {pipeline_id}")
-
-        # Clear the pipeline_id from the database if it matches
-        if db.get("pipeline_id") == pipeline_id:
-            db.set("pipeline_id", "")
-            logger.debug(f"Cleared pipeline_id from database")
-
-        return P(f"Workflow {pipeline_id} deleted. You may need to refresh the page to see the updated list.")
-    except Exception as e:
-        logger.error(f"Error deleting pipeline record: {str(e)}")
-        return P(f"Error deleting workflow: {str(e)}", style=pipulate.get_style("error"))
-
-
 async def home(request):
     path = request.url.path.strip('/')
     logger.debug(f"Received request for path: {path}")
@@ -3927,7 +3897,7 @@ async def poke_flyout(request):
     # Check if we're on a workflow by looking for the workflow instance
     workflow_instance = get_workflow_instance(current_app)
     is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
-
+    
     # Get the current profile lock state from db
     profile_locked = db.get("profile_locked", "0") == "1"
     lock_button_text = "🔓 Unlock Profile" if profile_locked else "🔒 Lock Profile"
@@ -3939,7 +3909,7 @@ async def poke_flyout(request):
         id="flyout-panel",
         style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;",
         hx_get="/poke-flyout-hide",
-        hx_trigger="mouseleave",
+        hx_trigger="mouseleave delay:100ms",
         hx_target="this",
         hx_swap="outerHTML"
     )(
@@ -3968,17 +3938,6 @@ async def poke_flyout(request):
                 ),
                 Li(
                     Button(
-                        "🗑️ Delete Current Workflow",
-                        hx_post="/delete-pipeline",
-                        hx_target="body",
-                        hx_confirm="Are you sure you want to delete this workflow?",
-                        hx_swap="outerHTML",
-                        cls="secondary outline"
-                    ),
-                    style="list-style-type: none; margin-bottom: 0.5rem;"
-                ) if is_workflow else None,
-                Li(
-                    Button(
                         "🗑️ Delete Workflows",
                         hx_post="/clear-pipeline",
                         hx_target="body",
@@ -3998,7 +3957,7 @@ async def poke_flyout(request):
                         cls="secondary outline"
                     ),
                     style="list-style-type: none; margin-bottom: 0.5rem;"
-                ) if is_dev_mode else None,
+                )
             ),
             style="background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);"
         )
