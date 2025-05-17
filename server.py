@@ -10,6 +10,8 @@ import inspect
 import json
 import os
 import random
+import re
+import sqlite3
 import sys
 import time
 import traceback
@@ -34,8 +36,6 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-import sqlite3
-import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = True   # Set to True for verbose logging (all DEBUG level logs)
@@ -2770,6 +2770,7 @@ def get_endpoint_message(workflow_name):
                 import inspect
                 if inspect.iscoroutinefunction(pipulate.format_links_in_text):
                     import asyncio
+
                     # Create a non-blocking task
                     asyncio.create_task(pipulate.format_links_in_text(message))
                     return message
