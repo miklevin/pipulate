@@ -3954,11 +3954,6 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 
 def create_poke_button():
-    # Get current workflow name from the app choice
-    current_app = db.get("last_app_choice", "")
-    if not current_app:
-        return ""
-
     # Create the poke button with flyout panel
     return Div(
         Button(
@@ -4047,7 +4042,6 @@ def create_poke_button():
                         isHovering = true;
                     });
                     
-                    // Hide flyout when mouse leaves panel
                     flyoutPanel.addEventListener('mouseleave', () => {
                         isHovering = false;
                         setTimeout(() => {
