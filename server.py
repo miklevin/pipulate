@@ -3198,7 +3198,7 @@ def create_env_menu():
     # Add visual indicator for Development mode (subtle styling)
     if current_env == "Development":
         env_summary_style += " color: #f77; font-weight: bold;"
-        display_env = "Dev"
+        display_env = "DEV"
     else:
         display_env = "Prod"
 
@@ -3219,7 +3219,7 @@ def create_env_menu():
                 hx_swap="outerHTML",
                 style="min-width: 1rem; margin-right: 0.5rem;"
             ),
-            "Dev",
+            "DEV",
             style="display: flex; align-items: center; flex: 1;"
         ),
         style=f"text-align: left; padding: 0.35rem 0.75rem; {dev_style} display: flex; border-radius: var(--pico-border-radius);",
@@ -3255,8 +3255,8 @@ def create_env_menu():
 
     return Details(
         Summary(
-            "ENV",
-            style="white-space: nowrap; display: inline-block; min-width: max-content;",
+            display_env,
+            style=env_summary_style,
             id="env-id"
         ),
         Ul(
@@ -4268,7 +4268,18 @@ async def switch_environment(request):
         asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
 
         # Return a minimal response with a spinner using aria-busy
-        return HTMLResponse(f"<div aria-busy='true'>Switching</div>")
+        return HTMLResponse(
+            f"""<div 
+                aria-busy='true' 
+                style="
+                    display: flex; 
+                    align-items: center; 
+                    padding: 0.35rem 0.75rem; 
+                    border-radius: var(--pico-border-radius);
+                    min-height: 2.5rem;
+                "
+            >Switching</div>"""
+        )
 
     except Exception as e:
         logger.error(f"Error switching environment: {e}")
