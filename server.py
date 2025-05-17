@@ -3988,7 +3988,7 @@ async def poke_flyout(request):
                     Button(
                         f"🤖 Poke {MODEL}",
                         hx_post="/poke",
-                        hx_target="#chat-messages",
+                        hx_target="#msg-list",
                         hx_swap="beforeend",
                         cls="secondary outline"
                     )
