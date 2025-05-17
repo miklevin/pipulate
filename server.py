@@ -3968,7 +3968,7 @@ def create_poke_button():
             hx_post="/poke",
             hx_target="#chat-messages",
             hx_swap="beforeend",
-            data_hx_post="/poke"  # Add this attribute for the JavaScript selector
+            data_hx_post="/poke"
         ),
         Div(
             Div(
@@ -4023,22 +4023,38 @@ def create_poke_button():
             document.addEventListener('DOMContentLoaded', function() {
                 const pokeButton = document.querySelector('button[data-hx-post="/poke"]');
                 const flyoutPanel = document.getElementById('flyout-panel');
+                let isHovering = false;
                 
                 if (pokeButton && flyoutPanel) {
+                    // Show flyout when hovering over button
                     pokeButton.addEventListener('mouseenter', () => {
+                        isHovering = true;
                         flyoutPanel.style.display = 'block';
                     });
                     
-                    flyoutPanel.addEventListener('mouseleave', () => {
-                        flyoutPanel.style.display = 'none';
+                    // Hide flyout when mouse leaves both button and panel
+                    pokeButton.addEventListener('mouseleave', () => {
+                        isHovering = false;
+                        setTimeout(() => {
+                            if (!isHovering) {
+                                flyoutPanel.style.display = 'none';
+                            }
+                        }, 100);
                     });
                     
-                    pokeButton.addEventListener('mouseleave', (e) => {
-                        // Check if we're moving to the flyout panel
-                        const toElement = e.relatedTarget;
-                        if (!flyoutPanel.contains(toElement)) {
-                            flyoutPanel.style.display = 'none';
-                        }
+                    // Keep flyout visible when hovering over panel
+                    flyoutPanel.addEventListener('mouseenter', () => {
+                        isHovering = true;
+                    });
+                    
+                    // Hide flyout when mouse leaves panel
+                    flyoutPanel.addEventListener('mouseleave', () => {
+                        isHovering = false;
+                        setTimeout(() => {
+                            if (!isHovering) {
+                                flyoutPanel.style.display = 'none';
+                            }
+                        }, 100);
                     });
                 }
             });
