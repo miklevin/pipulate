@@ -39,7 +39,8 @@ import re
 
 # Direct settings for logging verbosity - toggle these to change behavior
 DEBUG_MODE = True   # Set to True for verbose logging (all DEBUG level logs)
-STATE_TABLES = True # Set to True to display state tables (🍪 and ➡️)
+STATE_TABLES = True  # Set to True to display state tables (🍪 and ➡️)
+
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -85,6 +86,8 @@ data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 
 # Read environment from file or default to Production
+
+
 def get_current_environment():
     if ENV_FILE.exists():
         return ENV_FILE.read_text().strip()
@@ -93,17 +96,21 @@ def get_current_environment():
         ENV_FILE.write_text("Development")
         return "Development"
 
+
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f"Environment set to: {environment}")
 
 # Function to get database filename based on current environment
+
+
 def get_db_filename():
     current_env = get_current_environment()
     if current_env == "Development":
         return f"data/{APP_NAME.lower()}_dev.db"
     else:
         return f"data/{APP_NAME.lower()}.db"
+
 
 # Set initial DB_FILENAME
 DB_FILENAME = get_db_filename()
@@ -134,13 +141,15 @@ CORE_PLUGINS = {
     "kungfu_workflow"
 }
 
+
 def is_core_plugin(plugin_name):
     """Determine if a plugin is part of the core workflow."""
     return plugin_name in CORE_PLUGINS
 
+
 def setup_logging():
     """Set up unified logging between console and file with synchronized formats.
-    
+
     Designed to:
     1. Default to INFO level (quiet but informative)
     2. Use consistent formatting between console and file
@@ -156,22 +165,22 @@ def setup_logging():
 
     # Use the DEBUG_MODE constant directly instead of environment variable
     log_level = "DEBUG" if DEBUG_MODE else "INFO"
-    
+
     # Delete the previous log file if it exists
     if app_log_path.exists():
         app_log_path.unlink()
-    
+
     # Also delete any timestamped log files that may exist
     for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
         try:
             old_log.unlink()
         except Exception as e:
             print(f"Failed to delete old log file {old_log}: {e}")
-    
+
     # Define format strings for consistent display between console and file
     time_format = "{time:HH:mm:ss}"
     message_format = "{level: <8} | {name: <15} | {message}"
-    
+
     # File logger - captures everything at the configured level
     logger.add(
         app_log_path,
@@ -195,11 +204,11 @@ def setup_logging():
             ])
         )
     )
-    
+
     # Log state tables mode if enabled
     if STATE_TABLES:
         logger.info(f"🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed)")
-        
+
     return logger
 
 
@@ -217,13 +226,15 @@ if __name__ == "__main__":
 # logger.info(f"Environment: {get_current_environment()}")
 # logger.info(f"Using database: {DB_FILENAME}")
 
+
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
-    
+
     This class provides methods that encourage a consistent, carefully curated
     logging experience across both console and log file. It encourages using 
     the same messages in both places with appropriate formatting.
     """
+
     def __init__(self, logger):
         self.logger = logger
         self.categories = {
@@ -239,32 +250,32 @@ class LogManager:
             "error": "❌ ERROR",
             "warning": "⚠️ WARNING"
         }
-        
+
     def format_message(self, category, message, details=None):
         emoji = self.categories.get(category, f"⚡ {category.upper()}")
         formatted = f"[{emoji}] {message}"
         if details:
             formatted += f" | {details}"
         return formatted
-    
+
     def startup(self, message, details=None):
         """Log a startup-related message."""
         self.logger.info(self.format_message("startup", message, details))
-    
+
     def workflow(self, message, details=None):
         """Log a workflow-related message."""
         self.logger.info(self.format_message("workflow", message, details))
-    
+
     def pipeline(self, message, details=None, pipeline_id=None):
         """Log a pipeline-related message."""
         if pipeline_id:
             details = f"Pipeline: {pipeline_id}" + (f" | {details}" if details else "")
         self.logger.info(self.format_message("pipeline", message, details))
-    
+
     def profile(self, message, details=None):
         """Log a profile-related message."""
         self.logger.info(self.format_message("profile", message, details))
-    
+
     def data(self, message, data=None):
         """Log structured data - at DEBUG level since it's typically verbose."""
         msg = self.format_message("database", message)
@@ -276,15 +287,15 @@ class LogManager:
                 self.logger.debug(f"{msg} | {data}")
         else:
             self.logger.info(msg)
-    
+
     def event(self, event_type, message, details=None):
         """Log a user-facing event in the application."""
         self.logger.info(self.format_message(event_type, message, details))
-    
+
     def warning(self, message, details=None):
         """Log a warning message at WARNING level."""
         self.logger.warning(self.format_message("warning", message, details))
-        
+
     def error(self, message, error=None):
         """Log an error with traceback at ERROR level."""
         formatted = self.format_message("error", message)
@@ -295,10 +306,11 @@ class LogManager:
             self.logger.debug(traceback.format_exc())
         else:
             self.logger.error(formatted)
-    
+
     def debug(self, category, message, details=None):
         """Log debug information that only appears in DEBUG mode."""
         self.logger.debug(self.format_message(category, message, details))
+
 
 # Create a global log manager instance
 log = LogManager(logger)
@@ -339,10 +351,10 @@ console = DebugConsole(theme=custom_theme)
 
 def title_name(word: str) -> str:
     """Format a string into a title case form.
-    
+
     Args:
         word: The string to format
-        
+
     Returns:
         str: The formatted string in title case
     """
@@ -399,12 +411,12 @@ def step_button(step: str, preserve: bool = False, revert_label: str = None) -> 
 class SSEBroadcaster:
     _instance = None
     _initialized = False
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if not self._initialized:
             self.queue = asyncio.Queue()
@@ -447,7 +459,7 @@ def read_training(prompt_or_filename):
                 if hasattr(instance, 'TRAINING_PROMPT') and instance.TRAINING_PROMPT == prompt_or_filename:
                     plugin_name = instance.DISPLAY_NAME
                     break
-            
+
             if plugin_name:
                 logger.warning(f"No training file found for {prompt_or_filename} (used by {plugin_name})")
             else:
@@ -494,33 +506,33 @@ def pipeline_operation(func):
         url = args[0] if args else None
         if not url:
             return func(self, *args, **kwargs)
-        
+
         # Get the original state
         old_state = self._get_clean_state(url)
-        
+
         # Execute the function
         result = func(self, *args, **kwargs)
-        
+
         # Check for state changes
         new_state = self._get_clean_state(url)
         if old_state != new_state:
             # Calculate what changed
             changes = {k: new_state[k] for k in new_state if k not in old_state or old_state[k] != new_state[k]}
-            
+
             if changes:
                 # Get function name for better context
                 operation = func.__name__
-                
+
                 # Log a summary at INFO level
                 step_changes = [k for k in changes if not k.startswith('_')]
                 if step_changes:
-                    log.pipeline(f"Operation '{operation}' updated state", 
-                                details=f"Steps: {', '.join(step_changes)}",
-                                pipeline_id=url)
-                
+                    log.pipeline(f"Operation '{operation}' updated state",
+                                 details=f"Steps: {', '.join(step_changes)}",
+                                 pipeline_id=url)
+
                 # Log the detailed changes at DEBUG level only
                 log.debug("pipeline", f"Pipeline '{url}' detailed changes", json.dumps(changes, indent=2))
-        
+
         return result
     return wrapper
 
@@ -540,10 +552,10 @@ class Pipulate:
     WARNING_BUTTON_STYLE = None  # Now using cls="secondary outline" instead
     PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
-    
+
     # Text style constants
     MUTED_TEXT_STYLE = "font-size: 0.9em; color: var(--pico-muted-color);"
-    
+
     # Content style constants
     CONTENT_STYLE = "margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;"
     TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 1.5vh;"
@@ -567,14 +579,14 @@ class Pipulate:
 
     def append_to_history(self, message: str, role: str = "system", quiet: bool = True) -> None:
         """Add a message to the LLM conversation history without triggering a response.
-        
+
         This is the preferred way for workflows to update the LLM's context about:
         - UI state changes
         - Form submissions
         - Validation results
         - Explanatory text shown to users
         - Step completion status
-        
+
         Args:
             message: The message to add to history
             role: The role of the message sender ("system", "user", "assistant")
@@ -609,15 +621,15 @@ class Pipulate:
             """Add a message to the queue and process if not already processing."""
             # Log the message to the logger
             logger.info(f"[🔄 WORKFLOW] {message}")
-            
+
             # Escape URLs in the message by replacing : with ꞉ (a special colon character)
             # This prevents auto-linking while keeping the message readable
             if isinstance(message, str):
                 message = message.replace("http:", "http꞉").replace("https:", "https꞉")
-            
+
             # Determine the role based on kwargs or default to "system"
             role = kwargs.pop("role", "system")
-            
+
             # Update workflow state based on message content
             if "Step " in message and "Please enter" in message:
                 step_num = message.split("Step ")[1].split(":")[0]
@@ -625,7 +637,7 @@ class Pipulate:
                 self._step_completed = False
             elif "complete" in message.lower() and "step" in message.lower():
                 self._step_completed = True
-            
+
             # Add context marker based on message type/role
             context_message = message
             if role == "system":
@@ -640,14 +652,14 @@ class Pipulate:
             elif role == "assistant":
                 # For assistant messages, make it clear it's a response
                 context_message = f"[RESPONSE] {message}"
-            
+
             # Add workflow state context before each message
             workflow_context = self._get_workflow_context()
             context_message = f"{workflow_context}\n{context_message}"
-            
+
             # Add to conversation history with context
             append_to_conversation(context_message, role=role)
-            
+
             # Queue the original message (without context marker) for UI display
             self.queue.append((pipulate, message, kwargs))
             if not self._processing:
@@ -661,7 +673,7 @@ class Pipulate:
                     pipulate, message, kwargs = self.queue.pop(0)
                     # Stream the message and capture any response
                     response = await pipulate.stream(message, **kwargs)
-                    
+
                     # If there was a response and it's different from the input message,
                     # append it to conversation history as an assistant message with context
                     if response and response != message:
@@ -1014,7 +1026,7 @@ class Pipulate:
             "justify-content: space-between; "
             "background-color: var(--pico-card-background-color);"
         )
-        
+
         # Add padding: 0 if remove_padding is True
         if remove_padding:
             article_style += " padding: 0;"
@@ -1044,16 +1056,16 @@ class Pipulate:
     ):
         """
         Create a standardized container for widgets, visualizations, or any dynamic content.
-        
+
         This is the core pattern for displaying rich content below workflow steps while
         maintaining consistent styling and proper DOM targeting for dynamic updates.
-        
+
         The container provides:
         1. Consistent padding/spacing with the revert controls
         2. Unique DOM addressing for targeted updates
         3. Support for both function-based widgets and AnyWidget components
         4. Standard styling that can be overridden when needed
-        
+
         Args:
             step_id: The ID of the step this widget belongs to
             app_name: The workflow app name
@@ -1063,7 +1075,7 @@ class Pipulate:
             target_id: Optional target for HTMX updates
             revert_label: Optional custom label for the revert button
             widget_style: Optional custom style for the widget container
-            
+
         Returns:
             Div: A FastHTML container with revert control and widget content
         """
@@ -1077,14 +1089,14 @@ class Pipulate:
             revert_label=revert_label,
             remove_padding=True  # Remove padding for alignment
         )
-        
+
         # If no widget or in finalized state, just return the standard control
         if widget is None or revert_row is None:
             return revert_row
-        
+
         # Use the content style constant as the default
         applied_style = widget_style or self.CONTENT_STYLE
-        
+
         # Create a container with the revert row and widget that looks like a single card
         return Div(
             revert_row,
@@ -1107,20 +1119,20 @@ class Pipulate:
     def tree_display(self, content):
         """
         Create a styled display for file paths that can show either a tree or box format.
-        
+
         This is an example of a standard widget function that can be passed to widget_container.
         It demonstrates the pattern for creating reusable, styled components that maintain
         consistent spacing and styling when displayed in the workflow.
-        
+
         Args:
             content: The content to display (either tree-formatted or plain path)
-            
+
         Returns:
             Pre: A Pre component with appropriate styling
         """
         # Check if content is tree-formatted (contains newlines and tree characters)
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
-        
+
         if is_tree:
             # Tree display - use monospace font and preserve whitespace
             return Pre(
@@ -1159,25 +1171,25 @@ class Pipulate:
     ):
         """
         Create a finalized step display with optional additional content.
-        
+
         This is the companion to revert_control_advanced for finalized workflows,
         providing consistent styling for both states.
-        
+
         Args:
             message: Message to display (typically including a 🔒 lock icon)
             content: FastHTML component to display below the message
             heading_tag: The tag to use for the message (default: H4)
             content_style: Optional custom style for the content container
-            
+
         Returns:
             Card: A FastHTML Card component for the finalized state
         """
         if content is None:
             return Card(message)
-        
+
         # Use the finalized content style constant as the default
         applied_style = content_style or self.FINALIZED_CONTENT_STYLE
-        
+
         return Card(
             heading_tag(message),
             Div(
@@ -1401,18 +1413,18 @@ class Pipulate:
     def run_all_cells(self, app_name, steps):
         """
         Create a series of HTMX divs that will trigger a chain reaction of loading all steps.
-        
+
         This method sets up the initial placeholders with event-based triggering, where:
-        
+
         1. The first step loads immediately on trigger="load"
         2. Subsequent steps are configured to wait for 'stepComplete-{previous_step_id}' events
-        
+
         IMPORTANT IMPLEMENTATION NOTE: 
         While this method establishes event-based triggers, the standard workflow pattern in 
         this codebase (see 80_splice_workflow.py) explicitly overrides this with 
         direct 'hx_trigger="load"' attributes in completed step views. This explicit 
         triggering pattern is preferred for reliability over event bubbling in complex workflows.
-        
+
         This dual approach (event-based setup + explicit triggers in steps) ensures the chain
         reaction works consistently across browsers and in complex DOM structures.
 
@@ -1422,7 +1434,7 @@ class Pipulate:
 
         Returns:
             list: List of Div elements configured with HTMX attributes for sequential loading
-        """        
+        """
         cells = []
         for i, step in enumerate(steps):
             # First step loads immediately, subsequent steps wait for previous to complete
@@ -1571,7 +1583,7 @@ class Pipulate:
         1. A revert control showing the current step's value
         2. An HTMX-enabled div that EXPLICITLY triggers loading the next step using
            hx_trigger="load" (preferred over relying on HTMX event bubbling)
-        
+
         IMPLEMENTATION NOTE: This explicit triggering pattern is critical for
         reliable workflow progression and should be maintained in all workflow steps.
 
@@ -1802,11 +1814,11 @@ class BaseCrud:
         # Create a safer version of send_message
         import asyncio
         import inspect
-        
+
         def safe_send_message(message, verbatim=True):
             if not self.pipulate_instance:
                 return
-                
+
             try:
                 stream_method = self.pipulate_instance.stream
                 if inspect.iscoroutinefunction(stream_method):
@@ -1821,7 +1833,7 @@ class BaseCrud:
                 logger = logging.getLogger(__name__)
                 logger.error(f"Error in send_message: {e}")
                 return None
-                
+
         self.send_message = safe_send_message
 
     def register_routes(self, rt):
@@ -1896,36 +1908,36 @@ class BaseCrud:
             current_status = getattr(item, self.toggle_field)
             new_status = not current_status
             setattr(item, self.toggle_field, new_status)
-            updated_item = self.table.update(item) # In MiniDataAPI, update returns the updated object
-            
+            updated_item = self.table.update(item)  # In MiniDataAPI, update returns the updated object
+
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            self.send_message(action_details, verbatim=True) # send_message is now safe
+            self.send_message(action_details, verbatim=True)  # send_message is now safe
 
             # Get the HTML representation of the updated item
-            rendered_item_ft = self.render_item(updated_item) # render_item returns a FastHTML object
+            rendered_item_ft = self.render_item(updated_item)  # render_item returns a FastHTML object
             logger.debug(f"[DEBUG] Rendered item type (toggle_item): {type(rendered_item_ft)}")
-            
+
             # Convert FastHTML object to HTML string
             html_content = to_xml(rendered_item_ft)
             logger.debug(f"[DEBUG] HTML content (toggle_item): {html_content[:100]}...")
 
             # Prepare the response
-            response = HTMLResponse(str(html_content)) # Ensure it's a string
+            response = HTMLResponse(str(html_content))  # Ensure it's a string
 
             # Conditionally add HX-Trigger if this is the profiles app
             if self.name == 'profiles':
                 logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to toggle_item on '{self.name}'")
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            
+
             return response
         except Exception as e:
             error_msg = f"Error toggling {self.name} item {item_id}: {str(e)}"
             logger.error(error_msg)
-            logger.exception(f"Detailed error toggling item {item_id} in {self.name}:") # Added for more detail
+            logger.exception(f"Detailed error toggling item {item_id} in {self.name}:")  # Added for more detail
             action_details = f"An error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
-            self.send_message(action_details, verbatim=True) # send_message is now safe
+            self.send_message(action_details, verbatim=True)  # send_message is now safe
             # Return an HTML error snippet with 500 status
             return HTMLResponse(f"<div style='color:red;'>Error: {error_msg}</div>", status_code=500)
 
@@ -1975,7 +1987,7 @@ class BaseCrud:
             logger.debug(f"[DEBUG] Starting BaseCrud insert_item for {self.name}")
             form = await request.form()
             logger.debug(f"[DEBUG] Form data for {self.name}: {dict(form)}")
-            
+
             new_item_data = self.prepare_insert_data(form)
             if not new_item_data:
                 logger.debug(f"[DEBUG] No new_item_data for {self.name}, returning empty response for HTMX.")
@@ -1983,14 +1995,14 @@ class BaseCrud:
 
             new_item = await self.create_item(**new_item_data)
             logger.debug(f"[DEBUG] Created new item for {self.name}: {new_item}")
-            
+
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
             self.send_message(action_details, verbatim=True)
-            
+
             rendered_item_ft = self.render_item(new_item)
             logger.debug(f"[DEBUG] Rendered item type (insert_item for {self.name}): {type(rendered_item_ft)}")
-            
+
             html_content = to_xml(rendered_item_ft)
             logger.debug(f"[DEBUG] Rendered item HTML (insert_item for {self.name}): {html_content[:150]}...")
 
@@ -1999,7 +2011,7 @@ class BaseCrud:
             if self.name == 'profiles':
                 logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to insert_item on '{self.name}'")
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            
+
             return response
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
@@ -2023,7 +2035,7 @@ class BaseCrud:
 
             for key, value in update_data.items():
                 setattr(item, key, value)
-            
+
             updated_item = self.table.update(item)
             after_state = {k: getattr(updated_item, k, None) for k in update_data.keys()}
 
@@ -2033,7 +2045,7 @@ class BaseCrud:
                 if before_state.get(key) != after_state.get(key):
                     change_dict[key] = after_state.get(key)
                     changes_log_list.append(f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'")
-            
+
             changes_str = '; '.join(changes_log_list)
             item_name_display = getattr(updated_item, self.item_name_field, 'Item')
 
@@ -2055,7 +2067,7 @@ class BaseCrud:
             if self.name == 'profiles' and 'name' in change_dict:
                 logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to update_item (name change) on '{self.name}'")
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            
+
             return response
         except Exception as e:
             error_msg = f"Error updating {self.name} item {item_id}: {str(e)}"
@@ -2318,8 +2330,8 @@ def db_operation(func):
                         log.data(f"State updated: {key}", value)
                     else:
                         # Log all other DB operations at DEBUG level
-                        log.debug("database", f"DB {func.__name__}: {key}", 
-                                 f"value: {str(value)[:30]}..." if len(str(value)) > 30 else f"value: {value}")
+                        log.debug("database", f"DB {func.__name__}: {key}",
+                                  f"value: {str(value)[:30]}..." if len(str(value)) > 30 else f"value: {value}")
             return result
         except Exception as e:
             log.error(f"Database operation {func.__name__} failed", e)
@@ -2409,24 +2421,24 @@ logger.debug("Database wrapper initialized.")
 def populate_initial_data():
     """Populate initial data in the database if it doesn't exist."""
     # Ensure default profile exists
-    if not profiles(): 
-        default_profile_name_for_db_entry = "Default Profile" 
-        
+    if not profiles():
+        default_profile_name_for_db_entry = "Default Profile"
+
         # Corrected line: Use WHERE clause string for filtering
         existing_default_list = list(profiles("name=?", (default_profile_name_for_db_entry,)))
-        
+
         if not existing_default_list:
             default_profile_data = {
                 "name": default_profile_name_for_db_entry,
-                "real_name": "Default User", 
+                "real_name": "Default User",
                 "address": "",
                 "code": "",
                 "active": True,
-                "priority": 0 
+                "priority": 0
             }
             default_profile = profiles.insert(default_profile_data)
             logger.debug(f"Inserted default profile: {default_profile} with data {default_profile_data}")
-            
+
             if default_profile and hasattr(default_profile, 'id'):
                 db['last_profile_id'] = str(default_profile.id)
                 logger.debug(f"Set last_profile_id to new default: {default_profile.id}")
@@ -2436,11 +2448,11 @@ def populate_initial_data():
             logger.debug(f"Default profile named '{default_profile_name_for_db_entry}' already exists. Skipping insertion.")
             # If last_profile_id is not set and default exists, set it to the first found default
             if 'last_profile_id' not in db and existing_default_list:
-                 db['last_profile_id'] = str(existing_default_list[0].id) 
-                 logger.debug(f"Set last_profile_id to existing default: {existing_default_list[0].id}")
+                db['last_profile_id'] = str(existing_default_list[0].id)
+                logger.debug(f"Set last_profile_id to existing default: {existing_default_list[0].id}")
 
-    elif 'last_profile_id' not in db: 
-        first_profile_list = list(profiles(order_by='priority, id', limit=1)) # Ensure it's a list
+    elif 'last_profile_id' not in db:
+        first_profile_list = list(profiles(order_by='priority, id', limit=1))  # Ensure it's a list
         if first_profile_list:
             db['last_profile_id'] = str(first_profile_list[0].id)
             logger.debug(f"Set last_profile_id to first available profile: {first_profile_list[0].id}")
@@ -2492,7 +2504,7 @@ async def synchronize_roles_to_db():
     if not roles_plugin_instance or not hasattr(roles_plugin_instance, 'table'):
         logger.error("SYNC_ROLES: Roles plugin instance or its 'table' attribute not found. Cannot synchronize.")
         return
-    
+
     roles_table_handler = roles_plugin_instance.table
     logger.debug(f"SYNC_ROLES: Obtained roles_table_handler: {type(roles_table_handler)}")
 
@@ -2502,7 +2514,7 @@ async def synchronize_roles_to_db():
         first_profile_list = profiles(order_by='id', limit=1)
         if first_profile_list:
             current_profile_id = int(first_profile_list[0].id)
-            db["last_profile_id"] = str(current_profile_id) 
+            db["last_profile_id"] = str(current_profile_id)
             logger.info(f"SYNC_ROLES: Defaulted to first profile ID: {current_profile_id}")
         else:
             logger.error("SYNC_ROLES: No profiles found in the database. Cannot synchronize roles without a profile.")
@@ -2513,7 +2525,7 @@ async def synchronize_roles_to_db():
         except ValueError:
             logger.error(f"SYNC_ROLES: Invalid profile_id '{current_profile_id_str}' found in db. Skipping.")
             return
-            
+
     logger.debug(f"SYNC_ROLES: Synchronizing roles for profile_id: {current_profile_id}")
 
     discovered_roles_set = set()
@@ -2526,12 +2538,12 @@ async def synchronize_roles_to_db():
         elif hasattr(plugin_instance_obj, 'ROLES') and isinstance(plugin_instance_obj.ROLES, list):
             roles_to_add_from_plugin = plugin_instance_obj.ROLES
             logger.debug(f"SYNC_ROLES: Plugin instance '{plugin_key}' has direct ROLES attribute: {roles_to_add_from_plugin}")
-        
+
         if roles_to_add_from_plugin:
             for role_name in roles_to_add_from_plugin:
                 if isinstance(role_name, str) and role_name.strip():
                     discovered_roles_set.add(role_name.strip())
-    
+
     if not discovered_roles_set:
         logger.info("SYNC_ROLES: No roles were discovered in any plugin ROLES constants. Role table will not be modified for this profile.")
     else:
@@ -2540,7 +2552,7 @@ async def synchronize_roles_to_db():
     try:
         logger.debug(f"SYNC_ROLES: Attempting to fetch existing roles with: query='profile_id=?', params=({current_profile_id},)")
         existing_role_objects_for_profile = list(roles_table_handler("profile_id=?", (current_profile_id,)))
-        
+
         existing_role_names_for_profile = {item.text for item in existing_role_objects_for_profile}
         logger.debug(f"SYNC_ROLES: Found {len(existing_role_names_for_profile)} existing role names in DB for profile_id {current_profile_id}: {existing_role_names_for_profile}")
 
@@ -2548,21 +2560,21 @@ async def synchronize_roles_to_db():
         for role_name in discovered_roles_set:
             if role_name not in existing_role_names_for_profile:
                 logger.debug(f"SYNC_ROLES: Role '{role_name}' not found for profile {current_profile_id}. Preparing to add.")
-                
+
                 crud_customizer = roles_plugin_instance.app_instance
-                simulated_form_for_crud = { crud_customizer.plugin.FORM_FIELD_NAME: role_name }
+                simulated_form_for_crud = {crud_customizer.plugin.FORM_FIELD_NAME: role_name}
                 data_for_insertion = crud_customizer.prepare_insert_data(simulated_form_for_crud)
-                
+
                 if data_for_insertion:
-                    data_for_insertion['profile_id'] = current_profile_id 
-                    
+                    data_for_insertion['profile_id'] = current_profile_id
+
                     # Override 'done' status for default active roles
                     if role_name in DEFAULT_ACTIVE_ROLES:
                         data_for_insertion['done'] = True
                         logger.debug(f"SYNC_ROLES: Role '{role_name}' is a default active role. Setting done=True.")
                     elif 'done' not in data_for_insertion:
                         data_for_insertion['done'] = False
-                        
+
                     logger.debug(f"SYNC_ROLES: Data prepared by CrudCustomizer for '{role_name}': {data_for_insertion}")
                     await crud_customizer.create_item(**data_for_insertion)
                     logger.info(f"SYNC_ROLES: SUCCESS: Added role '{role_name}' to DB for profile_id {current_profile_id} (Active: {data_for_insertion['done']}).")
@@ -2572,27 +2584,27 @@ async def synchronize_roles_to_db():
                     logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer.")
             else:
                 logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Skipping insertion, current status preserved.")
-        
+
         if new_roles_added_count > 0:
-             logger.info(f"SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.")
+            logger.info(f"SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.")
         elif discovered_roles_set:
-             logger.info(f"SYNC_ROLES: Synchronization complete. No new roles were added for profile_id {current_profile_id} (all {len(discovered_roles_set)} discovered roles likely already exist).")
+            logger.info(f"SYNC_ROLES: Synchronization complete. No new roles were added for profile_id {current_profile_id} (all {len(discovered_roles_set)} discovered roles likely already exist).")
 
     except Exception as e:
         logger.error(f"SYNC_ROLES: Error during role synchronization database operations: {e}")
         if DEBUG_MODE:
             logger.exception("SYNC_ROLES: Detailed error during database operations:")
-    
+
     if DEBUG_MODE or STATE_TABLES:
         logger.debug(f"SYNC_ROLES: Preparing to display final roles table for profile_id {current_profile_id}")
         final_roles_for_profile = list(roles_table_handler("profile_id=?", (current_profile_id,)))
-        
+
         roles_rich_table = Table(title=f"👥 Roles Table (Profile ID: {current_profile_id} Post-Sync)", show_header=True, header_style="bold magenta")
         roles_rich_table.add_column("ID", style="dim", justify="right")
         roles_rich_table.add_column("Text (Role Name)", style="cyan")
         roles_rich_table.add_column("Done (Active)", style="green", justify="center")
         roles_rich_table.add_column("Priority", style="yellow", justify="right")
-        
+
         if not final_roles_for_profile:
             logger.info(f"SYNC_ROLES: Roles table is EMPTY for profile_id {current_profile_id} after synchronization.")
         else:
@@ -2688,7 +2700,7 @@ def discover_plugin_files():
 def find_plugin_classes(plugin_modules, discovered_modules):
     """Find all plugin classes in the given modules."""
     plugin_classes = []
-    
+
     for module_or_name in plugin_modules:
         try:
             # Handle both module objects and module names
@@ -2700,7 +2712,7 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             else:
                 module = module_or_name
                 module_name = module.__name__.split('.')[-1]
-            
+
             # Find all classes in the module
             for name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj):
@@ -2709,21 +2721,21 @@ def find_plugin_classes(plugin_modules, discovered_modules):
                     if hasattr(obj, 'landing'):
                         logger.debug(f"Class found: {module_name}.{name}")
                         # Check for required attributes
-                        if (hasattr(obj, 'NAME') or 
-                            hasattr(obj, 'APP_NAME') or 
-                            hasattr(obj, 'DISPLAY_NAME')):
+                        if (hasattr(obj, 'NAME') or
+                            hasattr(obj, 'APP_NAME') or
+                                hasattr(obj, 'DISPLAY_NAME')):
                             logger.debug(f"Found plugin: {module_name}.{name} (attribute-based, using NAME)")
                             plugin_classes.append((module_name, name, obj))
                         # Check for required properties
-                        elif (hasattr(obj, 'name') or 
-                              hasattr(obj, 'app_name') or 
+                        elif (hasattr(obj, 'name') or
+                              hasattr(obj, 'app_name') or
                               hasattr(obj, 'display_name')):
                             logger.debug(f"Found plugin: {module_name}.{name} (property-based)")
                             plugin_classes.append((module_name, name, obj))
         except Exception as e:
             logger.error(f"Error processing module {module_or_name}: {str(e)}")
             continue
-    
+
     logger.debug(f"Discovered plugin classes: {plugin_classes}")
     return plugin_classes
 
@@ -2781,17 +2793,17 @@ for module_name, class_name, workflow_class in discovered_classes:
             module = importlib.import_module(f'plugins.{original_name}')
             # Get the class from the module
             workflow_class = getattr(module, class_name)
-            
+
             # Check if the class has the required attributes
             if not hasattr(workflow_class, 'landing'):
                 logger.warning(f"Plugin class {module_name}.{class_name} missing required 'landing' method - skipping")
                 continue
-                
+
             # Check if the class has any of the required name attributes
             if not any(hasattr(workflow_class, attr) for attr in ['NAME', 'APP_NAME', 'DISPLAY_NAME', 'name', 'app_name', 'display_name']):
                 logger.warning(f"Plugin class {module_name}.{class_name} missing required name attributes - skipping")
                 continue
-            
+
             # Create an instance of the workflow class
             try:
                 # Special handling for ProfilesPlugin
@@ -2808,7 +2820,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                     # For other plugins, try to be intelligent based on signature
                     init_sig = inspect.signature(workflow_class.__init__)
                     args_to_pass = {}
-                    
+
                     # Map common parameter names to their values
                     param_mapping = {
                         'app': app,
@@ -2820,7 +2832,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                         'db_dictlike': db,
                         'db_key_value_store': db
                     }
-                    
+
                     # Only include parameters that exist in the plugin's __init__
                     for param_name in init_sig.parameters:
                         if param_name == 'self':
@@ -2836,7 +2848,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                         if instance:
                             instance.name = module_name
                             plugin_instances[module_name] = instance
-                            
+
                             # Ensure DISPLAY_NAME is set on the instance (from class or default)
                             class_display_name_attr = getattr(workflow_class, 'DISPLAY_NAME', None)
                             instance_display_name_attr = getattr(instance, 'DISPLAY_NAME', None)
@@ -2873,7 +2885,7 @@ for module_name, class_name, workflow_class in discovered_classes:
             logger.warning(f"Issue with workflow {module_name}.{class_name} - continuing anyway")
             # Optional: Log error type separately if needed
             logger.debug(f"Error type: {e.__class__.__name__}")
-            
+
             # If it's a coroutine that wasn't awaited, create a task for it
             import inspect
             if inspect.iscoroutine(e):
@@ -2919,6 +2931,8 @@ base_menu_items = ['']  # Remove 'profile' from here
 additional_menu_items = []  # Remove 'mobile_chat' from here
 
 # Create a startup event handler to run synchronize_roles_to_db
+
+
 @app.on_event("startup")
 async def startup_event():
     await synchronize_roles_to_db()
@@ -2997,60 +3011,60 @@ async def clear_db(request):
     """Developer tools endpoint - fully resets the database to initial state.
     Only accessible in development environment."""
     logger.debug("Dev tools endpoint accessed - performing complete database reset")
-    
+
     # 1. Clear all database keys (DictLikeDB)
     log.warning("Starting complete database reset", "This will recreate an empty database")
-    
-    # Save only the navigation state 
+
+    # Save only the navigation state
     last_app_choice = db.get("last_app_choice")
     last_visited_url = db.get("last_visited_url")
-    
+
     # Delete all keys from the db
     keys = list(db.keys())
     for key in keys:
         del db[key]
     log.warning("DictLikeDB cleared", f"Deleted {len(keys)} keys")
-    
+
     # 2. Reset core tables defined in fast_app
     # 2.1 Reset pipeline table - reset any filters first
     if hasattr(pipulate.table, 'xtra'):
         # Reset any filters by passing an empty dict to xtra
         pipulate.table.xtra()
-    
+
     records = list(pipulate.table())
     for record in records:
         pipulate.table.delete(record.pkey)
     log.warning("Pipeline table cleared", f"Deleted {len(records)} records")
-    
+
     # 2.2 Reset profile table
     # Get profile records first
     profile_records = list(profiles())
     profile_count = len(profile_records)
-    
+
     # Delete all profile records
     for profile in profile_records:
         profiles.delete(profile.id)
     log.warning("Profiles table cleared", f"Deleted {profile_count} records")
-    
+
     # 3. Find and reset all plugin-created tables
     # Use sqlite3 directly to query for all tables
     import sqlite3
-    
+
     try:
         # Log the database file we're using
         logger.debug(f"Using database file: {DB_FILENAME}")
-        
+
         conn = sqlite3.connect(DB_FILENAME)
         cursor = conn.cursor()
-        
+
         # Get all table names from SQLite schema - excluding core tables
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
         plugin_tables = cursor.fetchall()
-        
+
         # Log the tables we found for debugging
         table_names = [table[0] for table in plugin_tables]
         log.warning("Found plugin tables", f"Tables to clear: {', '.join(table_names)}")
-        
+
         # Clear each plugin table
         cleared_count = 0
         for (table_name,) in plugin_tables:
@@ -3058,52 +3072,53 @@ async def clear_db(request):
                 # Check if table exists and has records
                 cursor.execute(f"SELECT count(*) FROM {table_name}")
                 row_count = cursor.fetchone()[0]
-                
+
                 # Delete all records
                 cursor.execute(f"DELETE FROM {table_name}")
-                
+
                 # Log the operation with row count
                 log.warning(f"Plugin table '{table_name}' cleared", f"Deleted {row_count} records")
                 cleared_count += 1
-                
+
                 # Reset auto-increment if this table has it
                 cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
-                
+
             except Exception as e:
                 log.error(f"Error clearing table {table_name}", str(e))
-        
+
         # Commit changes
         conn.commit()
         log.warning("Plugin tables cleanup complete", f"Cleared {cleared_count} tables")
-        
+
         # Close connection
         conn.close()
     except Exception as e:
         log.error("Error accessing SQLite database", str(e))
-    
+
     # 4. Re-initialize the database with default data
     # This is similar to the first-run initialization
     populate_initial_data()
     log.startup("Database reset to initial state", "Default profile created")
-    
+
     # 4.1 Synchronize roles after database reset
     await synchronize_roles_to_db()
     log.startup("Roles synchronized", "All plugin roles added to database")
-    
+
     # 5. Restore navigation state if needed
     if last_app_choice:
         db["last_app_choice"] = last_app_choice
     if last_visited_url:
         db["last_visited_url"] = last_visited_url
-    
+
     # Set a confirmation message in the temporary message system instead of streaming
     db["temp_message"] = "Database completely reset to initial state. All data has been cleared and a fresh default profile has been created."
     log.startup("Database reset confirmation message set", "Will display after page reload")
-    
+
     # Create a response with refresh directive
     html_response = HTMLResponse("<div>Database reset complete</div>")
     html_response.headers["HX-Refresh"] = "true"  # Force a full page refresh
     return html_response
+
 
 def get_profile_name():
     profile_id = get_current_profile_id()
@@ -3132,20 +3147,21 @@ async def delete_pipeline(request):
         record = pipulate.table.get(pipeline_id)
         if not record:
             return P("Error: Workflow not found", style=pipulate.get_style("error"))
-            
+
         # Delete the record
         pipulate.table.delete(pipeline_id)
         logger.debug(f"Deleted pipeline record: {pipeline_id}")
-        
+
         # Clear the pipeline_id from the database if it matches
         if db.get("pipeline_id") == pipeline_id:
             db.set("pipeline_id", "")
             logger.debug(f"Cleared pipeline_id from database")
-            
+
         return P(f"Workflow {pipeline_id} deleted. You may need to refresh the page to see the updated list.")
     except Exception as e:
         logger.error(f"Error deleting pipeline record: {str(e)}")
         return P(f"Error deleting workflow: {str(e)}", style=pipulate.get_style("error"))
+
 
 async def home(request):
     path = request.url.path.strip('/')
@@ -3162,10 +3178,10 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux)
     logger.debug("Returning response for main GET request.")
     last_profile_name = get_profile_name()
-    
+
     # Create a plain text title for the document title
     page_title = f"{APP_NAME} - {title_name(last_profile_name)} - {endpoint_name(menux) if menux else HOME_MENU_ITEM}"
-    
+
     # Return the title and main content separately instead of using Titled()
     # We no longer need to include nav_header here as it's now in the nav_menu
     return (
@@ -3181,6 +3197,7 @@ async def home(request):
             )
         )
     )
+
 
 def create_nav_group():
     # Get profiles plugin instance
@@ -3208,9 +3225,9 @@ def create_nav_group():
         style="display: none;"
     )
 
-    # Style for the navigation group 
+    # Style for the navigation group
     nav_group_style = "display: flex; align-items: center; position: relative;"
-    
+
     # Return a group with the nav and the refresh listener
     return Group(nav, refresh_listener, style=nav_group_style)
 
@@ -3219,53 +3236,54 @@ def create_env_menu():
     """Create environment selection dropdown menu."""
     # Get current environment from file
     current_env = get_current_environment()
-    
+
     # Style for summary based on environment
     env_summary_style = "white-space: nowrap; display: inline-block; min-width: max-content;"
-    
+
     # Add visual indicator for Development mode (subtle styling)
     if current_env == "Development":
         env_summary_style += " color: #f77; font-weight: bold;"
         display_env = "Dev"
     else:
         display_env = "Prod"
-    
+
     menu_items = []
     # Development option
     is_dev = current_env == "Development"
     dev_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_dev else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Dev", 
-          hx_post="/switch_environment", 
+        A("Dev",
+          hx_post="/switch_environment",
           hx_vals='{"environment": "Development"}',
           hx_confirm="Switch to Development environment? This will restart the server.",
-          cls="dropdown-item", 
-          style=dev_style), 
+          cls="dropdown-item",
+          style=dev_style),
         style="display: block;"
     ))
-    
+
     # Production option
     is_prod = current_env == "Production"
     prod_style = f"{NOWRAP_STYLE} background-color: var(--pico-primary-background);" if is_prod else NOWRAP_STYLE
     menu_items.append(Li(
-        A("Prod", 
-          hx_post="/switch_environment", 
+        A("Prod",
+          hx_post="/switch_environment",
           hx_vals='{"environment": "Production"}',
           hx_confirm="Switch to Production environment? This will restart the server.",
-          cls="dropdown-item", 
-          style=prod_style), 
+          cls="dropdown-item",
+          style=prod_style),
         style="display: block;"
     ))
-    
+
     return Details(
         Summary(
-            f"ENV: {display_env}", 
-            id="env-id", 
+            f"ENV: {display_env}",
+            id="env-id",
             style=env_summary_style
-        ), 
+        ),
         Ul(*menu_items, cls="dropdown-menu"),
         cls="dropdown",
     )
+
 
 def create_nav_menu():
     logger.debug("Creating navigation menu.")
@@ -3273,7 +3291,7 @@ def create_nav_menu():
     # Use our helper functions for profile id and name
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
-    
+
     # Get profiles plugin instance
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -3282,23 +3300,23 @@ def create_nav_menu():
             H1("Error: Profiles plugin not found", style="color: red;"),
             style="display: flex; align-items: center; gap: 20px; width: 100%;"
         )
-    
+
     # Create a breadcrumb-style navigation
     breadcrumb = H1(
-        A(APP_NAME, 
-          href="/redirect/", 
-          title=f"Go to {HOME_MENU_ITEM.lower()}", 
+        A(APP_NAME,
+          href="/redirect/",
+          title=f"Go to {HOME_MENU_ITEM.lower()}",
           style="text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;",
-          onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';", 
+          onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';",
           onmouseout="this.style.color='inherit'; this.style.textDecoration='none';"
-        ),
+          ),
         Span(" / ", style="padding: 0 0.3rem;"),
         Span(title_name(selected_profile_name), style="white-space: nowrap;"),
         Span(" / ", style="padding: 0 0.3rem;"),
         Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style="white-space: nowrap;"),
         style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap:"
     )
-    
+
     # Add the breadcrumb at the beginning, followed by all dropdown menus
     nav_items = [
         breadcrumb,
@@ -3306,7 +3324,7 @@ def create_nav_menu():
         create_app_menu(menux),
         create_env_menu()  # Move ENV menu to the third position
     ]
-    
+
     nav = Div(*nav_items, style="display: flex; align-items: center; gap: 20px; width: 100%;")
     logger.debug("Navigation menu created.")
     return nav
@@ -3326,12 +3344,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         Label(
             Input(
                 type="checkbox",
-                name="profile_lock_switch", 
+                name="profile_lock_switch",
                 role="switch",
                 checked=profile_locked,
                 hx_post="/toggle_profile_lock",
-                hx_target="body", 
-                hx_swap="outerHTML" 
+                hx_target="body",
+                hx_swap="outerHTML"
             ),
             "Lock Profile"
         ),
@@ -3345,12 +3363,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         menu_items.append(Li(A("Error: Profiles link broken", href="#", cls="dropdown-item", style="color:red;")))
     else:
         # Use DISPLAY_NAME (uppercase D)
-        plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles') 
+        plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
             menu_items.append(Li(
                 A(
-                    f"Edit {plugin_display_name}", 
-                    href=f"/{profiles_plugin_inst.name}", 
+                    f"Edit {plugin_display_name}",
+                    href=f"/{profiles_plugin_inst.name}",
                     cls="dropdown-item",
                     style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color); display: block; text-align: center;"
                 ),
@@ -3358,7 +3376,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
             ))
 
     active_profiles_list = []
-    if profiles: 
+    if profiles:
         if profile_locked:
             if selected_profile_id:
                 try:
@@ -3385,10 +3403,10 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
                     checked=is_selected,
                     hx_post="/select_profile",
                     hx_vals=json.dumps({"profile_id": str(profile_item.id)}),
-                    hx_target="body", 
+                    hx_target="body",
                     hx_swap="outerHTML"
                 ),
-                profile_item.name 
+                profile_item.name
             ),
             style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE}"
         ))
@@ -3400,13 +3418,13 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
             if profile_obj:
                 summary_profile_name_to_display = profile_obj.name
         except Exception:
-            pass 
+            pass
     summary_profile_name_to_display = summary_profile_name_to_display or "Select"
-    
+
     summary_text_prefix = "PROFILE"
     # Use DISPLAY_NAME (uppercase D)
     if profiles_plugin_inst and hasattr(profiles_plugin_inst, 'DISPLAY_NAME'):
-         summary_text_prefix = profiles_plugin_inst.DISPLAY_NAME.upper()
+        summary_text_prefix = profiles_plugin_inst.DISPLAY_NAME.upper()
 
     summary_text = f"{summary_text_prefix}: {summary_profile_name_to_display}"
 
@@ -3431,7 +3449,7 @@ def create_app_menu(menux):
     """Create the app dropdown menu."""
     menu_items = []
     profiles_plugin_key = 'profiles'
-    
+
     # Get current environment and visibility settings
     current_environment = get_current_environment()
     show_all = db.get("show_all_plugins", "0") == "1"
@@ -3462,7 +3480,7 @@ def create_app_menu(menux):
         # Create menu item
         is_selected = menux == plugin_key
         item_style = "background-color: var(--pico-primary-focus);" if is_selected else ""
-        
+
         menu_items.append(Li(
             Label(
                 Input(
@@ -3484,7 +3502,7 @@ def create_app_menu(menux):
     # Add developer options if in development environment
     if current_environment == "Development":
         menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-        
+
         # Add toggle for all plugins
         menu_items.append(Li(
             Label(
@@ -3535,17 +3553,20 @@ def create_app_menu(menux):
     )
 
 # Add the toggle endpoint
+
+
 @rt('/toggle_show_all', methods=['POST'])
 async def toggle_show_all(request):
     current = db.get("show_all_plugins", "0")
     new_value = "1" if current == "0" else "0"
     db["show_all_plugins"] = new_value
-    
+
     # Store message in database for next page load
     message = "Showing all user-facing plugins." if new_value == "1" else "Showing core plugins only."
     db["temp_message"] = message
-    
+
     return HTMLResponse("", headers={"HX-Refresh": "true"})
+
 
 @rt('/toggle_developer_plugins_visibility', methods=['POST'])
 async def toggle_developer_plugins_visibility(request):
@@ -3554,21 +3575,23 @@ async def toggle_developer_plugins_visibility(request):
     new_visibility = "1" if current_visibility == "0" else "0"
     db["developer_plugins_visible"] = new_visibility
     logger.info(f"Developer plugins visibility set to: {'Visible' if new_visibility == '1' else 'Hidden'}")
-    
+
     # Store message in database for next page load
     message = "Developer plugins are now visible." if new_visibility == "1" else "Developer plugins are now hidden."
     db["temp_message"] = message
-    
+
     # Force a full page refresh to rebuild the menu and potentially other UI elements
-    response = HTMLResponse("") # Empty body is fine as we're just refreshing
+    response = HTMLResponse("")  # Empty body is fine as we're just refreshing
     response.headers["HX-Refresh"] = "true"
     return response
+
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
     current = db.get("profile_locked", "0")
     db["profile_locked"] = "1" if current == "0" else "0"
     return HTMLResponse("", headers={"HX-Refresh": "true"})
+
 
 async def create_outer_container(current_profile_id, menux):
     # Get profiles plugin instance
@@ -3611,9 +3634,9 @@ async def create_outer_container(current_profile_id, menux):
     )
 
 
-
 # Define the maximum number of introduction pages
 MAX_INTRO_PAGES = 3  # Adjust as needed
+
 
 def get_intro_page_content(page_num_str: str):
     """
@@ -3622,10 +3645,10 @@ def get_intro_page_content(page_num_str: str):
     The content is defined once and used for both UI display and LLM context.
     """
     page_num = int(page_num_str)
-    
+
     # Common card style to ensure consistent height and spacing
     card_style = "min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
-    
+
     if page_num == 1:
         # Define the content structure once
         title = f"Welcome to {APP_NAME}"
@@ -3657,13 +3680,13 @@ def get_intro_page_content(page_num_str: str):
 {title}
 
 {intro}
-{chr(10).join(f"{i+1}. {name}: {desc}" for i, (name, desc) in enumerate(features))}
+{chr(10).join(f"{i + 1}. {name}: {desc}" for i, (name, desc) in enumerate(features))}
 
 {getting_started}
 {nav_help}
 {llm_help}"""
         return content, llm_context
-        
+
     elif page_num == 2:
         # Define the content structure once
         experimenting_title = "Experimenting"
@@ -3693,12 +3716,12 @@ def get_intro_page_content(page_num_str: str):
         llm_context = f"""The user is viewing the Experimenting page which shows:
 
 {experimenting_title}
-{chr(10).join(f"{i+1}. {step}" for i, step in enumerate(experimenting_steps))}
+{chr(10).join(f"{i + 1}. {step}" for i, step in enumerate(experimenting_steps))}
 
 {interface_title}
 {chr(10).join(f"• {name}: {desc}" for name, desc in interface_items)}"""
         return content, llm_context
-        
+
     elif page_num == 3:
         # Define the content structure once
         title = "Tips for Effective Use"
@@ -3721,9 +3744,9 @@ def get_intro_page_content(page_num_str: str):
         llm_context = f"""The user is viewing the Tips page which shows:
 
 {title}
-{chr(10).join(f"{i+1}. {name}: {desc}" for i, (name, desc) in enumerate(tips))}"""
+{chr(10).join(f"{i + 1}. {name}: {desc}" for i, (name, desc) in enumerate(tips))}"""
         return content, llm_context
-        
+
     # Handle unknown pages
     error_msg = f"Content for instruction page {page_num_str} not found."
     content = Card(
@@ -3734,6 +3757,7 @@ def get_intro_page_content(page_num_str: str):
     llm_context = f"The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}"
     return content, llm_context
 
+
 async def render_intro_page_with_navigation(page_num_str: str):
     """
     Renders the content for the given intro page number, including Next/Previous buttons.
@@ -3741,7 +3765,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
     """
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
-    
+
     # Inform the LLM about the current intro page content
     append_to_conversation(llm_context, role="system", quiet=True)
 
@@ -3756,8 +3780,8 @@ async def render_intro_page_with_navigation(page_num_str: str):
                cls="primary outline" if page_num == 1 else "primary",
                style="width: 140px; min-width: 140px;",
                disabled=page_num == 1
-        ),
-        
+               ),
+
         # Next button (ghosted if on last page)
         Button("Next ▸",
                hx_post="/navigate_intro",
@@ -3767,9 +3791,9 @@ async def render_intro_page_with_navigation(page_num_str: str):
                cls="primary outline" if page_num == MAX_INTRO_PAGES else "primary",
                style="width: 140px; min-width: 140px;",
                disabled=page_num == MAX_INTRO_PAGES
-        )
+               )
     ]
-    
+
     return Div(
         page_content_area,
         Div(
@@ -3779,12 +3803,13 @@ async def render_intro_page_with_navigation(page_num_str: str):
         id="grid-left-content"
     )
 
+
 @rt('/navigate_intro', methods=['POST'])
 async def navigate_intro_page_endpoint(request):
     form = await request.form()
     direction = form.get("direction")
     current_page_str = form.get("current_page", "1")
-    
+
     try:
         current_page_num = int(current_page_str)
     except ValueError:
@@ -3796,26 +3821,27 @@ async def navigate_intro_page_endpoint(request):
         next_page_num = min(current_page_num + 1, MAX_INTRO_PAGES)
     elif direction == "prev":
         next_page_num = max(current_page_num - 1, 1)
-    
+
     db["intro_page_num"] = str(next_page_num)
     logger.debug(f"Navigating intro. From: {current_page_num}, To: {next_page_num}, Direction: {direction}")
 
     # Return the new page content with navigation, suitable for innerHTML swap
     new_content = await render_intro_page_with_navigation(str(next_page_num))
-    return HTMLResponse(to_xml(new_content)) # Ensure FastHTML object is converted
+    return HTMLResponse(to_xml(new_content))  # Ensure FastHTML object is converted
 
 
 def get_workflow_instance(workflow_name):
     """
     Get a workflow instance from the plugin_instances dictionary.
-    
+
     Args:
         workflow_name: The name of the workflow to retrieve
-        
+
     Returns:
         The workflow instance if found, None otherwise
     """
     return plugin_instances.get(workflow_name)
+
 
 async def create_grid_left(menux, render_items=None):
     content_to_render = None
@@ -3926,19 +3952,20 @@ def create_poke_button():
         )
     )
 
+
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
     # Get the current workflow name from the app choice
     current_app = db.get("last_app_choice", "")
-    
+
     # Check if we're on a workflow by looking for the workflow instance
     workflow_instance = get_workflow_instance(current_app)
     is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
-    
+
     # Get the current profile lock state from db
     profile_locked = db.get("profile_locked", "0") == "1"
     lock_button_text = "🔓 Unlock Profile" if profile_locked else "🔒 Lock Profile"
-    
+
     return Div(
         id="flyout-panel",
         style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;",
@@ -3992,12 +4019,14 @@ async def poke_flyout(request):
         )
     )
 
+
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     return Div(
         id="flyout-panel",
         style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
     )
+
 
 async def profile_render():
     # Get profiles plugin instance
@@ -4098,24 +4127,24 @@ async def chat_endpoint(request, message: str):
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
     path = request.path_params['path']
-    
+
     # If navigating to the home/introduction page (empty path), reset intro page counter
-    if not path: 
+    if not path:
         db["intro_page_num"] = "1"
         logger.debug("Reset intro_page_num to 1 due to navigation to home via /redirect/.")
 
     logger.debug(f"Redirecting to: /{path}")
-    message = build_endpoint_messages(path) # Fetches message based on path
-    
+    message = build_endpoint_messages(path)  # Fetches message based on path
+
     # It's important that build_endpoint_messages and build_endpoint_training
     # are called AFTER potentially resetting intro_page_num, if their behavior
     # depends on the intro page state (though currently they don't seem to).
-    
-    if message: # Hot inject only if a message is defined
-        hot_prompt_injection(message) # Appends message to chat history
-        db["temp_message"] = message # For display in chat on next load
-    
-    build_endpoint_training(path) # Appends training context to chat history
+
+    if message:  # Hot inject only if a message is defined
+        hot_prompt_injection(message)  # Appends message to chat history
+        db["temp_message"] = message  # For display in chat on next load
+
+    build_endpoint_training(path)  # Appends training context to chat history
 
     return Redirect(f"/{path}")
 
@@ -4156,21 +4185,21 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         endpoint = request.url.path
         method = request.method
-        
+
         # Skip logging for static files and other noise at INFO level
-        is_static = endpoint.startswith('/static/') 
+        is_static = endpoint.startswith('/static/')
         is_ws = endpoint == '/ws'
         is_sse = endpoint == '/sse'
-        
+
         if not (is_static or is_ws or is_sse):
             # Log actual page requests at INFO level
             log.event("network", f"{method} {endpoint}")
         else:
             # But still log everything at DEBUG level
             log.debug("network", f"{method} {endpoint}")
-            
+
         response = await call_next(request)
-        
+
         # This is controlled by the STATE_TABLES constant at the top of the file
         if STATE_TABLES:
             # Cookie state table with emoji
@@ -4181,7 +4210,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                 json_value = JSON.from_data(value, indent=2)
                 cookie_table.add_row(key, json_value)
             console.print(cookie_table)
-            
+
             # Pipeline state table with emoji
             pipeline_table = Table(title="➡️ Pipeline States")
             pipeline_table.add_column("Key", style="yellow")
@@ -4197,7 +4226,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     log.error(f"Error parsing pipeline state for {record.pkey}", e)
                     pipeline_table.add_row(record.pkey, "ERROR", "Invalid State")
             console.print(pipeline_table)
-            
+
         return response
 
 
@@ -4250,38 +4279,40 @@ async def refresh_profile_menu(request):
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
 
+
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
     """Handle environment switching and restart the server."""
     try:
         form = await request.form()
         environment = form.get('environment', 'Development')
-        
+
         # Store the selected environment in the environment file
         set_current_environment(environment)
         logger.info(f"Environment switched to: {environment}")
-        
+
         # Schedule server restart
         asyncio.create_task(delayed_restart(2))  # 2 second delay to allow response to be sent
-        
+
         # Return a minimal response with a spinner using aria-busy
         return HTMLResponse(f"<div aria-busy='true'>Switching</div>")
-        
+
     except Exception as e:
         logger.error(f"Error switching environment: {e}")
         return HTMLResponse(f"Error: {str(e)}", status_code=500)
+
 
 async def delayed_restart(delay_seconds):
     """Restart the server after a delay."""
     logger.info(f"Server restart scheduled in {delay_seconds} seconds...")
     await asyncio.sleep(delay_seconds)
-    
-    # Force close existing connections 
+
+    # Force close existing connections
     # This helps ensure we don't keep the old database file open
     try:
         # Log that we're about to restart
         logger.info("Performing server restart now...")
-        
+
         # Restart the server
         restart_server()
     except Exception as e:
@@ -4317,13 +4348,13 @@ def restart_server():
     if not check_syntax(Path(__file__)):
         log.warning("Syntax error detected", "Fix the error and save the file again")
         return
-    
+
     max_retries = 3
     for attempt in range(max_retries):
         try:
             # Log restart attempt
             log.startup(f"Restarting server (attempt {attempt + 1}/{max_retries})")
-            
+
             # Forcefully exit to ensure all connections are closed
             os.execv(sys.executable, ['python'] + sys.argv)
         except Exception as e:
@@ -4346,18 +4377,18 @@ class ServerRestartHandler(FileSystemEventHandler):
 def run_server_with_watchdog():
     fig("SERVER RESTART")
     fig(APP_NAME, font="standard")
-    
+
     # Display current environment
     env = get_current_environment()
     env_db = DB_FILENAME
-    
+
     # Log startup information using our new log manager
     if env == "Development":
         log.warning("Development mode active", details=f"Using database: {env_db}")
     else:
         log.startup("Production mode active", details=f"Using database: {env_db}")
-    
-    # Display state tables mode if enabled    
+
+    # Display state tables mode if enabled
     if STATE_TABLES:
         log.startup("State tables enabled", details="Edit server.py and set STATE_TABLES=False to disable")
         print_routes()
@@ -4367,19 +4398,19 @@ def run_server_with_watchdog():
         with open('static/alice.txt', 'r') as file:
             print(file.read())
         [print() for _ in range(alice_buffer)]
-        
+
     event_handler = ServerRestartHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=True)
     observer.start()
-    
+
     try:
         log.startup("Server starting on http://localhost:5001")
         # Configure Uvicorn logging based on DEBUG_MODE
         log_level = "debug" if DEBUG_MODE else "warning"
         uvicorn.run(
-            app, 
-            host="0.0.0.0", 
+            app,
+            host="0.0.0.0",
             port=5001,
             log_level=log_level,
             access_log=DEBUG_MODE,  # Only show access logs in debug mode
@@ -4427,4 +4458,3 @@ if __name__ == "__main__":
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
-
