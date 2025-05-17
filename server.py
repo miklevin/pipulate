@@ -4469,7 +4469,7 @@ async def delayed_restart(delay_seconds):
     except Exception as e:
         logger.error(f"Error during restart: {e}")
 
-ALL_ROUTES = list(set(['', profile_app.name] + MENU_ITEMS))
+ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for item in ALL_ROUTES:
     path = f'/{item}'if item else '/'
 

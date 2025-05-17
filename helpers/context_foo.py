@@ -45,6 +45,7 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
 /home/mike/repos/pipulate/plugins/010_roles.py
 /home/mike/repos/pipulate/plugins/020_tasks.py
+/home/mike/repos/pipulate/plugins/000_profiles.py
 """.strip().splitlines()
 
 # Filter out any commented lines
