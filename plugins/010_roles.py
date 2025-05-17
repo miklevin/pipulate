@@ -220,11 +220,14 @@ def render_item(item, app_instance):
 
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
 
+    # Special handling for "Core" item
+    is_core = item.text == "Core"
     checkbox = Input(
         type="checkbox",
         name="done_status" if item.done else None,
-        checked=item.done,
-        hx_post=toggle_url,
+        checked=True if is_core else item.done,  # Always checked for Core
+        disabled=is_core,  # Disabled for Core
+        hx_post=toggle_url if not is_core else None,  # No toggle for Core
         hx_swap="outerHTML",
         hx_target=f"#{item_id}",
     )
@@ -239,7 +242,7 @@ def render_item(item, app_instance):
         checkbox,
         text_display,
         id=item_id,
-        cls='done' if item.done else '',
+        cls='done' if item.done or is_core else '',  # Always marked as done for Core
         style="list-style-type: none; display: flex; align-items: center; margin-bottom: 5px;",
         data_id=item.id,
         data_priority=item.priority,

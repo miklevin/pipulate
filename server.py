@@ -3526,7 +3526,7 @@ def create_app_menu(menux):
                 style="display: flex; align-items: center; flex: 1;" 
             ),
             # Apply styling to the Li for selection indication and layout
-            style=f"text-align: left; padding: 0.5rem 0.75rem; {item_style} display: flex; border-radius: var(--pico-border-radius);",
+            style=f"text-align: left; padding: 0.35rem 0.75rem; {item_style} display: flex; border-radius: var(--pico-border-radius);",
             # Add a hover effect to the Li
             onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
             onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
@@ -3545,7 +3545,7 @@ def create_app_menu(menux):
         Ul(
             *menu_items, 
             cls="dropdown-menu", 
-            style="padding-left: 0; width: 16rem; max-height: 60vh; overflow-y: auto;"
+            style="padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 16rem; max-height: 75vh; overflow-y: auto;"
         ),
         cls="dropdown",
         id="app-dropdown-menu" # This ID is crucial for HTMX swapping
