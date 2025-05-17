@@ -2722,15 +2722,14 @@ async def synchronize_roles_to_db():
 
     current_profile_id_str = db.get("last_profile_id")
     if not current_profile_id_str:
-        logger.warning("SYNC_ROLES: No current profile ID found in db store. Attempting to use default profile 1.")
-        # Try to get the first profile's ID as a fallback if populate_initial_data hasn't run or set it.
+        logger.warning("SYNC_ROLES: No current profile ID found in db store. Attempting to use default profile.")
         first_profile_list = profiles(order_by='id', limit=1)
         if first_profile_list:
             current_profile_id = int(first_profile_list[0].id)
-            db["last_profile_id"] = str(current_profile_id) # Save it for consistency
+            db["last_profile_id"] = str(current_profile_id) 
             logger.info(f"SYNC_ROLES: Defaulted to first profile ID: {current_profile_id}")
         else:
-            logger.error("SYNC_ROLES: No profiles found in the database at all. Cannot synchronize roles.")
+            logger.error("SYNC_ROLES: No profiles found in the database. Cannot synchronize roles without a profile.")
             return
     else:
         try:
@@ -2763,8 +2762,9 @@ async def synchronize_roles_to_db():
         logger.info(f"SYNC_ROLES: Total unique role names discovered across all plugins: {discovered_roles_set}")
 
     try:
-        # Fetch existing role names for the current_profile_id using corrected syntax
-        existing_role_objects_for_profile = list(roles_table_handler(where="profile_id=?", vals=(current_profile_id,)))
+        logger.debug(f"SYNC_ROLES: Attempting to fetch existing roles with: query='profile_id=?', params=({current_profile_id},)")
+        existing_role_objects_for_profile = list(roles_table_handler("profile_id=?", (current_profile_id,)))
+        
         existing_role_names_for_profile = {item.text for item in existing_role_objects_for_profile}
         logger.debug(f"SYNC_ROLES: Found {len(existing_role_names_for_profile)} existing role names in DB for profile_id {current_profile_id}: {existing_role_names_for_profile}")
 
@@ -2774,29 +2774,27 @@ async def synchronize_roles_to_db():
                 logger.debug(f"SYNC_ROLES: Role '{role_name}' not found for profile {current_profile_id}. Preparing to add.")
                 
                 crud_customizer = roles_plugin_instance.app_instance
-                # The FORM_FIELD_NAME for 010_roles.py will be 'roles-text'
-                simulated_form_for_crud = {
-                    crud_customizer.plugin.FORM_FIELD_NAME: role_name 
-                }
+                simulated_form_for_crud = { crud_customizer.plugin.FORM_FIELD_NAME: role_name }
                 data_for_insertion = crud_customizer.prepare_insert_data(simulated_form_for_crud)
                 
                 if data_for_insertion:
-                    # prepare_insert_data in 010_roles.py (copied from tasks) already sets 'done': False
-                    # and calculates priority and profile_id.
+                    data_for_insertion['profile_id'] = current_profile_id 
+                    if 'done' not in data_for_insertion: data_for_insertion['done'] = False
+                        
                     logger.debug(f"SYNC_ROLES: Data prepared by CrudCustomizer for '{role_name}': {data_for_insertion}")
                     await crud_customizer.create_item(**data_for_insertion)
                     logger.info(f"SYNC_ROLES: SUCCESS: Added role '{role_name}' to DB for profile_id {current_profile_id} via CRUD logic.")
                     new_roles_added_count += 1
-                    existing_role_names_for_profile.add(role_name) 
+                    existing_role_names_for_profile.add(role_name)
                 else:
-                    logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer. Check prepare_insert_data logic in 010_roles.py.")
+                    logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer.")
             else:
-                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists in DB for profile_id {current_profile_id}. Skipping.")
+                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Skipping.")
         
         if new_roles_added_count > 0:
-            logger.info(f"SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.")
+             logger.info(f"SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.")
         elif discovered_roles_set:
-            logger.info(f"SYNC_ROLES: Synchronization complete. No new roles were added for profile_id {current_profile_id} (all {len(discovered_roles_set)} discovered roles likely already exist).")
+             logger.info(f"SYNC_ROLES: Synchronization complete. No new roles were added for profile_id {current_profile_id} (all {len(discovered_roles_set)} discovered roles likely already exist).")
 
     except Exception as e:
         logger.error(f"SYNC_ROLES: Error during role synchronization database operations: {e}")
@@ -2805,8 +2803,7 @@ async def synchronize_roles_to_db():
     
     if DEBUG_MODE or STATE_TABLES:
         logger.debug(f"SYNC_ROLES: Preparing to display final roles table for profile_id {current_profile_id}")
-        # Use the corrected query syntax here as well
-        final_roles_for_profile = list(roles_table_handler(where="profile_id=?", vals=(current_profile_id,)))
+        final_roles_for_profile = list(roles_table_handler("profile_id=?", (current_profile_id,)))
         
         roles_rich_table = Table(title=f"👥 Roles Table (Profile ID: {current_profile_id} Post-Sync)", show_header=True, header_style="bold magenta")
         roles_rich_table.add_column("ID", style="dim", justify="right")
