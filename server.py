@@ -3523,6 +3523,51 @@ def create_app_menu(menux):
             style="text-align: left; padding: 0.5rem 1rem; display: flex;"
         ))
 
+        # Add database management buttons
+        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+        
+        # Delete current workflow button
+        menu_items.append(Li(
+            Button(
+                "🗑️ Delete Current Workflow",
+                hx_post="/delete-pipeline",
+                hx_confirm="Are you sure you want to delete this workflow?",
+                hx_swap="outerHTML",
+                hx_target="body",
+                cls="secondary outline",
+                style="width: 100%; text-align: left;"
+            ),
+            style="padding: 0.5rem 1rem;"
+        ))
+
+        # Delete all workflows button
+        menu_items.append(Li(
+            Button(
+                "🗑️ Delete All Workflows",
+                hx_post="/clear-pipeline",
+                hx_confirm="Are you sure you want to delete all workflows?",
+                hx_swap="outerHTML",
+                hx_target="body",
+                cls="secondary outline",
+                style="width: 100%; text-align: left;"
+            ),
+            style="padding: 0.5rem 1rem;"
+        ))
+
+        # Clear database button
+        menu_items.append(Li(
+            Button(
+                "🗑️ Reset Database",
+                hx_post="/clear-db",
+                hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
+                hx_swap="outerHTML",
+                hx_target="body",
+                cls="secondary outline",
+                style="width: 100%; text-align: left;"
+            ),
+            style="padding: 0.5rem 1rem;"
+        ))
+
     return Details(
         Summary(
             "APP",
@@ -3910,96 +3955,70 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
 
 def create_poke_button():
     # Get current workflow name from the app choice
-    menux = db.get("last_app_choice", "")
-    profiles_plugin_key = 'profiles'  # Key for the profiles plugin
+    current_app = db.get("last_app_choice", "")
+    if not current_app:
+        return ""
 
-    # Create the poke button container
-    poke_container = Div(
+    # Create the poke button with flyout panel
+    return Div(
         Button(
-            "Poke",
-            id="poke-button",
+            "🤖",
             cls="contrast outline",
-            style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;",
+            style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;",
             hx_post="/poke",
-            hx_target="#chat-messages",
-            hx_swap="beforeend"
+            hx_swap="outerHTML",
+            hx_target="#flyout-panel"
         ),
-        id="poke-container"
-    )
-
-    # If no workflow is selected, just return the poke button
-    if not menux:
-        return poke_container
-
-    # Get the plugin instance
-    instance = plugin_instances.get(menux)
-    if not instance:
-        return poke_container
-
-    # Check if this is a workflow plugin (not a CRUD plugin and not the profiles plugin)
-    is_crud_plugin_by_class = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
-    is_profiles_plugin = (menux == profiles_plugin_key)
-    is_workflow_plugin = (not is_crud_plugin_by_class and not is_profiles_plugin and menux != "")
-
-    if is_workflow_plugin:
-        # Get workflow display name
-        workflow_display_name = getattr(instance, 'DISPLAY_NAME', menux.replace('_', ' ').title())
-
-        # Create the flyout panel
-        flyout_panel = Div(
+        Div(
             Div(
-                H3(f"{workflow_display_name} Actions"),
+                H3("Poke Actions"),
                 Ul(
                     Li(
                         Button(
+                            "🤖 Poke Model",
+                            hx_post="/poke",
+                            hx_swap="outerHTML",
+                            hx_target="body",
+                            cls="secondary outline"
+                        )
+                    ),
+                    Li(
+                        Button(
                             "🗑️ Delete Current Workflow",
-                            cls="secondary outline",
                             hx_post="/delete-pipeline",
                             hx_confirm="Are you sure you want to delete this workflow?",
+                            hx_swap="outerHTML",
                             hx_target="body",
-                            hx_swap="outerHTML"
+                            cls="secondary outline"
                         )
                     ),
                     Li(
                         Button(
                             "🗑️ Delete All Workflows",
-                            cls="secondary outline",
                             hx_post="/clear-pipeline",
                             hx_confirm="Are you sure you want to delete all workflows?",
+                            hx_swap="outerHTML",
                             hx_target="body",
-                            hx_swap="outerHTML"
+                            cls="secondary outline"
                         )
-                    )
+                    ),
+                    Li(
+                        Button(
+                            "🗑️ Reset Database",
+                            hx_post="/clear-db",
+                            hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
+                            hx_swap="outerHTML",
+                            hx_target="body",
+                            cls="secondary outline"
+                        )
+                    ) if get_current_environment() == "Development" else None
                 ),
                 style="padding: 1rem;"
             ),
             id="flyout-panel",
-            style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 999;"
+            style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
         )
-
-        # Add JavaScript to toggle the flyout panel
-        script = Script("""
-            document.getElementById('poke-button').addEventListener('click', function(e) {
-                e.preventDefault();
-                const panel = document.getElementById('flyout-panel');
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            });
-
-            // Close panel when clicking outside
-            document.addEventListener('click', function(e) {
-                const panel = document.getElementById('flyout-panel');
-                const button = document.getElementById('poke-button');
-                if (!panel.contains(e.target) && !button.contains(e.target)) {
-                    panel.style.display = 'none';
-                }
-            });
-        """)
-
-        # Return both the poke button and the flyout panel
-        return Div(poke_container, flyout_panel, script)
-
-    return poke_container
-
+    )
 
 async def profile_render():
     # Get profiles plugin instance
