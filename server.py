@@ -3937,7 +3937,7 @@ async def poke_flyout(request):
 
     return Div(
         id="flyout-panel",
-        style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;",
+        style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;",
         hx_get="/poke-flyout-hide",
         hx_trigger="mouseleave",
         hx_target="this",
@@ -3953,7 +3953,8 @@ async def poke_flyout(request):
                         hx_target="#msg-list",
                         hx_swap="beforeend",
                         cls="secondary outline"
-                    )
+                    ),
+                    style="list-style-type: none; margin-bottom: 0.5rem;"
                 ),
                 Li(
                     Button(
@@ -3962,7 +3963,8 @@ async def poke_flyout(request):
                         hx_target="body",
                         hx_swap="outerHTML",
                         cls="secondary outline"
-                    )
+                    ),
+                    style="list-style-type: none; margin-bottom: 0.5rem;"
                 ),
                 Li(
                     Button(
@@ -3972,7 +3974,8 @@ async def poke_flyout(request):
                         hx_confirm="Are you sure you want to delete this workflow?",
                         hx_swap="outerHTML",
                         cls="secondary outline"
-                    )
+                    ),
+                    style="list-style-type: none; margin-bottom: 0.5rem;"
                 ) if is_workflow else None,
                 Li(
                     Button(
@@ -3982,7 +3985,8 @@ async def poke_flyout(request):
                         hx_confirm="Are you sure you want to delete workflows?",
                         hx_swap="outerHTML",
                         cls="secondary outline"
-                    )
+                    ),
+                    style="list-style-type: none; margin-bottom: 0.5rem;"
                 ) if is_workflow else None,
                 Li(
                     Button(
@@ -3992,9 +3996,11 @@ async def poke_flyout(request):
                         hx_confirm="WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?",
                         hx_swap="outerHTML",
                         cls="secondary outline"
-                    )
+                    ),
+                    style="list-style-type: none; margin-bottom: 0.5rem;"
                 ) if is_dev_mode else None,
-            )
+            ),
+            style="background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);"
         )
     )
 
