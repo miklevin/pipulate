@@ -1874,10 +1874,13 @@ class BaseCrud:
             prompt = action_details
             self.send_message(prompt, verbatim=True)
 
-            # Add a trigger to refresh the profile menu
-            response = HTMLResponse("")
-            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            return response
+            # Add a trigger to refresh the profile menu if this is the profiles plugin
+            if self.name == 'profiles':
+                response = HTMLResponse("")
+                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+                return response
+
+            return HTMLResponse("")
         except Exception as e:
             error_msg = f"Error deleting item: {str(e)}"
             logger.error(error_msg)
@@ -1973,6 +1976,13 @@ class BaseCrud:
             rendered = self.render_item(new_item)
             logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
             logger.debug(f"[DEBUG] Rendered item content: {rendered}")
+
+            # Add a trigger to refresh the profile menu if this is the profiles plugin
+            if self.name == 'profiles':
+                response = HTMLResponse(str(rendered))
+                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+                return response
+
             return rendered
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
@@ -2194,6 +2204,21 @@ class BaseCrud:
 
 
 def render_profile(profile):
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for profile rendering")
+        return Li(
+            Div(
+                Span("Error: Profiles plugin not found", style="color: red;"),
+                style="display: flex; align-items: center;"
+            ),
+            id=f'profile-{profile.id}',
+            data_id=profile.id,
+            data_priority=profile.priority,
+            style="list-style-type: none;"
+        )
+
     def count_records_with_xtra(table_handle, xtra_field, xtra_value):
         table_handle.xtra(**{xtra_field: xtra_value})
         count = len(table_handle())
@@ -2201,8 +2226,8 @@ def render_profile(profile):
         return count
 
     delete_icon_visibility = 'inline'
-    delete_url = profile_app.get_action_url('delete', profile.id)
-    toggle_url = profile_app.get_action_url('toggle', profile.id)
+    delete_url = profiles_plugin_inst.get_action_url('delete', profile.id)
+    toggle_url = profiles_plugin_inst.get_action_url('toggle', profile.id)
 
     delete_icon = A(
         '🗑',
@@ -2255,7 +2280,7 @@ def render_profile(profile):
             ),
             Button("Update", type="submit"),
         ),
-        hx_post=f"/{profile_app.name}/{profile.id}",
+        hx_post=f"/{profiles_plugin_inst.name}/{profile.id}",
         hx_target=f'#profile-{profile.id}',
         hx_swap='outerHTML',
         style="display: none;",
@@ -2651,16 +2676,36 @@ def populate_initial_data():
     
     # Ensure default profile exists
     if not profiles():
-        default_profile = profiles.insert({
-            "name": f"Default {profile_app.name.capitalize()}", 
-            "address": "", 
-            "code": "", 
-            "active": True, 
+        default_profile_display_name = "Profile"  # Sensible fallback
+        profiles_plugin_inst = plugin_instances.get('profiles')
+        
+        if profiles_plugin_inst:
+            # Access DISPLAY_NAME via the property in PluginIdentityManager
+            if hasattr(profiles_plugin_inst, 'DISPLAY_NAME'):
+                default_profile_display_name = profiles_plugin_inst.DISPLAY_NAME
+            else:  # Fallback if DISPLAY_NAME property is missing for some reason
+                default_profile_display_name = profiles_plugin_inst.name.capitalize()
+        else:
+            logger.warning("Could not get 'profiles' plugin instance for default profile creation name. Using fallback.")
+
+        default_profile_data = {
+            "name": f"Default {default_profile_display_name}",  # e.g., "Default Profiles"
+            "real_name": "Default User",  # Provide a default real_name
+            "address": "",
+            "code": "",
+            "active": True,
             "priority": 0
-        })
-        logger.debug(f"Inserted default profile: {default_profile}")
+        }
+        # Ensure 'profiles' table object is used for insertion
+        default_profile = profiles.insert(default_profile_data)
+        logger.debug(f"Inserted default profile: {default_profile} with data {default_profile_data}")
+        
         # Set last_profile_id to the new default profile
-        db['last_profile_id'] = str(default_profile.id)
+        if default_profile and hasattr(default_profile, 'id'):
+            db['last_profile_id'] = str(default_profile.id)
+            logger.debug(f"Set last_profile_id to new default: {default_profile.id}")
+        else:
+            logger.error("Failed to retrieve ID from newly inserted default profile.")
     else:
         default_profile = profiles()[0]
         # Set last_profile_id to the first profile if not set
@@ -3350,6 +3395,18 @@ async def home(request):
     )
 
 def create_nav_group():
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for nav group creation")
+        return Group(
+            Div(
+                H1("Error: Profiles plugin not found", style="color: red;"),
+                style="display: flex; align-items: center; gap: 20px; width: 100%;"
+            ),
+            style="display: flex; align-items: center; position: relative;"
+        )
+
     # Create the initial nav menu with integrated breadcrumb
     nav = create_nav_menu()
 
@@ -3429,6 +3486,15 @@ def create_nav_menu():
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for menu creation")
+        return Div(
+            H1("Error: Profiles plugin not found", style="color: red;"),
+            style="display: flex; align-items: center; gap: 20px; width: 100%;"
+        )
+    
     # Create a breadcrumb-style navigation
     breadcrumb = H1(
         A(APP_NAME, 
@@ -3442,7 +3508,7 @@ def create_nav_menu():
         Span(title_name(selected_profile_name), style="white-space: nowrap;"),
         Span(" / ", style="padding: 0 0.3rem;"),
         Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style="white-space: nowrap;"),
-        style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap: wrap;"
+        style="display: inline-flex; align-items: center; margin-right: auto; flex-wrap:"
     )
     
     # Add the breadcrumb at the beginning, followed by all dropdown menus
@@ -3494,9 +3560,33 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     # Add a divider after the lock switch
     menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
     
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for menu creation")
+        return Details(
+            Summary("PROFILES: Error", style="white-space: nowrap; display: inline-block; min-width: max-content;"),
+            Ul(*menu_items, style="padding-left: 0;"),
+            cls="dropdown",
+            id="profile-dropdown-menu"
+        )
+    
     # Only show Edit Profiles link when not locked
     if not profile_locked:
-        menu_items.append(Li(A(f"Edit {endpoint_name(profile_app.name)}s", href=f"/redirect/{profile_app.name}", cls="dropdown-item", style=(f"{NOWRAP_STYLE} ""font-weight: bold; ""border-bottom: 1px solid var(--pico-muted-border-color);""display: block; ""text-align: center; ")), style=("display: block; ""text-align: center; ")))
+        menu_items.append(Li(
+            A(
+                f"Edit {endpoint_name(profiles_plugin_inst.name)}s", 
+                href=f"/redirect/{profiles_plugin_inst.name}", 
+                cls="dropdown-item", 
+                style=(f"{NOWRAP_STYLE} "
+                      "font-weight: bold; "
+                      "border-bottom: 1px solid var(--pico-muted-border-color);"
+                      "display: block; "
+                      "text-align: center; ")
+            ), 
+            style=("display: block; "
+                  "text-align: center; ")
+        ))
     
     # Get profiles based on lock state
     if profile_locked:
@@ -3509,15 +3599,31 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     for profile in active_profiles:
         is_selected = str(profile.id) == str(selected_profile_id)
         item_style = get_selected_item_style(is_selected)
-        menu_items.append(Li(Label(Input(type="radio", name="profile", value=str(profile.id), checked=is_selected, hx_post=f"/select_profile", hx_vals=f'js:{{profile_id: "{profile.id}"}}', hx_target="body", hx_swap="outerHTML",), profile.name, style="display: flex; align-items: center;"), style=f"text-align: left; {item_style}"))
+        menu_items.append(Li(
+            Label(
+                Input(
+                    type="radio", 
+                    name="profile", 
+                    value=str(profile.id), 
+                    checked=is_selected, 
+                    hx_post=f"/select_profile", 
+                    hx_vals=f'js:{{profile_id: "{profile.id}"}}', 
+                    hx_target="body", 
+                    hx_swap="outerHTML",
+                ), 
+                profile.name, 
+                style="display: flex; align-items: center;"
+            ), 
+            style=f"text-align: left; {item_style}"
+        ))
     
     return Details(
         Summary(
-            f"{profile_app.name.upper()}: {selected_profile_name}",
+            f"{profiles_plugin_inst.name.upper()}: {selected_profile_name}",
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="profile-id"
         ),
-        Ul(*menu_items, style="padding-left: 0;",),
+        Ul(*menu_items, style="padding-left: 0;"),
         cls="dropdown",
         id="profile-dropdown-menu"  # Add this ID to target for refresh
     )
@@ -3539,7 +3645,7 @@ def create_app_menu(menux):
     eligible_plugins_with_details = []
 
     for item_key in MENU_ITEMS:  # MENU_ITEMS contains the app_names (e.g., "hello_workflow")
-        if item_key == profile_app.name:  # Skip profile app in Apps menu
+        if item_key == profiles_plugin_inst.name:  # Skip profile app in Apps menu
             continue
 
         # Special handling for Home menu item
@@ -3668,12 +3774,13 @@ def create_app_menu(menux):
     
     return Details(
         Summary(
-            f"APP: {endpoint_name(menux)}", 
-            id="app-id", 
-            style="white-space: nowrap; display: inline-block; min-width: max-content;"
-        ), 
-        Ul(*menu_items, cls="dropdown-menu",), 
+            "APPS",
+            style="white-space: nowrap; display: inline-block; min-width: max-content;",
+            id="app-id"
+        ),
+        Ul(*menu_items, style="padding-left: 0;"),
         cls="dropdown",
+        id="app-dropdown-menu"
     )
 
 # Add the toggle endpoint
@@ -3713,6 +3820,20 @@ async def toggle_profile_lock(request):
     return HTMLResponse("", headers={"HX-Refresh": "true"})
 
 async def create_outer_container(current_profile_id, menux):
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for container creation")
+        return Container(
+            H1("Error: Profiles plugin not found", style="color: red;"),
+            style=(
+                f"width: {WEB_UI_WIDTH}; "
+                f"max-width: none; "
+                f"padding: {WEB_UI_PADDING}; "
+                f"margin: {WEB_UI_MARGIN};"
+            ),
+        )
+
     # Create nav group (now includes breadcrumb)
     nav_group = create_nav_group()
 
@@ -3949,9 +4070,22 @@ async def create_grid_left(menux, render_items=None):
     """Create the left grid content based on the selected menu item."""
     content_to_render = None  # Initialize the variable
     
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for grid creation")
+        return Div(
+            Card(
+                H3("Error"),
+                P("Profiles plugin not found. Please check the server configuration."),
+                style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
+            ),
+            id="grid-left-content"
+        )
+    
     if menux:
         # Handle profile app separately
-        if menux == profile_app.name:
+        if menux == profiles_plugin_inst.name:
             content_to_render = await profile_render()
         else:
             # Try to get the workflow instance for the selected menu item
@@ -4050,6 +4184,31 @@ def create_poke_button():
 
     button_style = "font-size: 0.85rem; padding: 0.4rem 0.3rem;"  # Slightly adjusted padding for clarity
 
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for poke button creation")
+        return Div(
+            Div(
+                Div(
+                    H3("Error"),
+                    P("Profiles plugin not found. Please check the server configuration."),
+                    style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
+                ),
+                id="poke-flyout-panel",
+                style="display: none; flex-direction: column; gap: 0.5rem; background-color: var(--pico-card-background-color); padding: 0.75rem; border-radius: var(--pico-border-radius); border: 1px solid var(--pico-muted-border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 0.5rem; min-width: 180px;"
+            ),
+            Button(
+                "👆",
+                id="poke-flyout-icon",
+                title="Show quick actions",
+                tabindex="0",
+                style="width: 48px; height: 48px; border-radius: 50%; background: var(--pico-primary-background); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 1.5rem; border: none; outline: none;"
+            ),
+            id="poke-flyout",
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;"
+        )
+
     # Create button elements list
     buttons = []
     if menux and menux in plugin_instances:
@@ -4059,7 +4218,7 @@ def create_poke_button():
         else:
             workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
         is_crud_plugin = (hasattr(instance, '__class__') and instance.__class__.__name__ == 'CrudUI')
-        is_workflow_plugin = (not is_crud_plugin and menux != profile_app.name and menux != "")
+        is_workflow_plugin = (not is_crud_plugin and menux != profiles_plugin_inst.name and menux != "")
         if is_workflow_plugin:
             # Add button to delete all workflows
             buttons.append(
@@ -4198,72 +4357,89 @@ def create_poke_button():
     )
 
 
-# async def profile_render():
-#     all_profiles = profiles()
-#     logger.debug("Initial profile state:")
-#     for profile in all_profiles:
-#         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-# 
-#     ordered_profiles = sorted(
-#         all_profiles,
-#         key=lambda p: p.priority if p.priority is not None else float('inf')
-#     )
-# 
-#     logger.debug("Ordered profile list:")
-#     for profile in ordered_profiles:
-#         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-# 
-#     return Container(
-#         Grid(
-#             Div(
-#                 Card(
-#                     H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"),
-#                     Ul(
-#                         *[render_profile(profile) for profile in ordered_profiles],
-#                         id='profile-list',
-#                         cls='sortable',
-#                         style="padding-left: 0;"
-#                     ),
-#                     header=Form(
-#                         Group(
-#                             Input(
-#                                 placeholder="Nickname",
-#                                 name="profile_name",
-#                                 id="profile-name-input",
-#                                 autofocus=True
-#                             ),
-#                             Input(
-#                                 placeholder=f"Real Name",
-#                                 name="profile_menu_name",
-#                                 id="profile-menu-name-input"
-#                             ),
-#                             Input(
-#                                 placeholder=PLACEHOLDER_ADDRESS,
-#                                 name="profile_address",
-#                                 id="profile-address-input"
-#                             ),
-#                             Input(
-#                                 placeholder=PLACEHOLDER_CODE,
-#                                 name="profile_code",
-#                                 id="profile-code-input"
-#                             ),
-#                             Button(
-#                                 "Add",
-#                                 type="submit",
-#                                 id="add-profile-button"
-#                             ),
-#                         ),
-#                         hx_post=f"/{profile_app.name}",
-#                         hx_target="#profile-list",
-#                         hx_swap="beforeend",
-#                         hx_swap_oob="true",
-#                         hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
-#                     ),
-#                 ),
-#                 id="content-container",
-#             ),
-#         ),
-#     )
+async def profile_render():
+    # Get profiles plugin instance
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for profile rendering")
+        return Container(
+            Grid(
+                Div(
+                    Card(
+                        H3("Error"),
+                        P("Profiles plugin not found. Please check the server configuration."),
+                        style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"
+                    ),
+                    id="content-container",
+                ),
+            ),
+        )
+
+    all_profiles = profiles()
+    logger.debug("Initial profile state:")
+    for profile in all_profiles:
+        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+
+    ordered_profiles = sorted(
+        all_profiles,
+        key=lambda p: p.priority if p.priority is not None else float('inf')
+    )
+
+    logger.debug("Ordered profile list:")
+    for profile in ordered_profiles:
+        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+
+    return Container(
+        Grid(
+            Div(
+                Card(
+                    H2(f"{profiles_plugin_inst.name.capitalize()} {LIST_SUFFIX}"),
+                    Ul(
+                        *[render_profile(profile) for profile in ordered_profiles],
+                        id='profile-list',
+                        cls='sortable',
+                        style="padding-left: 0;"
+                    ),
+                    header=Form(
+                        Group(
+                            Input(
+                                placeholder="Nickname",
+                                name="profile_name",
+                                id="profile-name-input",
+                                autofocus=True
+                            ),
+                            Input(
+                                placeholder=f"Real Name",
+                                name="profile_menu_name",
+                                id="profile-menu-name-input"
+                            ),
+                            Input(
+                                placeholder=PLACEHOLDER_ADDRESS,
+                                name="profile_address",
+                                id="profile-address-input"
+                            ),
+                            Input(
+                                placeholder=PLACEHOLDER_CODE,
+                                name="profile_code",
+                                id="profile-code-input"
+                            ),
+                            Button(
+                                "Add",
+                                type="submit",
+                                id="add-profile-button"
+                            ),
+                        ),
+                        hx_post=f"/{profiles_plugin_inst.name}",
+                        hx_target="#profile-list",
+                        hx_swap="beforeend",
+                        hx_swap_oob="true",
+                        hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
+                    ),
+                ),
+                id="content-container",
+            ),
+        ),
+    )
 
 
 @rt("/sse")
