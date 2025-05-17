@@ -47,8 +47,8 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
 /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
 /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
-/home/mike/repos/pipulate/plugins/030_connect_with_botify.py
-/home/mike/repos/pipulate/plugins/500_hello_workflow.py
+# /home/mike/repos/pipulate/plugins/030_connect_with_botify.py
+# /home/mike/repos/pipulate/plugins/500_hello_workflow.py
 /home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
 # /home/mike/repos/pipulate/static/Sortable.js

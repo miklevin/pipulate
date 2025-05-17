@@ -71,7 +71,6 @@ MAX_LLM_RESPONSE_WORDS = 60
 MAX_CONVERSATION_LENGTH = 10000
 
 # Plugin configuration
-DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
 HOME_MENU_ITEM = "Introduction"  # The display name for the home/introduction menu item
 
 # Default active roles for role synchronization
@@ -129,19 +128,6 @@ NOWRAP_STYLE = (
 LIST_SUFFIX = "List"
 
 # Near the top with other constants
-CORE_PLUGINS = {
-    "",  # Home/Introduction
-    "roles",
-    "tasks",
-    "connect_with_botify",
-    "parameter_buster",
-    "kungfu_workflow"
-}
-
-
-def is_core_plugin(plugin_name):
-    """Determine if a plugin is part of the core workflow."""
-    return plugin_name in CORE_PLUGINS
 
 
 def setup_logging():
@@ -549,6 +535,7 @@ class Pipulate:
     WARNING_BUTTON_STYLE = None  # Now using cls="secondary outline" instead
     PRIMARY_BUTTON_STYLE = None  # Now using cls="primary" instead
     SECONDARY_BUTTON_STYLE = None  # Now using cls="secondary" instead
+    UNLOCK_BUTTON_LABEL = "🔓 Unlock"  # Label for the unfinalize button
 
     # Text style constants
     MUTED_TEXT_STYLE = "font-size: 0.9em; color: var(--pico-muted-color);"
@@ -1918,10 +1905,13 @@ class BaseCrud:  # noqa
             # Prepare the response
             response = HTMLResponse(str(html_content))  # Ensure it's a string
 
-            # Conditionally add HX-Trigger if this is the profiles app
+            # Conditionally add HX-Trigger if this is the profiles app or roles app
             if self.name == 'profiles':
                 logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to toggle_item on '{self.name}'")
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            elif self.name == 'roles':
+                logger.debug(f"Adding HX-Trigger for refreshAppMenu due to role toggle_item (item_id: {item_id})")
+                response.headers["HX-Trigger"] = json.dumps({"refreshAppMenu": {}})
 
             return response
         except Exception as e:
@@ -2457,14 +2447,6 @@ def populate_initial_data():
     if 'last_app_choice' not in db:
         db['last_app_choice'] = ''
         logger.debug("Initialized last_app_choice to empty string")
-
-    if 'show_all_plugins' not in db:
-        db['show_all_plugins'] = '0'
-        logger.debug("Initialized show_all_plugins to '0'")
-
-    if 'developer_plugins_visible' not in db:
-        db['developer_plugins_visible'] = '0'
-        logger.debug("Initialized developer_plugins_visible to '0'")
 
     if 'current_environment' not in db:
         db['current_environment'] = 'Development'
@@ -3217,12 +3199,22 @@ def create_nav_group():
         hx_swap="outerHTML",
         style="display: none;"
     )
+    
+    # Add a hidden event listener to refresh the app menu dropdown
+    app_menu_refresh_listener = Div(
+        id="app-menu-refresh-listener",
+        hx_get="/refresh-app-menu",
+        hx_trigger="refreshAppMenu from:body",
+        hx_target="#app-dropdown-menu",
+        hx_swap="outerHTML",
+        style="display: none;"
+    )
 
     # Style for the navigation group
     nav_group_style = "display: flex; align-items: center; position: relative;"
 
-    # Return a group with the nav and the refresh listener
-    return Group(nav, refresh_listener, style=nav_group_style)
+    # Return a group with the nav and the refresh listeners
+    return Group(nav, refresh_listener, app_menu_refresh_listener, style=nav_group_style)
 
 
 def create_env_menu():
@@ -3438,145 +3430,128 @@ def normalize_menu_path(path):
     return "" if path == "" else path
 
 
-def create_app_menu(menux):
-    """Create the app dropdown menu."""
-    menu_items = []
-    profiles_plugin_key = 'profiles'
-
-    # Get current environment and visibility settings
-    current_environment = get_current_environment()
-    show_all = db.get("show_all_plugins", "0") == "1"
-    show_dev = db.get("developer_plugins_visible", "0") == "1"
-
-    # Sort plugins by their numeric prefix
-    sorted_plugins = sorted(
-        plugin_instances.items(),
-        key=lambda x: x[1].__class__.__name__ if hasattr(x[1], '__class__') else ''
+def generate_menu_style():
+    """Generate consistent menu styling for dropdown menus."""
+    return (
+        "white-space: nowrap; "
+        "display: inline-block; "
+        "min-width: max-content; "
+        "background-color: var(--pico-background-color); "
+        "border: 1px solid var(--pico-muted-border-color); "
+        "border-radius: 16px; "
+        "padding: 0.5rem 1rem; "
+        "cursor: pointer; "
+        "transition: background-color 0.2s;"
     )
 
-    for plugin_key, instance in sorted_plugins:
-        # Skip the profiles plugin
+def create_app_menu(menux):
+    """Create the App dropdown menu."""
+    logger.debug(f"Creating App menu. Currently selected app (menux): '{menux}'")
+    global ordered_plugins # Access the globally sorted list of plugin keys
+    global plugin_instances # Access the global dictionary of plugin instances
+    
+    # Get active roles from the roles table
+    active_role_names = set()
+    current_profile_id = get_current_profile_id()
+    roles_plugin = plugin_instances.get('roles')
+    if roles_plugin and hasattr(roles_plugin, 'table'):
+        try:
+            # Query for roles where done is True for the current profile_id
+            active_role_records = list(roles_plugin.table(
+                where="profile_id = ? AND done = ?", 
+                args=(current_profile_id, True)
+            ))
+            active_role_names = {record.text for record in active_role_records}
+            logger.debug(f"Active roles for profile {current_profile_id}: {active_role_names}")
+        except Exception as e:
+            logger.error(f"Error fetching active roles for profile {current_profile_id}: {e}")
+    else:
+        logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
+    
+    menu_items = []
+    profiles_plugin_key = 'profiles' # Key for the profiles plugin, should not be in App menu
+
+    # Iterate through the correctly pre-sorted list of plugin keys
+    for plugin_key in ordered_plugins:
+        instance = plugin_instances.get(plugin_key)
+        
+        if not instance:
+            logger.warning(f"Instance for plugin_key '{plugin_key}' not found in plugin_instances. Skipping.")
+            continue
+
+        # Skip the main 'profiles' plugin from this App menu (it has its own menu)
         if plugin_key == profiles_plugin_key:
             continue
 
-        # Skip non-core plugins unless show_all is true
-        if not is_core_plugin(plugin_key) and not show_all:
+        # Handle 'separator' plugins: render as a horizontal rule
+        if plugin_key == "separator":
+            menu_items.append(Li(Hr(style="margin: 0.5rem 0; border-color: var(--pico-primary); opacity: 0.3;"), style="display: block; padding: 0;"))
+            logger.debug(f"Added separator to App menu.")
+            continue
+        
+        # Check if the plugin should be shown based on roles
+        plugin_module_path = instance.__module__
+        plugin_module = sys.modules.get(plugin_module_path)
+        plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
+            
+        is_core_plugin = "Core" in plugin_defined_roles
+        # Ensure the 'roles' plugin itself is always treated as core and visible
+        if plugin_key == 'roles':
+            is_core_plugin = True
+
+        has_matching_active_role = any(p_role in active_role_names for p_role in plugin_defined_roles)
+
+        if not (is_core_plugin or has_matching_active_role):
+            logger.debug(f"Filtering out plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Profile Roles: {active_role_names}, Match: {has_matching_active_role}")
             continue
 
-        # Skip developer plugins unless show_dev is true
-        if plugin_key.startswith(str(DEVELOPER_PLUGIN_THRESHOLD)) and not show_dev:
-            continue
-
-        # Get display name
-        display_name = getattr(instance, 'DISPLAY_NAME', plugin_key.replace('_', ' ').title())
-
-        # Create menu item
+        logger.debug(f"Including plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Profile Roles: {active_role_names}, Match: {has_matching_active_role}")
+        
+        # For all other valid plugins, create a menu item
+        # Get display name (use DISPLAY_NAME attribute from instance, or format plugin_key)
+        display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
+        
         is_selected = menux == plugin_key
         item_style = "background-color: var(--pico-primary-focus);" if is_selected else ""
+        
+        # Ensure the href uses the /redirect/ path
+        redirect_url = f"/redirect/{plugin_key if plugin_key else ''}"
 
         menu_items.append(Li(
             Label(
                 Input(
-                    type="radio",
-                    name="app_radio_select",
-                    value=plugin_key,
-                    checked=is_selected,
-                    hx_post=f"/redirect/{plugin_key}",
-                    hx_target="body",
-                    hx_swap="outerHTML",
-                    style="min-width: 1rem; margin-right: 0.5rem;"
+                    type="radio", name="app_radio_select", value=plugin_key,
+                    checked=is_selected, 
+                    hx_post=redirect_url, # Use the redirect handler
+                    hx_target="body", # Target body to reload content via home()
+                    hx_swap="outerHTML", # Replace the entire body content
+                    style="min-width: 1rem; margin-right: 0.5rem;" # PicoCSS friendly radio
                 ),
-                display_name,
-                style="display: flex; align-items: center; flex: 1; min-width: 0;"
+                display_name, # Text for the label
+                style="display: flex; align-items: center; flex: 1; min-width: 0; cursor:pointer;" 
             ),
-            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE} display: flex;"
+            # Apply styling to the Li for selection indication and layout
+            style=f"text-align: left; padding: 0.25rem 1rem; {item_style} {NOWRAP_STYLE} display: flex; border-radius: var(--pico-border-radius);",
+            # Add a hover effect to the Li
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
         ))
+        logger.debug(f"Added plugin '{plugin_key}' (Display: '{display_name}') to App menu. Selected: {is_selected}")
 
-    # Add developer options if in development environment
-    if current_environment == "Development":
-        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-
-        # Add toggle for all plugins
-        menu_items.append(Li(
-            Label(
-                Input(
-                    type="checkbox",
-                    name="show_all_switch",
-                    role="switch",
-                    checked=show_all,
-                    hx_post="/toggle_show_all",
-                    hx_target="body",
-                    hx_swap="outerHTML",
-                    style="margin-right: 10px; min-width: 1rem;"
-                ),
-                "Show All Plugins",
-                style="display: flex; align-items: center; flex: 1; min-width: 0;"
-            ),
-            style="text-align: left; padding: 0.5rem 1rem; display: flex;"
-        ))
-
-        # Add toggle for developer plugins
-        menu_items.append(Li(
-            Label(
-                Input(
-                    type="checkbox",
-                    name="show_dev_switch",
-                    role="switch",
-                    checked=show_dev,
-                    hx_post="/toggle_developer_plugins_visibility",
-                    hx_target="body",
-                    hx_swap="outerHTML",
-                    style="margin-right: 10px; min-width: 1rem;"
-                ),
-                "Show Developer Plugins",
-                style="display: flex; align-items: center; flex: 1; min-width: 0;"
-            ),
-            style="text-align: left; padding: 0.5rem 1rem; display: flex;"
-        ))
+    # Determine the text for the Summary (the visible part of the dropdown)
+    # 'menux' is the key of the currently selected app, or "" for Introduction
+    summary_text = f"APP: {endpoint_name(menux) if menux else HOME_MENU_ITEM}"
 
     return Details(
         Summary(
-            "APP",
-            style="white-space: nowrap; display: inline-block; min-width: max-content;",
-            id="app-id"
+            summary_text,
+            style=generate_menu_style(), # Use generate_menu_style()
+            id="app-id" # This ID is important for HTMX targeting later
         ),
-        Ul(*menu_items, style="padding-left: 0; min-width: 390px;", cls="dropdown-menu"),
+        Ul(*menu_items, cls="dropdown-menu", style="padding-left: 0; min-width: max-content; max-height: 70vh; overflow-y: auto;"), # Added max-height and overflow
         cls="dropdown",
-        id="app-dropdown-menu"
+        id="app-dropdown-menu" # This ID is crucial for HTMX swapping
     )
-
-# Add the toggle endpoint
-
-
-@rt('/toggle_show_all', methods=['POST'])
-async def toggle_show_all(request):
-    current = db.get("show_all_plugins", "0")
-    new_value = "1" if current == "0" else "0"
-    db["show_all_plugins"] = new_value
-
-    # Store message in database for next page load
-    message = "Showing all user-facing plugins." if new_value == "1" else "Showing core plugins only."
-    db["temp_message"] = message
-
-    return HTMLResponse("", headers={"HX-Refresh": "true"})
-
-
-@rt('/toggle_developer_plugins_visibility', methods=['POST'])
-async def toggle_developer_plugins_visibility(request):
-    """Toggle the visibility of developer-specific plugins in the menu."""
-    current_visibility = db.get("developer_plugins_visible", "0")
-    new_visibility = "1" if current_visibility == "0" else "0"
-    db["developer_plugins_visible"] = new_visibility
-    logger.info(f"Developer plugins visibility set to: {'Visible' if new_visibility == '1' else 'Hidden'}")
-
-    # Store message in database for next page load
-    message = "Developer plugins are now visible." if new_visibility == "1" else "Developer plugins are now hidden."
-    db["temp_message"] = message
-
-    # Force a full page refresh to rebuild the menu and potentially other UI elements
-    response = HTMLResponse("")  # Empty body is fine as we're just refreshing
-    response.headers["HX-Refresh"] = "true"
-    return response
 
 
 @rt('/toggle_profile_lock', methods=['POST'])
@@ -3958,6 +3933,9 @@ async def poke_flyout(request):
     # Get the current profile lock state from db
     profile_locked = db.get("profile_locked", "0") == "1"
     lock_button_text = "🔓 Unlock Profile" if profile_locked else "🔒 Lock Profile"
+    
+    # Check if we're in Development mode
+    is_dev_mode = get_current_environment() == "Development"
 
     return Div(
         id="flyout-panel",
@@ -4008,6 +3986,16 @@ async def poke_flyout(request):
                         cls="secondary outline"
                     )
                 ) if is_workflow else None,
+                Li(
+                    Button(
+                        "🔄 Reset Entire Database",
+                        hx_post="/clear-db",
+                        hx_target="body",
+                        hx_confirm="WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?",
+                        hx_swap="outerHTML",
+                        cls="secondary outline"
+                    )
+                ) if is_dev_mode else None,
             )
         )
     )
@@ -4451,3 +4439,16 @@ if __name__ == "__main__":
 # isort server.py
 # vulture server.py
 # pylint --disable=all --enable=redefined-outer-name server.py
+
+@rt('/refresh-app-menu')
+async def refresh_app_menu_endpoint(request):
+    """Refresh the App menu dropdown via HTMX endpoint."""
+    logger.debug("Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu")
+    # Get current selected app for correct summary styling
+    menux = db.get("last_app_choice", "")
+    
+    # create_app_menu returns a fasthtml.components.Details object
+    app_menu_details_component = create_app_menu(menux)
+    
+    # Convert the FastHTML component to an HTML string and return as HTMLResponse
+    return HTMLResponse(to_xml(app_menu_details_component))
