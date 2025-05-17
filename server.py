@@ -2041,156 +2041,156 @@ class BaseCrud:
         raise NotImplementedError("Subclasses must implement prepare_update_data")
 
 
-class ProfileApp(BaseCrud):
-    def __init__(self, table, pipulate_instance=None):
-        super().__init__(
-            name=table.name,
-            table=table,
-            toggle_field='active',
-            sort_field='priority',
-            pipulate_instance=pipulate_instance
-        )
-        self.item_name_field = 'name'
-        logger.debug(f"Initialized ProfileApp with name={table.name}")
-
-    def render_item(self, profile):
-        return render_profile(profile)
-
-    async def insert_item(self, request):
-        """Override the BaseCrud insert_item to also refresh the profile menu"""
-        try:
-            logger.debug(f"[DEBUG] Starting ProfileApp insert_item")
-            form = await request.form()
-            logger.debug(f"[DEBUG] Form data: {dict(form)}")
-            new_item_data = self.prepare_insert_data(form)
-            if not new_item_data:
-                logger.debug("[DEBUG] No new_item_data, returning empty")
-                return ''
-
-            # Create the new profile
-            new_profile = await self.create_item(**new_item_data)
-            logger.debug(f"[DEBUG] Created new profile: {new_profile}")
-            profile_name = getattr(new_profile, self.item_name_field, 'Profile')
-
-            # Log the action
-            action_details = f"A new {self.name} '{profile_name}' was added."
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-
-            # Render the new profile item
-            rendered_profile = self.render_item(new_profile)
-            logger.debug(f"[DEBUG] Rendered profile: {rendered_profile}")
-
-            # Combine the rendered profile with an HTMX trigger to refresh the menu
-            response = HTMLResponse(str(to_xml(rendered_profile)))
-            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-
-            return response
-        except Exception as e:
-            error_msg = f"Error inserting {self.name}: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            return str(e), 500
-
-    async def toggle_item(self, request, item_id: int):
-        """Override the BaseCrud toggle_item to properly handle FastHTML objects"""
-        try:
-            item = self.table[item_id]
-            current_status = getattr(item, self.toggle_field)
-            new_status = not current_status
-            setattr(item, self.toggle_field, new_status)
-            updated_item = self.table.update(item)
-            item_name = getattr(updated_item, self.item_name_field, 'Item')
-            status_text = 'checked' if new_status else 'unchecked'
-            action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            self.send_message(action_details, verbatim=True)
-
-            # Get the profile HTML representation
-            rendered_profile = self.render_item(updated_item)
-            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-
-            # Add a trigger to refresh the profile menu
-            response = HTMLResponse(str(to_xml(rendered_profile)))
-            response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-            return response
-        except Exception as e:
-            error_msg = f"Error toggling item: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
-            return str(e), 500
-
-    async def update_item(self, request, item_id: int):
-        """Override the BaseCrud update_item to properly handle FastHTML objects"""
-        try:
-            form = await request.form()
-            update_data = self.prepare_update_data(form)
-            if not update_data:
-                return ''
-            item = self.table[item_id]
-            before_state = item.__dict__.copy()
-            for key, value in update_data.items():
-                setattr(item, key, value)
-            updated_item = self.table.update(item)
-            after_state = updated_item.__dict__
-            change_dict = {}
-            for key in update_data.keys():
-                if before_state.get(key) != after_state.get(key):
-                    change_dict[key] = after_state.get(key)
-            changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
-            changes_str = '; '.join(changes)
-            item_name = getattr(updated_item, self.item_name_field, 'Item')
-            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            logger.debug(f"Updated {self.name} item {item_id}")
-
-            # Get the profile HTML representation
-            rendered_profile = self.render_item(updated_item)
-            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
-
-            # Add a trigger to refresh the profile menu if the name field was updated
-            response = HTMLResponse(str(to_xml(rendered_profile)))
-            if 'name' in change_dict:
-                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-
-            return response
-        except Exception as e:
-            error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
-            logger.error(error_msg)
-            action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            return str(e), 500
-
-    def prepare_insert_data(self, form):
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            return ''
-        max_priority = max(
-            (p.priority or 0 for p in self.table()),
-            default=-1
-        ) + 1
-        return {
-            "name": profile_name,
-            "real_name": form.get('profile_real_name', '').strip(),
-            "address": form.get('profile_address', '').strip(),
-            "code": form.get('profile_code', '').strip(),
-            "active": True,
-            "priority": max_priority,
-        }
-
-    def prepare_update_data(self, form):
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            return ''
-        return {
-            "name": profile_name,
-            "real_name": form.get('profile_real_name', '').strip(),
-            "address": form.get('profile_address', '').strip(),
-            "code": form.get('profile_code', '').strip(),
-        }
+# class ProfileApp(BaseCrud):
+#     def __init__(self, table, pipulate_instance=None):
+#         super().__init__(
+#             name=table.name,
+#             table=table,
+#             toggle_field='active',
+#             sort_field='priority',
+#             pipulate_instance=pipulate_instance
+#         )
+#         self.item_name_field = 'name'
+#         logger.debug(f"Initialized ProfileApp with name={table.name}")
+# 
+#     def render_item(self, profile):
+#         return render_profile(profile)
+# 
+#     async def insert_item(self, request):
+#         """Override the BaseCrud insert_item to also refresh the profile menu"""
+#         try:
+#             logger.debug(f"[DEBUG] Starting ProfileApp insert_item")
+#             form = await request.form()
+#             logger.debug(f"[DEBUG] Form data: {dict(form)}")
+#             new_item_data = self.prepare_insert_data(form)
+#             if not new_item_data:
+#                 logger.debug("[DEBUG] No new_item_data, returning empty")
+#                 return ''
+# 
+#             # Create the new profile
+#             new_profile = await self.create_item(**new_item_data)
+#             logger.debug(f"[DEBUG] Created new profile: {new_profile}")
+#             profile_name = getattr(new_profile, self.item_name_field, 'Profile')
+# 
+#             # Log the action
+#             action_details = f"A new {self.name} '{profile_name}' was added."
+#             prompt = action_details
+#             self.send_message(prompt, verbatim=True)
+# 
+#             # Render the new profile item
+#             rendered_profile = self.render_item(new_profile)
+#             logger.debug(f"[DEBUG] Rendered profile: {rendered_profile}")
+# 
+#             # Combine the rendered profile with an HTMX trigger to refresh the menu
+#             response = HTMLResponse(str(to_xml(rendered_profile)))
+#             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+# 
+#             return response
+#         except Exception as e:
+#             error_msg = f"Error inserting {self.name}: {str(e)}"
+#             logger.error(error_msg)
+#             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
+#             prompt = action_details
+#             self.send_message(prompt, verbatim=True)
+#             return str(e), 500
+# 
+#     async def toggle_item(self, request, item_id: int):
+#         """Override the BaseCrud toggle_item to properly handle FastHTML objects"""
+#         try:
+#             item = self.table[item_id]
+#             current_status = getattr(item, self.toggle_field)
+#             new_status = not current_status
+#             setattr(item, self.toggle_field, new_status)
+#             updated_item = self.table.update(item)
+#             item_name = getattr(updated_item, self.item_name_field, 'Item')
+#             status_text = 'checked' if new_status else 'unchecked'
+#             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
+#             self.send_message(action_details, verbatim=True)
+# 
+#             # Get the profile HTML representation
+#             rendered_profile = self.render_item(updated_item)
+#             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+# 
+#             # Add a trigger to refresh the profile menu
+#             response = HTMLResponse(str(to_xml(rendered_profile)))
+#             response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+#             return response
+#         except Exception as e:
+#             error_msg = f"Error toggling item: {str(e)}"
+#             logger.error(error_msg)
+#             action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
+#             return str(e), 500
+# 
+#     async def update_item(self, request, item_id: int):
+#         """Override the BaseCrud update_item to properly handle FastHTML objects"""
+#         try:
+#             form = await request.form()
+#             update_data = self.prepare_update_data(form)
+#             if not update_data:
+#                 return ''
+#             item = self.table[item_id]
+#             before_state = item.__dict__.copy()
+#             for key, value in update_data.items():
+#                 setattr(item, key, value)
+#             updated_item = self.table.update(item)
+#             after_state = updated_item.__dict__
+#             change_dict = {}
+#             for key in update_data.keys():
+#                 if before_state.get(key) != after_state.get(key):
+#                     change_dict[key] = after_state.get(key)
+#             changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
+#             changes_str = '; '.join(changes)
+#             item_name = getattr(updated_item, self.item_name_field, 'Item')
+#             action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
+#             prompt = action_details
+#             self.send_message(prompt, verbatim=True)
+#             logger.debug(f"Updated {self.name} item {item_id}")
+# 
+#             # Get the profile HTML representation
+#             rendered_profile = self.render_item(updated_item)
+#             logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+# 
+#             # Add a trigger to refresh the profile menu if the name field was updated
+#             response = HTMLResponse(str(to_xml(rendered_profile)))
+#             if 'name' in change_dict:
+#                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+# 
+#             return response
+#         except Exception as e:
+#             error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
+#             logger.error(error_msg)
+#             action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
+#             prompt = action_details
+#             self.send_message(prompt, verbatim=True)
+#             return str(e), 500
+# 
+#     def prepare_insert_data(self, form):
+#         profile_name = form.get('profile_name', '').strip()
+#         if not profile_name:
+#             return ''
+#         max_priority = max(
+#             (p.priority or 0 for p in self.table()),
+#             default=-1
+#         ) + 1
+#         return {
+#             "name": profile_name,
+#             "real_name": form.get('profile_real_name', '').strip(),
+#             "address": form.get('profile_address', '').strip(),
+#             "code": form.get('profile_code', '').strip(),
+#             "active": True,
+#             "priority": max_priority,
+#         }
+# 
+#     def prepare_update_data(self, form):
+#         profile_name = form.get('profile_name', '').strip()
+#         if not profile_name:
+#             return ''
+#         return {
+#             "name": profile_name,
+#             "real_name": form.get('profile_real_name', '').strip(),
+#             "address": form.get('profile_address', '').strip(),
+#             "code": form.get('profile_code', '').strip(),
+#         }
 
 
 def render_profile(profile):
@@ -2460,8 +2460,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # Create the Pipulate instance first (needed for plugin initialization)
 pipulate = Pipulate(pipeline)
 
-profile_app = ProfileApp(table=profiles, pipulate_instance=pipulate)
-profile_app.register_routes(rt)
+# Comment out old profile-related code
+# profile_app = ProfileApp(table=profiles, pipulate_instance=pipulate)
+# profile_app.register_routes(rt)
 
 # Ensure plugins directory exists
 if not os.path.exists("plugins"):
@@ -4197,72 +4198,72 @@ def create_poke_button():
     )
 
 
-async def profile_render():
-    all_profiles = profiles()
-    logger.debug("Initial profile state:")
-    for profile in all_profiles:
-        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-
-    ordered_profiles = sorted(
-        all_profiles,
-        key=lambda p: p.priority if p.priority is not None else float('inf')
-    )
-
-    logger.debug("Ordered profile list:")
-    for profile in ordered_profiles:
-        logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
-
-    return Container(
-        Grid(
-            Div(
-                Card(
-                    H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"),
-                    Ul(
-                        *[render_profile(profile) for profile in ordered_profiles],
-                        id='profile-list',
-                        cls='sortable',
-                        style="padding-left: 0;"
-                    ),
-                    header=Form(
-                        Group(
-                            Input(
-                                placeholder="Nickname",
-                                name="profile_name",
-                                id="profile-name-input",
-                                autofocus=True
-                            ),
-                            Input(
-                                placeholder=f"Real Name",
-                                name="profile_menu_name",
-                                id="profile-menu-name-input"
-                            ),
-                            Input(
-                                placeholder=PLACEHOLDER_ADDRESS,
-                                name="profile_address",
-                                id="profile-address-input"
-                            ),
-                            Input(
-                                placeholder=PLACEHOLDER_CODE,
-                                name="profile_code",
-                                id="profile-code-input"
-                            ),
-                            Button(
-                                "Add",
-                                type="submit",
-                                id="add-profile-button"
-                            ),
-                        ),
-                        hx_post=f"/{profile_app.name}",
-                        hx_target="#profile-list",
-                        hx_swap="beforeend",
-                        hx_swap_oob="true",
-                        hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
-                    ),
-                ),
-                id="content-container",
-            ),
-        ),
-    )
+# async def profile_render():
+#     all_profiles = profiles()
+#     logger.debug("Initial profile state:")
+#     for profile in all_profiles:
+#         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+# 
+#     ordered_profiles = sorted(
+#         all_profiles,
+#         key=lambda p: p.priority if p.priority is not None else float('inf')
+#     )
+# 
+#     logger.debug("Ordered profile list:")
+#     for profile in ordered_profiles:
+#         logger.debug(f"Profile {profile.id}: name = {profile.name}, priority = {profile.priority}")
+# 
+#     return Container(
+#         Grid(
+#             Div(
+#                 Card(
+#                     H2(f"{profile_app.name.capitalize()} {LIST_SUFFIX}"),
+#                     Ul(
+#                         *[render_profile(profile) for profile in ordered_profiles],
+#                         id='profile-list',
+#                         cls='sortable',
+#                         style="padding-left: 0;"
+#                     ),
+#                     header=Form(
+#                         Group(
+#                             Input(
+#                                 placeholder="Nickname",
+#                                 name="profile_name",
+#                                 id="profile-name-input",
+#                                 autofocus=True
+#                             ),
+#                             Input(
+#                                 placeholder=f"Real Name",
+#                                 name="profile_menu_name",
+#                                 id="profile-menu-name-input"
+#                             ),
+#                             Input(
+#                                 placeholder=PLACEHOLDER_ADDRESS,
+#                                 name="profile_address",
+#                                 id="profile-address-input"
+#                             ),
+#                             Input(
+#                                 placeholder=PLACEHOLDER_CODE,
+#                                 name="profile_code",
+#                                 id="profile-code-input"
+#                             ),
+#                             Button(
+#                                 "Add",
+#                                 type="submit",
+#                                 id="add-profile-button"
+#                             ),
+#                         ),
+#                         hx_post=f"/{profile_app.name}",
+#                         hx_target="#profile-list",
+#                         hx_swap="beforeend",
+#                         hx_swap_oob="true",
+#                         hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();"
+#                     ),
+#                 ),
+#                 id="content-container",
+#             ),
+#         ),
+#     )
 
 
 @rt("/sse")
