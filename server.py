@@ -3523,51 +3523,6 @@ def create_app_menu(menux):
             style="text-align: left; padding: 0.5rem 1rem; display: flex;"
         ))
 
-        # Add database management buttons
-        menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
-        
-        # Delete current workflow button
-        menu_items.append(Li(
-            Button(
-                "🗑️ Delete Current Workflow",
-                hx_post="/delete-pipeline",
-                hx_confirm="Are you sure you want to delete this workflow?",
-                hx_swap="outerHTML",
-                hx_target="body",
-                cls="secondary outline",
-                style="width: 100%; text-align: left;"
-            ),
-            style="padding: 0.5rem 1rem;"
-        ))
-
-        # Delete workflows button
-        menu_items.append(Li(
-            Button(
-                "🗑️ Delete Workflows",
-                hx_post="/clear-pipeline",
-                hx_confirm="Are you sure you want to delete workflows?",
-                hx_swap="outerHTML",
-                hx_target="body",
-                cls="secondary outline",
-                style="width: 100%; text-align: left;"
-            ),
-            style="padding: 0.5rem 1rem;"
-        ))
-
-        # Clear database button
-        menu_items.append(Li(
-            Button(
-                "🗑️ Reset Database",
-                hx_post="/clear-db",
-                hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
-                hx_swap="outerHTML",
-                hx_target="body",
-                cls="secondary outline",
-                style="width: 100%; text-align: left;"
-            ),
-            style="padding: 0.5rem 1rem;"
-        ))
-
     return Details(
         Summary(
             "APP",
