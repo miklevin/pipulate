@@ -3504,10 +3504,11 @@ def create_filler_item():
 
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
+    """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get("profile_locked", "0") == "1"
 
-    # Add Lock Profile switch
+    # Add lock toggle
     menu_items.append(Li(
         Label(
             Input(
@@ -3530,32 +3531,38 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     # Get profiles plugin instance
     profiles_plugin = plugin_instances.get('profiles')
     if not profiles_plugin:
-        logger.error("Profiles plugin instance ('profiles') not found! Profile menu will be impacted.")
-        summary_text = "PROFILES: Error"
-        menu_items.append(Li("Error: Profiles plugin not loaded."))
-    else:
-        # Use plugin's name for the summary
-        summary_text = f"{profiles_plugin.name.upper()}: {selected_profile_name}"
-        if not profile_locked:
-            menu_items.append(Li(
-                A(
-                    f"Edit {profiles_plugin.DISPLAY_NAME}",
-                    href=f"/redirect{profiles_plugin.ENDPOINT_PREFIX}",
-                    cls="dropdown-item",
-                    style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color);display: block; text-align: center;"
-                ),
-                style="display: block; text-align: center;"
-            ))
+        logger.error("Profiles plugin instance not found in plugin_instances")
+        menu_items.append(Li("Error: Profiles plugin could not be loaded."))
+        return Details(
+            Summary("PROFILES: Error", style="white-space: nowrap; display: inline-block; min-width: max-content;", id="profile-id"),
+            Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
+            cls="dropdown",
+            id="profile-dropdown-menu"
+        )
 
-    # Get profiles based on lock state
+    # Add edit link if not locked
+    if not profile_locked:
+        menu_items.append(Li(
+            A(
+                f"Edit {profiles_plugin.display_name}",
+                href=f"/{profiles_plugin.name}",
+                cls="dropdown-item",
+                style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color); display: block; text-align: center;"
+            ),
+            style="display: block; text-align: center;"
+        ))
+
+    # Get active profiles
     if profile_locked:
-        active_profiles_list = profiles(id=selected_profile_id, order_by='priority') if selected_profile_id else []
+        active_profiles_list = list(profiles("id=?", (selected_profile_id,), order_by='priority')) if selected_profile_id else []
     else:
-        active_profiles_list = profiles(active=True, order_by='priority')
+        active_profiles_list = list(profiles("active=?", (True,), order_by='priority'))
 
+    # Add profile radio buttons
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
-        item_style = get_selected_item_style(is_selected)
+        item_style = "background-color: var(--pico-primary-hover);" if is_selected else ""
+        
         menu_items.append(Li(
             Label(
                 Input(
@@ -3576,15 +3583,11 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
 
     return Details(
         Summary(
-            summary_text,
+            f"{profiles_plugin.display_name.upper()}: {selected_profile_name}",
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="profile-id"
         ),
-        Ul(
-            *menu_items,
-            style="padding-left: 0; min-width: var(--pico-dropdown-width);",
-            cls="dropdown-menu"
-        ),
+        Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
         cls="dropdown",
         id="profile-dropdown-menu"
     )
@@ -3596,53 +3599,63 @@ def normalize_menu_path(path):
 
 
 def create_app_menu(menux):
+    """Create the app dropdown menu."""
     menu_items = []
-    profiles_plugin_key = 'profiles'  # Key for the profiles plugin
-
-    # Get the current environment and visibility settings
-    current_env = get_current_environment()
+    profiles_plugin_key = 'profiles'
+    
+    # Get current environment and visibility settings
+    current_environment = get_current_environment()
     show_all = db.get("show_all_plugins", "0") == "1"
     show_dev = db.get("developer_plugins_visible", "0") == "1"
 
     # Sort plugins by their numeric prefix
     sorted_plugins = sorted(
         plugin_instances.items(),
-        key=lambda x: int(x[1].numeric_prefix) if hasattr(x[1], 'numeric_prefix') else float('inf')
+        key=lambda x: x[1].__class__.__name__ if hasattr(x[1], '__class__') else ''
     )
 
-    for plugin_key, plugin in sorted_plugins:
-        # Skip the profiles plugin as it has its own menu
+    for plugin_key, instance in sorted_plugins:
+        # Skip the profiles plugin
         if plugin_key == profiles_plugin_key:
             continue
 
-        # Skip non-core plugins unless show_all is True
-        if not show_all and not is_core_plugin(plugin_key):
+        # Skip non-core plugins unless show_all is true
+        if not is_core_plugin(plugin_key) and not show_all:
             continue
 
-        # Skip developer plugins unless show_dev is True
-        if not show_dev and hasattr(plugin, 'numeric_prefix') and int(plugin.numeric_prefix) >= DEVELOPER_PLUGIN_THRESHOLD:
+        # Skip developer plugins unless show_dev is true
+        if plugin_key.startswith(str(DEVELOPER_PLUGIN_THRESHOLD)) and not show_dev:
             continue
 
-        # Get the display name
-        display_name = getattr(plugin, 'DISPLAY_NAME', plugin_key.replace('_', ' ').title())
+        # Get display name
+        display_name = getattr(instance, 'DISPLAY_NAME', plugin_key.replace('_', ' ').title())
 
         # Create menu item
         is_selected = menux == plugin_key
-        item_style = "background-color: var(--pico-primary-background);" if is_selected else ""
+        item_style = "background-color: var(--pico-primary-hover);" if is_selected else ""
         
         menu_items.append(Li(
-            A(
+            Label(
+                Input(
+                    type="radio",
+                    name="app_radio_select",
+                    value=plugin_key,
+                    checked=is_selected,
+                    hx_post=f"/redirect/{plugin_key}",
+                    hx_target="body",
+                    hx_swap="outerHTML"
+                ),
                 display_name,
-                href=f"/redirect/{plugin_key}",
-                cls="dropdown-item",
-                style=f"{NOWRAP_STYLE} {item_style}"
+                style="display: flex; align-items: center;"
             ),
-            style="text-align: left;"
+            style=f"text-align: left; {item_style}"
         ))
 
-    # Add environment selector if in development
-    if current_env == "development":
+    # Add developer options if in development environment
+    if current_environment == "Development":
         menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+        
+        # Add toggle for all plugins
         menu_items.append(Li(
             Label(
                 Input(
@@ -3660,11 +3673,13 @@ def create_app_menu(menux):
             ),
             style="text-align: left;"
         ))
+
+        # Add toggle for developer plugins
         menu_items.append(Li(
             Label(
                 Input(
                     type="checkbox",
-                    name="developer_plugins_switch",
+                    name="show_dev_switch",
                     role="switch",
                     checked=show_dev,
                     hx_post="/toggle_developer_plugins_visibility",
@@ -3680,15 +3695,11 @@ def create_app_menu(menux):
 
     return Details(
         Summary(
-            "APPS",
+            "APP",
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="app-id"
         ),
-        Ul(
-            *menu_items,
-            style="padding-left: 0; min-width: var(--pico-dropdown-width);",
-            cls="dropdown-menu"
-        ),
+        Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
         cls="dropdown",
         id="app-dropdown-menu"
     )
