@@ -140,7 +140,7 @@ class ProfilesPlugin(ProfilesPluginIdentity):
                 Input(placeholder="Real Name (Optional)", name="profile_real_name", id="profile-real-name-input-add"),
                 Input(placeholder=PLACEHOLDER_ADDRESS, name="profile_address", id="profile-address-input-add"),
                 Input(placeholder=PLACEHOLDER_CODE, name="profile_code", id="profile-code-input-add"),
-                Button("Add Profile", type="submit", id="add-profile-button")
+                Button("Add", type="submit", id="add-profile-button")
             ),
             hx_post=f"/{self.name}",  # Changed from /{self.name}_insert to match BaseCrud route
             hx_target="#profile-list-ul",
