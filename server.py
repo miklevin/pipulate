@@ -4246,12 +4246,16 @@ def print_routes():
 
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
-    """Endpoint to refresh just the profile dropdown menu without reloading the whole page."""
-    logger.debug("Refreshing profile menu")
+    """Refresh the profile menu dropdown."""
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
 
+@rt('/refresh-app-menu')
+async def refresh_app_menu(request):
+    """Refresh the app menu dropdown."""
+    menux = db.get("last_app_choice", "App")
+    return create_app_menu(menux)
 
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
