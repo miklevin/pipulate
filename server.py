@@ -3957,21 +3957,27 @@ async def poke_flyout(request):
                 ),
                 Li(
                     Button(
-                        "🗑️ Delete Current Workflow",
-                        hx_post="/delete-pipeline",
-                        hx_confirm="Are you sure you want to delete this workflow?",
-                        hx_swap="outerHTML",
+                        "🔒 Lock Profile",
+                        hx_post="/toggle_profile_lock",
                         hx_target="body",
                         cls="secondary outline"
                     )
-                ) if is_workflow else None,
+                ),
                 Li(
                     Button(
-                        "🗑️ Delete Workflows",
-                        hx_post="/clear-pipeline",
-                        hx_confirm="Are you sure you want to delete workflows?",
-                        hx_swap="outerHTML",
+                        "🗑️ Delete Current Workflow",
+                        hx_post="/delete-pipeline",
                         hx_target="body",
+                        hx_confirm="Are you sure you want to delete the current workflow?",
+                        cls="secondary outline"
+                    )
+                ),
+                Li(
+                    Button(
+                        "🗑️ Delete All Workflows",
+                        hx_post="/clear-pipeline",
+                        hx_target="body",
+                        hx_confirm="Are you sure you want to delete all workflows?",
                         cls="secondary outline"
                     )
                 ) if is_workflow else None,
