@@ -3261,7 +3261,7 @@ def create_env_menu():
 
     return Details(
         Summary(
-            f"ENV: {display_env}",
+            "ENV",
             id="env-id",
             style=env_summary_style
         ),
@@ -3406,16 +3406,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or "Select"
 
-    summary_text_prefix = "PROFILE"
-    # Use DISPLAY_NAME (uppercase D)
-    if profiles_plugin_inst and hasattr(profiles_plugin_inst, 'DISPLAY_NAME'):
-        summary_text_prefix = profiles_plugin_inst.DISPLAY_NAME.upper()
-
-    summary_text = f"{summary_text_prefix}: {summary_profile_name_to_display}"
+    # Use simple "PROFILE" label for consistency with APP menu
+    # Profile name is already shown in the breadcrumb
 
     return Details(
         Summary(
-            summary_text,
+            "PROFILE",
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="profile-id"
         ),
