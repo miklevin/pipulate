@@ -3960,99 +3960,79 @@ def create_poke_button():
             "🤖",
             cls="contrast outline",
             style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;",
-            hx_post="/poke",
-            hx_target="#chat-messages",
-            hx_swap="beforeend",
-            data_hx_post="/poke"
+            hx_get="/poke-flyout",
+            hx_target="#flyout-panel",
+            hx_trigger="mouseenter",
+            hx_swap="outerHTML"
         ),
         Div(
-            Div(
-                H3("Poke Actions"),
-                Ul(
-                    Li(
-                        Button(
-                            "🤖 Poke Model",
-                            hx_post="/poke",
-                            hx_target="#chat-messages",
-                            hx_swap="beforeend",
-                            cls="secondary outline"
-                        )
-                    ),
-                    Li(
-                        Button(
-                            "🗑️ Delete Current Workflow",
-                            hx_post="/delete-pipeline",
-                            hx_confirm="Are you sure you want to delete this workflow?",
-                            hx_swap="outerHTML",
-                            hx_target="body",
-                            cls="secondary outline"
-                        )
-                    ),
-                    Li(
-                        Button(
-                            "🗑️ Delete All Workflows",
-                            hx_post="/clear-pipeline",
-                            hx_confirm="Are you sure you want to delete all workflows?",
-                            hx_swap="outerHTML",
-                            hx_target="body",
-                            cls="secondary outline"
-                        )
-                    ),
-                    Li(
-                        Button(
-                            "🗑️ Reset Database",
-                            hx_post="/clear-db",
-                            hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
-                            hx_swap="outerHTML",
-                            hx_target="body",
-                            cls="secondary outline"
-                        )
-                    ) if get_current_environment() == "Development" else None
-                ),
-                style="padding: 1rem;"
-            ),
             id="flyout-panel",
             style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
-        ),
-        Script("""
-            document.addEventListener('DOMContentLoaded', function() {
-                const pokeButton = document.querySelector('button[data-hx-post="/poke"]');
-                const flyoutPanel = document.getElementById('flyout-panel');
-                let isHovering = false;
-                
-                if (pokeButton && flyoutPanel) {
-                    // Show flyout when hovering over button
-                    pokeButton.addEventListener('mouseenter', () => {
-                        isHovering = true;
-                        flyoutPanel.style.display = 'block';
-                    });
-                    
-                    // Hide flyout when mouse leaves both button and panel
-                    pokeButton.addEventListener('mouseleave', () => {
-                        isHovering = false;
-                        setTimeout(() => {
-                            if (!isHovering) {
-                                flyoutPanel.style.display = 'none';
-                            }
-                        }, 100);
-                    });
-                    
-                    // Keep flyout visible when hovering over panel
-                    flyoutPanel.addEventListener('mouseenter', () => {
-                        isHovering = true;
-                    });
-                    
-                    flyoutPanel.addEventListener('mouseleave', () => {
-                        isHovering = false;
-                        setTimeout(() => {
-                            if (!isHovering) {
-                                flyoutPanel.style.display = 'none';
-                            }
-                        }, 100);
-                    });
-                }
-            });
-        """)
+        )
+    )
+
+@rt('/poke-flyout', methods=['GET'])
+async def poke_flyout(request):
+    return Div(
+        id="flyout-panel",
+        style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;",
+        hx_get="/poke-flyout-hide",
+        hx_trigger="mouseleave",
+        hx_target="this",
+        hx_swap="outerHTML"
+    )(
+        Div(
+            H3("Poke Actions"),
+            Ul(
+                Li(
+                    Button(
+                        f"🤖 Poke {MODEL}",
+                        hx_post="/poke",
+                        hx_target="#chat-messages",
+                        hx_swap="beforeend",
+                        cls="secondary outline"
+                    )
+                ),
+                Li(
+                    Button(
+                        "🗑️ Delete Current Workflow",
+                        hx_post="/delete-pipeline",
+                        hx_confirm="Are you sure you want to delete this workflow?",
+                        hx_swap="outerHTML",
+                        hx_target="body",
+                        cls="secondary outline"
+                    )
+                ),
+                Li(
+                    Button(
+                        "🗑️ Delete All Workflows",
+                        hx_post="/clear-pipeline",
+                        hx_confirm="Are you sure you want to delete all workflows?",
+                        hx_swap="outerHTML",
+                        hx_target="body",
+                        cls="secondary outline"
+                    )
+                ),
+                Li(
+                    Button(
+                        "🗑️ Reset Database",
+                        hx_post="/clear-db",
+                        hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
+                        hx_swap="outerHTML",
+                        hx_target="body",
+                        cls="secondary outline"
+                    )
+                ) if get_current_environment() == "Development" else None
+            ),
+            style="padding: 1rem;"
+        )
+    )
+
+@rt('/poke-flyout-hide', methods=['GET'])
+async def poke_flyout_hide(request):
+    return Div(
+        id="flyout-panel",
+        style="display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;"
     )
 
 async def profile_render():
