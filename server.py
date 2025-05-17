@@ -1896,26 +1896,38 @@ class BaseCrud:
             current_status = getattr(item, self.toggle_field)
             new_status = not current_status
             setattr(item, self.toggle_field, new_status)
-            updated_item = self.table.update(item)
+            updated_item = self.table.update(item) # In MiniDataAPI, update returns the updated object
+            
             item_name = getattr(updated_item, self.item_name_field, 'Item')
             status_text = 'checked' if new_status else 'unchecked'
             action_details = f"The {self.name} item '{item_name}' is now {status_text}."
-            self.send_message(action_details, verbatim=True)
+            self.send_message(action_details, verbatim=True) # send_message is now safe
 
-            # Get the profile HTML representation
-            rendered_profile = self.render_item(updated_item)
-            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            # Get the HTML representation of the updated item
+            rendered_item_ft = self.render_item(updated_item) # render_item returns a FastHTML object
+            logger.debug(f"[DEBUG] Rendered item type (toggle_item): {type(rendered_item_ft)}")
+            
+            # Convert FastHTML object to HTML string
+            html_content = to_xml(rendered_item_ft)
+            logger.debug(f"[DEBUG] HTML content (toggle_item): {html_content[:100]}...")
 
-            # Convert FT object to HTML string using to_xml
-            html_content = to_xml(rendered_profile)
-            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
+            # Prepare the response
+            response = HTMLResponse(str(html_content)) # Ensure it's a string
 
-            return HTMLResponse(html_content)
+            # Conditionally add HX-Trigger if this is the profiles app
+            if self.name == 'profiles':
+                logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to toggle_item on '{self.name}'")
+                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            
+            return response
         except Exception as e:
-            error_msg = f"Error toggling item: {str(e)}"
+            error_msg = f"Error toggling {self.name} item {item_id}: {str(e)}"
             logger.error(error_msg)
-            action_details = f"an error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
-            return str(e), 500
+            logger.exception(f"Detailed error toggling item {item_id} in {self.name}:") # Added for more detail
+            action_details = f"An error occurred while toggling {self.name} (ID: {item_id}): {error_msg}"
+            self.send_message(action_details, verbatim=True) # send_message is now safe
+            # Return an HTML error snippet with 500 status
+            return HTMLResponse(f"<div style='color:red;'>Error: {error_msg}</div>", status_code=500)
 
     async def sort_items(self, request):
         """Override the BaseCrud sort_items to also refresh the profile menu"""
@@ -1998,41 +2010,55 @@ class BaseCrud:
             form = await request.form()
             update_data = self.prepare_update_data(form)
             if not update_data:
-                return ''
+                logger.debug(f"Update for {self.name} item {item_id} aborted by prepare_update_data.")
+                return HTMLResponse("")
+
             item = self.table[item_id]
-            before_state = item.__dict__.copy()
+            before_state = {k: getattr(item, k, None) for k in update_data.keys()}
+
             for key, value in update_data.items():
                 setattr(item, key, value)
+            
             updated_item = self.table.update(item)
-            after_state = updated_item.__dict__
+            after_state = {k: getattr(updated_item, k, None) for k in update_data.keys()}
+
             change_dict = {}
+            changes_log_list = []
             for key in update_data.keys():
                 if before_state.get(key) != after_state.get(key):
                     change_dict[key] = after_state.get(key)
-            changes = [f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'"for key in update_data.keys()if before_state.get(key) != after_state.get(key)]
-            changes_str = '; '.join(changes)
-            item_name = getattr(updated_item, self.item_name_field, 'Item')
-            action_details = f"The {self.name} item '{item_name}' was updated. Changes: {self.pipulate_instance.fmt(changes_str)}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            logger.debug(f"Updated {self.name} item {item_id}")
+                    changes_log_list.append(f"{key} changed from '{before_state.get(key)}' to '{after_state.get(key)}'")
+            
+            changes_str = '; '.join(changes_log_list)
+            item_name_display = getattr(updated_item, self.item_name_field, 'Item')
 
-            # Get the profile HTML representation
-            rendered_profile = self.render_item(updated_item)
-            logger.debug(f"[DEBUG] Rendered profile type: {type(rendered_profile)}")
+            if changes_log_list:
+                action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {self.pipulate_instance.fmt(changes_str) if hasattr(self.pipulate_instance, 'fmt') else changes_str}"
+                self.send_message(action_details, verbatim=True)
+                logger.debug(f"Updated {self.name} item {item_id}. Changes: {changes_str}")
+            else:
+                logger.debug(f"No effective changes for {self.name} item {item_id}.")
 
-            # Convert FT object to HTML string using to_xml
-            html_content = to_xml(rendered_profile)
-            logger.debug(f"[DEBUG] HTML content: {html_content[:100]}...")
+            rendered_item_ft = self.render_item(updated_item)
+            logger.debug(f"[DEBUG] Rendered item type (update_item): {type(rendered_item_ft)}")
+            html_content = to_xml(rendered_item_ft)
+            logger.debug(f"[DEBUG] HTML content (update_item): {html_content[:100]}...")
 
-            return HTMLResponse(html_content)
+            response = HTMLResponse(str(html_content))
+
+            # Conditionally add HX-Trigger if this is the profiles app AND the name changed
+            if self.name == 'profiles' and 'name' in change_dict:
+                logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to update_item (name change) on '{self.name}'")
+                response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
+            
+            return response
         except Exception as e:
-            error_msg = f"Error updating {self.name} {item_id}: {str(e)}"
+            error_msg = f"Error updating {self.name} item {item_id}: {str(e)}"
             logger.error(error_msg)
+            logger.exception(f"Detailed error updating item {item_id} in {self.name}:")
             action_details = f"An error occurred while updating {self.name} (ID: {item_id}): {error_msg}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            return str(e), 500
+            self.send_message(action_details, verbatim=True)
+            return HTMLResponse(f"<div style='color:red;'>Error: {error_msg}</div>", status_code=500)
 
     async def create_item(self, **kwargs):
         try:
