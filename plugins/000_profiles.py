@@ -153,7 +153,7 @@ class ProfilesPlugin(ProfilesPluginIdentity):
             H2("Profiles"),
             add_profile_form,
             profile_list,
-            style="max-width: 800px; margin: 0 auto;"
+            style="max-width: 98%; margin: 0 auto;"
         )
         
         return container
