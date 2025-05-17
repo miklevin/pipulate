@@ -174,7 +174,6 @@ class CrudUI(PluginIdentityManager):
 
         routes_to_register = [
             (f'{prefix}', self.app_instance.insert_item, ['POST']),
-            (f'{prefix}/{{item_id:int}}', self.app_instance.update_item, ['POST']),
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
             (sort_path, self.app_instance.sort_items, ['POST']),
         ]
@@ -238,7 +237,6 @@ def render_item(item, app_instance):
     logger.debug(f"Rendering {app_instance.plugin.name} ID {item.id} with text '{item.text}'")
 
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
-    update_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/{item.id}"
 
     checkbox = Input(
         type="checkbox",
@@ -249,49 +247,15 @@ def render_item(item, app_instance):
         hx_target=f"#{item_id}",
     )
 
-    update_input_id = f"{app_instance.name}_text_{item.id}"
-
     text_display = Span(
         item.text,
         id=f"{app_instance.name}-text-display-{item.id}",
-        style="margin-left: 5px; cursor: pointer;",
-        onclick=(
-            f"document.getElementById('{app_instance.name}-text-display-{item.id}').style.display='none'; "
-            f"document.getElementById('update-form-{item.id}').style.display='inline-flex'; "
-            f"document.getElementById('{item_id}').style.alignItems='baseline'; "
-            f"document.getElementById('{update_input_id}').focus();"
-        )
-    )
-
-    update_form = Form(
-        Group(
-            Input(
-                type="text",
-                id=update_input_id,
-                value=item.text,
-                name=app_instance.plugin.FORM_FIELD_NAME,
-                style="flex-grow: 1; margin-right: 5px; margin-bottom: 0;",
-            ),
-            Button("Save", type="submit", style="margin-bottom: 0;"),
-            Button("Cancel", type="button", style="margin-bottom: 0;", cls="secondary",
-                   onclick=(
-                       f"document.getElementById('update-form-{item.id}').style.display='none'; "
-                       f"document.getElementById('{app_instance.name}-text-display-{item.id}').style.display='inline'; "
-                       f"document.getElementById('{item_id}').style.alignItems='center';"
-                   )),
-            style="align-items: center;"
-        ),
-        style="display: none; margin-left: 5px;",
-        id=f"update-form-{item.id}",
-        hx_post=update_url,
-        hx_target=f"#{item_id}",
-        hx_swap="outerHTML",
+        style="margin-left: 5px;"
     )
 
     return Li(
         checkbox,
         text_display,
-        update_form,
         id=item_id,
         cls='done' if item.done else '',
         style="list-style-type: none; display: flex; align-items: center; margin-bottom: 5px;",
