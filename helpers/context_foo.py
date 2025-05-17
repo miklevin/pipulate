@@ -28,6 +28,11 @@ FILES_TO_INCLUDE = """\
 # flake.nix
 # requirements.txt
 # server.py
+/home/mike/repos/pipulate/static/chat-interface.js
+/home/mike/repos/pipulate/static/chat-scripts.js
+/home/mike/repos/pipulate/static/chat-styles.css
+/home/mike/repos/pipulate/static/Sortable.js
+/home/mike/repos/pipulate/static/widget-scripts.js
 /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
 /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc

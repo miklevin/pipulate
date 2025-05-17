@@ -1972,37 +1972,42 @@ class BaseCrud:
 
     async def insert_item(self, request):
         try:
-            logger.debug(f"[DEBUG] Starting insert_item for {self.name}")
+            logger.debug(f"[DEBUG] Starting BaseCrud insert_item for {self.name}")
             form = await request.form()
-            logger.debug(f"[DEBUG] Form data: {dict(form)}")
+            logger.debug(f"[DEBUG] Form data for {self.name}: {dict(form)}")
+            
             new_item_data = self.prepare_insert_data(form)
             if not new_item_data:
-                logger.debug("[DEBUG] No new_item_data, returning empty")
-                return ''
+                logger.debug(f"[DEBUG] No new_item_data for {self.name}, returning empty response for HTMX.")
+                return HTMLResponse("")
+
             new_item = await self.create_item(**new_item_data)
-            logger.debug(f"[DEBUG] Created new item: {new_item}")
+            logger.debug(f"[DEBUG] Created new item for {self.name}: {new_item}")
+            
             item_name = getattr(new_item, self.item_name_field, 'Item')
             action_details = f"A new {self.name} item '{item_name}' was added."
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            rendered = self.render_item(new_item)
-            logger.debug(f"[DEBUG] Rendered item type: {type(rendered)}")
-            logger.debug(f"[DEBUG] Rendered item content: {rendered}")
+            self.send_message(action_details, verbatim=True)
+            
+            rendered_item_ft = self.render_item(new_item)
+            logger.debug(f"[DEBUG] Rendered item type (insert_item for {self.name}): {type(rendered_item_ft)}")
+            
+            html_content = to_xml(rendered_item_ft)
+            logger.debug(f"[DEBUG] Rendered item HTML (insert_item for {self.name}): {html_content[:150]}...")
 
-            # Add a trigger to refresh the profile menu if this is the profiles plugin
+            response = HTMLResponse(str(html_content))
+
             if self.name == 'profiles':
-                response = HTMLResponse(str(rendered))
+                logger.debug(f"Adding HX-Trigger for refreshProfileMenu due to insert_item on '{self.name}'")
                 response.headers["HX-Trigger"] = json.dumps({"refreshProfileMenu": {}})
-                return response
-
-            return rendered
+            
+            return response
         except Exception as e:
             error_msg = f"Error inserting {self.name}: {str(e)}"
             logger.error(error_msg)
+            logger.exception(f"Detailed error inserting item in {self.name}:")
             action_details = f"An error occurred while adding a new {self.name}: {error_msg}"
-            prompt = action_details
-            self.send_message(prompt, verbatim=True)
-            return str(e), 500
+            self.send_message(action_details, verbatim=True)
+            return HTMLResponse(f"<div style='color:red;'>Error inserting {self.name}: {error_msg}</div>", status_code=500)
 
     async def update_item(self, request, item_id: int):
         """Override the BaseCrud update_item to handle FastHTML objects properly"""

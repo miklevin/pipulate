@@ -120,52 +120,48 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         logger.info(f"CRUD routes for {self.DISPLAY_NAME} (prefix '/{self.name}') registered by ProfileCrudOperations.")
 
     async def landing(self, request=None):
-        logger.debug(f"{self.DISPLAY_NAME} Plugin.landing called. Accessing profiles via self.table (type: {type(self.table)}).")
-        try:
-            all_db_profiles = list(self.table()) # self.table is the 'profiles' table
-        except Exception as e:
-            logger.error(f"Error fetching profiles from self.table: {e}")
-            logger.exception("Detailed error in ProfilesPlugin.landing:")
-            return Card(H3("Error Loading Profiles"), P(f"Could not load profiles from the database: {e}"), style="color:red;")
-
-        logger.debug(f"Profiles from DB for landing page: {[(p.id, p.name, p.priority) for p in all_db_profiles]}")
-
-        ordered_profiles = sorted(
-            all_db_profiles,
-            key=lambda p: p.priority if p.priority is not None else float('inf')
+        # Get all profiles, ordered by priority
+        profiles = list(self.table())  # MiniDataAPI syntax: table() returns all records
+        ordered_profiles = sorted(profiles, key=lambda x: getattr(x, 'priority', 0))
+        
+        # Create the profile list
+        profile_list = Ul(
+            *[render_profile(p, self) for p in ordered_profiles],
+            id="profile-list-ul",
+            cls='sortable',
+            style="padding-left: 0; list-style-type: none;",
+            data_sortable_group=self.name
         )
-
+        
+        # Create the add profile form
         add_profile_form = Form(
-            Group(
-                Input(placeholder="Nickname", name="profile_name", id="profile-name-input-add", autofocus=True), # Unique ID
-                Input(placeholder="Real Name (Optional)", name="profile_real_name", id="profile-real-name-input-add"),
-                Input(placeholder=PLACEHOLDER_ADDRESS, name="profile_address", id="profile-address-input-add"),
-                Input(placeholder=PLACEHOLDER_CODE, name="profile_code", id="profile-code-input-add"),
-                Button("Add Profile", type="submit", id="add-profile-button")
+            Input(
+                type="text",
+                name="name",
+                placeholder="Enter profile name",
+                required=True,
+                style="margin-bottom: 0;"
             ),
-            hx_post=f"/{self.name}", # Correctly uses self.name (which will be 'profiles')
+            Button(
+                "Add Profile",
+                type="submit",
+                cls="primary"
+            ),
+            hx_post=f"/{self.name}_insert",
             hx_target="#profile-list-ul",
             hx_swap="beforeend",
-            hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();"
+            style="display: flex; gap: 10px; margin-bottom: 20px;"
         )
-
-        return Div(
-            Card(
-                H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
-                Ul(
-                    *[render_profile(p, self) for p in ordered_profiles],
-                    id="profile-list-ul",
-                    cls='sortable',
-                    style="padding-left: 0; list-style-type: none;",
-                    hx_post=f"/{self.name}_sort", # Correctly uses self.name
-                    hx_trigger="end",
-                    hx_include="*", # Ensure this correctly targets child LIs for SortableJS
-                    data_sortable_group=self.name # Added for SortableJS init if needed
-                ),
-                header=add_profile_form
-            ),
-            id=f"{self.name}-container" # e.g., profiles-container
+        
+        # Create the container
+        container = Div(
+            H2("Profiles"),
+            add_profile_form,
+            profile_list,
+            style="max-width: 800px; margin: 0 auto;"
         )
+        
+        return container
 
 def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     item_id_dom = f'profile-item-{profile_record.id}'
