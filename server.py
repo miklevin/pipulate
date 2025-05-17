@@ -3527,27 +3527,30 @@ def create_app_menu(menux):
                     style="min-width: 1rem; margin-right: 0.5rem;" # PicoCSS friendly radio
                 ),
                 display_name, # Text for the label
-                style="display: flex; align-items: center; flex: 1; min-width: 0; cursor:pointer;" 
+                style="display: flex; align-items: center; flex: 1;" 
             ),
             # Apply styling to the Li for selection indication and layout
-            style=f"text-align: left; padding: 0.25rem 1rem; {item_style} {NOWRAP_STYLE} display: flex; border-radius: var(--pico-border-radius);",
+            style=f"text-align: left; padding: 0.5rem 0.75rem; {item_style} display: flex; border-radius: var(--pico-border-radius);",
             # Add a hover effect to the Li
             onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
             onmouseout=f"this.style.backgroundColor='{'var(--pico-primary-focus)' if is_selected else 'transparent'}';"
         ))
         logger.debug(f"Added plugin '{plugin_key}' (Display: '{display_name}') to App menu. Selected: {is_selected}")
 
-    # Determine the text for the Summary (the visible part of the dropdown)
-    # 'menux' is the key of the currently selected app, or "" for Introduction
-    summary_text = f"APP: {endpoint_name(menux) if menux else HOME_MENU_ITEM}"
+    # Just use "APP" for the Summary to avoid redundancy and horizontal scrolling
+    # The selected app is already shown in the breadcrumb
 
     return Details(
         Summary(
-            summary_text,
+            "APP",
             style=generate_menu_style(), # Use generate_menu_style()
             id="app-id" # This ID is important for HTMX targeting later
         ),
-        Ul(*menu_items, cls="dropdown-menu", style="padding-left: 0; min-width: max-content; max-height: 70vh; overflow-y: auto;"), # Added max-height and overflow
+        Ul(
+            *menu_items, 
+            cls="dropdown-menu", 
+            style="padding-left: 0; width: 16rem; max-height: 60vh; overflow-y: auto;"
+        ),
         cls="dropdown",
         id="app-dropdown-menu" # This ID is crucial for HTMX swapping
     )
