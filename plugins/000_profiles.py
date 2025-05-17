@@ -252,5 +252,5 @@ def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
         id=item_id_dom,
         data_id=str(profile_record.id),
         data_priority=str(profile_record.priority or 0),
-        style="border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0;" # Add some padding to LI
+        style="border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0; list-style-type: none;" # Add list-style-type: none
     ) 
