@@ -3041,8 +3041,68 @@ for module_name, class_name, workflow_class in discovered_classes:
             
             # Create an instance of the workflow class
             try:
-                instance = workflow_class(app, pipulate, pipeline, db)
-                plugin_instances[module_name] = instance
+                # Special handling for ProfilesPlugin
+                if module_name == 'profiles':
+                    logger.info(f"Instantiating ProfilesPlugin with profiles_table_from_server")
+                    instance = workflow_class(
+                        app=app,
+                        pipulate_instance=pipulate,
+                        pipeline_table=pipeline,
+                        db_key_value_store=db,
+                        profiles_table_from_server=profiles  # Pass the profiles table object
+                    )
+                else:
+                    # For other plugins, try to be intelligent based on signature
+                    init_sig = inspect.signature(workflow_class.__init__)
+                    args_to_pass = {}
+                    
+                    # Map common parameter names to their values
+                    param_mapping = {
+                        'app': app,
+                        'pipulate': pipulate,
+                        'pipulate_instance': pipulate,
+                        'pipeline': pipeline,
+                        'pipeline_table': pipeline,
+                        'db': db,  # Add simple 'db' parameter
+                        'db_dictlike': db,
+                        'db_key_value_store': db
+                    }
+                    
+                    # Only include parameters that exist in the plugin's __init__
+                    for param_name in init_sig.parameters:
+                        if param_name == 'self':
+                            continue
+                        if param_name in param_mapping:
+                            args_to_pass[param_name] = param_mapping[param_name]
+                        elif param_name == 'profiles_table_from_server' and module_name == 'profiles':
+                            args_to_pass[param_name] = profiles
+
+                    logger.debug(f"Instantiating REGULAR plugin '{module_name}' with args: {args_to_pass.keys()}")
+                    try:
+                        instance = workflow_class(**args_to_pass)
+                        if instance:
+                            instance.name = module_name
+                            plugin_instances[module_name] = instance
+                            
+                            # Ensure DISPLAY_NAME is set on the instance (from class or default)
+                            class_display_name_attr = getattr(workflow_class, 'DISPLAY_NAME', None)
+                            instance_display_name_attr = getattr(instance, 'DISPLAY_NAME', None)
+
+                            if isinstance(instance_display_name_attr, str) and instance_display_name_attr.strip():
+                                logger.debug(f"Plugin instance '{module_name}' already has DISPLAY_NAME: '{instance.DISPLAY_NAME}'")
+                            elif isinstance(class_display_name_attr, str) and class_display_name_attr.strip():
+                                instance.DISPLAY_NAME = class_display_name_attr
+                                logger.debug(f"Set instance.DISPLAY_NAME for '{module_name}' from class attribute: '{instance.DISPLAY_NAME}'")
+                            else:
+                                instance.DISPLAY_NAME = module_name.replace('_', ' ').title()
+                                logger.debug(f"Set instance.DISPLAY_NAME for '{module_name}' to default based on module_name: '{instance.DISPLAY_NAME}'")
+                    except TypeError as te_regular:
+                        logger.error(f"TypeError for REGULAR plugin '{module_name}' with args {args_to_pass.keys()}: {te_regular}")
+                        logger.error(f"Available args were: app={type(app)}, pipulate_instance/pipulate={type(pipulate)}, pipeline_table/pipeline={type(pipeline)}, db_key_value_store/db_dictlike={type(db)}")
+                        # Try to get more information about the expected parameters
+                        logger.error(f"Plugin __init__ signature: {init_sig}")
+                        raise
+
                 logger.debug(f"Auto-registered workflow: {module_name}")
 
                 # Log roles if they exist
@@ -3506,63 +3566,63 @@ def create_filler_item():
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
+    # Use global 'db' directly instead of server_db
     profile_locked = db.get("profile_locked", "0") == "1"
 
-    # Add lock toggle
     menu_items.append(Li(
         Label(
             Input(
                 type="checkbox",
-                name="profile_lock_switch",
+                name="profile_lock_switch", 
                 role="switch",
                 checked=profile_locked,
                 hx_post="/toggle_profile_lock",
-                hx_target="body",
-                hx_swap="outerHTML",
-                style="margin-right: 10px;"
+                hx_target="body", 
+                hx_swap="outerHTML" 
             ),
-            "Lock Profile",
-            style="display: flex; align-items: center;"
+            "Lock Profile"
         ),
-        style="text-align: left;"
+        style="display: flex; align-items: center; padding: 0.5rem 1rem;"
     ))
-    menu_items.append(Li(Hr(style="margin: 0.5rem 0;"), style="display: block;"))
+    menu_items.append(Li(Hr(style="margin: 0;"), style="display: block;"))
 
-    # Get profiles plugin instance
-    profiles_plugin = plugin_instances.get('profiles')
-    if not profiles_plugin:
-        logger.error("Profiles plugin instance not found in plugin_instances")
-        menu_items.append(Li("Error: Profiles plugin could not be loaded."))
-        return Details(
-            Summary("PROFILES: Error", style="white-space: nowrap; display: inline-block; min-width: max-content;", id="profile-id"),
-            Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
-            cls="dropdown",
-            id="profile-dropdown-menu"
-        )
-
-    # Add edit link if not locked
-    if not profile_locked:
-        menu_items.append(Li(
-            A(
-                f"Edit {profiles_plugin.display_name}",
-                href=f"/{profiles_plugin.name}",
-                cls="dropdown-item",
-                style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color); display: block; text-align: center;"
-            ),
-            style="display: block; text-align: center;"
-        ))
-
-    # Get active profiles
-    if profile_locked:
-        active_profiles_list = list(profiles("id=?", (selected_profile_id,), order_by='priority')) if selected_profile_id else []
+    profiles_plugin_inst = plugin_instances.get('profiles')
+    if not profiles_plugin_inst:
+        logger.error("Could not get 'profiles' plugin instance for profile menu creation")
+        menu_items.append(Li(A("Error: Profiles link broken", href="#", cls="dropdown-item", style="color:red;")))
     else:
-        active_profiles_list = list(profiles("active=?", (True,), order_by='priority'))
+        # Use DISPLAY_NAME (uppercase D)
+        plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles') 
+        if not profile_locked:
+            menu_items.append(Li(
+                A(
+                    f"Edit {plugin_display_name}", 
+                    href=f"/{profiles_plugin_inst.name}", 
+                    cls="dropdown-item",
+                    style=f"{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color); display: block; text-align: center;"
+                ),
+                style="display: block;"
+            ))
 
-    # Add profile radio buttons
+    active_profiles_list = []
+    if profiles: 
+        if profile_locked:
+            if selected_profile_id:
+                try:
+                    selected_profile_obj = profiles.get(int(selected_profile_id))
+                    if selected_profile_obj:
+                        active_profiles_list = [selected_profile_obj]
+                except Exception as e:
+                    logger.error(f"Error fetching locked profile {selected_profile_id}: {e}")
+        else:
+            # Corrected fastlite query syntax
+            active_profiles_list = list(profiles(where="active = ?", where_args=(True,), order_by='priority'))
+    else:
+        logger.error("Global 'profiles' table object not available for create_profile_menu.")
+
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
-        item_style = "background-color: var(--pico-primary-hover);" if is_selected else ""
-        
+        item_style = "background-color: var(--pico-primary-focus);" if is_selected else ""
         menu_items.append(Li(
             Label(
                 Input(
@@ -3572,22 +3632,38 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
                     checked=is_selected,
                     hx_post="/select_profile",
                     hx_vals=json.dumps({"profile_id": str(profile_item.id)}),
-                    hx_target="body",
+                    hx_target="body", 
                     hx_swap="outerHTML"
                 ),
-                profile_item.name,
-                style="display: flex; align-items: center;"
+                profile_item.name 
             ),
-            style=f"text-align: left; {item_style}"
+            style=f"text-align: left; padding: 0.5rem 1rem; {item_style} {NOWRAP_STYLE}"
         ))
+
+    summary_profile_name_to_display = selected_profile_name
+    if not summary_profile_name_to_display and selected_profile_id:
+        try:
+            profile_obj = profiles.get(int(selected_profile_id))
+            if profile_obj:
+                summary_profile_name_to_display = profile_obj.name
+        except Exception:
+            pass 
+    summary_profile_name_to_display = summary_profile_name_to_display or "Select"
+    
+    summary_text_prefix = "PROFILE"
+    # Use DISPLAY_NAME (uppercase D)
+    if profiles_plugin_inst and hasattr(profiles_plugin_inst, 'DISPLAY_NAME'):
+         summary_text_prefix = profiles_plugin_inst.DISPLAY_NAME.upper()
+
+    summary_text = f"{summary_text_prefix}: {summary_profile_name_to_display}"
 
     return Details(
         Summary(
-            f"{profiles_plugin.display_name.upper()}: {selected_profile_name}",
+            summary_text,
             style="white-space: nowrap; display: inline-block; min-width: max-content;",
             id="profile-id"
         ),
-        Ul(*menu_items, style="padding-left: 0; min-width: var(--pico-dropdown-width);", cls="dropdown-menu"),
+        Ul(*menu_items, style="padding-left: 0; min-width: max-content;", cls="dropdown-menu"),
         cls="dropdown",
         id="profile-dropdown-menu"
     )

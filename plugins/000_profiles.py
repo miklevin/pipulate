@@ -1,15 +1,16 @@
 from fasthtml.common import (
     Container, Grid, Div, Card, H2, Ul, Form, Group, Input, Button, Li, Span, A, Hr,
     Label, Details, Summary, Select, Option, Textarea, Script, Link, Meta, Title,
-    HTTPException, HTMLResponse, to_xml
+    HTTPException, HTMLResponse, to_xml, P, H3, H4
 )
 from server import (
     BaseCrud, DB_FILENAME, LIST_SUFFIX,
     PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE, NOWRAP_STYLE,
-    get_current_profile_id,
-    db,
+    get_current_profile_id, get_profile_name,
+    db as server_db, # Alias to avoid conflict if 'db' is used locally
     logger,
-    rt
+    rt,
+    plugin_instances # For render_profile to access plugin instance for URLs
 )
 import os
 import re
@@ -17,502 +18,248 @@ import sys
 import fastlite
 import json
 from typing import Optional, List, Dict, Any
-from pipulate.server import (
-    profiles, pipulate
-)
 
-# Constants
-PLACEHOLDER_ADDRESS = "Address (optional)"
-PLACEHOLDER_CODE = "Code (optional)"
-NOWRAP_STYLE = "white-space: nowrap;"
+ROLES = ['Core'] # Define ROLES for this plugin module
 
-ROLES = ['Core']
+# Simplified Identity/Constants Mixin (can be part of the main class too)
+class ProfilesPluginIdentity:
+    APP_NAME = "profiles"  # Internal name, used for routing if different from filename-derived
+    DISPLAY_NAME = "Profiles"
+    ENDPOINT_MESSAGE = "Manage user profiles (clients, customers, etc.). Each profile is a separate workspace."
+    # TRAINING_PROMPT = "profiles_training.md" # Optional
 
-class PluginIdentityManager:
-    """Plugin identity manager for profiles."""
-    
-    def __init__(self):
-        """Initialize the plugin identity manager."""
-        self.name = "profiles"
-        self.display_name = "Profiles"
-        self.description = "Manage user profiles"
-        self.version = "1.0.0"
-        self.author = "Pipulate Team"
-        self.roles = ROLES
-        self.table = None
-        self.pipulate = None
-        self.endpoint_prefix = f"/{self.name}"
+class ProfileCrudOperations(BaseCrud):
+    def __init__(self, main_plugin_instance, table, pipulate_instance):
+        self.main_plugin = main_plugin_instance
+        self.pipulate_instance = pipulate_instance # from main_plugin_instance
+        super().__init__(
+            name=main_plugin_instance.name, # This will be 'profiles'
+            table=table,
+            toggle_field='active',
+            sort_field='priority',
+            pipulate_instance=self.pipulate_instance
+        )
+        self.item_name_field = 'name'
+        logger.debug(f"ProfileCrudOperations initialized for {main_plugin_instance.DISPLAY_NAME} with table: {table.name if table else 'None'}")
 
-    def initialize(self, table, pipulate_instance=None):
-        """Initialize the plugin with a table and pipulate instance."""
-        self.table = table
-        self.pipulate = pipulate_instance
-        return self
+    def render_item(self, profile_record):
+        logger.debug(f"ProfileCrudOperations.render_item called for: {profile_record.name if profile_record else 'None'}")
+        return render_profile(profile_record, self.main_plugin)
 
-    def get_app(self):
-        """Get the profile app instance."""
-        return self
-
-    def register_plugin_routes(self):
-        """Register plugin routes."""
-        if not self.table:
-            logger.error("Profile table not initialized")
-            return
-
-        # Register the profile render route
-        @rt(f"/{self.name}")
-        async def profile_route(request):
-            return await self.profile_render()
-
-        # Register the profile actions routes
-        self.register_routes(rt)
-
-class CrudCustomizer(BaseCrud):
-    """Custom CRUD operations for profiles."""
-    
-    def __init__(self, plugin):
-        self.plugin = plugin
-        self.table = plugin.table
-        self.pipulate = plugin.pipulate
-
-    def render_item(self, item):
-        """Render a profile item."""
-        return render_profile(item, self)
-
-    async def insert_item(self, request):
-        """Insert a new profile."""
-        try:
-            form = await request.form()
-            data = self.prepare_insert_data(form)
-            if not data:
-                raise ValueError("Invalid profile data")
-
-            # Set default values
-            data['active'] = True
-            data['priority'] = len(self.table)  # Add to end of list
-
-            # Create the profile
-            profile = await self.create_item(**data)
-            logger.info(f"Created new profile: {profile.name}")
-
-            # Return the rendered profile
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error inserting profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    async def toggle_item(self, request, item_id: int):
-        """Toggle profile active state."""
-        try:
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Toggle active state
-            profile.active = not profile.active
-            self.table[item_id] = profile
-            logger.info(f"Toggled profile {profile.name} active state to {profile.active}")
-
-            # Return updated profile item
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error toggling profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    async def update_item(self, request, item_id: int):
-        """Update a profile."""
-        try:
-            form = await request.form()
-            data = self.prepare_update_data(form)
-            if not data:
-                raise ValueError("Invalid profile data")
-
-            # Get the profile
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Update the profile
-            for key, value in data.items():
-                setattr(profile, key, value)
-
-            # Save the profile
-            self.table[item_id] = profile
-            logger.info(f"Updated profile: {profile.name}")
-
-            # Return the rendered profile
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error updating profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    def prepare_insert_data(self, form):
-        """Prepare data for profile insertion."""
-        profile_name = form.get('profile_name', '').strip()
+    def prepare_insert_data(self, form_data_dict):
+        profile_name = form_data_dict.get('profile_name', '').strip()
         if not profile_name:
-            logger.warning("Empty profile name provided")
-            return None
+            logger.warning("Profile name cannot be empty for insert.")
+            # Return an empty dict or specific error structure if BaseCrud expects it on failure
+            # For now, let BaseCrud handle it if it tries to insert with missing name
+            return {"name": ""} # Will likely fail DB constraint if name is required
 
-        # Get all records to calculate max priority
-        records = list(self.table.all())
-        max_priority = max([r.priority for r in records], default=0)
+        all_profiles = list(self.table())
+        max_priority = max((p.priority or 0 for p in all_profiles), default=-1) + 1
 
-        insert_data = {
-            'name': profile_name,
-            'real_name': form.get('profile_real_name', '').strip(),
-            'address': form.get('profile_address', '').strip(),
-            'code': form.get('profile_code', '').strip(),
-            'active': True,
-            'priority': max_priority + 1
+        data = {
+            "name": profile_name,
+            "real_name": form_data_dict.get('profile_real_name', '').strip(),
+            "address": form_data_dict.get('profile_address', '').strip(),
+            "code": form_data_dict.get('profile_code', '').strip(),
+            "active": True,
+            "priority": max_priority,
         }
-        logger.debug(f"Prepared insert data: {insert_data}")
-        return insert_data
+        logger.debug(f"Prepared insert data for profile: {data}")
+        return data
 
-    def prepare_update_data(self, form):
-        """Prepare data for profile update."""
-        profile_name = form.get('profile_name', '').strip()
+    def prepare_update_data(self, form_data_dict):
+        profile_name = form_data_dict.get('profile_name', '').strip()
         if not profile_name:
-            logger.warning("Empty profile name provided for update")
-            return None
+            logger.warning("Profile name cannot be empty for update.")
+            return {"name": ""}
 
-        update_data = {
-            'name': profile_name,
-            'real_name': form.get('profile_real_name', '').strip(),
-            'address': form.get('profile_address', '').strip(),
-            'code': form.get('profile_code', '').strip()
+        data = {
+            "name": profile_name,
+            "real_name": form_data_dict.get('profile_real_name', '').strip(),
+            "address": form_data_dict.get('profile_address', '').strip(),
+            "code": form_data_dict.get('profile_code', '').strip(),
         }
-        logger.debug(f"Prepared update data: {update_data}")
-        return update_data
+        logger.debug(f"Prepared update data for profile: {data}")
+        return data
 
-    async def delete_item(self, request, item_id: int):
-        """Delete a profile."""
+# This is the main class server.py will discover and instantiate
+class ProfilesPlugin(ProfilesPluginIdentity):
+    def __init__(self, app, pipulate_instance, pipeline_table, db_key_value_store, profiles_table_from_server):
+        self.app = app
+        self.pipulate = pipulate_instance # self.pipulate will hold the main pipulate instance
+        self.db_dictlike = db_key_value_store
+        self.table = profiles_table_from_server
+        
+        # Set self.name before it's needed by ProfileCrudOperations
+        self.name = "profiles"  # module_name will be 'profiles' when instantiated by server.py
+
+        if not self.table or not hasattr(self.table, 'name') or self.table.name != 'profile':
+            logger.error(f"FATAL: {self.DISPLAY_NAME} initialized with invalid 'profiles_table_from_server'. Expected MiniDataAPI for 'profile', got: {type(self.table)} with name {getattr(self.table, 'name', 'UNKNOWN')}")
+            raise ValueError("ProfilesPlugin requires a valid 'profiles' table object from server.py.")
+        else:
+            logger.info(f"{self.DISPLAY_NAME} Plugin SUCCESS: Initialized with 'profiles' table object: {self.table.name}")
+
+        self.crud_handler = ProfileCrudOperations(
+            main_plugin_instance=self,
+            table=self.table,
+            pipulate_instance=self.pipulate # Pass the stored pipulate_instance
+        )
+        logger.debug(f"{self.DISPLAY_NAME} ProfileCrudOperations instance created.")
+
+        # Routes will be registered by server.py calling self.register_routes(rt)
+        # self.register_routes(rt_from_server_py) # Not here, server.py calls it
+
+    def register_routes(self, rt_decorator):
+        # The main landing page for profiles is /profiles
+        # server.py's catch-all route or a specific route for /profiles will call landing()
+        # We don't need to re-register f'/{self.name}' if server.py handles it via home_route and create_grid_left logic
+
+        # CRUD routes are registered by BaseCrud via self.crud_handler
+        self.crud_handler.register_routes(rt_decorator)
+        logger.info(f"CRUD routes for {self.DISPLAY_NAME} (prefix '/{self.name}') registered by ProfileCrudOperations.")
+
+    async def landing(self, request=None):
+        logger.debug(f"{self.DISPLAY_NAME} Plugin.landing called. Accessing profiles via self.table (type: {type(self.table)}).")
         try:
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Check if profile is in use
-            records = list(self.pipulate.table.all())
-            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == item_id]
-            if records_with_profile:
-                raise ValueError(f"Cannot delete profile: {len(records_with_profile)} records are using it")
-
-            # Delete the profile
-            self.table.delete(item_id)
-            logger.info(f"Deleted profile: {profile.name}")
-
-            # Return empty response for HTMX to remove the element
-            return ""
-
-        except ValueError as e:
-            logger.error(f"Validation error deleting profile: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
+            all_db_profiles = list(self.table()) # self.table is the 'profiles' table
         except Exception as e:
-            logger.error(f"Error deleting profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Error fetching profiles from self.table: {e}")
+            logger.exception("Detailed error in ProfilesPlugin.landing:")
+            return Card(H3("Error Loading Profiles"), P(f"Could not load profiles from the database: {e}"), style="color:red;")
 
-def render_profile(profile, app_instance: CrudCustomizer):
-    """Render a profile item with HTMX functionality."""
-    # Construct HTMX URLs
-    delete_url = f"{app_instance.endpoint_prefix}/delete/{profile.id}"
-    toggle_url = f"{app_instance.endpoint_prefix}/toggle/{profile.id}"
-    update_url = f"{app_instance.endpoint_prefix}/update/{profile.id}"
+        logger.debug(f"Profiles from DB for landing page: {[(p.id, p.name, p.priority) for p in all_db_profiles]}")
 
-    # Create delete icon
-    delete_icon = Span(
-        _class="delete-icon",
-        _style="cursor: pointer; color: red;",
-        _hx_delete=delete_url,
-        _hx_confirm="Are you sure you want to delete this profile?",
-        _hx_target="closest li",
-        _hx_swap="outerHTML",
-        content="🗑️"
+        ordered_profiles = sorted(
+            all_db_profiles,
+            key=lambda p: p.priority if p.priority is not None else float('inf')
+        )
+
+        add_profile_form = Form(
+            Group(
+                Input(placeholder="Nickname", name="profile_name", id="profile-name-input-add", autofocus=True), # Unique ID
+                Input(placeholder="Real Name (Optional)", name="profile_real_name", id="profile-real-name-input-add"),
+                Input(placeholder=PLACEHOLDER_ADDRESS, name="profile_address", id="profile-address-input-add"),
+                Input(placeholder=PLACEHOLDER_CODE, name="profile_code", id="profile-code-input-add"),
+                Button("Add Profile", type="submit", id="add-profile-button")
+            ),
+            hx_post=f"/{self.name}", # Correctly uses self.name (which will be 'profiles')
+            hx_target="#profile-list-ul",
+            hx_swap="beforeend",
+            hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();"
+        )
+
+        return Div(
+            Card(
+                H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
+                Ul(
+                    *[render_profile(p, self) for p in ordered_profiles],
+                    id="profile-list-ul",
+                    cls='sortable',
+                    style="padding-left: 0; list-style-type: none;",
+                    hx_post=f"/{self.name}_sort", # Correctly uses self.name
+                    hx_trigger="end",
+                    hx_include="*", # Ensure this correctly targets child LIs for SortableJS
+                    data_sortable_group=self.name # Added for SortableJS init if needed
+                ),
+                header=add_profile_form
+            ),
+            id=f"{self.name}-container" # e.g., profiles-container
+        )
+
+def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
+    item_id_dom = f'profile-item-{profile_record.id}'
+    profile_crud_handler = main_plugin_instance.crud_handler
+
+    # Construct URLs using the crud_handler's name, which is derived from main_plugin_instance.name
+    delete_url = profile_crud_handler.get_action_url('delete', profile_record.id)
+    toggle_url = profile_crud_handler.get_action_url('toggle', profile_record.id)
+    # Update POSTs to /profiles/{id} (handled by BaseCrud's update_item)
+    update_url = f"/{main_plugin_instance.name}/{profile_record.id}"
+
+    name_input_update_id = f"name-update-{profile_record.id}"
+    update_form_id = f"update-form-{profile_record.id}"
+    profile_text_display_id = f"profile-text-display-{profile_record.id}"
+
+    toggle_edit_js = (
+        f"document.getElementById('{profile_text_display_id}').style.display='none'; "
+        f"var form = document.getElementById('{update_form_id}'); form.style.display='grid'; form.classList.add('editing');"
+        f"document.getElementById('{item_id_dom}').classList.add('editing-item');" # Add class to li
+        f"document.getElementById('{name_input_update_id}').focus();"
+    )
+    toggle_display_js = (
+        f"var form = document.getElementById('{update_form_id}'); form.style.display='none'; form.classList.remove('editing');"
+        f"document.getElementById('{profile_text_display_id}').style.display='flex';"
+        f"document.getElementById('{item_id_dom}').classList.remove('editing-item');" # Remove class from li
     )
 
-    # Create active checkbox
-    active_checkbox = Input(
+    update_profile_form = Form(
+        Div( # Container for all inputs
+            Input(type="text", name="profile_name", value=profile_record.name, placeholder="Nickname", id=name_input_update_id, style="margin-bottom: 0.5rem;"),
+            Input(type="text", name="profile_real_name", value=profile_record.real_name or '', placeholder="Real Name (Optional)", style="margin-bottom: 0.5rem;"),
+            Input(type="text", name="profile_address", value=profile_record.address or '', placeholder=PLACEHOLDER_ADDRESS, style="margin-bottom: 0.5rem;"),
+            Input(type="text", name="profile_code", value=profile_record.code or '', placeholder=PLACEHOLDER_CODE, style="margin-bottom: 0.5rem;"),
+            style="display:grid; grid-template-columns: 1fr; gap: 0.25rem; width:100%;" # Inputs stack vertically
+        ),
+        Div( # Container for buttons
+            Button("Save", type="submit", cls="primary", style="margin-right: 0.5rem;"),
+            Button("Cancel", type="button", cls="secondary outline", onclick=toggle_display_js),
+            style="margin-top:0.5rem; display:flex; justify-content:start;"
+        ),
+        hx_post=update_url,
+        hx_target=f"#{item_id_dom}",
+        hx_swap="outerHTML",
+        id=update_form_id,
+        style="display: none; width: 100%; padding: 0.5rem; box-sizing: border-box; background-color: var(--pico-form-element-background-color); border-radius: var(--pico-border-radius);",
+        cls="profile-edit-form"
+    )
+
+    profile_display_div = Div(
+        Span(profile_record.name, title="Click to edit", style="cursor:pointer; font-weight:bold;"),
+        Span(f" ({profile_record.real_name})" if profile_record.real_name else "", style="margin-left:5px; color:var(--pico-muted-color); font-size:0.9em;"),
+        # Display address and code subtly if they exist
+        Span(f"📍{profile_record.address}" if profile_record.address else "", style="margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);"),
+        Span(f"📦{profile_record.code}" if profile_record.code else "", style="margin-left:10px; font-size:0.85em; color:var(--pico-muted-color);"),
+        id=profile_text_display_id,
+        style="flex-grow: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 5px;", # Allow wrapping
+        onclick=toggle_edit_js
+    )
+    
+    active_checkbox_input = Input(
         type="checkbox",
-        name="active",
-        checked=profile.active,
-        _hx_post=toggle_url,
-        _hx_target="closest li",
-        _hx_swap="outerHTML"
+        name="active_status_profile", # Unique name
+        checked=profile_record.active,
+        hx_post=toggle_url,
+        hx_target=f"#{item_id_dom}", # Target the whole LI for refresh
+        hx_swap="outerHTML",
+        style="margin-right: 10px; flex-shrink: 0;", # Prevent checkbox from shrinking
+        title="Toggle Active Status"
     )
 
-    # Create update form
-    update_form = Form(
-        _class="update-form",
-        _style="display: none;",
-        _hx_put=update_url,
-        _hx_target="closest li",
-        _hx_swap="outerHTML",
-        content=[
-            Input(
-                type="text",
-                name="profile_name",
-                value=profile.name,
-                placeholder="Profile Name",
-                required=True
-            ),
-            Input(
-                type="text",
-                name="profile_real_name",
-                value=profile.real_name or "",
-                placeholder="Real Name (optional)"
-            ),
-            Input(
-                type="text",
-                name="profile_address",
-                value=profile.address or "",
-                placeholder=PLACEHOLDER_ADDRESS
-            ),
-            Input(
-                type="text",
-                name="profile_code",
-                value=profile.code or "",
-                placeholder=PLACEHOLDER_CODE
-            ),
-            Button("Update", type="submit")
-        ]
+    delete_icon_span = Span(
+        "🗑️",
+        hx_delete=delete_url,
+        hx_target=f"#{item_id_dom}",
+        hx_swap="outerHTML",
+        hx_confirm=f"Are you sure you want to delete the profile '{profile_record.name}'? This action cannot be undone.",
+        style="cursor: pointer; margin-left: auto; text-decoration: none; flex-shrink: 0;", # Pushes to the right
+        cls="delete-icon",
+        title="Delete Profile"
     )
 
-    # Create profile content
-    profile_content = Div(
-        _class="profile-content",
-        content=[
-            Div(
-                _class="profile-header",
-                content=[
-                    Span(profile.name, _class="profile-name"),
-                    delete_icon
-                ]
-            ),
-            Div(
-                _class="profile-details",
-                content=[
-                    P(f"Real Name: {profile.real_name or 'Not set'}"),
-                    P(f"Address: {profile.address or 'Not set'}"),
-                    P(f"Code: {profile.code or 'Not set'}")
-                ]
-            ),
-            update_form
-        ]
-    )
-
-    # Create the list item
     return Li(
-        _class="profile-item",
-        content=[
-            active_checkbox,
-            profile_content
-        ]
-    )
-
-class ProfileApp(CrudCustomizer):
-    """Profile management app."""
-    
-    def __init__(self, table, pipulate_instance=None):
-        """Initialize the profile app."""
-        super().__init__(self)
-        self.table = table
-        self.pipulate = pipulate_instance
-        self.endpoint_prefix = f"/{self.name}"
-        logger.debug(f"ProfileApp initialized with table: {table}")
-
-    async def profile_render(self):
-        """Render the profiles page."""
-        try:
-            # Get all profiles, sorted by priority
-            profiles = list(self.table.all())
-            profiles.sort(key=lambda x: x.priority)
-
-            # Create the profiles list
-            profiles_list = Ul(
-                *[self.render_item(profile) for profile in profiles],
-                _class="profiles-list"
-            )
-
-            # Create the add profile form
-            add_form = Form(
-                _class="add-profile-form",
-                _hx_post=f"{self.endpoint_prefix}/insert",
-                _hx_target=".profiles-list",
-                _hx_swap="beforeend",
-                content=[
-                    Input(
-                        type="text",
-                        name="profile_name",
-                        placeholder="Profile Name",
-                        required=True
-                    ),
-                    Input(
-                        type="text",
-                        name="profile_real_name",
-                        placeholder="Real Name (optional)"
-                    ),
-                    Input(
-                        type="text",
-                        name="profile_address",
-                        placeholder=PLACEHOLDER_ADDRESS
-                    ),
-                    Input(
-                        type="text",
-                        name="profile_code",
-                        placeholder=PLACEHOLDER_CODE
-                    ),
-                    Button("Add Profile", type="submit")
-                ]
-            )
-
-            # Return the complete page
-            return Container(
-                H2("Profiles"),
-                add_form,
-                profiles_list
-            )
-
-        except Exception as e:
-            logger.error(f"Error rendering profiles: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    def render_item(self, profile):
-        """Render a profile item."""
-        return render_profile(profile, self)
-
-    async def insert_item(self, request):
-        """Insert a new profile."""
-        try:
-            form = await request.form()
-            data = self.prepare_insert_data(form)
-            if not data:
-                raise ValueError("Invalid profile data")
-
-            # Set default values
-            data['active'] = True
-            data['priority'] = len(self.table)  # Add to end of list
-
-            # Create the profile
-            profile = await self.create_item(**data)
-            logger.info(f"Created new profile: {profile.name}")
-
-            # Return the rendered profile
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error inserting profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    async def toggle_item(self, request, item_id: int):
-        """Toggle profile active state."""
-        try:
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Toggle active state
-            profile.active = not profile.active
-            self.table[item_id] = profile
-            logger.info(f"Toggled profile {profile.name} active state to {profile.active}")
-
-            # Return updated profile item
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error toggling profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    async def update_item(self, request, item_id: int):
-        """Update a profile."""
-        try:
-            form = await request.form()
-            data = self.prepare_update_data(form)
-            if not data:
-                raise ValueError("Invalid profile data")
-
-            # Get the profile
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Update the profile
-            for key, value in data.items():
-                setattr(profile, key, value)
-
-            # Save the profile
-            self.table[item_id] = profile
-            logger.info(f"Updated profile: {profile.name}")
-
-            # Return the rendered profile
-            return self.render_item(profile)
-
-        except Exception as e:
-            logger.error(f"Error updating profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    def prepare_insert_data(self, form):
-        """Prepare data for profile insertion."""
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            logger.warning("Empty profile name provided")
-            return None
-
-        # Get all records to calculate max priority
-        records = list(self.table.all())
-        max_priority = max([r.priority for r in records], default=0)
-
-        insert_data = {
-            'name': profile_name,
-            'real_name': form.get('profile_real_name', '').strip(),
-            'address': form.get('profile_address', '').strip(),
-            'code': form.get('profile_code', '').strip(),
-            'active': True,
-            'priority': max_priority + 1
-        }
-        logger.debug(f"Prepared insert data: {insert_data}")
-        return insert_data
-
-    def prepare_update_data(self, form):
-        """Prepare data for profile update."""
-        profile_name = form.get('profile_name', '').strip()
-        if not profile_name:
-            logger.warning("Empty profile name provided for update")
-            return None
-
-        update_data = {
-            'name': profile_name,
-            'real_name': form.get('profile_real_name', '').strip(),
-            'address': form.get('profile_address', '').strip(),
-            'code': form.get('profile_code', '').strip()
-        }
-        logger.debug(f"Prepared update data: {update_data}")
-        return update_data
-
-    async def delete_item(self, request, item_id: int):
-        """Delete a profile."""
-        try:
-            profile = self.table[item_id]
-            if not profile:
-                raise ValueError(f"Profile not found: {item_id}")
-
-            # Check if profile is in use
-            records = list(self.pipulate.table.all())
-            records_with_profile = [r for r in records if getattr(r, 'profile_id', None) == item_id]
-            if records_with_profile:
-                raise ValueError(f"Cannot delete profile: {len(records_with_profile)} records are using it")
-
-            # Delete the profile
-            self.table.delete(item_id)
-            logger.info(f"Deleted profile: {profile.name}")
-
-            # Return empty response for HTMX to remove the element
-            return ""
-
-        except ValueError as e:
-            logger.error(f"Validation error deleting profile: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
-        except Exception as e:
-            logger.error(f"Error deleting profile: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e)) 
+        Div( # Main flex container for the row
+            active_checkbox_input,
+            Div( # Container for display and form to allow them to stack/toggle
+                 profile_display_div,
+                 update_profile_form, # Form is sibling to display_div, JS toggles visibility
+                 style="flex-grow:1; min-width:0;" # Allow this part to take up space and wrap
+            ),
+            delete_icon_span,
+            style="display: flex; align-items: center; width: 100%; gap: 10px; padding: 0.5rem 0;"
+        ),
+        id=item_id_dom,
+        data_id=str(profile_record.id),
+        data_priority=str(profile_record.priority or 0),
+        style="border-bottom: 1px solid var(--pico-muted-border-color); padding: 0.25rem 0;" # Add some padding to LI
+    ) 
