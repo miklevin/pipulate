@@ -74,6 +74,8 @@ MAX_CONVERSATION_LENGTH = 10000
 DEVELOPER_PLUGIN_THRESHOLD = 530  # Plugins with numeric prefix >= this value are considered developer plugins
 HOME_MENU_ITEM = "Introduction"  # The display name for the home/introduction menu item
 
+# Default active roles for role synchronization
+DEFAULT_ACTIVE_ROLES = {"Core", "Botify Employee"}
 
 # Environment settings
 ENV_FILE = Path('data/environment.txt')
@@ -2779,17 +2781,23 @@ async def synchronize_roles_to_db():
                 
                 if data_for_insertion:
                     data_for_insertion['profile_id'] = current_profile_id 
-                    if 'done' not in data_for_insertion: data_for_insertion['done'] = False
+                    
+                    # Override 'done' status for default active roles
+                    if role_name in DEFAULT_ACTIVE_ROLES:
+                        data_for_insertion['done'] = True
+                        logger.debug(f"SYNC_ROLES: Role '{role_name}' is a default active role. Setting done=True.")
+                    elif 'done' not in data_for_insertion:
+                        data_for_insertion['done'] = False
                         
                     logger.debug(f"SYNC_ROLES: Data prepared by CrudCustomizer for '{role_name}': {data_for_insertion}")
                     await crud_customizer.create_item(**data_for_insertion)
-                    logger.info(f"SYNC_ROLES: SUCCESS: Added role '{role_name}' to DB for profile_id {current_profile_id} via CRUD logic.")
+                    logger.info(f"SYNC_ROLES: SUCCESS: Added role '{role_name}' to DB for profile_id {current_profile_id} (Active: {data_for_insertion['done']}).")
                     new_roles_added_count += 1
                     existing_role_names_for_profile.add(role_name)
                 else:
                     logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer.")
             else:
-                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Skipping.")
+                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Skipping insertion, current status preserved.")
         
         if new_roles_added_count > 0:
              logger.info(f"SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.")

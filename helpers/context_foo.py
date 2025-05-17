@@ -28,7 +28,6 @@ README.md
 flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/plugins/010_roles.py
 """.strip().splitlines()
 
 # Filter out any commented lines
