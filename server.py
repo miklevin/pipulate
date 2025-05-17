@@ -9,13 +9,12 @@ import importlib
 import inspect
 import json
 import os
-import random
 import re
 import sqlite3
 import sys
 import time
 import traceback
-from collections import Counter, deque
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, Optional
@@ -119,8 +118,6 @@ PLACEHOLDER_ADDRESS = "www.site.com"
 PLACEHOLDER_CODE = "CCode (us, uk, de, etc)"
 GRID_LAYOUT = "65% 35%"
 NAV_FILLER_WIDTH = "2%"
-MIN_MENU_WIDTH = "18vw"
-MAX_MENU_WIDTH = "22vw"
 WEB_UI_WIDTH = "95%"
 WEB_UI_PADDING = "1rem"
 WEB_UI_MARGIN = "0 auto"
@@ -558,12 +555,7 @@ class Pipulate:
 
     # Content style constants
     CONTENT_STYLE = "margin-top: 1vh; border-top: 1px solid var(--pico-muted-border-color); padding-top: 1vh;"
-    TREE_CONTENT_STYLE = "padding: 10px; white-space: pre; text-align: left; font-size: 1.5vh;"
-    CARD_STYLE = "background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); margin-bottom: 2vh;"
     FINALIZED_CONTENT_STYLE = "margin-top: 0.5vh; padding: 0.5vh 0;"
-
-    # Button labels
-    UNLOCK_BUTTON_LABEL = "Unlock 🔓"  # Global label for unlock/unfinalize buttons
 
     def __init__(self, pipeline_table, chat_instance=None):
         """Initialize Pipulate with required dependencies.
