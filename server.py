@@ -259,7 +259,7 @@ class LogManager:
         """Log a startup-related message."""
         self.logger.info(self.format_message("startup", message, details))
 
-    def workflow(self, message, details=None):
+    def workflow(self, message, details=None):  # noqa
         """Log a workflow-related message."""
         self.logger.info(self.format_message("workflow", message, details))
 
@@ -387,7 +387,7 @@ def endpoint_name(endpoint: str) -> str:
     return title_name(endpoint)
 
 
-def step_name(step: str, preserve: bool = False) -> str:
+def step_name(step: str, preserve: bool = False) -> str:  # noqa
     _, number = step.split('_')
     return f"Step {number.lstrip('0')}"
 
@@ -432,7 +432,7 @@ class SSEBroadcaster:
                 now = datetime.now()
                 yield f"data: Test ping at {now}\n\n"
 
-    async def send(self, message):
+    async def send(self, message):  # noqa
         logger.bind(name="sse").debug(f"Queueing: {message}")
         await self.queue.put(message)
 
@@ -569,7 +569,7 @@ class Pipulate:
         # Initialize the message queue
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_history(self, message: str, role: str = "system", quiet: bool = True) -> None:
+    def append_to_history(self, message: str, role: str = "system", quiet: bool = True) -> None:  # noqa
         """Add a message to the LLM conversation history without triggering a response.
 
         This is the preferred way for workflows to update the LLM's context about:
@@ -674,17 +674,17 @@ class Pipulate:
             finally:
                 self._processing = False
 
-        def mark_step_complete(self, step_num):
+        def mark_step_complete(self, step_num):  # noqa
             """Mark a step as completed."""
             self._current_step = step_num
             self._step_completed = True
 
-        def mark_step_started(self, step_num):
+        def mark_step_started(self, step_num):  # noqa
             """Mark a step as started but not completed."""
             self._current_step = step_num
             self._step_completed = False
 
-    def make_singular(self, word):
+    def make_singular(self, word):  # noqa
         """Convert a potentially plural word to its singular form using simple rules.
 
         This uses basic suffix replacement rules to handle common English plurals.
@@ -735,11 +735,11 @@ class Pipulate:
         # Already singular
         return word
 
-    def set_chat(self, chat_instance):
+    def set_chat(self, chat_instance):  # noqa
         """Set the chat instance after initialization."""
         self.chat = chat_instance
 
-    def get_message_queue(self):
+    def get_message_queue(self):  # noqa
         """Return the message queue instance for ordered message delivery."""
         return self.message_queue
 
@@ -1035,7 +1035,7 @@ class Pipulate:
             style=article_style
         )
 
-    def widget_container(
+    def widget_container(  # noqa
         self,
         step_id: str,
         app_name: str,
@@ -1108,7 +1108,7 @@ class Pipulate:
         )
 
     # Keep tree_display as a standard widget function that can be passed to widget_container
-    def tree_display(self, content):
+    def tree_display(self, content):  # noqa
         """
         Create a styled display for file paths that can show either a tree or box format.
 
@@ -1154,7 +1154,7 @@ class Pipulate:
                 )
             )
 
-    def finalized_content(
+    def finalized_content(  # noqa
         self,
         message: str,
         content=None,
@@ -1267,7 +1267,7 @@ class Pipulate:
         """Return style for ID conflict error messages"""
         return "background-color: #ffdddd; color: #990000; padding: 10px; border-left: 5px solid #990000;"
 
-    def generate_pipeline_key(self, plugin_instance, user_input=None):
+    def generate_pipeline_key(self, plugin_instance, user_input=None):  # noqa
         """Generate a standardized pipeline key using the current profile and plugin.
 
         Creates a composite key in the format: profile_name-plugin_name-user_id
@@ -1349,7 +1349,7 @@ class Pipulate:
 
         return (full_key, prefix, user_part)
 
-    def parse_pipeline_key(self, pipeline_key):
+    def parse_pipeline_key(self, pipeline_key):  # noqa
         """Parse a pipeline key into its component parts.
 
         Args:
@@ -1469,7 +1469,7 @@ class Pipulate:
             id=f"{app_name}-container"
         )
 
-    def validate_step_input(self, value, step_show, custom_validator=None):
+    def validate_step_input(self, value, step_show, custom_validator=None):  # noqa
         """
         Validate step input with default and optional custom validation.
 
@@ -1508,7 +1508,7 @@ class Pipulate:
 
         return True, "", None
 
-    async def set_step_data(self, pipeline_id, step_id, step_value, steps, clear_previous=True):
+    async def set_step_data(self, pipeline_id, step_id, step_value, steps, clear_previous=True):  # noqa
         """
         Update the state for a step and handle reverting.
 
@@ -1546,7 +1546,7 @@ class Pipulate:
         # Return the step value for confirmation message
         return step_value
 
-    def check_finalize_needed(self, step_index, steps):
+    def check_finalize_needed(self, step_index, steps):  # noqa
         """
         Check if we're on the final step before finalization.
 
@@ -1567,7 +1567,7 @@ class Pipulate:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         return next_step_id == "finalize"
 
-    def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):
+    def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):  # noqa
         """
         Create the standard navigation controls after a step submission.
 
@@ -1606,7 +1606,7 @@ class Pipulate:
             ) if next_step_id else Div()
         )
 
-    async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
+    async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):  # noqa
         """
         Handle the case when a step is submitted in finalized state.
 
@@ -1634,7 +1634,7 @@ class Pipulate:
 
         return self.rebuild(app_name, steps)
 
-    async def finalize_workflow(self, pipeline_id, state_update=None):
+    async def finalize_workflow(self, pipeline_id, state_update=None):  # noqa
         """
         Finalize a workflow by marking it as complete and updating its state.
 
@@ -1663,7 +1663,7 @@ class Pipulate:
 
         return state
 
-    async def unfinalize_workflow(self, pipeline_id):
+    async def unfinalize_workflow(self, pipeline_id):  # noqa
         """
         Unfinalize a workflow by removing the finalized flag.
 
@@ -1747,7 +1747,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         yield error_msg
 
 
-def get_button_style(button_type="default"):
+def get_button_style(button_type="default"):  # noqa
     """Return button style string based on type."""
     if button_type == "warning":
         return "background-color: var(--pico-primary-background); color: #f66;"
@@ -1835,7 +1835,7 @@ class BaseCrud:
         rt(f'/{self.name}/toggle/{{item_id}}', methods=['POST'])(self.toggle_item)
         rt(f'/{self.name}_sort', methods=['POST'])(self.sort_items)
 
-    def get_action_url(self, action, item_id):
+    def get_action_url(self, action, item_id):  # noqa
         return f"/{self.name}/{action}/{item_id}"
 
     def render_item(self, item):
@@ -2176,7 +2176,7 @@ class Chat:
             self.logger.error(f"Error in handle_chat_message: {e}")
             traceback.print_exc()
 
-    def create_progress_card(self):
+    def create_progress_card(self):  # noqa
         return Card(
             Header("Chat Playground"),
             Form(
@@ -2927,7 +2927,7 @@ additional_menu_items = []  # Remove 'mobile_chat' from here
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event():  # noqa
     await synchronize_roles_to_db()
 
 # Get discovered plugins in the order they were discovered (based on numeric prefix)
@@ -3323,7 +3323,7 @@ def create_nav_menu():
     return nav
 
 
-def create_filler_item():
+def create_filler_item():  # noqa
     return Li(Span(" "), style=("display: flex; ""flex-grow: 1; ""justify-content: center; ""list-style-type: none; "f"min-width: {NAV_FILLER_WIDTH}; "),)
 
 
@@ -4021,7 +4021,7 @@ async def poke_flyout_hide(request):
     )
 
 
-async def profile_render():
+async def profile_render():  # noqa
     # Get profiles plugin instance
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
