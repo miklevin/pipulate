@@ -3957,7 +3957,7 @@ async def poke_flyout(request):
                         cls="secondary outline"
                     ),
                     style="list-style-type: none; margin-bottom: 0.5rem;"
-                )
+                ) if is_dev_mode else None
             ),
             style="background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);"
         )
