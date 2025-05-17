@@ -3935,6 +3935,10 @@ async def poke_flyout(request):
     workflow_instance = get_workflow_instance(current_app)
     is_workflow = workflow_instance is not None and hasattr(workflow_instance, 'steps')
     
+    # Get the current profile lock state from db
+    profile_locked = db.get("profile_locked", "0") == "1"
+    lock_button_text = "🔓 Unlock Profile" if profile_locked else "🔒 Lock Profile"
+    
     return Div(
         id="flyout-panel",
         style="display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;",
@@ -3957,9 +3961,10 @@ async def poke_flyout(request):
                 ),
                 Li(
                     Button(
-                        "🔒 Lock Profile",
+                        lock_button_text,
                         hx_post="/toggle_profile_lock",
                         hx_target="body",
+                        hx_swap="outerHTML",
                         cls="secondary outline"
                     )
                 ),
@@ -3968,31 +3973,22 @@ async def poke_flyout(request):
                         "🗑️ Delete Current Workflow",
                         hx_post="/delete-pipeline",
                         hx_target="body",
-                        hx_confirm="Are you sure you want to delete the current workflow?",
-                        cls="secondary outline"
-                    )
-                ),
-                Li(
-                    Button(
-                        "🗑️ Delete All Workflows",
-                        hx_post="/clear-pipeline",
-                        hx_target="body",
-                        hx_confirm="Are you sure you want to delete all workflows?",
+                        hx_confirm="Are you sure you want to delete this workflow?",
+                        hx_swap="outerHTML",
                         cls="secondary outline"
                     )
                 ) if is_workflow else None,
                 Li(
                     Button(
-                        "🗑️ Reset Database",
-                        hx_post="/clear-db",
-                        hx_confirm="Are you sure you want to reset the entire database? This will delete ALL data!",
-                        hx_swap="outerHTML",
+                        "🗑️ Delete Workflows",
+                        hx_post="/clear-pipeline",
                         hx_target="body",
+                        hx_confirm="Are you sure you want to delete workflows?",
+                        hx_swap="outerHTML",
                         cls="secondary outline"
                     )
-                ) if get_current_environment() == "Development" else None
-            ),
-            style="padding: 1rem;"
+                ) if is_workflow else None,
+            )
         )
     )
 
