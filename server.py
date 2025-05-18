@@ -2158,7 +2158,6 @@ def create_env_menu():
     
     # Development menu item
     is_dev = current_env == 'Development'
-    dev_style = menu_item_style + (' background-color: var(--pico-primary-focus);' if is_dev else '')
     menu_items.append(Li(
         Label(
             Input(
@@ -2173,7 +2172,7 @@ def create_env_menu():
                 style=radio_style
             ),
             'DEV',
-            style=dev_style,
+            style=menu_item_style,
             onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
             onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';",
             id='dev-env-item'
@@ -2182,7 +2181,6 @@ def create_env_menu():
     
     # Production menu item
     is_prod = current_env == 'Production'
-    prod_style = menu_item_style + (' background-color: var(--pico-primary-focus);' if is_prod else '')
     menu_items.append(Li(
         Label(
             Input(
@@ -2197,7 +2195,7 @@ def create_env_menu():
                 style=radio_style
             ),
             'Prod',
-            style=prod_style,
+            style=menu_item_style,
             onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
             onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';",
             id='prod-env-item'
@@ -2220,7 +2218,37 @@ def create_nav_menu():
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for menu creation")
         return Div(H1('Error: Profiles plugin not found', cls='text-error'), style='display: flex; align-items: center; gap: 20px; width: 100%;')
-    breadcrumb = H1(A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', style='text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;', onmouseover="this.style.color='#4dabf7'; this.style.textDecoration='underline';", onmouseout="this.style.color='inherit'; this.style.textDecoration='none';"), Span(' / ', style='padding: 0 0.3rem;'), Span(title_name(selected_profile_name), style='white-space: nowrap;'), Span(' / ', style='padding: 0 0.3rem;'), Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style='white-space: nowrap;'), style='display: inline-flex; align-items: center; margin-right: auto; flex-wrap:')
+    # Define styles for better readability
+    link_style = 'text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;'
+    hover_style = "this.style.color='#4dabf7'; this.style.textDecoration='underline';"
+    normal_style = "this.style.color='inherit'; this.style.textDecoration='none';"
+    separator_style = 'padding: 0 0.3rem;'
+    text_style = 'white-space: nowrap;'
+    container_style = 'display: inline-flex; align-items: center; margin-right: auto; flex-wrap:'
+
+    # Build breadcrumb components
+    home_link = A(
+        APP_NAME,
+        href='/redirect/',
+        title=f'Go to {HOME_MENU_ITEM.lower()}',
+        style=link_style,
+        onmouseover=hover_style,
+        onmouseout=normal_style
+    )
+    
+    separator = Span(' / ', style=separator_style)
+    profile_text = Span(title_name(selected_profile_name), style=text_style)
+    endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style=text_style)
+
+    # Combine into final breadcrumb
+    breadcrumb = H1(
+        home_link,
+        separator,
+        profile_text,
+        separator,
+        endpoint_text,
+        style=container_style
+    )
     nav_items = [breadcrumb, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu()]
     nav = Div(*nav_items, style='display: flex; align-items: center; gap: 20px; width: 100%;')
     logger.debug('Navigation menu created.')
@@ -2260,7 +2288,33 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
-        menu_items.append(Li(Label(Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML'), profile_item.name), style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"))
+        # Create the radio input with HTMX attributes
+        radio_input = Input(
+            type='radio',
+            name='profile_radio_select',
+            value=str(profile_item.id),
+            checked=is_selected,
+            hx_post='/select_profile',
+            hx_vals=json.dumps({'profile_id': str(profile_item.id)}),
+            hx_target='body',
+            hx_swap='outerHTML'
+        )
+
+        # Create the label with the profile name
+        profile_label = Label(radio_input, profile_item.name)
+
+        # Define hover styles
+        hover_style = "this.style.backgroundColor='var(--pico-primary-hover-background)';"
+        default_bg = 'var(--pico-primary-focus)' if is_selected else 'transparent'
+        mouseout_style = f"this.style.backgroundColor='{default_bg}';"
+
+        # Create the list item with all styles and event handlers
+        menu_items.append(Li(
+            profile_label,
+            style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);',
+            onmouseover=hover_style,
+            onmouseout=mouseout_style
+        ))
     summary_profile_name_to_display = selected_profile_name
     if not summary_profile_name_to_display and selected_profile_id:
         try:
@@ -2324,9 +2378,49 @@ def create_app_menu(menux):
         is_selected = menux == plugin_key
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
-        menu_items.append(Li(Label(Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;'), display_name, style='text-align: left; display: flex; align-items: center; flex: 1;', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"), style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"))
+        # Create the radio input with HTMX attributes
+        radio_input = Input(
+            type='radio',
+            name='app_radio_select',
+            value=plugin_key,
+            checked=is_selected,
+            hx_post=redirect_url,
+            hx_target='body',
+            hx_swap='outerHTML',
+            style='min-width: 1rem; margin-right: 0.5rem;'
+        )
+
+        # Create the label with hover effects
+        label = Label(
+            radio_input,
+            display_name,
+            style='text-align: left; display: flex; align-items: center; flex: 1;',
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"
+        )
+
+        # Create the list item with styling
+        menu_items.append(Li(
+            label,
+            style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);',
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"
+        ))
         logger.debug(f"Added plugin '{plugin_key}' (Display: '{display_name}') to App menu. Selected: {is_selected}")
-    return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 16rem; max-height: 75vh; overflow-y: auto;'), cls='dropdown', id='app-dropdown-menu')
+    return Details(
+        Summary(
+            'APP',
+            style='white-space: nowrap; display: inline-block; min-width: max-content;',
+            id='app-id'
+        ),
+        Ul(
+            *menu_items,
+            cls='dropdown-menu',
+            style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 16rem; max-height: 75vh; overflow-y: auto;'
+        ),
+        cls='dropdown',
+        id='app-dropdown-menu'
+    )
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
