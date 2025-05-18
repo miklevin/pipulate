@@ -74,28 +74,34 @@ article > div:first-child {
 
 /* Navigation Group Styling */
 #nav-group {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10001;  /* Higher than chat interface's 10000 */
+  z-index: 10001;
   background-color: var(--pico-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   padding: 0.5rem 0;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);  /* Subtle shadow to separate from content */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Chat Interface Styling */
 #chat-interface {
-  position: fixed;
-  top: 10rem;  /* Match nav-group height */
-  z-index: 10000;
+  position: sticky;
+  top: 3.5rem;  /* Height of nav-group */
+  height: calc(100vh - 3.5rem);  /* Full viewport height minus nav height */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Add padding to the main content to account for fixed nav */
+#msg-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Add padding to the main content to account for sticky nav */
 main {
-  padding-top: 3.5rem;  /* Adjust based on nav-group height */
+  padding-top: 3.5rem;
 }
 
 /* Text Utilities */
