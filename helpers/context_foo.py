@@ -34,8 +34,9 @@ server.py
 /home/mike/repos/pipulate/static/styles.css
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
 /home/mike/repos/pipulate/helpers/analyze_styles.py
-# /home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
-# /home/mike/repos/pipulate/helpers/refactor_style_constants_to_css.py
+/home/mike/repos/pipulate/helpers/refactor_inline_style.py
+/home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
+/home/mike/repos/pipulate/helpers/refactor_style_constants_to_css.py
 # /home/mike/repos/pipulate/static/chat-interface.js
 # /home/mike/repos/pipulate/static/chat-scripts.js
 # /home/mike/repos/pipulate/static/widget-scripts.js
