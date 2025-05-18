@@ -138,11 +138,8 @@ article > div:first-child {
 .font-monospace {
   font-family: var(--pico-font-family-monospace);
 }
-.fs-0p9em { /* font-size 0.9em */
+.note-font { /* font-size 0.9em */
   font-size: 0.9em;
-}
-.fs-0p8em { /* font-size 0.8em */
-  font-size: 0.8em;
 }
 
 /* Border Utilities */
