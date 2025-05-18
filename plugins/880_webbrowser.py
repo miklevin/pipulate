@@ -3,12 +3,15 @@ import json
 import webbrowser
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate Webbrowser URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in the default system browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class WebbrowserUrlOpenerWidget:
     """

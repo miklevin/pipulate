@@ -6,14 +6,17 @@ from collections import Counter, namedtuple
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 from fastcore.xml import NotStr
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nMatplotlib Histogram Widget\n\nThis workflow demonstrates a Matplotlib histogram rendering widget.\nUsers can input JSON counter data and see it rendered as a histogram image.\n\nThe widget supports:\n- JSON counter data input (keys and values)\n- Automatic histogram generation\n- Responsive image display\n- Error handling and validation\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class MatplotlibWidget:
     """

@@ -2,12 +2,15 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate Mermaid Diagram Widget Workflow\nA workflow for demonstrating the Mermaid.js diagram rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class MermaidWidget:
     """

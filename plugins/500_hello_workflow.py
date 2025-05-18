@@ -1,7 +1,9 @@
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
+
 ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
 
 """
@@ -22,13 +24,26 @@ The chain reaction is maintained through three distinct phases in each step:
 3. Get Input Phase: Shows input form, waits for user submission
 
 The chain is maintained by including a Div with hx_trigger="load" in the response:
+
 ```python
+# Explicit method:
 return Div(
     Card(...),  # Current step content
     Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
     id=step_id
 )
+
+# Which can also be expressed using the convenience method:
+return pip.chain_reverter(
+    step_id=step_id,
+    step_index=step_index,
+    steps=steps,
+    app_name=app_name,
+    processed_val=value
+)
 ```
+
+Both methods achieve the same result - they create a UI showing the completed step and trigger loading of the next step. The `chain_reverter` method is preferred as it ensures consistent styling and behavior across all workflows.
 
 --- Step Handler Pattern ---
 Each step has a GET handler (`step_XX`) and POST handler (`step_XX_submit`):
@@ -91,6 +106,7 @@ The Pipulate framework provides helper methods for common tasks:
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class HelloFlow:
     """
     Hello World Workflow Example
@@ -112,7 +128,7 @@ class HelloFlow:
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
         Initialize the workflow, define steps, and register routes.
-        
+
         The steps list defines the workflow sequence:
         - step_01: Collect user's name
         - step_02: Generate greeting using name
@@ -299,7 +315,7 @@ class HelloFlow:
     async def step_01(self, request):
         """
         Handles GET request for Step 1: Displays input form or completed value.
-        
+
         Implements the three phases:
         1. Finalize Phase: Shows locked view if workflow is finalized
         2. Revert Phase: Shows completed view with revert option
@@ -376,7 +392,7 @@ class HelloFlow:
     async def step_01_submit(self, request):
         """
         Handle the submission of step 01.
-        
+
         This method:
         1. Gets the user's input from the form
         2. Validates the input
@@ -386,17 +402,17 @@ class HelloFlow:
         pipeline_id = self.db["pipeline_id"]
         form = await request.form()
         user_val = form.get(self.steps[0].done, "")
-        
+
         # Validate input
         if not user_val:
             return P('Error: Please enter a value', style=self.pipulate.ERROR_STYLE)
-            
+
         # Update state
         await self.pipulate.set_step_data(pipeline_id, "step_01", user_val, self.steps)
-        
+
         # Update LLM context
         self.pipulate.append_to_history(f"[WIDGET CONTENT] {self.steps[0].show}:\n{user_val}")
-        
+
         # Return completed view with next step trigger using chain_reverter
         return self.pipulate.chain_reverter("step_01", 0, self.steps, self.app_name, user_val)
 
@@ -440,4 +456,10 @@ class HelloFlow:
         await self.message_queue.add(pip, f'{step.show}: {processed_val}', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, self.step_messages['finalize']['ready'], verbatim=True)
-        return pip.chain_reverter(step_id, step_index, steps, app_name, processed_val)
+        return self.pipulate.chain_reverter(
+            step_id=step_id,
+            step_index=step_index,
+            steps=steps,
+            app_name=app_name,
+            processed_val=processed_val
+        )

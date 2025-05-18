@@ -13,13 +13,16 @@ from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+
 import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
+
 ROLES = ['Botify Employee']
 '\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class ParameterBusterWorkflow:
     """
@@ -1775,6 +1778,7 @@ class ParameterBusterWorkflow:
         from collections import Counter
         from io import BytesIO, StringIO
         from pathlib import Path
+
         import matplotlib.pyplot as plt
         import numpy as np
         self.pipulate.append_to_history('[VISUALIZATION] Creating parameter distribution visualization', quiet=True)

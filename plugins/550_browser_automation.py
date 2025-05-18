@@ -4,6 +4,7 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from urllib.parse import quote, urlparse
+
 from fasthtml.common import *
 from loguru import logger
 from selenium import webdriver
@@ -16,8 +17,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from seleniumwire import webdriver as wire_webdriver
 from starlette.responses import HTMLResponse, JSONResponse
 from webdriver_manager.chrome import ChromeDriverManager
+
 ROLES = ['Tutorial']
 '\nPipulate Browser Automation Workflow\n\nThis workflow demonstrates Selenium-based browser automation capabilities:\n- Cross-platform Chrome automation (Linux/macOS)\n- Clean browser sessions with temporary profiles\n- Detailed status logging and error handling\n- URL opening and verification\n'
+
 
 def get_safe_path(url):
     """Convert URL to filesystem-safe path while maintaining reversibility."""
@@ -29,16 +32,21 @@ def get_safe_path(url):
     path = quote(path + ('?' + parsed.query if parsed.query else ''), safe='')
     return (domain, path)
 
+
 def reconstruct_url(domain, path):
     """Reconstruct URL from filesystem components."""
     return f'https://{domain}{path}'
+
 
 def ensure_crawl_dir(app_name, domain, date_slug):
     """Ensure crawl directory exists and return its path."""
     base_dir = os.path.join('downloads', app_name, domain, date_slug)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
+
+
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class BrowserAutomation:
     """
@@ -431,7 +439,7 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style('error'))
 
-    def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str='google_session') -> tuple[str, str]:
+    def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str = 'google_session') -> tuple[str, str]:
         """Get the user data directory and profile directory paths for Chrome.
 
         Returns a tuple of (user_data_dir_path, profile_directory_name) where:

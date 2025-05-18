@@ -4,6 +4,7 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
+
 import pandas as pd
 from fastcore.xml import NotStr
 from fasthtml.common import *
@@ -15,9 +16,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
+
 ROLES = ['Tutorial']
 '\nPipulate Widget Examples\n\nThis workflow demonstrates various widget types that can be integrated into Pipulate Workflows:\n\n1. Simple HTMX Widget: Basic HTML content with no JavaScript execution\n2. Pandas Table Widget: HTML table from DataFrame\n3. JavaScript Execution Widget: DOM manipulation via JavaScript in HTMX-injected content\n4. Mermaid Diagram Renderer: Client-side rendering using mermaid.js\n5. Code Syntax Highlighter: Syntax highlighting with Prism.js\n\nThis serves as a reference implementation for creating visualization widgets in Pipulate.\n\n--- Design Pattern Note ---\nThis workflow uses a "Combined Step" pattern where each step handles both:\n1. Data collection (input form)\n2. Widget rendering (visualization)\n\nIn each step, user input is collected and immediately transformed into the \ncorresponding visualization in the same card upon submission. This approach:\n- Reduces the total number of workflow steps (5 instead of 10)\n- Creates a clear cause-effect relationship within each step\n- Simplifies navigation for the end user\n\nAn alternative "Separated Step" pattern would:\n- Split each feature into separate input and display steps\n- Use one step for data collection, followed by a step for visualization\n- Result in 10 steps total (plus finalize)\n- Potentially simplify each individual step\'s implementation\n- Allow for more focused step responsibilities\n\nWhen adapting this example for your own workflows, consider which pattern \nbest suits your needs:\n- Combined: When immediate visualization feedback is valuable\n- Separated: When data collection and visualization are distinct concerns\n             or when complex transformations occur between input and display\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class WidgetExamples:
     """
@@ -878,6 +881,7 @@ class WidgetExamples:
                 return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
             import base64
             from io import BytesIO
+
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 6))
             labels = sorted(counter.keys())

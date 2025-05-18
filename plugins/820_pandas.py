@@ -2,13 +2,16 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate Pandas Table Widget Workflow\nA workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class PandasTableWidget:
     """

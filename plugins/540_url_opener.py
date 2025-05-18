@@ -3,6 +3,7 @@ import json
 import os
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from selenium import webdriver
@@ -10,9 +11,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
+
 ROLES = ['Tutorial']
 '\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class BlankWorkflow:
     """

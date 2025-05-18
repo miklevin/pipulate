@@ -6,13 +6,16 @@ from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+
 import httpx
 from fasthtml.common import *
 from loguru import logger
+
 ROLES = ['Developer']
 '\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
 EXPORT_REGISTRY_FILE = Path('downloads/export_registry.json')
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class BotifyExport:
     """
@@ -1396,6 +1399,7 @@ class BotifyExport:
         prev_word = prev_data.get(prev_step.done, '')
         return step.transform(prev_word) if prev_word else ''
 
+
 def parse_botify_url(url: str) -> dict:
     """
     Parse and validate Botify URL.
@@ -1417,6 +1421,7 @@ def parse_botify_url(url: str) -> dict:
     project = path_parts[1]
     base_url = f'https://{parsed.netloc}/{org}/{project}/'
     return {'url': base_url, 'org': org, 'project': project}
+
 
 def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
     """Loads a CSV file with flexible options for Botify export quirks.
