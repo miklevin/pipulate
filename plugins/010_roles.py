@@ -99,7 +99,7 @@ class CrudCustomizer(BaseCrud):
 
         insert_data = {
             "text": text,
-            "done": text == "Core",  # Set done=True for Core role
+            "done": text in ["Core", "Botify Employee"],  # Set done=True for both Core and Botify Employee roles
             "priority": priority,
             "profile_id": current_profile_id,
         }
@@ -202,7 +202,7 @@ class CrudUI(PluginIdentityManager):
         for priority, role_name in enumerate(role_order):
             self.table.insert(
                 text=role_name,
-                done=(role_name == 'Core'),  # Only Core is done by default
+                done=(role_name in ['Core', 'Botify Employee']),  # Set both Core and Botify Employee to done=True
                 priority=priority,
                 profile_id=profile_id
             )

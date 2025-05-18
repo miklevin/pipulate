@@ -2151,13 +2151,65 @@ def create_env_menu():
     else:
         display_env = 'Prod'
     menu_items = []
+    
+    # Common styles for both menu items
+    menu_item_style = 'text-align: left; {pipulate.MENU_ITEM_PADDING} display: flex; border-radius: var(--pico-border-radius);'
+    radio_style = 'min-width: 1rem; margin-right: 0.5rem;'
+    
+    # Development menu item
     is_dev = current_env == 'Development'
-    dev_style = 'background-color: var(--pico-primary-focus);' if is_dev else ''
-    menu_items.append(Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;'), 'DEV', style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {dev_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';", id='dev-env-item')))
+    dev_style = menu_item_style + (' background-color: var(--pico-primary-focus);' if is_dev else '')
+    menu_items.append(Li(
+        Label(
+            Input(
+                type='radio',
+                name='env_radio_select',
+                value='Development',
+                checked=is_dev,
+                hx_post='/switch_environment',
+                hx_vals='{"environment": "Development"}',
+                hx_target='#dev-env-item',
+                hx_swap='outerHTML',
+                style=radio_style
+            ),
+            'DEV',
+            style=dev_style,
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';",
+            id='dev-env-item'
+        )
+    ))
+    
+    # Production menu item
     is_prod = current_env == 'Production'
-    prod_style = 'background-color: var(--pico-primary-focus);' if is_prod else ''
-    menu_items.append(Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;'), 'Prod', style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {prod_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';", id='prod-env-item')))
-    return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'), cls='dropdown', id='env-dropdown-menu')
+    prod_style = menu_item_style + (' background-color: var(--pico-primary-focus);' if is_prod else '')
+    menu_items.append(Li(
+        Label(
+            Input(
+                type='radio',
+                name='env_radio_select',
+                value='Production',
+                checked=is_prod,
+                hx_post='/switch_environment',
+                hx_vals='{"environment": "Production"}',
+                hx_target='#prod-env-item',
+                hx_swap='outerHTML',
+                style=radio_style
+            ),
+            'Prod',
+            style=prod_style,
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';",
+            id='prod-env-item'
+        )
+    ))
+    
+    return Details(
+        Summary(display_env, style=env_summary_style, id='env-id'),
+        Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'),
+        cls='dropdown',
+        id='env-dropdown-menu'
+    )
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
