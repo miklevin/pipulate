@@ -28,11 +28,13 @@ README.md
 flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/static/chat-interface.js
-/home/mike/repos/pipulate/static/chat-scripts.js
-/home/mike/repos/pipulate/static/pico.css
+/home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
+/home/mike/repos/pipulate/helpers/refactor_style_constants_to_css.py
 /home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/chat-interface.js
+# /home/mike/repos/pipulate/static/chat-scripts.js
+# /home/mike/repos/pipulate/static/pico.css
+# /home/mike/repos/pipulate/static/widget-scripts.js
 # /home/mike/repos/pipulate/plugins/000_profiles.py
 # /home/mike/repos/pipulate/plugins/010_roles.py
 # /home/mike/repos/pipulate/plugins/020_tasks.py
