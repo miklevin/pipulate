@@ -1775,7 +1775,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
         }}
     }});
     """
-    return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/chat-styles.css')
+    return Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/styles.css')
 
 
 class BaseCrud:  # noqa
