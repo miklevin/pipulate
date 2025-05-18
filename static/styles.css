@@ -74,13 +74,28 @@ article > div:first-child {
 
 /* Navigation Group Styling */
 #nav-group {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 10001;  /* Higher than chat interface's 10000 */
   background-color: var(--pico-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   padding: 0.5rem 0;
   margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);  /* Subtle shadow to separate from content */
+}
+
+/* Chat Interface Styling */
+#chat-interface {
+  position: fixed;
+  top: 10rem;  /* Match nav-group height */
+  z-index: 10000;
+}
+
+/* Add padding to the main content to account for fixed nav */
+main {
+  padding-top: 3.5rem;  /* Adjust based on nav-group height */
 }
 
 /* Text Utilities */
