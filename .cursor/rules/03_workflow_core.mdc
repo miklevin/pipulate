@@ -173,23 +173,23 @@ All plugin methods that handle HTTP requests must accept a `request` parameter. 
 - Maintain consistent DOM structure across all phases
 
 ### Navigation Component Selection
-- Use `revert_control` for standard steps:
+- Use `display_revert_header` for standard steps:
   ```python
   return Div(
-      pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
+      pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
       Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
       id=step_id
   )
   ```
-- Use `widget_container` for steps with visualizations:
+- Use `display_widget_container` for steps with visualizations:
   ```python
   return Div(
-      pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
+      pip.display_widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
       Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
       id=step_id
   )
   ```
-- Use `create_step_navigation` for simple, standard steps
+- Use `display_step_navigation` for simple, standard steps
 - Use direct construction only when necessary for custom layouts
 
 ### DOM Structure Requirements
@@ -212,7 +212,7 @@ All plugin methods that handle HTTP requests must accept a `request` parameter. 
    ```python
    elif user_val and state.get('_revert_target') != step_id:
        return Div(
-           pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
+           pip.display_widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
        )
    ```

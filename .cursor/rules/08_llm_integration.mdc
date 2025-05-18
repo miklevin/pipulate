@@ -1,5 +1,11 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+
+## description: Integrating with local LLMs (Ollama), managing chat context, and using the OrderedMessageQueue for UI/LLM synchronization. globs: ["pipulate/plugins/*.py", "server.py", ".cursor/rules/integration/llm_context_sync.mdc"] alwaysApply: true
+
 
 ## description: Integrating with local LLMs (Ollama), managing chat context, and using the OrderedMessageQueue for UI/LLM synchronization. globs: ["pipulate/plugins/*.py", "server.py", ".cursor/rules/integration/llm_context_sync.mdc"] alwaysApply: true
 
@@ -59,7 +65,7 @@ The `Pipulate.OrderedMessageQueue` (accessible via `self.message_queue` in workf
   * **Form Submissions**: After processing a form, inform the LLM.
     ```python
     await self.message_queue.add(self.pipulate, f"{step.show} complete. Value: {user_input}", verbatim=True, role="system")
-    # This is often done by pipulate.set_step_data or pipulate.create_step_navigation
+    # This is often done by pipulate.set_step_data or pipulate.display_step_navigation
     ```
   * **Validation Errors**:
     ```python

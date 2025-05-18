@@ -1,5 +1,11 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+
+## description: Guidelines for building UI components, using HTMX for interactivity (beyond the core chain reaction), and PicoCSS form styling. globs: ["pipulate/plugins/*.py", "server.py", "static/pico.css"] alwaysApply: true
+
 
 ## description: Guidelines for building UI components, using HTMX for interactivity (beyond the core chain reaction), and PicoCSS form styling. globs: ["pipulate/plugins/*.py", "server.py", "static/pico.css"] alwaysApply: true
 
@@ -110,8 +116,8 @@ PicoCSS styles standard HTML form elements with minimal extra classes.
 
 ## 6. UI Consistency Helpers in `Pipulate` Class (`server.py`)
 
-  * `pipulate.revert_control(...)`: Standard UI for showing a completed step's value with a "Revert" button.
-  * `pipulate.widget_container(...)`: Wraps a widget's content with a `revert_control` message.
+  * `pipulate.display_revert_header(...)`: Standard UI for showing a completed step's value with a "Revert" button.
+  * `pipulate.display_widget_container(...)`: Wraps a widget's content with a revert header message.
   * `pipulate.finalized_content(...)`: Displays content for a finalized (locked) step.
   * `pipulate.wrap_with_inline_button(...)`: Styles an input field with an adjacent submit button (e.g., for pipeline key input).
   * `pipulate.get_style("error" | "success" | "muted")`: Provides consistent CSS for messages.
