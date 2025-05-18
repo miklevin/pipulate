@@ -7,7 +7,7 @@ from loguru import logger
 ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
 
 # Warning: This is an intentionally local-first app using server-side state and HTMX.
-# Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursorrules
+# Do not refactor the DictLikeDB or HTMX patterns - see README.md and .cursor/rules
 # for the design philosophy and contribution guidelines.
 
 """
@@ -15,6 +15,26 @@ Pipulate Workflow Template (Hello World Example)
 
 This file serves as a starting point for creating linear, step-by-step Pipulate Workflows.
 It includes essential boilerplate and demonstrates core concepts.
+
+--- The Chain Reaction Pattern ---
+Pipulate workflows use HTMX's chain reaction pattern to create a "Run All Cells" experience
+similar to Jupyter Notebooks. Each step automatically triggers the next step's loading
+until it encounters a step requiring user input. This creates a robust, resumable workflow.
+
+The chain reaction is maintained through three distinct phases in each step:
+
+1. Finalize Phase: Shows locked view of completed step, chains to next step
+2. Revert Phase: Shows completed view with revert option, chains to next step
+3. Get Input Phase: Shows input form, waits for user submission
+
+The chain is maintained by including a Div with hx_trigger="load" in the response:
+```python
+return Div(
+    Card(...),  # Current step content
+    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+    id=step_id
+)
+```
 
 --- Basic Workflow Pattern ---
 1. Define steps sequentially using the `Step` namedtuple.
@@ -24,6 +44,45 @@ It includes essential boilerplate and demonstrates core concepts.
 4. Use helper methods from `self.pipulate` (aliased as `pip`) for common tasks
    like state management, UI generation, and validation.
 5. Workflows can be reverted to previous steps or finalized to lock them.
+
+--- Step Phases in Detail ---
+Each step has three phases, implemented in the GET handler:
+
+1. Finalize Phase (Locked View):
+   ```python
+   if "finalized" in finalize_data and step_value:
+       return Div(
+           Card(H3(f"🔒 {step.show}: {step_value}")),
+           Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+           id=step_id
+       )
+   ```
+
+2. Revert Phase (Completed View):
+   ```python
+   elif step_value and state.get("_revert_target") != step_id:
+       return Div(
+           Card(H3(f"{step.show}: {step_value}")),
+           Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+           id=step_id
+       )
+   ```
+
+3. Get Input Phase (Form View):
+   ```python
+   else:
+       return Div(
+           Card(
+               H3(f"{step.show}"),
+               Form(...)  # Input form here
+           ),
+           Div(id=next_step_id),  # No hx_trigger - wait for form submission
+           id=step_id
+       )
+   ```
+
+The submit handler (`step_XX_submit`) is essentially a specialized version of the Revert Phase,
+showing the completed view with the newly submitted data.
 
 --- Adapting This Template ---
 1.  **Copy & Rename:** Copy this file. Rename the class (e.g., `MyWorkflow`),
