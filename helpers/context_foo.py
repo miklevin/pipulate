@@ -33,12 +33,12 @@ server.py
 /home/mike/repos/pipulate/static/pico.css
 /home/mike/repos/pipulate/static/styles.css
 /home/mike/repos/pipulate/static/widget-scripts.js
-/home/mike/repos/pipulate/plugins/000_profiles.py
-/home/mike/repos/pipulate/plugins/010_roles.py
-/home/mike/repos/pipulate/plugins/020_tasks.py
-/home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/pipulate/helpers/create_workflow.py
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py
+# /home/mike/repos/pipulate/plugins/000_profiles.py
+# /home/mike/repos/pipulate/plugins/010_roles.py
+# /home/mike/repos/pipulate/plugins/020_tasks.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/pipulate/helpers/create_workflow.py
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
 # /home/mike/repos/pipulate/helpers/analyze_styles.py
 # /home/mike/repos/pipulate/plugins/720_text_field.py
 # /home/mike/repos/pipulate/plugins/730_text_area.py
