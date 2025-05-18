@@ -161,3 +161,74 @@ All plugin methods that handle HTTP requests must accept a `request` parameter. 
        except Exception as e:
            return self.pipulate.error_message(f"Error processing input: {str(e)}")
    ```
+
+## 5. Step Navigation Implementation
+
+### Handler Phase Consistency
+- GET handlers must implement all three phases:
+  1. **Finalize Phase**: Shows locked view with 🔒 when workflow is finalized
+  2. **Revert Phase**: Shows completed view with revert control
+  3. **Input Phase**: Shows form without next step trigger
+- POST handler return must match GET handler's Revert Phase structure
+- Maintain consistent DOM structure across all phases
+
+### Navigation Component Selection
+- Use `revert_control` for standard steps:
+  ```python
+  return Div(
+      pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
+      Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+      id=step_id
+  )
+  ```
+- Use `widget_container` for steps with visualizations:
+  ```python
+  return Div(
+      pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
+      Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+      id=step_id
+  )
+  ```
+- Use `create_step_navigation` for simple, standard steps
+- Use direct construction only when necessary for custom layouts
+
+### DOM Structure Requirements
+- Outer `Div` with step ID as container
+- Navigation component (revert control or widget container)
+- Next step trigger with `hx_trigger="load"`
+- Consistent styling and spacing across all phases
+
+### Phase Transition Rules
+1. **Finalize Phase**:
+   ```python
+   if 'finalized' in finalize_data and user_val:
+       return Div(
+           Card(H3(f'🔒 {step.show}'), widget),
+           Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+       )
+   ```
+
+2. **Revert Phase**:
+   ```python
+   elif user_val and state.get('_revert_target') != step_id:
+       return Div(
+           pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
+           Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+       )
+   ```
+
+3. **Input Phase**:
+   ```python
+   else:
+       return Div(
+           Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'),
+                Form(...)),
+           Div(id=next_step_id),
+           id=step_id
+       )
+   ```
+
+4. **Submit Handler**:
+   - Must match Revert Phase structure
+   - Should include next step trigger
+   - Must maintain consistent DOM hierarchy
