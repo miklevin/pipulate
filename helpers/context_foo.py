@@ -113,9 +113,9 @@ PROMPT_FILE = None  # Default prompt file is None
 
 def print_structured_output(manifest, pre_prompt, files, post_prompt, total_tokens, max_tokens):
     """Print a structured view of the prompt components in markdown format."""
-    print("\n=== Prompt Structure ===")
+    print("\n=== Prompt Structure ===\n")
     
-    print("\n--- Pre-Prompt ---")
+    print("--- Pre-Prompt ---")
     # Handle pre-prompt content
     try:
         if '<context>' in pre_prompt:
@@ -185,127 +185,11 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
         tokens_str = f" ({token_counts.get(file, 0):,} tokens)" if file in token_counts else ""
         print(f"• {file}{tokens_str}")
     
-    print("\n--- Post-Prompt ---")
-    # Handle post-prompt content
-    try:
-        if '<analysis_request>' in post_prompt:
-            analysis_start = post_prompt.find('<analysis_request>') + 17
-            analysis_end = post_prompt.find('</analysis_request>')
-            if analysis_start > 16 and analysis_end > analysis_start:
-                analysis_content = post_prompt[analysis_start:analysis_end]
-                
-                # Extract introduction
-                if '<introduction>' in analysis_content:
-                    intro_start = analysis_content.find('<introduction>') + 13
-                    intro_end = analysis_content.find('</introduction>')
-                    if intro_start > 12 and intro_end > intro_start:
-                        print("Introduction:")
-                        intro_content = analysis_content[intro_start:intro_end].strip()
-                        # Remove any remaining XML tags and clean up formatting
-                        intro_content = re.sub(r'<[^>]+>', '', intro_content)
-                        intro_content = intro_content.replace('>', '')  # Remove any remaining > characters
-                        print(f"  {intro_content}")
-                
-                # Extract analysis areas
-                if '<analysis_areas>' in analysis_content:
-                    areas_start = analysis_content.find('<analysis_areas>') + 15
-                    areas_end = analysis_content.find('</analysis_areas>')
-                    if areas_start > 14 and areas_end > areas_start:
-                        areas_content = analysis_content[areas_start:areas_end]
-                        print("\nAnalysis Areas:")
-                        for area in areas_content.split('<area>'):
-                            if area.strip():
-                                area_end = area.find('</area>')
-                                if area_end > -1:
-                                    area_content = area[:area_end]
-                                    if '<title>' in area_content:
-                                        title_start = area_content.find('<title>') + 7
-                                        title_end = area_content.find('</title>')
-                                        if title_start > 6 and title_end > title_start:
-                                            title = area_content[title_start:title_end].strip()
-                                            # Remove any remaining XML tags
-                                            title = re.sub(r'<[^>]+>', '', title)
-                                            print(f"  • {title}")
-                
-                # Extract focus areas
-                if '<focus_areas>' in analysis_content:
-                    focus_start = analysis_content.find('<focus_areas>') + 12
-                    focus_end = analysis_content.find('</focus_areas>')
-                    if focus_start > 11 and focus_end > focus_start:
-                        focus_content = analysis_content[focus_start:focus_end]
-                        print("\nFocus Areas:")
-                        for area in focus_content.split('<area>'):
-                            if area.strip():
-                                area_end = area.find('</area>')
-                                if area_end > -1:
-                                    area_content = area[:area_end].strip()
-                                    # Remove any remaining XML tags
-                                    area_content = re.sub(r'<[^>]+>', '', area_content)
-                                    print(f"  • {area_content}")
-        elif '<implementation_request>' in post_prompt:
-            analysis_start = post_prompt.find('<implementation_request>') + 23
-            analysis_end = post_prompt.find('</implementation_request>')
-            if analysis_start > 22 and analysis_end > analysis_start:
-                analysis_content = post_prompt[analysis_start:analysis_end]
-                
-                # Extract introduction
-                if '<introduction>' in analysis_content:
-                    intro_start = analysis_content.find('<introduction>') + 13
-                    intro_end = analysis_content.find('</introduction>')
-                    if intro_start > 12 and intro_end > intro_start:
-                        print("Introduction:")
-                        intro_content = analysis_content[intro_start:intro_end].strip()
-                        # Remove any remaining XML tags and clean up formatting
-                        intro_content = re.sub(r'<[^>]+>', '', intro_content)
-                        intro_content = intro_content.replace('>', '')  # Remove any remaining > characters
-                        print(f"  {intro_content}")
-                
-                # Extract implementation areas
-                if '<implementation_areas>' in analysis_content:
-                    areas_start = analysis_content.find('<implementation_areas>') + 21
-                    areas_end = analysis_content.find('</implementation_areas>')
-                    if areas_start > 20 and areas_end > areas_start:
-                        areas_content = analysis_content[areas_start:areas_end]
-                        print("\nImplementation Areas:")
-                        for area in areas_content.split('<area>'):
-                            if area.strip():
-                                area_end = area.find('</area>')
-                                if area_end > -1:
-                                    area_content = area[:area_end]
-                                    if '<title>' in area_content:
-                                        title_start = area_content.find('<title>') + 7
-                                        title_end = area_content.find('</title>')
-                                        if title_start > 6 and title_end > title_start:
-                                            title = area_content[title_start:title_end].strip()
-                                            # Remove any remaining XML tags
-                                            title = re.sub(r'<[^>]+>', '', title)
-                                            print(f"  • {title}")
-                
-                # Extract focus areas
-                if '<focus_areas>' in analysis_content:
-                    focus_start = analysis_content.find('<focus_areas>') + 12
-                    focus_end = analysis_content.find('</focus_areas>')
-                    if focus_start > 11 and focus_end > focus_start:
-                        focus_content = analysis_content[focus_start:focus_end]
-                        print("\nFocus Areas:")
-                        for area in focus_content.split('<area>'):
-                            if area.strip():
-                                area_end = area.find('</area>')
-                                if area_end > -1:
-                                    area_content = area[:area_end].strip()
-                                    # Remove any remaining XML tags
-                                    area_content = re.sub(r'<[^>]+>', '', area_content)
-                                    print(f"  • {area_content}")
-    except Exception as e:
-        print("  [Error parsing post-prompt content]")
+    print("\n--- Post-Prompt ---\n")
     
-    print("\n--- Token Summary ---")
-    # Calculate total tokens including all files and prompt content
-    files_tokens = sum(token_counts.get(file, 0) for file in files)
-    prompt_tokens = count_tokens(pre_prompt, "gpt-4") + count_tokens(post_prompt, "gpt-4")
-    total_combined_tokens = files_tokens + prompt_tokens
+    print("--- Token Summary ---")
+    print(f"Total tokens: {format_token_count(total_tokens)} tokens")
     
-    print(f"Total tokens: {format_token_count(total_combined_tokens)}")
     print("\n=== End Prompt Structure ===\n")
 
 # -------------------------------------------------------------------------
@@ -401,12 +285,6 @@ I've provided you with the core architecture of a Python web application that ta
             create_xml_element("system_info", """
 You are about to review a codebase and related documentation. Please study and understand
 the provided materials thoroughly before responding.
-
-Key things to know about this codebase:
-- It uses a hybrid approach with Nix for system dependencies and virtualenv for Python packages
-- Always run `nix develop` before any commands in a new terminal
-- FastHTML objects must be converted with to_xml() before returning responses
-- The project is organized as a server with plugin-based workflows
 """),
             create_xml_element("key_points", [
                 "<point>Focus on understanding the architecture and patterns in the codebase</point>",
@@ -697,7 +575,6 @@ def create_pipulate_manifest(file_paths):
                 
                 # Check if adding this file would exceed token limit
                 if total_tokens + content_tokens > max_tokens:
-                    print(f"Warning: Skipping {relative_path} as it would exceed the {max_tokens:,} token limit")
                     manifest.add_file(
                         relative_path,
                         f"{os.path.basename(relative_path)} [skipped: would exceed token limit]"
@@ -705,7 +582,6 @@ def create_pipulate_manifest(file_paths):
                     continue
                 
                 total_tokens += content_tokens
-                # Remove token count from description since it will be shown in the file content
                 description = f"{os.path.basename(relative_path)} [loaded]"
                 
                 # Add file to manifest
@@ -714,9 +590,6 @@ def create_pipulate_manifest(file_paths):
                     description,
                     content=content
                 )
-                
-                print(f"Added {relative_path} ({format_token_count(content_tokens)})")
-                print(f"Total tokens so far: {format_token_count(total_tokens)}")
                 
         except UnicodeDecodeError as e:
             print(f"ERROR: Could not decode {full_path}: {e}")
@@ -837,6 +710,8 @@ if args.prompt:
     args.template = 1  # Use the material analysis template
     
     print(f"Using prompt file: {prompt_path}")
+    print(f"Using template {args.template}: {prompt_templates[args.template]['name']}")
+    print(f"Output will be written to: {args.output}\n")
 
 # If --cat is used, set concat mode and blog posts directory
 if args.cat:
@@ -857,23 +732,10 @@ post_prompt = prompt_templates[template_index]["post_prompt"]
 print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
 print(f"Output will be written to: {output_filename}")
 
-# Add a clear message about file paths
-print("\nChecking files to include:")
-# For non-concat mode, show the files that will be checked
-if not args.concat_mode:
-    print("Files to be included from FILES_TO_INCLUDE:")
-    for file_path in final_file_list:
-        full_path = os.path.join(repo_root, file_path) if not os.path.isabs(file_path) else file_path
-        print(f"  - {file_path} -> {full_path}")
-    print("\nNOTE: If running from a subdirectory, remember that relative paths in FILES_TO_INCLUDE")
-    print("      are relative to the repository root, which is currently set to:")
-    print(f"      {repo_root}")
-    print("      Files not found will cause the program to exit with an error message.")
-# For concat mode, show directory being used
-else:
+# Remove verbose file checking messages
+if args.concat_mode:
     print(f"Directory being searched for markdown files: {args.directory}")
     print("NOTE: Only .md files in this directory will be processed.")
-    print("      Files not found will cause the program to exit with an error message.")
 
 # Create the manifest and incorporate user's pre_prompt
 manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
