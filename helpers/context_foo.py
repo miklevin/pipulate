@@ -30,61 +30,32 @@ requirements.txt
 server.py
 /home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
-/home/mike/repos/pipulate/plugins/020_tasks.py
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py
+/home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
+/home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
+/home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_state_management.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
+/home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
+/home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
+/home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
+/home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
+/home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
 /home/mike/repos/pipulate/static/styles.css
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+/home/mike/repos/pipulate/helpers/create_workflow.py
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py
 /home/mike/repos/pipulate/plugins/520_widget_examples.py
 /home/mike/repos/pipulate/helpers/analyze_styles.py
 /home/mike/repos/pipulate/helpers/refactor_inline_style.py
 /home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
-/home/mike/repos/pipulate/helpers/refactor_style_constants_to_css.py
-/home/mike/repos/pipulate/helpers/create_workflow.py
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py
-# /home/mike/repos/pipulate/static/chat-interface.js
-# /home/mike/repos/pipulate/static/chat-scripts.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
-# /home/mike/repos/pipulate/static/pico.css
-# /home/mike/repos/pipulate/plugins/720_text_field.py
-# /home/mike/repos/pipulate/plugins/730_text_area.py
-# /home/mike/repos/pipulate/plugins/740_dropdown.py
-# /home/mike/repos/pipulate/plugins/750_checkboxes.py
-# /home/mike/repos/pipulate/plugins/760_radios.py
-# /home/mike/repos/pipulate/plugins/770_range.py
-# /home/mike/repos/pipulate/plugins/780_switch.py
-# /home/mike/repos/pipulate/plugins/800_markdown.py
-# /home/mike/repos/pipulate/plugins/810_mermaid.py
-# /home/mike/repos/pipulate/plugins/820_pandas.py
-# /home/mike/repos/pipulate/plugins/830_rich.py
-# /home/mike/repos/pipulate/plugins/840_matplotlib.py
-# /home/mike/repos/pipulate/plugins/850_prism.py
-# /home/mike/repos/pipulate/plugins/860_javascript.py
-# /home/mike/repos/pipulate/plugins/870_upload.py
-# /home/mike/repos/pipulate/static/alice.txt
-# /home/mike/repos/pipulate/static/fasthtml.js
-# /home/mike/repos/pipulate/static/htmx.js
-# /home/mike/repos/pipulate/static/marked.min.js
-# /home/mike/repos/pipulate/static/mermaid.min.js
-# /home/mike/repos/pipulate/static/pipulate.svg
-# /home/mike/repos/pipulate/static/prism.css
-# /home/mike/repos/pipulate/static/prism.js
-# /home/mike/repos/pipulate/static/rich-table.css
-# /home/mike/repos/pipulate/static/script.js
-# /home/mike/repos/pipulate/static/Sortable.js
-# /home/mike/repos/pipulate/static/surreal.js
-# /home/mike/repos/pipulate/static/ws.js
-# /home/mike/repos/pipulate/plugins/030_connect_with_botify.py
-# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py
-# /home/mike/repos/pipulate/plugins/525_roadmap.py
-# /home/mike/repos/pipulate/plugins/530_botify_export.py
-# /home/mike/repos/pipulate/plugins/540_url_opener.py
-# /home/mike/repos/pipulate/plugins/550_browser_automation.py
-# /home/mike/repos/pipulate/plugins/600_stream_simulator.py
-# /home/mike/repos/pipulate/plugins/650_separator.py
-# /home/mike/repos/pipulate/plugins/700_widget_shim.py
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/715_splice_workflow.py
-# /home/mike/repos/pipulate/plugins/880_webbrowser.py
-# /home/mike/repos/pipulate/plugins/890_selenium.py
+/home/mike/repos/Pipulate.com/development.md
+/home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
 """.strip().splitlines()
 
 # Filter out any commented lines
