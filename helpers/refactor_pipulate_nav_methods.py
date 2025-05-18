@@ -8,7 +8,7 @@ import argparse
 RENAME_MAP = {
     "revert_control": "display_revert_header",
     "widget_container": "display_revert_widget",
-    # Add "create_step_navigation": "chain_reverter" here if you decide to proceed
+    "create_step_navigation": "chain_reverter"
 }
 
 # Files and directories to scan relative to project_root
