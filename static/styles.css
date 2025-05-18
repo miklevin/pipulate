@@ -71,10 +71,24 @@ article > div:first-child {
   font-size: 0.9em;
   color: var(--pico-muted-color);
 }
+
+/* Navigation Group Styling */
+#nav-group {
+  position: sticky;
+  top: 0;
+  z-index: 10001;  /* Higher than chat interface's 10000 */
+  background-color: var(--pico-background-color);
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+}
+
+/* Text Utilities */
 .text-note {
   font-size: 0.8em;
   font-style: italic;
 }
+
 .text-muted { /* If #666 is consistently used for this */
   color: var(--pico-muted-color);
 }

@@ -2149,11 +2149,11 @@ def create_nav_group():
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for nav group creation")
-        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), style='display: flex; align-items: center; gap: 20px; width: 100%;'), style='display: flex; align-items: center; position: relative;')
+        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), style='display: flex; align-items: center; gap: 20px; width: 100%;'), style='display: flex; align-items: center;')
     nav = create_nav_menu()
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
-    nav_group_style = 'display: flex; align-items: center; position: relative;'
+    nav_group_style = 'display: flex; align-items: center;'
     return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', style=nav_group_style)
 
 def create_env_menu():
