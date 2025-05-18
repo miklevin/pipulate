@@ -2143,7 +2143,7 @@ async def home(request):
     logger.debug('Returning response for main GET request.')
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-    return (Title(page_title), Main(response, data_theme='dark', style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};'))
+    return (Title(page_title), Main(response, data_theme='dark'))
 
 def create_nav_group():
     profiles_plugin_inst = plugin_instances.get('profiles')
