@@ -16,6 +16,46 @@ Pipulate Workflow Template (Hello World Example)
 This file serves as a starting point for creating linear, step-by-step Pipulate Workflows.
 It includes essential boilerplate and demonstrates core concepts.
 
+--- The Unix Philosophy in Web Workflows ---
+Pipulate embraces the Unix philosophy of "do one thing well" and "make programs that work together."
+Just as Unix pipes (`|`) connect commands, Pipulate's chain reaction connects workflow steps:
+
+```bash
+# Unix: Data flows through pipes
+cat data.txt | grep "pattern" | sort | uniq -c
+
+# Pipulate: Data flows through steps
+step_01 | step_02 | step_03 | finalize
+```
+
+Each step's output becomes the next step's input, creating a natural data pipeline. This is achieved through two complementary patterns:
+
+1. **Transform Pattern** (Declarative):
+   ```python
+   Step(
+       id='step_02',
+       done='greeting',
+       show='Hello Message',
+       refill=False,
+       transform=lambda name_from_step_01: f"Hello {name_from_step_01}!"  # Unix pipe-like
+   )
+   ```
+   The `transform` function and `get_suggestion` method work together like a Unix pipe, automatically
+   passing data between steps. This is ideal for simple, direct transformations.
+
+2. **State Pattern** (Imperative):
+   ```python
+   # Read from previous step
+   prev_data = pip.get_step_data(pipeline_id, "step_01", {})
+   name = prev_data.get('name')
+   
+   # Process and write to current step
+   greeting = f"Hello {name}!"
+   await pip.set_step_data(pipeline_id, "step_02", greeting, steps)
+   ```
+   This pattern gives you full control over data flow, useful for complex transformations
+   or when you need to read/write state at specific points.
+
 --- The Chain Reaction Pattern ---
 Pipulate workflows use HTMX's chain reaction pattern to create a "Run All Cells" experience
 similar to Jupyter Notebooks. Each step automatically triggers the next step's loading
@@ -45,10 +85,11 @@ return Div(
    like state management, UI generation, and validation.
 5. Workflows can be reverted to previous steps or finalized to lock them.
 
---- Step Phases in Detail ---
-Each step has three phases, implemented in the GET handler:
+--- Step Phases in Detail (Like Unix Commands) ---
+Each step has three phases, implemented in the GET handler. Think of each phase as a Unix command
+that can pipe its output to the next command:
 
-1. Finalize Phase (Locked View):
+1. Finalize Phase (Locked View - Like `cat` with read-only):
    ```python
    if "finalized" in finalize_data and step_value:
        return Div(
@@ -58,7 +99,7 @@ Each step has three phases, implemented in the GET handler:
        )
    ```
 
-2. Revert Phase (Completed View):
+2. Revert Phase (Completed View - Like `cat` with edit option):
    ```python
    elif step_value and state.get("_revert_target") != step_id:
        return Div(
@@ -68,7 +109,7 @@ Each step has three phases, implemented in the GET handler:
        )
    ```
 
-3. Get Input Phase (Form View):
+3. Get Input Phase (Form View - Like `read` command):
    ```python
    else:
        return Div(
@@ -83,6 +124,46 @@ Each step has three phases, implemented in the GET handler:
 
 The submit handler (`step_XX_submit`) is essentially a specialized version of the Revert Phase,
 showing the completed view with the newly submitted data.
+
+--- Data Flow Patterns (Like Unix Pipes) ---
+Just as Unix commands can be chained with pipes, Pipulate steps can pass data in two ways:
+
+1. **Transform Pattern** (Like Unix pipes):
+   ```python
+   # In steps definition
+   Step(
+       id='step_02',
+       done='greeting',
+       show='Hello Message',
+       refill=False,
+       transform=lambda name: f"Hello {name}!"  # Direct pipe-like transformation
+   )
+   
+   # In get_suggestion
+   async def get_suggestion(self, step_id, state):
+       step = next((s for s in steps if s.id == step_id), None)
+       if step and step.transform:
+           prev_step = steps[self.steps_indices[step_id] - 1]
+           prev_data = pip.get_step_data(db["pipeline_id"], prev_step.id, {})
+           prev_value = prev_data.get(prev_step.done, "")
+           return step.transform(prev_value)  # Apply transform like a pipe
+       return ""
+   ```
+
+2. **State Pattern** (Like Unix redirection):
+   ```python
+   # In step handler
+   async def step_02_submit(self, request):
+       # Read from previous step (like reading a file)
+       prev_data = pip.get_step_data(pipeline_id, "step_01", {})
+       name = prev_data.get('name')
+       
+       # Process data (like grep/sed/awk)
+       greeting = f"Hello {name}!"
+       
+       # Write to current step (like writing to a file)
+       await pip.set_step_data(pipeline_id, "step_02", greeting, steps)
+   ```
 
 --- Adapting This Template ---
 1.  **Copy & Rename:** Copy this file. Rename the class (e.g., `MyWorkflow`),
@@ -424,7 +505,8 @@ class HelloFlow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")
 
-        # Boilerplate: Check if workflow is finalized
+        # --- PHASE 1: Finalize Phase (Locked View) ---
+        # Like Unix 'cat' with read-only mode
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             # Show locked view - message queue will handle conversation history
@@ -438,7 +520,8 @@ class HelloFlow:
                 id=step_id
             )
 
-        # Boilerplate: Check if step is complete and we are NOT reverting to it
+        # --- PHASE 2: Revert Phase (Completed View) ---
+        # Like Unix 'cat' with edit option
         elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button - message queue handles history
             completed_msg = f"Step 1 is complete. You entered: {user_val}"
@@ -447,6 +530,9 @@ class HelloFlow:
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
+
+        # --- PHASE 3: Get Input Phase (Form View) ---
+        # Like Unix 'read' command
         else:
             # Show the input form for this step
             display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
@@ -530,7 +616,6 @@ class HelloFlow:
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
 
     # --- Step 2: Hello Message ---
-
     async def step_02(self, request):
         """ Handles GET request for Step 2: Displays input form or completed value. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
@@ -543,7 +628,8 @@ class HelloFlow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, "")  # Get the saved value for 'greeting' if it exists
 
-        # Boilerplate: Check if workflow is finalized
+        # --- PHASE 1: Finalize Phase (Locked View) ---
+        # Like Unix 'cat' with read-only mode
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
         if "finalized" in finalize_data:
             # Show locked view
@@ -556,7 +642,8 @@ class HelloFlow:
                 id=step_id
             )
 
-        # Boilerplate: Check if step is complete and we are NOT reverting to it
+        # --- PHASE 2: Revert Phase (Completed View) ---
+        # Like Unix 'cat' with edit option
         elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button
             return Div(
@@ -564,6 +651,9 @@ class HelloFlow:
                 # CRITICAL: Explicitly trigger next step loading - this pattern is required for reliable workflow progression
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
             )
+
+        # --- PHASE 3: Get Input Phase (Form View) ---
+        # Like Unix 'read' command
         else:
             # Show the input form for this step
             # Determine value: Use existing if refill enabled, otherwise get suggestion (uses transform)
