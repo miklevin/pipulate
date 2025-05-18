@@ -119,7 +119,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             
         return self.ENDPOINT_MESSAGE
 
-    async def landing(self):
+    async def landing(self, request):
         """
         This is the landing page for the workflow. It asks for a unique identifier.
         It is necessary for the workflow to function. Only change cosmetic elements.

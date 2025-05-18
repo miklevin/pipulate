@@ -52,7 +52,7 @@ class BlankWorkflow:
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
-    async def landing(self):
+    async def landing(self, request):
         """Renders the initial landing page with the key input form."""
         pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
         title = f'{self.DISPLAY_NAME or app_name.title()}'

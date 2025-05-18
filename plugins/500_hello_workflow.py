@@ -181,7 +181,7 @@ class HelloFlow:
 
     # --- Core Workflow Engine Methods (Usually Do Not Modify) ---
 
-    async def landing(self):
+    async def landing(self, request):
         """ Renders the initial landing page with the key input form. """
         pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
         context = pip.get_plugin_context(self)
