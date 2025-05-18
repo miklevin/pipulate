@@ -30,6 +30,13 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
+# IMPORTANT: DO NOT DELETE THIS NOTE REGARDING MY FAVORITE LINTING TOOLS
+# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
+# isort server.py
+# vulture server.py
+# pylint --disable=all --enable=redefined-outer-name server.py
+
 DEBUG_MODE = False
 STATE_TABLES = False
 
