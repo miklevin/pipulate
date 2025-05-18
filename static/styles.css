@@ -67,91 +67,91 @@ article > div:first-child {
 /* Begin Consolidation Additons */
 
 /* Text Utilities */
-.text-muted-lead {
+.text-secondary {
   font-size: 0.9em;
   color: var(--pico-muted-color);
 }
-.text-small-italic {
+.text-note {
   font-size: 0.8em;
   font-style: italic;
 }
-.text-pico-muted { /* If #666 is consistently used for this */
+.text-muted { /* If #666 is consistently used for this */
   color: var(--pico-muted-color);
 }
-.text-right {
+.text-end {
   text-align: right;
 }
-.text-success {
+.text-valid {
   color: var(--pico-form-element-valid-border-color); /* Pico semantic green */
 }
-.text-error {
+.text-invalid {
   color: var(--pico-form-element-invalid-border-color); /* Pico semantic red */
 }
-.text-primary { /* Assuming cyan maps to primary */
+.text-accent { /* Assuming cyan maps to primary */
   color: var(--pico-primary);
 }
-.fw-bold {
+.font-bold {
   font-weight: bold;
 }
-.fst-italic {
+.font-italic {
   font-style: italic;
 }
 
 /* Sizing & Layout Utilities */
-.w-100 {
+.w-full {
   width: 100%;
 }
-.d-flex {
+.flex {
   display: flex;
 }
-.d-block {
+.block {
   display: block;
 }
-.d-none { /* Use with caution, `hidden` attribute is often better */
+.hidden { /* Use with caution, `hidden` attribute is often better */
   display: none !important;
 }
-.align-items-center {
+.items-center {
   align-items: center;
 }
-.overflow-x-auto {
+.overflow-auto {
   overflow-x: auto;
 }
 
 /* Spacing Utilities (consider a more systematic scale if many emerge) */
-.mt-1vh {
+.mt-vh {
   margin-top: 1vh;
 }
-.mt-1rem {
+.mt-4 {
   margin-top: 1rem; /* Or var(--pico-spacing) */
 }
-.mb-p5rem { /* margin-bottom: 0.5rem */
+.mb-2 { /* margin-bottom: 0.5rem */
   margin-bottom: 0.5rem;
 }
-.mb-1rem {
+.mb-4 {
   margin-bottom: 1rem; /* Or var(--pico-spacing) */
 }
-.p-10px {
+.p-2 {
   padding: 10px;
 }
 
 /* Font Utilities */
-.font-monospace {
+.font-code {
   font-family: var(--pico-font-family-monospace);
 }
-.note-font { /* font-size 0.9em */
+.text-sm { /* font-size 0.9em */
   font-size: 0.9em;
 }
 
 /* Border Utilities */
-.rounded {
+.rounded-default {
   border-radius: var(--pico-border-radius);
 }
-.rounded-5px {
+.rounded-lg {
   border-radius: 5px;
 }
 
 /* Component-Specific Styles */
-.mt-1vh-text-right { /* For specific combined style */
+.mt-vh text-end { /* For specific combined style */
   margin-top: 1vh;
   text-align: right;
 }

@@ -145,13 +145,13 @@ class BotifyExport:
         title = f'{self.DISPLAY_NAME or app_name.title()}'
         token_exists = os.path.exists('botify_token.txt')
         if not token_exists:
-            return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Div(H3('Botify Connection Required', style='color: #e74c3c;'), P('To use the Botify CSV Export workflow, you must first connect with Botify.', cls='mb-10px'), P('Please run the "Connect With Botify" workflow to set up your Botify API token.', style='margin-bottom: 20px;'), P('Once configured, you can return to this workflow.', style='font-style: italic; color: #666;'))), Div(id=f'{app_name}-container'))
+            return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Div(H3('Botify Connection Required', style='color: #e74c3c;'), P('To use the Botify CSV Export workflow, you must first connect with Botify.', cls='mb-10px'), P('Please run the "Connect With Botify" workflow to set up your Botify API token.', style='margin-bottom: 20px;'), P('Once configured, you can return to this workflow.', style='font-style: italic; color: #666;'))), Div(id=f'{app_name}-container'))
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
         default_value = full_key
         pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the UI placeholders.
@@ -383,7 +383,7 @@ class BotifyExport:
                 explanation = f'At depth {max_depth}, the export will include {safe_count_fmt} URLs.\nGoing to depth {max_depth + 1} would exceed the limit with {next_count_fmt} URLs.'
             else:
                 explanation = f'The entire site can be exported with {safe_count_fmt} URLs.\nThis is under the 1 million URL limit.'
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f'Based on URL counts, the maximum safe depth is: {max_depth}', cls='mb-1rem'), P(explanation, cls='mb-1rem'), P('This depth ensures the export will contain fewer than 1 million URLs.', cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(type='hidden', name=step.done, value=str(max_depth))), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f'Based on URL counts, the maximum safe depth is: {max_depth}', cls='mb-4'), P(explanation, cls='mb-4'), P('This depth ensures the export will contain fewer than 1 million URLs.', cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(type='hidden', name=step.done, value=str(max_depth))), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
         except Exception as e:
             return P(f'Error calculating maximum depth: {str(e)}', style=pip.get_style('error'))
 
@@ -539,7 +539,7 @@ class BotifyExport:
             local_file = job['local_file']
             file_path = Path(local_file)
             await self.message_queue.add(pip, f'Found existing downloaded export: {file_path.name}', verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} has already been downloaded:", cls='mb-p5rem'), P(f'Path:', cls='mb-p5rem'), Pre(self.format_path_as_tree(file_path), style='margin-bottom: 1rem; white-space: pre;'), Div(Button('Use Existing Download ▸', type='button', cls='primary', hx_post=f'/{app_name}/use_existing_export', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{file_path}"}}'), Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} has already been downloaded:", cls='mb-2'), P(f'Path:', cls='mb-2'), Pre(self.format_path_as_tree(file_path), style='margin-bottom: 1rem; white-space: pre;'), Div(Button('Use Existing Download ▸', type='button', cls='primary', hx_post=f'/{app_name}/use_existing_export', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{file_path}"}}'), Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), id=step.id)
         elif completed_jobs:
             job = completed_jobs[0]
             job_id = job['job_id']
@@ -550,7 +550,7 @@ class BotifyExport:
                 download_button = Button('Download Ready Export ▸', type='button', cls='primary', hx_post=f'/{app_name}/download_ready_export', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_id": "{job_id}", "download_url": "{download_url}"}}')
             new_export_label = 'Resume Export' if not job_has_complete_data else 'Create New Export'
             await self.message_queue.add(pip, f'Found existing completed export (Job ID: {job_id})', verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is ready to download:", cls='mb-1rem'), P(f'Job ID: {job_id}', cls='mb-p5rem'), Div(download_button if download_button else '', Button(new_export_label, type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is ready to download:", cls='mb-4'), P(f'Job ID: {job_id}', cls='mb-2'), Div(download_button if download_button else '', Button(new_export_label, type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), id=step.id)
         elif processing_jobs:
             job = processing_jobs[0]
             job_id = job['job_id']
@@ -562,13 +562,13 @@ class BotifyExport:
             except:
                 created_str = created
             await self.message_queue.add(pip, f'Found existing export job in progress (Job ID: {job_id}, Started: {created_str})', verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is already processing:", cls='mb-1rem'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'Started: {created_str}', cls='mb-p5rem'), Div(Progress(), P('Checking status automatically...', cls='text-pico-muted'), id='progress-container'), Div(Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), cls='mt-1rem')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), hx_get=f'/{app_name}/check_export_status', hx_trigger='load delay:2s', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}', id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export for project '{project}', analysis '{analysis}' at depth {depth} is already processing:", cls='mb-4'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Started: {created_str}', cls='mb-2'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), Div(Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), cls='mt-4')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load delay:100ms'), hx_get=f'/{app_name}/check_export_status', hx_trigger='load delay:2s', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}', id=step.id)
         elif existing_files:
             existing_file = existing_files[0]
             await self.message_queue.add(pip, f'Found existing export file: {existing_file.name}', verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export file for project '{project}', analysis '{analysis}' at depth {depth} was found on disk:", cls='mb-p5rem'), P(f'File: {existing_file.name}', cls='mb-1rem'), Div(Button('Use Existing File ▸', type='button', cls='primary', hx_post=f'/{app_name}/use_existing_export', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{existing_file}"}}'), Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(f"An export file for project '{project}', analysis '{analysis}' at depth {depth} was found on disk:", cls='mb-2'), P(f'File: {existing_file.name}', cls='mb-4'), Div(Button('Use Existing File ▸', type='button', cls='primary', hx_post=f'/{app_name}/use_existing_export', hx_target=f'#{step.id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "file_path": "{existing_file}"}}'), Button('Create New Export ▸', type='button', hx_get=f'/{app_name}/{step.id}/new', hx_target=f'#{step.id}'), style='display: flex; gap: 1rem;')), Div(id=next_step_id), id=step.id)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(f'Export URLs up to depth {depth} from the {analysis} analysis.', cls='mb-1rem'), P('Select additional fields to include in the export:', cls='mb-p5rem'), Form(Div(Label(Input(type='checkbox', name='include_title', value='true', checked=True), ' Include page titles', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_meta_desc', value='true', checked=True), ' Include meta descriptions', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_h1', value='true', checked=True), ' Include H1 headings', style='display: block; margin-bottom: 1rem;'), style='margin-bottom: 1.5rem;'), Button('Start Export ▸', type='submit', cls='primary'), P('Note: Large exports may take several minutes to process.', style='font-size: 0.8em; color: #666; margin-top: 0.5rem;'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(f'Export URLs up to depth {depth} from the {analysis} analysis.', cls='mb-4'), P('Select additional fields to include in the export:', cls='mb-2'), Form(Div(Label(Input(type='checkbox', name='include_title', value='true', checked=True), ' Include page titles', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_meta_desc', value='true', checked=True), ' Include meta descriptions', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_h1', value='true', checked=True), ' Include H1 headings', style='display: block; margin-bottom: 1rem;'), style='margin-bottom: 1.5rem;'), Button('Start Export ▸', type='submit', cls='primary'), P('Note: Large exports may take several minutes to process.', style='font-size: 0.8em; color: #666; margin-top: 0.5rem;'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_04_submit(self, request):
         """Handle the submission of the CSV export options and start the export job"""
@@ -620,7 +620,7 @@ class BotifyExport:
             state[step_id][step.done] = job['job_url']
             pip.write_state(pipeline_id, state)
             await self.message_queue.add(pip, f'Using existing export job (ID: {job_id}).\nThis job has already completed and is ready for download.', verbatim=True)
-            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-p5rem'), P(f'The export with your requested parameters is ready for download.', cls='mb-1rem'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
+            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-2'), P(f'The export with your requested parameters is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
         if processing_jobs:
             job = processing_jobs[0]
             job_id = job['job_id']
@@ -637,7 +637,7 @@ class BotifyExport:
             except:
                 created_str = created
             await self.message_queue.add(pip, f'Using existing export job (ID: {job_id}).\nThis job is still processing (started: {created_str}).', verbatim=True)
-            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-p5rem'), P(f'Started: {created_str}', cls='mb-p5rem'), Div(Progress(), P('Checking status automatically...', cls='text-pico-muted'), id='progress-container'), hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'), cls='polling-status no-chain-reaction', id=step_id)
+            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-2'), P(f'Started: {created_str}', cls='mb-2'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'), cls='polling-status no-chain-reaction', id=step_id)
         try:
             include_fields = {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}
             api_token = self.read_api_token()
@@ -661,12 +661,12 @@ class BotifyExport:
                 status_msg = f'Export job started with Job ID: {job_id}\nThe export is processing and may take several minutes.'
             await self.message_queue.add(pip, status_msg, verbatim=True)
             status_display = 'Complete ✅' if is_complete else 'Processing ⏳'
-            result_card = Card(H3(f'Export Status: {status_display}'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'Exporting URLs up to depth {depth}', cls='mb-p5rem'), P(f'Including fields: ' + ', '.join([k for k, v in include_fields.items() if v]), cls='mb-1rem'))
+            result_card = Card(H3(f'Export Status: {status_display}'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Exporting URLs up to depth {depth}', cls='mb-2'), P(f'Including fields: ' + ', '.join([k for k, v in include_fields.items() if v]), cls='mb-4'))
             if is_complete:
                 download_button = Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
                 return Div(result_card, download_button, cls='terminal-response no-chain-reaction', id=step_id)
             else:
-                return Div(result_card, P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'), Div(Progress(), P('Checking status automatically...', cls='text-pico-muted'), id='progress-container'), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
+                return Div(result_card, P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error in export submission: {str(e)}')
             return P(f'An error occurred: {str(e)}', style=pip.get_style('error'))
@@ -686,7 +686,7 @@ class BotifyExport:
         project = step_01_data.get('project')
         analysis = step_02_data.get('analysis')
         depth = step_03_data.get('depth')
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(f'Export URLs up to depth {depth} from the {analysis} analysis.', cls='mb-1rem'), P('Select additional fields to include in the export:', cls='mb-p5rem'), Form(Div(Label(Input(type='checkbox', name='include_title', value='true', checked=True), ' Include page titles', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_meta_desc', value='true', checked=True), ' Include meta descriptions', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_h1', value='true', checked=True), ' Include H1 headings', style='display: block; margin-bottom: 1rem;'), style='margin-bottom: 1.5rem;'), Button('Start Export ▸', type='submit', cls='primary'), P('Note: Large exports may take several minutes to process.', style='font-size: 0.8em; color: #666; margin-top: 0.5rem;'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(f'Export URLs up to depth {depth} from the {analysis} analysis.', cls='mb-4'), P('Select additional fields to include in the export:', cls='mb-2'), Form(Div(Label(Input(type='checkbox', name='include_title', value='true', checked=True), ' Include page titles', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_meta_desc', value='true', checked=True), ' Include meta descriptions', style='display: block; margin-bottom: 0.5rem;'), Label(Input(type='checkbox', name='include_h1', value='true', checked=True), ' Include H1 headings', style='display: block; margin-bottom: 1rem;'), style='margin-bottom: 1.5rem;'), Button('Start Export ▸', type='submit', cls='primary'), P('Note: Large exports may take several minutes to process.', style='font-size: 0.8em; color: #666; margin-top: 0.5rem;'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def use_existing_export(self, request):
         """
@@ -877,7 +877,7 @@ class BotifyExport:
                 api_token = self.read_api_token()
                 is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
                 if not is_complete or not download_url:
-                    return Div(P('Export job is still processing. Please try again in a few minutes.', cls='mb-1rem'), Progress(value='60', max='100', style='width: 100%;'), P(f'Error: {error}' if error else '', style=pip.get_style('error')))
+                    return Div(P('Export job is still processing. Please try again in a few minutes.', cls='mb-4'), Progress(value='60', max='100', style='width: 100%;'), P(f'Error: {error}' if error else '', style=pip.get_style('error')))
                 state[step_id]['download_url'] = download_url
                 state[step_id]['status'] = 'DONE'
                 pip.write_state(pipeline_id, state)
@@ -891,7 +891,7 @@ class BotifyExport:
             filename = f'{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv'
             local_file_path = download_dir / filename
             await self.message_queue.add(pip, f'Starting download.', verbatim=True)
-            return Div(Card(H3('Downloading CSV File'), P(f'Downloading export to {local_file_path}', cls='mb-1rem'), Progress(value='10', max='100', style='width: 100%;'), P('Please wait, this may take a few minutes for large files...', cls='text-muted-lead')), hx_get=f'/{app_name}/download_progress', hx_trigger='load', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}', id=step_id)
+            return Div(Card(H3('Downloading CSV File'), P(f'Downloading export to {local_file_path}', cls='mb-4'), Progress(value='10', max='100', style='width: 100%;'), P('Please wait, this may take a few minutes for large files...', cls='text-secondary')), hx_get=f'/{app_name}/download_progress', hx_trigger='load', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}', id=step_id)
         except Exception as e:
             return P(f'Error preparing download: {str(e)}', style=pip.get_style('error'))
 
@@ -995,7 +995,7 @@ class BotifyExport:
             filename = f'{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv'
             local_file_path = download_dir / filename
             await self.message_queue.add(pip, f'Starting download.', verbatim=True)
-            return Div(Card(H3('Downloading CSV File'), P(f'Downloading export to {local_file_path}', cls='mb-1rem'), Progress(value='10', max='100', style='width: 100%;'), P('Please wait, this may take a few minutes for large files...', cls='text-muted-lead')), hx_get=f'/{app_name}/download_progress', hx_trigger='load', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}', id=step_id)
+            return Div(Card(H3('Downloading CSV File'), P(f'Downloading export to {local_file_path}', cls='mb-4'), Progress(value='10', max='100', style='width: 100%;'), P('Please wait, this may take a few minutes for large files...', cls='text-secondary')), hx_get=f'/{app_name}/download_progress', hx_trigger='load', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error preparing download: {str(e)}')
             return P(f'Error preparing download: {str(e)}', style=pip.get_style('error'))
@@ -1208,7 +1208,7 @@ class BotifyExport:
                 if all([org, project, analysis, depth]):
                     self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
                 await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nThe export is ready for download.', verbatim=True)
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'The export is ready for download.', cls='mb-1rem'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'The export is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
             else:
                 created = step_data.get('created', state[step_id].get('created', 'Unknown'))
                 try:
@@ -1219,7 +1219,7 @@ class BotifyExport:
                 await self.message_queue.add(pip, f'Export job is still processing (Job ID: {job_id}).\nStatus will update automatically.', verbatim=True)
                 include_fields = step_data.get('include_fields', {})
                 fields_list = ', '.join([k for k, v in include_fields.items() if v]) or 'URL only'
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'Started: {created_str}', cls='mb-p5rem'), Div(Progress(), P('Checking status automatically...', cls='text-pico-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}', id=step_id)
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Started: {created_str}', cls='mb-2'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}", "job_url": "{job_url}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error checking job status: {str(e)}')
             return P(f'Error checking export status: {str(e)}', style=pip.get_style('error'))
@@ -1253,11 +1253,11 @@ class BotifyExport:
                 if all([org, project, analysis, depth]):
                     self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
                 await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nThe export is ready for download.', verbatim=True)
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'The export is ready for download.', cls='mb-1rem'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'The export is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
             else:
                 include_fields = step_data.get('include_fields', {})
                 fields_list = ', '.join([k for k, v in include_fields.items() if v]) or 'URL only'
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-p5rem'), P(f'Exporting URLs up to depth {depth}', cls='mb-p5rem'), P(f'Including fields: {fields_list}', cls='mb-1rem'), Div(Progress(), P('Checking status automatically...', cls='text-pico-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Exporting URLs up to depth {depth}', cls='mb-2'), P(f'Including fields: {fields_list}', cls='mb-4'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error checking job status: {str(e)}')
             return P(f'Error checking export status: {str(e)}', style=pip.get_style('error'))
@@ -1297,7 +1297,7 @@ class BotifyExport:
             all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in non_finalize_steps))
             logger.debug(f'All steps complete: {all_steps_complete}')
             if all_steps_complete:
-                return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
             else:
                 return Div(P('Nothing to finalize yet.'), id=finalize_step.id)
         else:

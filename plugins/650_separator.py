@@ -26,4 +26,4 @@ class SeparatorPlugin:
                 logger.debug('Separator appended to conversation history')
             except Exception as e:
                 logger.error(f'Error in separator plugin: {str(e)}')
-        return Li(Hr(style='margin: 0.5rem 0;'), cls='d-block')
+        return Li(Hr(style='margin: 0.5rem 0;'), cls='block')

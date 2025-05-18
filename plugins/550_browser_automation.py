@@ -89,7 +89,7 @@ class BrowserAutomation:
         pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🔑 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🔑 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
@@ -132,7 +132,7 @@ class BrowserAutomation:
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{finalize_step.id}'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{finalize_step.id}'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -159,7 +159,7 @@ class BrowserAutomation:
                 pass
         pip.write_state(pipeline_id, state)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{steps[-1].id}'), id=steps[-1].id)
+        return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{steps[-1].id}'), id=steps[-1].id)
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
@@ -333,7 +333,7 @@ class BrowserAutomation:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 Crawl URL'), P(f'URL crawled and saved: ', B(url_value.get('url', ''))), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f"Crawl URL: {url_value.get('url', '')}", widget=Div(P(f'URL crawled and saved: ', B(url_value.get('url', ''))), P(f"Title: {url_value.get('title', '')}"), P(f"Status: {url_value.get('status', '')}"), P(f"Saved to: {url_value.get('save_path', '')}"), P(f"Reconstructed URL: {url_value.get('reconstructed_url', '')}", cls='text-muted-lead'), Div(id=f'{step_id}-status')), steps=steps)
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f"Crawl URL: {url_value.get('url', '')}", widget=Div(P(f'URL crawled and saved: ', B(url_value.get('url', ''))), P(f"Title: {url_value.get('title', '')}"), P(f"Status: {url_value.get('status', '')}"), P(f"Saved to: {url_value.get('save_path', '')}"), P(f"Reconstructed URL: {url_value.get('reconstructed_url', '')}", cls='text-secondary'), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to crawl:', verbatim=True)
@@ -421,7 +421,7 @@ class BrowserAutomation:
             crawl_data = {'url': url, 'title': title, 'status': status, 'save_path': crawl_dir, 'timestamp': datetime.now().isoformat(), 'reconstructed_url': reconstructed_url}
             await pip.set_step_data(pipeline_id, step_id, crawl_data, steps)
             await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-            url_widget = Div(P(f'URL crawled and saved: ', B(crawl_data['url'])), P(f'Title: {title}'), P(f'Status: {status}'), P(f'Saved to: {crawl_dir}'), P(f'Reconstructed URL: {reconstructed_url}', cls='text-muted-lead'), Div(id=f'{step_id}-status'))
+            url_widget = Div(P(f'URL crawled and saved: ', B(crawl_data['url'])), P(f'Title: {title}'), P(f'Status: {status}'), P(f'Saved to: {crawl_dir}'), P(f'Reconstructed URL: {reconstructed_url}', cls='text-secondary'), Div(id=f'{step_id}-status'))
             content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f"Crawl URL: {crawl_data['url']}", widget=url_widget, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:

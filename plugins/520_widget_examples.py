@@ -108,7 +108,7 @@ class WidgetExamples:
         pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
 
     async def init(self, request):
         """ Initialize the workflow state and redirect to the first step. """
@@ -166,7 +166,7 @@ class WidgetExamples:
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -236,7 +236,7 @@ class WidgetExamples:
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter text content for the simple widget. Example is pre-populated.'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter text content for the widget', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Record Text ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter text content for the simple widget. Example is pre-populated.'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter text content for the widget', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Record Text ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """ 
@@ -311,7 +311,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter markdown content to be rendered. Example is pre-populated.'), P('The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter markdown content', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Render Markdown ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter markdown content to be rendered. Example is pre-populated.'), P('The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter markdown content', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Render Markdown ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_02_submit(self, request):
         """
@@ -378,7 +378,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter Mermaid diagram syntax for the widget. Example is pre-populated.'), P('Supports flowcharts, sequence diagrams, class diagrams, etc.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Create Diagram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter Mermaid diagram syntax for the widget. Example is pre-populated.'), P('Supports flowcharts, sequence diagrams, class diagrams, etc.', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Create Diagram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """ 
@@ -455,7 +455,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """ 
@@ -494,7 +494,7 @@ class WidgetExamples:
             data = json.loads(user_val)
             df = pd.DataFrame(data)
             html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
-            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-1rem')
+            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-4')
             await self.message_queue.add(pip, f'{step.show} complete. Table rendered successfully.', verbatim=True)
             response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=f'{steps[step_index + 1].id}', hx_get=f'/{app_name}/{steps[step_index + 1].id}', hx_trigger='load'), id=step_id)))
             return response
@@ -560,7 +560,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated.'), P('The code will be displayed with syntax highlighting and a copy button.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter code for syntax highlighting', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Highlight Code ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated.'), P('The code will be displayed with syntax highlighting and a copy button.', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter code for syntax highlighting', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Highlight Code ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_05_submit(self, request):
         """ Process the submission for Step 5. """
@@ -634,7 +634,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter JavaScript code for the widget. Example is pre-populated.'), P("Use the 'widget' variable to access the container element.", cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JavaScript code', required=True, rows=12, style='width: 100%; font-family: monospace;'), Div(Button('Run JavaScript ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter JavaScript code for the widget. Example is pre-populated.'), P("Use the 'widget' variable to access the container element.", cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JavaScript code', required=True, rows=12, style='width: 100%; font-family: monospace;'), Div(Button('Run JavaScript ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_06_submit(self, request):
         """ Process the submission for Step 6. """
@@ -672,7 +672,7 @@ class WidgetExamples:
         Returns:
             Div element containing the widget
         """
-        widget = Div(Div(markdown_content, id=f'{widget_id}_source', cls='d-none'), Div(id=f'{widget_id}_rendered', cls='markdown-body p-3 border rounded bg-light'), Script(f"\n                document.addEventListener('htmx:afterOnLoad', function() {{\n                    // Function to render markdown\n                    function renderMarkdown() {{\n                        const source = document.getElementById('{widget_id}_source');\n                        const target = document.getElementById('{widget_id}_rendered');\n                        if (source && target) {{\n                            // Use marked.js to convert markdown to HTML\n                            const html = marked.parse(source.textContent);\n                            target.innerHTML = html;\n                            // Apply syntax highlighting to code blocks if Prism is available\n                            if (typeof Prism !== 'undefined') {{\n                                Prism.highlightAllUnder(target);\n                            }}\n                        }}\n                    }}\n                    \n                    // Check if marked.js is loaded\n                    if (typeof marked !== 'undefined') {{\n                        renderMarkdown();\n                    }} else {{\n                        console.error('marked.js is not loaded');\n                    }}\n                }});\n                \n                // Also listen for custom event from HX-Trigger\n                document.addEventListener('initMarked', function(event) {{\n                    if (event.detail.widgetId === '{widget_id}') {{\n                        setTimeout(function() {{\n                            const source = document.getElementById('{widget_id}_source');\n                            const target = document.getElementById('{widget_id}_rendered');\n                            if (source && target && typeof marked !== 'undefined') {{\n                                const html = marked.parse(source.textContent);\n                                target.innerHTML = html;\n                                // Apply syntax highlighting to code blocks if Prism is available\n                                if (typeof Prism !== 'undefined') {{\n                                    Prism.highlightAllUnder(target);\n                                }}\n                            }}\n                        }}, 100);\n                    }}\n                }});\n            "), cls='marked-widget')
+        widget = Div(Div(markdown_content, id=f'{widget_id}_source', cls='hidden'), Div(id=f'{widget_id}_rendered', cls='bg-light border markdown-body p-3 rounded-default'), Script(f"\n                document.addEventListener('htmx:afterOnLoad', function() {{\n                    // Function to render markdown\n                    function renderMarkdown() {{\n                        const source = document.getElementById('{widget_id}_source');\n                        const target = document.getElementById('{widget_id}_rendered');\n                        if (source && target) {{\n                            // Use marked.js to convert markdown to HTML\n                            const html = marked.parse(source.textContent);\n                            target.innerHTML = html;\n                            // Apply syntax highlighting to code blocks if Prism is available\n                            if (typeof Prism !== 'undefined') {{\n                                Prism.highlightAllUnder(target);\n                            }}\n                        }}\n                    }}\n                    \n                    // Check if marked.js is loaded\n                    if (typeof marked !== 'undefined') {{\n                        renderMarkdown();\n                    }} else {{\n                        console.error('marked.js is not loaded');\n                    }}\n                }});\n                \n                // Also listen for custom event from HX-Trigger\n                document.addEventListener('initMarked', function(event) {{\n                    if (event.detail.widgetId === '{widget_id}') {{\n                        setTimeout(function() {{\n                            const source = document.getElementById('{widget_id}_source');\n                            const target = document.getElementById('{widget_id}_rendered');\n                            if (source && target && typeof marked !== 'undefined') {{\n                                const html = marked.parse(source.textContent);\n                                target.innerHTML = html;\n                                // Apply syntax highlighting to code blocks if Prism is available\n                                if (typeof Prism !== 'undefined') {{\n                                    Prism.highlightAllUnder(target);\n                                }}\n                            }}\n                        }}, 100);\n                    }}\n                }});\n            "), cls='marked-widget')
         return widget
 
     def create_pandas_table(self, data_str):
@@ -703,7 +703,7 @@ class WidgetExamples:
             else:
                 return Div(NotStr("<div style='color: red;'>Unsupported data format. Please provide a list of objects.</div>"), _raw=True)
             html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
-            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-1rem')
+            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-4')
             return table_container
         except Exception as e:
             logger.error(f'Error creating pandas table: {e}')
@@ -724,7 +724,7 @@ class WidgetExamples:
             language (str): The programming language for syntax highlighting (default: javascript)
         """
         textarea_id = f'{widget_id}_raw_code'
-        container = Div(Div(H5('Syntax Highlighted Code:'), Textarea(code, id=textarea_id, style='display: none;'), Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'), cls='mt-1rem'), id=widget_id)
+        container = Div(Div(H5('Syntax Highlighted Code:'), Textarea(code, id=textarea_id, style='display: none;'), Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'), cls='mt-4'), id=widget_id)
         init_script = Script(f"\n            (function() {{\n                console.log('Prism widget loaded, ID: {widget_id}');\n                // Check if Prism is loaded\n                if (typeof Prism === 'undefined') {{\n                    console.error('Prism library not found');\n                    return;\n                }}\n                \n                // Attempt to manually trigger highlighting\n                setTimeout(function() {{\n                    try {{\n                        console.log('Manually triggering Prism highlighting for {widget_id}');\n                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));\n                    }} catch(e) {{\n                        console.error('Error during manual Prism highlighting:', e);\n                    }}\n                }}, 300);\n            }})();\n            ", type='text/javascript')
         return Div(container, init_script)
 
@@ -762,7 +762,7 @@ class WidgetExamples:
                 pip.write_state(pipeline_id, state)
         display_value = counter_data if step.refill and counter_data else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_07_submit(self, request):
         """ 
@@ -826,7 +826,7 @@ class WidgetExamples:
         else:
             display_value = url_value if step.refill and url_value else 'https://example.com'
             await self.message_queue.add(pip, 'Enter the URL you want to open:', verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter a URL to open in your default browser.'), Form(Div(Input(type='url', name='url', placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter a URL to open in your default browser.'), Form(Div(Input(type='url', name='url', placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_08_submit(self, request):
         """ 
@@ -894,7 +894,7 @@ class WidgetExamples:
             plt.savefig(buffer, format='png')
             plt.close()
             img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            return Div(H4('Histogram Visualization:'), P(f'Data: {len(counter)} categories, {sum(counter.values())} total counts'), Div(NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'), style='text-align: center; margin-top: 1rem;'), cls='overflow-x-auto')
+            return Div(H4('Histogram Visualization:'), P(f'Data: {len(counter)} categories, {sum(counter.values())} total counts'), Div(NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'), style='text-align: center; margin-top: 1rem;'), cls='overflow-auto')
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
@@ -942,7 +942,7 @@ class WidgetExamples:
         sample_data = [{'name': 'Parameter 1', 'value1': 1000, 'value2': 500, 'value3': 50}, {'name': 'Parameter 2', 'value1': 2000, 'value2': 1000, 'value3': 100}, {'name': 'Parameter 3', 'value1': 3000, 'value2': 1500, 'value3': 150}]
         display_value = table_data if step.refill and table_data else json.dumps(sample_data, indent=2)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the table', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the table', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_09_submit(self, request):
         """Process the submission for Rich Table Widget."""
@@ -979,7 +979,7 @@ class WidgetExamples:
     def create_rich_table_widget(self, data):
         """Create a rich table widget with beautiful styling."""
         if not data:
-            return P('No data provided for table', cls='text-error')
+            return P('No data provided for table', cls='text-invalid')
         headers = list(data[0].keys())
         table_html = f'\n        <table class="param-table">\n            <caption>Rich Table Example</caption>\n            <tr class="header">\n        '
         for i, header in enumerate(headers):
@@ -997,7 +997,7 @@ class WidgetExamples:
                 table_html += f'<td><span class="{cell_class}">{value}</span></td>'
             table_html += '</tr>'
         table_html += '</table>'
-        return Div(NotStr(table_html), cls='overflow-x-auto')
+        return Div(NotStr(table_html), cls='overflow-auto')
 
     async def step_10(self, request):
         """Handles GET request for Selenium URL step."""

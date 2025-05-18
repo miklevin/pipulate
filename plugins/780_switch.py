@@ -56,7 +56,7 @@ class SwitchWorkflow:
         pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
@@ -99,7 +99,7 @@ class SwitchWorkflow:
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -148,8 +148,8 @@ class SwitchWorkflow:
         switch_inputs = []
         for switch in self.SWITCH_CONFIG['switches']:
             current_state = switch_state.get(switch['id'], switch['default'])
-            switch_inputs.append(Div(Label(Input(type='checkbox', role='switch', name=f"switch_{switch['id']}", checked=current_state, cls='contrast'), Span(switch['label'], style='margin-left: 0.5rem;')), cls='mb-1rem'))
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Toggle the switches to configure your settings.'), Form(Div(*switch_inputs, Div(Button('Save Settings ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            switch_inputs.append(Div(Label(Input(type='checkbox', role='switch', name=f"switch_{switch['id']}", checked=current_state, cls='contrast'), Span(switch['label'], style='margin-left: 0.5rem;')), cls='mb-4'))
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Toggle the switches to configure your settings.'), Form(Div(*switch_inputs, Div(Button('Save Settings ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """Handles POST request for switch configuration step."""
