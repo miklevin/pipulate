@@ -8,58 +8,16 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-
 import pandas as pd
-from fasthtml.common import * # type: ignore
+from fasthtml.common import *
 from starlette.responses import HTMLResponse
 from loguru import logger
 from rich.console import Console
 from rich.table import Table
 from fastcore.xml import NotStr
-
 ROLES = ['Tutorial']
-
-"""
-Pipulate Widget Examples
-
-This workflow demonstrates various widget types that can be integrated into Pipulate Workflows:
-
-1. Simple HTMX Widget: Basic HTML content with no JavaScript execution
-2. Pandas Table Widget: HTML table from DataFrame
-3. JavaScript Execution Widget: DOM manipulation via JavaScript in HTMX-injected content
-4. Mermaid Diagram Renderer: Client-side rendering using mermaid.js
-5. Code Syntax Highlighter: Syntax highlighting with Prism.js
-
-This serves as a reference implementation for creating visualization widgets in Pipulate.
-
---- Design Pattern Note ---
-This workflow uses a "Combined Step" pattern where each step handles both:
-1. Data collection (input form)
-2. Widget rendering (visualization)
-
-In each step, user input is collected and immediately transformed into the 
-corresponding visualization in the same card upon submission. This approach:
-- Reduces the total number of workflow steps (5 instead of 10)
-- Creates a clear cause-effect relationship within each step
-- Simplifies navigation for the end user
-
-An alternative "Separated Step" pattern would:
-- Split each feature into separate input and display steps
-- Use one step for data collection, followed by a step for visualization
-- Result in 10 steps total (plus finalize)
-- Potentially simplify each individual step's implementation
-- Allow for more focused step responsibilities
-
-When adapting this example for your own workflows, consider which pattern 
-best suits your needs:
-- Combined: When immediate visualization feedback is valuable
-- Separated: When data collection and visualization are distinct concerns
-             or when complex transformations occur between input and display
-"""
-
-# Model for a workflow step (Do not change)
+'\nPipulate Widget Examples\n\nThis workflow demonstrates various widget types that can be integrated into Pipulate Workflows:\n\n1. Simple HTMX Widget: Basic HTML content with no JavaScript execution\n2. Pandas Table Widget: HTML table from DataFrame\n3. JavaScript Execution Widget: DOM manipulation via JavaScript in HTMX-injected content\n4. Mermaid Diagram Renderer: Client-side rendering using mermaid.js\n5. Code Syntax Highlighter: Syntax highlighting with Prism.js\n\nThis serves as a reference implementation for creating visualization widgets in Pipulate.\n\n--- Design Pattern Note ---\nThis workflow uses a "Combined Step" pattern where each step handles both:\n1. Data collection (input form)\n2. Widget rendering (visualization)\n\nIn each step, user input is collected and immediately transformed into the \ncorresponding visualization in the same card upon submission. This approach:\n- Reduces the total number of workflow steps (5 instead of 10)\n- Creates a clear cause-effect relationship within each step\n- Simplifies navigation for the end user\n\nAn alternative "Separated Step" pattern would:\n- Split each feature into separate input and display steps\n- Use one step for data collection, followed by a step for visualization\n- Result in 10 steps total (plus finalize)\n- Potentially simplify each individual step\'s implementation\n- Allow for more focused step responsibilities\n\nWhen adapting this example for your own workflows, consider which pattern \nbest suits your needs:\n- Combined: When immediate visualization feedback is valuable\n- Separated: When data collection and visualization are distinct concerns\n             or when complex transformations occur between input and display\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class WidgetExamples:
     """
@@ -107,16 +65,11 @@ class WidgetExamples:
     - The current combined approach works well for simpler widgets where immediate
       feedback is valuable to the user
     """
-    # --- Workflow Configuration ---
-    APP_NAME = "widgets"
-    DISPLAY_NAME = "Widget Examples"
-    ENDPOINT_MESSAGE = (
-        "This workflow demonstrates various widget types for Pipulate. "
-        "Enter an ID to start or resume your workflow."
-    )
-    TRAINING_PROMPT = "widget_examples.md"
+    APP_NAME = 'widgets'
+    DISPLAY_NAME = 'Widget Examples'
+    ENDPOINT_MESSAGE = 'This workflow demonstrates various widget types for Pipulate. Enter an ID to start or resume your workflow.'
+    TRAINING_PROMPT = 'widget_examples.md'
 
-    # --- Initialization ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
         Initialize the workflow, define steps, and register routes.
@@ -129,402 +82,128 @@ class WidgetExamples:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        
-        # Define workflow steps
-        steps = [
-            Step(
-                id='step_01',
-                done='simple_content',
-                show='Simple Text Widget',
-                refill=True,
-            ),
-            Step(
-                id='step_02',
-                done='markdown_content',
-                show='Markdown Renderer (MarkedJS)',
-                refill=True,
-            ),
-            Step(
-                id='step_03',
-                done='mermaid_content',
-                show='Mermaid Diagram Renderer',
-                refill=True,
-            ),
-            Step(
-                id='step_04',
-                done='table_data',
-                show='Pandas Table Widget',
-                refill=True,
-            ),
-            Step(
-                id='step_05',
-                done='code_content',
-                show='Code Syntax Highlighter',
-                refill=True,
-            ),
-            Step(
-                id='step_06',
-                done='js_content',
-                show='JavaScript Widget',
-                refill=True,
-            ),
-            Step(
-                id='step_07',
-                done='counter_data',
-                show='Matplotlib Histogram',
-                refill=True,
-            ),
-            Step(
-                id='step_08',
-                done='url',
-                show='URL Opener Widget',
-                refill=True,
-            ),
-            Step(
-                id='step_09',
-                done='rich_table',  # Changed from 'placeholder'
-                show='Rich Table Widget',  # Changed from 'New Placeholder Step'
-                refill=True,
-            ),
-            Step(
-                id='step_10',
-                done='selenium_url',  # Changed from 'placeholder'
-                show='Selenium URL Opener',  # Changed from 'Placeholder Step'
-                refill=True,
-            ),
-            Step(
-                id='step_11',
-                done='file_uploads',  # Changed from 'placeholder'
-                show='File Upload Widget',  # Changed from 'Step 11 Placeholder'
-                refill=True,
-            ),
-        ]
-        
-        # Standard workflow routes
-        routes = [
-            (f"/{app_name}", self.landing),
-            (f"/{app_name}/init", self.init, ["POST"]),
-            (f"/{app_name}/revert", self.handle_revert, ["POST"]),
-            (f"/{app_name}/finalize", self.finalize, ["GET", "POST"]),
-            (f"/{app_name}/unfinalize", self.unfinalize, ["POST"]),
-            (f"/{app_name}/reopen_url", self.reopen_url, ["POST"]),  # Added back the reopen_url route
-        ]
-
-        # Routes for each custom step
+        steps = [Step(id='step_01', done='simple_content', show='Simple Text Widget', refill=True), Step(id='step_02', done='markdown_content', show='Markdown Renderer (MarkedJS)', refill=True), Step(id='step_03', done='mermaid_content', show='Mermaid Diagram Renderer', refill=True), Step(id='step_04', done='table_data', show='Pandas Table Widget', refill=True), Step(id='step_05', done='code_content', show='Code Syntax Highlighter', refill=True), Step(id='step_06', done='js_content', show='JavaScript Widget', refill=True), Step(id='step_07', done='counter_data', show='Matplotlib Histogram', refill=True), Step(id='step_08', done='url', show='URL Opener Widget', refill=True), Step(id='step_09', done='rich_table', show='Rich Table Widget', refill=True), Step(id='step_10', done='selenium_url', show='Selenium URL Opener', refill=True), Step(id='step_11', done='file_uploads', show='File Upload Widget', refill=True)]
+        routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST']), (f'/{app_name}/reopen_url', self.reopen_url, ['POST'])]
         self.steps = steps
         for step in steps:
             step_id = step.id
-            routes.append((f"/{app_name}/{step_id}", getattr(self, step_id)))
-            routes.append((f"/{app_name}/{step_id}_submit", getattr(self, f"{step_id}_submit"), ["POST"]))
-
-        # Register routes with the FastHTML app
+            routes.append((f'/{app_name}/{step_id}', getattr(self, step_id)))
+            routes.append((f'/{app_name}/{step_id}_submit', getattr(self, f'{step_id}_submit'), ['POST']))
         for path, handler, *methods in routes:
-            method_list = methods[0] if methods else ["GET"]
+            method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
-
-        # Define UI messages
-        self.step_messages = {
-            "finalize": {
-                "ready": "All steps complete. Ready to finalize workflow.",
-                "complete": f"Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."
-            },
-            "new": "Please complete each step to explore different widget types.",
-            "step_08": {
-                "input": f"{pip.fmt('step_08')}: Please complete New Placeholder Step.",
-                "complete": f"New Placeholder Step complete. Continue to next step."
-            },
-            "step_09": {
-                "input": f"{pip.fmt('step_09')}: Configure Rich Table Widget.",
-                "complete": f"Rich Table Widget complete. Continue to next step."
-            },
-            "step_07": {
-                "input": f"{pip.fmt('step_07')}: Enter counter data for Matplotlib Histogram.",
-                "complete": f"Matplotlib Histogram complete. Continue to next step."
-            }
-        }
-
-        # Default messages for each step
+        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'new': 'Please complete each step to explore different widget types.', 'step_08': {'input': f"{pip.fmt('step_08')}: Please complete New Placeholder Step.", 'complete': f'New Placeholder Step complete. Continue to next step.'}, 'step_09': {'input': f"{pip.fmt('step_09')}: Configure Rich Table Widget.", 'complete': f'Rich Table Widget complete. Continue to next step.'}, 'step_07': {'input': f"{pip.fmt('step_07')}: Enter counter data for Matplotlib Histogram.", 'complete': f'Matplotlib Histogram complete. Continue to next step.'}}
         for step in steps:
-            self.step_messages[step.id] = {
-                "input": f"{pip.fmt(step.id)}: Enter content for {step.show}.",
-                "complete": f"{step.show} complete. Continue to next step."
-            }
-
-        # Add finalize step
+            self.step_messages[step.id] = {'input': f'{pip.fmt(step.id)}: Enter content for {step.show}.', 'complete': f'{step.show} complete. Continue to next step.'}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
-    # --- Core Workflow Engine Methods ---
-
     async def landing(self):
         """ Renders the initial landing page with the key input form. """
-        pip, pipeline, steps, app_name = self.pipulate, self.pipeline, self.steps, self.app_name
+        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
         context = pip.get_plugin_context(self)
-        title = f"{self.DISPLAY_NAME or app_name.title()}"
+        title = f'{self.DISPLAY_NAME or app_name.title()}'
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
         default_value = full_key
         pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
         datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-
-        return Container(
-            Card(
-                H2(title),
-                P(self.ENDPOINT_MESSAGE, style="font-size: 0.9em; color: #666;"),
-                Form(
-                    pip.wrap_with_inline_button(
-                        Input(
-                            placeholder="Existing or new 🗝 here (Enter for auto)", name="pipeline_id",
-                            list="pipeline-ids", type="search", required=False, autofocus=True,
-                            value=default_value, _onfocus="this.setSelectionRange(this.value.length, this.value.length)",
-                            cls="contrast"
-                        ),
-                        button_label=f"Enter 🔑", button_class="secondary"
-                    ),
-                    pip.update_datalist("pipeline-ids", options=datalist_options if datalist_options else None),
-                    hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
-                )
-            ),
-            Div(id=f"{app_name}-container")
-        )
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-muted-lead'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
 
     async def init(self, request):
         """ Initialize the workflow state and redirect to the first step. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         form = await request.form()
-        user_input = form.get("pipeline_id", "").strip()
-
+        user_input = form.get('pipeline_id', '').strip()
         if not user_input:
             from starlette.responses import Response
-            response = Response("")
-            response.headers["HX-Refresh"] = "true"
+            response = Response('')
+            response.headers['HX-Refresh'] = 'true'
             return response
-
-        # Generate or parse the unique pipeline ID
         context = pip.get_plugin_context(self)
         plugin_name = context['plugin_name'] or app_name
-        profile_name = context['profile_name'] or "default"
-        profile_part = profile_name.replace(" ", "_")
-        plugin_part = plugin_name.replace(" ", "_")
-        expected_prefix = f"{profile_part}-{plugin_part}-"
-
+        profile_name = context['profile_name'] or 'default'
+        profile_part = profile_name.replace(' ', '_')
+        plugin_part = plugin_name.replace(' ', '_')
+        expected_prefix = f'{profile_part}-{plugin_part}-'
         if user_input.startswith(expected_prefix):
             pipeline_id = user_input
         else:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
-            pipeline_id = f"{prefix}{user_provided_id}"
-
-        db["pipeline_id"] = pipeline_id
-        logger.debug(f"Using pipeline ID: {pipeline_id}")
-
-        # Initialize state if missing
-        state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
-        if error: return error
-        all_steps_complete = all(step.id in state and step.done in state[step.id] for step in steps[:-1])
-        is_finalized = "finalize" in state and "finalized" in state["finalize"]
-
-        # Add initial status messages
-        await self.message_queue.add(pip, f"Workflow ID: {pipeline_id}", verbatim=True, spaces_before=0)
+            pipeline_id = f'{prefix}{user_provided_id}'
+        db['pipeline_id'] = pipeline_id
+        logger.debug(f'Using pipeline ID: {pipeline_id}')
+        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': app_name})
+        if error:
+            return error
+        all_steps_complete = all((step.id in state and step.done in state[step.id] for step in steps[:-1]))
+        is_finalized = 'finalize' in state and 'finalized' in state['finalize']
+        await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
         if all_steps_complete:
-            status_msg = f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes." if is_finalized \
-                else "Workflow is complete but not finalized. Press Finalize to lock your data."
+            status_msg = f'Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.' if is_finalized else 'Workflow is complete but not finalized. Press Finalize to lock your data.'
             await self.message_queue.add(pip, status_msg, verbatim=True)
-        elif not any(step.id in state for step in self.steps):
-            await self.message_queue.add(pip, self.step_messages["new"], verbatim=True)
-
-        # Update the datalist
+        elif not any((step.id in state for step in self.steps)):
+            await self.message_queue.add(pip, self.step_messages['new'], verbatim=True)
         parsed = pip.parse_pipeline_key(pipeline_id)
         prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
         self.pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in self.pipeline() if record.pkey.startswith(prefix)]
-        if pipeline_id not in matching_records: matching_records.append(pipeline_id)
-        updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
-
-        # Rebuild the UI, triggering the first step load
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
+        updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
         return pip.rebuild(app_name, steps)
 
     async def finalize(self, request):
         """ Handle GET/POST requests to finalize (lock) the workflow. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pipeline_id = db.get('pipeline_id', 'unknown')
         finalize_step = steps[-1]
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
-
-        if request.method == "GET":
-            # Show locked view or finalize button
+        if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(
-                    H3("Workflow is locked."),
-                    Form(
-                        Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
-                        hx_post=f"/{app_name}/unfinalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
-                    ),
-                    id=finalize_step.id
-                )
+                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
             else:
-                # Check if all steps are complete before offering finalize
-                all_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1])
+                all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(
-                        H3("All steps complete. Finalize?"),
-                        P("You can revert to any step and make changes.", style="font-size: 0.9em; color: #666;"),
-                        Form(
-                            Button("Finalize 🔒", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/finalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
-                        ),
-                        id=finalize_step.id
-                    )
+                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-muted-lead'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
-        else:  # POST request
+        else:
             await pip.finalize_workflow(pipeline_id)
-            await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
+            await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
             return pip.rebuild(app_name, steps)
 
     async def unfinalize(self, request):
         """ Handle POST request to unlock the workflow. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
-        await self.message_queue.add(pip, "Workflow unfinalized! You can now revert to any step and make changes.", verbatim=True)
+        await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step, often using the previous step's transformed output. """
-        pip, db, steps = self.pipulate, self.db, self.steps
-        
-        # Pre-populated examples for each widget type
-        examples = {
-            'step_01': """Simple text content example:
-- Basic text formatting
-- Preserves line breaks and formatting
-- Great for lists, paragraphs, descriptions, etc.
-- Easy to modify
-
-This is a sample widget that shows basic text content.""",
-            
-            'step_02': """# Markdown Example
-
-This is a **bold statement** about _markdown_.
-
-## Features demonstrated:
-
-1. Headings (h1, h2)
-2. Formatted text (**bold**, _italic_)
-3. Ordered lists
-4. Unordered lists
-   - Nested item 1
-   - Nested item 2
-5. Code blocks
-
-### Code Example
-
-```python
-def hello_world():
-    print("Hello from Markdown!")
-    for i in range(3):
-        print(f"Count: {i}")
-```
-
-> Blockquotes are also supported
-> - With nested lists
-> - And formatting
-
-[Learn more about Markdown](https://www.markdownguide.org/)
-""",
-            
-            'step_03': """graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action 1]
-    B -->|No| D[Action 2]
-    C --> E[Result 1]
-    D --> F[Result 2]
-    E --> G[End]
-    F --> G""",
-            
-            'step_04': """[
-    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},
-    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},
-    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},
-    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},
-    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}
-]""",
-            
-            'step_05': """function calculateFactorial(n) {
-    // Base case: factorial of 0 or 1 is 1
-    if (n <= 1) {
-        return 1;
-    }
-    
-    // Recursive case: n! = n * (n-1)!
-    return n * calculateFactorial(n - 1);
-}
-
-// Example usage
-for (let i = 0; i < 10; i++) {
-    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);
-}
-""",
-
-            'step_06': """// Simple counter example
-let count = 0;
-const countDisplay = document.createElement('div');
-countDisplay.style.fontSize = '24px';
-countDisplay.style.margin = '20px 0';
-countDisplay.textContent = count;
-
-const button = document.createElement('button');
-button.textContent = 'Increment Count';
-button.style.backgroundColor = '#9370DB';
-button.style.borderColor = '#9370DB';
-button.onclick = function() {
-    count++;
-    countDisplay.textContent = count;
-};
-
-widget.appendChild(countDisplay);
-widget.appendChild(button);""",
-
-            'step_07': """{
-    "apples": 35,
-    "oranges": 42, 
-    "bananas": 28,
-    "grapes": 51,
-    "peaches": 22,
-    "plums": 18,
-    "mangoes": 39
-}""",
-
-            'step_08': """New placeholder step - no user content needed.
-
-This step serves as a placeholder for future widget types."""
-        }
-        
-        # Return pre-populated example or empty string
-        return examples.get(step_id, "")
+        pip, db, steps = (self.pipulate, self.db, self.steps)
+        examples = {'step_01': 'Simple text content example:\n- Basic text formatting\n- Preserves line breaks and formatting\n- Great for lists, paragraphs, descriptions, etc.\n- Easy to modify\n\nThis is a sample widget that shows basic text content.', 'step_02': '# Markdown Example\n\nThis is a **bold statement** about _markdown_.\n\n## Features demonstrated:\n\n1. Headings (h1, h2)\n2. Formatted text (**bold**, _italic_)\n3. Ordered lists\n4. Unordered lists\n   - Nested item 1\n   - Nested item 2\n5. Code blocks\n\n### Code Example\n\n```python\ndef hello_world():\n    print("Hello from Markdown!")\n    for i in range(3):\n        print(f"Count: {i}")\n```\n\n> Blockquotes are also supported\n> - With nested lists\n> - And formatting\n\n[Learn more about Markdown](https://www.markdownguide.org/)\n', 'step_03': 'graph TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Action 1]\n    B -->|No| D[Action 2]\n    C --> E[Result 1]\n    D --> F[Result 2]\n    E --> G[End]\n    F --> G', 'step_04': '[\n    {"Name": "John", "Age": 32, "Role": "Developer", "Department": "Engineering"},\n    {"Name": "Jane", "Age": 28, "Role": "Designer", "Department": "Product"},\n    {"Name": "Bob", "Age": 45, "Role": "Manager", "Department": "Engineering"},\n    {"Name": "Alice", "Age": 33, "Role": "PM", "Department": "Product"},\n    {"Name": "Charlie", "Age": 40, "Role": "Architect", "Department": "Engineering"}\n]', 'step_05': 'function calculateFactorial(n) {\n    // Base case: factorial of 0 or 1 is 1\n    if (n <= 1) {\n        return 1;\n    }\n    \n    // Recursive case: n! = n * (n-1)!\n    return n * calculateFactorial(n - 1);\n}\n\n// Example usage\nfor (let i = 0; i < 10; i++) {\n    console.log(`Factorial of ${i} is ${calculateFactorial(i)}`);\n}\n', 'step_06': "// Simple counter example\nlet count = 0;\nconst countDisplay = document.createElement('div');\ncountDisplay.style.fontSize = '24px';\ncountDisplay.style.margin = '20px 0';\ncountDisplay.textContent = count;\n\nconst button = document.createElement('button');\nbutton.textContent = 'Increment Count';\nbutton.style.backgroundColor = '#9370DB';\nbutton.style.borderColor = '#9370DB';\nbutton.onclick = function() {\n    count++;\n    countDisplay.textContent = count;\n};\n\nwidget.appendChild(countDisplay);\nwidget.appendChild(button);", 'step_07': '{\n    "apples": 35,\n    "oranges": 42, \n    "bananas": 28,\n    "grapes": 51,\n    "peaches": 22,\n    "plums": 18,\n    "mangoes": 39\n}', 'step_08': 'New placeholder step - no user content needed.\n\nThis step serves as a placeholder for future widget types.'}
+        return examples.get(step_id, '')
 
     async def handle_revert(self, request):
         """ Handle POST request to revert to a previous step. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         form = await request.form()
-        step_id = form.get("step_id")
-        pipeline_id = db.get("pipeline_id", "unknown")
-        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
-
-        # Clear state from the target step onwards
+        step_id = form.get('step_id')
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        if not step_id:
+            return P('Error: No step specified', style=pip.get_style('error'))
         await pip.clear_steps_from(pipeline_id, step_id, steps)
-        # Mark the target step for revert logic in GET handlers
         state = pip.read_state(pipeline_id)
-        state["_revert_target"] = step_id
+        state['_revert_target'] = step_id
         pip.write_state(pipeline_id, state)
-
-        # Add message and rebuild UI
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, steps)
 
-    # --- Step 1: Simple Text Widget ---
     async def step_01(self, request):
         """ 
         Handles GET request for Step 1: Simple Text Widget.
@@ -537,82 +216,27 @@ This step serves as a placeholder for future widget types."""
         In a "Separated Step" pattern, this would only handle input collection,
         and a separate step would display the widget.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Still show the widget but with a locked indicator
-            simple_widget = Pre(
-                user_val,
-                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-            )
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    simple_widget
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the simple widget from the existing data
-            simple_widget = Pre(
-                user_val,
-                style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-            )
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show} Configured",
-                widget=simple_widget,
-                steps=steps
-            )
-            return Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
+            simple_widget = Pre(user_val, cls='code-block-container')
+            return Div(Card(H3(f'🔒 {step.show}'), simple_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
+            simple_widget = Pre(user_val, cls='code-block-container')
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=simple_widget, steps=steps)
+            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
-            # Show input form
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                    P("Enter text content for the simple widget. Example is pre-populated."),
-                    Form(
-                        Div(
-                            Textarea(
-                                display_value,
-                                name=step.done,
-                                placeholder="Enter text content for the widget",
-                                required=True,
-                                rows=10,
-                                style="width: 100%; font-family: monospace;"
-                            ),
-                            Div(
-                                Button("Record Text ▸", type="submit", cls="primary"),
-                                style="margin-top: 1vh; text-align: right;"
-                            ),
-                            style="width: 100%;"
-                        ),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter text content for the simple widget. Example is pre-populated.'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter text content for the widget', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Record Text ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """ 
@@ -627,57 +251,25 @@ This step serves as a placeholder for future widget types."""
         This immediate transformation from input to widget in the same step
         creates a tight cause-effect relationship visible to the user.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_01"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
+        user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-
-        # Save the value to state
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the widget content
-        pip.append_to_history(f"[WIDGET CONTENT] Simple Text Widget:\n{user_val}")
-
-        # Create a simple widget with the user's content in a Pre tag to preserve formatting
-        simple_widget = Pre(
-            user_val,
-            style="padding: 1rem; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius); overflow-x: auto; font-family: monospace;"
-        )
-        
-        # Create content container with the widget
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Simple text content provided",
-            widget=simple_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-
-        # Return the HTMLResponse with the widget container
+        pip.append_to_history(f'[WIDGET CONTENT] Simple Text Widget:\n{user_val}')
+        simple_widget = Pre(user_val, cls='code-block-container')
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Simple text content provided', widget=simple_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
         return HTMLResponse(to_xml(response_content))
 
-    # --- Step 2: Markdown Renderer using marked.js ---
     async def step_02(self, request):
         """
         Step 2 - Markdown Renderer using marked.js
@@ -685,123 +277,41 @@ This step serves as a placeholder for future widget types."""
         Allows the user to input markdown content that will be rendered
         using the marked.js library for a Jupyter notebook-like experience.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_02"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Show the markdown renderer in locked state
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
             try:
                 widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 marked_widget = self.create_marked_widget(user_val, widget_id)
-                
-                # Create response with locked view
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            Card(
-                                H3(f"🔒 {step.show}"),
-                                marked_widget
-                            ),
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger to initialize Marked.js
-                response.headers["HX-Trigger"] = json.dumps({
-                    "initMarked": {
-                        "widgetId": widget_id
-                    }
-                })
-                
+                response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), marked_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
                 return response
             except Exception as e:
-                logger.error(f"Error creating Marked widget in locked view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the marked widget from the existing content
+                logger.error(f'Error creating Marked widget in locked view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
             try:
                 widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 marked_widget = self.create_marked_widget(user_val, widget_id)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=marked_widget,
-                    steps=steps
-                )
-                
-                # Create response with HTMX trigger
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            content_container,
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger to initialize Marked.js
-                response.headers["HX-Trigger"] = json.dumps({
-                    "initMarked": {
-                        "widgetId": widget_id
-                    }
-                })
-                
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=marked_widget, steps=steps)
+                response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
                 return response
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating Marked widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating Marked widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter markdown content to be rendered. Example is pre-populated."),
-                P("The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter markdown content",
-                            required=True,
-                            rows=15,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Render Markdown ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter markdown content to be rendered. Example is pre-populated.'), P('The markdown will be rendered with support for headings, lists, bold/italic text, and code blocks.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter markdown content', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Render Markdown ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_02_submit(self, request):
         """
@@ -810,187 +320,65 @@ This step serves as a placeholder for future widget types."""
         Takes the user's markdown input, creates a marked.js widget,
         and returns it as part of the response with MarkedJS initialization.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_02"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
+        user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-
-        # Save the value to state
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the markdown content
-        pip.append_to_history(f"[WIDGET CONTENT] Markdown Widget:\n{user_val}")
-        
-        # Generate unique widget ID for this step and pipeline
+        pip.append_to_history(f'[WIDGET CONTENT] Markdown Widget:\n{user_val}')
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        
-        # Use the helper method to create a marked widget
         marked_widget = self.create_marked_widget(user_val, widget_id)
-        
-        # Create content container with the marked widget and initialization
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Markdown rendered with Marked.js",
-            widget=marked_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Create an HTMLResponse with the content
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown rendered with Marked.js', widget=marked_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to initialize Marked.js
-        response.headers["HX-Trigger"] = json.dumps({
-            "initMarked": {
-                "widgetId": widget_id
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Markdown rendered successfully.", verbatim=True)
-        
+        response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
+        await self.message_queue.add(pip, f'{step.show} complete. Markdown rendered successfully.', verbatim=True)
         return response
 
-    # --- Step 3: Mermaid Diagram Renderer ---
     async def step_03(self, request):
         """ Handles GET request for Step 3: Mermaid Diagram Renderer. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Show the diagram in locked state
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
             try:
                 widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-                
-                # Create response with locked view
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            Card(
-                                H3(f"🔒 {step.show}"),
-                                mermaid_widget
-                            ),
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger to render the Mermaid diagram
-                response.headers["HX-Trigger"] = json.dumps({
-                    "renderMermaid": {
-                        "targetId": f"{widget_id}_output",
-                        "diagram": user_val
-                    }
-                })
-                
+                response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), mermaid_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
                 return response
             except Exception as e:
-                logger.error(f"Error creating mermaid widget in locked view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the mermaid diagram widget from the existing content
+                logger.error(f'Error creating mermaid widget in locked view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
             try:
                 widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=mermaid_widget,
-                    steps=steps
-                )
-                
-                # Create response with HTMX trigger
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            content_container,
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger to render the Mermaid diagram
-                response.headers["HX-Trigger"] = json.dumps({
-                    "renderMermaid": {
-                        "targetId": f"{widget_id}_output",
-                        "diagram": user_val
-                    }
-                })
-                
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=mermaid_widget, steps=steps)
+                response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
                 return response
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating mermaid widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating mermaid widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter Mermaid diagram syntax for the widget. Example is pre-populated."),
-                P("Supports flowcharts, sequence diagrams, class diagrams, etc.", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter Mermaid diagram syntax",
-                            required=True,
-                            rows=15,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Create Diagram ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter Mermaid diagram syntax for the widget. Example is pre-populated.'), P('Supports flowcharts, sequence diagrams, class diagrams, etc.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Create Diagram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """ 
@@ -1009,67 +397,28 @@ This step serves as a placeholder for future widget types."""
         - Support for different Mermaid API versions
         - Comprehensive error handling
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_03"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_03'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
+        user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-
-        # Save the value to state
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the mermaid diagram
-        pip.append_to_history(f"[WIDGET CONTENT] Mermaid Diagram:\n{user_val}")
-        
-        # Generate unique widget ID for this step and pipeline
+        pip.append_to_history(f'[WIDGET CONTENT] Mermaid Diagram:\n{user_val}')
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        
-        # Use the helper method to create a mermaid widget
         mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-        
-        # Create content container with the mermaid widget and initialization
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Client-side Mermaid diagram rendering",
-            widget=mermaid_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Create an HTMLResponse with the content
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Client-side Mermaid diagram rendering', widget=mermaid_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to initialize Mermaid rendering
-        response.headers["HX-Trigger"] = json.dumps({
-            "renderMermaid": {
-                "targetId": f"{widget_id}_output",
-                "diagram": user_val
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Mermaid diagram rendered.", verbatim=True)
-        
+        response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
+        await self.message_queue.add(pip, f'{step.show} complete. Mermaid diagram rendered.', verbatim=True)
         return response
 
-    # --- Step 4: Pandas Table Widget ---
     async def step_04(self, request):
         """ 
         Handles GET request for Step 4: Pandas Table Widget.
@@ -1078,91 +427,35 @@ This step serves as a placeholder for future widget types."""
         Note that when displaying an existing widget, we recreate it from
         the saved data rather than storing the rendered widget itself.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            try:
-                # Still show the widget but with a locked indicator
-                table_widget = self.create_pandas_table(user_val)
-                return Div(
-                    Card(
-                        H3(f"🔒 {step.show}"),
-                        table_widget
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            except Exception as e:
-                logger.error(f"Error creating table widget in finalized view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the table widget from the existing data
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
             try:
                 table_widget = self.create_pandas_table(user_val)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=table_widget,
-                    steps=steps
-                )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
+                return Div(Card(H3(f'🔒 {step.show}'), table_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating table widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating table widget in finalized view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
+            try:
+                table_widget = self.create_pandas_table(user_val)
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            except Exception as e:
+                logger.error(f'Error creating table widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter table data as JSON array of objects. Example is pre-populated."),
-                P("Format: [{\"name\": \"value\", \"value1\": number, ...}, {...}]", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JSON array of objects for the DataFrame",
-                            required=True,
-                            rows=10,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Draw Table ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """ 
@@ -1177,567 +470,197 @@ This step serves as a placeholder for future widget types."""
         When using the "Combined Step" pattern with complex widgets, it's
         important to handle errors gracefully to avoid breaking the workflow.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_04"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_04'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Get form data
+        pipeline_id = db.get('pipeline_id', 'unknown')
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
+        user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-            
-        # Additional validation for JSON format
         try:
             json_data = json.loads(user_val)
             if not isinstance(json_data, list) or not json_data:
-                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
-            if not all(isinstance(item, dict) for item in json_data):
-                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
+                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+            if not all((isinstance(item, dict) for item in json_data)):
+                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
         except json.JSONDecodeError:
-            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
-
-        # Save the value to state
+            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the table data
-        pip.append_to_history(f"[WIDGET CONTENT] Pandas Table Data:\n{user_val}")
-
-        # Create a pandas table from the JSON data
+        pip.append_to_history(f'[WIDGET CONTENT] Pandas Table Data:\n{user_val}')
         try:
             data = json.loads(user_val)
-            
-            # Create a pandas DataFrame
             df = pd.DataFrame(data)
-            
-            # Generate HTML table with styling
-            html_table = df.to_html(
-                index=False,            # Don't include DataFrame index
-                classes='table',        # Add a CSS class for styling
-                border=0,               # Remove default HTML border attribute
-                escape=True,            # Keep default HTML escaping for security
-                justify='left'          # Align text to left
-            )
-            
-            # Create a styled container for the table with responsive design
-            table_container = Div(
-                H5("Pandas DataFrame Table:"),
-                # Add the HTML table with NotStr to prevent escaping
-                Div(
-                    NotStr(html_table),
-                    style="overflow-x: auto; max-width: 100%;"
-                ),
-                style="margin-top: 1rem;"
-            )
-            
-            # Send confirmation message
-            await self.message_queue.add(pip, f"{step.show} complete. Table rendered successfully.", verbatim=True)
-            
-            # Create complete response with widget container
-            response = HTMLResponse(to_xml(
-                Div(
-                    pip.widget_container(
-                        step_id=step_id,
-                        app_name=app_name,
-                        message=f"{step.show}: Table rendered from pandas DataFrame",
-                        widget=table_container,
-                        steps=steps
-                    ),
-                    Div(id=f"{steps[step_index + 1].id}", hx_get=f"/{app_name}/{steps[step_index + 1].id}", hx_trigger="load"),
-                    id=step_id
-                )
-            ))
-            
+            html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
+            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-1rem')
+            await self.message_queue.add(pip, f'{step.show} complete. Table rendered successfully.', verbatim=True)
+            response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=f'{steps[step_index + 1].id}', hx_get=f'/{app_name}/{steps[step_index + 1].id}', hx_trigger='load'), id=step_id)))
             return response
-            
         except Exception as e:
-            logger.error(f"Error creating pandas table: {e}")
+            logger.error(f'Error creating pandas table: {e}')
             return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
 
-    # --- Step 5: Code Syntax Highlighter ---
     async def step_05(self, request):
         """ Handles GET request for Step 5: Code Syntax Highlighter. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_05"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Show the syntax highlighter in locked state
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
             try:
-                # Check if user specified a language in format: ```language\ncode```
-                language = 'javascript'  # Default language
+                language = 'javascript'
                 code_to_display = user_val
-                
                 if user_val.startswith('```'):
-                    # Try to extract language from markdown-style code block
                     first_line = user_val.split('\n', 1)[0].strip()
                     if len(first_line) > 3:
                         detected_lang = first_line[3:].strip()
                         if detected_lang:
                             language = detected_lang
-                            # Remove the language specification line from the code
                             code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-                    
-                    # Remove trailing backticks if present
                     if code_to_display.endswith('```'):
                         code_to_display = code_to_display.rsplit('```', 1)[0]
-                
-                # Generate unique widget ID for this step and pipeline
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-                
-                # Use the helper method to create a prism widget with detected language
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-                
-                # Create response with locked view
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            Card(
-                                H3(f"🔒 {step.show} ({language})"),
-                                prism_widget
-                            ),
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger header to initialize Prism highlighting
-                response.headers["HX-Trigger"] = json.dumps({
-                    "initializePrism": {
-                        "targetId": widget_id
-                    }
-                })
-                
+                response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show} ({language})'), prism_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
             except Exception as e:
-                logger.error(f"Error creating Prism widget in locked view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the prism widget from the existing code
+                logger.error(f'Error creating Prism widget in locked view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
             try:
-                # Check if user specified a language in format: ```language\ncode```
-                language = 'javascript'  # Default language
+                language = 'javascript'
                 code_to_display = user_val
-                
                 if user_val.startswith('```'):
-                    # Try to extract language from markdown-style code block
                     first_line = user_val.split('\n', 1)[0].strip()
                     if len(first_line) > 3:
                         detected_lang = first_line[3:].strip()
                         if detected_lang:
                             language = detected_lang
-                            # Remove the language specification line from the code
                             code_to_display = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-                    
-                    # Remove trailing backticks if present
                     if code_to_display.endswith('```'):
                         code_to_display = code_to_display.rsplit('```', 1)[0]
-                
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
-                    widget=prism_widget,
-                    steps=steps
-                )
-                
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            content_container,
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger to initialize Prism highlighting
-                response.headers["HX-Trigger"] = json.dumps({
-                    "initializePrism": {
-                        "targetId": widget_id
-                    }
-                })
-                
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+                response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating Prism widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating Prism widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated."),
-                P("The code will be displayed with syntax highlighting and a copy button.", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter code for syntax highlighting",
-                            required=True,
-                            rows=15,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Highlight Code ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter code to be highlighted with syntax coloring. JavaScript example is pre-populated.'), P('The code will be displayed with syntax highlighting and a copy button.', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter code for syntax highlighting', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Highlight Code ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_05_submit(self, request):
         """ Process the submission for Step 5. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_05"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Check if user specified a language in format: ```language\ncode```
-        language = 'javascript'  # Default language
+        user_val = form.get(step.done, '')
+        language = 'javascript'
         if user_val.startswith('```'):
-            # Try to extract language from markdown-style code block
             first_line = user_val.split('\n', 1)[0].strip()
             if len(first_line) > 3:
                 detected_lang = first_line[3:].strip()
                 if detected_lang:
                     language = detected_lang
-                    # Remove the language specification line from the code
                     user_val = user_val.split('\n', 1)[1] if '\n' in user_val else user_val
-            
-            # Remove trailing backticks if present
             if user_val.endswith('```'):
                 user_val = user_val.rsplit('```', 1)[0]
-
-        # Validate input
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-
-        # Save the value to state
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the code content
-        pip.append_to_history(f"[WIDGET CONTENT] Code Syntax Highlighting ({language}):\n{user_val}")
-        
-        # Generate unique widget ID for this step and pipeline
+        pip.append_to_history(f'[WIDGET CONTENT] Code Syntax Highlighting ({language}):\n{user_val}')
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        
-        # Use the helper method to create a prism widget with detected language
         prism_widget = self.create_prism_widget(user_val, widget_id, language)
-        
-        # Create content container with the prism widget and initialization
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Syntax highlighting with Prism.js ({language})",
-            widget=prism_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Create an HTMLResponse with the content
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to initialize Prism highlighting
-        response.headers["HX-Trigger"] = json.dumps({
-            "initializePrism": {
-                "targetId": widget_id
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. Code syntax highlighted with {language}.", verbatim=True)
-        
+        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+        await self.message_queue.add(pip, f'{step.show} complete. Code syntax highlighted with {language}.', verbatim=True)
         return response
 
-    # --- Step 6: JavaScript Execution Widget ---
     async def step_06(self, request):
         """ Handles GET request for Step 6: JavaScript Widget. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_06"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and user_val:
-            # Show the widget in locked state
+        user_val = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and user_val:
             try:
-                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-                target_id = f"{widget_id}_target"
-                
-                # Create a JavaScript widget for locked view with re-run button
-                js_widget = Div(
-                    # Container that will be manipulated by the JS code
-                    P(
-                        "JavaScript will execute here...", 
-                        id=target_id, 
-                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-                    ),
-                    # Keep the Re-run button even in locked state
-                    Button(
-                        "Re-run JavaScript", 
-                        type="button", 
-                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-                    ),
-                    id=widget_id
-                )
-                
-                # Create response with content in locked view
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            Card(
-                                H3(f"🔒 {step.show}"),
-                                js_widget
-                            ),
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger header to execute the JS code, even in locked state
-                response.headers["HX-Trigger"] = json.dumps({
-                    "runJavaScript": {
-                        "widgetId": widget_id,
-                        "code": user_val,
-                        "targetId": target_id
-                    }
-                })
-                
+                widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
+                target_id = f'{widget_id}_target'
+                js_widget = Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript', type='button', _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
+                response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), js_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
                 return response
             except Exception as e:
-                logger.error(f"Error creating JS widget in locked view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif user_val and state.get("_revert_target") != step_id:
-            # Create the JS widget from the existing code
+                logger.error(f'Error creating JS widget in locked view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif user_val and state.get('_revert_target') != step_id:
             try:
-                widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-                target_id = f"{widget_id}_target"
-                
-                # Create a simple container with just the target element and re-run button
-                js_widget = Div(
-                    # Container that will be manipulated by the JS code
-                    P(
-                        "JavaScript will execute here...", 
-                        id=target_id, 
-                        style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-                    ),
-                    # Button to re-run the JavaScript
-                    Button(
-                        "Re-run JavaScript", 
-                        type="button", 
-                        _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                        style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-                    ),
-                    id=widget_id
-                )
-                
-                # Create content container with the widget
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=js_widget,
-                    steps=steps
-                )
-                
-                # Create response with HX-Trigger
-                response = HTMLResponse(
-                    to_xml(
-                        Div(
-                            content_container,
-                            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                        )
-                    )
-                )
-                
-                # Add HX-Trigger header to execute the JS code
-                response.headers["HX-Trigger"] = json.dumps({
-                    "runJavaScript": {
-                        "widgetId": widget_id,
-                        "code": user_val,
-                        "targetId": target_id
-                    }
-                })
-                
+                widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
+                target_id = f'{widget_id}_target'
+                js_widget = Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript', type='button', _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
+                response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
+                response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
                 return response
-                
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating JS widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating JS widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter JavaScript code for the widget. Example is pre-populated."),
-                P("Use the 'widget' variable to access the container element.", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JavaScript code",
-                            required=True,
-                            rows=12,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Run JavaScript ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter JavaScript code for the widget. Example is pre-populated.'), P("Use the 'widget' variable to access the container element.", cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JavaScript code', required=True, rows=12, style='width: 100%; font-family: monospace;'), Div(Button('Run JavaScript ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_06_submit(self, request):
         """ Process the submission for Step 6. """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_06"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "")
-
-        # Validate input
+        user_val = form.get(step.done, '')
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             return error_component
-
-        # Save the value to state
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-
-        # Keep LLM informed about the JavaScript code
-        pip.append_to_history(f"[WIDGET CONTENT] JavaScript Widget Code:\n{user_val}")
-        
-        # Generate unique widget ID for this step and pipeline
-        widget_id = f"js-widget-{pipeline_id}-{step_id}".replace("-", "_")
-        target_id = f"{widget_id}_target"
-        
-        # Create a simple container with just the target element and re-run button
-        js_widget = Div(
-            # Container that will be manipulated by the JS code
-            P(
-                "JavaScript will execute here...", 
-                id=target_id, 
-                style="padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;"
-            ),
-            # Button to re-run the JavaScript
-            Button(
-                "Re-run JavaScript ▸", 
-                type="button", 
-                _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')",
-                style="margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;"
-            ),
-            id=widget_id
-        )
-        
-        # Create content container with the widget
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: Interactive JavaScript example",
-            widget=js_widget,
-            steps=steps
-        )
-        
-        # Create full response structure
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Create an HTMLResponse with the content
+        pip.append_to_history(f'[WIDGET CONTENT] JavaScript Widget Code:\n{user_val}')
+        widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
+        target_id = f'{widget_id}_target'
+        js_widget = Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript ▸', type='button', _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
-        
-        # Add HX-Trigger header to execute the JS code
-        response.headers["HX-Trigger"] = json.dumps({
-            "runJavaScript": {
-                "widgetId": widget_id,
-                "code": user_val,
-                "targetId": target_id
-            }
-        })
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"{step.show} complete. JavaScript executed.", verbatim=True)
-        
+        response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
+        await self.message_queue.add(pip, f'{step.show} complete. JavaScript executed.', verbatim=True)
         return response
-    
+
     def create_marked_widget(self, markdown_content, widget_id):
         """
         Create a widget for rendering markdown content using marked.js
@@ -1749,70 +672,9 @@ This step serves as a placeholder for future widget types."""
         Returns:
             Div element containing the widget
         """
-        # Create a container for the markdown content
-        widget = Div(
-            # Hidden div containing the raw markdown content
-            Div(
-                markdown_content,
-                id=f"{widget_id}_source",
-                style="display: none;"
-            ),
-            # Container where the rendered HTML will be inserted
-            Div(
-                id=f"{widget_id}_rendered",
-                cls="markdown-body p-3 border rounded bg-light"
-            ),
-            # JavaScript to initialize marked.js rendering
-            Script(f"""
-                document.addEventListener('htmx:afterOnLoad', function() {{
-                    // Function to render markdown
-                    function renderMarkdown() {{
-                        const source = document.getElementById('{widget_id}_source');
-                        const target = document.getElementById('{widget_id}_rendered');
-                        if (source && target) {{
-                            // Use marked.js to convert markdown to HTML
-                            const html = marked.parse(source.textContent);
-                            target.innerHTML = html;
-                            // Apply syntax highlighting to code blocks if Prism is available
-                            if (typeof Prism !== 'undefined') {{
-                                Prism.highlightAllUnder(target);
-                            }}
-                        }}
-                    }}
-                    
-                    // Check if marked.js is loaded
-                    if (typeof marked !== 'undefined') {{
-                        renderMarkdown();
-                    }} else {{
-                        console.error('marked.js is not loaded');
-                    }}
-                }});
-                
-                // Also listen for custom event from HX-Trigger
-                document.addEventListener('initMarked', function(event) {{
-                    if (event.detail.widgetId === '{widget_id}') {{
-                        setTimeout(function() {{
-                            const source = document.getElementById('{widget_id}_source');
-                            const target = document.getElementById('{widget_id}_rendered');
-                            if (source && target && typeof marked !== 'undefined') {{
-                                const html = marked.parse(source.textContent);
-                                target.innerHTML = html;
-                                // Apply syntax highlighting to code blocks if Prism is available
-                                if (typeof Prism !== 'undefined') {{
-                                    Prism.highlightAllUnder(target);
-                                }}
-                            }}
-                        }}, 100);
-                    }}
-                }});
-            """),
-            cls="marked-widget"
-        )
-        
+        widget = Div(Div(markdown_content, id=f'{widget_id}_source', cls='d-none'), Div(id=f'{widget_id}_rendered', cls='markdown-body p-3 border rounded bg-light'), Script(f"\n                document.addEventListener('htmx:afterOnLoad', function() {{\n                    // Function to render markdown\n                    function renderMarkdown() {{\n                        const source = document.getElementById('{widget_id}_source');\n                        const target = document.getElementById('{widget_id}_rendered');\n                        if (source && target) {{\n                            // Use marked.js to convert markdown to HTML\n                            const html = marked.parse(source.textContent);\n                            target.innerHTML = html;\n                            // Apply syntax highlighting to code blocks if Prism is available\n                            if (typeof Prism !== 'undefined') {{\n                                Prism.highlightAllUnder(target);\n                            }}\n                        }}\n                    }}\n                    \n                    // Check if marked.js is loaded\n                    if (typeof marked !== 'undefined') {{\n                        renderMarkdown();\n                    }} else {{\n                        console.error('marked.js is not loaded');\n                    }}\n                }});\n                \n                // Also listen for custom event from HX-Trigger\n                document.addEventListener('initMarked', function(event) {{\n                    if (event.detail.widgetId === '{widget_id}') {{\n                        setTimeout(function() {{\n                            const source = document.getElementById('{widget_id}_source');\n                            const target = document.getElementById('{widget_id}_rendered');\n                            if (source && target && typeof marked !== 'undefined') {{\n                                const html = marked.parse(source.textContent);\n                                target.innerHTML = html;\n                                // Apply syntax highlighting to code blocks if Prism is available\n                                if (typeof Prism !== 'undefined') {{\n                                    Prism.highlightAllUnder(target);\n                                }}\n                            }}\n                        }}, 100);\n                    }}\n                }});\n            "), cls='marked-widget')
         return widget
 
-    # --- Helper Methods (Widget Creation) ---
-    
     def create_pandas_table(self, data_str):
         """
         Create a pandas HTML table from JSON string data.
@@ -1831,116 +693,26 @@ This step serves as a placeholder for future widget types."""
         - _raw=True flag informs the component to accept unprocessed HTML
         """
         try:
-            # Try parsing the JSON data
             data = json.loads(data_str)
-            
-            # Create a pandas DataFrame
-            if isinstance(data, list) and all(isinstance(item, dict) for item in data):
-                # Data is a list of dictionaries (most common format)
+            if isinstance(data, list) and all((isinstance(item, dict) for item in data)):
                 df = pd.DataFrame(data)
-            elif isinstance(data, list) and all(isinstance(item, list) for item in data):
-                # Data is a list of lists, with first row as headers
+            elif isinstance(data, list) and all((isinstance(item, list) for item in data)):
                 headers = data[0]
                 rows = data[1:]
                 df = pd.DataFrame(rows, columns=headers)
             else:
                 return Div(NotStr("<div style='color: red;'>Unsupported data format. Please provide a list of objects.</div>"), _raw=True)
-            
-            # Generate HTML table with styling
-            html_table = df.to_html(
-                index=False,            # Don't include DataFrame index
-                classes='table',        # Add a CSS class for styling
-                border=0,               # Remove default HTML border attribute
-                escape=True,            # Keep default HTML escaping for security
-                justify='left'          # Align text to left
-            )
-            
-            # Create a styled container for the table with responsive design
-            table_container = Div(
-                H5("Pandas DataFrame Table:"),
-                # Add the HTML table with NotStr to prevent escaping
-                Div(
-                    NotStr(html_table),
-                    style="overflow-x: auto; max-width: 100%;"
-                ),
-                style="margin-top: 1rem;"
-            )
-            
+            html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
+            table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-1rem')
             return table_container
-            
         except Exception as e:
-            logger.error(f"Error creating pandas table: {e}")
+            logger.error(f'Error creating pandas table: {e}')
             return Div(NotStr(f"<div style='color: red;'>Error creating table: {str(e)}</div>"), _raw=True)
 
     def create_mermaid_widget(self, diagram_syntax, widget_id):
         """Create a mermaid diagram widget container."""
-        # Create container for the widget
-        container = Div(
-            Div(
-                # Container to render the mermaid diagram
-                H5("Rendered Diagram:"),
-                Div(
-                    # This div with class="mermaid" will be targeted by the mermaid.js library
-                    Div(
-                        diagram_syntax,
-                        cls="mermaid",
-                        style="width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;"
-                    ),
-                    id=f"{widget_id}_output"
-                )
-            ),
-            id=widget_id
-        )
-        
-        # Create a script to initialize and run mermaid on this container
-        init_script = Script(
-            f"""
-            (function() {{
-                // Give the DOM time to fully render before initializing Mermaid
-                setTimeout(function() {{
-                    // Initialize mermaid
-                    if (typeof mermaid !== 'undefined') {{
-                        try {{
-                            mermaid.initialize({{ 
-                                startOnLoad: false,  // Important - don't auto-init
-                                theme: 'dark',       // Use dark theme for better visibility
-                                securityLevel: 'loose',
-                                flowchart: {{
-                                    htmlLabels: true
-                                }}
-                            }});
-                            
-                            // Find all mermaid divs in this widget and render them
-                            const container = document.getElementById('{widget_id}');
-                            if (!container) return;
-                            
-                            const mermaidDiv = container.querySelector('.mermaid');
-                            if (mermaidDiv) {{
-                                // Force a repaint before initializing
-                                void container.offsetWidth;
-                                
-                                // Render the diagram
-                                if (typeof mermaid.run === 'function') {{
-                                    // Newer Mermaid API
-                                    mermaid.run({{ nodes: [mermaidDiv] }});
-                                }} else {{
-                                    // Older Mermaid API
-                                    mermaid.init(undefined, mermaidDiv);
-                                }}
-                                console.log('Mermaid rendering successful');
-                            }}
-                        }} catch(e) {{
-                            console.error("Mermaid rendering error:", e);
-                        }}
-                    }} else {{
-                        console.error("Mermaid library not found. Make sure it's included in the page headers.");
-                    }}
-                }}, 300); // 300ms delay to ensure DOM is ready
-            }})();
-            """,
-            type="text/javascript"
-        )
-        
+        container = Div(Div(H5('Rendered Diagram:'), Div(Div(diagram_syntax, cls='mermaid', style='width: 100%; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: 1rem;'), id=f'{widget_id}_output')), id=widget_id)
+        init_script = Script(f"""\n            (function() {{\n                // Give the DOM time to fully render before initializing Mermaid\n                setTimeout(function() {{\n                    // Initialize mermaid\n                    if (typeof mermaid !== 'undefined') {{\n                        try {{\n                            mermaid.initialize({{ \n                                startOnLoad: false,  // Important - don't auto-init\n                                theme: 'dark',       // Use dark theme for better visibility\n                                securityLevel: 'loose',\n                                flowchart: {{\n                                    htmlLabels: true\n                                }}\n                            }});\n                            \n                            // Find all mermaid divs in this widget and render them\n                            const container = document.getElementById('{widget_id}');\n                            if (!container) return;\n                            \n                            const mermaidDiv = container.querySelector('.mermaid');\n                            if (mermaidDiv) {{\n                                // Force a repaint before initializing\n                                void container.offsetWidth;\n                                \n                                // Render the diagram\n                                if (typeof mermaid.run === 'function') {{\n                                    // Newer Mermaid API\n                                    mermaid.run({{ nodes: [mermaidDiv] }});\n                                }} else {{\n                                    // Older Mermaid API\n                                    mermaid.init(undefined, mermaidDiv);\n                                }}\n                                console.log('Mermaid rendering successful');\n                            }}\n                        }} catch(e) {{\n                            console.error("Mermaid rendering error:", e);\n                        }}\n                    }} else {{\n                        console.error("Mermaid library not found. Make sure it's included in the page headers.");\n                    }}\n                }}, 300); // 300ms delay to ensure DOM is ready\n            }})();\n            """, type='text/javascript')
         return Div(container, init_script)
 
     def create_prism_widget(self, code, widget_id, language='javascript'):
@@ -1951,151 +723,46 @@ This step serves as a placeholder for future widget types."""
             widget_id (str): Unique ID for the widget
             language (str): The programming language for syntax highlighting (default: javascript)
         """
-        # Generate a unique ID for the hidden textarea
-        textarea_id = f"{widget_id}_raw_code"
-        
-        # Create container for the widget
-        container = Div(
-            Div(
-                H5("Syntax Highlighted Code:"),
-                # Add a hidden textarea to hold the raw code (much safer than trying to escape it for JS)
-                Textarea(
-                    code,
-                    id=textarea_id,
-                    style="display: none;"  # Hide the textarea
-                ),
-                # This pre/code structure is required for Prism.js
-                Pre(
-                    Code(
-                        code,
-                        cls=f"language-{language}"  # Language class for Prism
-                    ),
-                    cls="line-numbers"  # Enable line numbers
-                ),
-                style="margin-top: 1rem;"
-            ),
-            id=widget_id
-        )
-        
-        # Create script to initialize Prism with debugging
-        init_script = Script(
-            f"""
-            (function() {{
-                console.log('Prism widget loaded, ID: {widget_id}');
-                // Check if Prism is loaded
-                if (typeof Prism === 'undefined') {{
-                    console.error('Prism library not found');
-                    return;
-                }}
-                
-                // Attempt to manually trigger highlighting
-                setTimeout(function() {{
-                    try {{
-                        console.log('Manually triggering Prism highlighting for {widget_id}');
-                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
-                    }} catch(e) {{
-                        console.error('Error during manual Prism highlighting:', e);
-                    }}
-                }}, 300);
-            }})();
-            """,
-            type="text/javascript"
-        )
-        
-        return Div(container, init_script) 
-    
-    # --- Step 7: Simple Text Widget (Duplicate) ---
+        textarea_id = f'{widget_id}_raw_code'
+        container = Div(Div(H5('Syntax Highlighted Code:'), Textarea(code, id=textarea_id, style='display: none;'), Pre(Code(code, cls=f'language-{language}'), cls='line-numbers'), cls='mt-1rem'), id=widget_id)
+        init_script = Script(f"\n            (function() {{\n                console.log('Prism widget loaded, ID: {widget_id}');\n                // Check if Prism is loaded\n                if (typeof Prism === 'undefined') {{\n                    console.error('Prism library not found');\n                    return;\n                }}\n                \n                // Attempt to manually trigger highlighting\n                setTimeout(function() {{\n                    try {{\n                        console.log('Manually triggering Prism highlighting for {widget_id}');\n                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));\n                    }} catch(e) {{\n                        console.error('Error during manual Prism highlighting:', e);\n                    }}\n                }}, 300);\n            }})();\n            ", type='text/javascript')
+        return Div(container, init_script)
+
     async def step_07(self, request):
         """ 
         Handles GET request for Step 7: Matplotlib Histogram Widget.
         
         This step allows users to input counter data and visualizes it as a histogram.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_07"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        counter_data = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and counter_data:
-            # Show the histogram in locked state
+        counter_data = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and counter_data:
             try:
                 histogram_widget = self.create_matplotlib_histogram(counter_data)
-                return Div(
-                    Card(
-                        H3(f"🔒 {step.show}"),
-                        histogram_widget
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
+                return Div(Card(H3(f'🔒 {step.show}'), histogram_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
-                logger.error(f"Error creating histogram in finalized view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
-            
-        # Check if step is complete and not reverting
-        elif counter_data and state.get("_revert_target") != step_id:
-            # Create the histogram widget from the existing data
+                logger.error(f'Error creating histogram in finalized view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif counter_data and state.get('_revert_target') != step_id:
             try:
                 histogram_widget = self.create_matplotlib_histogram(counter_data)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=histogram_widget,
-                    steps=steps
-                )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-                )
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
+                return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
-                # If there's an error creating the widget, revert to input form
-                logger.error(f"Error creating histogram widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating histogram widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        
-        # Show input form
         display_value = counter_data if step.refill and counter_data else await self.get_suggestion(step_id, state)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter counter data as JSON object (keys and values):"),
-                P("Format: {\"category1\": count1, \"category2\": count2, ...}", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JSON object for Counter data",
-                            required=True,
-                            rows=10,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Create Histogram ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_07_submit(self, request):
         """ 
@@ -2103,67 +770,37 @@ This step serves as a placeholder for future widget types."""
         
         Takes counter data as input and creates a histogram visualization.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_07"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_07'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get form data
         form = await request.form()
-        counter_data = form.get(step.done, "").strip()
-
-        # Validate input
+        counter_data = form.get(step.done, '').strip()
         is_valid, error_msg, error_component = pip.validate_step_input(counter_data, step.show)
         if not is_valid:
             return error_component
-        
-        # Additional validation for JSON format
         try:
             import json
             data = json.loads(counter_data)
             if not isinstance(data, dict):
-                return P("Invalid JSON: Must be an object (dictionary) with keys and values", style=pip.get_style("error"))
+                return P('Invalid JSON: Must be an object (dictionary) with keys and values', style=pip.get_style('error'))
             if not data:
-                return P("Invalid data: Counter cannot be empty", style=pip.get_style("error"))
+                return P('Invalid data: Counter cannot be empty', style=pip.get_style('error'))
         except json.JSONDecodeError:
-            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
-
-        # Save the counter data to state
+            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
         await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
-
-        # Create the matplotlib histogram widget
         try:
             histogram_widget = self.create_matplotlib_histogram(counter_data)
-            
-            # Create content container with the widget
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: Histogram created from Counter data",
-                widget=histogram_widget,
-                steps=steps
-            )
-            
-            # Create full response structure
-            response_content = Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-            # Send confirmation message
-            await self.message_queue.add(pip, f"{step.show} complete. Histogram created.", verbatim=True)
-
-            # Return the HTMLResponse with the widget container
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
+            response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            await self.message_queue.add(pip, f'{step.show} complete. Histogram created.', verbatim=True)
             return HTMLResponse(to_xml(response_content))
-            
         except Exception as e:
-            logger.error(f"Error creating histogram visualization: {e}")
-            return P(f"Error creating histogram: {str(e)}", style=pip.get_style("error"))
+            logger.error(f'Error creating histogram visualization: {e}')
+            return P(f'Error creating histogram: {str(e)}', style=pip.get_style('error'))
 
-    # --- Step 8: URL Opener Widget ---
     async def step_08(self, request):
         """ 
         Handles GET request for Step 8: URL Opener Widget.
@@ -2171,86 +808,25 @@ This step serves as a placeholder for future widget types."""
         This widget allows users to input a URL and open it in their default browser.
         It demonstrates a practical use case for workflow steps.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_08"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_08'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        url_value = step_data.get(step.done, "")
-        
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and url_value:
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P(f"URL configured: ", B(url_value)),
-                    Button(
-                        "Open URL Again ▸",
-                        type="button",
-                        _onclick=f"window.open('{url_value}', '_blank')",
-                        cls="secondary"
-                    )
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
-            
-        # Check if step is complete and not reverting
-        elif url_value and state.get("_revert_target") != step_id:
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: {url_value}",
-                widget=Div(
-                    P(f"URL configured: ", B(url_value)),
-                    Button(
-                        "Open URL Again ▸",
-                        type="button",
-                        _onclick=f"window.open('{url_value}', '_blank')",
-                        cls="secondary"
-                    )
-                ),
-                steps=steps
-            )
-            return Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
-            )
+        url_value = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and url_value:
+            return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif url_value and state.get('_revert_target') != step_id:
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
+            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
-            # Show URL input form
-            display_value = url_value if step.refill and url_value else "https://example.com"
-            await self.message_queue.add(pip, "Enter the URL you want to open:", verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                    P("Enter a URL to open in your default browser."),
-                    Form(
-                        Div(
-                            Input(
-                                type="url",
-                                name="url",
-                                placeholder="https://example.com",
-                                required=True,
-                                value=display_value,
-                                cls="contrast"
-                            ),
-                            Div(
-                                Button("Open URL ▸", type="submit", cls="primary"),
-                                style="margin-top: 1vh; text-align: right;"
-                            ),
-                            style="width: 100%;"
-                        ),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
+            display_value = url_value if step.refill and url_value else 'https://example.com'
+            await self.message_queue.add(pip, 'Enter the URL you want to open:', verbatim=True)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter a URL to open in your default browser.'), Form(Div(Input(type='url', name='url', placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_08_submit(self, request):
         """ 
@@ -2259,64 +835,28 @@ This step serves as a placeholder for future widget types."""
         Takes a URL input, validates it, opens it in the default browser,
         and provides a button to reopen it later.
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_08"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_08'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-
-        # Get and validate URL
         form = await request.form()
-        url = form.get("url", "").strip()
-        
+        url = form.get('url', '').strip()
         if not url:
-            return P("Error: URL is required", style=pip.get_style("error"))
-        
-        if not url.startswith(("http://", "https://")):
-            url = f"https://{url}"
-
-        # Save URL to state
+            return P('Error: URL is required', style=pip.get_style('error'))
+        if not url.startswith(('http://', 'https://')):
+            url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
-        await self.message_queue.add(pip, f"URL set to: {url}", verbatim=True)
-        
-        # Open URL in default browser
+        await self.message_queue.add(pip, f'URL set to: {url}', verbatim=True)
         import webbrowser
         webbrowser.open(url)
-        
-        # Create widget with reopen button
-        url_widget = Div(
-            P(f"URL configured: ", B(url)),
-            Button(
-                "Open URL Again ▸",
-                type="button",
-                _onclick=f"window.open('{url}', '_blank')",
-                cls="secondary"
-            )
-        )
-        
-        # Create content container
-        content_container = pip.widget_container(
-            step_id=step_id,
-            app_name=app_name,
-            message=f"{step.show}: {url}",
-            widget=url_widget,
-            steps=steps
-        )
-        
-        # Create full response
-        response_content = Div(
-            content_container,
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
-        
-        # Send confirmation message
-        await self.message_queue.add(pip, f"Opening URL: {url}", verbatim=True)
-        
+        url_widget = Div(P(f'URL configured: ', B(url)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url}', '_blank')", cls='secondary'))
+        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
+        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        await self.message_queue.add(pip, f'Opening URL: {url}', verbatim=True)
         return HTMLResponse(to_xml(response_content))
 
-    # Add the helper method to create a matplotlib histogram
     def create_matplotlib_histogram(self, data_str):
         """
         Create a matplotlib histogram visualization from JSON counter data.
@@ -2328,72 +868,33 @@ This step serves as a placeholder for future widget types."""
             A Div element containing the histogram image
         """
         try:
-            # Parse the JSON data
             import json
             from collections import Counter
-            
-            # Try to parse as a dict (direct Counter format)
             data = json.loads(data_str)
-            
             if not isinstance(data, dict):
                 return Div(NotStr("<div style='color: red;'>Error: Data must be a JSON object with keys and values</div>"), _raw=True)
-            
-            # Create a Counter from the data
             counter = Counter(data)
-            
-            # Check if we have data to plot
             if not counter:
                 return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
-            
-            # Generate the matplotlib figure
             import matplotlib.pyplot as plt
             from io import BytesIO
             import base64
-            
-            # Create the figure
             plt.figure(figsize=(10, 6))
-            
-            # Sort data by keys for better visualization
             labels = sorted(counter.keys())
             values = [counter[label] for label in labels]
-            
-            # Create the bar plot
             plt.bar(labels, values, color='skyblue')
-            
-            # Add labels and title
             plt.xlabel('Categories')
             plt.ylabel('Counts')
             plt.title('Histogram from Counter Data')
-            
-            # Add grid for better readability
             plt.grid(axis='y', linestyle='--', alpha=0.7)
-            
-            # Rotate x-axis labels if there are many categories
             if len(labels) > 5:
                 plt.xticks(rotation=45, ha='right')
-            
-            # Adjust layout
             plt.tight_layout()
-            
-            # Save figure to a bytes buffer
             buffer = BytesIO()
             plt.savefig(buffer, format='png')
             plt.close()
-            
-            # Convert to base64 for embedding in HTML
             img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            
-            # Create an HTML component with the image and some metadata
-            return Div(
-                H4("Histogram Visualization:"),
-                P(f"Data: {len(counter)} categories, {sum(counter.values())} total counts"),
-                Div(
-                    NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'),
-                    style="text-align: center; margin-top: 1rem;"
-                ),
-                style="overflow-x: auto;"
-            )
-        
+            return Div(H4('Histogram Visualization:'), P(f'Data: {len(counter)} categories, {sum(counter.values())} total counts'), Div(NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'), style='text-align: center; margin-top: 1rem;'), cls='overflow-x-auto')
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
@@ -2410,379 +911,168 @@ This step serves as a placeholder for future widget types."""
         - Proper cell padding and alignment
         - Color-coded columns
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_09"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_09'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        table_data = step_data.get(step.done, "")
-
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and table_data:
+        table_data = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and table_data:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
-                return Div(
-                    Card(
-                        H3(f"🔒 {step.show}"),
-                        table_widget
-                    ),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
+                return Div(Card(H3(f'🔒 {step.show}'), table_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
-                logger.error(f"Error creating table widget in finalized view: {str(e)}")
-                return Div(
-                    Card(f"🔒 {step.show}: <content locked>"),
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
-            
-        # Check if step is complete and not being reverted to
-        elif table_data and state.get("_revert_target") != step_id:
+                logger.error(f'Error creating table widget in finalized view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        elif table_data and state.get('_revert_target') != step_id:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
-                content_container = pip.widget_container(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message=f"{step.show} Configured",
-                    widget=table_widget,
-                    steps=steps
-                )
-                return Div(
-                    content_container,
-                    Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                    id=step_id
-                )
+                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
-                logger.error(f"Error creating table widget: {str(e)}")
-                state["_revert_target"] = step_id
+                logger.error(f'Error creating table widget: {str(e)}')
+                state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-
-        # Show input form
-        sample_data = [
-            {"name": "Parameter 1", "value1": 1000, "value2": 500, "value3": 50},
-            {"name": "Parameter 2", "value1": 2000, "value2": 1000, "value3": 100},
-            {"name": "Parameter 3", "value1": 3000, "value2": 1500, "value3": 150}
-        ]
+        sample_data = [{'name': 'Parameter 1', 'value1': 1000, 'value2': 500, 'value3': 50}, {'name': 'Parameter 2', 'value1': 2000, 'value2': 1000, 'value3': 100}, {'name': 'Parameter 3', 'value1': 3000, 'value2': 1500, 'value3': 150}]
         display_value = table_data if step.refill and table_data else json.dumps(sample_data, indent=2)
-        await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-        
-        return Div(
-            Card(
-                H3(f"{pip.fmt(step_id)}: Configure {step.show}"),
-                P("Enter table data as JSON array of objects. Example is pre-populated."),
-                P("Format: [{\"name\": \"value\", \"value1\": number, ...}, {...}]", 
-                  style="font-size: 0.8em; font-style: italic;"),
-                Form(
-                    Div(
-                        Textarea(
-                            display_value,
-                            name=step.done,
-                            placeholder="Enter JSON array of objects for the table",
-                            required=True,
-                            rows=10,
-                            style="width: 100%; font-family: monospace;"
-                        ),
-                        Div(
-                            Button("Create Table ▸", type="submit", cls="primary"),
-                            style="margin-top: 1vh; text-align: right;"
-                        ),
-                        style="width: 100%;"
-                    ),
-                    hx_post=f"/{app_name}/{step_id}_submit",
-                    hx_target=f"#{step_id}"
-                )
-            ),
-            Div(id=next_step_id),
-            id=step_id
-        )
+        await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-small-italic'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the table', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-100'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_09_submit(self, request):
         """Process the submission for Rich Table Widget."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_09"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_09'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Get form data
+        pipeline_id = db.get('pipeline_id', 'unknown')
         form = await request.form()
-        table_data = form.get(step.done, "").strip()
-
-        # Validate input
+        table_data = form.get(step.done, '').strip()
         is_valid, error_msg, error_component = pip.validate_step_input(table_data, step.show)
         if not is_valid:
             return error_component
-            
-        # Additional validation for JSON format
         try:
             data = json.loads(table_data)
             if not isinstance(data, list) or not data:
-                return P("Invalid JSON: Must be a non-empty array of objects", style=pip.get_style("error"))
-            if not all(isinstance(item, dict) for item in data):
-                return P("Invalid JSON: All items must be objects (dictionaries)", style=pip.get_style("error"))
+                return P('Invalid JSON: Must be a non-empty array of objects', style=pip.get_style('error'))
+            if not all((isinstance(item, dict) for item in data)):
+                return P('Invalid JSON: All items must be objects (dictionaries)', style=pip.get_style('error'))
         except json.JSONDecodeError:
-            return P("Invalid JSON format. Please check your syntax.", style=pip.get_style("error"))
-
-        # Save to state
+            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
         await pip.set_step_data(pipeline_id, step_id, table_data, steps)
-
-        # Create the rich table widget
         try:
             table_widget = self.create_rich_table_widget(data)
-            
-            # Create content container
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: Table created with {len(data)} rows",
-                widget=table_widget,
-                steps=steps
-            )
-            
-            # Create full response
-            response_content = Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-            # Send confirmation message
-            await self.message_queue.add(pip, f"{step.show} complete. Table created with {len(data)} rows.", verbatim=True)
-
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table created with {len(data)} rows', widget=table_widget, steps=steps)
+            response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            await self.message_queue.add(pip, f'{step.show} complete. Table created with {len(data)} rows.', verbatim=True)
             return HTMLResponse(to_xml(response_content))
-            
         except Exception as e:
-            logger.error(f"Error creating table widget: {e}")
-            return P(f"Error creating table: {str(e)}", style=pip.get_style("error"))
+            logger.error(f'Error creating table widget: {e}')
+            return P(f'Error creating table: {str(e)}', style=pip.get_style('error'))
 
     def create_rich_table_widget(self, data):
         """Create a rich table widget with beautiful styling."""
-        # Get column headers from first row
         if not data:
-            return P("No data provided for table", style="color: red;")
-        
+            return P('No data provided for table', cls='text-error')
         headers = list(data[0].keys())
-
-        # Create the table HTML
-        table_html = f"""
-        <table class="param-table">
-            <caption>Rich Table Example</caption>
-            <tr class="header">
-        """
-        
-        # Add header row
+        table_html = f'\n        <table class="param-table">\n            <caption>Rich Table Example</caption>\n            <tr class="header">\n        '
         for i, header in enumerate(headers):
-            header_class = "param-name" if header == "name" else f"{header}-val"
-            td_class = "header-cell"
+            header_class = 'param-name' if header == 'name' else f'{header}-val'
+            td_class = 'header-cell'
             table_html += f'<td class="{td_class}"><span class="{header_class}">{header}</span></td>'
-        
-        table_html += "</tr>"
-        
-        # Add data rows
+        table_html += '</tr>'
         for row in data:
-            table_html += "<tr>"
+            table_html += '<tr>'
             for i, header in enumerate(headers):
-                cell_class = "param-name" if header == "name" else f"{header}-val"
-                value = row.get(header, "")
-                # Format numbers with commas
+                cell_class = 'param-name' if header == 'name' else f'{header}-val'
+                value = row.get(header, '')
                 if isinstance(value, (int, float)):
-                    value = f"{value:,}"
+                    value = f'{value:,}'
                 table_html += f'<td><span class="{cell_class}">{value}</span></td>'
-            table_html += "</tr>"
-        
-        table_html += "</table>"
-        
-        # Return the complete widget
-        return Div(
-            NotStr(table_html),
-            style="overflow-x: auto;"
-        )
+            table_html += '</tr>'
+        table_html += '</table>'
+        return Div(NotStr(table_html), cls='overflow-x-auto')
 
     async def step_10(self, request):
         """Handles GET request for Selenium URL step."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_10"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_10'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        url_value = step_data.get(step.done, "")
-
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and url_value:
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}"),
-                    P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
-                    Div(id=f"{step_id}-status")
-                ),
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-        # Check if step is complete and not being reverted to
-        elif url_value and state.get("_revert_target") != step_id:
-            content_container = pip.widget_container(
-                step_id=step_id,
-                app_name=app_name,
-                message=f"{step.show}: {url_value}",
-                widget=Div(
-                    P(f"URL configured: ", B(url_value)),
-                    Form(
-                        Input(type="hidden", name="url", value=url_value),
-                        Button(
-                            "Open URL Again 🪄",
-                            type="submit",
-                            cls="secondary"
-                        ),
-                        hx_post=f"/{app_name}/reopen_url",
-                        hx_target=f"#{step_id}-status"
-                    ),
-                    Div(id=f"{step_id}-status")
-                ),
-                steps=steps
-            )
-            return Div(
-                content_container,
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
+        url_value = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and url_value:
+            return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        elif url_value and state.get('_revert_target') != step_id:
+            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
+            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
-            await self.message_queue.add(pip, "Enter the URL you want to open with Selenium:", verbatim=True)
-            
-            # Use existing value if available, otherwise use default
-            display_value = url_value if step.refill and url_value else "https://example.com/"
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    Form(
-                        Input(
-                            type="url",
-                            name="url",
-                            placeholder="https://example.com/",
-                            required=True,
-                            value=display_value,
-                            cls="contrast"
-                        ),
-                        Button("Open URL 🪄", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit", 
-                        hx_target=f"#{step_id}"
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
+            await self.message_queue.add(pip, 'Enter the URL you want to open with Selenium:', verbatim=True)
+            display_value = url_value if step.refill and url_value else 'https://example.com/'
+            return Div(Card(H3(f'{step.show}'), Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), Button('Open URL 🪄', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_10_submit(self, request):
         """Process the submission for Step 10."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_10"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_10'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-
-        # Process form data
+        pipeline_id = db.get('pipeline_id', 'unknown')
         form = await request.form()
-        url = form.get("url", "").strip()
-        
+        url = form.get('url', '').strip()
         if not url:
-            return P("Error: URL is required", style=pip.get_style("error"))
-        
-        if not url.startswith(("http://", "https://")):
-            url = f"https://{url}"
-        
-        # Store state data
+            return P('Error: URL is required', style=pip.get_style('error'))
+        if not url.startswith(('http://', 'https://')):
+            url = f'https://{url}'
         await pip.set_step_data(pipeline_id, step_id, url, steps)
-        
         try:
-            # Set up Chrome options
             chrome_options = Options()
-            # chrome_options.add_argument("--headless")  # Commented out for visibility
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--new-window")  # Force new window
-            chrome_options.add_argument("--start-maximized")  # Start maximized
-            
-            # Create a temporary profile directory
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--new-window')
+            chrome_options.add_argument('--start-maximized')
             import tempfile
             profile_dir = tempfile.mkdtemp()
-            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-            
-            # Initialize the Chrome driver
-            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
-            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
-            
-            if effective_os == "darwin":
-                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+            chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+            effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
+            await self.message_queue.add(pip, f'Current OS: {effective_os}', verbatim=True)
+            if effective_os == 'darwin':
+                await self.message_queue.add(pip, 'Using webdriver-manager for macOS', verbatim=True)
                 service = Service(ChromeDriverManager().install())
             else:
-                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                await self.message_queue.add(pip, 'Using system Chrome for Linux', verbatim=True)
                 service = Service()
-            
-            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            await self.message_queue.add(pip, 'Initializing Chrome driver...', verbatim=True)
             driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Open the URL
-            await self.message_queue.add(pip, f"Opening URL with Selenium: {url}", verbatim=True)
+            await self.message_queue.add(pip, f'Opening URL with Selenium: {url}', verbatim=True)
             driver.get(url)
-            
-            # Wait a moment to ensure the page loads
             await asyncio.sleep(2)
-            
-            # Get the page title to confirm it loaded
             title = driver.title
-            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
-            
-            # Close the browser
+            await self.message_queue.add(pip, f'Page loaded successfully. Title: {title}', verbatim=True)
             driver.quit()
-            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
-            
-            # Clean up the temporary profile directory
+            await self.message_queue.add(pip, 'Browser closed successfully', verbatim=True)
             import shutil
             shutil.rmtree(profile_dir, ignore_errors=True)
-            
         except Exception as e:
-            error_msg = f"Error opening URL with Selenium: {str(e)}"
+            error_msg = f'Error opening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style("error"))
-        
-        # Keep LLM informed about the step completion
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{url}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
-        # Send user-visible confirmation via message queue
-        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
-        # Return completion view with explicit trigger to next step
-        return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+            return P(error_msg, style=pip.get_style('error'))
+        pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{url}')
+        pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
+        await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
+        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_11(self, request):
         """Handles GET request for the file upload widget.
@@ -2793,236 +1083,113 @@ This step serves as a placeholder for future widget types."""
         - Automatic file saving
         - Upload summary display
         """
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_11"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_11'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
+        pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        file_summary = step_data.get(step.done, "")
-
-        # Check if workflow is finalized
-        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        if "finalized" in finalize_data and file_summary:
-            # Keep LLM informed about finalized state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{file_summary}")
-            
-            return Div(
-                Card(
-                    H3(f"🔒 {step.show}: Completed")
-                ),
-                # CRITICAL: Include trigger to next step even in finalized state
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
-            
-        # Check if step is complete and not being reverted to
-        elif file_summary and state.get("_revert_target") != step_id:
-            # Keep LLM informed about completed state
-            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}")
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("Uploaded files:"),
-                    Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
-                    pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
-                ),
-                # CRITICAL: Include trigger to next step in completed state
-                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-                id=step_id
-            )
+        file_summary = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        if 'finalized' in finalize_data and file_summary:
+            pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Finalized):\n{file_summary}')
+            return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        elif file_summary and state.get('_revert_target') != step_id:
+            pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}')
+            return Div(Card(H3(f'{step.show}'), P('Uploaded files:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
-            # Keep LLM informed about showing upload form
-            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing upload form")
-            
-            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("Select one or more files to upload. Files will be saved automatically."),
-                    Form(
-                        Input(
-                            type="file",
-                            name="uploaded_files",
-                            multiple="true",
-                            required="true",
-                            cls="contrast"
-                        ),
-                        Button("Upload Files ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}",
-                        enctype="multipart/form-data"
-                    )
-                ),
-                # Empty placeholder without trigger
-                Div(id=next_step_id),
-                id=step_id
-            )
+            pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing upload form')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            return Div(Card(H3(f'{step.show}'), P('Select one or more files to upload. Files will be saved automatically.'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
 
     async def step_11_submit(self, request):
         """Process the submission for the file upload widget."""
-        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
-        step_id = "step_11"
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_11'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get("pipeline_id", "unknown")
-        
-        # Get the uploaded files
+        pipeline_id = db.get('pipeline_id', 'unknown')
         form_data = await request.form()
-        uploaded_files = form_data.getlist("uploaded_files")
-        
+        uploaded_files = form_data.getlist('uploaded_files')
         if not uploaded_files:
-            await self.message_queue.add(pip, "No files selected. Please try again.", verbatim=True)
-            return Div(
-                Card(
-                    H3(f"{step.show}"),
-                    P("No files were selected. Please try again."),
-                    Form(
-                        Input(
-                            type="file",
-                            name="uploaded_files",
-                            multiple="true",
-                            required="true",
-                            cls="contrast"
-                        ),
-                        Button("Upload Files ▸", type="submit", cls="primary"),
-                        hx_post=f"/{app_name}/{step_id}_submit",
-                        hx_target=f"#{step_id}",
-                        enctype="multipart/form-data"
-                    )
-                ),
-                id=step_id
-            )
-        
-        # Create save directory
-        save_directory = Path("downloads") / self.app_name / pipeline_id
+            await self.message_queue.add(pip, 'No files selected. Please try again.', verbatim=True)
+            return Div(Card(H3(f'{step.show}'), P('No files were selected. Please try again.'), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), id=step_id)
+        save_directory = Path('downloads') / self.app_name / pipeline_id
         try:
             save_directory.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            error_msg = f"Error creating save directory: {str(e)}"
+            error_msg = f'Error creating save directory: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P("Error creating save directory. Please try again.", style=pip.get_style("error"))
-        
-        # Create a list of file information and save files
+            return P('Error creating save directory. Please try again.', style=pip.get_style('error'))
         file_info = []
         total_size = 0
         saved_files = []
-        
         for file in uploaded_files:
             try:
-                # Read file content
                 contents = await file.read()
                 file_size = len(contents)
                 total_size += file_size
-                
-                # Save file
                 file_save_path = save_directory / file.filename
-                with open(file_save_path, "wb") as f:
+                with open(file_save_path, 'wb') as f:
                     f.write(contents)
-                
-                # Add to saved files list
                 saved_files.append((file.filename, str(file_save_path)))
-                file_info.append(f"📄 {file.filename} ({file_size:,} bytes) -> {file_save_path}")
-                
+                file_info.append(f'📄 {file.filename} ({file_size:,} bytes) -> {file_save_path}')
             except Exception as e:
-                error_msg = f"Error saving file {file.filename}: {str(e)}"
+                error_msg = f'Error saving file {file.filename}: {str(e)}'
                 logger.error(error_msg)
                 await self.message_queue.add(pip, error_msg, verbatim=True)
-                return P(f"Error saving file {file.filename}. Please try again.", style=pip.get_style("error"))
-        
-        # Create a summary of the files
-        file_summary = "\n".join(file_info)
-        file_summary += f"\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes"
-        file_summary += f"\nSaved to: {save_directory}"
-        
-        # Update step state with file information
+                return P(f'Error saving file {file.filename}. Please try again.', style=pip.get_style('error'))
+        file_summary = '\n'.join(file_info)
+        file_summary += f'\n\nTotal: {len(uploaded_files)} files, {total_size:,} bytes'
+        file_summary += f'\nSaved to: {save_directory}'
         await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
-        
-        # Keep LLM informed about the widget content and state
-        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{file_summary}")
-        pip.append_to_history(f"[WIDGET STATE] {step.show}: Files saved")
-        
-        # Send user-visible confirmation
-        await self.message_queue.add(pip, f"Successfully saved {len(uploaded_files)} files to {save_directory}", verbatim=True)
-        
-        # Return the file list display with workflow progression
-        return Div(
-            Card(
-                H3(f"{step.show}"),
-                P("Files saved successfully:"),
-                Pre(file_summary, style="white-space: pre-wrap; font-size: 0.9em;"),
-                pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps)
-            ),
-            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
-            id=step_id
-        )
+        pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{file_summary}')
+        pip.append_to_history(f'[WIDGET STATE] {step.show}: Files saved')
+        await self.message_queue.add(pip, f'Successfully saved {len(uploaded_files)} files to {save_directory}', verbatim=True)
+        return Div(Card(H3(f'{step.show}'), P('Files saved successfully:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def reopen_url(self, request):
         """Handle reopening a URL with Selenium."""
-        pip, db = self.pipulate, self.db
+        pip, db = (self.pipulate, self.db)
         form = await request.form()
-        url = form.get("url", "").strip()
-        
+        url = form.get('url', '').strip()
         if not url:
-            return P("Error: URL is required", style=pip.get_style("error"))
-        
+            return P('Error: URL is required', style=pip.get_style('error'))
         try:
-            # Set up Chrome options
             chrome_options = Options()
-            # chrome_options.add_argument("--headless")  # Commented out for visibility
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--new-window")  # Force new window
-            chrome_options.add_argument("--start-maximized")  # Start maximized
-            
-            # Create a temporary profile directory
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--new-window')
+            chrome_options.add_argument('--start-maximized')
             import tempfile
             profile_dir = tempfile.mkdtemp()
-            chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-            
-            # Initialize the Chrome driver
-            effective_os = os.environ.get("EFFECTIVE_OS", "unknown")
-            await self.message_queue.add(pip, f"Current OS: {effective_os}", verbatim=True)
-            
-            if effective_os == "darwin":
-                await self.message_queue.add(pip, "Using webdriver-manager for macOS", verbatim=True)
+            chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+            effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
+            await self.message_queue.add(pip, f'Current OS: {effective_os}', verbatim=True)
+            if effective_os == 'darwin':
+                await self.message_queue.add(pip, 'Using webdriver-manager for macOS', verbatim=True)
                 service = Service(ChromeDriverManager().install())
             else:
-                await self.message_queue.add(pip, "Using system Chrome for Linux", verbatim=True)
+                await self.message_queue.add(pip, 'Using system Chrome for Linux', verbatim=True)
                 service = Service()
-            
-            await self.message_queue.add(pip, "Initializing Chrome driver...", verbatim=True)
+            await self.message_queue.add(pip, 'Initializing Chrome driver...', verbatim=True)
             driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Open the URL
-            await self.message_queue.add(pip, f"Reopening URL with Selenium: {url}", verbatim=True)
+            await self.message_queue.add(pip, f'Reopening URL with Selenium: {url}', verbatim=True)
             driver.get(url)
-            
-            # Wait a moment to ensure the page loads
             await asyncio.sleep(2)
-            
-            # Get the page title to confirm it loaded
             title = driver.title
-            await self.message_queue.add(pip, f"Page loaded successfully. Title: {title}", verbatim=True)
-            
-            # Close the browser
+            await self.message_queue.add(pip, f'Page loaded successfully. Title: {title}', verbatim=True)
             driver.quit()
-            await self.message_queue.add(pip, "Browser closed successfully", verbatim=True)
-            
-            # Clean up the temporary profile directory
+            await self.message_queue.add(pip, 'Browser closed successfully', verbatim=True)
             import shutil
             shutil.rmtree(profile_dir, ignore_errors=True)
-            
-            return P(f"Successfully reopened: {url}", style="color: green;")
-            
+            return P(f'Successfully reopened: {url}', style='color: green;')
         except Exception as e:
-            error_msg = f"Error reopening URL with Selenium: {str(e)}"
+            error_msg = f'Error reopening URL with Selenium: {str(e)}'
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
-            return P(error_msg, style=pip.get_style("error"))
+            return P(error_msg, style=pip.get_style('error'))
