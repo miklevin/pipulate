@@ -1,5 +1,10 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+
+## description: Conventions and best practices for developing Pipulate plugins (Workflows and CRUD Apps). globs: ["pipulate/plugins/*.py", "README.md"] alwaysApply: true
 
 ## description: Conventions and best practices for developing Pipulate plugins (Workflows and CRUD Apps). globs: ["pipulate/plugins/*.py", "README.md"] alwaysApply: true
 
@@ -58,3 +63,40 @@
 
   * Workflows should strive to be idempotent where possible: running a step multiple times with the same input should yield the same state (though side effects like file creation might differ or need handling).
   * State is persisted. Ensure that resuming a workflow correctly reflects its previous state.
+
+## 7. Request Handling
+
+  * **Required Parameter**: All methods that handle HTTP requests must accept a `request` parameter:
+    ```python
+    def landing(self, request):  # Required
+        # Landing page logic
+        pass
+
+    def step_01_submit(self, request):  # Required
+        form_data = request.form
+        # Process form data
+        pass
+    ```
+  * **Accessing Request Data**:
+    * Form data: `request.form.get('field_name')`
+    * Query parameters: `request.query_params.get('param_name')`
+    * Headers: `request.headers.get('header_name')`
+  * **Error Handling**: Always handle missing or invalid request data gracefully:
+    ```python
+    def step_01_submit(self, request):
+        try:
+            user_input = request.form.get('user_input')
+            if not user_input:
+                return self.pipulate.error_message("Input is required")
+            # Process valid input...
+        except Exception as e:
+            return self.pipulate.error_message(f"Error processing input: {str(e)}")
+    ```
+  * **Consistency**: Ensure all request-handling methods follow this pattern:
+    * `landing` (GET)
+    * `init` (POST)
+    * Step handlers (GET)
+    * Step submission handlers (POST)
+    * `finalize_workflow_step` (GET/POST)
+    * `unfinalize_workflow_step` (POST)
+    * `handle_revert` (POST)

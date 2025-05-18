@@ -1,5 +1,10 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+
+## description: Key aspects of server.py relevant for AI-assisted development, including app setup, routing, and core global instances. globs: ["server.py"] alwaysApply: false
 
 ## description: Key aspects of server.py relevant for AI-assisted development, including app setup, routing, and core global instances. globs: ["server.py"] alwaysApply: false
 
@@ -32,6 +37,15 @@ These are created in `server.py` and often passed to or used by plugins:
       * Workflows register their own routes in their `__init__` using the `rt` decorator. Landing pages typically use filename-derived paths, while internal steps use `APP_NAME`-prefixed paths.
       * `ProfileApp` (and other CRUD apps) register routes for insert, update, delete, toggle, sort.
   * A catch-all route `/{path:path}` maps to `home(request)` to handle plugin landing pages.
+  * **Request Handling**:
+      * All route handlers receive a `request` object from Starlette/FastHTML
+      * This object is automatically passed to plugin methods by the framework
+      * Plugins must accept this parameter in their route handlers
+      * The request object provides access to:
+        * Form data (`request.form`)
+        * Query parameters (`request.query_params`)
+        * Headers (`request.headers`)
+        * Other HTTP context
 
 ## 4. Middleware (`DOMSkeletonMiddleware`)
 

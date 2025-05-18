@@ -1,6 +1,8 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
-
 ## description: Core concepts for Pipulate workflow development, including plugin structure, APP_NAME vs. filename, and **init** method. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 # Pipulate Workflow Core Concepts
@@ -88,7 +90,23 @@ class MyWorkflow:
         base_name = Path(module_file).stem
         return re.sub(r'^\d+_', '', base_name)
 
-    # ... other methods: landing, init, step_XX, step_XX_submit, finalize_workflow_step, etc. ...
+    def landing(self, request):  # Note: request parameter is required
+        # Landing page logic here
+        pass
+
+    def init(self, request):  # Note: request parameter is required
+        # Initialization logic here
+        pass
+
+    def step_01(self, request):  # Note: request parameter is required
+        # Step 1 logic here
+        pass
+
+    def step_01_submit(self, request):  # Note: request parameter is required
+        # Step 1 submission logic here
+        pass
+
+    # ... other methods ...
 ```
 
   * **`Step` NamedTuple**:
@@ -101,3 +119,45 @@ class MyWorkflow:
   * **Routes**:
       * The public landing page URL is derived from the filename (e.g., `plugins/020_hello_workflow.py` -\> `/hello_workflow`).
       * All internal workflow operations (init, steps, finalize) use routes prefixed with `self.APP_NAME`.
+
+## 4. Request Handling
+
+All plugin methods that handle HTTP requests must accept a `request` parameter. This is a fundamental requirement of the Pipulate framework:
+
+1. **Required Parameter**: Every method that handles an HTTP request (GET or POST) must accept a `request` parameter as its first argument after `self`:
+   ```python
+   def landing(self, request):  # Required
+       # Landing page logic here
+       pass
+
+   def step_01_submit(self, request):  # Required
+       form_data = request.form
+       # Process form data...
+       pass
+   ```
+
+2. **Framework Integration**: The `request` object is essential for:
+   - Accessing form data via `request.form`
+   - Reading query parameters via `request.query_params`
+   - Accessing headers and other HTTP context
+
+3. **Consistent Interface**: This requirement applies to:
+   - `landing` method (GET)
+   - `init` method (POST)
+   - Step handlers (GET)
+   - Step submission handlers (POST)
+   - `finalize_workflow_step` (GET/POST)
+   - `unfinalize_workflow_step` (POST)
+   - `handle_revert` (POST)
+
+4. **Error Handling**: Always handle missing or invalid request data gracefully:
+   ```python
+   def step_01_submit(self, request):
+       try:
+           user_input = request.form.get('user_input')
+           if not user_input:
+               return self.pipulate.error_message("Input is required")
+           # Process valid input...
+       except Exception as e:
+           return self.pipulate.error_message(f"Error processing input: {str(e)}")
+   ```
