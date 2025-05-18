@@ -1,5 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+## description: The critical HTMX Chain Reaction pattern for workflow step progression in Pipulate. This pattern is IMMUTABLE. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
 ## description: The critical HTMX Chain Reaction pattern for workflow step progression in Pipulate. This pattern is IMMUTABLE. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
@@ -33,43 +37,143 @@ return Div(
 )
 ```
 
-  * **Outer `Div` (`id=current_step_id`)**: This is the container for the current step's UI. If this HTML is returned from a POST submit, it replaces the previous content of this `Div` (which was the input form).
-  * **Inner `Div` (`id=next_step_id`, `hx_trigger="load"`)**: This is the **chain link**.
-      * `id=next_step_id`: Provides a DOM target for the *next* step's content.
-      * `hx_get=f"/{self.APP_NAME}/{next_step_id}"`: Specifies the URL to fetch the next step's UI.
-      * `hx_trigger="load"`: This HTMX attribute instructs the browser to immediately make the `hx_get` request as soon as this `Div` is loaded into the DOM.
+## 3. Helper Methods for Chain Reaction
 
-## 3. How the Chain Progresses
+1. **`display_revert_header`**: Creates the standard UI element showing a step's outcome (e.g., `Step Name: Value`) along with a "Revert" button.
+   ```python
+   header = pip.display_revert_header(
+       step_id=step_id,
+       app_name=app_name,
+       message=f'{step.show}: {value}',
+       steps=steps
+   )
+   ```
 
-1.  **`init` Method**: After pipeline ID submission, `init` (or `pipulate.rebuild()`) returns HTML containing the placeholder for the first step with `hx_trigger="load"`.
-    ```python
-    # From init() or pipulate.rebuild()
-    Div(
-        Div(id="step_01", hx_get=f"/{self.APP_NAME}/step_01", hx_trigger="load"),
-        # ... placeholders for other steps if rebuilding ...
-        id=f"{self.APP_NAME}-container"
+2. **`display_revert_widget`**: Used when the step's outcome is a richer visual component (table, diagram, etc.). It renders the same kind of revertible header as `display_revert_header` but also includes a styled container for the passed `widget` content.
+   ```python
+   widget_display = pip.display_revert_widget(
+       step_id=step_id,
+       app_name=app_name,
+       message='Widget Title',
+       widget=my_widget,
+       steps=steps
+   )
+   ```
+
+3. **`chain_reverter`**: A convenience method that combines `display_revert_header` with the next-step trigger `Div`. This is the recommended approach for simple step completions.
+   ```python
+   return pip.chain_reverter(
+       step_id=step_id,
+       step_index=step_index,
+       steps=steps,
+       app_name=app_name,
+       processed_val=value
+   )
+   ```
+
+## 4. When to Use Which Method
+
+- Use `chain_reverter` for simple step completions where the output is a string value
+- Use `display_revert_widget` when you need to show complex visual components
+- Use `display_revert_header` when you need custom layout around the standard revert header
+
+## 5. Step Handler Patterns
+
+Step handlers are the core components that implement the chain reaction pattern. They manage the state and UI for each step in the workflow.
+
+### 5.1 GET Handler Pattern
+
+The GET handler (`async def step_XX`) is responsible for displaying either:
+- The input form for an incomplete step
+- The completed view for a finished step
+
+```python
+async def step_XX(self, request: Request) -> HTML:
+    step_id = "step_XX"
+    step_index = X  # The step's index in the workflow
+    step = self.steps[step_index]
+    
+    # Check if step is complete and not being reverted to
+    if (step_id in self.completed_steps and 
+        not self.is_reverting_to(step_id) and 
+        not self.is_finalized):
+        # Return completed view with next step trigger
+        return pip.chain_reverter(
+            step_id=step_id,
+            step_index=step_index,
+            steps=self.steps,
+            app_name=self.APP_NAME,
+            processed_val=self.get_step_value(step_id)
+        )
+    
+    # Return input form with empty next step placeholder
+    return Div(
+        # Input form content
+        Card(
+            H3(step.show),
+            Form(
+                # Form fields
+                Button("Submit", type="submit"),
+                hx_post=f"/{self.APP_NAME}/{step_id}_submit",
+                hx_target=f"#{step_id}"
+            )
+        ),
+        # Empty placeholder for next step (NO hx_trigger="load")
+        Div(id=f"step_{X+1:02d}"),
+        id=step_id
     )
-    ```
-2.  **First Step Loads (GET `/{APP_NAME}/step_01`)**:
-      * If `step_01` is incomplete, it renders its input form. This form's `hx-target` will be `#step_01`. The HTML for the input form includes an *empty* `Div(id="step_02")` (no `hx_trigger="load"` yet).
-      * If `step_01` is already complete (e.g., resuming workflow), it renders its completed view *and* the `Div` for `step_02` *with* `hx_trigger="load"`.
-3.  **User Submits Form (POST `/{APP_NAME}/step_01_submit`)**:
-      * The `step_01_submit` handler processes data and saves state.
-      * It returns HTML for the *completed view of `step_01`*. This HTML also includes the `Div` for `step_02` *with* `hx_trigger="load"`.
-      * HTMX swaps this new HTML into the `#step_01` target.
-4.  **Next Step Loads (GET `/{APP_NAME}/step_02`)**: The `Div` for `step_02` with `hx_trigger="load"` is now in the DOM, causing an immediate request. The cycle repeats.
+```
 
-## 4. Step Handler Responsibilities
+### 5.2 POST Handler Pattern
 
-  * **GET Handler (`async def step_XX`)**:
-      * If step is complete AND workflow not finalized AND not reverting to this step's input: Return completed view + trigger for next step.
-      * If workflow finalized AND step complete: Return locked view + trigger for next step.
-      * Else (step incomplete or reverting to its input): Return input form + EMPTY placeholder for next step (NO `hx_trigger="load"`).
-  * **POST Handler (`async def step_XX_submit`)**:
-      * Process data, save state.
-      * Return completed view of current step + trigger for next step.
+The POST handler (`async def step_XX_submit`) processes the form submission and returns the completed view:
 
-## 5. Breaking the Chain (Intentional & Cautionary)
+```python
+async def step_XX_submit(self, request: Request) -> HTML:
+    step_id = "step_XX"
+    step_index = X
+    
+    # Process form data
+    form_data = await request.form()
+    value = form_data.get("value")
+    
+    # Save state
+    self.save_step_value(step_id, value)
+    self.completed_steps.add(step_id)
+    
+    # Return completed view with next step trigger
+    return pip.chain_reverter(
+        step_id=step_id,
+        step_index=step_index,
+        steps=self.steps,
+        app_name=self.APP_NAME,
+        processed_val=value
+    )
+```
+
+### 5.3 Common Patterns
+
+1. **Simple Input Step**:
+   - Single form field
+   - Direct value processing
+   - Standard chain reverter response
+
+2. **Complex Input Step**:
+   - Multiple form fields
+   - Data validation
+   - Custom processing logic
+
+3. **Visual Output Step**:
+   - Use `display_revert_widget`
+   - Include rich visual components
+   - Maintain chain reaction
+
+4. **Final Step**:
+   - Handle workflow finalization
+   - Lock all steps
+   - Show completion message
+
+## 6. Breaking the Chain (Intentional & Cautionary)
 
 The chain should only be broken intentionally:
 

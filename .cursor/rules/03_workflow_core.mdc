@@ -7,6 +7,168 @@ alwaysApply: false
 
 # Pipulate Workflow Core Concepts
 
+## 1. Overview
+
+Pipulate workflows are the fundamental building blocks of the framework. They provide a structured way to create interactive, step-by-step processes that can be easily shared and reused.
+
+## 2. Workflow Structure
+
+A workflow consists of:
+- A series of steps
+- State management
+- UI components
+- Chain reaction progression
+- Revert functionality
+
+## 3. Step Definition
+
+Steps are defined in the `steps` list of a workflow class:
+
+```python
+steps = [
+    Step(
+        id="step_01",
+        show="Step 1",
+        description="Description of step 1"
+    ),
+    Step(
+        id="step_02",
+        show="Step 2",
+        description="Description of step 2"
+    )
+]
+```
+
+## 4. State Management
+
+1. **Step Completion**:
+   - Track completed steps in `self.completed_steps`
+   - Store step values using `self.save_step_value()`
+   - Check completion with `step_id in self.completed_steps`
+
+2. **Revert Handling**:
+   - Check if step is being reverted to with `self.is_reverting_to(step_id)`
+   - Clear subsequent steps when reverting
+   - Preserve state of previous steps
+
+3. **Finalization**:
+   - Check workflow finalization with `self.is_finalized`
+   - Lock steps after finalization
+   - Prevent further modifications
+
+## 5. Revert Functionality
+
+The revert functionality allows users to go back to previous steps in a workflow, modifying their inputs and triggering a re-run of subsequent steps.
+
+### 5.1 Revert UI Components
+
+1. **Standard Revert Header**:
+   ```python
+   header = pip.display_revert_header(
+       step_id=step_id,
+       app_name=app_name,
+       message=f'{step.show}: {value}',
+       steps=steps
+   )
+   ```
+
+2. **Widget Revert Display**:
+   ```python
+   widget_display = pip.display_revert_widget(
+       step_id=step_id,
+       app_name=app_name,
+       message='Widget Title',
+       widget=my_widget,
+       steps=steps
+   )
+   ```
+
+3. **Combined Chain Reverter**:
+   ```python
+   return pip.chain_reverter(
+       step_id=step_id,
+       step_index=step_index,
+       steps=steps,
+       app_name=app_name,
+       processed_val=value
+   )
+   ```
+
+### 5.2 Revert Behavior
+
+1. **Revert Button Click**:
+   - Triggers a POST request to `/{app_name}/revert/{step_id}`
+   - Clears the step's state and all subsequent steps
+   - Returns the step's input form
+
+2. **Step Handler Response**:
+   - When a step is reverted to, its GET handler should:
+     - Return the input form
+     - Include an empty placeholder for the next step (NO `hx_trigger="load"`)
+   - The chain reaction will only continue after the user submits the form
+
+### 5.3 Best Practices
+
+1. **Always Include Revert Option**:
+   - Every completed step should have a revert button
+   - Use the standard revert header or widget display methods
+
+2. **State Handling**:
+   - Clear all subsequent step states when reverting
+   - Preserve state of steps before the reverted step
+
+3. **UI Consistency**:
+   - Use the provided helper methods for consistent UI
+   - Maintain the same revert behavior across all steps
+
+4. **Error Handling**:
+   - Handle revert failures gracefully
+   - Provide clear feedback to users
+
+## 6. Workflow Lifecycle
+
+1. **Initialization**:
+   - Workflow is created with a unique ID
+   - Steps are defined and initialized
+   - State is set to initial values
+
+2. **Progression**:
+   - Steps are completed in sequence
+   - State is updated at each step
+   - UI is updated to reflect progress
+
+3. **Reverting**:
+   - Steps can be reverted to
+   - State is cleared for subsequent steps
+   - UI is updated to show input form
+
+4. **Finalization**:
+   - Workflow can be finalized
+   - Steps are locked
+   - Final output is generated
+
+## 7. Best Practices
+
+1. **Step Design**:
+   - Keep steps focused and atomic
+   - Provide clear descriptions
+   - Handle edge cases
+
+2. **State Management**:
+   - Validate state changes
+   - Handle errors gracefully
+   - Maintain consistency
+
+3. **UI/UX**:
+   - Provide clear feedback
+   - Show progress
+   - Allow easy navigation
+
+4. **Error Handling**:
+   - Validate inputs
+   - Handle exceptions
+   - Provide helpful messages
+
 ## 1. Plugin System & Types
 
 Pipulate features an automatic plugin system. Files in the `plugins/` directory are auto-discovered.
