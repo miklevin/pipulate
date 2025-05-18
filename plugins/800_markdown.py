@@ -2,15 +2,12 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate Markdown MarkedJS Widget Workflow\nA workflow for demonstrating the Markdown MarkedJS rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class MarkdownWidget:
     """
@@ -155,7 +152,7 @@ class MarkdownWidget:
         elif user_val and state.get('_revert_target') != step_id:
             widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
             marked_widget = self.create_marked_widget(user_val, widget_id)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=marked_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=marked_widget, steps=steps)
             response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
             return response
@@ -182,7 +179,7 @@ class MarkdownWidget:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{user_val}')
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         marked_widget = self.create_marked_widget(user_val, widget_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown rendered with Marked.js', widget=marked_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown rendered with Marked.js', widget=marked_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})

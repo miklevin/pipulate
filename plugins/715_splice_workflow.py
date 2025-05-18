@@ -1,14 +1,11 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\nPipulate Workflow Template\nA guide for creating multi-step workflows with proper chain reaction behavior.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class SpliceWorkflow:
     """
@@ -213,7 +210,7 @@ class SpliceWorkflow:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif placeholder_value and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -248,7 +245,7 @@ class SpliceWorkflow:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_02(self, request):
         """Handles GET request for Step 2.
@@ -276,7 +273,7 @@ class SpliceWorkflow:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif placeholder_value and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -302,7 +299,7 @@ class SpliceWorkflow:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_03(self, request):
         """Handles GET request for Step 3.
@@ -330,7 +327,7 @@ class SpliceWorkflow:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif placeholder_value and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -359,4 +356,4 @@ class SpliceWorkflow:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Final step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

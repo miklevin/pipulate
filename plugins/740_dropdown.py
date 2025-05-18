@@ -1,14 +1,11 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\nPipulate Dropdown Widget\nA standalone dropdown widget workflow for selecting from a list of options.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Dropdown Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Dropdown Widget Pattern", "Option Management"\n   - Critical for understanding dropdown implementation\n\n2. State Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget State Management", "Selection State"\n   - Essential for proper dropdown state handling\n\n3. UI Construction:\n   - See: implementation/implementation-workflow.mdc\n   - Review: "Dropdown UI Patterns", "Option Grouping"\n   - Important for maintaining consistent dropdown UI\n\n4. Option Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Dynamic Options", "Option Groups"\n   - Critical for dropdown functionality\n\n5. Recovery Process:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Recovery Process", "Selection Recovery"\n   - Essential for handling dropdown workflow breaks\n\nIMPLEMENTATION NOTES:\n-------------------\n1. Dropdown Specifics:\n   - Uses select element with option groups\n   - Handles dynamic option updates\n   - Includes option formatting\n\n2. State Management:\n   - Stores selection in \'dropdown_value\' field\n   - Handles option changes\n   - Maintains selection state\n\n3. UI Considerations:\n   - Grouped options for clarity\n   - Clear selection display\n   - Consistent option formatting\n\n4. Common Pitfalls:\n   - Option group handling\n   - Selection state preservation\n   - Dynamic option updates\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class DropdownWidget:
     """
@@ -200,7 +197,7 @@ class DropdownWidget:
         if 'finalized' in finalize_data and selected_value:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'Selected: {selected_value}', cls='font-bold')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_value and state.get('_revert_target') != step_id:
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {selected_value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {selected_value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Complete {step.show}'), verbatim=True)
         try:
             logger.debug('About to get options')
@@ -236,4 +233,4 @@ class DropdownWidget:
             return P('Error: Please select an option', style=pip.ERROR_STYLE)
         await pip.set_step_data(pipeline_id, step_id, value, steps)
         await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('complete', f'{step.show} complete: {value}'), verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

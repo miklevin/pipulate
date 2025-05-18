@@ -6,7 +6,6 @@ import tempfile
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-
 from fasthtml.common import *
 from loguru import logger
 from selenium import webdriver
@@ -14,11 +13,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
-
 ROLES = ['Developer']
 '\nPipulate Selenium URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class SeleniumUrlOpenerWidget:
     """
@@ -198,7 +195,7 @@ class SeleniumUrlOpenerWidget:
             return Div(Card(H3(f'🔒 {step.show}'), url_widget_display), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
             url_widget_display = self._create_selenium_url_display(user_val, step_id)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', widget=url_widget_display, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', widget=url_widget_display, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
@@ -226,7 +223,7 @@ class SeleniumUrlOpenerWidget:
         url_widget_display = self._create_selenium_url_display(url_to_open, step_id)
         status_message_widget = P(message, style='color: green;' if success else pip.get_style('error'))
         combined_widget = Div(url_widget_display, status_message_widget)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: URL processed - {url_to_open}', widget=combined_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: URL processed - {url_to_open}', widget=combined_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, f'{step.show} complete. {message}', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):

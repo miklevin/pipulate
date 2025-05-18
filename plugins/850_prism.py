@@ -2,15 +2,12 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate PrismJS Code Highlighter Widget Workflow\nA workflow for demonstrating the Prism.js code syntax highlighting widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class PrismWidget:
     """
@@ -176,7 +173,7 @@ class PrismWidget:
         elif user_val and state.get('_revert_target') != step_id:
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
             prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
             response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
@@ -222,7 +219,7 @@ class PrismWidget:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show} ({language}):\n{code_to_highlight}')
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         prism_widget = self.create_prism_widget(code_to_highlight, widget_id, language)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})

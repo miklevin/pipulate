@@ -3,15 +3,12 @@ import json
 import webbrowser
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate Webbrowser URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in the default system browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class WebbrowserUrlOpenerWidget:
     """
@@ -152,7 +149,7 @@ class WebbrowserUrlOpenerWidget:
             return Div(Card(H3(f'🔒 {step.show}'), url_widget_display), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
             url_widget_display = self._create_url_display(user_val)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', widget=url_widget_display, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', widget=url_widget_display, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
@@ -184,11 +181,11 @@ class WebbrowserUrlOpenerWidget:
             await self.message_queue.add(pip, error_msg, verbatim=True)
             error_widget = P(error_msg, style=pip.get_style('error'))
             url_widget_display_on_error = self._create_url_display(url_to_open)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Error Opening URL', widget=Div(error_widget, url_widget_display_on_error), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Error Opening URL', widget=Div(error_widget, url_widget_display_on_error), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         pip.append_to_history(f'[WIDGET ACTION] {step.show}: Opened URL {url_to_open}')
         url_widget_display = self._create_url_display(url_to_open)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: URL opened - {url_to_open}', widget=url_widget_display, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: URL opened - {url_to_open}', widget=url_widget_display, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, f'{step.show} complete. URL opened.', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):

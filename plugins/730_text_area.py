@@ -1,14 +1,11 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\nText Area Widget Workflow\nA specialized workflow for handling multi-line text input with a textarea widget.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Text Area Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Text Area Widget Pattern", "Multi-line Input"\n   - Critical for understanding text area implementation\n\n2. State Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget State Management", "Text Area State"\n   - Essential for proper text area state handling\n\n3. UI Construction:\n   - See: implementation/implementation-workflow.mdc\n   - Review: "Text Area UI Patterns", "Form Structure"\n   - Important for maintaining consistent text area UI\n\n4. Formatting Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Text Formatting", "Pre Tag Usage"\n   - Critical for text area display\n\n5. Recovery Process:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Recovery Process", "Text Area Recovery"\n   - Essential for handling text area workflow breaks\n\nIMPLEMENTATION NOTES:\n-------------------\n1. Text Area Specifics:\n   - Uses multi-line textarea with formatting\n   - Includes transform for text processing\n\n2. State Management:\n   - Stores text in \'text_area\' field\n   - Handles line breaks and whitespace\n   - Maintains text formatting\n\n3. UI Considerations:\n   - Minimum height for usability\n   - Monospace font for code\n   - Pre tag for formatting\n\n4. Common Pitfalls:\n   - Line break handling\n   - Whitespace preservation\n   - Formatting consistency\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class TextAreaWidget:
     """
@@ -159,7 +156,7 @@ class TextAreaWidget:
             completed_msg = f'Step 1 is complete. You entered: {user_val}'
             await self.message_queue.add(pip, completed_msg, verbatim=True)
             text_widget = Pre(user_val, cls='code-block-container')
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
             if step.refill and user_val:
@@ -200,5 +197,5 @@ class TextAreaWidget:
             finalize_msg = self.step_messages['finalize']['ready']
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
         text_widget = Pre(processed_val, cls='code-block-container')
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

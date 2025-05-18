@@ -13,16 +13,13 @@ from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
-
 import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Botify Employee']
 '\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class ParameterBusterWorkflow:
     """
@@ -221,7 +218,7 @@ class ParameterBusterWorkflow:
             project_name = project_data.get('project_name', '')
             username = project_data.get('username', '')
             project_info = Div(H4(f'Project: {project_name}'), P(f'Username: {username}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = project_url if step.refill and project_url else ''
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -251,7 +248,7 @@ class ParameterBusterWorkflow:
         project_name = project_data.get('project_name', '')
         project_url = project_data.get('url', '')
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_02(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
@@ -278,7 +275,7 @@ class ParameterBusterWorkflow:
         if 'finalized' in finalize_data and selected_slug:
             return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), P(f'Selected Analysis: {selected_slug}', style='font-weight: bold;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_slug and state.get('_revert_target') != step_id:
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {selected_slug}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {selected_slug}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         try:
             api_token = self.read_api_token()
             if not api_token:
@@ -357,7 +354,7 @@ class ParameterBusterWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button('Download Web Logs ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
@@ -418,7 +415,7 @@ class ParameterBusterWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button('Download Search Console ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
@@ -478,7 +475,7 @@ class ParameterBusterWorkflow:
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
             completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {completed_message}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_04_complete: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -524,10 +521,10 @@ class ParameterBusterWorkflow:
         elif optimization_result and state.get('_revert_target') != step_id:
             try:
                 visualization_widget = self.create_parameter_visualization_placeholder(optimization_result)
-                return Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f"{step.show}: {json.loads(optimization_result).get('total_unique_parameters', 0):,} unique parameters found", widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f"{step.show}: {json.loads(optimization_result).get('total_unique_parameters', 0):,} unique parameters found", widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logging.error(f'Error creating parameter visualization in revert view: {str(e)}')
-                return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Parameter analysis complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Parameter analysis complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         return Div(Card(H3(f'{step.show}'), P('This will create counters for your querystring parameters for each of the following:', cls='mb-15px'), Ul(Li('Crawl data from Botify analysis'), Li('Search Console performance data'), Li('Web logs data (if available)'), cls='mb-15px'), Form(Div(P("Note: It doesn't matter what you choose here. This slider only controls how many parameters are displayed and can be adjusted at any time. It does not affect the underlying analysis.", style=pip.get_style('muted') + 'margin-bottom: 10px;'), Label(NotStr('<strong>Number of Parameters to Show:</strong>'), For='param_count', style='min-width: 220px;'), Input(type='range', name='param_count_slider', id='param_count_slider', value=param_count, min='10', max='250', step='5', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('param_count').value = this.value;"), Input(type='number', name='param_count', id='param_count', value=param_count, min='10', max='250', step='5', style='width: 100px;', _oninput="document.getElementById('param_count_slider').value = this.value;", _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), style='display: flex; align-items: center; gap: 10px; margin-bottom: 15px;'), Button('Count Parameters ▸', type='submit', cls='primary'), Script("\n                    // Define triggerParameterPreview in the global scope\n                    window.triggerParameterPreview = function() {\n                        // Use HTMX to manually trigger the parameter preview\n                        htmx.trigger('#parameter-preview', 'htmx:beforeRequest');\n                        htmx.ajax('POST', \n                            window.location.pathname.replace('step_06', 'parameter_preview'), \n                            {\n                                target: '#parameter-preview',\n                                values: {\n                                    'gsc_threshold': document.getElementById('gsc_threshold').value,\n                                    'min_frequency': document.getElementById('min_frequency').value\n                                }\n                            }\n                        );\n                    };\n                    "), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', _onsubmit='if(event.submitter !== document.querySelector(\'button[type="submit"]\')) { event.preventDefault(); return false; }', _onkeydown="if(event.key === 'Enter') { event.preventDefault(); return false; }"), Script('\n                function triggerParameterPreview() {\n                    // Use HTMX to manually trigger the parameter preview\n                    htmx.trigger(\'#parameter-preview\', \'htmx:beforeRequest\');\n                    htmx.ajax(\'POST\', document.querySelector(\'input[name="gsc_threshold"]\').form.getAttribute(\'hx-post\').replace(\'step_06_submit\', \'parameter_preview\'), {\n                        target: \'#parameter-preview\',\n                        values: {\n                            \'gsc_threshold\': document.getElementById(\'gsc_threshold\').value,\n                            \'min_frequency\': document.getElementById(\'min_frequency\').value\n                        }\n                    });\n                }\n                ')), Div(id=next_step_id), id=step_id)
 
@@ -601,7 +598,7 @@ class ParameterBusterWorkflow:
             await pip.set_step_data(pipeline_id, step_id, summary_str, steps)
             await self.message_queue.add(pip, f"✓ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", verbatim=True)
             visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
-            return Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_05_process: {e}')
             return P(f'Error generating optimization: {str(e)}', style=pip.get_style('error'))
@@ -666,7 +663,7 @@ class ParameterBusterWorkflow:
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
                 from fasthtml.common import to_xml
                 from starlette.responses import HTMLResponse
-                response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
+                response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
                 response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
             except Exception as e:
@@ -840,7 +837,7 @@ class ParameterBusterWorkflow:
             prism_widget = self.create_prism_widget(js_code, widget_id, 'javascript')
             from fasthtml.common import to_xml
             from starlette.responses import HTMLResponse
-            response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
+            response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
         except Exception as e:
@@ -1299,7 +1296,7 @@ class ParameterBusterWorkflow:
             if file_exists:
                 await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
                 analysis_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
-                return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (already downloaded, using cached)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (already downloaded, using cached)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             else:
                 await self.message_queue.add(pip, '🔄 Initiating crawl data export...', verbatim=True)
                 api_token = self.read_api_token()
@@ -1381,7 +1378,7 @@ class ParameterBusterWorkflow:
             await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
             analysis_result_str = json.dumps(analysis_result)
             await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (data downloaded)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (data downloaded)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
@@ -1473,7 +1470,7 @@ class ParameterBusterWorkflow:
                             check_result['note'] = "Project doesn't support logs export format"
                             check_result_str = json.dumps(check_result)
                             await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-                            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: Project logs couldn't be processed (using fallback)", steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Project logs couldn't be processed (using fallback)", steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
                         else:
                             raise ValueError(f'Export failed: {error_message}')
                     await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
@@ -1523,7 +1520,7 @@ class ParameterBusterWorkflow:
             download_message = ''
             if has_logs:
                 download_message = ' (data downloaded)'
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -1778,7 +1775,6 @@ class ParameterBusterWorkflow:
         from collections import Counter
         from io import BytesIO, StringIO
         from pathlib import Path
-
         import matplotlib.pyplot as plt
         import numpy as np
         self.pipulate.append_to_history('[VISUALIZATION] Creating parameter distribution visualization', quiet=True)
@@ -2102,7 +2098,7 @@ class ParameterBusterWorkflow:
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
             from fasthtml.common import to_xml
             from starlette.responses import HTMLResponse
-            response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
+            response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
             return response
         else:
@@ -2145,7 +2141,7 @@ class ParameterBusterWorkflow:
         markdown_widget = self.create_marked_widget(markdown_content, widget_id)
         from fasthtml.common import to_xml
         from starlette.responses import HTMLResponse
-        response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
+        response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
         response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
         return response
 

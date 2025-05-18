@@ -6,16 +6,13 @@ from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
-
 import httpx
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
 EXPORT_REGISTRY_FILE = Path('downloads/export_registry.json')
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class BotifyExport:
     """
@@ -244,7 +241,7 @@ class BotifyExport:
         if 'finalized' in finalize_data:
             return Div(Card(H3(f'🔒 {step.show}: {user_val}')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -285,7 +282,7 @@ class BotifyExport:
             state[step_id][step.done] = parsed_data['url']
             pip.write_state(pipeline_id, state)
             await self.message_queue.add(pip, f"Successfully parsed Botify URL:\nOrganization: {parsed_data['org']}\nProject: {parsed_data['project']}\nCanonical URL: {parsed_data['url']}", verbatim=True)
-            return pip.create_step_navigation(step_id, step_index, steps, app_name, parsed_data['url'])
+            return pip.chain_reverter(step_id, step_index, steps, app_name, parsed_data['url'])
         except ValueError:
             return P('Invalid Botify URL. Please provide a URL containing organization and project (e.g., https://app.botify.com/org/project/...)', style=pip.get_style('error'))
 
@@ -308,7 +305,7 @@ class BotifyExport:
         if 'finalized' in finalize_data:
             return Div(Card(H3(f'🔒 {step.show}: {user_val}')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         org = step_01_data.get('org')
         project = step_01_data.get('project')
@@ -348,7 +345,7 @@ class BotifyExport:
         await self.message_queue.add(pip, f'{step.show}: {user_val}', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, 'All steps complete! Please press the Finalize button below to save your data.', verbatim=True)
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
+        return pip.chain_reverter(step_id, step_index, steps, app_name, user_val)
 
     async def step_03(self, request):
         """
@@ -368,7 +365,7 @@ class BotifyExport:
         if 'finalized' in finalize_data:
             return Div(Card(H3(f'🔒 {step.show}: {user_val}')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
         org = step_01_data.get('org')
@@ -408,7 +405,7 @@ class BotifyExport:
         await self.message_queue.add(pip, f'{step.show}: {user_val}', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, 'All steps complete! Please press the Finalize button below to save your data.', verbatim=True)
-        return pip.create_step_navigation(step_id, step_index, steps, app_name, user_val)
+        return pip.chain_reverter(step_id, step_index, steps, app_name, user_val)
 
     async def step_04(self, request):
         """Display the CSV export form with field selection options
@@ -469,18 +466,18 @@ class BotifyExport:
                     clean_job_id = self.clean_job_id_for_display(job_id)
                     display_msg = f'{step.show}: CSV file downloaded ({clean_job_id})'
                     tree_display = pip.tree_display(tree_path)
-                    content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
+                    content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
                 except ValueError:
                     tree_path = self.format_path_as_tree(local_file)
                     clean_job_id = self.clean_job_id_for_display(job_id)
                     display_msg = f'{step.show}: CSV file downloaded ({clean_job_id})'
                     tree_display = pip.tree_display(tree_path)
-                    content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
+                    content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
             elif download_url:
                 display_msg = f'{step.show}: Ready for download (Job ID {job_id})'
                 clean_job_id = self.clean_job_id_for_display(job_id)
                 display_msg = f'{step.show}: Ready for download ({clean_job_id})'
-                revert_control = pip.revert_control(step_id=step_id, app_name=app_name, message=display_msg, steps=steps)
+                revert_control = pip.display_revert_header(step_id=step_id, app_name=app_name, message=display_msg, steps=steps)
                 content_container = revert_control
             else:
                 try:
@@ -500,7 +497,7 @@ class BotifyExport:
                 except Exception:
                     clean_job_id = self.clean_job_id_for_display(job_id)
                     display_msg = f'{step.show}: Job ID {clean_job_id}'
-                revert_control = pip.revert_control(step_id=step_id, app_name=app_name, message=display_msg, steps=steps)
+                revert_control = pip.display_revert_header(step_id=step_id, app_name=app_name, message=display_msg, steps=steps)
                 content_container = revert_control
             if download_url and (not (local_file and Path(local_file).exists())):
                 download_button = Form(Button('Download CSV ▸', type='submit', cls='secondary outline'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
@@ -720,7 +717,7 @@ class BotifyExport:
         tree_path = self.format_path_as_tree(rel_path)
         display_msg = f'{step.show}: CSV file is ready'
         tree_display = pip.tree_display(tree_path)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=display_msg, widget=tree_display, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     def get_export_key(self, org, project, analysis, depth):
@@ -960,7 +957,7 @@ class BotifyExport:
             dir_tree = self.format_path_as_tree(str(local_file_path.parent))
             tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
             tree_display = pip.tree_display(tree_path)
-            return Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)', widget=tree_display, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)', widget=tree_display, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             return Div(Card(H3('Download Error'), P(f'Error downloading CSV file: {str(e)}', style=pip.get_style('error')), P(f'Download URL: {download_url}'), P(f'Target file: {local_file_path}'), Button('Try Again ▸', type='button', cls='primary', hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
 
@@ -1399,7 +1396,6 @@ class BotifyExport:
         prev_word = prev_data.get(prev_step.done, '')
         return step.transform(prev_word) if prev_word else ''
 
-
 def parse_botify_url(url: str) -> dict:
     """
     Parse and validate Botify URL.
@@ -1421,7 +1417,6 @@ def parse_botify_url(url: str) -> dict:
     project = path_parts[1]
     base_url = f'https://{parsed.netloc}/{org}/{project}/'
     return {'url': base_url, 'org': org, 'project': project}
-
 
 def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
     """Loads a CSV file with flexible options for Botify export quirks.

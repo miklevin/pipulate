@@ -4,7 +4,6 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-
 import pandas as pd
 from fastcore.xml import NotStr
 from fasthtml.common import *
@@ -16,11 +15,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
-
 ROLES = ['Tutorial']
 '\nPipulate Widget Examples\n\nThis workflow demonstrates various widget types that can be integrated into Pipulate Workflows:\n\n1. Simple HTMX Widget: Basic HTML content with no JavaScript execution\n2. Pandas Table Widget: HTML table from DataFrame\n3. JavaScript Execution Widget: DOM manipulation via JavaScript in HTMX-injected content\n4. Mermaid Diagram Renderer: Client-side rendering using mermaid.js\n5. Code Syntax Highlighter: Syntax highlighting with Prism.js\n\nThis serves as a reference implementation for creating visualization widgets in Pipulate.\n\n--- Design Pattern Note ---\nThis workflow uses a "Combined Step" pattern where each step handles both:\n1. Data collection (input form)\n2. Widget rendering (visualization)\n\nIn each step, user input is collected and immediately transformed into the \ncorresponding visualization in the same card upon submission. This approach:\n- Reduces the total number of workflow steps (5 instead of 10)\n- Creates a clear cause-effect relationship within each step\n- Simplifies navigation for the end user\n\nAn alternative "Separated Step" pattern would:\n- Split each feature into separate input and display steps\n- Use one step for data collection, followed by a step for visualization\n- Result in 10 steps total (plus finalize)\n- Potentially simplify each individual step\'s implementation\n- Allow for more focused step responsibilities\n\nWhen adapting this example for your own workflows, consider which pattern \nbest suits your needs:\n- Combined: When immediate visualization feedback is valuable\n- Separated: When data collection and visualization are distinct concerns\n             or when complex transformations occur between input and display\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class WidgetExamples:
     """
@@ -234,7 +231,7 @@ class WidgetExamples:
             return Div(Card(H3(f'🔒 {step.show}'), simple_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         elif user_val and state.get('_revert_target') != step_id:
             simple_widget = Pre(user_val, cls='code-block-container')
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=simple_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=simple_widget, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
@@ -268,7 +265,7 @@ class WidgetExamples:
         await pip.set_step_data(pipeline_id, step_id, user_val, steps)
         pip.append_to_history(f'[WIDGET CONTENT] Simple Text Widget:\n{user_val}')
         simple_widget = Pre(user_val, cls='code-block-container')
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Simple text content provided', widget=simple_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Simple text content provided', widget=simple_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
         return HTMLResponse(to_xml(response_content))
@@ -304,7 +301,7 @@ class WidgetExamples:
             try:
                 widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 marked_widget = self.create_marked_widget(user_val, widget_id)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=marked_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=marked_widget, steps=steps)
                 response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
                 response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
                 return response
@@ -338,7 +335,7 @@ class WidgetExamples:
         pip.append_to_history(f'[WIDGET CONTENT] Markdown Widget:\n{user_val}')
         widget_id = f"marked-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         marked_widget = self.create_marked_widget(user_val, widget_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown rendered with Marked.js', widget=marked_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown rendered with Marked.js', widget=marked_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'initMarked': {'widgetId': widget_id}})
@@ -371,7 +368,7 @@ class WidgetExamples:
             try:
                 widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=mermaid_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=mermaid_widget, steps=steps)
                 response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
                 response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
                 return response
@@ -415,7 +412,7 @@ class WidgetExamples:
         pip.append_to_history(f'[WIDGET CONTENT] Mermaid Diagram:\n{user_val}')
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Client-side Mermaid diagram rendering', widget=mermaid_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Client-side Mermaid diagram rendering', widget=mermaid_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
@@ -450,7 +447,7 @@ class WidgetExamples:
         elif user_val and state.get('_revert_target') != step_id:
             try:
                 table_widget = self.create_pandas_table(user_val)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating table widget: {str(e)}')
@@ -499,7 +496,7 @@ class WidgetExamples:
             html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
             table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-4')
             await self.message_queue.add(pip, f'{step.show} complete. Table rendered successfully.', verbatim=True)
-            response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=f'{steps[step_index + 1].id}', hx_get=f'/{app_name}/{steps[step_index + 1].id}', hx_trigger='load'), id=step_id)))
+            response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=f'{steps[step_index + 1].id}', hx_get=f'/{app_name}/{steps[step_index + 1].id}', hx_trigger='load'), id=step_id)))
             return response
         except Exception as e:
             logger.error(f'Error creating pandas table: {e}')
@@ -553,7 +550,7 @@ class WidgetExamples:
                         code_to_display = code_to_display.rsplit('```', 1)[0]
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, language)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
                 response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
                 response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
@@ -592,7 +589,7 @@ class WidgetExamples:
         pip.append_to_history(f'[WIDGET CONTENT] Code Syntax Highlighting ({language}):\n{user_val}')
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         prism_widget = self.create_prism_widget(user_val, widget_id, language)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Syntax highlighting with Prism.js ({language})', widget=prism_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
@@ -627,7 +624,7 @@ class WidgetExamples:
                 widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
                 target_id = f'{widget_id}_target'
                 js_widget = Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript', type='button', _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
                 response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
                 response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
                 return response
@@ -657,7 +654,7 @@ class WidgetExamples:
         widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
         target_id = f'{widget_id}_target'
         js_widget = Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript ▸', type='button', _onclick=f"runJsWidget('{widget_id}', `{user_val.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
@@ -757,7 +754,7 @@ class WidgetExamples:
         elif counter_data and state.get('_revert_target') != step_id:
             try:
                 histogram_widget = self.create_matplotlib_histogram(counter_data)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating histogram widget: {str(e)}')
@@ -796,7 +793,7 @@ class WidgetExamples:
         await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
         try:
             histogram_widget = self.create_matplotlib_histogram(counter_data)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
             response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             await self.message_queue.add(pip, f'{step.show} complete. Histogram created.', verbatim=True)
             return HTMLResponse(to_xml(response_content))
@@ -824,7 +821,7 @@ class WidgetExamples:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
             display_value = url_value if step.refill and url_value else 'https://example.com'
@@ -855,7 +852,7 @@ class WidgetExamples:
         import webbrowser
         webbrowser.open(url)
         url_widget = Div(P(f'URL configured: ', B(url)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url}', '_blank')", cls='secondary'))
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         await self.message_queue.add(pip, f'Opening URL: {url}', verbatim=True)
         return HTMLResponse(to_xml(response_content))
@@ -881,7 +878,6 @@ class WidgetExamples:
                 return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
             import base64
             from io import BytesIO
-
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 6))
             labels = sorted(counter.keys())
@@ -937,7 +933,7 @@ class WidgetExamples:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating table widget: {str(e)}')
@@ -972,7 +968,7 @@ class WidgetExamples:
         await pip.set_step_data(pipeline_id, step_id, table_data, steps)
         try:
             table_widget = self.create_rich_table_widget(data)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table created with {len(data)} rows', widget=table_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Table created with {len(data)} rows', widget=table_widget, steps=steps)
             response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             await self.message_queue.add(pip, f'{step.show} complete. Table created with {len(data)} rows.', verbatim=True)
             return HTMLResponse(to_xml(response_content))
@@ -1018,7 +1014,7 @@ class WidgetExamples:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to open with Selenium:', verbatim=True)
@@ -1076,7 +1072,7 @@ class WidgetExamples:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{url}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_11(self, request):
         """Handles GET request for the file upload widget.
@@ -1102,7 +1098,7 @@ class WidgetExamples:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif file_summary and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{file_summary}')
-            return Div(Card(H3(f'{step.show}'), P('Uploaded files:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P('Uploaded files:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing upload form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -1154,7 +1150,7 @@ class WidgetExamples:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{file_summary}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Files saved')
         await self.message_queue.add(pip, f'Successfully saved {len(uploaded_files)} files to {save_directory}', verbatim=True)
-        return Div(Card(H3(f'{step.show}'), P('Files saved successfully:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(Card(H3(f'{step.show}'), P('Files saved successfully:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em;'), pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps)), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def reopen_url(self, request):
         """Handle reopening a URL with Selenium."""

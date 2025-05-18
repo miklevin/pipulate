@@ -1,14 +1,11 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Starting Point:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Implementation Steps", "Basic Widget Pattern"\n   - Essential for understanding the minimal widget structure\n\n2. State Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget State Management", "Common Pitfalls"\n   - Critical for proper state handling\n\n3. UI Construction:\n   - See: implementation/implementation-workflow.mdc\n   - Review: "Widget Container Structure", "UI Patterns"\n   - Important for maintaining consistent UI\n\n4. Testing Guidelines:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget Testing Checklist"\n   - Essential for ensuring widget reliability\n\n5. Recovery Process:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Recovery Process", "Prevention Guidelines"\n   - Critical for handling workflow breaks\n\nCONVERSION POINTS:\n----------------\nWhen converting this template to a new widget:\n1. CUSTOMIZE_STEP_DEFINITION: Change \'done\' field to specific data field name\n2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements\n3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget\n4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display\n\nCRITICAL ELEMENTS TO PRESERVE:\n----------------------------\n- Chain reaction with next_step_id\n- Finalization state handling pattern\n- Revert control mechanism\n- Overall Div structure and ID patterns\n- LLM context updates for widget content\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class BlankPlaceholder:
     """
@@ -162,7 +159,7 @@ class BlankPlaceholder:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif placeholder_value and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -181,4 +178,4 @@ class BlankPlaceholder:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

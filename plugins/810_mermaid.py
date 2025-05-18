@@ -2,15 +2,12 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate Mermaid Diagram Widget Workflow\nA workflow for demonstrating the Mermaid.js diagram rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class MermaidWidget:
     """
@@ -157,7 +154,7 @@ class MermaidWidget:
         elif user_val and state.get('_revert_target') != step_id:
             widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
             mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=mermaid_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=mermaid_widget, steps=steps)
             response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})
             return response
@@ -184,7 +181,7 @@ class MermaidWidget:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{user_val}')
         widget_id = f"mermaid-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         mermaid_widget = self.create_mermaid_widget(user_val, widget_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Client-side Mermaid diagram rendering', widget=mermaid_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Client-side Mermaid diagram rendering', widget=mermaid_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'renderMermaid': {'targetId': f'{widget_id}_output', 'diagram': user_val}})

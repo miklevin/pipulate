@@ -4,7 +4,6 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from urllib.parse import quote, urlparse
-
 from fasthtml.common import *
 from loguru import logger
 from selenium import webdriver
@@ -17,10 +16,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from seleniumwire import webdriver as wire_webdriver
 from starlette.responses import HTMLResponse, JSONResponse
 from webdriver_manager.chrome import ChromeDriverManager
-
 ROLES = ['Tutorial']
 '\nPipulate Browser Automation Workflow\n\nThis workflow demonstrates Selenium-based browser automation capabilities:\n- Cross-platform Chrome automation (Linux/macOS)\n- Clean browser sessions with temporary profiles\n- Detailed status logging and error handling\n- URL opening and verification\n'
-
 
 def get_safe_path(url):
     """Convert URL to filesystem-safe path while maintaining reversibility."""
@@ -32,21 +29,16 @@ def get_safe_path(url):
     path = quote(path + ('?' + parsed.query if parsed.query else ''), safe='')
     return (domain, path)
 
-
 def reconstruct_url(domain, path):
     """Reconstruct URL from filesystem components."""
     return f'https://{domain}{path}'
-
 
 def ensure_crawl_dir(app_name, domain, date_slug):
     """Ensure crawl directory exists and return its path."""
     base_dir = os.path.join('downloads', app_name, domain, date_slug)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
-
-
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class BrowserAutomation:
     """
@@ -224,7 +216,7 @@ class BrowserAutomation:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 Open URL'), P(f'URL opened (and closed): ', B(url_value)), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'Open URL: {url_value}', widget=Div(P(f'URL opened (and closed): ', B(url_value)), Div(id=f'{step_id}-status')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Open URL: {url_value}', widget=Div(P(f'URL opened (and closed): ', B(url_value)), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to open with Selenium:', verbatim=True)
@@ -281,7 +273,7 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style('error'))
         url_widget = Div(P(f'URL opened (and closed): ', B(url)), Div(id=f'{step_id}-status'))
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'Open URL: {url}', widget=url_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Open URL: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def reopen_url(self, request):
@@ -341,7 +333,7 @@ class BrowserAutomation:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 Crawl URL'), P(f'URL crawled and saved: ', B(url_value.get('url', ''))), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f"Crawl URL: {url_value.get('url', '')}", widget=Div(P(f'URL crawled and saved: ', B(url_value.get('url', ''))), P(f"Title: {url_value.get('title', '')}"), P(f"Status: {url_value.get('status', '')}"), P(f"Saved to: {url_value.get('save_path', '')}"), P(f"Reconstructed URL: {url_value.get('reconstructed_url', '')}", cls='text-secondary'), Div(id=f'{step_id}-status')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f"Crawl URL: {url_value.get('url', '')}", widget=Div(P(f'URL crawled and saved: ', B(url_value.get('url', ''))), P(f"Title: {url_value.get('title', '')}"), P(f"Status: {url_value.get('status', '')}"), P(f"Saved to: {url_value.get('save_path', '')}"), P(f"Reconstructed URL: {url_value.get('reconstructed_url', '')}", cls='text-secondary'), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to crawl:', verbatim=True)
@@ -430,7 +422,7 @@ class BrowserAutomation:
             await pip.set_step_data(pipeline_id, step_id, crawl_data, steps)
             await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
             url_widget = Div(P(f'URL crawled and saved: ', B(crawl_data['url'])), P(f'Title: {title}'), P(f'Status: {status}'), P(f'Saved to: {crawl_dir}'), P(f'Reconstructed URL: {reconstructed_url}', cls='text-secondary'), Div(id=f'{step_id}-status'))
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f"Crawl URL: {crawl_data['url']}", widget=url_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f"Crawl URL: {crawl_data['url']}", widget=url_widget, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             error_msg = f'Error crawling URL with Selenium: {str(e)}'
@@ -439,7 +431,7 @@ class BrowserAutomation:
             await self.message_queue.add(pip, safe_error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style('error'))
 
-    def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str = 'google_session') -> tuple[str, str]:
+    def _get_selenium_profile_paths(self, pipeline_id: str, desired_profile_leaf_name: str='google_session') -> tuple[str, str]:
         """Get the user data directory and profile directory paths for Chrome.
 
         Returns a tuple of (user_data_dir_path, profile_directory_name) where:
@@ -475,7 +467,7 @@ class BrowserAutomation:
         state = self.pipulate.read_state(pipeline_id)
         is_being_reverted = state.get('_revert_target') == 'step_03'
         if is_confirmed:
-            return Div(self.pipulate.revert_control(step_id='step_03', app_name=self.app_name, message='Ephemeral Login Test', steps=self.steps), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_03')
+            return Div(self.pipulate.display_revert_header(step_id='step_03', app_name=self.app_name, message='Ephemeral Login Test', steps=self.steps), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_03')
         elif is_completed and (not is_being_reverted):
             return Div(Card(H3('Ephemeral Login Test'), P('✅ Test completed!'), P('Please confirm that you have successfully logged in and verified the session persistence.'), P(f'Profile directory: {user_data_dir}/{profile_dir}'), P('Note: This profile will be cleared when the server restarts.', style='color: #666; font-style: italic;'), Form(Button('Check Login Status', type='submit', cls='secondary'), hx_post=f'/{self.app_name}/step_03_submit', hx_target='#step_03'), Form(Button('Confirm Test Completion', type='submit', cls='primary'), hx_post=f'/{self.app_name}/step_03_confirm', hx_target='#step_03')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_03')
         else:
@@ -541,7 +533,7 @@ class BrowserAutomation:
         state[step_id] = step_data
         pip.write_state(pipeline_id, state)
         await self.message_queue.add(pip, 'Ephemeral login test confirmed!', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message='Ephemeral Login Test', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message='Ephemeral Login Test', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_04(self, request):
         """Handles GET request for Persistent Login Test."""
@@ -557,7 +549,7 @@ class BrowserAutomation:
         state = self.pipulate.read_state(pipeline_id)
         is_being_reverted = state.get('_revert_target') == 'step_04'
         if is_confirmed:
-            return Div(self.pipulate.revert_control(step_id='step_04', app_name=self.app_name, message='Persistent Login Test', steps=self.steps), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_04')
+            return Div(self.pipulate.display_revert_header(step_id='step_04', app_name=self.app_name, message='Persistent Login Test', steps=self.steps), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_04')
         elif is_completed and (not is_being_reverted):
             return Div(Card(H3('Persistent Login Test'), P('✅ Test completed!'), P('Please confirm that you have successfully logged in and verified the session persistence.'), P(f'Profile directory: {user_data_dir}/{profile_dir}'), P('Note: This profile will persist across server restarts.', style='color: #666; font-style: italic;'), Form(Button('Check Login Status', type='submit', cls='secondary'), hx_post=f'/{self.app_name}/step_04_submit', hx_target='#step_04'), Form(Button('Confirm Test Completion', type='submit', cls='primary'), hx_post=f'/{self.app_name}/step_04_confirm', hx_target='#step_04')), Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), id='step_04')
         else:
@@ -623,7 +615,7 @@ class BrowserAutomation:
         state[step_id] = step_data
         pip.write_state(pipeline_id, state)
         await self.message_queue.add(pip, 'Persistent login test confirmed!', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message='Persistent Login Test', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message='Persistent Login Test', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
         """Handles GET request for Step 5 placeholder."""
@@ -642,7 +634,7 @@ class BrowserAutomation:
             return Div(Card(H3(f'🔒 {step.show}: Completed')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         if placeholder_value and state.get('_revert_target') != step_id:
             pip.append_to_history(f'[WIDGET CONTENT] {step.show} (Completed):\n{placeholder_value}')
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             pip.append_to_history(f'[WIDGET STATE] {step.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -661,4 +653,4 @@ class BrowserAutomation:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{placeholder_value}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Step completed')
         await self.message_queue.add(pip, f'{step.show} complete.', verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

@@ -2,16 +2,13 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
-
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate Pandas Table Widget Workflow\nA workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class PandasTableWidget:
     """
@@ -187,7 +184,7 @@ class PandasTableWidget:
         elif user_val and state.get('_revert_target') != step_id:
             try:
                 table_widget = self.create_pandas_table(user_val)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating table widget: {str(e)}')
@@ -227,7 +224,7 @@ class PandasTableWidget:
             html_table = df.to_html(index=False, classes='table', border=0, escape=True, justify='left')
             table_container = Div(H5('Pandas DataFrame Table:'), Div(NotStr(html_table), style='overflow-x: auto; max-width: 100%;'), cls='mt-4')
             await self.message_queue.add(pip, f'{step.show} complete. Table rendered successfully.', verbatim=True)
-            response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
+            response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Table rendered from pandas DataFrame', widget=table_container, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             return response
         except Exception as e:
             logger.error(f'Error creating pandas table: {e}')

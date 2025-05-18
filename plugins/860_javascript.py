@@ -4,15 +4,12 @@ import os
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nExecutable JavaScript Widget\n\nThis workflow demonstrates a widget that executes user-provided JavaScript code\nwithin a designated area. The widget allows users to input JavaScript code that\nwill be executed in the browser, with the ability to manipulate a target element\nand re-run the code as needed.\n\nKey Features:\n- Interactive JavaScript execution\n- Re-run capability\n- Safe code execution environment\n- Visual feedback\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class JavaScriptWidget:
     """
@@ -191,7 +188,7 @@ class JavaScriptWidget:
                 widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
                 target_id = f'{widget_id}_target'
                 js_widget = self._create_js_display(user_val, widget_id, target_id)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
                 response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
                 response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
                 return response
@@ -221,7 +218,7 @@ class JavaScriptWidget:
         widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
         target_id = f'{widget_id}_target'
         js_widget = self._create_js_display(user_val, widget_id, target_id)
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         response = HTMLResponse(to_xml(response_content))
         response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})

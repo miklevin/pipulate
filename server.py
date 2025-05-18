@@ -30,13 +30,6 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-
-# IMPORTANT: DO NOT DELETE THIS NOTE REGARDING MY FAVORITE LINTING TOOLS
-# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
-# isort server.py
-# vulture server.py
-# pylint --disable=all --enable=redefined-outer-name server.py
-
 DEBUG_MODE = False
 STATE_TABLES = False
 
@@ -682,7 +675,7 @@ class Pipulate:
             traceback.print_exc()
             raise
 
-    def revert_control(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
         """
         Create a UI control for reverting to a previous workflow step.
 
@@ -717,7 +710,7 @@ class Pipulate:
             article_style += ' padding: 0;'
         return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
 
-    def widget_container(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
         """
         Create a standardized container for widgets, visualizations, or any dynamic content.
 
@@ -743,7 +736,7 @@ class Pipulate:
         Returns:
             Div: A FastHTML container with revert control and widget content
         """
-        revert_row = self.revert_control(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
+        revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
         if widget is None or revert_row is None:
             return revert_row
         applied_style = widget_style or self.CONTENT_STYLE
@@ -773,7 +766,7 @@ class Pipulate:
         """
         Create a finalized step display with optional additional content.
 
-        This is the companion to revert_control_advanced for finalized workflows,
+        This is the companion to display_revert_widget_advanced for finalized workflows,
         providing consistent styling for both states.
 
         Args:
@@ -1067,7 +1060,7 @@ class Pipulate:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
         return next_step_id == 'finalize'
 
-    def create_step_navigation(self, step_id, step_index, steps, app_name, processed_val):
+    def chain_reverter(self, step_id, step_index, steps, app_name, processed_val):
         """
         Create the standard navigation controls after a step submission.
 
@@ -1091,7 +1084,7 @@ class Pipulate:
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        return Div(self.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div())
+        return Div(self.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div())
 
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
         """

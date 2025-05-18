@@ -1,14 +1,11 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
-
 ROLES = ['Developer']
 '\nText Field Widget Workflow\nA minimal template for creating a text field widget workflow, based on the blank placeholder pattern.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Text Input Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Text Input Widget Pattern", "Input Validation"\n   - Critical for understanding text field implementation\n\n2. State Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget State Management", "Text Input State"\n   - Essential for proper text field state handling\n\n3. UI Construction:\n   - See: implementation/implementation-workflow.mdc\n   - Review: "Text Input UI Patterns", "Form Structure"\n   - Important for maintaining consistent text input UI\n\n4. Validation Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Input Validation", "Error Handling"\n   - Critical for text field validation\n\n5. Recovery Process:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Recovery Process", "Text Input Recovery"\n   - Essential for handling text field workflow breaks\n\nIMPLEMENTATION NOTES:\n-------------------\n1. Text Field Specifics:\n   - Uses single-line input with validation\n   - Includes transform for text processing\n\n2. State Management:\n   - Stores text in \'text_input\' field\n   - Handles empty and whitespace cases\n   - Maintains text formatting\n\n3. UI Considerations:\n   - Mobile-friendly input height\n   - Clear validation feedback\n   - Consistent text display\n\n4. Common Pitfalls:\n   - Whitespace handling\n   - Empty input validation\n   - State preservation on revert\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class TextFieldWidget:
     """
@@ -157,7 +154,7 @@ class TextFieldWidget:
         elif user_val and state.get('_revert_target') != step_id:
             completed_msg = f'Step 1 is complete. You entered: {user_val}'
             await self.message_queue.add(pip, completed_msg, verbatim=True)
-            return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             form_msg = 'Showing text input form. No text has been entered yet.'
@@ -193,4 +190,4 @@ class TextFieldWidget:
         if pip.check_finalize_needed(step_index, steps):
             finalize_msg = self.step_messages['finalize']['ready']
             await self.message_queue.add(pip, finalize_msg, verbatim=True)
-        return Div(pip.revert_control(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

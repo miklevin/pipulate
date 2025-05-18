@@ -3,7 +3,6 @@ import json
 import os
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from selenium import webdriver
@@ -11,11 +10,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
-
 ROLES = ['Tutorial']
 '\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class BlankWorkflow:
     """
@@ -210,7 +207,7 @@ class BlankWorkflow:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to open:', verbatim=True)
@@ -236,7 +233,7 @@ class BlankWorkflow:
         webbrowser.open(url)
         await self.message_queue.add(pip, f'Opening URL: {url}', verbatim=True)
         url_widget = Div(P(f'URL configured: ', B(url)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url}', '_blank')", cls='secondary'))
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_02(self, request):
@@ -256,7 +253,7 @@ class BlankWorkflow:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'Search query: ', B(query_value)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif query_value and state.get('_revert_target') != step_id:
             search_url = f'https://www.google.com/search?q={query_value}'
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {query_value}', widget=Div(P(f'Search query: ', B(query_value)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {query_value}', widget=Div(P(f'Search query: ', B(query_value)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter your Google search query:', verbatim=True)
@@ -281,7 +278,7 @@ class BlankWorkflow:
         webbrowser.open(search_url)
         await self.message_queue.add(pip, f'Opening Google search: {query}', verbatim=True)
         search_widget = Div(P(f'Search query: ', B(query)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary'))
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {query}', widget=search_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {query}', widget=search_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_03(self, request):
@@ -299,7 +296,7 @@ class BlankWorkflow:
         if 'finalized' in finalize_data and url_value:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to open with Selenium:', verbatim=True)
@@ -355,5 +352,5 @@ class BlankWorkflow:
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return P(error_msg, style=pip.get_style('error'))
         url_widget = Div(P(f'URL configured: ', B(url)), Form(Input(type='hidden', name='url', value=url), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status'))
-        content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

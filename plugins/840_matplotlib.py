@@ -6,17 +6,14 @@ from collections import Counter, namedtuple
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-
 import matplotlib.pyplot as plt
 from fastcore.xml import NotStr
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nMatplotlib Histogram Widget\n\nThis workflow demonstrates a Matplotlib histogram rendering widget.\nUsers can input JSON counter data and see it rendered as a histogram image.\n\nThe widget supports:\n- JSON counter data input (keys and values)\n- Automatic histogram generation\n- Responsive image display\n- Error handling and validation\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class MatplotlibWidget:
     """
@@ -188,7 +185,7 @@ class MatplotlibWidget:
         elif counter_data and state.get('_revert_target') != step_id:
             try:
                 histogram_widget = self.create_matplotlib_histogram(counter_data)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating histogram widget: {str(e)}')
@@ -226,7 +223,7 @@ class MatplotlibWidget:
         await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
         try:
             histogram_widget = self.create_matplotlib_histogram(counter_data)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
             response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             await self.message_queue.add(pip, f'{step.show} complete. Histogram created.', verbatim=True)
             return HTMLResponse(to_xml(response_content))

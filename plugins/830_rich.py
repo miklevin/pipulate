@@ -2,15 +2,12 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
-
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-
 ROLES = ['Developer']
 '\nPipulate Rich Table Widget Workflow\nA workflow for demonstrating the Rich Table widget with beautiful styling.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 
 class RichTableWidget:
     """
@@ -188,7 +185,7 @@ class RichTableWidget:
             try:
                 data = json.loads(table_data)
                 table_widget = self.create_rich_table_widget(data)
-                content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=table_widget, steps=steps)
                 return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating table widget: {str(e)}')
@@ -222,7 +219,7 @@ class RichTableWidget:
         await pip.set_step_data(pipeline_id, step_id, table_data, steps)
         try:
             table_widget = self.create_rich_table_widget(data)
-            content_container = pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Table created with {len(data)} rows', widget=table_widget, steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Table created with {len(data)} rows', widget=table_widget, steps=steps)
             response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             await self.message_queue.add(pip, f'{step.show} complete. Table created with {len(data)} rows.', verbatim=True)
             return HTMLResponse(to_xml(response_content))
