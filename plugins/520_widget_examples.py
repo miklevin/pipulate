@@ -1,28 +1,31 @@
 import asyncio
 import json
+import os
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-import os
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+
 import pandas as pd
+from fastcore.xml import NotStr
 from fasthtml.common import *
-from starlette.responses import HTMLResponse
 from loguru import logger
 from rich.console import Console
 from rich.table import Table
-from fastcore.xml import NotStr
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from starlette.responses import HTMLResponse
+from webdriver_manager.chrome import ChromeDriverManager
+
 ROLES = ['Tutorial']
 '\nPipulate Widget Examples\n\nThis workflow demonstrates various widget types that can be integrated into Pipulate Workflows:\n\n1. Simple HTMX Widget: Basic HTML content with no JavaScript execution\n2. Pandas Table Widget: HTML table from DataFrame\n3. JavaScript Execution Widget: DOM manipulation via JavaScript in HTMX-injected content\n4. Mermaid Diagram Renderer: Client-side rendering using mermaid.js\n5. Code Syntax Highlighter: Syntax highlighting with Prism.js\n\nThis serves as a reference implementation for creating visualization widgets in Pipulate.\n\n--- Design Pattern Note ---\nThis workflow uses a "Combined Step" pattern where each step handles both:\n1. Data collection (input form)\n2. Widget rendering (visualization)\n\nIn each step, user input is collected and immediately transformed into the \ncorresponding visualization in the same card upon submission. This approach:\n- Reduces the total number of workflow steps (5 instead of 10)\n- Creates a clear cause-effect relationship within each step\n- Simplifies navigation for the end user\n\nAn alternative "Separated Step" pattern would:\n- Split each feature into separate input and display steps\n- Use one step for data collection, followed by a step for visualization\n- Result in 10 steps total (plus finalize)\n- Potentially simplify each individual step\'s implementation\n- Allow for more focused step responsibilities\n\nWhen adapting this example for your own workflows, consider which pattern \nbest suits your needs:\n- Combined: When immediate visualization feedback is valuable\n- Separated: When data collection and visualization are distinct concerns\n             or when complex transformations occur between input and display\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class WidgetExamples:
     """
     Widget Examples Workflow
-    
+
     Demonstrates various widget types for Pipulate Workflows:
     1. Simple Text Widget - No JS execution
     2. Markdown Renderer (MarkedJS) - Client-side rendering using marked.js
@@ -30,33 +33,33 @@ class WidgetExamples:
     4. Pandas Table Widget - HTML table from DataFrame
     5. Code Syntax Highlighter - Syntax highlighting with Prism.js
     6. JavaScript Execution Widget - Running JS in HTMX-injected content
-    
+
     Key Implementation Notes:
     - Widgets use pip.widget_container for consistent styling and DOM structure
     - JavaScript widgets use unique IDs for targeting in the DOM
     - Client-side libraries are loaded in server.py's hdrs tuple
     - HX-Trigger headers are used for reliable JS execution in HTMX-injected content
-    
+
     --- Design Pattern: Combined vs. Separated Steps ---
-    
+
     Current Implementation: "Combined Step" Pattern
     This workflow uses a pattern where each step handles both data collection
     and visualization in the same step. When the user submits an input form,
     the same card transforms to display the visualization widget.
-    
+
     Key characteristics:
     - Each step_XX_submit handler creates and returns the widget immediately
     - Widgets are displayed in place of the input form after submission
     - The revert control shows the widget until user chooses to revert
     - This creates a compact 6-step workflow (plus finalize)
-    
+
     Alternative Approach: "Separated Step" Pattern
     A different design would separate input collection and visualization:
     - One step for collecting input (e.g., step_01_data_input)
     - Next step for displaying the widget (e.g., step_02_display_widget)
     - This would result in 12 steps total (plus finalize)
     - Each step would have simpler, more focused responsibility
-    
+
     Implementation Considerations:
     - When copying this example, you may want to separate complex input collection
       and visualization into discrete steps for clarity and maintainability
@@ -207,12 +210,12 @@ class WidgetExamples:
     async def step_01(self, request):
         """ 
         Handles GET request for Step 1: Simple Text Widget.
-        
+
         This method demonstrates the "Combined Step" pattern:
         1. If the step is incomplete or being reverted to, shows an input form
         2. If the step is complete, shows the widget with a revert control
         3. If workflow is finalized, shows a locked version of the widget
-        
+
         In a "Separated Step" pattern, this would only handle input collection,
         and a separate step would display the widget.
         """
@@ -241,13 +244,13 @@ class WidgetExamples:
     async def step_01_submit(self, request):
         """ 
         Process the submission for Step 1.
-        
+
         In the "Combined Step" pattern, this method:
         1. Validates the user input
         2. Saves the input to the workflow state
         3. Creates and returns the widget to display
         4. Sets up navigation to the next step
-        
+
         This immediate transformation from input to widget in the same step
         creates a tight cause-effect relationship visible to the user.
         """
@@ -273,7 +276,7 @@ class WidgetExamples:
     async def step_02(self, request):
         """
         Step 2 - Markdown Renderer using marked.js
-        
+
         Allows the user to input markdown content that will be rendered
         using the marked.js library for a Jupyter notebook-like experience.
         """
@@ -316,7 +319,7 @@ class WidgetExamples:
     async def step_02_submit(self, request):
         """
         Handle submission of markdown content in Step 2
-        
+
         Takes the user's markdown input, creates a marked.js widget,
         and returns it as part of the response with MarkedJS initialization.
         """
@@ -383,13 +386,13 @@ class WidgetExamples:
     async def step_03_submit(self, request):
         """ 
         Process the submission for Step 3.
-        
+
         This method demonstrates client-side widget rendering:
         1. Saves the Mermaid diagram syntax to state
         2. Creates a container with the diagram source
         3. Adds initialization JavaScript that runs when the content is inserted
         4. Uses HX-Trigger header as a backup initialization method
-        
+
         Client-side initialization is particularly challenging in HTMX applications
         due to the timing of DOM updates. The implementation includes:
         - Timeout delay to ensure DOM is fully updated
@@ -422,7 +425,7 @@ class WidgetExamples:
     async def step_04(self, request):
         """ 
         Handles GET request for Step 4: Pandas Table Widget.
-        
+
         This method follows the same "Combined Step" pattern as step_01.
         Note that when displaying an existing widget, we recreate it from
         the saved data rather than storing the rendered widget itself.
@@ -460,13 +463,13 @@ class WidgetExamples:
     async def step_04_submit(self, request):
         """ 
         Process the submission for Step 4.
-        
+
         This method demonstrates using pandas to generate an HTML table:
         1. Parses and validates the JSON input
         2. Creates a pandas DataFrame from the data
         3. Generates the HTML table using DataFrame.to_html()
         4. Embeds the raw HTML in a FastHTML component
-        
+
         When using the "Combined Step" pattern with complex widgets, it's
         important to handle errors gracefully to avoid breaking the workflow.
         """
@@ -664,11 +667,11 @@ class WidgetExamples:
     def create_marked_widget(self, markdown_content, widget_id):
         """
         Create a widget for rendering markdown content using marked.js
-        
+
         Args:
             markdown_content: The markdown text to render
             widget_id: Unique ID for the widget
-            
+
         Returns:
             Div element containing the widget
         """
@@ -678,15 +681,15 @@ class WidgetExamples:
     def create_pandas_table(self, data_str):
         """
         Create a pandas HTML table from JSON string data.
-        
+
         This helper method encapsulates the widget creation logic, which:
         1. Makes the code more maintainable
         2. Allows reuse in both step_02 and step_02_submit
         3. Centralizes error handling
-        
+
         When implementing complex widgets, consider using helper methods
         like this to separate widget creation logic from workflow logic.
-        
+
         Note on FastHTML raw HTML handling:
         - Uses Div(NotStr(html_fragment), _raw=True) to embed raw HTML
         - NotStr prevents string escaping during XML rendering
@@ -717,7 +720,7 @@ class WidgetExamples:
 
     def create_prism_widget(self, code, widget_id, language='javascript'):
         """Create a Prism.js syntax highlighting widget with copy functionality.
-        
+
         Args:
             code (str): The code to highlight
             widget_id (str): Unique ID for the widget
@@ -731,7 +734,7 @@ class WidgetExamples:
     async def step_07(self, request):
         """ 
         Handles GET request for Step 7: Matplotlib Histogram Widget.
-        
+
         This step allows users to input counter data and visualizes it as a histogram.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -767,7 +770,7 @@ class WidgetExamples:
     async def step_07_submit(self, request):
         """ 
         Process the submission for Step 7 (Matplotlib Histogram).
-        
+
         Takes counter data as input and creates a histogram visualization.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -804,7 +807,7 @@ class WidgetExamples:
     async def step_08(self, request):
         """ 
         Handles GET request for Step 8: URL Opener Widget.
-        
+
         This widget allows users to input a URL and open it in their default browser.
         It demonstrates a practical use case for workflow steps.
         """
@@ -831,7 +834,7 @@ class WidgetExamples:
     async def step_08_submit(self, request):
         """ 
         Process the submission for Step 8 (URL Opener).
-        
+
         Takes a URL input, validates it, opens it in the default browser,
         and provides a button to reopen it later.
         """
@@ -860,10 +863,10 @@ class WidgetExamples:
     def create_matplotlib_histogram(self, data_str):
         """
         Create a matplotlib histogram visualization from JSON counter data.
-        
+
         Args:
             data_str: A JSON string representing counter data
-            
+
         Returns:
             A Div element containing the histogram image
         """
@@ -876,9 +879,10 @@ class WidgetExamples:
             counter = Counter(data)
             if not counter:
                 return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
-            import matplotlib.pyplot as plt
-            from io import BytesIO
             import base64
+            from io import BytesIO
+
+            import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 6))
             labels = sorted(counter.keys())
             values = [counter[label] for label in labels]
@@ -903,7 +907,7 @@ class WidgetExamples:
     async def step_09(self, request):
         """ 
         Handles GET request for Step 9: Rich Table Widget.
-        
+
         This widget demonstrates a beautifully styled table with:
         - Connected border lines
         - Alternating row colors
@@ -1076,7 +1080,7 @@ class WidgetExamples:
 
     async def step_11(self, request):
         """Handles GET request for the file upload widget.
-        
+
         A reusable widget for handling multiple file uploads with:
         - Multiple file selection
         - File size reporting

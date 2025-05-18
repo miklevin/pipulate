@@ -2,17 +2,20 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate Rich Table Widget Workflow\nA workflow for demonstrating the Rich Table widget with beautiful styling.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class RichTableWidget:
     """
     Rich Table Widget Workflow
-    
+
     Demonstrates rendering JSON data as a beautifully styled HTML table.
     """
     APP_NAME = 'rich_table_widget'
@@ -155,7 +158,7 @@ class RichTableWidget:
     async def step_01(self, request):
         """ 
         Handles GET request for Step 1: Rich Table Widget.
-        
+
         This widget demonstrates a beautifully styled table with:
         - Connected border lines
         - Alternating row colors

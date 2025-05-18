@@ -1,17 +1,29 @@
-from fasthtml.common import Container, Grid, Div, Card, H2, Ul, Form, Group, Input, Button, Li, Span, A, Hr, Label, Details, Summary, Select, Option, Textarea, Script, Link, Meta, Title, HTTPException, HTMLResponse, to_xml, P, H3, H4
-from server import BaseCrud, DB_FILENAME, LIST_SUFFIX, PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE, NOWRAP_STYLE, get_current_profile_id, get_profile_name, db as server_db, logger, rt, plugin_instances
+import json
 import os
 import re
 import sys
+from typing import Any, Dict, List, Optional
+
 import fastlite
-import json
-from typing import Optional, List, Dict, Any
+from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
+                             Div, Form, Grid, Group, Hr, HTMLResponse,
+                             HTTPException, Input, Label, Li, Link, Meta,
+                             Option, P, Script, Select, Span, Summary,
+                             Textarea, Title, Ul, to_xml)
+from server import (DB_FILENAME, LIST_SUFFIX, NOWRAP_STYLE,
+                    PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE, BaseCrud)
+from server import db as server_db
+from server import (get_current_profile_id, get_profile_name, logger,
+                    plugin_instances, rt)
+
 ROLES = ['Core']
+
 
 class ProfilesPluginIdentity:
     APP_NAME = 'profiles'
     DISPLAY_NAME = 'Profiles'
     ENDPOINT_MESSAGE = 'Manage user profiles (clients, customers, etc.). Each profile is a separate workspace.'
+
 
 class ProfileCrudOperations(BaseCrud):
 
@@ -46,6 +58,7 @@ class ProfileCrudOperations(BaseCrud):
         logger.debug(f'Prepared update data for profile: {data}')
         return data
 
+
 class ProfilesPlugin(ProfilesPluginIdentity):
 
     def __init__(self, app, pipulate_instance, pipeline_table, db_key_value_store, profiles_table_from_server):
@@ -73,6 +86,7 @@ class ProfilesPlugin(ProfilesPluginIdentity):
         add_profile_form = Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input-add', autofocus=True), Input(placeholder='Real Name (Optional)', name='profile_real_name', id='profile-real-name-input-add'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input-add'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input-add'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{self.name}', hx_target='#profile-list-ul', hx_swap='beforeend', hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();")
         container = Div(H2('Profiles'), add_profile_form, profile_list, style='max-width: 98%; margin: 0 auto;')
         return container
+
 
 def render_profile(profile_record, main_plugin_instance: ProfilesPlugin):
     item_id_dom = f'profile-item-{profile_record.id}'

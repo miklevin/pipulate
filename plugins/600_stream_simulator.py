@@ -1,10 +1,11 @@
-from fastcore.xml import *
-import logging
 import asyncio
-import random
 import json
-from loguru import logger
+import logging
+import random
+
+from fastcore.xml import *
 from fasthtml.common import *
+from loguru import logger
 
 ROLES = ['Tutorial']
 
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 # Instead we'll use the pipulate instance passed to the plugin
 
 limiter = ""
+
 
 class StreamSimulatorPlugin:
     APP_NAME = "stream_simulator"
@@ -31,7 +33,7 @@ class StreamSimulatorPlugin:
         # Use message queue from Pipulate for ordered message streaming
         self.message_queue = pipulate.message_queue
         logger.debug(f"StreamSimulatorPlugin initialized with APP_NAME: {self.APP_NAME}")
-        
+
         self.app.route(f"{self.route_prefix}/stream")(self.stream_handler)
         self.app.route(f"{self.route_prefix}/start", methods=["POST"])(self.start_handler)
 
@@ -219,5 +221,5 @@ class StreamSimulatorPlugin:
                     margin-top: 10px;
                 }
                 """if self.show_stream_content else "")))
-# 
-# 
+#
+#

@@ -2,8 +2,8 @@
 
 import inspect
 import os
-import sys
 import re
+import sys
 
 import fastlite
 from fasthtml.common import *
@@ -23,7 +23,7 @@ class PluginIdentityManager:
 
         # Strip .py extension to get the base name with potential numeric prefix
         self.original_name = filename.replace('.py', '')
-        
+
         # Remove any numeric prefix (e.g., "01_tasks" -> "tasks")
         self.name = re.sub(r'^\d+_', '', self.original_name)
 
@@ -55,7 +55,7 @@ class CrudCustomizer(BaseCrud):
         self.plugin = plugin
         # Get pipulate_instance from plugin if it exists
         self.pipulate_instance = getattr(plugin, 'pipulate', None)
-        
+
         super().__init__(
             name=plugin.name,
             table=table,
@@ -123,7 +123,7 @@ class CrudUI(PluginIdentityManager):
     @property
     def ENDPOINT_MESSAGE(self):
         return f"Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete."
-    
+
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
         super().__init__()
@@ -195,7 +195,7 @@ class CrudUI(PluginIdentityManager):
 
         # Get existing roles and their states
         existing_roles = {role.text: role for role in self.table("profile_id = ?", [profile_id])}
-        
+
         # Insert or update roles in the desired order
         for priority, role_name in enumerate(role_order):
             if role_name in existing_roles:

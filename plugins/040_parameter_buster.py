@@ -1,31 +1,33 @@
 import asyncio
-import asyncio
-from collections import namedtuple, Counter
-from datetime import datetime, timedelta
-from urllib.parse import urlparse, parse_qs
-import httpx
-import json
-import re
-import logging
-import time
-import os
-import zipfile
-import socket
 import gzip
-import shutil
-import pandas as pd
+import json
+import logging
+import os
 import pickle
+import re
+import shutil
+import socket
+import time
+import zipfile
+from collections import Counter, namedtuple
+from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+import httpx
+import pandas as pd
 from fasthtml.common import *
 from loguru import logger
+
 ROLES = ['Botify Employee']
 '\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class ParameterBusterWorkflow:
     """
     Parameter Buster Workflow
-    
+
     A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls, 
     web logs, and Search Console) to identify optimization opportunities. This workflow demonstrates:
 
@@ -133,7 +135,7 @@ class ParameterBusterWorkflow:
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow.
-        
+
         # PATTERN NOTE: The finalize step is the final destination of the chain reaction
         # and should be triggered by the last content step's submit handler.
         """
@@ -197,7 +199,7 @@ class ParameterBusterWorkflow:
 
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
-        
+
         # STEP PATTERN: GET handler returns current step UI + empty placeholder for next step
         # Important: The next step div should NOT have hx_trigger here, only in the submit handler
         """
@@ -227,7 +229,7 @@ class ParameterBusterWorkflow:
 
     async def step_01_submit(self, request):
         """Process the submission for Botify URL input widget.
-        
+
         # STEP PATTERN: Submit handler stores state and returns:
         # 1. Revert control for the completed step
         # 2. Next step div with explicit hx_trigger="load" to chain reaction to next step
@@ -531,7 +533,7 @@ class ParameterBusterWorkflow:
 
     async def step_05_submit(self, request):
         """Process the parameter optimization generation.
-        
+
         # BACKGROUND PROCESSING PATTERN: This demonstrates the standard pattern for long-running operations:
         # 1. Return progress UI immediately
         # 2. Use Script tag with setTimeout + htmx.ajax to trigger background processing
@@ -615,8 +617,8 @@ class ParameterBusterWorkflow:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
-        from starlette.responses import HTMLResponse
         from fasthtml.common import to_xml
+        from starlette.responses import HTMLResponse
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and user_val:
             try:
@@ -662,8 +664,8 @@ class ParameterBusterWorkflow:
                 widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
                 logging.info(f'Code length: {len(code_to_display)}, Params count: {(len(selected_params) if selected_params else 0)}')
                 prism_widget = self.create_prism_widget(code_to_display, widget_id, 'javascript')
-                from starlette.responses import HTMLResponse
                 from fasthtml.common import to_xml
+                from starlette.responses import HTMLResponse
                 response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
                 response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
                 return response
@@ -836,8 +838,8 @@ class ParameterBusterWorkflow:
             await pip.set_step_data(pipeline_id, step_id, user_val, steps)
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
             prism_widget = self.create_prism_widget(js_code, widget_id, 'javascript')
-            from starlette.responses import HTMLResponse
             from fasthtml.common import to_xml
+            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
@@ -868,18 +870,18 @@ class ParameterBusterWorkflow:
     async def check_if_project_has_collection(self, org_slug, project_slug, collection_id='logs'):
         """
         Checks if a specific collection exists for the given org and project.
-        
+
         # API PATTERN: This method demonstrates the standard Botify API interaction pattern:
         # 1. Read API token from local file
         # 2. Construct API endpoint URL with proper path parameters
         # 3. Make authenticated request with error handling
         # 4. Return tuple of (result, error_message) for consistent error handling
-        
+
         Args:
             org_slug: Organization slug
             project_slug: Project slug
             collection_id: ID of the collection to check for (default: "logs")
-            
+
         Returns:
             (True, None) if found, (False, None) if not found, or (False, error_message) on error.
         """
@@ -927,12 +929,12 @@ class ParameterBusterWorkflow:
     async def fetch_analyses(self, org, project, api_token):
         """
         Fetch analysis slugs for a Botify project.
-        
+
         Args:
             org: Organization slug
             project: Project slug
             api_token: Botify API token
-            
+
         Returns:
             List of analysis slugs or empty list on error
         """
@@ -978,18 +980,18 @@ class ParameterBusterWorkflow:
 
     async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type=None):
         """Generate a deterministic file path for a given data export.
-        
+
         # FILE MANAGEMENT PATTERN: This demonstrates the standard approach to file caching:
         # 1. Create deterministic paths based on user/project identifiers
         # 2. Check if files exist before re-downloading
         # 3. Store metadata about cached files for user feedback
-        
+
         Args:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
             data_type: Type of data (crawl, weblog, gsc) or None for base directory
-            
+
         Returns:
             String path to either the file location or base directory
         """
@@ -1004,10 +1006,10 @@ class ParameterBusterWorkflow:
 
     async def check_file_exists(self, filepath):
         """Check if a file exists and is non-empty.
-        
+
         Args:
             filepath: Path to check
-            
+
         Returns:
             (bool, dict): Tuple of (exists, file_info)
         """
@@ -1021,7 +1023,7 @@ class ParameterBusterWorkflow:
 
     async def ensure_directory_exists(self, filepath):
         """Ensure the directory for a file exists.
-        
+
         Args:
             filepath: Path to the file
         """
@@ -1156,12 +1158,12 @@ class ParameterBusterWorkflow:
     async def poll_job_status(self, job_url, api_token, max_attempts=20):
         """
         Poll the job status URL to check for completion with improved error handling
-        
+
         Args:
             job_url: Full job URL to poll
             api_token: Botify API token
             max_attempts: Maximum number of polling attempts
-            
+
         Returns:
             Tuple of (success, result_dict_or_error_message)
         """
@@ -1528,12 +1530,12 @@ class ParameterBusterWorkflow:
 
     async def analyze_parameters(self, username, project_name, analysis_slug):
         """Counts URL parameters from crawl, GSC, and web logs data.
-        
+
         Args:
             username: Organization username
             project_name: Project name
             analysis_slug: Analysis slug
-            
+
         Returns:
             Dictionary containing analysis results and cache data
         """
@@ -1769,15 +1771,16 @@ class ParameterBusterWorkflow:
         Create a visualization of parameters from all three data sources.
         """
         TOP_PARAMS_COUNT = 40
-        import logging
-        import matplotlib.pyplot as plt
-        from io import BytesIO, StringIO
         import base64
-        import numpy as np
         import json
+        import logging
         import os
-        from pathlib import Path
         from collections import Counter
+        from io import BytesIO, StringIO
+        from pathlib import Path
+
+        import matplotlib.pyplot as plt
+        import numpy as np
         self.pipulate.append_to_history('[VISUALIZATION] Creating parameter distribution visualization', quiet=True)
         debug_info = []
 
@@ -2090,15 +2093,15 @@ class ParameterBusterWorkflow:
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-            from starlette.responses import HTMLResponse
             from fasthtml.common import to_xml
+            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), markdown_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
             return response
         elif markdown_content and state.get('_revert_target') != step_id:
             markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-            from starlette.responses import HTMLResponse
             from fasthtml.common import to_xml
+            from starlette.responses import HTMLResponse
             response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
             response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
             return response
@@ -2140,8 +2143,8 @@ class ParameterBusterWorkflow:
         await self.message_queue.add(pip, f'{step.show}: Markdown content updated', verbatim=True)
         widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         markdown_widget = self.create_marked_widget(markdown_content, widget_id)
-        from starlette.responses import HTMLResponse
         from fasthtml.common import to_xml
+        from starlette.responses import HTMLResponse
         response = HTMLResponse(to_xml(Div(pip.widget_container(step_id=step_id, app_name=app_name, message=f'{step.show}: Markdown Documentation', widget=markdown_widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
         response.headers['HX-Trigger'] = json.dumps({'initializeMarked': {'targetId': widget_id}})
         return response

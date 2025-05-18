@@ -1,8 +1,11 @@
-from fastcore.xml import *
-from fasthtml.common import *
 import logging
 import time
+
+from fastcore.xml import *
+from fasthtml.common import *
+
 logger = logging.getLogger(__name__)
+
 
 class SeparatorPlugin:
     NAME = 'separator'

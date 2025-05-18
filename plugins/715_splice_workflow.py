@@ -1,29 +1,32 @@
 import asyncio
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
+
 ROLES = ['Developer']
 '\nPipulate Workflow Template\nA guide for creating multi-step workflows with proper chain reaction behavior.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class SpliceWorkflow:
     """
     Splice Workflow Template
-    
+
     A demonstration workflow showing how to extend from a simple single-step workflow 
     (like 70_blank_workflow.py) to a multi-step workflow with proper HTMX chain reactions.
-    
+
     ## Critical Chain Reaction Pattern
-    
+
     Pipulate workflows use an explicit HTMX triggering pattern where:
-    
+
     1. Each step must explicitly trigger the next step in the sequence when completed
     2. This is done by returning a div with the next step's ID and hx_trigger="load"
     3. Removing or altering this pattern will break the workflow progression
-    
+
     ## Steps Progression Mechanism:
-    
+
     1. init(): Creates placeholder for step_01 with hx_trigger="load"
     2. step_01(): Loads and either:
        - If incomplete: Shows the input form
@@ -33,7 +36,7 @@ class SpliceWorkflow:
        - EXPLICITLY triggers step_02 with <Div id="step_02" hx_get="/app/step_02" hx_trigger="load">
     4. Each subsequent step follows the same pattern
     5. The last step triggers the finalize step
-    
+
     This explicit triggering is more reliable than depending on HTMX event bubbling.
     """
     APP_NAME = 'splice'
@@ -80,7 +83,7 @@ class SpliceWorkflow:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders.
-        
+
         CRITICAL: This method starts the chain reaction by triggering the first step.
         DO NOT modify the structure that adds the first step with hx_trigger="load".
         """
@@ -113,12 +116,12 @@ class SpliceWorkflow:
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow.
-        
+
         CRITICAL: This method MUST:
         1. Check if all steps are complete and show the finalize button if so
         2. Process finalization by locking the workflow
         3. Handle the finalized state display
-        
+
         DO NOT modify this method's structure when extending a workflow.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -180,15 +183,15 @@ class SpliceWorkflow:
 
     async def step_01(self, request):
         """Handles GET request for Step 1.
-        
+
         STEP PATTERN: Each step_XX method follows this pattern:
         1. Check if workflow is finalized -> Show locked state
         2. Check if step is complete -> Show completion with trigger to next step
         3. Otherwise -> Show input form
-        
+
         CRITICAL: When step is complete, return a div that EXPLICITLY triggers the next step 
         with <Div id="next_step_id" hx_get="/app_name/next_step_id" hx_trigger="load">
-        
+
         LLM CONTEXT PATTERN:
         Keep the LLM informed about the step's state using pip.append_to_history():
         1. Finalized state: [WIDGET CONTENT] with (Finalized) marker
@@ -218,16 +221,16 @@ class SpliceWorkflow:
 
     async def step_01_submit(self, request):
         """Process the submission for Step 1.
-        
+
         STEP PATTERN: Each step_XX_submit method follows this pattern:
         1. Process and validate form data
         2. Store state data with pip.set_step_data()
         3. Return completion view WITH explicit trigger to next step
-        
+
         CRITICAL: The return MUST include:
         1. A Div with id="step_id" (preserve the original ID)
         2. A Div that explicitly triggers the next step with hx_trigger="load"
-        
+
         LLM CONTEXT PATTERN:
         Keep the LLM informed about:
         1. The submitted content: [WIDGET CONTENT]
@@ -249,10 +252,10 @@ class SpliceWorkflow:
 
     async def step_02(self, request):
         """Handles GET request for Step 2.
-        
+
         COPY THIS PATTERN: When adding new steps, follow this exact structure to maintain
         the chain reaction. The critical elements are:
-        
+
         1. Computing the proper next_step_id
         2. Including the trigger to next step in completed states
         3. Maintaining the step_id on the outer div
@@ -281,7 +284,7 @@ class SpliceWorkflow:
 
     async def step_02_submit(self, request):
         """Process the submission for Step 2.
-        
+
         COPY THIS PATTERN: When adding steps, follow this same structure with:
         1. Correct step_id and next_step_id calculation
         2. Data processing appropriate to the step
@@ -303,9 +306,9 @@ class SpliceWorkflow:
 
     async def step_03(self, request):
         """Handles GET request for Step 3.
-        
+
         SPLICING GUIDE: This shows how to add a third step following the exact same pattern.
-        
+
         CRITICAL PATTERN:
         1. Each step computes the correct next_step_id (or 'finalize' if last step)
         2. Completed steps explicitly trigger the next step with hx_trigger="load"
@@ -335,12 +338,12 @@ class SpliceWorkflow:
 
     async def step_03_submit(self, request):
         """Process the submission for Step 3.
-        
+
         TRANSITION TO FINALIZE:
         This step demonstrates the transition to the finalize step.
         The pattern is identical - the last step triggers finalize just like
         any other step would trigger the next step in sequence.
-        
+
         LLM CONTEXT:
         Even in the final step, maintain consistent LLM context updates to
         ensure the LLM understands the complete workflow state.

@@ -2,17 +2,20 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate PrismJS Code Highlighter Widget Workflow\nA workflow for demonstrating the Prism.js code syntax highlighting widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class PrismWidget:
     """
     PrismJS Code Highlighter Widget Workflow
-    
+
     Demonstrates syntax highlighting of code using Prism.js.
     """
     APP_NAME = 'prism_widget'

@@ -2,18 +2,21 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
+import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
-import pandas as pd
+
 ROLES = ['Developer']
 '\nPipulate Pandas Table Widget Workflow\nA workflow for demonstrating the Pandas DataFrame to HTML table rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class PandasTableWidget:
     """
     Pandas Table Widget Workflow
-    
+
     Demonstrates rendering JSON data as an HTML table using Pandas.
     """
     APP_NAME = 'pandas_table_widget'
@@ -132,15 +135,15 @@ class PandasTableWidget:
     def create_pandas_table(self, data_str):
         """
         Create a pandas HTML table from JSON string data.
-        
+
         This helper method encapsulates the widget creation logic, which:
         1. Makes the code more maintainable
         2. Allows reuse in both step_02 and step_02_submit
         3. Centralizes error handling
-        
+
         When implementing complex widgets, consider using helper methods
         like this to separate widget creation logic from workflow logic.
-        
+
         Note on FastHTML raw HTML handling:
         - Uses Div(NotStr(html_fragment), _raw=True) to embed raw HTML
         - NotStr prevents string escaping during XML rendering

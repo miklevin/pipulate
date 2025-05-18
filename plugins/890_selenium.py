@@ -1,26 +1,29 @@
 import asyncio
 import json
-from collections import namedtuple
-from datetime import datetime
-from pathlib import Path
 import os
 import shutil
 import tempfile
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+
 from fasthtml.common import *
 from loguru import logger
-from starlette.responses import HTMLResponse
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
+
 ROLES = ['Developer']
 '\nPipulate Selenium URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class SeleniumUrlOpenerWidget:
     """
     Selenium URL Opener Widget Workflow
-    
+
     Demonstrates opening a URL using Selenium and ChromeDriver.
     """
     APP_NAME = 'selenium_url_opener'

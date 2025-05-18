@@ -1,21 +1,24 @@
 import asyncio
 import json
+import os
+import shutil
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-import os
-import shutil
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nFile Upload Widget Workflow\n\nThis workflow demonstrates a widget that allows users to upload files to the server.\nFiles are saved in a designated directory with proper organization and tracking.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class FileUploadWidget:
     """
     File Upload Widget Workflow
-    
+
     A focused environment for creating and testing file upload functionality.
     Users can select and upload multiple files, which are saved to a designated
     server directory with proper organization and tracking.

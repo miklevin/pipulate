@@ -2,17 +2,20 @@ import asyncio
 import json
 from collections import namedtuple
 from datetime import datetime
+
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nPipulate Markdown MarkedJS Widget Workflow\nA workflow for demonstrating the Markdown MarkedJS rendering widget.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class MarkdownWidget:
     """
     Markdown MarkedJS Widget Workflow
-    
+
     Demonstrates rendering markdown content using MarkedJS.
     """
     APP_NAME = 'markdown_widget'

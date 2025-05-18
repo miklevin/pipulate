@@ -1,73 +1,76 @@
-ROLES = ['Developer']
-'\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
 import asyncio
+import json
+import logging
+import os
 from collections import namedtuple
 from datetime import datetime
-from urllib.parse import urlparse
-import httpx
 from pathlib import Path
-import json
-import os
-import logging
+from urllib.parse import urlparse
+
+import httpx
 from fasthtml.common import *
 from loguru import logger
+
+ROLES = ['Developer']
+'\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
 EXPORT_REGISTRY_FILE = Path('downloads/export_registry.json')
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 
 class BotifyExport:
     """
     Botify CSV Export Workflow
-    
+
     This workflow helps users export data from Botify projects and download it as CSV files.
     It demonstrates usage of rich UI components like directory trees alongside standard
     form inputs and revert controls.
-    
+
     ## Key Implementation Notes
-    
+
     ### Data Processing Challenges
-    
+
     1. **CSV Format Variations**: Botify exports have inconsistent format details:
        - Some files include `sep=,` as the first line (must be stripped in post-processing)
        - Column headers vary between exports and require normalization
        - Character encoding issues may arise (handled with utf-8 errors='ignore')
-    
+
     2. **Compression Format Handling**:
        - Exports come in various formats (gzip, zip, or uncompressed)
        - The workflow detects format dynamically and handles each appropriately
        - Failback mechanisms attempt different decompression approaches when format detection fails
-    
+
     3. **File Naming and Paths**:
        - Deterministic path generation ensures consistent file locations
        - Cached exports are detected and reused when possible
        - Directory structure mirrors Botify organization (org/project/analysis)
-    
+
     ### Implementation Decisions
-    
+
     1. **Step Separation Trade-offs**:
        - This workflow separates export configuration from download steps
        - While ParameterBuster combines these operations into background processes
        - The separated approach gives more visibility but requires additional user clicks
        - Future versions could adopt the background polling pattern from ParameterBuster
-    
+
     2. **API Interaction Pattern**:
        - Job submission and polling follows the standard Botify API workflow
        - Error handling includes extensive retry logic for network issues
        - Job ID extraction provides a fallback when URLs expire
        - Token validation occurs at workflow start rather than per-request
-    
+
     3. **Post-processing Requirements**:
        - Unlike ParameterBuster which handles processing inline, this workflow requires manual steps
        - Column renaming must be done after download
        - Header row handling for `sep=,` must be managed explicitly
        - UTF-8 decoding with error handling is essential for some exports
-    
+
     Implementation Note on Tree Displays:
     ------------------------------------
     The tree display for file paths uses the standardized pip.widget_container method,
     which provides consistent styling and layout for displaying additional content below
     the standard revert controls. This ensures proper alignment with revert buttons 
     while maintaining visual grouping.
-    
+
     Example usage:
     ```python
     tree_display = pip.tree_display(tree_path)
@@ -79,7 +82,7 @@ class BotifyExport:
         steps=steps
     )
     ```
-    
+
     This standardized pattern eliminates the need for workflow-specific spacing adjustments
     and ensures consistent styling across the application.
     """
@@ -92,7 +95,7 @@ class BotifyExport:
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
         Initialize the workflow.
-        
+
         This method sets up the workflow by:
         1. Storing references to app, pipulate, pipeline, and database
         2. Defining the ordered sequence of workflow steps
@@ -100,7 +103,7 @@ class BotifyExport:
         4. Registering custom routes for each step
         5. Creating step messages for UI feedback
         6. Adding a finalize step to complete the workflow
-        
+
         Args:
             app: The FastAPI application instance
             pipulate: The Pipulate helper instance
@@ -155,16 +158,16 @@ class BotifyExport:
 
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the UI placeholders.
-        
+
         Args:
             request: The incoming HTTP request with form data
-            
+
         Note on Token Validation:
         Unlike ParameterBuster which checks token existence per-operation,
         this workflow validates the token once at startup. Both approaches have merits:
         - Startup validation (this workflow): Prevents users from even starting without a token
         - Per-operation validation (ParameterBuster): More robust against token deletion during workflow
-        
+
         This method also sets up the workflow state and prepares the initial display.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -250,14 +253,14 @@ class BotifyExport:
     async def step_01_submit(self, request):
         """
         Handle POST submissions for the first step of the workflow.
-        
+
         This method processes and canonicalizes Botify URLs before storing them.
         It automatically converts any valid Botify project URL into its canonical form
         and stores both the canonical URL and the parsed components (org, project).
-        
+
         Args:
             request: The HTTP request object containing form data
-            
+
         Returns:
             FastHTML components for navigation or error message
         """
@@ -409,14 +412,14 @@ class BotifyExport:
 
     async def step_04(self, request):
         """Display the CSV export form with field selection options
-        
+
         This step demonstrates a key difference from ParameterBuster's approach:
         - This workflow separates configuration (this step) from processing (download steps)
         - ParameterBuster uses background processing with immediate progress feedback
-        
+
         The separated approach gives users more control but requires additional clicks.
         It also lacks the immediate visual feedback that background processing provides.
-        
+
         The field selection UI shows available fields based on BQLv2 schema definition,
         with checkbox controls for flexible selection.
         """
@@ -800,14 +803,14 @@ class BotifyExport:
     def format_path_as_tree(self, path_str):
         """
         Format a file path as either a hierarchical ASCII tree or a blue box.
-        
+
         This visualization is used in various places in the UI to show 
         download locations. The styling of the display is carefully tuned
         in each context where it appears.
-        
+
         Args:
             path_str: The path to format
-            
+
         Returns:
             str: Formatted path display (either tree or box style)
         """
@@ -830,25 +833,25 @@ class BotifyExport:
 
     async def download_csv(self, request):
         """Handles the download request for a Botify export job.
-        
+
         This method demonstrates file format handling complexity:
         1. Downloads compressed files (.gz or .zip) from Botify API
         2. Detects format automatically and applies appropriate decompression
         3. Handles file name extraction from archive contents
         4. Manages temporary files and cleanup
-        
+
         Format detection challenges:
         - Some exports have Content-Type: application/gzip
         - Others use application/zip or application/octet-stream
         - Format must sometimes be inferred from file contents
         - Failed decompression requires fallback approaches
-        
+
         Compare with ParameterBuster's approach which adds post-processing:
         - Directly loads the CSV with pandas after download
         - Skips header row with `sep=,` delimiter notation
         - Applies consistent column naming
         - Saves back with normalized format
-        
+
         Usage:
         Called via AJAX from the frontend during job status polling
         when download becomes available.
@@ -1073,7 +1076,7 @@ class BotifyExport:
     async def initiate_export_job(self, org, project, analysis, depth, include_fields, api_token):
         """
         Initiate a Botify export job with the specified parameters
-        
+
         Args:
             org: Organization slug
             project: Project slug
@@ -1081,7 +1084,7 @@ class BotifyExport:
             depth: Maximum depth to include
             include_fields: Dictionary of fields to include (title, meta_desc, h1)
             api_token: Botify API token
-            
+
         Returns:
             Tuple of (job_url, error_message)
         """
@@ -1112,29 +1115,29 @@ class BotifyExport:
 
     async def poll_job_status(self, job_url, api_token, max_attempts=12):
         """Poll the job status URL to check for completion.
-        
+
         Args:
             job_url: Full job URL to poll
             api_token: Botify API token
             max_attempts: Maximum number of polling attempts (default: 12)
-            
+
         Returns:
             Tuple of (success, result_dict_or_error_message)
-        
+
         Polling Implementation Notes:
         This method showcases important API polling patterns:
-        
+
         1. Exponential backoff with capped delay (prevents excessive requests)
         2. Error classification (authentication vs. network vs. API errors)
         3. URL regeneration for expired job paths (using extracted job ID)
         4. Network error resilience (retries with increasing delays)
-        
+
         Comparison with ParameterBuster approach:
         - Both use polling with exponential backoff
         - This implementation has more explicit error handling
         - ParameterBuster integrates polling with UI updates in a single flow
         - This workflow separates these concerns into discrete steps
-        
+
         Additional fault tolerance mechanisms:
         - Track consecutive network errors to trigger URL reconstruction
         - Extract job ID from URL for fallback polling approach
@@ -1165,10 +1168,10 @@ class BotifyExport:
         """
         Clean and shorten a job ID for display in the UI.
         Removes the depth and field information to show only the project details.
-        
+
         Args:
             job_id: The raw job ID, typically a filename
-            
+
         Returns:
             str: A cleaned, possibly truncated job ID
         """
@@ -1265,20 +1268,20 @@ class BotifyExport:
     async def finalize(self, request):
         """
         Finalize the workflow, locking all steps from further changes.
-        
+
         This method handles both GET requests (displaying finalization UI) and 
         POST requests (performing the actual finalization). The UI portions
         are intentionally kept WET to allow for full customization of the user
         experience, while core state management is handled by DRY helper methods.
-        
+
         Customization Points:
         - GET response: The cards/UI shown before finalization
         - Confirmation message: What the user sees after finalizing
         - Any additional UI elements or messages
-        
+
         Args:
             request: The HTTP request object
-            
+
         Returns:
             UI components for either the finalization prompt or confirmation
         """
@@ -1308,19 +1311,19 @@ class BotifyExport:
     async def unfinalize(self, request):
         """
         Unfinalize the workflow, allowing steps to be modified again.
-        
+
         This method removes the finalization flag from the workflow state
         and displays a confirmation message to the user. The core state
         management is handled by a DRY helper method, while the UI generation
         is intentionally kept WET for customization.
-        
+
         Customization Points:
         - Confirmation message: What the user sees after unfinalizing
         - Any additional UI elements or actions
-        
+
         Args:
             request: The HTTP request object
-            
+
         Returns:
             UI components showing the workflow is unlocked
         """
@@ -1339,15 +1342,15 @@ class BotifyExport:
     async def handle_revert(self, request):
         """
         Handle reverting to a previous step in the workflow.
-        
+
         This method clears state data from the specified step forward,
         marks the step as the revert target in the state, and rebuilds
         the workflow UI. It allows users to go back and modify their
         inputs at any point in the workflow process.
-        
+
         Args:
             request: The HTTP request object containing the step_id
-            
+
         Returns:
             FastHTML components representing the rebuilt workflow UI
         """
@@ -1371,15 +1374,15 @@ class BotifyExport:
     async def get_suggestion(self, step_id, state):
         """
         Get a suggestion value for a step based on transform function.
-        
+
         If the step has a transform function, use the previous step's output
         to generate a suggested value. This enables data to flow naturally
         from one step to the next, creating a connected workflow experience.
-        
+
         Args:
             step_id: The ID of the step to generate a suggestion for
             state: The current workflow state
-            
+
         Returns:
             str: The suggested value or empty string if not applicable
         """
@@ -1396,16 +1399,17 @@ class BotifyExport:
         prev_word = prev_data.get(prev_step.done, '')
         return step.transform(prev_word) if prev_word else ''
 
+
 def parse_botify_url(url: str) -> dict:
     """
     Parse and validate Botify URL.
-    
+
     Args:
         url: The Botify project URL to parse
-        
+
     Returns:
         dict: Contains url, org, and project information
-        
+
     Raises:
         ValueError: If URL format is invalid
     """
@@ -1418,35 +1422,36 @@ def parse_botify_url(url: str) -> dict:
     base_url = f'https://{parsed.netloc}/{org}/{project}/'
     return {'url': base_url, 'org': org, 'project': project}
 
+
 def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
     """Loads a CSV file with flexible options for Botify export quirks.
-    
+
     Args:
         file_path: Path to the CSV file
         skip_rows: Number of rows to skip (default: 0)
         encoding: File encoding (default: 'utf-8')
-        
+
     Returns:
         Pandas DataFrame or None on error
-    
+
     CSV Processing Notes:
     This method handles common Botify export format issues:
-    
+
     1. 'sep=' delimiter notation:
        - Some exports include 'sep=,' as the first line
        - This requires skip_rows=1 to properly parse
        - Must be detected by examining file content
-    
+
     2. Encoding variations:
        - UTF-8 is standard but some exports have other encodings
        - errors='ignore' prevents crashes on encoding issues
        - Falling back to latin-1 may be necessary for some exports
-    
+
     3. Header normalization:
        - Column names may include spaces and special characters
        - Standardization is needed for reliable field access
        - ParameterBuster directly sets readable column headers
-    
+
     Similar to ParameterBuster's load_csv_with_optional_skip method,
     but with additional options for Botify-specific format variations.
     """

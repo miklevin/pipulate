@@ -1,7 +1,7 @@
 import asyncio
+import os
 from collections import namedtuple
 from datetime import datetime
-import os
 
 from fasthtml.common import *
 from loguru import logger
@@ -46,7 +46,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         pip = self.pipulate
         # Use message queue from Pipulate for ordered message streaming
         self.message_queue = pip.message_queue
-        
+
         # Customize the steps, it's like one step per cell in the Notebook
         steps = [
             # No steps for this workflow - just finalize
@@ -95,11 +95,11 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     def get_endpoint_message(self):
         """
         Dynamically determine the endpoint message based on token file existence.
-        
+
         This method checks if a Botify token file exists and returns an appropriate
         message for the user. It's called by the server when displaying the message
         in the sidebar.
-        
+
         Returns:
             str: A message indicating whether a token exists and how to proceed
         """
@@ -116,7 +116,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                         )
         except Exception:
             pass
-            
+
         return self.ENDPOINT_MESSAGE
 
     async def landing(self, request):
@@ -128,10 +128,10 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         title = f"{self.DISPLAY_NAME or app_name.title()}"
         pipeline.xtra(app_name=app_name)
         existing_ids = [record.pkey for record in pipeline()]
-        
+
         # Get the message text
         message_text = self.get_endpoint_message()
-        
+
         # For the workflow UI, we can use FastHTML to create actual HTML elements
         # Create a fragment with the text and a link
         if "You can find your API token at" in message_text:
@@ -142,7 +142,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             )
         else:
             endpoint_message = P(message_text)
-            
+
         return Container(  # Get used to this return signature of FastHTML & HTMX
             Card(
                 H2(title),
@@ -171,14 +171,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def init(self, request):
         """
         Process the landing page form submission and initialize the workflow.
-        
+
         This method validates the Botify API token, initializes the pipeline state,
         and returns the UI with placeholders for the workflow steps. It handles
         token validation and provides appropriate feedback through the UI.
-        
+
         Args:
             request: The HTTP request object
-            
+
         Returns:
             FastHTML components representing the workflow UI
         """
@@ -191,7 +191,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
         if error:
             return error
-            
+
         # Always clear any existing "finalize" state when a new token is entered
         # This ensures we start with a clean slate and the proper Finalize button shows
         state = pip.read_state(pipeline_id)
@@ -200,14 +200,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             state["updated"] = datetime.now().isoformat()
             pip.write_state(pipeline_id, state)
             logger.debug(f"Cleared finalize state for pipeline: {pipeline_id}")
-        
+
         # Validate the token immediately after submission
         try:
             username = await self.validate_botify_token(pipeline_id)
             if username:
                 # Make chat messages non-blocking
                 await self.safe_stream(
-                    f"🟢 Botify API token validated for user: {pip.fmt(username)}. Ready to finalize.", 
+                    f"🟢 Botify API token validated for user: {pip.fmt(username)}. Ready to finalize.",
                     verbatim=True,
                     spaces_after=1  # Set to 0 to remove the extra line break
                 )
@@ -222,30 +222,30 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 await self.safe_stream("⚠️ Invalid Botify API token. The finalize button won't work and the token won't be saved until it's valid.", verbatim=True)
         except Exception as e:
             await self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
-        
+
         # Get placeholders for all steps
         placeholders = pip.run_all_cells(app_name, steps)
         return Div(*placeholders, id=f"{app_name}-container")
 
     # Required methods for the workflow system, even if we don't have steps
-    
+
     async def finalize(self, request):
         """
         Finalize the workflow, saving the Botify API token.
-        
+
         This method handles both GET requests (displaying finalization UI) and 
         POST requests (performing the actual finalization). The UI portions
         are intentionally kept WET to allow for full customization of the user
         experience, while core state management is handled by DRY helper methods.
-        
+
         Customization Points:
         - GET response: The cards/UI shown before finalization
         - Token validation and storage logic
         - Confirmation message: What the user sees after token is saved
-        
+
         Args:
             request: The HTTP request object
-            
+
         Returns:
             UI components for either the finalization prompt or confirmation
         """
@@ -266,8 +266,8 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     P(f"Botify API token is saved. Use {pip.UNLOCK_BUTTON_LABEL} to make changes."),
                     Form(
                         Button(
-                            pip.UNLOCK_BUTTON_LABEL, 
-                            type="submit", 
+                            pip.UNLOCK_BUTTON_LABEL,
+                            type="submit",
                             cls="secondary outline"  # PicoCSS secondary outline style - more subtle
                         ),
                         hx_post=f"/{app_name}/unfinalize",
@@ -294,22 +294,22 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
             # First validate the token
             username = await self.validate_botify_token(pipeline_id)
-            
+
             # If token is invalid, just update state and return to unfinalized state
             if not username:
                 # Send message about invalid token
                 await self.safe_stream("⚠️ Invalid Botify API token! Cannot finalize.", verbatim=True)
-                
+
                 # Make sure we're not finalized
                 state = pip.read_state(pipeline_id)
                 if "finalize" in state:
                     del state["finalize"]
                     state["updated"] = datetime.now().isoformat()
                     pip.write_state(pipeline_id, state)
-                
+
                 # Just rebuild the workflow, which will now show the unfinalized state
                 return pip.rebuild(app_name, steps)
-            
+
             # Token is valid, proceed with finalization
             # Update state using DRY helper
             state = pip.read_state(pipeline_id)
@@ -323,15 +323,15 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 # Save token with a comment containing the username
                 with open("botify_token.txt", "w") as token_file:
                     token_file.write(f"{pipeline_id}\n# username: {username}")
-                    
+
                 await self.safe_stream(f"✅ Botify API token saved to botify_token.txt for user: {pip.fmt(username)}", verbatim=True, spaces_after=1)
 
                 await self.safe_stream(
-                    f"You may now use any workflows requiring Botify API integration.", 
+                    f"You may now use any workflows requiring Botify API integration.",
                     verbatim=True,
                     spaces_after=1  # Set to 0 to remove the extra line break
                 )
-                
+
                 # Add the system prompt to inform users about Botify workflows
                 # await self.safe_stream(
                 #     "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
@@ -348,26 +348,26 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def validate_botify_token(self, token):
         """
         Check if the Botify API token is valid and return the username if successful.
-        
+
         This method makes an API request to the Botify authentication endpoint
         to validate the provided token and retrieve the associated username.
-        
+
         Args:
             token: The Botify API token to validate
-            
+
         Returns:
             str or None: The username if token is valid, None otherwise
         """
         import httpx
-        
+
         url = "https://api.botify.com/v1/authentication/profile"
         headers = {"Authorization": f"Token {token}"}
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
-                
+
                 # Extract username if the token is valid
                 user_data = response.json()
                 username = user_data["data"]["username"]
@@ -382,25 +382,25 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def unfinalize(self, request):
         """
         Unfinalize the workflow, allowing the Botify API token to be changed.
-        
+
         This method removes the finalization flag from the workflow state,
         deletes the Botify API token file, and displays a confirmation message 
         to the user. The UI generation is intentionally kept WET for 
         customization.
-        
+
         Customization Points:
         - Token file deletion logic
         - Confirmation message: What the user sees after unfinalizing
-        
+
         Args:
             request: The HTTP request object
-            
+
         Returns:
             UI components showing the workflow is unlocked
         """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
-        
+
         # Update state using DRY helper
         state = pip.read_state(pipeline_id)
         if "finalize" in state:
@@ -433,14 +433,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def get_suggestion(self, step_id, state):
         """
         Get a suggestion value for a step based on transform function.
-        
+
         If the step has a transform function, use the previous step's output
         to generate a suggested value.
-        
+
         Args:
             step_id: The ID of the step to generate a suggestion for
             state: The current workflow state
-            
+
         Returns:
             str: The suggested value or empty string if not applicable
         """
@@ -461,14 +461,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def handle_revert(self, request):
         """
         Handle reverting to a previous step in the workflow.
-        
+
         This method clears state data from the specified step forward,
         marks the step as the revert target in the state, and rebuilds
         the workflow UI.
-        
+
         Args:
             request: The HTTP request object containing the step_id
-            
+
         Returns:
             FastHTML components representing the rebuilt workflow UI
         """
@@ -488,41 +488,41 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
     async def safe_stream(self, message, verbatim=False, role="user", spaces_before=None, spaces_after=1):
         """
         Safely stream messages, gracefully handling failures when Ollama/LLM is not available.
-        
+
         For verbatim messages, this behaves exactly like the regular stream method.
         For LLM-processed messages (verbatim=False), it will fall back to a direct message
         if the LLM processing fails.
-        
+
         Args:
             message: The message to stream
             verbatim: If True, send message as-is; if False, process with LLM
             role: The role for the message in the conversation history
             spaces_before: Number of line breaks to add before the message
             spaces_after: Number of line breaks to add after the message
-            
+
         Returns:
             The original message
         """
         pip = self.pipulate
-        
+
         try:
             # For verbatim messages, just use the message queue
             if verbatim:
                 return await self.message_queue.add(
                     pip,
-                    message, 
-                    verbatim=True, 
+                    message,
+                    verbatim=True,
                     role=role,
                     spaces_before=spaces_before,
                     spaces_after=spaces_after
                 )
-            
+
             # For LLM-processed messages, try the LLM but have a fallback
             try:
                 return await self.message_queue.add(
                     pip,
-                    message, 
-                    verbatim=False, 
+                    message,
+                    verbatim=False,
                     role=role,
                     spaces_before=spaces_before,
                     spaces_after=spaces_after
@@ -533,10 +533,10 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 fallback_message = "Botify integration complete. You can now use the Botify API token in other workflows."
                 if "Greet" in message:
                     fallback_message = "Welcome! Your Botify token is ready to be saved. Click Finalize to continue."
-                
+
                 return await self.message_queue.add(
                     pip,
-                    fallback_message, 
+                    fallback_message,
                     verbatim=True,  # Force verbatim mode for the fallback
                     role=role,
                     spaces_before=spaces_before,
@@ -546,4 +546,3 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             # If everything fails, log the error but don't crash the workflow
             logger.error(f"Message streaming failed completely: {str(e)}")
             return message  # Return the original message but don't attempt to display it
-

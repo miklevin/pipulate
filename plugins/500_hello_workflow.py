@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 
-from fasthtml.common import * # type: ignore
+from fasthtml.common import *  # type: ignore
 from loguru import logger
 
 ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
@@ -95,7 +95,7 @@ class HelloFlow:
         "Press Enter to start a new Workflow with this Key. "
         "Keys are arbitrary. Key standard is: Profile_Name-App_Name-XX"
     )
-    TRAINING_PROMPT = "hello_workflow.md" # Filename (in /training) or text for AI context
+    TRAINING_PROMPT = "hello_workflow.md"  # Filename (in /training) or text for AI context
 
     # --- Initialization (Framework Setup - Generally Do Not Modify Core Logic) ---
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -109,7 +109,7 @@ class HelloFlow:
         self.steps_indices = {}
         self.db = db
         pip = self.pipulate
-        self.message_queue = pip.message_queue # For ordered UI messages
+        self.message_queue = pip.message_queue  # For ordered UI messages
 
         # ---> USER CUSTOMIZATION START <---
         # Define the ordered sequence of workflow steps.
@@ -126,7 +126,7 @@ class HelloFlow:
                 done='greeting',
                 show='Hello Message',
                 refill=False,          # Usually False if value is generated/transformed
-                transform=lambda name_from_step_01: f"Hello {name_from_step_01}!" # Example: Generate greeting
+                transform=lambda name_from_step_01: f"Hello {name_from_step_01}!"  # Example: Generate greeting
             ),
             # Add more steps here following the pattern
         ]
@@ -143,7 +143,7 @@ class HelloFlow:
         ]
 
         # Routes for each custom step defined above
-        self.steps = steps # Store steps instance variable
+        self.steps = steps  # Store steps instance variable
         for step in steps:
             step_id = step.id
             # Add GET route for displaying the step UI
@@ -176,8 +176,7 @@ class HelloFlow:
 
         # Add the mandatory 'finalize' step internally (Do not change)
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)} # Map step IDs to indices
-
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}  # Map step IDs to indices
 
     # --- Core Workflow Engine Methods (Usually Do Not Modify) ---
 
@@ -210,7 +209,7 @@ class HelloFlow:
                     hx_post=f"/{app_name}/init", hx_target=f"#{app_name}-container"
                 )
             ),
-            Div(id=f"{app_name}-container") # Target for HTMX updates
+            Div(id=f"{app_name}-container")  # Target for HTMX updates
         )
 
     async def init(self, request):
@@ -219,7 +218,7 @@ class HelloFlow:
         form = await request.form()
         user_input = form.get("pipeline_id", "").strip()
 
-        if not user_input: # Refresh if submitted blank (e.g., user wants auto-key)
+        if not user_input:  # Refresh if submitted blank (e.g., user wants auto-key)
             from starlette.responses import Response
             response = Response("")
             response.headers["HX-Refresh"] = "true"
@@ -239,13 +238,14 @@ class HelloFlow:
             _, prefix, user_provided_id = pip.generate_pipeline_key(self, user_input)
             pipeline_id = f"{prefix}{user_provided_id}"
 
-        db["pipeline_id"] = pipeline_id # Store in request-scoped DB
+        db["pipeline_id"] = pipeline_id  # Store in request-scoped DB
         logger.debug(f"Using pipeline ID: {pipeline_id}")
 
         # Initialize state if missing, check completion/finalization status
         state, error = pip.initialize_if_missing(pipeline_id, {"app_name": app_name})
-        if error: return error
-        all_steps_complete = all( step.id in state and step.done in state[step.id] for step in steps[:-1] )
+        if error:
+            return error
+        all_steps_complete = all(step.id in state and step.done in state[step.id] for step in steps[:-1])
         is_finalized = "finalize" in state and "finalized" in state["finalize"]
 
         # Add initial status messages to the UI queue
@@ -253,17 +253,18 @@ class HelloFlow:
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
         if all_steps_complete:
             status_msg = f"Workflow is complete and finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes." if is_finalized \
-                    else "Workflow is complete but not finalized. Press Finalize to lock your data."
+                else "Workflow is complete but not finalized. Press Finalize to lock your data."
             await self.message_queue.add(pip, status_msg, verbatim=True)
-        elif not any(step.id in state for step in self.steps): # If brand new
-             await self.message_queue.add(pip, "Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
+        elif not any(step.id in state for step in self.steps):  # If brand new
+            await self.message_queue.add(pip, "Please complete each step in sequence. Your progress will be saved automatically.", verbatim=True)
 
         # Update the datalist in the UI with the current key
         parsed = pip.parse_pipeline_key(pipeline_id)
         prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
         self.pipeline.xtra(app_name=app_name)
         matching_records = [record.pkey for record in self.pipeline() if record.pkey.startswith(prefix)]
-        if pipeline_id not in matching_records: matching_records.append(pipeline_id)
+        if pipeline_id not in matching_records:
+            matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist("pipeline-ids", options=matching_records)
 
         # Rebuild the UI, triggering the first step load via HTMX
@@ -273,30 +274,30 @@ class HelloFlow:
         """ Handles GET request to show Finalize button and POST request to lock the workflow. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
-        finalize_step = steps[-1] # The internally added Step(id='finalize',...)
+        finalize_step = steps[-1]  # The internally added Step(id='finalize',...)
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
 
         if request.method == "GET":
             # Show locked view or finalize button
             if finalize_step.done in finalize_data:
                 return Card(H3("Workflow is locked."),
-                    P("You can unlock the workflow to make changes.", style=pip.get_style("muted")),
-                    Form( Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
-                        hx_post=f"/{app_name}/unfinalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
-                    ), id=finalize_step.id )
+                            P("You can unlock the workflow to make changes.", style=pip.get_style("muted")),
+                            Form(Button(pip.UNLOCK_BUTTON_LABEL, type="submit", cls="secondary outline"),
+                                 hx_post=f"/{app_name}/unfinalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                                 ), id=finalize_step.id)
             else:
                 # Check if all *custom* steps are complete before offering finalize
-                all_steps_complete = all( pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1] )
+                all_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1])
                 if all_steps_complete:
                     return Card(H3("All steps complete. Finalize?"),
-                        P("You can revert to any step and make changes. Or clear the Key and press Enter for a new Workflow. Or toggle the lock.", style=pip.get_style("muted")),
-                        Form( Button("Finalize 🔒", type="submit", cls="primary"),
-                            hx_post=f"/{app_name}/finalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
-                        ), id=finalize_step.id )
+                                P("You can revert to any step and make changes. Or clear the Key and press Enter for a new Workflow. Or toggle the lock.", style=pip.get_style("muted")),
+                                Form(Button("Finalize 🔒", type="submit", cls="primary"),
+                                     hx_post=f"/{app_name}/finalize", hx_target=f"#{app_name}-container", hx_swap="outerHTML"
+                                     ), id=finalize_step.id)
                 else:
                     # Render an empty Div with the step ID if not ready to finalize, prevents breaking HTMX chain
                     return Div(id=finalize_step.id)
-        else: # POST request
+        else:  # POST request
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages["finalize"]["complete"], verbatim=True)
             # Rebuild the entire UI to show locked state
@@ -316,9 +317,11 @@ class HelloFlow:
         pip, db, steps = self.pipulate, self.db, self.steps
         step = next((s for s in steps if s.id == step_id), None)
         # Only provide suggestion if step has a transform function
-        if not step or not step.transform: return ""
+        if not step or not step.transform:
+            return ""
         prev_index = self.steps_indices[step_id] - 1
-        if prev_index < 0: return "" # No previous step for step_01
+        if prev_index < 0:
+            return ""  # No previous step for step_01
         prev_step = steps[prev_index]
         # Get the 'done' value from the previous step's saved data
         prev_data = pip.get_step_data(db["pipeline_id"], prev_step.id, {})
@@ -332,7 +335,8 @@ class HelloFlow:
         form = await request.form()
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
-        if not step_id: return P("Error: No step specified", style=pip.get_style("error"))
+        if not step_id:
+            return P("Error: No step specified", style=pip.get_style("error"))
 
         # Clear state from the target step onwards
         await pip.clear_steps_from(pipeline_id, step_id, steps)
@@ -387,18 +391,18 @@ class HelloFlow:
         else:
             # Show the input form for this step
             display_value = user_val if (step.refill and user_val) else await self.get_suggestion(step_id, state)
-            
+
             # Let LLM know we're showing an empty form via message queue
             form_msg = "Showing name input form. No name has been entered yet."
             await self.message_queue.add(pip, form_msg, verbatim=True)
-            
+
             # Add prompt message to UI
             await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
-            
+
             # Add explanation to both UI and LLM context
             explanation = "Workflows are like Python Notebooks where you don't have to look at the code to use it. Here we just collect some data."
             await self.message_queue.add(pip, explanation, verbatim=True)
-            
+
             # Render the card with the form
             return Div(
                 Card(
@@ -406,9 +410,9 @@ class HelloFlow:
                     P(explanation, style=pip.get_style("muted")),
                     Form(
                         pip.wrap_with_inline_button(
-                            Input( type="text", name=step.done, value=display_value,
-                                   placeholder=f"Enter {step.show}", required=True, autofocus=True,
-                                   _onfocus="this.setSelectionRange(this.value.length, this.value.length)" ),
+                            Input(type="text", name=step.done, value=display_value,
+                                  placeholder=f"Enter {step.show}", required=True, autofocus=True,
+                                  _onfocus="this.setSelectionRange(this.value.length, this.value.length)"),
                             button_label="Next ▸"
                         ),
                         hx_post=f"/{app_name}/{step.id}_submit",
@@ -428,11 +432,12 @@ class HelloFlow:
         pipeline_id = db.get("pipeline_id", "unknown")
 
         # Boilerplate: Check finalized state (optional, submit shouldn't be possible)
-        if step.done == 'finalized': return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
 
         # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "") # Get value for 'name' field
+        user_val = form.get(step.done, "")  # Get value for 'name' field
 
         # Let LLM know we received a submission via message queue
         submit_msg = f"User submitted name: {user_val}"
@@ -447,7 +452,7 @@ class HelloFlow:
         # --- End Custom Validation ---
 
         # --- Custom Processing (Example) ---
-        processed_val = user_val # Keep it simple for template
+        processed_val = user_val  # Keep it simple for template
         # --- End Custom Processing ---
 
         # Save the processed value to this step's state
@@ -465,19 +470,19 @@ class HelloFlow:
         # Return the standard navigation controls (Revert button + trigger for next step)
         return pip.create_step_navigation(step_id, step_index, steps, app_name, processed_val)
 
-
     # --- Step 2: Hello Message ---
+
     async def step_02(self, request):
         """ Handles GET request for Step 2: Displays input form or completed value. """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = "step_02"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize' # Next is finalize
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'  # Next is finalize
         pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, "") # Get the saved value for 'greeting' if it exists
+        user_val = step_data.get(step.done, "")  # Get the saved value for 'greeting' if it exists
 
         # Boilerplate: Check if workflow is finalized
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
@@ -495,7 +500,7 @@ class HelloFlow:
         # Boilerplate: Check if step is complete and we are NOT reverting to it
         elif user_val and state.get("_revert_target") != step_id:
             # Show completed view with Revert button
-             return Div(
+            return Div(
                 pip.revert_control(step_id=step_id, app_name=app_name, message=f"{step.show}: {user_val}", steps=steps),
                 # CRITICAL: Explicitly trigger next step loading - this pattern is required for reliable workflow progression
                 Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")
@@ -514,16 +519,16 @@ class HelloFlow:
                     Form(
                         pip.wrap_with_inline_button(
                             # Example: Using a readonly input because the value is generated by transform
-                            Input( type="text", name=step.done, value=display_value,
-                                   placeholder=f"{step.show} (generated)", required=True, autofocus=True,
-                                   _onfocus="this.setSelectionRange(this.value.length, this.value.length)" ),
+                            Input(type="text", name=step.done, value=display_value,
+                                  placeholder=f"{step.show} (generated)", required=True, autofocus=True,
+                                  _onfocus="this.setSelectionRange(this.value.length, this.value.length)"),
                             button_label="Next ▸"
                         ),
-                        hx_post=f"/{app_name}/{step.id}_submit", # Submit to step_02_submit
+                        hx_post=f"/{app_name}/{step.id}_submit",  # Submit to step_02_submit
                         hx_target=f"#{step.id}"                 # Replace this Div on response
                     )
                 ),
-                Div(id=next_step_id), # Placeholder for the next step (finalize)
+                Div(id=next_step_id),  # Placeholder for the next step (finalize)
                 id=step.id            # This Div gets replaced by HTMX on submit/revert
             )
 
@@ -536,15 +541,17 @@ class HelloFlow:
         pipeline_id = db.get("pipeline_id", "unknown")
 
         # Boilerplate: Check finalized state
-        if step.done == 'finalized': return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
+        if step.done == 'finalized':
+            return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
 
         # Get form data
         form = await request.form()
-        user_val = form.get(step.done, "") # Get value for 'greeting' field
+        user_val = form.get(step.done, "")  # Get value for 'greeting' field
 
         # Validate input using helper (basic check if required)
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
-        if not is_valid: return error_component
+        if not is_valid:
+            return error_component
 
         # --- Custom Processing ---
         # Value was likely generated by get_suggestion, so usually no processing needed here

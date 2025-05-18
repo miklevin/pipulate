@@ -1,13 +1,16 @@
 import inspect
 import os
-import sys
 import re
+import sys
+
 import fastlite
 from fasthtml.common import *
 from loguru import logger
 from server import DB_FILENAME, LIST_SUFFIX, BaseCrud
+
 ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 class PluginIdentityManager:
 
@@ -34,6 +37,7 @@ class PluginIdentityManager:
     @property
     def TRAINING_PROMPT(self):
         return f'{self.name}.md'
+
 
 class CrudCustomizer(BaseCrud):
 
@@ -70,6 +74,7 @@ class CrudCustomizer(BaseCrud):
         update_data = {'text': text}
         logger.debug(f'Prepared update data: {update_data}')
         return update_data
+
 
 class CrudUI(PluginIdentityManager):
 
@@ -136,6 +141,7 @@ class CrudUI(PluginIdentityManager):
         """Fallback render method, currently just calls landing."""
         logger.debug(f'{self.DISPLAY_NAME}Plugin.render called, delegating to landing.')
         return await self.landing()
+
 
 def render_item(item, app_instance):
     """Renders a single item as an LI element."""

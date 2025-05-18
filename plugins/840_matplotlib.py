@@ -1,24 +1,27 @@
 import asyncio
+import base64
 import json
-from collections import namedtuple, Counter
+import os
+from collections import Counter, namedtuple
 from datetime import datetime
 from io import BytesIO
-import base64
-import matplotlib.pyplot as plt
 from pathlib import Path
-import os
-from fasthtml.common import *
-from starlette.responses import HTMLResponse
-from loguru import logger
+
+import matplotlib.pyplot as plt
 from fastcore.xml import NotStr
+from fasthtml.common import *
+from loguru import logger
+from starlette.responses import HTMLResponse
+
 ROLES = ['Developer']
 '\nMatplotlib Histogram Widget\n\nThis workflow demonstrates a Matplotlib histogram rendering widget.\nUsers can input JSON counter data and see it rendered as a histogram image.\n\nThe widget supports:\n- JSON counter data input (keys and values)\n- Automatic histogram generation\n- Responsive image display\n- Error handling and validation\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
+
 class MatplotlibWidget:
     """
     Matplotlib Histogram Widget Workflow
-    
+
     A focused environment for creating and testing Matplotlib histogram visualizations.
     Users input JSON counter data and see it rendered as a histogram image.
     """
@@ -162,7 +165,7 @@ class MatplotlibWidget:
     async def step_01(self, request):
         """ 
         Handles GET request for Step 1: Matplotlib Histogram Widget.
-        
+
         This step allows users to input counter data and visualizes it as a histogram.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -198,7 +201,7 @@ class MatplotlibWidget:
     async def step_01_submit(self, request):
         """ 
         Process the submission for Step 1 (Matplotlib Histogram).
-        
+
         Takes counter data as input and creates a histogram visualization.
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -234,10 +237,10 @@ class MatplotlibWidget:
     def create_matplotlib_histogram(self, data_str):
         """
         Create a matplotlib histogram visualization from JSON counter data.
-        
+
         Args:
             data_str: A JSON string representing counter data
-            
+
         Returns:
             A Div element containing the histogram image
         """
