@@ -30,8 +30,9 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-DEBUG_MODE = True
-STATE_TABLES = True
+
+DEBUG_MODE = False
+STATE_TABLES = False
 
 # Kept up here now because coding assistants love deleting from the end of the file.
 # autopep8 --ignore E501,F405,F403,F541 --in-place server.py
