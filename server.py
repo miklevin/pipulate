@@ -33,6 +33,12 @@ from watchdog.observers import Observer
 DEBUG_MODE = True
 STATE_TABLES = True
 
+# Kept up here now because coding assistants love deleting from the end of the file.
+# autopep8 --ignore E501,F405,F403,F541 --in-place server.py
+# isort server.py
+# vulture server.py
+# pylint --disable=all --enable=redefined-outer-name server.py
+
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
     name = force_app_name
