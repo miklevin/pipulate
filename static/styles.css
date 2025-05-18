@@ -64,6 +64,132 @@ article > div:first-child {
     overflow: auto;
 }
 
+/* Begin Consolidation Additons */
+
+/* Text Utilities */
+.text-muted-lead {
+  font-size: 0.9em;
+  color: var(--pico-muted-color);
+}
+.text-small-italic {
+  font-size: 0.8em;
+  font-style: italic;
+}
+.text-pico-muted { /* If #666 is consistently used for this */
+  color: var(--pico-muted-color);
+}
+.text-right {
+  text-align: right;
+}
+.text-success {
+  color: var(--pico-form-element-valid-border-color); /* Pico semantic green */
+}
+.text-error {
+  color: var(--pico-form-element-invalid-border-color); /* Pico semantic red */
+}
+.text-primary { /* Assuming cyan maps to primary */
+  color: var(--pico-primary);
+}
+.fw-bold {
+  font-weight: bold;
+}
+.fst-italic {
+  font-style: italic;
+}
+
+/* Sizing & Layout Utilities */
+.w-100 {
+  width: 100%;
+}
+.d-flex {
+  display: flex;
+}
+.d-block {
+  display: block;
+}
+.d-none { /* Use with caution, `hidden` attribute is often better */
+  display: none !important;
+}
+.align-items-center {
+  align-items: center;
+}
+.overflow-x-auto {
+  overflow-x: auto;
+}
+
+/* Spacing Utilities (consider a more systematic scale if many emerge) */
+.mt-1vh {
+  margin-top: 1vh;
+}
+.mt-1rem {
+  margin-top: 1rem; /* Or var(--pico-spacing) */
+}
+.mb-p5rem { /* margin-bottom: 0.5rem */
+  margin-bottom: 0.5rem;
+}
+.mb-1rem {
+  margin-bottom: 1rem; /* Or var(--pico-spacing) */
+}
+.p-10px {
+  padding: 10px;
+}
+
+/* Font Utilities */
+.font-monospace {
+  font-family: var(--pico-font-family-monospace);
+}
+.fs-0p9em { /* font-size 0.9em */
+  font-size: 0.9em;
+}
+.fs-0p8em { /* font-size 0.8em */
+  font-size: 0.8em;
+}
+
+/* Border Utilities */
+.rounded {
+  border-radius: var(--pico-border-radius);
+}
+.rounded-5px {
+  border-radius: 5px;
+}
+
+/* Component-Specific Styles */
+.mt-1vh-text-right { /* For specific combined style */
+  margin-top: 1vh;
+  text-align: right;
+}
+
+.code-block-container {
+  padding: 1rem;
+  background-color: var(--pico-code-background);
+  border-radius: var(--pico-border-radius);
+  overflow-x: auto;
+  font-family: var(--pico-font-family-monospace);
+}
+
+/* Ensure your custom revert button style from previous response is here */
+.button-revert {
+  background-color: var(--pico-form-element-invalid-active-border-color);
+  color: var(--pico-contrast-inverse);
+  border-color: var(--pico-form-element-invalid-active-border-color);
+  display: inline-flex;
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--pico-border-radius);
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin: 0;
+  line-height: 1;
+  align-items: center;
+  text-decoration: none;
+}
+.button-revert:hover {
+  background-color: var(--pico-form-element-invalid-border-color);
+  border-color: var(--pico-form-element-invalid-border-color);
+  color: var(--pico-contrast-inverse);
+}
+
+/* End Consolidation Additons */
+
 /* Increase specificity for Prism syntax highlighting in dark mode */
 [data-theme="dark"] .token.keyword,
 [data-theme="dark"] .token.function,
