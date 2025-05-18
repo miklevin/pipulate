@@ -16,14 +16,13 @@ logger = logging.getLogger(__name__)
 limiter = ""
 
 class StreamSimulatorPlugin:
-    NAME = "stream_simulator"
+    APP_NAME = "stream_simulator"
     DISPLAY_NAME = "Stream Simulator"
     ENDPOINT_MESSAGE = "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."
     id_suffix = "1"
     route_prefix = "/stream-sim"
     show_stream_content = False
 
-    
     def __init__(self, app, pipulate, pipeline, db):
         self.app = app
         self.pipulate = pipulate
@@ -31,20 +30,18 @@ class StreamSimulatorPlugin:
         self.logger = logger
         # Use message queue from Pipulate for ordered message streaming
         self.message_queue = pipulate.message_queue
-        logger.debug(f"StreamSimulatorPlugin initialized with NAME: {self.NAME}")
-        NAME = "stream_simulator"
-        DISPLAY_NAME = "Stream Simulator"
-        ENDPOINT_MESSAGE = "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."
-    
+        logger.debug(f"StreamSimulatorPlugin initialized with APP_NAME: {self.APP_NAME}")
+        
         self.app.route(f"{self.route_prefix}/stream")(self.stream_handler)
         self.app.route(f"{self.route_prefix}/start", methods=["POST"])(self.start_handler)
 
-    def landing(self, request):
+    async def landing(self, request):
         """Landing page for the Stream Simulator plugin"""
         logger.debug("StreamSimulatorPlugin.landing method called")
         return Div(
             H1("Stream Simulator"),
             P("This plugin simulates a long-running process with progress updates."),
+            await self.render(),
             _class="container"
         )
 
@@ -77,34 +74,34 @@ class StreamSimulatorPlugin:
                 if i + 1 == 1:
                     await self.message_queue.add(
                         self.pipulate,
-                        f"Tell the user {limiter} streaming is in progress, fake as it may be.",
+                        "Tell the user streaming is in progress, fake as it may be.",
                     )
                 elif i + 1 == 15:
                     await self.message_queue.add(
                         self.pipulate,
-                        f"Tell the user {limiter} the job is 25% done, fake as it may be.",
+                        "Tell the user the job is 25% done, fake as it may be.",
                     )
                 elif i + 1 == 40:
                     await self.message_queue.add(
                         self.pipulate,
-                        f"Tell the user {limiter} the job is 50% over half way there, fake as it may be.",
+                        "Tell the user the job is 50% over half way there, fake as it may be.",
                     )
                 elif i + 1 == 65:
                     await self.message_queue.add(
                         self.pipulate,
-                        f"Tell the user {limiter} the job is nearly complete, fake as it may be.",
+                        "Tell the user the job is nearly complete, fake as it may be.",
                     )
                 elif i + 1 == 85:
                     await self.message_queue.add(
                         self.pipulate,
-                        f"Tell the user in under 20 words just a little bit more, fake as it may be.",
+                        "Tell the user in under 20 words just a little bit more, fake as it may be.",
                     )
                 await asyncio.sleep(random.uniform(*delay_range))
             self.logger.debug("Finished generating all chunks")
             yield json.dumps({"status": "complete"})
             await self.message_queue.add(
                 self.pipulate,
-                f"Congratulate the user {limiter}. The long-running job is done, fake as it may be!",
+                "Congratulate the user. The long-running job is done, fake as it may be!",
             )
         except Exception as e:
             self.logger.error(f"Error in chunk generation: {str(e)}")

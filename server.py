@@ -2124,7 +2124,7 @@ async def home(request):
     db['last_visited_url'] = request.url.path
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')
-    response = await create_outer_container(current_profile_id, menux)
+    response = await create_outer_container(current_profile_id, menux, request)
     logger.debug('Returning response for main GET request.')
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
@@ -2428,13 +2428,13 @@ async def toggle_profile_lock(request):
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
-async def create_outer_container(current_profile_id, menux):
+async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for container creation")
         return Container(H1('Error: Profiles plugin not found', cls='text-error'), style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};')
     nav_group = create_nav_group()
-    return Container(nav_group, Grid(await create_grid_left(menux), create_chat_interface(), cls='grid', style=f'display: grid; gap: 20px; grid-template-columns: {GRID_LAYOUT}; '), create_poke_button(), style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};')
+    return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='grid', style=f'display: grid; gap: 20px; grid-template-columns: {GRID_LAYOUT}; '), create_poke_button(), style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};')
 MAX_INTRO_PAGES = 3
 
 def get_intro_page_content(page_num_str: str):
@@ -2517,14 +2517,14 @@ def get_workflow_instance(workflow_name):
     """
     return plugin_instances.get(workflow_name)
 
-async def create_grid_left(menux, render_items=None):
+async def create_grid_left(menux, request, render_items=None):
     content_to_render = None
     profiles_plugin_key = 'profiles'
     if menux:
         if menux == profiles_plugin_key:
             profiles_instance = plugin_instances.get(profiles_plugin_key)
             if profiles_instance:
-                content_to_render = await profiles_instance.landing()
+                content_to_render = await profiles_instance.landing(request)
             else:
                 logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
                 content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
@@ -2533,7 +2533,7 @@ async def create_grid_left(menux, render_items=None):
             if workflow_instance:
                 if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
                     logger.debug(f'Selected plugin {menux} has roles: {workflow_instance.ROLES}')
-                content_to_render = await workflow_instance.landing()
+                content_to_render = await workflow_instance.landing(request)
     else:
         current_intro_page_num_str = db.get('intro_page_num', '1')
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
