@@ -183,7 +183,7 @@ class CrudUI(PluginIdentityManager):
         self.initialize_roles(current_profile_id)
 
     def initialize_roles(self, profile_id):
-        """Initialize or reset roles in the correct order."""
+        """Initialize roles in the correct order, preserving existing states."""
         # Define the desired order of roles
         role_order = [
             'Core',
@@ -193,19 +193,24 @@ class CrudUI(PluginIdentityManager):
             'SEO Practitioner'
         ]
 
-        # Clear existing roles for this profile
-        existing_roles = self.table("profile_id = ?", [profile_id])
-        for role in existing_roles:
-            self.table.delete(role.id)
-
-        # Insert roles in the desired order
+        # Get existing roles and their states
+        existing_roles = {role.text: role for role in self.table("profile_id = ?", [profile_id])}
+        
+        # Insert or update roles in the desired order
         for priority, role_name in enumerate(role_order):
-            self.table.insert(
-                text=role_name,
-                done=(role_name in ['Core', 'Botify Employee']),  # Set both Core and Botify Employee to done=True
-                priority=priority,
-                profile_id=profile_id
-            )
+            if role_name in existing_roles:
+                # Update priority for existing role
+                existing_role = existing_roles[role_name]
+                existing_role.priority = priority
+                self.table.update(existing_role)
+            else:
+                # Insert new role with default state
+                self.table.insert(
+                    text=role_name,
+                    done=(role_name in ['Core', 'Botify Employee']),  # Set both Core and Botify Employee to done=True
+                    priority=priority,
+                    profile_id=profile_id
+                )
         logger.debug(f"Initialized roles for profile {profile_id}")
 
     def register_plugin_routes(self):

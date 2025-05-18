@@ -1749,6 +1749,7 @@ async def synchronize_roles_to_db():
         logger.debug(f"SYNC_ROLES: Attempting to fetch existing roles with: query='profile_id=?', params=({current_profile_id},)")
         existing_role_objects_for_profile = list(roles_table_handler('profile_id=?', (current_profile_id,)))
         existing_role_names_for_profile = {item.text for item in existing_role_objects_for_profile}
+        existing_role_done_states = {item.text: item.done for item in existing_role_objects_for_profile}
         logger.debug(f'SYNC_ROLES: Found {len(existing_role_names_for_profile)} existing role names in DB for profile_id {current_profile_id}: {existing_role_names_for_profile}')
         new_roles_added_count = 0
         for role_name in discovered_roles_set:
@@ -1772,7 +1773,14 @@ async def synchronize_roles_to_db():
                 else:
                     logger.error(f"SYNC_ROLES: FAILED to prepare insert data for role '{role_name}' via CrudCustomizer.")
             else:
-                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Skipping insertion, current status preserved.")
+                # For existing roles, ensure Core and Botify Employee are checked while preserving other done states
+                if role_name in DEFAULT_ACTIVE_ROLES:
+                    existing_role = next((r for r in existing_role_objects_for_profile if r.text == role_name), None)
+                    if existing_role and not existing_role.done:
+                        logger.debug(f"SYNC_ROLES: Setting default active role '{role_name}' to done=True while preserving other roles.")
+                        existing_role.done = True
+                        roles_table_handler.update(existing_role)
+                logger.debug(f"SYNC_ROLES: Role '{role_name}' already exists for profile {current_profile_id}. Status preserved.")
         if new_roles_added_count > 0:
             logger.info(f'SYNC_ROLES: Synchronization complete. Added {new_roles_added_count} new role(s) for profile_id {current_profile_id}.')
         elif discovered_roles_set:
@@ -2006,6 +2014,14 @@ for module_name, class_name, workflow_class in discovered_classes:
         ordered_plugins.append(module_name)
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
+
+@rt('/refresh-app-menu')
+async def refresh_app_menu_endpoint(request):
+    """Refresh the App menu dropdown via HTMX endpoint."""
+    logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
+    menux = db.get('last_app_choice', '')
+    app_menu_details_component = create_app_menu(menux)
+    return HTMLResponse(to_xml(app_menu_details_component))
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
@@ -2722,12 +2738,6 @@ async def refresh_profile_menu(request):
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
 
-@rt('/refresh-app-menu')
-async def refresh_app_menu(request):
-    """Refresh the app menu dropdown."""
-    menux = db.get('last_app_choice', 'App')
-    return create_app_menu(menux)
-
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
     """Handle environment switching and restart the server."""
@@ -2836,12 +2846,5 @@ def run_server_with_watchdog():
     finally:
         observer.join()
 
-@rt('/refresh-app-menu')
-async def refresh_app_menu_endpoint(request):
-    """Refresh the App menu dropdown via HTMX endpoint."""
-    logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
-    menux = db.get('last_app_choice', '')
-    app_menu_details_component = create_app_menu(menux)
-    return HTMLResponse(to_xml(app_menu_details_component))
 if __name__ == '__main__':
     run_server_with_watchdog()
