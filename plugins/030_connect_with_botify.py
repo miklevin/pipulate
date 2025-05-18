@@ -14,24 +14,22 @@ Acquire a Botify API Key
 This is the simplest possible workflow, not even having a step.
 It only has a landing page and a finalize button. 
 Landing page asks for a Botify API Key.
-Finalize button does nothing.
+Finalize step saves the token to a file.
 
 """
 
-# This is the model for a Notebook cell or step (do not change)
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
-
 account_url = "https://app.botify.com/account"
 
 
-class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
-    APP_NAME = "botify"  # <-- CHANGE THIS to something no other workflow is using
-    DISPLAY_NAME = "Connect With Botify"  # <-- CHANGE THIS to value for User Interface
-    ENDPOINT_MESSAGE = (  # <-- Shows when user switches to workflow landing page
+class BotifyConnect:
+    APP_NAME = "botify"
+    DISPLAY_NAME = "Connect With Botify"
+    ENDPOINT_MESSAGE = (
         "Enter your Botify API token to connect with Botify. "
         f"You can find your API token at {account_url}"
     )
-    TRAINING_PROMPT = "botify_workflow.md"  # markdown file from /training or plain text
+    TRAINING_PROMPT = "botify_workflow.md"
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
@@ -44,10 +42,10 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         self.steps_indices = {}
         self.db = db
         pip = self.pipulate
+
         # Use message queue from Pipulate for ordered message streaming
         self.message_queue = pip.message_queue
 
-        # Customize the steps, it's like one step per cell in the Notebook
         steps = [
             # No steps for this workflow - just finalize
         ]
@@ -192,8 +190,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         if error:
             return error
 
-        # Always clear any existing "finalize" state when a new token is entered
-        # This ensures we start with a clean slate and the proper Finalize button shows
         state = pip.read_state(pipeline_id)
         if "finalize" in state:
             del state["finalize"]
@@ -211,13 +207,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     verbatim=True,
                     spaces_after=1  # Set to 0 to remove the extra line break
                 )
-                # Have the LLM greet the user with a short message - non-blocking
-                # formatted_username = pip.fmt(username)
-                # await self.safe_stream(
-                #     f"Greet {formatted_username} briefly as their Botify assistant and tell them to click Finalize to save their token. Keep your response under 40 words.",
-                #     verbatim=False,
-                #     role="system"
-                # )
             else:
                 await self.safe_stream("⚠️ Invalid Botify API token. The finalize button won't work and the token won't be saved until it's valid.", verbatim=True)
         except Exception as e:
@@ -257,7 +246,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         logger.debug(f"Finalize step: {finalize_step}")
         logger.debug(f"Finalize data: {finalize_data}")
 
-        # ───────── GET REQUEST: FINALIZATION UI (INTENTIONALLY WET) ─────────
         if request.method == "GET":
             if finalize_step.done in finalize_data:
                 logger.debug("Pipeline is already finalized")
@@ -268,7 +256,7 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                         Button(
                             pip.UNLOCK_BUTTON_LABEL,
                             type="submit",
-                            cls="secondary outline"  # PicoCSS secondary outline style - more subtle
+                            cls="secondary outline"
                         ),
                         hx_post=f"/{app_name}/unfinalize",
                         hx_target=f"#{app_name}-container",
@@ -282,16 +270,14 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 H3("Save Token"),
                 P("Save your Botify API token?"),
                 Form(
-                    Button("Save Token 💾", type="submit", cls="primary"),  # PicoCSS primary style
+                    Button("Save Token 💾", type="submit", cls="primary"),
                     hx_post=f"/{app_name}/finalize",
                     hx_target=f"#{app_name}-container",
                     hx_swap="outerHTML"
                 ),
                 id=finalize_step.id
             )
-        # ───────── END GET REQUEST ─────────
         else:
-            # ───────── POST REQUEST: PERFORM FINALIZATION ─────────
             # First validate the token
             username = await self.validate_botify_token(pipeline_id)
 
@@ -311,13 +297,11 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                 return pip.rebuild(app_name, steps)
 
             # Token is valid, proceed with finalization
-            # Update state using DRY helper
             state = pip.read_state(pipeline_id)
             state["finalize"] = {"finalized": True}
             state["updated"] = datetime.now().isoformat()
             pip.write_state(pipeline_id, state)
 
-            # ───────── CUSTOM FINALIZATION UI (INTENTIONALLY WET) ─────────
             # Write the token to a file in the current working directory
             try:
                 # Save token with a comment containing the username
@@ -332,18 +316,11 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
                     spaces_after=1  # Set to 0 to remove the extra line break
                 )
 
-                # Add the system prompt to inform users about Botify workflows
-                # await self.safe_stream(
-                #     "Tell the user they can now use any workflows requiring Botify API integration. Keep it short and helpful.",
-                #     verbatim=False,
-                #     role="system"
-                # )
             except Exception as e:
                 await self.safe_stream(f"Error saving token file: {type(e).__name__}.", verbatim=True)
 
             # Return the updated UI
             return pip.rebuild(app_name, steps)
-            # ───────── END CUSTOM FINALIZATION UI ─────────
 
     async def validate_botify_token(self, token):
         """
@@ -380,24 +357,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             return None
 
     async def unfinalize(self, request):
-        """
-        Unfinalize the workflow, allowing the Botify API token to be changed.
-
-        This method removes the finalization flag from the workflow state,
-        deletes the Botify API token file, and displays a confirmation message 
-        to the user. The UI generation is intentionally kept WET for 
-        customization.
-
-        Customization Points:
-        - Token file deletion logic
-        - Confirmation message: What the user sees after unfinalizing
-
-        Args:
-            request: The HTTP request object
-
-        Returns:
-            UI components showing the workflow is unlocked
-        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         pipeline_id = db.get("pipeline_id", "unknown")
 
@@ -407,7 +366,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
             del state["finalize"]
         pip.write_state(pipeline_id, state)
 
-        # ───────── CUSTOM UNFINALIZATION UI (INTENTIONALLY WET) ─────────
         # Delete the token file if it exists
         try:
             token_path = "botify_token.txt"
@@ -424,26 +382,12 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
 
         # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
-        # ───────── END CUSTOM UNFINALIZATION UI ─────────
 
     def run_all_cells(self, steps, app_name):
         """Generate placeholders for all steps through Pipulate helper."""
         return self.pipulate.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
-        """
-        Get a suggestion value for a step based on transform function.
-
-        If the step has a transform function, use the previous step's output
-        to generate a suggested value.
-
-        Args:
-            step_id: The ID of the step to generate a suggestion for
-            state: The current workflow state
-
-        Returns:
-            str: The suggested value or empty string if not applicable
-        """
         pip, db, steps = self.pipulate, self.db, self.steps
         # If a transform function exists, use the previous step's output.
         step = next((s for s in steps if s.id == step_id), None)
@@ -459,19 +403,6 @@ class BotifyConnect:  # <-- CHANGE THIS to your new WorkFlow name
         return step.transform(prev_word) if prev_word else ""
 
     async def handle_revert(self, request):
-        """
-        Handle reverting to a previous step in the workflow.
-
-        This method clears state data from the specified step forward,
-        marks the step as the revert target in the state, and rebuilds
-        the workflow UI.
-
-        Args:
-            request: The HTTP request object containing the step_id
-
-        Returns:
-            FastHTML components representing the rebuilt workflow UI
-        """
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         form = await request.form()
         step_id = form.get("step_id")
