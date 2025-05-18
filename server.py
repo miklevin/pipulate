@@ -1084,7 +1084,7 @@ class Pipulate:
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        return Div(self.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div())
+        return Div(self.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div(), id=step_id)
 
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
         """
