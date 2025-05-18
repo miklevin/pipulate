@@ -2154,7 +2154,7 @@ def create_nav_group():
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     nav_group_style = 'display: flex; align-items: center; position: relative;'
-    return Group(nav, refresh_listener, app_menu_refresh_listener, style=nav_group_style)
+    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', style=nav_group_style)
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
