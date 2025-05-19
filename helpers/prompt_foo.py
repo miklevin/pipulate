@@ -25,13 +25,13 @@ from typing import Dict, List, Optional, Union
 
 FILES_TO_INCLUDE = """\
 README.md
-flake.nix
+# flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
+#/home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
 /home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
 /home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
 /home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
@@ -51,18 +51,19 @@ server.py
 /home/mike/repos/pipulate/plugins/740_dropdown.py
 /home/mike/repos/pipulate/plugins/750_checkboxes.py
 /home/mike/repos/pipulate/plugins/760_radios.py
-# /home/mike/repos/pipulate/plugins/770_range.py
-# /home/mike/repos/pipulate/plugins/780_switch.py
-# /home/mike/repos/pipulate/plugins/800_markdown.py
-# /home/mike/repos/pipulate/plugins/810_mermaid.py
-# /home/mike/repos/pipulate/plugins/820_pandas.py
-# /home/mike/repos/pipulate/plugins/830_rich.py
+/home/mike/repos/pipulate/plugins/770_range.py
+/home/mike/repos/pipulate/plugins/780_switch.py
+/home/mike/repos/pipulate/plugins/800_markdown.py
+/home/mike/repos/pipulate/plugins/810_mermaid.py
+/home/mike/repos/pipulate/plugins/820_pandas.py
+/home/mike/repos/pipulate/plugins/830_rich.py
 # /home/mike/repos/pipulate/plugins/840_matplotlib.py
 # /home/mike/repos/pipulate/plugins/850_prism.py
 # /home/mike/repos/pipulate/plugins/860_javascript.py
 # /home/mike/repos/pipulate/plugins/870_upload.py
-/home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
-/home/mike/repos/pipulate/helpers/context_foo.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
+/home/mike/repos/pipulate/helpers/prompt_foo.py
 """.strip().splitlines()
 
 # Filter out any commented lines
@@ -259,7 +260,7 @@ I've provided you with the core architecture of a Python web application that ta
             ])
         ])
     },
-    # Template 1: Article Analysis Mode
+    # Template 1: Material Analysis Mode
     {
         "name": "Material Analysis Mode",
         "pre_prompt": create_xml_element("context", [
@@ -636,7 +637,7 @@ parser.add_argument('-l', '--list', action='store_true', help='List available te
 parser.add_argument('-o', '--output', type=str, default="foo.txt", help='Output filename (default: foo.txt)')
 parser.add_argument('-m', '--max-tokens', type=int, default=MAX_TOKENS - TOKEN_BUFFER, 
                     help=f'Maximum tokens to include (default: {MAX_TOKENS - TOKEN_BUFFER:,})')
-parser.add_argument('-p', '--prompt', type=str, help='Path to a prompt file to use instead of built-in templates')
+parser.add_argument('-p', '--prompt', type=str, help='Path to a prompt file to use (default: prompt.md in current directory)')
 parser.add_argument('--cat', action='store_true',
                     help='Shortcut for concat mode with blog posts, outputs a single file')
 parser.add_argument('--concat-mode', action='store_true', 
@@ -672,10 +673,20 @@ if args.list:
 # Get the file list
 final_file_list = file_list.copy()  # Start with the default list
 
-# Handle prompt file
-if args.prompt:
+# Handle prompt file - now with default prompt.md behavior
+prompt_path = args.prompt
+if not prompt_path:
+    # If no prompt specified, look for prompt.md in current directory
+    prompt_path = os.path.join(os.getcwd(), "prompt.md")
+    if os.path.exists(prompt_path):
+        print(f"Using default prompt file: {prompt_path}")
+    else:
+        print("No prompt file specified and prompt.md not found in current directory.")
+        print("Running without a prompt file.")
+        prompt_path = None
+
+if prompt_path:
     # Check if the prompt file exists
-    prompt_path = args.prompt
     if not os.path.isabs(prompt_path):
         prompt_path = os.path.join(os.getcwd(), prompt_path)
     
