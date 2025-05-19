@@ -17,6 +17,7 @@ EXCLUDED_DIRS = {
     ".gem",
     ".bundle",
     ".jekyll-cache",
+    ".jekyll-metadata",
     # Add any other directories you might want to exclude by default
     # For example, Pipulate specific build/cache dirs if any arise
 }
