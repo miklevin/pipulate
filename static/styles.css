@@ -90,6 +90,9 @@ details.dropdown summary + ul {
     right: 0;
     left: auto;
     width: auto;
+    /* Add scrolling */
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 details.dropdown summary + ul li {
