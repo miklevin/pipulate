@@ -2457,7 +2457,7 @@ def create_chat_interface(autofocus=False):
     return Div(Card(H3(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/chat-interface.js')), id='chat-interface', style='overflow: hidden;')
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
-    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group')
+    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw;')
 
 def create_poke_button():
     return Div(Button('🤖', cls='contrast outline', style='position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;', hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'), Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;'))
