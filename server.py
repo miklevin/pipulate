@@ -2568,22 +2568,6 @@ async def poke_flyout_hide(request):
     return Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;')
 
 
-async def profile_render():
-    profiles_plugin_inst = plugin_instances.get('profiles')
-    if not profiles_plugin_inst:
-        logger.error("Could not get 'profiles' plugin instance for profile rendering")
-        return Container(Grid(Div(Card(H3('Error'), P('Profiles plugin not found. Please check the server configuration.'), style='min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'), id='content-container')))
-    all_profiles = profiles()
-    logger.debug('Initial profile state:')
-    for profile in all_profiles:
-        logger.debug(f'Profile {profile.id}: name = {profile.name}, priority = {profile.priority}')
-    ordered_profiles = sorted(all_profiles, key=lambda p: p.priority if p.priority is not None else float('inf'))
-    logger.debug('Ordered profile list:')
-    for profile in ordered_profiles:
-        logger.debug(f'Profile {profile.id}: name = {profile.name}, priority = {profile.priority}')
-    return Container(Grid(Div(Card(H2(f'{profiles_plugin_inst.name.capitalize()} {LIST_SUFFIX}'), Ul(*[render_profile(profile) for profile in ordered_profiles], id='profile-list', cls='sortable', style='padding-left: 0;'), header=Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input', autofocus=True), Input(placeholder=f'Real Name', name='profile_menu_name', id='profile-menu-name-input'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{profiles_plugin_inst.name}', hx_target='#profile-list', hx_swap='beforeend', hx_swap_oob='true', hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();")), id='content-container')))
-
-
 @rt('/sse')
 async def sse_endpoint(request):
     return EventStream(broadcaster.generator())
