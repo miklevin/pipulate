@@ -2523,16 +2523,36 @@ async def create_grid_left(menux, request, render_items=None):
     if content_to_render is None:
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px;')
     
-    # Add scroll to top link at the bottom
+    # Add scroll to top link at the bottom with visibility check
     scroll_to_top = Div(
         A('↑ Scroll To Top', 
           href='javascript:void(0)', 
           onclick='console.log("Scroll clicked"); const container = document.querySelector(".main-grid > div:first-child"); console.log("Container:", container); console.log("Scroll position:", container.scrollTop); container.scrollTo({top: 0, behavior: "smooth"}); console.log("Scroll command executed");',
           style='text-decoration: none;'),
-        style='text-align: center; margin-top: 20px; padding: 10px; border-top: 1px solid var(--pico-muted-border-color);'
+        style='text-align: center; margin-top: 20px; padding: 10px; border-top: 1px solid var(--pico-muted-border-color); display: none;',
+        id='scroll-to-top-link'
     )
     
-    return Div(content_to_render, scroll_to_top, id='grid-left-content')
+    # Add script to check scroll height and show/hide the link
+    scroll_check_script = Script("""
+        function checkScrollHeight() {
+            const container = document.querySelector('.main-grid > div:first-child');
+            const scrollLink = document.getElementById('scroll-to-top-link');
+            if (container && scrollLink) {
+                const isScrollable = container.scrollHeight > container.clientHeight;
+                scrollLink.style.display = isScrollable ? 'block' : 'none';
+            }
+        }
+        // Check on load and when content changes
+        window.addEventListener('load', checkScrollHeight);
+        const observer = new MutationObserver(checkScrollHeight);
+        const container = document.querySelector('.main-grid > div:first-child');
+        if (container) {
+            observer.observe(container, { childList: true, subtree: true });
+        }
+    """)
+    
+    return Div(content_to_render, scroll_to_top, scroll_check_script, id='grid-left-content')
 
 
 def create_chat_interface(autofocus=False):

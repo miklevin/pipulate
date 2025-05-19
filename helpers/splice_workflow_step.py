@@ -47,7 +47,7 @@ async def {step_id_str}(self, request):
     elif current_value and state.get("_revert_target") != step_id:
         pip.append_to_history(f"[WIDGET CONTENT] {{step.show}} (Completed):\\n{{current_value}}")
         return Div(
-            pip.revert_control(step_id=step_id, app_name=app_name, message=f"{{step.show}}: Complete", steps=steps),
+            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{{step.show}}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{{app_name}}/{{next_step_id}}", hx_trigger="load"),
             id=step_id
         )
@@ -91,7 +91,7 @@ async def {step_id_str}_submit(self, request):
     await self.message_queue.add(pip, f"{{step.show}} complete.", verbatim=True)
     
     return Div(
-        pip.revert_control(step_id=step_id, app_name=app_name, message=f"{{step.show}}: Complete", steps=steps),
+        pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{{step.show}}: Complete", steps=steps),
         Div(id=next_step_id, hx_get=f"/{{app_name}}/{{next_step_id}}", hx_trigger="load"),
         id=step_id
     )
