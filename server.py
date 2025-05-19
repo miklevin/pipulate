@@ -32,7 +32,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 STATE_TABLES = False
 
 
