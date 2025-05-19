@@ -437,3 +437,16 @@ article > div:first-child {
 [data-theme="dark"] .token.string { color: #c3e88d !important; }
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
+
+.dropdown-separator hr {
+    margin: 0.5rem 0;
+    border: 0;
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.menu-item-header {
+    font-weight: bold;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    display: block;
+    text-align: center;
+}

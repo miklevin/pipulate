@@ -2305,7 +2305,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item', style=f'{NOWRAP_STYLE} font-weight: bold; border-bottom: 1px solid var(--pico-muted-border-color); display: block; text-align: center;'), cls='block'))
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header', style=f'{NOWRAP_STYLE}'), cls='block'))
     active_profiles_list = []
     if profiles:
         if profile_locked:
