@@ -52,11 +52,20 @@ def get_app_name(force_app_name=None):
     return name.capitalize()
 
 
-def fig(text, font='slant', color='cyan', width=200):
-    figlet = Figlet(font=font, width=width)
-    fig_text = figlet.renderText(str(text))
-    colored_text = Text(fig_text, style=f'{color} on default')
-    console.print(colored_text, style='on default')
+def get_db_filename():
+    current_env = get_current_environment()
+    if current_env == 'Development':
+        return f'data/{APP_NAME.lower()}_dev.db'
+    else:
+        return f'data/{APP_NAME.lower()}.db'
+
+
+def get_current_environment():
+    if ENV_FILE.exists():
+        return ENV_FILE.read_text().strip()
+    else:
+        ENV_FILE.write_text('Development')
+        return 'Development'
 
 
 APP_NAME = get_app_name()
@@ -70,33 +79,23 @@ ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 
-
-def get_current_environment():
-    if ENV_FILE.exists():
-        return ENV_FILE.read_text().strip()
-    else:
-        ENV_FILE.write_text('Development')
-        return 'Development'
-
-
-def set_current_environment(environment):
-    ENV_FILE.write_text(environment)
-    logger.info(f'Environment set to: {environment}')
-
-
-def get_db_filename():
-    current_env = get_current_environment()
-    if current_env == 'Development':
-        return f'data/{APP_NAME.lower()}_dev.db'
-    else:
-        return f'data/{APP_NAME.lower()}.db'
-
-
 DB_FILENAME = get_db_filename()
 PLACEHOLDER_ADDRESS = 'www.site.com'
 PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
 NAV_FILLER_WIDTH = '2%'
 LIST_SUFFIX = 'List'
+
+
+def fig(text, font='slant', color='cyan', width=200):
+    figlet = Figlet(font=font, width=width)
+    fig_text = figlet.renderText(str(text))
+    colored_text = Text(fig_text, style=f'{color} on default')
+    console.print(colored_text, style='on default')
+
+
+def set_current_environment(environment):
+    ENV_FILE.write_text(environment)
+    logger.info(f'Environment set to: {environment}')
 
 
 def setup_logging():
