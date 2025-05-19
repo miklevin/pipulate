@@ -8,6 +8,18 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "710_blank_placeholder.py"
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
+# EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
+"""
+python create_workflow.py \
+035_kungfu_workflow.py \
+KungfuWorkflow \
+kungfu \
+"Kung Fu Download" \
+"Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
+'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo''s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.' \
+--force
+"""
+
 # For the class declaration itself, assuming it's at the top level of the module (0 indentation)
 ORIGINAL_CLASS_DECLARATION_REGEX = r"class\s+BlankPlaceholder\s*:"
 # Attributes/methods *inside* the class will use this:

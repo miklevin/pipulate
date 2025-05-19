@@ -4,6 +4,11 @@ import re
 from pathlib import Path
 import os
 
+# EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
+"""
+python splice_workflow_step.py 035_kungfu_workflow.py
+"""
+
 # Define paths relative to this script's location (pipulate/helpers/)
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent

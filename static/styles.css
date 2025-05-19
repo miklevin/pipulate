@@ -427,7 +427,7 @@ article > div:first-child {
 
 .button-revert:hover {
     background-color: #ffc2d9;  /* Slightly darker pastel pink on hover */
-    color: var(--pico-muted-hover-color);
+    color: black;
     border-color: var(--pico-muted-hover-border-color);
 }
 
