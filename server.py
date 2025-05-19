@@ -14,6 +14,7 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, Optional
+
 import aiohttp
 import uvicorn
 from fasthtml.common import *
@@ -30,8 +31,10 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
 DEBUG_MODE = False
 STATE_TABLES = False
+
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -48,11 +51,14 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
+
 def fig(text, font='slant', color='cyan', width=200):
     figlet = Figlet(font=font, width=width)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f'{color} on default')
     console.print(colored_text, style='on default')
+
+
 APP_NAME = get_app_name()
 TONE = 'neutral'
 MODEL = 'gemma3'
@@ -64,6 +70,7 @@ ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 
+
 def get_current_environment():
     if ENV_FILE.exists():
         return ENV_FILE.read_text().strip()
@@ -71,9 +78,11 @@ def get_current_environment():
         ENV_FILE.write_text('Development')
         return 'Development'
 
+
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f'Environment set to: {environment}')
+
 
 def get_db_filename():
     current_env = get_current_environment()
@@ -81,16 +90,15 @@ def get_db_filename():
         return f'data/{APP_NAME.lower()}_dev.db'
     else:
         return f'data/{APP_NAME.lower()}.db'
+
+
 DB_FILENAME = get_db_filename()
 PLACEHOLDER_ADDRESS = 'www.site.com'
 PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
-GRID_LAYOUT = '65% 35%'
 NAV_FILLER_WIDTH = '2%'
-WEB_UI_WIDTH = '95%'
-WEB_UI_PADDING = '1rem'
-WEB_UI_MARGIN = '0 auto'
 NOWRAP_STYLE = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'
 LIST_SUFFIX = 'List'
+
 
 def setup_logging():
     """Set up unified logging between console and file with synchronized formats.
@@ -120,12 +128,15 @@ def setup_logging():
     if STATE_TABLES:
         logger.info(f'🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed)')
     return logger
+
+
 logger = setup_logging()
 if __name__ == '__main__':
     if DEBUG_MODE:
         logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
     else:
         logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
+
 
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
@@ -197,14 +208,20 @@ class LogManager:
     def debug(self, category, message, details=None):
         """Log debug information that only appears in DEBUG mode."""
         self.logger.debug(self.format_message(category, message, details))
+
+
 log = LogManager(logger)
 custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+
 
 class DebugConsole(Console):
 
     def print(self, *args, **kwargs):
         super().print(*args, **kwargs)
+
+
 console = DebugConsole(theme=custom_theme)
+
 
 def title_name(word: str) -> str:
     """Format a string into a title case form.
@@ -229,6 +246,7 @@ def title_name(word: str) -> str:
             processed_words.append(word.capitalize())
     return ' '.join(processed_words)
 
+
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
         return HOME_MENU_ITEM
@@ -236,11 +254,13 @@ def endpoint_name(endpoint: str) -> str:
         return friendly_names[endpoint]
     return title_name(endpoint)
 
-def step_name(step: str, preserve: bool=False) -> str:
+
+def step_name(step: str, preserve: bool = False) -> str:
     _, number = step.split('_')
     return f"Step {number.lstrip('0')}"
 
-def step_button(step: str, preserve: bool=False, revert_label: str=None) -> str:
+
+def step_button(step: str, preserve: bool = False, revert_label: str = None) -> str:
     logger.debug(f'[format_step_button] Entry - step={step}, preserve={preserve}, revert_label={revert_label}')
     _, number = step.split('_')
     symbol = '⟲' if preserve else '↶'
@@ -251,6 +271,7 @@ def step_button(step: str, preserve: bool=False, revert_label: str=None) -> str:
         button_text = f"{symbol}\xa0{label}\xa0{number.lstrip('0')}"
     logger.debug(f'[format_step_button] Generated button text: {button_text}')
     return button_text
+
 
 class SSEBroadcaster:
     _instance = None
@@ -282,7 +303,10 @@ class SSEBroadcaster:
     async def send(self, message):
         logger.bind(name='sse').debug(f'Queueing: {message}')
         await self.queue.put(message)
+
+
 broadcaster = SSEBroadcaster()
+
 
 def read_training(prompt_or_filename):
     if isinstance(prompt_or_filename, str) and prompt_or_filename.endswith('.md'):
@@ -305,16 +329,20 @@ def read_training(prompt_or_filename):
             return f"No training content available for {prompt_or_filename.replace('.md', '')}"
     return prompt_or_filename
 
+
 def hot_prompt_injection(prompt_or_filename):
     prompt = read_training(prompt_or_filename)
     append_to_conversation(prompt, role='system', quiet=True)
     return prompt
+
+
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
 else:
     limiter = ''
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
+
 
 def append_to_conversation(message=None, role='user', quiet=False):
     logger.debug('Entering append_to_conversation function')
@@ -331,6 +359,7 @@ def append_to_conversation(message=None, role='user', quiet=False):
             logger.debug(f'Message appended. New conversation history length: {len(global_conversation_history)}')
     logger.debug('Exiting Append to Conversation')
     return list(global_conversation_history)
+
 
 def pipeline_operation(func):
 
@@ -352,6 +381,7 @@ def pipeline_operation(func):
                 log.debug('pipeline', f"Pipeline '{url}' detailed changes", json.dumps(changes, indent=2))
         return result
     return wrapper
+
 
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
@@ -382,7 +412,7 @@ class Pipulate:
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_history(self, message: str, role: str='system', quiet: bool=True) -> None:
+    def append_to_history(self, message: str, role: str = 'system', quiet: bool = True) -> None:
         """Add a message to the LLM conversation history without triggering a response.
 
         This is the preferred way for workflows to update the LLM's context about:
@@ -565,7 +595,7 @@ class Pipulate:
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
 
     @pipeline_operation
-    def initialize_if_missing(self, pkey: str, initial_step_data: dict=None) -> tuple[Optional[dict], Optional[Card]]:
+    def initialize_if_missing(self, pkey: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
         try:
             state = self.read_state(pkey)
             if state:
@@ -675,7 +705,7 @@ class Pipulate:
             traceback.print_exc()
             raise
 
-    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None, remove_padding: bool = False):
         """
         Create a UI control for reverting to a previous workflow step.
 
@@ -709,7 +739,7 @@ class Pipulate:
             article_style += ' padding: 0;'
         return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
 
-    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str = None, widget=None, target_id: str = None, revert_label: str = None, widget_style=None):
         """
         Create a standardized container for widgets, visualizations, or any dynamic content.
 
@@ -782,7 +812,7 @@ class Pipulate:
         applied_style = content_style or self.FINALIZED_CONTENT_STYLE
         return Card(heading_tag(message), Div(content, style=applied_style), style='background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); margin-bottom: 2vh; padding: 1rem;')
 
-    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary') -> Div:
+    def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary') -> Div:
         return Div(input_element, Button(button_label, type='submit', cls=button_class, style='display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'), style='display: flex; align-items: center; gap: 0.5rem;')
 
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
@@ -1079,22 +1109,22 @@ class Pipulate:
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        
+
         # Create the main content for the current step (header + next step trigger)
         header_component = self.display_revert_header(
-            step_id=step_id, 
-            app_name=app_name, 
-            message=f'{step.show}: {processed_val}', 
+            step_id=step_id,
+            app_name=app_name,
+            message=f'{step.show}: {processed_val}',
             steps=steps
         )
-        
+
         next_step_trigger_div = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div()
-        
+
         # Combine them into the standard structure that replaces the current step's div
         content_to_swap = Div(
             header_component,
             next_step_trigger_div,
-            id=step_id 
+            id=step_id
         )
 
         # Return as HTMLResponse to set HX-Trigger header for scrolling
@@ -1165,6 +1195,7 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
+
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
@@ -1224,12 +1255,14 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         accumulated_response.append(error_msg)
         yield error_msg
 
+
 def get_button_style(button_type='default'):
     """Return button style string based on type."""
     if button_type == 'warning':
         return 'background-color: var(--pico-primary-background); color: #f66;'
     elif button_type == 'primary':
         return 'background-color: var(--pico-primary-background); color: #4CAF50;'
+
 
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
@@ -1245,9 +1278,11 @@ def get_current_profile_id():
             logger.warning('No profiles found in the database')
     return profile_id
 
+
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     init_script = f"\n    document.addEventListener('DOMContentLoaded', (event) => {{\n        // Initialize with parameters\n        if (window.initializeChatScripts) {{\n            window.initializeChatScripts({{\n                sortableSelector: '{sortable_selector}',\n                ghostClass: '{ghost_class}'\n            }});\n        }}\n    }});\n    "
     return (Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/styles.css'))
+
 
 class BaseCrud:
     """
@@ -1478,7 +1513,10 @@ class BaseCrud:
 
     def prepare_update_data(self, form):
         raise NotImplementedError('Subclasses must implement prepare_update_data')
+
+
 app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(DB_FILENAME, exts='ws', live=True, default_hdrs=False, hdrs=(Meta(charset='utf-8'), Link(rel='stylesheet', href='/static/pico.css'), Link(rel='stylesheet', href='/static/prism.css'), Link(rel='stylesheet', href='/static/rich-table.css'), Script(src='/static/htmx.js'), Script(src='/static/fasthtml.js'), Script(src='/static/surreal.js'), Script(src='/static/script.js'), Script(src='/static/Sortable.js'), Script(src='/static/mermaid.min.js'), Script(src='/static/marked.min.js'), Script(src='/static/prism.js'), Script(src='/static/widget-scripts.js'), create_chat_scripts('.sortable'), Script(type='module')), store={'key': str, 'value': str, 'pk': 'key'}, profile={'id': int, 'name': str, 'real_name': str, 'address': str, 'code': str, 'active': bool, 'priority': int, 'pk': 'id'}, pipeline={'pkey': str, 'app_name': str, 'data': str, 'created': str, 'updated': str, 'pk': 'pkey'})
+
 
 class Chat:
 
@@ -1538,12 +1576,15 @@ class Chat:
         finally:
             self.active_websockets.discard(websocket)
             self.logger.debug('WebSocket connection closed')
+
+
 chat = Chat(app, id_suffix='')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 pipulate = Pipulate(pipeline)
 if not os.path.exists('plugins'):
     os.makedirs('plugins')
     logger.debug('Created plugins directory')
+
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.', 'profile': "This is where you add, edit, and delete profiles (aka clients). The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."}
@@ -1563,6 +1604,7 @@ def build_endpoint_messages(endpoint):
         logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
     return endpoint_messages.get(endpoint, None)
 
+
 def build_endpoint_training(endpoint):
     endpoint_training = {'': 'You were just switched to the home page.', 'profile': 'You were just switched to the profile app.'}
     for workflow_name, workflow_instance in plugin_instances.items():
@@ -1575,7 +1617,10 @@ def build_endpoint_training(endpoint):
                 endpoint_training[workflow_name] = f'{class_name} app is where you manage your workflows.'
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
+
+
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
+
 
 def db_operation(func):
 
@@ -1595,6 +1640,7 @@ def db_operation(func):
             log.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
+
 
 class DictLikeDB:
 
@@ -1669,8 +1715,11 @@ class DictLikeDB:
     def set(self, key, value):
         self[key] = value
         return value
+
+
 db = DictLikeDB(store, Store)
 logger.debug('Database wrapper initialized.')
+
 
 def populate_initial_data():
     """Populate initial data in the database if it doesn't exist."""
@@ -1707,9 +1756,12 @@ def populate_initial_data():
     if 'profile_locked' not in db:
         db['profile_locked'] = '0'
         logger.debug("Initialized profile_locked to '0'")
+
+
 populate_initial_data()
 if 'intro_page_num' not in db:
     db['intro_page_num'] = '1'
+
 
 async def synchronize_roles_to_db():
     """Ensure all roles defined in plugin ROLES constants exist in the 'roles' database table."""
@@ -1824,6 +1876,7 @@ async def synchronize_roles_to_db():
         console.print('\n')
         logger.info(f'SYNC_ROLES: Roles synchronization display complete for profile_id {current_profile_id}.')
 
+
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
 
@@ -1874,6 +1927,7 @@ def discover_plugin_files():
     logger.debug(f'Discovered plugin modules: {list(plugin_modules.keys())}')
     return plugin_modules
 
+
 def find_plugin_classes(plugin_modules, discovered_modules):
     """Find all plugin classes in the given modules."""
     plugin_classes = []
@@ -1902,17 +1956,21 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             continue
     logger.debug(f'Discovered plugin classes: {plugin_classes}')
     return plugin_classes
+
+
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
 
+
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
     if instance and hasattr(instance, 'DISPLAY_NAME'):
         return instance.DISPLAY_NAME
     return workflow_name.replace('_', ' ').title()
+
 
 def get_endpoint_message(workflow_name):
     instance = plugin_instances.get(workflow_name)
@@ -1932,6 +1990,8 @@ def get_endpoint_message(workflow_name):
                 return message
         return message
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."
+
+
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
         try:
@@ -2021,6 +2081,7 @@ for workflow_name, workflow_instance in plugin_instances.items():
 base_menu_items = ['']
 additional_menu_items = []
 
+
 @app.on_event('startup')
 async def startup_event():
     await synchronize_roles_to_db()
@@ -2031,6 +2092,7 @@ for module_name, class_name, workflow_class in discovered_classes:
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
+
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
@@ -2038,6 +2100,7 @@ async def refresh_app_menu_endpoint(request):
     menux = db.get('last_app_choice', '')
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
+
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
@@ -2072,6 +2135,7 @@ async def clear_pipeline(request):
     html_response = HTMLResponse(str(response))
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
+
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
@@ -2135,6 +2199,7 @@ async def clear_db(request):
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
 
+
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f'Retrieving profile name for ID: {profile_id}')
@@ -2146,6 +2211,7 @@ def get_profile_name():
     except NotFoundError:
         logger.warning(f'No profile found for ID: {profile_id}')
         return 'Unknown Profile'
+
 
 async def home(request):
     path = request.url.path.strip('/')
@@ -2162,6 +2228,7 @@ async def home(request):
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
     return (Title(page_title), Main(response))
 
+
 def create_nav_group():
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -2171,6 +2238,7 @@ def create_nav_group():
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group')
+
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
@@ -2189,6 +2257,7 @@ def create_env_menu():
     is_prod = current_env == 'Production'
     menu_items.append(Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', style=radio_style), 'Prod', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';", id='prod-env-item')))
     return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'), cls='dropdown', id='env-dropdown-menu')
+
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
@@ -2218,8 +2287,10 @@ def create_nav_menu():
     logger.debug('Navigation menu created.')
     return nav
 
+
 def create_filler_item():
     return Li(Span(' '), style=f'display: flex; flex-grow: 1; justify-content: center; list-style-type: none; min-width: {NAV_FILLER_WIDTH}; ')
+
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
@@ -2269,13 +2340,16 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
     return Details(Summary('PROFILE', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='profile-id'), Ul(*menu_items, style='padding-left: 0; min-width: max-content;', cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
 
+
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
     return '' if path == '' else path
 
+
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
     return 'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 16px; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
+
 
 def create_app_menu(menux):
     """Create the App dropdown menu."""
@@ -2294,16 +2368,16 @@ def create_app_menu(menux):
     else:
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
     menu_items = []
-    
+
     # Add Home/Introduction as the first item
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
     home_label = Label(home_radio, HOME_MENU_ITEM, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_home_selected else '')
     menu_items.append(Li(home_label))
-    
+
     # Add a separator after Home
     menu_items.append(Li(Hr(), cls='dropdown-separator'))
-    
+
     profiles_plugin_key = 'profiles'
     for plugin_key in ordered_plugins:
         instance = plugin_instances.get(plugin_key)
@@ -2332,14 +2406,16 @@ def create_app_menu(menux):
         redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
         radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
         menu_items.append(Li(Label(radio_input, display_name, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_selected else '')))
-    
+
     return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
+
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
     current = db.get('profile_locked', '0')
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
+
 
 async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -2349,6 +2425,7 @@ async def create_outer_container(current_profile_id, menux, request):
     nav_group = create_nav_group()
     return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
 MAX_INTRO_PAGES = 3
+
 
 def get_intro_page_content(page_num_str: str):
     """
@@ -2387,6 +2464,7 @@ def get_intro_page_content(page_num_str: str):
     llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
     return (content, llm_context)
 
+
 async def render_intro_page_with_navigation(page_num_str: str):
     """
     Renders the content for the given intro page number, including Next/Previous buttons.
@@ -2397,6 +2475,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
     append_to_conversation(llm_context, role='system', quiet=True)
     nav_buttons = [Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='width: 140px; min-width: 140px;', disabled=page_num == 1), Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='width: 140px; min-width: 140px;', disabled=page_num == MAX_INTRO_PAGES)]
     return Div(page_content_area, Div(*nav_buttons, style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'), id='grid-left-content')
+
 
 @rt('/navigate_intro', methods=['POST'])
 async def navigate_intro_page_endpoint(request):
@@ -2418,6 +2497,7 @@ async def navigate_intro_page_endpoint(request):
     new_content = await render_intro_page_with_navigation(str(next_page_num))
     return HTMLResponse(to_xml(new_content))
 
+
 def get_workflow_instance(workflow_name):
     """
     Get a workflow instance from the plugin_instances dictionary.
@@ -2429,6 +2509,7 @@ def get_workflow_instance(workflow_name):
         The workflow instance if found, None otherwise
     """
     return plugin_instances.get(workflow_name)
+
 
 async def create_grid_left(menux, request, render_items=None):
     content_to_render = None
@@ -2454,6 +2535,7 @@ async def create_grid_left(menux, request, render_items=None):
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px;')
     return Div(content_to_render, id='grid-left-content')
 
+
 def create_chat_interface(autofocus=False):
     msg_list_height = 'height: calc(70vh - 200px);'
     temp_message = None
@@ -2463,11 +2545,14 @@ def create_chat_interface(autofocus=False):
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     return Div(Card(H3(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/chat-interface.js')), id='chat-interface', style='overflow: hidden;')
 
+
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw;')
 
+
 def create_poke_button():
     return Div(Button('🤖', cls='contrast outline', style='position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;', hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'), Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;'))
+
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
@@ -2479,9 +2564,11 @@ async def poke_flyout(request):
     is_dev_mode = get_current_environment() == 'Development'
     return Div(id='flyout-panel', style='display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(Li(Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_workflow else None, Li(Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_dev_mode else None), style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'))
 
+
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     return Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;')
+
 
 async def profile_render():
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -2498,14 +2585,17 @@ async def profile_render():
         logger.debug(f'Profile {profile.id}: name = {profile.name}, priority = {profile.priority}')
     return Container(Grid(Div(Card(H2(f'{profiles_plugin_inst.name.capitalize()} {LIST_SUFFIX}'), Ul(*[render_profile(profile) for profile in ordered_profiles], id='profile-list', cls='sortable', style='padding-left: 0;'), header=Form(Group(Input(placeholder='Nickname', name='profile_name', id='profile-name-input', autofocus=True), Input(placeholder=f'Real Name', name='profile_menu_name', id='profile-menu-name-input'), Input(placeholder=PLACEHOLDER_ADDRESS, name='profile_address', id='profile-address-input'), Input(placeholder=PLACEHOLDER_CODE, name='profile_code', id='profile-code-input'), Button('Add', type='submit', id='add-profile-button')), hx_post=f'/{profiles_plugin_inst.name}', hx_target='#profile-list', hx_swap='beforeend', hx_swap_oob='true', hx_on__after_request="this.reset(); document.getElementById('profile-name-input').focus();")), id='content-container')))
 
+
 @rt('/sse')
 async def sse_endpoint(request):
     return EventStream(broadcaster.generator())
+
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
     await pipulate.stream(f'Let the user know {limiter} {message}')
     return ''
+
 
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
@@ -2521,12 +2611,14 @@ def redirect_handler(request):
     build_endpoint_training(path)
     return Redirect(f'/{path}')
 
+
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     logger.debug('Chatbot poke received.')
     poke_message = f'The user poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked.'
     asyncio.create_task(pipulate.stream(poke_message))
     return 'Poke received. Countdown to local LLM MODEL...'
+
 
 @rt('/select_profile', methods=['POST'])
 async def select_profile(request):
@@ -2550,6 +2642,7 @@ async def select_profile(request):
     redirect_url = db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
+
 
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
 
@@ -2587,6 +2680,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
             console.print(pipeline_table)
         return response
+
 
 def print_routes():
     logger.debug('Route Table')
@@ -2628,12 +2722,14 @@ def print_routes():
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
     console.print(table)
 
+
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
     """Refresh the profile menu dropdown."""
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
+
 
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
@@ -2648,6 +2744,7 @@ async def switch_environment(request):
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
+
 
 async def delayed_restart(delay_seconds):
     """Restart the server after a delay."""
@@ -2669,6 +2766,7 @@ app.add_middleware(DOMSkeletonMiddleware)
 logger.debug('Application setup completed with DOMSkeletonMiddleware.')
 logger.debug(f'Using MODEL: {MODEL}')
 
+
 def check_syntax(filename):
     with open(filename, 'r') as file:
         source = file.read()
@@ -2681,6 +2779,7 @@ def check_syntax(filename):
         print(f"  {' ' * (e.offset - 1)}^")
         print(f'Error: {e}')
         return False
+
 
 def restart_server():
     if not check_syntax(Path(__file__)):
@@ -2699,6 +2798,7 @@ def restart_server():
             else:
                 log.error('Max restart retries reached', 'Please restart the server manually')
 
+
 class ServerRestartHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
@@ -2706,6 +2806,7 @@ class ServerRestartHandler(FileSystemEventHandler):
         if path.suffix == '.py':
             print(f'{path} has been modified. Checking syntax and restarting...')
             restart_server()
+
 
 def run_server_with_watchdog():
     fig('SERVER RESTART')
@@ -2742,5 +2843,7 @@ def run_server_with_watchdog():
         restart_server()
     finally:
         observer.join()
+
+
 if __name__ == '__main__':
     run_server_with_watchdog()
