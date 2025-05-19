@@ -2298,13 +2298,12 @@ def create_app_menu(menux):
     
     # Add Home/Introduction as the first item
     is_home_selected = menux == ''
-    home_style = 'background-color: var(--pico-primary-focus);' if is_home_selected else ''
-    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;')
-    home_label = Label(home_radio, HOME_MENU_ITEM, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {home_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_home_selected else 'transparent')}';")
+    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls='dropdown-item')
     menu_items.append(Li(home_label))
     
     # Add a separator after Home
-    menu_items.append(Li(Hr(style='margin: 0.5rem 0; border-color: var(--pico-primary); opacity: 0.3;'), style='display: block; padding: 0;'))
+    menu_items.append(Li(Hr(), cls='dropdown-separator'))
     
     profiles_plugin_key = 'profiles'
     for plugin_key in ordered_plugins:
@@ -2315,7 +2314,7 @@ def create_app_menu(menux):
         if plugin_key == profiles_plugin_key:
             continue
         if plugin_key == 'separator':
-            menu_items.append(Li(Hr(style='margin: 0.5rem 0; border-color: var(--pico-primary); opacity: 0.3;'), style='display: block; padding: 0;'))
+            menu_items.append(Li(Hr(), cls='dropdown-separator'))
             logger.debug(f'Added separator to App menu.')
             continue
         plugin_module_path = instance.__module__
@@ -2331,13 +2330,11 @@ def create_app_menu(menux):
         logger.debug(f"Including plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
         display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
         is_selected = menux == plugin_key
-        item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
         redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
-        radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;')
-        label = Label(radio_input, display_name, style='text-align: left; display: flex; align-items: center; flex: 1;', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';")
-        menu_items.append(Li(label, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_selected else 'transparent')}';"))
-        logger.debug(f"Added plugin '{plugin_key}' (Display: '{display_name}') to App menu. Selected: {is_selected}")
-    return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 16rem; max-height: 75vh; overflow-y: auto;'), cls='dropdown', id='app-dropdown-menu')
+        radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
+        menu_items.append(Li(Label(radio_input, display_name, cls='dropdown-item')))
+    
+    return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):

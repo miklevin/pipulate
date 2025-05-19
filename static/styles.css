@@ -76,44 +76,95 @@ details.dropdown {
 }
 
 details.dropdown summary + ul {
-    background-color: var(--pico-dropdown-background-color);
-    filter: brightness(1.75);
-    max-height: 80vh;
-    overflow-y: auto;
-    width: max-content;
-    min-width: 200px;
-    max-width: calc(100vw - 2rem);
     position: absolute;
+    z-index: 1000;
+    min-width: 200px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    background-color: var(--pico-background-color);
+    border: 1px solid var(--pico-dropdown-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: var(--pico-dropdown-box-shadow);
+    /* Remove width constraints */
     right: 0;
-    margin-top: 0.5rem;
+    left: auto;
+    width: auto;
 }
 
-details.dropdown summary + ul::-webkit-scrollbar {
-    width: 8px;
+details.dropdown summary + ul li {
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 
-details.dropdown summary + ul::-webkit-scrollbar-track {
-    background: var(--pico-background-color);
-    border-radius: 4px;
+details.dropdown summary + ul li .dropdown-item {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    color: var(--pico-dropdown-color);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    background-color: transparent;
 }
 
-details.dropdown summary + ul::-webkit-scrollbar-thumb {
-    background: var(--pico-muted-border-color);
-    border-radius: 4px;
+details.dropdown summary + ul li .dropdown-item:hover {
+    background-color: var(--pico-primary-focus);
 }
 
-details.dropdown summary + ul::-webkit-scrollbar-thumb:hover {
-    background: var(--pico-form-element-border-color);
+details.dropdown summary + ul li .dropdown-item input[type="radio"] {
+    min-width: 1rem;
+    margin-right: 0.5rem;
 }
 
-/* Ensure dropdowns don't go off-screen */
+details.dropdown summary + ul li .dropdown-item input[type="radio"]:checked + * {
+    background-color: var(--pico-primary-focus);
+}
+
+details.dropdown summary + ul li .dropdown-separator {
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-top: 1px solid var(--pico-primary);
+    opacity: 0.3;
+}
+
+details.dropdown summary + ul li .dropdown-separator hr {
+    margin: 0.5rem 0;
+    border: none;
+    border-top: 1px solid var(--pico-primary);
+    opacity: 0.3;
+}
+
+/* Remove the duplicate and restrictive width rules */
 details.dropdown summary + ul {
     /* Align to the right edge of the dropdown button */
     right: 0;
     /* Ensure it doesn't go off the left edge */
     left: auto;
-    /* Ensure it doesn't go off the right edge */
-    max-width: min(calc(100vw - 2rem), max(200px, max-content));
+}
+
+details.dropdown summary + ul li a {
+    display: block;
+    padding: calc(var(--pico-form-element-spacing-vertical) * 0.5) var(--pico-form-element-spacing-horizontal);
+    color: var(--pico-dropdown-color);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+details.dropdown summary + ul li a:hover,
+details.dropdown summary + ul li a:focus,
+details.dropdown summary + ul li a:active {
+    background-color: var(--pico-dropdown-hover-background-color);
+}
+
+/* Selected state */
+details.dropdown summary + ul li label[style*="background-color: var(--pico-primary-focus)"] {
+    background-color: var(--pico-primary-focus);
 }
 
 .nav-breadcrumb {
