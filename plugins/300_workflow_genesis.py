@@ -40,7 +40,7 @@ class WorkflowGenesis:
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
-            Step(id='step_01', done='placeholder_data_01', show='Step 1 Placeholder', refill=False),
+            Step(id='step_01', done='new_workflow_params', show='1. Define New Workflow', refill=True),
             # --- STEPS_LIST_INSERTION_POINT --- 
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
         ]
@@ -78,6 +78,11 @@ class WorkflowGenesis:
                 self.step_messages['finalize'] = { 
                     'ready': 'All steps complete. Ready to finalize workflow.', 
                     'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'
+                }
+            elif step_obj.id == 'step_01':
+                self.step_messages[step_obj.id] = {
+                    'input': 'Please provide the details for the new workflow you want to create.',
+                    'complete': 'New workflow parameters captured. Commands generated below.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -219,20 +224,148 @@ class WorkflowGenesis:
         finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
         if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
-            finalized_display_content = P(f"Completed with: {current_value}") 
-            return Div(pip.finalized_content(message=f"🔒 {step_obj.show}", content=finalized_display_content), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            # Generate commands for display
+            params = current_value
+            create_cmd = f"""python create_workflow.py \\
+{params['target_filename']} \\
+{params['class_name']} \\
+{params['internal_app_name']} \\
+"{params['display_name']}" \\
+"{params['endpoint_message']}" \\
+'{params['training_prompt']}' \\
+--force"""
+            splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+            finalized_display_content = Div(
+                Pre(create_cmd, cls="command-block"),
+                Pre(splice_cmd, cls="command-block")
+            )
+            return Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=finalized_display_content),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
         elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step_obj.show}: {current_value}', steps=current_steps_for_logic), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            # Generate commands for display
+            params = current_value
+            create_cmd = f"""python create_workflow.py \\
+{params['target_filename']} \\
+{params['class_name']} \\
+{params['internal_app_name']} \\
+"{params['display_name']}" \\
+"{params['endpoint_message']}" \\
+'{params['training_prompt']}' \\
+--force"""
+            splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+            commands_widget = Div(
+                Pre(create_cmd, cls="command-block"),
+                Pre(splice_cmd, cls="command-block")
+            )
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Scaffolding Commands Generated",
+                    widget=commands_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
         else:
+            # Input Phase
             pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing input form')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            # Pre-fill form with Kung Fu workflow parameters
+            default_params = {
+                'target_filename': '035_kungfu_workflow.py',
+                'class_name': 'KungfuWorkflow',
+                'internal_app_name': 'kungfu',
+                'display_name': 'Kung Fu Download',
+                'endpoint_message': 'Greetings, chosen one. Selecting this app has initiated the \'Kung Fu Download\' protocol. Prepare for enlightenment... or at least, a demonstration.',
+                'training_prompt': 'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo\'s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.'
+            }
+            
+            # Use existing data if available, otherwise use defaults
+            existing_params = current_value if current_value else default_params
+            
             form_content = Form(
-                P('This is a placeholder step. Customize its input form elements as needed.'),
-                Input(type="hidden", name=step_obj.done, value="step_01_default_value"), 
-                Button('Next ▸', type='submit', cls='primary'), 
-                hx_post=f'/{app_name}/{step_id}_submit', 
+                # Target Filename
+                Label("Target Filename", **{'for': 'target_filename'}),
+                Input(
+                    type="text",
+                    id="target_filename",
+                    name="target_filename",
+                    placeholder="e.g., 040_example_flow.py",
+                    value=existing_params.get('target_filename', ''),
+                    required=True
+                ),
+                Small("The filename for your new workflow (e.g., 040_my_plugin.py)"),
+                
+                # Class Name
+                Label("Class Name", **{'for': 'class_name'}),
+                Input(
+                    type="text",
+                    id="class_name",
+                    name="class_name",
+                    placeholder="e.g., ExampleFlow",
+                    value=existing_params.get('class_name', ''),
+                    required=True
+                ),
+                Small("The Python class name for your workflow (e.g., MyPluginWorkflow)"),
+                
+                # Internal App Name
+                Label("Internal App Name", **{'for': 'internal_app_name'}),
+                Input(
+                    type="text",
+                    id="internal_app_name",
+                    name="internal_app_name",
+                    placeholder="e.g., example_flow_internal (must be unique)",
+                    value=existing_params.get('internal_app_name', ''),
+                    required=True
+                ),
+                Small("The internal identifier for your workflow (must be unique)"),
+                
+                # Display Name
+                Label("Display Name", **{'for': 'display_name'}),
+                Input(
+                    type="text",
+                    id="display_name",
+                    name="display_name",
+                    placeholder="e.g., My Example Workflow",
+                    value=existing_params.get('display_name', ''),
+                    required=True
+                ),
+                Small("The user-friendly name shown in the UI"),
+                
+                # Endpoint Message
+                Label("Endpoint Message", **{'for': 'endpoint_message'}),
+                Textarea(
+                    id="endpoint_message",
+                    name="endpoint_message",
+                    placeholder="The message shown on the workflow's landing page",
+                    value=existing_params.get('endpoint_message', ''),
+                    required=True
+                ),
+                Small("The message shown on your workflow's landing page"),
+                
+                # Training Prompt
+                Label("Training Prompt", **{'for': 'training_prompt'}),
+                Textarea(
+                    id="training_prompt",
+                    name="training_prompt",
+                    placeholder="The LLM training prompt for your workflow",
+                    value=existing_params.get('training_prompt', ''),
+                    required=True
+                ),
+                Small("The training prompt that guides the LLM for your workflow"),
+                
+                Button('Generate Scaffolding Commands ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
             return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
@@ -247,17 +380,56 @@ class WorkflowGenesis:
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         form_data = await request.form()
-        value_to_save = form_data.get(step_obj.done, 'Step 01 Submitted Default') 
         
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, current_steps_for_logic)
+        # Collect and validate form data
+        params = {
+            'target_filename': form_data.get('target_filename', '').strip(),
+            'class_name': form_data.get('class_name', '').strip(),
+            'internal_app_name': form_data.get('internal_app_name', '').strip(),
+            'display_name': form_data.get('display_name', '').strip(),
+            'endpoint_message': form_data.get('endpoint_message', '').strip(),
+            'training_prompt': form_data.get('training_prompt', '').strip()
+        }
         
-        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{value_to_save}')
+        # Validate required fields
+        missing_fields = [field for field, value in params.items() if not value]
+        if missing_fields:
+            error_msg = f"Please fill in all required fields: {', '.join(missing_fields)}"
+            return P(error_msg, style=pip.get_style('error'))
+        
+        # Store the parameters
+        await pip.set_step_data(pipeline_id, step_id, params, current_steps_for_logic)
+        
+        # Generate commands for display
+        create_cmd = f"""python create_workflow.py \\
+{params['target_filename']} \\
+{params['class_name']} \\
+{params['internal_app_name']} \\
+"{params['display_name']}" \\
+"{params['endpoint_message']}" \\
+'{params['training_prompt']}' \\
+--force"""
+        splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+        
+        # Create the commands widget
+        commands_widget = Div(
+            Pre(create_cmd, cls="command-block"),
+            Pre(splice_cmd, cls="command-block")
+        )
+        
+        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{params}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
         await self.message_queue.add(pip, f'{step_obj.show} complete.', verbatim=True)
         
         return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step_obj.show}: {value_to_save}', steps=current_steps_for_logic), 
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message="Scaffolding Commands Generated",
+                widget=commands_widget,
+                steps=current_steps_for_logic
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
             id=step_id
         )
 
