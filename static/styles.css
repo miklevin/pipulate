@@ -83,8 +83,9 @@ details.dropdown summary + ul {
     width: max-content;
     min-width: 200px;
     max-width: calc(100vw - 2rem);
+    position: absolute;
     right: 0;
-    left: auto;
+    margin-top: 0.5rem;
 }
 
 details.dropdown summary + ul::-webkit-scrollbar {
@@ -103,6 +104,16 @@ details.dropdown summary + ul::-webkit-scrollbar-thumb {
 
 details.dropdown summary + ul::-webkit-scrollbar-thumb:hover {
     background: var(--pico-form-element-border-color);
+}
+
+/* Ensure dropdowns don't go off-screen */
+details.dropdown summary + ul {
+    /* Align to the right edge of the dropdown button */
+    right: 0;
+    /* Ensure it doesn't go off the left edge */
+    left: auto;
+    /* Ensure it doesn't go off the right edge */
+    max-width: min(calc(100vw - 2rem), max(200px, max-content));
 }
 
 .nav-breadcrumb {
