@@ -2542,7 +2542,7 @@ def create_chat_interface(autofocus=False):
         temp_message = db['temp_message']
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
-    return Div(Card(H3(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/chat-interface.js')), id='chat-interface', style='overflow: hidden;')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/chat-interface.js')), id='chat-interface', style='overflow: hidden;')
 
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
