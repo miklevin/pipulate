@@ -78,6 +78,11 @@ body > main:first-of-type > main.container {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+/* Make PROFILE and APP text bold in nav menus */
+details.dropdown summary {
+    font-weight: bold;
+}
+
 /* Dropdown Menu Styles */
 details.dropdown {
     position: relative;
