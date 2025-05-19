@@ -8,7 +8,7 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, LIST_SUFFIX, BaseCrud
+from server import DB_FILENAME, BaseCrud
 
 ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
 
@@ -241,7 +241,7 @@ class CrudUI(PluginIdentityManager):
 
         return Div(
             Card(
-                H2(f"{self.DISPLAY_NAME} {LIST_SUFFIX}"),
+                H2(f"{self.DISPLAY_NAME} List"),
                 Ul(
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID,

@@ -78,9 +78,7 @@ DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
-
 DB_FILENAME = get_db_filename()
-LIST_SUFFIX = 'List'
 
 
 def fig(text, font='slant', color='cyan', width=200):
