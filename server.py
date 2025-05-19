@@ -2191,8 +2191,13 @@ def create_nav_menu():
     profile_text = Span(title_name(selected_profile_name), style=text_style)
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style=text_style)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
-    nav_items = [breadcrumb, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu()]
-    nav = Div(*nav_items, cls='nav-breadcrumb')
+    menus = Div(
+        create_profile_menu(selected_profile_id, selected_profile_name),
+        create_app_menu(menux),
+        create_env_menu(),
+        cls='nav-menu-group'
+    )
+    nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
 

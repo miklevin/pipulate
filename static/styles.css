@@ -94,6 +94,7 @@ article > div:first-child {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  margin-right: 1vw;
 }
 
 #msg-list {
@@ -253,6 +254,7 @@ main {
   max-width: none;
   padding: var(--web-ui-padding);
   margin: var(--web-ui-margin);
+  margin-right: 1vw;
 }
 
 /* Grid Layout */
@@ -276,6 +278,13 @@ main {
   gap: 20px;
   width: 100%;
   margin-left: 1vw;
+  justify-content: space-between;
+}
+
+.nav-menu-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .nav-error {
