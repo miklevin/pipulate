@@ -2295,6 +2295,17 @@ def create_app_menu(menux):
     else:
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
     menu_items = []
+    
+    # Add Home/Introduction as the first item
+    is_home_selected = menux == ''
+    home_style = 'background-color: var(--pico-primary-focus);' if is_home_selected else ''
+    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML', style='min-width: 1rem; margin-right: 0.5rem;')
+    home_label = Label(home_radio, HOME_MENU_ITEM, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {home_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_home_selected else 'transparent')}';")
+    menu_items.append(Li(home_label))
+    
+    # Add a separator after Home
+    menu_items.append(Li(Hr(style='margin: 0.5rem 0; border-color: var(--pico-primary); opacity: 0.3;'), style='display: block; padding: 0;'))
+    
     profiles_plugin_key = 'profiles'
     for plugin_key in ordered_plugins:
         instance = plugin_instances.get(plugin_key)

@@ -1,8 +1,8 @@
 /* Layout Variables - CRITICAL: Adjust --nav-group-actual-height */
 :root {
     /* Base viewport spacing units */
-    --spacing-vw: 1vw;  /* Base horizontal spacing */
-    --spacing-vh: 1vh;  /* Base vertical spacing */
+    --spacing-vw: .5vw;  /* Base horizontal spacing */
+    --spacing-vh: .5vh;  /* Base vertical spacing */
 
     /* Derived spacing units */
     --space-xs: calc(var(--spacing-vw) * 0.5);  /* Extra small spacing */
@@ -72,7 +72,7 @@ body > main:first-of-type > main.container {
 
 .nav-breadcrumb {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     width: 100%;
     justify-content: space-between;
     /* margin-left: 2vw; */
@@ -94,6 +94,7 @@ body > main:first-of-type > main.container {
     align-items: center;
     flex-shrink: 0;
     gap: var(--pico-spacing, 1rem);
+    padding-right: 1vw;
 }
 
 /* Grid Layout */
@@ -306,8 +307,8 @@ article > div:first-child {
 
 /* Button Styles */
 .button-revert {
-    background-color: var(--pico-muted-background);
-    color: var(--pico-muted-color);
+    background-color: #ff96bc;  /* Pastel pink */
+    color: #666;
     border: 1px solid var(--pico-muted-border-color);
     padding: 0.25rem 0.5rem;
     border-radius: var(--pico-border-radius);
@@ -317,7 +318,7 @@ article > div:first-child {
 }
 
 .button-revert:hover {
-    background-color: var(--pico-muted-hover-background);
+    background-color: #ffc2d9;  /* Slightly darker pastel pink on hover */
     color: var(--pico-muted-hover-color);
     border-color: var(--pico-muted-hover-border-color);
 }
