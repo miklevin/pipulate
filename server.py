@@ -2203,11 +2203,10 @@ def create_nav_menu():
     hover_style = "this.style.color='#4dabf7'; this.style.textDecoration='underline';"
     normal_style = "this.style.color='inherit'; this.style.textDecoration='none';"
     separator_style = 'padding: 0 0.3rem;'
-    text_style = 'white-space: nowrap;'
     home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', style=link_style, onmouseover=hover_style, onmouseout=normal_style)
     separator = Span(' / ', style=separator_style)
-    profile_text = Span(title_name(selected_profile_name), style=text_style)
-    endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style=text_style)
+    profile_text = Span(title_name(selected_profile_name))
+    endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
     menus = Div(
         create_profile_menu(selected_profile_id, selected_profile_name),

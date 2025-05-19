@@ -184,7 +184,6 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     /* font-size: 1.25rem; */
     display: flex;
     align-items: center;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex-shrink: 1;
