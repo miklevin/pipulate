@@ -70,6 +70,41 @@ body > main:first-of-type > main.container {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+/* Dropdown Menu Styles */
+details.dropdown {
+    position: relative;
+}
+
+details.dropdown summary + ul {
+    background-color: var(--pico-dropdown-background-color);
+    filter: brightness(1.75);
+    max-height: 80vh;
+    overflow-y: auto;
+    width: max-content;
+    min-width: 200px;
+    max-width: calc(100vw - 2rem);
+    right: 0;
+    left: auto;
+}
+
+details.dropdown summary + ul::-webkit-scrollbar {
+    width: 8px;
+}
+
+details.dropdown summary + ul::-webkit-scrollbar-track {
+    background: var(--pico-background-color);
+    border-radius: 4px;
+}
+
+details.dropdown summary + ul::-webkit-scrollbar-thumb {
+    background: var(--pico-muted-border-color);
+    border-radius: 4px;
+}
+
+details.dropdown summary + ul::-webkit-scrollbar-thumb:hover {
+    background: var(--pico-form-element-border-color);
+}
+
 .nav-breadcrumb {
     display: flex;
     align-items: baseline;
@@ -286,11 +321,6 @@ body > main:first-of-type > main.container {
 hr {
     border-color: var(--pico-primary);
     opacity: 0.3;
-}
-
-details.dropdown summary + ul {
-    background-color: var(--pico-dropdown-background-color);
-    filter: brightness(1.75);
 }
 
 article > div:first-child {
