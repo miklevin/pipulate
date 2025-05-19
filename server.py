@@ -2427,24 +2427,24 @@ def get_intro_page_content(page_num_str: str):
     if page_num == 1:
         title = f'Welcome to {APP_NAME}'
         intro = f"Here's how {APP_NAME} works:"
-        features = [('Profiles', 'Manage your different Customers or Clients. Each profile is a separate workspace.'), ('APPs', 'Access various tools and workflows, like To-Do lists and the Parameter Buster.'), ('Mode', "Switch between 'Development' for testing and 'Production' for live work.")]
+        features = [('PROFILE', 'Manage your different Customers or Clients. Each profile is a separate workspace.'), ('APP', 'Access various tools and workflows, like To-Do lists and the Parameter Buster.'), ('DEV/Prod', "Switch between 'Development' for testing and 'Production' for live work.")]
         getting_started = 'Getting Started'
-        nav_help = 'Navigate using the menus at the top. Your current Profile and APP are shown in the breadcrumbs.'
+        nav_help = 'Navigate using the 3 menus at the top. Your current PROFILE and APP are shown in the breadcrumb headline.'
         llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you.'
         content = Card(H3(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
         return (content, llm_context)
     elif page_num == 2:
         experimenting_title = 'Experimenting'
-        experimenting_steps = ['Stay on Dev mode and go wild!', 'Try things out and see what happens.', 'Use Poke / Reset Entire Database to start fresh.']
+        experimenting_steps = ['Stay on DEV mode and go wild! Try stuff. Reset entire database 🔄 (under 🤖). Get comfortable.', 'Add profiles. Rerrange them. Check and uncheck them. Look at effect on PROFILE menu.', 'Go to APP / Roles. Check Tutorials or Developer. Look at effect on APP menu.']
         interface_title = 'Understanding the Interface'
-        interface_items = [('Profiles Menu', 'Set up Profiles (e.g., Clients). Give them nicknames.'), ('APPs Menu', 'Add To-Do items per Profile. Switch between Profiles.'), ('Poke Button (Bottom-Right)', 'Reset everything! Try things out and see what happens.')]
+        interface_items = [('PROFILE menu', 'Set up real Clients in Prod mode. Use nicknames (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APP menu', 'Try the Tasks app. Tasks are kept separate for each profile, so each Client gets their own To-Do list.'), ('Parameter Buster', 'The first ready-to-use workflow. Try it!')]
         content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')
         llm_context = f"The user is viewing the Experimenting page which shows:\n\n{experimenting_title}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(experimenting_steps)))}\n\n{interface_title}\n{chr(10).join((f'• {name}: {desc}' for name, desc in interface_items))}"
         return (content, llm_context)
     elif page_num == 3:
         title = 'Tips for Effective Use'
-        tips = [('Botify Employees', 'Use Connect With Botify to set up your API keys to activate workflows including Parameter Buster.'), ('Temporary Workflows', 'Workflows should be considered temporary and disposable. Delete them. Start fresh. They are easily recreated. Side-effects like .csv downloads stay on the machine and will reconnect given the same workflow inputs. 🤯'), ('Production Mode', 'Switch to Production mode and set up real Client Nicknames in the Profiles menu. Conversely in Development mode, go wild!'), ('Profile Lock', 'When using in front of a Client you can LOCK the Profile from either the Profile menu or the Poke button in order to avoid exposing other Client Nicknames.')]
+        tips = [('Connect With Botify', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('Delete Workflows', 'Don\'t get attached to particular workflow-runs. They can be easily recreated, so they are disposable 🤯'), ('Side Effects', 'Anything you do that crawls sites or downloads files like CSVs stays on the machine even if you delete workflows and will re-attach given the same inputs — more reason to be fine with deleting workflows.'), ('Lock PROFILE', 'Lock the profile (under 🤖 in lower-right corner) to avoid any chance of showing other Clinet names.')]
         content = Card(H3(title), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]), style=card_style, id='intro-page-3-content')
         llm_context = f"The user is viewing the Tips page which shows:\n\n{title}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(tips)))}"
         return (content, llm_context)

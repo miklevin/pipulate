@@ -43,29 +43,25 @@ server.py
 /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
 /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
 /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
-/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 /home/mike/repos/pipulate/helpers/create_workflow.py
-/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-/home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 /home/mike/repos/pipulate/helpers/splice_workflow_step.py
-# /home/mike/repos/pipulate/plugins/000_profiles.py
-# /home/mike/repos/pipulate/plugins/010_roles.py
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py
-# /home/mike/repos/pipulate/static/chat-interface.js
-# /home/mike/repos/pipulate/static/chat-scripts.js
-# /home/mike/repos/pipulate/static/pico.css
-# /home/mike/repos/pipulate/helpers/create_workflow.py
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
-# /home/mike/repos/pipulate/plugins/520_widget_examples.py
-# /home/mike/repos/pipulate/helpers/analyze_styles.py
-# /home/mike/repos/pipulate/helpers/refactor_inline_style.py
-# /home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
-# /home/mike/repos/Pipulate.com/development.md
-# /home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
-# /home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
-# /home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
-# /home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
-# /home/mike/repos/Pipulate.com/_posts/2025-04-17-expanding-your-workflow.md
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+/home/mike/repos/pipulate/plugins/720_text_field.py
+/home/mike/repos/pipulate/plugins/730_text_area.py
+/home/mike/repos/pipulate/plugins/740_dropdown.py
+/home/mike/repos/pipulate/plugins/750_checkboxes.py
+/home/mike/repos/pipulate/plugins/760_radios.py
+# /home/mike/repos/pipulate/plugins/770_range.py
+# /home/mike/repos/pipulate/plugins/780_switch.py
+# /home/mike/repos/pipulate/plugins/800_markdown.py
+# /home/mike/repos/pipulate/plugins/810_mermaid.py
+# /home/mike/repos/pipulate/plugins/820_pandas.py
+# /home/mike/repos/pipulate/plugins/830_rich.py
+# /home/mike/repos/pipulate/plugins/840_matplotlib.py
+# /home/mike/repos/pipulate/plugins/850_prism.py
+# /home/mike/repos/pipulate/plugins/860_javascript.py
+# /home/mike/repos/pipulate/plugins/870_upload.py
+/home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
 """.strip().splitlines()
 
 # Filter out any commented lines
