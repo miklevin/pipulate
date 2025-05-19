@@ -404,7 +404,7 @@ article > div:first-child {
 /* Button Styles */
 .button-revert {
     background-color: #ff96bc;  /* Pastel pink */
-    color: #666;
+    color: #ffffff;
     border: 1px solid var(--pico-muted-border-color);
     padding: 0.25rem 0.5rem;
     border-radius: var(--pico-border-radius);
