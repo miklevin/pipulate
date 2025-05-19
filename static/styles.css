@@ -82,6 +82,8 @@ article > div:first-child {
   padding: 0.5rem 0;
   margin-bottom: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
 }
 
 /* Chat Interface Styling */
@@ -101,11 +103,14 @@ article > div:first-child {
 
 /* Add padding to the main content to account for sticky nav */
 main {
-  margin: 0;
-  padding: 0;
+  margin-top: 0 !important; 
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
-
-
 
 /* Text Utilities */
 .text-note {
@@ -204,9 +209,9 @@ main {
 
 /* Ensure your custom revert button style from previous response is here */
 .button-revert {
-  background-color: var(--pico-form-element-invalid-active-border-color);
-  color: var(--pico-contrast-inverse);
-  border-color: var(--pico-form-element-invalid-active-border-color);
+  background-color: #ff95ca;  /* Hot pink */
+  color: white;
+  border-color: #ff69b4;
   display: inline-flex;
   padding: 0.5rem 0.5rem;
   border-radius: var(--pico-border-radius);
@@ -218,9 +223,9 @@ main {
   text-decoration: none;
 }
 .button-revert:hover {
-  background-color: var(--pico-form-element-invalid-border-color);
-  border-color: var(--pico-form-element-invalid-border-color);
-  color: var(--pico-contrast-inverse);
+  background-color: #ff1493;  /* Deep pink */
+  border-color: #ff1493;
+  color: white;
 }
 
 /* End Consolidation Additons */
@@ -252,7 +257,30 @@ main {
 
 /* Grid Layout */
 .main-grid {
+  margin-left: 1vw;
   display: grid;
   gap: 20px;
-  grid-template-columns: 65% 35%;  /* Restoring the original grid layout */
+  grid-template-columns: 65% 35%;
+}
+
+/* Navigation Group */
+#nav-group {
+  display: flex;
+  align-items: center;
+  background-color: var(--pico-background-color);
+}
+
+.nav-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  margin-left: 1vw;
+}
+
+.nav-error {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }

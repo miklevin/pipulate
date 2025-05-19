@@ -701,8 +701,7 @@ class Pipulate:
         refill = getattr(step, 'refill', False)
         if not target_id:
             target_id = f'{app_name}-container'
-        default_style = 'background-color: var(--pico-del-color);display: inline-flex;padding: 0.5rem 0.5rem;border-radius: 4px;font-size: 0.85rem;cursor: pointer;margin: 0;line-height: 1;align-items: center;'
-        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(step_button(step_id, refill, revert_label), type='submit', style=default_style), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML')
+        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(step_button(step_id, refill, revert_label), type='submit', cls='button-revert'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML')
         if not message:
             return form
         article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
@@ -2143,18 +2142,17 @@ async def home(request):
     logger.debug('Returning response for main GET request.')
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-    return (Title(page_title), Main(response, data_theme='dark'))
+    return (Title(page_title), Main(response))
 
 def create_nav_group():
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for nav group creation")
-        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), style='display: flex; align-items: center; gap: 20px; width: 100%;'), style='display: flex; align-items: center;')
+        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-error'), id='nav-group')
     nav = create_nav_menu()
     refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
     app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
-    nav_group_style = 'display: flex; align-items: center;'
-    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group', style=nav_group_style)
+    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group')
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
@@ -2182,7 +2180,7 @@ def create_nav_menu():
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for menu creation")
-        return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), style='display: flex; align-items: center; gap: 20px; width: 100%;')
+        return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-breadcrumb')
     link_style = 'text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;'
     hover_style = "this.style.color='#4dabf7'; this.style.textDecoration='underline';"
     normal_style = "this.style.color='inherit'; this.style.textDecoration='none';"
@@ -2194,7 +2192,7 @@ def create_nav_menu():
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style=text_style)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
     nav_items = [breadcrumb, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu()]
-    nav = Div(*nav_items, style='display: flex; align-items: center; gap: 20px; width: 100%;')
+    nav = Div(*nav_items, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
 
