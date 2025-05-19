@@ -1062,28 +1062,46 @@ class Pipulate:
     def chain_reverter(self, step_id, step_index, steps, app_name, processed_val):
         """
         Create the standard navigation controls after a step submission.
-
         This helper generates a consistent UI pattern for step navigation that includes:
         1. A revert control showing the current step's value
         2. An HTMX-enabled div that EXPLICITLY triggers loading the next step using
            hx_trigger="load" (preferred over relying on HTMX event bubbling)
-
-        IMPLEMENTATION NOTE: This explicit triggering pattern is critical for
-        reliable workflow progression and should be maintained in all workflow steps.
-
+        Now also triggers a client-side event to scroll the main content panel.
         Args:
             step_id: The current step ID
             step_index: Index of current step in steps list
             steps: The steps list
             app_name: The workflow app name
             processed_val: The processed value to display
-
         Returns:
-            Div: A FastHTML Div component with revert control and next step trigger
+            HTMLResponse: A FastHTML Div component with revert control and next step trigger,
+                          wrapped in an HTMLResponse to include HX-Trigger header.
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-        return Div(self.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div(), id=step_id)
+        
+        # Create the main content for the current step (header + next step trigger)
+        header_component = self.display_revert_header(
+            step_id=step_id, 
+            app_name=app_name, 
+            message=f'{step.show}: {processed_val}', 
+            steps=steps
+        )
+        
+        next_step_trigger_div = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div()
+        
+        # Combine them into the standard structure that replaces the current step's div
+        content_to_swap = Div(
+            header_component,
+            next_step_trigger_div,
+            id=step_id 
+        )
+
+        # Return as HTMLResponse to set HX-Trigger header for scrolling
+        response = HTMLResponse(to_xml(content_to_swap))
+        # We use HX-Trigger-After-Settle to ensure content is loaded and sizes are calculated
+        response.headers["HX-Trigger-After-Settle"] = json.dumps({"scrollToLeftPanelBottom": True})
+        return response
 
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
         """

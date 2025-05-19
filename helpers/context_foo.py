@@ -33,6 +33,8 @@ server.py
 /home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
 /home/mike/repos/pipulate/plugins/500_hello_workflow.py
+/home/mike/repos/pipulate/static/chat-interface.js
+/home/mike/repos/pipulate/static/chat-scripts.js
 # /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
