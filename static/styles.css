@@ -158,8 +158,9 @@ details.dropdown summary + ul li a {
 
 details.dropdown summary + ul li a:hover,
 details.dropdown summary + ul li a:focus,
-details.dropdown summary + ul li a:active {
-    background-color: var(--pico-dropdown-hover-background-color);
+details.dropdown summary + ul li a:active,
+details.dropdown summary + ul li label[style*="background-color: var(--pico-primary-focus)"] {
+    background-color: var(--pico-primary-focus);
 }
 
 /* Selected state */

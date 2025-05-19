@@ -2299,7 +2299,7 @@ def create_app_menu(menux):
     # Add Home/Introduction as the first item
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
-    home_label = Label(home_radio, HOME_MENU_ITEM, cls='dropdown-item')
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_home_selected else '')
     menu_items.append(Li(home_label))
     
     # Add a separator after Home
@@ -2332,7 +2332,7 @@ def create_app_menu(menux):
         is_selected = menux == plugin_key
         redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
         radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
-        menu_items.append(Li(Label(radio_input, display_name, cls='dropdown-item')))
+        menu_items.append(Li(Label(radio_input, display_name, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_selected else '')))
     
     return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
