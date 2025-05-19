@@ -28,37 +28,38 @@ README.md
 flake.nix
 requirements.txt
 server.py
+/home/mike/repos/pipulate/static/pico.css
+/home/mike/repos/pipulate/static/styles.css
 /home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
 /home/mike/repos/pipulate/plugins/500_hello_workflow.py
-/home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
-/home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
-/home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
-/home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
-/home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
-/home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
-/home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
-/home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
-/home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
-/home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-/home/mike/repos/pipulate/helpers/create_workflow.py
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py
-/home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/pipulate/helpers/analyze_styles.py
-/home/mike/repos/pipulate/helpers/refactor_inline_style.py
-/home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
-/home/mike/repos/Pipulate.com/development.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
-/home/mike/repos/Pipulate.com/_posts/2025-04-17-expanding-your-workflow.md
+# /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
+# /home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
+# /home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
+# /home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
+# /home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
+# /home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
+# /home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
+# /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
+# /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+# /home/mike/repos/pipulate/helpers/create_workflow.py
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/pipulate/helpers/analyze_styles.py
+# /home/mike/repos/pipulate/helpers/refactor_inline_style.py
+# /home/mike/repos/pipulate/helpers/refactor_inline_styles_to_cls.py
+# /home/mike/repos/Pipulate.com/development.md
+# /home/mike/repos/Pipulate.com/_posts/2025-04-07-chain-reaction-pattern.md
+# /home/mike/repos/Pipulate.com/_posts/2025-04-14-workflow-abstraction.md
+# /home/mike/repos/Pipulate.com/_posts/2025-04-15-anatomy-of-a-workflow.md
+# /home/mike/repos/Pipulate.com/_posts/2025-04-16-kickstarting-your-workflow.md
+# /home/mike/repos/Pipulate.com/_posts/2025-04-17-expanding-your-workflow.md
 """.strip().splitlines()
 
 # Filter out any commented lines
