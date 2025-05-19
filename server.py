@@ -96,7 +96,6 @@ DB_FILENAME = get_db_filename()
 PLACEHOLDER_ADDRESS = 'www.site.com'
 PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
 NAV_FILLER_WIDTH = '2%'
-NOWRAP_STYLE = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'
 LIST_SUFFIX = 'List'
 
 
@@ -2305,7 +2304,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header', style=f'{NOWRAP_STYLE}'), cls='block'))
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
     active_profiles_list = []
     if profiles:
         if profile_locked:
