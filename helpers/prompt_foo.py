@@ -64,6 +64,7 @@ server.py
 # /home/mike/repos/pipulate/plugins/520_widget_examples.py
 # /home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
 /home/mike/repos/pipulate/helpers/prompt_foo.py
+/home/mike/repos/Pipulate.com/development.md
 """.strip().splitlines()
 
 # Filter out any commented lines
