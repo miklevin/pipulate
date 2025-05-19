@@ -10,12 +10,15 @@ from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
                              HTTPException, Input, Label, Li, Link, Meta,
                              Option, P, Script, Select, Span, Summary,
                              Textarea, Title, Ul, to_xml)
-from server import (DB_FILENAME, PLACEHOLDER_ADDRESS, PLACEHOLDER_CODE, BaseCrud)
+from server import (DB_FILENAME, BaseCrud)
 from server import db as server_db
 from server import (get_current_profile_id, get_profile_name, logger,
                     plugin_instances, rt)
 
 ROLES = ['Core']
+
+PLACEHOLDER_ADDRESS = 'www.site.com'
+PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
 
 
 class ProfilesPluginIdentity:

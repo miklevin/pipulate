@@ -80,9 +80,6 @@ data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 
 DB_FILENAME = get_db_filename()
-PLACEHOLDER_ADDRESS = 'www.site.com'
-PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
-NAV_FILLER_WIDTH = '2%'
 LIST_SUFFIX = 'List'
 
 
@@ -2284,10 +2281,6 @@ def create_nav_menu():
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
-
-
-def create_filler_item():
-    return Li(Span(' '), style=f'display: flex; flex-grow: 1; justify-content: center; list-style-type: none; min-width: {NAV_FILLER_WIDTH}; ')
 
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
