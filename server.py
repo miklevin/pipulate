@@ -2188,12 +2188,11 @@ def create_nav_menu():
     normal_style = "this.style.color='inherit'; this.style.textDecoration='none';"
     separator_style = 'padding: 0 0.3rem;'
     text_style = 'white-space: nowrap;'
-    container_style = 'display: inline-flex; align-items: center; margin-right: auto; flex-wrap:'
     home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', style=link_style, onmouseover=hover_style, onmouseout=normal_style)
     separator = Span(' / ', style=separator_style)
     profile_text = Span(title_name(selected_profile_name), style=text_style)
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM, style=text_style)
-    breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text, style=container_style)
+    breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
     nav_items = [breadcrumb, create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu()]
     nav = Div(*nav_items, style='display: flex; align-items: center; gap: 20px; width: 100%;')
     logger.debug('Navigation menu created.')
@@ -2318,9 +2317,9 @@ async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for container creation")
-        return Container(H1('Error: Profiles plugin not found', cls='text-invalid'), style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};')
+        return Container(H1('Error: Profiles plugin not found', cls='text-invalid'))
     nav_group = create_nav_group()
-    return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='grid', style=f'display: grid; gap: 20px; grid-template-columns: {GRID_LAYOUT}; '), create_poke_button(), style=f'width: {WEB_UI_WIDTH}; max-width: none; padding: {WEB_UI_PADDING}; margin: {WEB_UI_MARGIN};')
+    return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
 MAX_INTRO_PAGES = 3
 
 def get_intro_page_content(page_num_str: str):

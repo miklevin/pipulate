@@ -105,6 +105,8 @@ main {
   padding: 0;
 }
 
+
+
 /* Text Utilities */
 .text-note {
   font-size: 0.8em;
@@ -239,3 +241,18 @@ main {
 [data-theme="dark"] .token.string { color: #c3e88d !important; }
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
+
+/* Container */
+.container {
+  width: var(--web-ui-width);
+  max-width: none;
+  padding: var(--web-ui-padding);
+  margin: var(--web-ui-margin);
+}
+
+/* Grid Layout */
+.main-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 65% 35%;  /* Restoring the original grid layout */
+}
