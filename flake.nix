@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.1";  # Define version here in the outputs scope
+      version = "1.0.2 (Roles)";  # Define version here in the outputs scope
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
