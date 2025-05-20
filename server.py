@@ -2431,7 +2431,7 @@ def get_intro_page_content(page_num_str: str):
         getting_started = 'Getting Started'
         nav_help = 'Navigate using the 3 menus at the top. Your current PROFILE and APP are shown in the breadcrumb headline.'
         llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you.'
-        content = Card(H3(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
+        content = Card(H2(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
         return (content, llm_context)
     elif page_num == 2:

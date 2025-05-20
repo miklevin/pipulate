@@ -5,6 +5,9 @@ import tiktoken
 import re
 from typing import Dict, List, Optional, Union
 
+# Hi there, Gemini! I case you're wondering, this is the script that I use to
+# make this great big XML file you're looking at.
+
 # ============================================================================
 # USER CONFIGURATION: Files to include in context
 # ============================================================================
@@ -24,46 +27,47 @@ from typing import Dict, List, Optional, Union
 # ls -1 -d "$PWD"/*
 
 FILES_TO_INCLUDE = """\
-README.md
+# README.md
 # flake.nix
-requirements.txt
+#requirements.txt
 server.py
-#/home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/static/styles.css
 # /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
-/home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
-/home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
-/home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
-/home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
-/home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
-/home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
-/home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
-/home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
+# /home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
+# /home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
+# /home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
+# /home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
+# /home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
+# /home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
+# /home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
+# /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
+# /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
+/home/mike/repos/pipulate/helpers/prompt_foo.py
 /home/mike/repos/pipulate/helpers/create_workflow.py
 /home/mike/repos/pipulate/helpers/splice_workflow_step.py
+/home/mike/repos/pipulate/plugins/510_workflow_genesis.py
 /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 /home/mike/repos/pipulate/plugins/720_text_field.py
 /home/mike/repos/pipulate/plugins/730_text_area.py
-# /home/mike/repos/pipulate/plugins/740_dropdown.py
-# /home/mike/repos/pipulate/plugins/750_checkboxes.py
-# /home/mike/repos/pipulate/plugins/760_radios.py
-# /home/mike/repos/pipulate/plugins/770_range.py
-# /home/mike/repos/pipulate/plugins/780_switch.py
-# /home/mike/repos/pipulate/plugins/800_markdown.py
-# /home/mike/repos/pipulate/plugins/810_mermaid.py
-# /home/mike/repos/pipulate/plugins/820_pandas.py
-# /home/mike/repos/pipulate/plugins/830_rich.py
-# /home/mike/repos/pipulate/plugins/840_matplotlib.py
-# /home/mike/repos/pipulate/plugins/850_prism.py
-# /home/mike/repos/pipulate/plugins/860_javascript.py
-# /home/mike/repos/pipulate/plugins/870_upload.py
+/home/mike/repos/pipulate/plugins/740_dropdown.py
+/home/mike/repos/pipulate/plugins/750_checkboxes.py
+/home/mike/repos/pipulate/plugins/760_radios.py
+/home/mike/repos/pipulate/plugins/770_range.py
+/home/mike/repos/pipulate/plugins/780_switch.py
+/home/mike/repos/pipulate/plugins/800_markdown.py
+/home/mike/repos/pipulate/plugins/810_mermaid.py
+/home/mike/repos/pipulate/plugins/820_pandas.py
+/home/mike/repos/pipulate/plugins/830_rich.py
+/home/mike/repos/pipulate/plugins/840_matplotlib.py
+/home/mike/repos/pipulate/plugins/850_prism.py
+/home/mike/repos/pipulate/plugins/860_javascript.py
+/home/mike/repos/pipulate/plugins/870_upload.py
 # /home/mike/repos/pipulate/plugins/520_widget_examples.py
-/home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
-/home/mike/repos/pipulate/helpers/prompt_foo.py
+# /home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
 /home/mike/repos/Pipulate.com/development.md
 """.strip().splitlines()
 
@@ -171,7 +175,7 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
     print("\n--- Post-Prompt ---\n")
     
     print("--- Token Summary ---")
-    print(f"Total tokens: {format_token_count(total_tokens)} tokens")
+    print(f"Total tokens: {format_token_count(total_tokens)}")
     
     print("\n=== End Prompt Structure ===\n")
 
