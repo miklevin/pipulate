@@ -597,6 +597,39 @@ git commit -m "Feat: Promote workflow xx_my_flow.py to 30_my_flow.py"
 
 -----
 
+## Included PrismJS Highlighting
+
+THEMES
+- Okaidia ocodia 1.77KB
+
+LANGUAGES
+- CSS1.71KB
+- Markup + HTML + XML + SVG + MathML + SSML + Atom + RSS4.64KB
+- C-like0.83KB
+- JavaScript6.18KB
+- Bash + Shell + Shell zeitgeist87 8.96KB
+- Diff uranusjr 1.33KB
+- JSON + Web App Manifest CupOfTea696 0.58KB
+- JSON5 RunDevelopment 0.52KB
+- JSONP RunDevelopment 0.23KB
+- Liquid cinhtau 2.56KB
+- Lua Golmote 0.74KB
+- Markdown Golmote 10.43KB
+- Markup templating
+- Mermaid RunDevelopment 3.03KB
+- Nix Golmote 1.47KB
+- Python multipetros 2.45KB
+- Regex RunDevelopment 2.33KB
+- YAML hason 3.11KB
+
+PLUGINS
+- Line Highlight11.66KB
+- Line Numbers kuba-kubula 7.23KB
+- Toolbar mAAdhaTTah 5.63KB
+- Copy to Clipboard Button
+- Diff Highlight RunDevelopment 3.17KB
+- Treeview Golmote 9.32KB
+
 ## Contributing
 
 Contributions are welcome\! Please adhere to the project's core philosophy:
