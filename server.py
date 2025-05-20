@@ -2429,14 +2429,14 @@ def get_intro_page_content(page_num_str: str):
         intro = f"Here's how {APP_NAME} works:"
         features = [('PROFILE', 'Manage your different Customers or Clients. Each profile is a separate workspace.'), ('APP', 'Access various tools and workflows, like To-Do lists and the Parameter Buster.'), ('DEV/Prod', "Switch between 'Development' for testing and 'Production' for live work.")]
         getting_started = 'Getting Started'
-        nav_help = 'Navigate using the 3 menus at the top. Your current PROFILE and APP are shown in the breadcrumb headline.'
+        nav_help = 'Navigate using the PROFILE and APP menus in the upper right. Your selections are shown in the breadcrumb headline above. The idea is to do something for each PROFILE with each APP.'
         llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you.'
         content = Card(H2(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
         return (content, llm_context)
     elif page_num == 2:
         experimenting_title = 'Experimenting'
-        experimenting_steps = ['Stay on DEV mode and go wild! Try stuff. Reset entire database 🔄 (under 🤖). Get comfortable.', 'Add profiles. Rerrange them. Check and uncheck them. Look at effect on PROFILE menu.', 'Go to APP / Roles. Check Tutorials or Developer. Look at effect on APP menu.']
+        experimenting_steps = ['Stay on DEV mode at first. Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable. That\'s what DEV mode is for', 'Add profiles. Rerrange them. Check and uncheck them. Look at effect on PROFILE menu.', 'Change what APPs show by going to Roles and checking or unchecking Tutorials, Developer, etc. Look at the effect on the APP menu.']
         interface_title = 'Understanding the Interface'
         interface_items = [('PROFILE menu', 'Set up real Clients in Prod mode. Use nicknames (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APP menu', 'Try the Tasks app. Tasks are kept separate for each profile, so each Client gets their own To-Do list.'), ('Parameter Buster', 'The first ready-to-use workflow. Try it!')]
         content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')
