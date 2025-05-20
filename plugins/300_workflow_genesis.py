@@ -7,6 +7,8 @@ from loguru import logger
 import inspect
 from pathlib import Path
 import re
+import json
+from starlette.responses import HTMLResponse
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
@@ -208,13 +210,49 @@ class WorkflowGenesis:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, current_steps_to_pass_helpers)
 
+    def create_prism_widget(self, code, widget_id, language='bash'):
+        """Create a Prism.js syntax highlighting widget with copy functionality."""
+        textarea_id = f'{widget_id}_raw_code'
+        container = Div(
+            Div(
+                H5('Generated Commands:'),
+                Textarea(code, id=textarea_id, style='display: none;'),
+                Pre(
+                    Code(code, cls=f'language-{language}', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                    cls='line-numbers'
+                ),
+                cls='mt-4'
+            ),
+            id=widget_id
+        )
+        init_script = Script(f"""
+            (function() {{
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
+                document.body.addEventListener('initializePrism', function(event) {{
+                    if (event.detail.targetId === '{widget_id}') {{
+                        console.log('Received initializePrism event for {widget_id}');
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                        }} else {{
+                            console.error('Prism library not found for {widget_id}');
+                        }}
+                    }}
+                }});
+            }})();
+        """, type='text/javascript')
+        return Div(container, init_script)
+
     async def step_01(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps # Use self.steps
+        current_steps_for_logic = self.steps
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         step_obj = current_steps_for_logic[step_index]
-        # The next step ID calculation relies on 'finalize' being the last item in current_steps_for_logic
         next_step_id = current_steps_for_logic[step_index + 1].id
         
         pipeline_id = db.get('pipeline_id', 'unknown')
@@ -237,15 +275,19 @@ class WorkflowGenesis:
 '{params['training_prompt']}' \\
 --force"""
             splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
-            finalized_display_content = Div(
-                Pre(create_cmd, cls="command-block"),
-                Pre(splice_cmd, cls="command-block")
-            )
-            return Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=finalized_display_content),
+            
+            # Create PrismJS widget for commands
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=prism_widget),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
-            )
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
         elif current_value and state.get('_revert_target') != step_id:
             # Revert/Completed Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
@@ -260,21 +302,24 @@ class WorkflowGenesis:
 '{params['training_prompt']}' \\
 --force"""
             splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
-            commands_widget = Div(
-                Pre(create_cmd, cls="command-block"),
-                Pre(splice_cmd, cls="command-block")
-            )
-            return Div(
+            
+            # Create PrismJS widget for commands
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
+            
+            response = HTMLResponse(to_xml(Div(
                 pip.display_revert_widget(
                     step_id=step_id,
                     app_name=app_name,
                     message="Scaffolding Commands Generated",
-                    widget=commands_widget,
+                    widget=prism_widget,
                     steps=current_steps_for_logic
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
-            )
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
         else:
             # Input Phase
             pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing input form')
@@ -411,26 +456,26 @@ class WorkflowGenesis:
 --force"""
         splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
         
-        # Create the commands widget
-        commands_widget = Div(
-            Pre(create_cmd, cls="command-block"),
-            Pre(splice_cmd, cls="command-block")
-        )
+        # Create PrismJS widget for commands
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
         
         pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{params}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
         await self.message_queue.add(pip, f'{step_obj.show} complete.', verbatim=True)
         
-        return Div(
+        response = HTMLResponse(to_xml(Div(
             pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
                 message="Scaffolding Commands Generated",
-                widget=commands_widget,
+                widget=prism_widget,
                 steps=current_steps_for_logic
             ),
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
             id=step_id
-        )
+        )))
+        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+        return response
 
     # --- STEP_METHODS_INSERTION_POINT ---
