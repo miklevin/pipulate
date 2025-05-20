@@ -210,6 +210,29 @@ class WorkflowGenesis:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, current_steps_to_pass_helpers)
 
+    def format_bash_command(self, text):
+        """
+        Format text for use in a bash command, handling various quote scenarios:
+        - Escape exclamation marks to prevent bash history expansion
+        - Escape double quotes with backslash
+        - Wrap text in double quotes if it contains spaces or quotes
+        """
+        if not text:
+            return '""'
+            
+        # Escape exclamation marks to prevent bash history expansion
+        text = text.replace('!', '\\!')
+            
+        # Always escape double quotes with backslash
+        text = text.replace('"', '\\"')
+        
+        # If text contains spaces or quotes, wrap in double quotes
+        if ' ' in text or '"' in text or "'" in text:
+            return f'"{text}"'
+            
+        # Otherwise return as is
+        return text
+
     def create_prism_widget(self, create_cmd, splice_cmd, widget_id):
         """Create a Prism.js syntax highlighting widget with copy functionality for each command."""
         textarea_id_create = f'{widget_id}_create_cmd'
@@ -284,9 +307,9 @@ class WorkflowGenesis:
 {params['target_filename']} \\
 {params['class_name']} \\
 {params['internal_app_name']} \\
-"{params['display_name']}" \\
-"{params['endpoint_message']}" \\
-'{params['training_prompt']}' \\
+{self.format_bash_command(params['display_name'])} \\
+{self.format_bash_command(params['endpoint_message'])} \\
+{self.format_bash_command(params['training_prompt'])} \\
 --force"""
             splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
             
@@ -311,9 +334,9 @@ class WorkflowGenesis:
 {params['target_filename']} \\
 {params['class_name']} \\
 {params['internal_app_name']} \\
-"{params['display_name']}" \\
-"{params['endpoint_message']}" \\
-'{params['training_prompt']}' \\
+{self.format_bash_command(params['display_name'])} \\
+{self.format_bash_command(params['endpoint_message'])} \\
+{self.format_bash_command(params['training_prompt'])} \\
 --force"""
             splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
             
@@ -464,9 +487,9 @@ class WorkflowGenesis:
 {params['target_filename']} \\
 {params['class_name']} \\
 {params['internal_app_name']} \\
-"{params['display_name']}" \\
-"{params['endpoint_message']}" \\
-'{params['training_prompt']}' \\
+{self.format_bash_command(params['display_name'])} \\
+{self.format_bash_command(params['endpoint_message'])} \\
+{self.format_bash_command(params['training_prompt'])} \\
 --force"""
         splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
         
