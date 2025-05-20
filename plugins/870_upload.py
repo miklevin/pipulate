@@ -5,6 +5,7 @@ import shutil
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
+import urllib.parse
 
 from fasthtml.common import *
 from loguru import logger
@@ -174,12 +175,25 @@ class FileUploadWidget:
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and file_summary:
             try:
-                return Div(Card(H3(f'🔒 {step.show}'), P('Uploaded files summary:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                save_directory = Path('downloads') / app_name / pipeline_id
+                return Div(Card(H3(f'🔒 {step.show}'), P('Uploaded files summary:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            except Exception as e:
+                logger.error(f'Error creating file summary in locked view: {str(e)}')
+                return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
+        elif state.get('_finalized'):
+            try:
+                file_summary = pip.get_step_data(pipeline_id, step_id)
+                save_directory = Path('downloads') / app_name / pipeline_id
+                return Div(Card(f'🔒 {step.show}', P("Uploaded files summary:"), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating file summary in locked view: {str(e)}')
                 return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         elif file_summary and state.get('_revert_target') != step_id:
-            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files previously uploaded', widget=Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'), steps=steps)
+            save_directory = Path('downloads') / app_name / pipeline_id
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files previously uploaded', widget=Div(
+                Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'),
+                P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")
+            ), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow and pipeline ID.'
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -233,5 +247,8 @@ class FileUploadWidget:
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{file_summary}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Files saved')
         await self.message_queue.add(pip, f'Successfully saved {len(file_info_list)} files to {save_directory}', verbatim=True)
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files Uploaded Successfully!', widget=Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'), steps=steps)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files Uploaded Successfully!', widget=Div(
+            Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'),
+            P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")
+        ), steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
