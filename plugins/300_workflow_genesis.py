@@ -210,21 +210,35 @@ class WorkflowGenesis:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, current_steps_to_pass_helpers)
 
-    def create_prism_widget(self, code, widget_id, language='bash'):
-        """Create a Prism.js syntax highlighting widget with copy functionality."""
-        textarea_id = f'{widget_id}_raw_code'
+    def create_prism_widget(self, create_cmd, splice_cmd, widget_id):
+        """Create a Prism.js syntax highlighting widget with copy functionality for each command."""
+        textarea_id_create = f'{widget_id}_create_cmd'
+        textarea_id_splice = f'{widget_id}_splice_cmd'
+        
         container = Div(
+            # Create Command Box
             Div(
-                H5('Generated Commands:'),
-                Textarea(code, id=textarea_id, style='display: none;'),
+                H5('Create Workflow Command:'),
+                Textarea(create_cmd, id=textarea_id_create, style='display: none;'),
                 Pre(
-                    Code(code, cls=f'language-{language}', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                    Code(create_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                    cls='line-numbers'
+                ),
+                cls='mt-4'
+            ),
+            # Splice Command Box
+            Div(
+                H5('Splice Workflow Step Command:'),
+                Textarea(splice_cmd, id=textarea_id_splice, style='display: none;'),
+                Pre(
+                    Code(splice_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
                     cls='line-numbers'
                 ),
                 cls='mt-4'
             ),
             id=widget_id
         )
+        
         init_script = Script(f"""
             (function() {{
                 // Initialize Prism immediately when the script loads
@@ -278,7 +292,7 @@ class WorkflowGenesis:
             
             # Create PrismJS widget for commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
+            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
             
             response = HTMLResponse(to_xml(Div(
                 pip.finalized_content(message=f"🔒 {step_obj.show}", content=prism_widget),
@@ -305,7 +319,7 @@ class WorkflowGenesis:
             
             # Create PrismJS widget for commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
+            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
             
             response = HTMLResponse(to_xml(Div(
                 pip.display_revert_widget(
@@ -458,7 +472,7 @@ class WorkflowGenesis:
         
         # Create PrismJS widget for commands
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        prism_widget = self.create_prism_widget(f"{create_cmd}\n\n{splice_cmd}", widget_id)
+        prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
         
         pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{params}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
