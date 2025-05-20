@@ -125,3 +125,35 @@ PicoCSS styles standard HTML form elements with minimal extra classes.
 ## 7. Dynamic Datalists
 
 The `pipulate.update_datalist(datalist_id, options=None, clear=False)` helper is used with HTMX OOB swaps to dynamically update `<datalist>` options, often for the pipeline ID input.
+
+## 8. Opening Local OS Folders
+
+Pipulate provides a built-in endpoint for opening local OS folders in the host system's file explorer:
+
+```python
+# Example HTMX link to open a folder
+A("Open Downloads Folder", 
+   href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
+   hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
+   hx_swap="none"  # Important: prevents UI updates since we just want to open the folder
+)
+```
+
+Key points:
+- Uses the `/open-folder` endpoint with a `path` query parameter
+- Path must be absolute and URL-encoded
+- Uses `hx_swap="none"` to prevent UI updates
+- Works cross-platform (Windows, macOS, Linux)
+- Includes security checks for path validation
+- Returns appropriate error messages for invalid paths or OS-specific issues
+
+Common use cases:
+- Opening download directories
+- Viewing generated files
+- Accessing workflow output folders
+- Quick access to project directories
+
+The endpoint handles OS-specific commands:
+- Windows: `explorer`
+- macOS: `open`
+- Linux: `xdg-open`

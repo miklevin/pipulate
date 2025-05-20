@@ -31,6 +31,9 @@ from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+import subprocess
+import platform
+import urllib.parse
 
 DEBUG_MODE = True
 STATE_TABLES = False
@@ -2086,6 +2089,43 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
 
+@rt('/open-folder', methods=['GET'])
+async def open_folder_endpoint(request):
+    """
+    Opens a folder in the host OS's file explorer.
+    Expects a 'path' query parameter with the absolute path to open.
+    """
+    path_param = request.query_params.get("path")
+    if not path_param:
+        return HTMLResponse("Path parameter is missing", status_code=400)
+
+    decoded_path = urllib.parse.unquote(path_param)
+
+    # Basic security check - ensure it's an absolute path and within allowed directories
+    if not os.path.isabs(decoded_path) or ".." in decoded_path:
+        return HTMLResponse("Invalid or potentially insecure path", status_code=400)
+
+    # Ensure the path exists and is a directory
+    if not os.path.exists(decoded_path) or not os.path.isdir(decoded_path):
+        return HTMLResponse("Path does not exist or is not a directory", status_code=400)
+
+    try:
+        current_os = platform.system()
+        if current_os == "Windows":
+            subprocess.run(["explorer", decoded_path], check=True)
+        elif current_os == "Darwin":  # macOS
+            subprocess.run(["open", decoded_path], check=True)
+        elif current_os == "Linux":
+            subprocess.run(["xdg-open", decoded_path], check=True)
+        else:
+            return HTMLResponse(f"Unsupported operating system: {current_os}", status_code=400)
+        
+        return HTMLResponse("Folder opened successfully")
+    except subprocess.CalledProcessError as e:
+        return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
+    except Exception as e:
+        return HTMLResponse(f"An unexpected error occurred: {str(e)}", status_code=500)
+
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
@@ -2444,8 +2484,15 @@ def get_intro_page_content(page_num_str: str):
         return (content, llm_context)
     elif page_num == 3:
         title = 'Tips for Effective Use'
-        tips = [('Connect With Botify', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('Delete Workflows', 'Workflows are easily re-created. They are disposable. So if you lost a particular workflow, just make it again with the same inputs. 🤯'), ('Side Effects', 'Anything you do that crawls sites or downloads files like CSVs stays on the machine even if you delete workflows and will re-attach given the same inputs — more reason to be fine with deleting workflows.'), ('Surfing Files', 'All the side-effect downloads go into the Downloads in the folder you ran this from. You can surf there and see the files.'), ('Lock PROFILE', 'Lock the profile (under 🤖 in lower-right corner) to avoid any chance of showing other Clinet names.')]
-        content = Card(H3(title), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]), style=card_style, id='intro-page-3-content')
+        tips = [('Connect With Botify', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('Delete Workflows', 'Workflows are easily re-created. They are disposable. So if you lost a particular workflow, just make it again with the same inputs. 🤯'), ('Side Effects', 'Anything you do that crawls sites or downloads files like CSVs stays on the machine even if you delete workflows and will re-attach given the same inputs — more reason to be fine with deleting workflows.'), ('Lock PROFILE', 'Lock the profile (under 🤖 in lower-right corner) to avoid any chance of showing other Clinet names.'), ('Surfing Files', 'All the side-effect downloads go into the Downloads in the folder you ran this from. You can surf there and see the files.')]
+        content = Card(
+            H3(title), 
+            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]),
+            Hr(),
+            P("Try it now: ", A("Open Downloads Folder", href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_swap="none")),
+            style=card_style, 
+            id='intro-page-3-content'
+        )
         llm_context = f"The user is viewing the Tips page which shows:\n\n{title}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(tips)))}"
         return (content, llm_context)
     error_msg = f'Content for instruction page {page_num_str} not found.'
@@ -2850,3 +2897,5 @@ def run_server_with_watchdog():
 
 if __name__ == '__main__':
     run_server_with_watchdog()
+
+
