@@ -345,10 +345,10 @@ class WorkflowGenesis:
                 # Endpoint Message
                 Label("Endpoint Message", **{'for': 'endpoint_message'}),
                 Textarea(
+                    existing_params.get('endpoint_message', ''),
                     id="endpoint_message",
                     name="endpoint_message",
                     placeholder="The message shown on the workflow's landing page",
-                    value=existing_params.get('endpoint_message', ''),
                     required=True
                 ),
                 Small("The message shown on your workflow's landing page"),
@@ -356,10 +356,10 @@ class WorkflowGenesis:
                 # Training Prompt
                 Label("Training Prompt", **{'for': 'training_prompt'}),
                 Textarea(
+                    existing_params.get('training_prompt', ''),
                     id="training_prompt",
                     name="training_prompt",
                     placeholder="The LLM training prompt for your workflow",
-                    value=existing_params.get('training_prompt', ''),
                     required=True
                 ),
                 Small("The training prompt that guides the LLM for your workflow"),
