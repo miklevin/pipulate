@@ -179,22 +179,43 @@ class CrudUI(PluginIdentityManager):
         self.register_plugin_routes()
         logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
 
-        # Initialize roles for the current profile
+        # Check if roles need initialization for the current profile
         current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-        self.initialize_roles(current_profile_id)
+        self.ensure_roles_initialized(current_profile_id)
+
+    def ensure_roles_initialized(self, profile_id):
+        """Check if roles exist for the profile and initialize if needed."""
+        existing_roles = list(self.table("profile_id = ?", [profile_id]))
+        
+        # If no roles exist for this profile, initialize them
+        if not existing_roles:
+            self.initialize_roles(profile_id)
+            return
+
+        # Check if all predefined roles exist
+        existing_role_names = {role.text for role in existing_roles}
+        missing_roles = set(ROLE_ORDER.keys()) - existing_role_names
+
+        # If any predefined roles are missing, initialize them
+        if missing_roles:
+            self.initialize_roles(profile_id)
 
     def initialize_roles(self, profile_id):
         """Initialize roles in the correct order, preserving existing states."""
         # Get existing roles and their states
         existing_roles = {role.text: role for role in self.table("profile_id = ?", [profile_id])}
 
+        # Sort roles by their priority value to ensure correct insertion order
+        sorted_roles = sorted(ROLE_ORDER.items(), key=lambda x: x[1])
+
         # Insert or update roles in the desired order
-        for role_name, priority in ROLE_ORDER.items():
+        for role_name, priority in sorted_roles:
             if role_name in existing_roles:
-                # Update priority for existing role
+                # Only update priority if it's not already set
                 existing_role = existing_roles[role_name]
-                existing_role.priority = priority
-                self.table.update(existing_role)
+                if existing_role.priority is None:
+                    existing_role.priority = priority
+                    self.table.update(existing_role)
             else:
                 # Insert new role with default state
                 self.table.insert(
@@ -228,11 +249,8 @@ class CrudUI(PluginIdentityManager):
         logger.debug(f"Landing page using profile_id: {current_profile_id}")
 
         items_query = self.table(where=f"profile_id = {current_profile_id}")
-        # Sort items by priority, with predefined roles taking precedence
-        items = sorted(items_query, key=lambda item: (
-            ROLE_ORDER.get(item.text, float('inf')),  # Predefined roles first, in ROLE_ORDER
-            float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf')  # Then by priority
-        ))
+        # Sort items by their current priority, preserving user's custom order
+        items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
         return Div(
