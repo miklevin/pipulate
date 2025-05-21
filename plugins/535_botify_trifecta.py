@@ -20,7 +20,7 @@ import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Botify Employee']
+ROLES = ['Workshop']
 '\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -52,10 +52,10 @@ class BotifyCsvDownloaderWorkflow:
     - File paths are deterministic based on username/project/analysis to enable caching
     - All API errors are handled with specific error messages for better troubleshooting
     """
-    APP_NAME = 'csv_downloader'
-    DISPLAY_NAME = 'Botify CSV Downloader'
-    ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console)'
-    TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type.'
+    APP_NAME = 'trifecta'
+    DISPLAY_NAME = 'Botify Trifecta'
+    ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
+    TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""

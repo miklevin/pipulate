@@ -18,7 +18,7 @@ from seleniumwire import webdriver as wire_webdriver
 from starlette.responses import HTMLResponse, JSONResponse
 from webdriver_manager.chrome import ChromeDriverManager
 
-ROLES = ['Tutorial']
+ROLES = ['Workshop']
 '\nPipulate Browser Automation Workflow\n\nThis workflow demonstrates Selenium-based browser automation capabilities:\n- Cross-platform Chrome automation (Linux/macOS)\n- Clean browser sessions with temporary profiles\n- Detailed status logging and error handling\n- URL opening and verification\n'
 
 

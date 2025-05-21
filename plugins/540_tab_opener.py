@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
 
-ROLES = ['Tutorial']
+ROLES = ['Workshop']
 '\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -23,10 +23,10 @@ class BlankWorkflow:
 
     A minimal starting point for creating new workflows.
     """
-    APP_NAME = 'open_url'
-    DISPLAY_NAME = 'URL Opener'
+    APP_NAME = 'tab'
+    DISPLAY_NAME = 'Tab Opener'
     ENDPOINT_MESSAGE = 'Open any URL in your default browser using your existing profile and settings. Perfect for accessing pages that require login.'
-    TRAINING_PROMPT = 'This workflow helps users open URLs in their default browser. It uses the widget_container pattern for consistent UI and provides a simple interface for URL input and Google search functionality.'
+    TRAINING_PROMPT = 'This workflow helps users open URLs in their default browser. It uses the widget_container pattern for consistent UI and provides a simple interface for URL input and Google search functionality. This is the non-browser-automation way to open URLs. It does use your default browser so it has all your logins, extensions, etc. It can open URLs with querystrings so is a great way to open search results or SEMRush reports. For more advanced browser automation, see the the Browser Automation plugin. Though we do throw in a simple Selenium URL opener at the end of this workflow just to remind you that this capability exists — and as a bit of flex to entice you to explore.'
     PRESERVE_REFILL = True
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -208,14 +208,19 @@ class BlankWorkflow:
         url_value = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and url_value:
-            return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(Card(H3(f'🔒 {step.show}'), P(f'URL configured: ', B(url_value)), Button('Open in New Tab ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif url_value and state.get('_revert_target') != step_id:
-            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Button('Open in New Tab ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
-            await self.message_queue.add(pip, 'Enter the URL you want to open:', verbatim=True)
+            await self.message_queue.add(pip, 'Enter the URL you want to open in a new tab:', verbatim=True)
             display_value = url_value if step.refill and url_value else 'https://example.com/'
-            return Div(Card(H3(f'{step.show}'), Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), Button('Open URL ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), 
+                P('The URL will open in a new tab and your browser will switch to it. Return to this tab when you\'re done.', cls='text-secondary'),
+                Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), 
+                Button('Open in New Tab ▸', type='submit', cls='primary'), 
+                hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), 
+                Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         """Process the URL submission and open the URL."""
@@ -234,8 +239,8 @@ class BlankWorkflow:
         await pip.set_step_data(pipeline_id, step_id, url, steps)
         import webbrowser
         webbrowser.open(url)
-        await self.message_queue.add(pip, f'Opening URL: {url}', verbatim=True)
-        url_widget = Div(P(f'URL configured: ', B(url)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url}', '_blank')", cls='secondary'))
+        await self.message_queue.add(pip, f'Opening URL in a new tab: {url}', verbatim=True)
+        url_widget = Div(P(f'URL configured: ', B(url)), Button('Open URL in a new tab again ▸', type='button', _onclick=f"window.open('{url}', '_blank')", cls='secondary'))
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url}', widget=url_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
@@ -256,15 +261,15 @@ class BlankWorkflow:
             return Div(Card(H3(f'🔒 {step.show}'), P(f'Search query: ', B(query_value)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif query_value and state.get('_revert_target') != step_id:
             search_url = f'https://www.google.com/search?q={query_value}'
-            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {query_value}', widget=Div(P(f'Search query: ', B(query_value)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), steps=steps)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {query_value}', widget=Div(P(f'Search query: ', B(query_value)), Button('Search in a new tab ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, 'Enter your Google search query:', verbatim=True)
-            display_value = query_value if step.refill and query_value else 'example search'
-            return Div(Card(H3(f'{step.show}'), Form(Input(type='text', name='query', placeholder='Enter search query', required=True, value=display_value, cls='contrast'), Button('Search ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            display_value = query_value if step.refill and query_value else 'example search query'
+            return Div(Card(H3(f'{step.show}'), Form(Input(type='text', name='query', placeholder='Enter search query', required=True, value=display_value, cls='contrast'), Button('Search in a new tab ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_02_submit(self, request):
-        """Process the search query submission and open Google search."""
+        """Process the search query submission and open Google search in a new tab."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
@@ -279,8 +284,8 @@ class BlankWorkflow:
         search_url = f'https://www.google.com/search?q={query}'
         import webbrowser
         webbrowser.open(search_url)
-        await self.message_queue.add(pip, f'Opening Google search: {query}', verbatim=True)
-        search_widget = Div(P(f'Search query: ', B(query)), Button('Search Again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary'))
+        await self.message_queue.add(pip, f'Opening Google search in a new tab: {query}', verbatim=True)
+        search_widget = Div(P(f'Search query: ', B(query)), Button('Search in a new tab again ▸', type='button', _onclick=f"window.open('{search_url}', '_blank')", cls='secondary'))
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {query}', widget=search_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
@@ -302,9 +307,9 @@ class BlankWorkflow:
             content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {url_value}', widget=Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{app_name}/reopen_url', hx_target=f'#{step_id}-status'), Div(id=f'{step_id}-status')), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
-            await self.message_queue.add(pip, 'Enter the URL you want to open with Selenium:', verbatim=True)
+            await self.message_queue.add(pip, 'This is a fancy extra! While most URLs can be opened in a new tab, Selenium gives you full browser automation control. Note: Maintaining login sessions can be tricky - for complex automation needs, check out the Browser Automation plugin.', verbatim=True)
             display_value = url_value if step.refill and url_value else 'https://example.com/'
-            return Div(Card(H3(f'{step.show}'), Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), Button('Open URL 🪄', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P('Try Selenium automation - great for complex workflows!', cls='text-secondary'), Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), Button('Open with Selenium 🪄', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """Process the URL submission and open it with Selenium."""

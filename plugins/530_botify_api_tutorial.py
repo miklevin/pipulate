@@ -12,8 +12,28 @@ import httpx
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Developer']
-'\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
+ROLES = ['Workshop']
+"""
+=============================================================================
+Botify API Tutorial Workflow
+=============================================================================
+
+This workflow demonstrates how to interact with the Botify API to:
+- Validate and parse Botify project URLs
+- Select and configure analysis exports
+- Manage export jobs and monitor progress
+- Download and process CSV exports
+- Handle file compression and encoding
+
+The code is organized into these key sections:
+1. Core Setup & Configuration
+2. Step Handlers (step_01 through step_04)
+3. Export Job Management
+4. File & Directory Management
+5. API Integration
+6. UI Helper Functions
+7. State Management
+"""
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
@@ -86,10 +106,10 @@ class BotifyExport:
     This standardized pattern eliminates the need for workflow-specific spacing adjustments
     and ensures consistent styling across the application.
     """
-    APP_NAME = 'botify_csv'
-    DISPLAY_NAME = 'Botify CSV Export'
-    ENDPOINT_MESSAGE = 'This workflow helps you export data from Botify projects. Press Enter to start a new workflow or enter an existing key to resume. '
-    TRAINING_PROMPT = 'botify_export.md'
+    APP_NAME = 'botify_api'
+    DISPLAY_NAME = 'Botify API Tutorial'
+    ENDPOINT_MESSAGE = 'This workflow will grow into a comprehensive tutorial on the Botify API. Press Enter to start a new workflow or enter an existing key to resume. '
+    TRAINING_PROMPT = 'botify_api_tutorial.md'
     USE_TREE_DISPLAY = True
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):

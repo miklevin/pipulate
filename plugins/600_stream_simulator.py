@@ -7,7 +7,7 @@ from fastcore.xml import *
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Tutorial']
+ROLES = ['Workshop']
 
 logger = logging.getLogger(__name__)
 
