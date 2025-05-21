@@ -2692,7 +2692,7 @@ async def create_outer_container(current_profile_id, menux, request):
         return Container(H1('Error: Profiles plugin not found', cls='text-invalid'))
     nav_group = create_nav_group()
     return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
-MAX_INTRO_PAGES = 3
+MAX_INTRO_PAGES = 4
 
 
 def get_intro_page_content(page_num_str: str):
@@ -2733,6 +2733,32 @@ def get_intro_page_content(page_num_str: str):
             id='intro-page-3-content'
         )
         llm_context = f"The user is viewing the Tips page which shows:\n\n{title}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(tips)))}"
+        return (content, llm_context)
+    elif page_num == 4:
+        title = 'Local LLM Assistant'
+        llm_features = [
+            ('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
+            ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
+            ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
+            ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
+            ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
+        ]
+        usage_tips = [
+            'Try asking "What can I do with this workflow?" when starting a new one.',
+            'Ask for help with specific steps if you get stuck.',
+            'Request explanations of workflow outputs or data.',
+            'Get suggestions for next steps or alternative approaches.'
+        ]
+        content = Card(
+            H3(title),
+            P(f"Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:"),
+            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in llm_features]),
+            H4("How to Use the LLM"),
+            Ul(*[Li(tip) for tip in usage_tips]),
+            style=card_style,
+            id='intro-page-4-content'
+        )
+        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{title}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(llm_features)))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in usage_tips))}"
         return (content, llm_context)
     error_msg = f'Content for instruction page {page_num_str} not found.'
     content = Card(P(error_msg), style=card_style, id=f'intro-page-{page_num_str}-content')
