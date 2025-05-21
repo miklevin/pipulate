@@ -539,9 +539,62 @@ class Pipulate:
         return self.message_queue
 
     def get_style(self, style_type):
-        """Get a predefined style by type"""
-        styles = {'error': self.ERROR_STYLE, 'success': self.SUCCESS_STYLE, 'warning_button': self.WARNING_BUTTON_STYLE, 'primary_button': self.PRIMARY_BUTTON_STYLE, 'secondary_button': self.SECONDARY_BUTTON_STYLE, 'muted': self.MUTED_TEXT_STYLE}
-        return styles.get(style_type, '')
+        return getattr(self, f"{style_type.upper()}_STYLE", None)
+
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str,
+                                   method: str, url: str, headers: dict, payload: Optional[dict] = None,
+                                   response_status: Optional[int] = None, response_preview: Optional[str] = None,
+                                   curl_command: Optional[str] = None, python_command: Optional[str] = None,
+                                   estimated_rows: Optional[int] = None, actual_rows: Optional[int] = None,
+                                   file_path: Optional[str] = None, file_size: Optional[str] = None,
+                                   notes: Optional[str] = None):
+        """
+        Logs detailed information about an API call related to a workflow.
+        This serves as a hook for future, more sophisticated logging or UI display.
+        """
+        log_entry_parts = [
+            f"API CALL INFO for Pipeline: {pipeline_id}, Step: {step_id}, Description: {call_description}",
+            f"  Request: {method.upper()} {url}"
+        ]
+        
+        # Redact token from headers for logging
+        logged_headers = {k: (v[:15] + "..." if isinstance(v, str) and k.lower() == 'authorization' else v) for k,v in headers.items()}
+        log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
+
+        if payload:
+            try:
+                payload_str = json.dumps(payload, indent=2)
+                if len(payload_str) > 1000: # Limit logged payload size for readability
+                    payload_str = payload_str[:1000] + "...\n(Payload truncated in log)"
+                log_entry_parts.append(f"  Payload:\n{payload_str}")
+            except TypeError:
+                log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
+        
+        if curl_command:
+            log_entry_parts.append(f"  cURL Command:\n{curl_command}")
+        if python_command:
+            log_entry_parts.append(f"  Python (httpx) Snippet:\n{python_command}")
+
+        if estimated_rows is not None:
+            log_entry_parts.append(f"  Estimated Rows (from pre-check): {estimated_rows:,}")
+        if actual_rows is not None:
+            log_entry_parts.append(f"  Actual Rows Downloaded: {actual_rows:,}")
+        
+        if response_status is not None:
+            log_entry_parts.append(f"  Response Status: {response_status}")
+        if response_preview:
+            preview = response_preview[:500] + ("..." if len(response_preview) > 500 else "")
+            log_entry_parts.append(f"  Response Preview: {preview}")
+
+        if file_path:
+            log_entry_parts.append(f"  Associated File Path: {file_path}")
+        if file_size:
+            log_entry_parts.append(f"  Associated File Size: {file_size}")
+        if notes:
+            log_entry_parts.append(f"  Notes: {notes}")
+
+        full_log_message = "\n".join(log_entry_parts)
+        logger.debug(f"\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---")
 
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""

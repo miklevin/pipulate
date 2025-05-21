@@ -13,6 +13,7 @@ from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from typing import Optional
 
 import httpx
 import pandas as pd
@@ -752,13 +753,73 @@ class BotifyCsvDownloaderWorkflow:
         return (True, file_info)
 
     async def ensure_directory_exists(self, filepath):
-        """Ensure the directory for a file exists.
-
-        Args:
-            filepath: Path to the file
-        """
         directory = os.path.dirname(filepath)
-        os.makedirs(directory, exist_ok=True)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None) -> tuple[str, str]:
+        api_token_placeholder = "{YOUR_BOTIFY_API_TOKEN}" 
+        
+        safe_headers_for_display = headers.copy()
+        if 'Authorization' in safe_headers_for_display:
+            # Display placeholder for token in snippets
+            safe_headers_for_display['Authorization'] = f"Token {api_token_placeholder}"
+
+        header_str_curl = ""
+        for k, v in safe_headers_for_display.items():
+            header_str_curl += f" -H '{k}: {v}'"
+
+        curl_command = f"curl -X {method.upper()} '{url}'{header_str_curl}"
+        payload_json_str_for_curl = ""
+        if payload:
+            try:
+                payload_json_str_for_curl = json.dumps(payload)
+                # Escape single quotes for shell if payload might contain them
+                payload_json_str_for_curl = payload_json_str_for_curl.replace("'", "'\\''")
+                curl_command += f" --data-raw '{payload_json_str_for_curl}'"
+            except TypeError: # Handle non-serializable payload if it occurs
+                curl_command += " # Payload not shown due to non-serializable content"
+
+        python_payload_str_for_script = "None"
+        if payload:
+            try:
+                # Pretty print for Python script
+                python_payload_str_for_script = json.dumps(payload, indent=4)
+                # Python uses True/False/None, not true/false/null
+                python_payload_str_for_script = python_payload_str_for_script.replace(": true", ": True").replace(": false", ": False").replace(": null", ": None")
+            except TypeError:
+                python_payload_str_for_script = "{# Payload not shown due to non-serializable content #}"
+        
+        python_command = f"""# Python httpx snippet (async)
+import httpx
+import json
+import asyncio
+
+url = "{url}"
+headers = {json.dumps(safe_headers_for_display, indent=4)}
+payload = {python_payload_str_for_script}
+
+async def make_api_call():
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.{method.lower()}(url, headers=headers, json=payload if payload else None)
+            response.raise_for_status() # Raise an exception for HTTP 4xx or 5xx status codes
+            print(f"Status Code: {{response.status_code}}")
+            try:
+                print("Response JSON:")
+                print(json.dumps(response.json(), indent=2))
+            except json.JSONDecodeError:
+                print("Response Text:")
+                print(response.text)
+        except httpx.HTTPStatusError as e:
+            print(f"HTTP error occurred: {{e}} - {{e.response.text}}")
+        except httpx.RequestError as e:
+            print(f"An error occurred while requesting {{e.request.url!r}}: {{e}}")
+
+if __name__ == "__main__":
+    asyncio.run(make_api_call())
+"""
+        return curl_command, python_command
 
     async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
@@ -861,29 +922,176 @@ class BotifyCsvDownloaderWorkflow:
 
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
         """Builds BQLv2 query objects and export job payloads."""
+        api_token = self.read_api_token()
+        base_url = "https://api.botify.com/v1/jobs"
+        headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+
         if data_type == 'gsc':
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-            export_job_payload = {'job_type': 'export', 'payload': {'query': {'collections': ['search_console'], 'periods': [[start_date, end_date]], 'query': {'dimensions': ['url'], 'metrics': [{'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'}, {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'}, {'field': 'search_console.period_0.ctr', 'name': 'CTR'}, {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}], 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]}}, 'export_size': 10000, 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'username': username, 'project': project_name, 'export_job_name': 'Search Console Export'}}
-            check_query_payload = {'collections': ['search_console'], 'periods': [[start_date, end_date]], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['search_console.url']}]}}
-            return {'check_query_payload': check_query_payload, 'check_url': f'/v1/projects/{username}/{project_name}/query', 'export_job_payload': export_job_payload, 'export_url': '/v1/jobs', 'data_type': data_type}
+            export_job_payload = {
+                'job_type': 'export',
+                'payload': {
+                    'query': {
+                        'collections': ['search_console'],
+                        'periods': [[start_date, end_date]],
+                        'query': {
+                            'dimensions': ['url'],
+                            'metrics': [
+                                {'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'},
+                                {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'},
+                                {'field': 'search_console.period_0.ctr', 'name': 'CTR'},
+                                {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}
+                            ],
+                            'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+                        }
+                    },
+                    'export_size': 10000,
+                    'formatter': 'csv',
+                    'connector': 'direct_download',
+                    'formatter_config': {'print_header': True, 'print_delimiter': True},
+                    'extra_config': {'compression': 'zip'},
+                    'username': username,
+                    'project': project_name,
+                    'export_job_name': 'Search Console Export'
+                }
+            }
+            check_query_payload = {
+                'collections': ['search_console'],
+                'periods': [[start_date, end_date]],
+                'query': {
+                    'dimensions': [],
+                    'metrics': [{'function': 'count', 'args': ['search_console.url']}]
+                }
+            }
+
+            # Log the GSC export details
+            curl_cmd, python_cmd = self._generate_api_call_representations(
+                method="POST", url=base_url, headers=headers, payload=export_job_payload
+            )
+            await self.pipulate.log_api_call_details(
+                pipeline_id="build_exports", step_id="gsc_export",
+                call_description="Search Console Export Job Creation",
+                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                curl_command=curl_cmd, python_command=python_cmd
+            )
+
+            return {
+                'check_query_payload': check_query_payload,
+                'check_url': f'/v1/projects/{username}/{project_name}/query',
+                'export_job_payload': export_job_payload,
+                'export_url': '/v1/jobs',
+                'data_type': data_type
+            }
+
         elif data_type == 'crawl':
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
-            bql_query = {'collections': [collection], 'query': {'dimensions': [f'{collection}.url', f'{collection}.http_code', f'{collection}.metadata.title.content'], 'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}}}
-            check_query_payload = {'collections': [collection], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': [f'{collection}.url']}], 'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}}}
+            bql_query = {
+                'collections': [collection],
+                'query': {
+                    'dimensions': [f'{collection}.url', f'{collection}.http_code', f'{collection}.metadata.title.content'],
+                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
+                }
+            }
+            check_query_payload = {
+                'collections': [collection],
+                'query': {
+                    'dimensions': [],
+                    'metrics': [{'function': 'count', 'args': [f'{collection}.url']}],
+                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
+                }
+            }
+            export_job_payload = {
+                'job_type': 'export',
+                'payload': {
+                    'username': username,
+                    'project': project_name,
+                    'connector': 'direct_download',
+                    'formatter': 'csv',
+                    'export_size': 10000,
+                    'query': bql_query,
+                    'formatter_config': {'print_header': True}
+                }
+            }
+
+            # Log the crawl export details
+            curl_cmd, python_cmd = self._generate_api_call_representations(
+                method="POST", url=base_url, headers=headers, payload=export_job_payload
+            )
+            await self.pipulate.log_api_call_details(
+                pipeline_id="build_exports", step_id="crawl_export",
+                call_description="Crawl Analysis Export Job Creation",
+                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                curl_command=curl_cmd, python_command=python_cmd
+            )
+
+            return {
+                'check_query_payload': check_query_payload,
+                'check_url': f'/v1/projects/{username}/{project_name}/query',
+                'export_job_payload': export_job_payload,
+                'export_url': '/v1/jobs',
+                'data_type': data_type
+            }
+
         elif data_type == 'weblog':
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y-%m-%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-            bql_query = {'collections': ['logs'], 'periods': [[start_date, end_date]], 'query': {'dimensions': ['logs.url'], 'metrics': ['logs.all.count_visits'], 'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}}}
-            check_query_payload = {'collections': ['logs'], 'periods': [[start_date, end_date]], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['logs.url']}], 'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}}}
+            bql_query = {
+                'collections': ['logs'],
+                'periods': [[start_date, end_date]],
+                'query': {
+                    'dimensions': ['logs.url'],
+                    'metrics': ['logs.all.count_visits'],
+                    'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}
+                }
+            }
+            check_query_payload = {
+                'collections': ['logs'],
+                'periods': [[start_date, end_date]],
+                'query': {
+                    'dimensions': [],
+                    'metrics': [{'function': 'count', 'args': ['logs.url']}],
+                    'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}
+                }
+            }
+            export_job_payload = {
+                'job_type': 'logs_urls_export',
+                'payload': {
+                    'username': username,
+                    'project': project_name,
+                    'connector': 'direct_download',
+                    'formatter': 'csv',
+                    'export_size': 1000000,
+                    'query': bql_query,
+                    'formatter_config': {'print_header': True},
+                    'extra_config': {'compression': 'zip'}
+                }
+            }
+
+            # Log the weblog export details
+            curl_cmd, python_cmd = self._generate_api_call_representations(
+                method="POST", url=base_url, headers=headers, payload=export_job_payload
+            )
+            await self.pipulate.log_api_call_details(
+                pipeline_id="build_exports", step_id="weblog_export",
+                call_description="Web Logs Export Job Creation",
+                method="POST", url=base_url, headers=headers, payload=export_job_payload,
+                curl_command=curl_cmd, python_command=python_cmd
+            )
+
+            return {
+                'check_query_payload': check_query_payload,
+                'check_url': f'/v1/projects/{username}/{project_name}/query',
+                'export_job_payload': export_job_payload,
+                'export_url': '/v1/jobs',
+                'data_type': data_type
+            }
         else:
             raise ValueError(f'Unknown data type: {data_type}')
-        export_job_payload = {'job_type': 'export', 'payload': {'username': username, 'project': project_name, 'connector': 'direct_download', 'formatter': 'csv', 'export_size': 1000000, 'query': bql_query, 'formatter_config': {'print_header': True}}}
-        return {'check_query_payload': check_query_payload, 'check_url': f'/v1/projects/{username}/{project_name}/query', 'export_job_payload': export_job_payload, 'export_url': '/v1/jobs', 'data_type': data_type}
 
     async def poll_job_status(self, job_url, api_token, max_attempts=20):
         """
@@ -920,6 +1128,7 @@ class BotifyCsvDownloaderWorkflow:
         poll_msg = f'Starting polling for job: {job_url}' + (f' (ID: {job_id})' if job_id else '')
         logging.info(poll_msg)
         await self.message_queue.add(self.pipulate, poll_msg, verbatim=True)
+        
         while attempt < max_attempts:
             try:
                 poll_attempt_msg = f'Poll attempt {attempt + 1}/{max_attempts} for job: {job_url}'
@@ -932,8 +1141,22 @@ class BotifyCsvDownloaderWorkflow:
                         logging.info(url_switch_msg)
                         await self.message_queue.add(self.pipulate, url_switch_msg, verbatim=True)
                         job_url = alternative_url
+
+                headers = {'Authorization': f'Token {api_token}'}
+                
+                # Log the polling request
+                curl_cmd, python_cmd = self._generate_api_call_representations(
+                    method="GET", url=job_url, headers=headers
+                )
+                await self.pipulate.log_api_call_details(
+                    pipeline_id="poll_job_status", step_id="polling",
+                    call_description=f"Job Status Poll Attempt {attempt + 1}",
+                    method="GET", url=job_url, headers=headers,
+                    curl_command=curl_cmd, python_command=python_cmd
+                )
+
                 async with httpx.AsyncClient(timeout=45.0) as client:
-                    response = await client.get(job_url, headers={'Authorization': f'Token {api_token}'})
+                    response = await client.get(job_url, headers=headers)
                     consecutive_network_errors = 0
                     try:
                         response_json = response.json()
@@ -955,6 +1178,16 @@ class BotifyCsvDownloaderWorkflow:
                     status_msg = f'Poll attempt {attempt + 1}: status={status}'
                     logging.info(status_msg)
                     await self.message_queue.add(self.pipulate, status_msg, verbatim=True)
+
+                    # Log the polling response
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id="poll_job_status", step_id="polling",
+                        call_description=f"Job Status Poll Response {attempt + 1}",
+                        method="GET", url=job_url, headers=headers,
+                        response_status=response.status_code,
+                        response_preview=json.dumps(job_data) if isinstance(job_data, dict) else str(job_data)
+                    )
+
                     if status == 'DONE':
                         results = job_data.get('results', {})
                         success_msg = 'Job completed successfully!'
