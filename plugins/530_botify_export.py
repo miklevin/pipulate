@@ -1164,7 +1164,7 @@ class BotifyExport:
                     await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
                     return (False, None, error_msg)
                 else:
-                    await self.message_queue.add(self.pipulate, 'Export job is still processing...', verbatim=True)
+                    await self.message_queue.add(self.pipulate, 'Export job is still processing... Checking status in 2 seconds.', verbatim=True)
                     return (False, None, None)
         except Exception as e:
             error_msg = f'Error polling job status: {str(e)}'
