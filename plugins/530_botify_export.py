@@ -631,7 +631,7 @@ class BotifyExport:
             job_url = job['job_url']
             if step_id not in state:
                 state[step_id] = {}
-            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'status': 'PROCESSING', 'include_fields': {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}, 'poll_count': 0})
+            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'status': 'PROCESSING', 'include_fields': {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}})
             state[step_id][step.done] = job_url
             pip.write_state(pipeline_id, state)
             created = job.get('created', 'Unknown')
@@ -641,25 +641,7 @@ class BotifyExport:
             except:
                 created_str = created
             await self.message_queue.add(pip, f'Using existing export job (ID: {job_id}).\nThis job is still processing (started: {created_str}).', verbatim=True)
-            return Div(
-                Card(
-                    H3(f'🔒 {step.show}: Complete ✅'),
-                    P(f'Using existing export job ID: {job_id}', cls='mb-2'),
-                    P(f'Started: {created_str}', cls='mb-2'),
-                    Div(
-                        Progress(),
-                        P('Checking status automatically... (Next check in 2s)', cls='text-muted'),
-                        id='progress-container'
-                    )
-                ),
-                cls='polling-status no-chain-reaction',
-                hx_get=f'/{app_name}/download_job_status',
-                hx_trigger='load delay:2s',
-                hx_target=f'#{step_id}',
-                hx_swap='outerHTML',
-                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                id=step_id
-            )
+            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-2'), P(f'Started: {created_str}', cls='mb-2'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'), cls='polling-status no-chain-reaction', id=step_id)
         try:
             include_fields = {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}
             api_token = self.read_api_token()
@@ -674,7 +656,7 @@ class BotifyExport:
                 self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
             if step_id not in state:
                 state[step_id] = {}
-            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'download_url': download_url if is_complete else None, 'status': 'DONE' if is_complete else 'PROCESSING', 'download_path': str(download_dir), 'include_fields': include_fields, 'poll_count': 0})
+            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'download_url': download_url if is_complete else None, 'status': 'DONE' if is_complete else 'PROCESSING', 'download_path': str(download_dir), 'include_fields': include_fields})
             state[step_id][step.done] = job_url
             pip.write_state(pipeline_id, state)
             if is_complete:
@@ -688,22 +670,7 @@ class BotifyExport:
                 download_button = Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
                 return Div(result_card, download_button, cls='terminal-response no-chain-reaction', id=step_id)
             else:
-                return Div(
-                    result_card,
-                    P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'),
-                    Div(
-                        Progress(),
-                        P('Checking status automatically... (Next check in 2s)', cls='text-muted'),
-                        id='progress-container'
-                    ),
-                    cls='polling-status no-chain-reaction',
-                    hx_get=f'/{app_name}/download_job_status',
-                    hx_trigger='load delay:2s',
-                    hx_target=f'#{step_id}',
-                    hx_swap='outerHTML',
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id
-                )
+                return Div(result_card, P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error in export submission: {str(e)}')
             return P(f'An error occurred: {str(e)}', style=pip.get_style('error'))
@@ -984,41 +951,17 @@ class BotifyExport:
             project = step_data.get('project')
             analysis = step_data.get('analysis')
             depth = step_data.get('depth')
-            if step_id not in state:
-                state[step_id] = {}
-            state[step_id].update({
-                'local_file': str(local_file_path),
-                'status': 'DONE',
-                'export_url': str(local_file_path)
-            })
-            # Set the step.done value to mark the step as complete
-            state[step_id][step.done] = str(local_file_path)
+            state[step_id]['local_file'] = str(local_file_path)
             pip.write_state(pipeline_id, state)
             if job_id and all([org, project, analysis, depth]):
                 self.update_export_job(org, project, analysis, depth, job_id, {'local_file': str(local_file_path)})
             file_size_bytes = local_file_path.stat().st_size
             file_size_mb = file_size_bytes / (1024 * 1024)
             await self.message_queue.add(pip, f'Successfully downloaded and prepared CSV file:\nPath: {local_file_path}\nSize: {file_size_mb:.2f} MB', verbatim=True)
-            
-            # Format the tree display
             dir_tree = self.format_path_as_tree(str(local_file_path.parent))
             tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
             tree_display = pip.tree_display(tree_path)
-            
-            # Create the widget display with revert header
-            display_msg = f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)'
-            widget_display = pip.display_revert_widget(
-                step_id=step_id,
-                app_name=app_name,
-                message=display_msg,
-                widget=tree_display,
-                steps=steps
-            )
-            
-            # Add the next step trigger
-            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-            
-            return Div(widget_display, next_step_trigger, id=step_id)
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)', widget=tree_display, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             return Div(Card(H3('Download Error'), P(f'Error downloading CSV file: {str(e)}', style=pip.get_style('error')), P(f'Download URL: {download_url}'), P(f'Target file: {local_file_path}'), Button('Try Again ▸', type='button', cls='primary', hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
 
@@ -1211,31 +1154,16 @@ class BotifyExport:
                 if job_status == 'DONE':
                     download_url = status_data.get('results', {}).get('download_url')
                     if download_url:
-                        await self.message_queue.add(self.pipulate, 'Export job completed successfully!', verbatim=True)
                         return (True, download_url, None)
                     else:
-                        await self.message_queue.add(self.pipulate, 'Job completed but no download URL found', verbatim=True)
                         return (False, None, 'Job completed but no download URL found')
                 elif job_status == 'FAILED':
-                    error_msg = f"Export job failed: {status_data.get('results')}"
-                    await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
-                    return (False, None, error_msg)
+                    return (False, None, f"Export job failed: {status_data.get('results')}")
                 else:
-                    # Get the current poll count from the state
-                    state = self.pipulate.read_state(self.db.get('pipeline_id', 'unknown'))
-                    step_data = self.pipulate.get_step_data(self.db.get('pipeline_id', 'unknown'), 'step_04', {})
-                    poll_count = step_data.get('poll_count', 0)
-                    
-                    # Calculate next delay using exponential backoff
-                    delay = min(2 * (2 ** poll_count), 30)
-                    
-                    await self.message_queue.add(self.pipulate, f'Export job is still processing... Next check in {delay} seconds.', verbatim=True)
                     return (False, None, None)
         except Exception as e:
-            error_msg = f'Error polling job status: {str(e)}'
-            await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
-            logger.error(error_msg)
-            return (False, None, error_msg)
+            logger.error(f'Error polling job status: {str(e)}')
+            return (False, None, f'Error polling job status: {str(e)}')
 
     def clean_job_id_for_display(self, job_id):
         """
@@ -1328,67 +1256,12 @@ class BotifyExport:
                 pip.write_state(pipeline_id, state)
                 if all([org, project, analysis, depth]):
                     self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
-                await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nStarting download...', verbatim=True)
-                
-                # Automatically trigger download when job completes
-                try:
-                    download_dir = await self.create_download_directory(org, project, analysis)
-                    include_fields = step_data.get('include_fields', {})
-                    fields_suffix = '_'.join((k for k, v in include_fields.items() if v)) or 'url_only'
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f'{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv'
-                    local_file_path = download_dir / filename
-                    
-                    return Div(
-                        Card(
-                            H3('Downloading CSV File'),
-                            P(f'Downloading export to {local_file_path}', cls='mb-4'),
-                            Progress(value='10', max='100', style='width: 100%;'),
-                            P('Please wait, this may take a few minutes for large files...', cls='text-secondary')
-                        ),
-                        hx_get=f'/{app_name}/download_progress',
-                        hx_trigger='load',
-                        hx_target=f'#{step_id}',
-                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
-                        id=step_id
-                    )
-                except Exception as e:
-                    logger.error(f'Error preparing download: {str(e)}')
-                    return P(f'Error preparing download: {str(e)}', style=pip.get_style('error'))
+                await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nThe export is ready for download.', verbatim=True)
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'The export is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
             else:
-                # Get current poll count and calculate next delay
-                poll_count = step_data.get('poll_count', 0) + 1
-                state[step_id]['poll_count'] = poll_count
-                
-                # Calculate delay using exponential backoff with a max of 30 seconds
-                # Start at 2s, double each time, cap at 30s
-                delay = min(2 * (2 ** (poll_count - 1)), 30)
-                
-                # Update state with new poll count
-                pip.write_state(pipeline_id, state)
-                
                 include_fields = step_data.get('include_fields', {})
                 fields_list = ', '.join([k for k, v in include_fields.items() if v]) or 'URL only'
-                return Div(
-                    Card(
-                        H3(f'🔒 {step.show}: Complete ✅'),
-                        P(f'Job ID: {job_id}', cls='mb-2'),
-                        P(f'Exporting URLs up to depth {depth}', cls='mb-2'),
-                        P(f'Including fields: {fields_list}', cls='mb-4'),
-                        Div(
-                            Progress(),
-                            P(f'Checking status automatically... (Next check in {delay}s)', cls='text-muted'),
-                            id='progress-container'
-                        )
-                    ),
-                    cls='polling-status no-chain-reaction',
-                    hx_get=f'/{app_name}/download_job_status',
-                    hx_trigger=f'load delay:{delay}s',
-                    hx_target=f'#{step_id}',
-                    hx_swap='outerHTML',
-                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
-                    id=step_id
-                )
+                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Exporting URLs up to depth {depth}', cls='mb-2'), P(f'Including fields: {fields_list}', cls='mb-4'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
         except Exception as e:
             logger.error(f'Error checking job status: {str(e)}')
             return P(f'Error checking export status: {str(e)}', style=pip.get_style('error'))
