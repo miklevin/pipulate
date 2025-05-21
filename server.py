@@ -37,7 +37,7 @@ import urllib.parse
 
 DEBUG_MODE = False
 STATE_TABLES = False
-TABLE_LIFECYCLE_LOGGING = False  # Set to True manually for targeted table state logging
+TABLE_LIFECYCLE_LOGGING = True  # Set to True manually for targeted table state logging
 
 
 def get_app_name(force_app_name=None):
@@ -162,27 +162,33 @@ def setup_logging():
 
 # Table Lifecycle Logging Helpers
 def _format_records_for_lifecycle_log(records_iterable):
-    """Helper to format records (list of dicts/objects) to a readable JSON string."""
+    """Format records (list of dicts or objects) into a readable JSON string for logging.
+    Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
+    Excludes private attributes for cleaner logs."""
     if not records_iterable:
         return "[] # Empty"
     
     processed_records = []
     for r in records_iterable:
-        if hasattr(r, '__dict__') and not isinstance(r, type):  # Handle dataclass-like objects
-            # Exclude private attributes from fastlite/dataclasses for cleaner logs
+        if hasattr(r, '_asdict'):  # Handles namedtuples from fastlite
+            processed_records.append(r._asdict())
+        elif hasattr(r, '__dict__') and not isinstance(r, type):  # General objects / dataclasses
+            # Filter out SQLAlchemy internal state if present
             processed_records.append({k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')})
         elif isinstance(r, dict):
             processed_records.append(r)
-        else:
-            try:  # Attempt to convert sqlite3.Row or similar to dict
+        elif hasattr(r, 'keys'):  # Handles sqlite3.Row
+            try:
                 processed_records.append(dict(r))
-            except (TypeError, ValueError):
-                processed_records.append(str(r))  # Fallback to string representation
+            except:  # Fallback for other row-like types
+                processed_records.append(dict(zip(r.keys(), r)))
+        else:
+            processed_records.append(str(r))  # Fallback
     
     try:
-        return json.dumps(processed_records, indent=2, default=str)  # default=str for datetime, etc.
+        return json.dumps(processed_records, indent=2, default=str)
     except Exception as e:
-        return f"[Error formatting records: {e}] Original: {str(processed_records)}"
+        return f"[Error formatting records for JSON: {e}] Processed: {str(processed_records)}"
 
 def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ""):
     """Logs state of a table obtained via a callable (e.g., fastlite table object)."""
@@ -1955,7 +1961,11 @@ async def synchronize_roles_to_db():
 
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info(f"SYNC_ROLES: Starting for profile_id: {current_profile_id}.")
-        log_dynamic_table_state("roles", lambda: roles_table_handler(profile_id=current_profile_id), title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) BEFORE")
+        log_dynamic_table_state(
+            "roles",
+            lambda pid=current_profile_id: roles_table_handler(where="profile_id = ?", where_args=(pid,)),
+            title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) BEFORE"
+        )
 
     logger.debug(f'SYNC_ROLES: Synchronizing roles for profile_id: {current_profile_id}')
     discovered_roles_set = set()
@@ -2040,7 +2050,11 @@ async def synchronize_roles_to_db():
 
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info(f"SYNC_ROLES: Finished for profile_id: {current_profile_id}.")
-        log_dynamic_table_state("roles", lambda: roles_table_handler(profile_id=current_profile_id), title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) AFTER")
+        log_dynamic_table_state(
+            "roles",
+            lambda pid=current_profile_id: roles_table_handler(where="profile_id = ?", where_args=(pid,)),
+            title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) AFTER"
+        )
 
 
 def discover_plugin_files():
@@ -2351,62 +2365,110 @@ async def clear_pipeline(request):
 
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
-    """Developer tools endpoint - fully resets the database to initial state.
-    Only accessible in development environment."""
-    logger.debug('Dev tools endpoint accessed - performing complete database reset')
-    log.warning('Starting complete database reset', 'This will recreate an empty database')
+    """Reset the entire database to its initial state."""
+    # Log initial state if lifecycle logging is enabled
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: Starting database reset...")
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB INITIAL")
+        log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="CLEAR_DB INITIAL")
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB INITIAL")
+
+    # Preserve some values we want to restore
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
-    keys = list(db.keys())
-    for key in keys:
-        del db[key]
-    log.warning('DictLikeDB cleared', f'Deleted {len(keys)} keys')
-    if hasattr(pipulate.table, 'xtra'):
-        pipulate.table.xtra()
-    records = list(pipulate.table())
-    for record in records:
-        pipulate.table.delete(record.pkey)
-    log.warning('Pipeline table cleared', f'Deleted {len(records)} records')
-    profile_records = list(profiles())
-    profile_count = len(profile_records)
-    for profile in profile_records:
-        profiles.delete(profile.id)
-    log.warning('Profiles table cleared', f'Deleted {profile_count} records')
-    import sqlite3
+    temp_message = db.get('temp_message')
+
+    # Pre-wipe logging for plugin tables using raw SQL
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: Table states BEFORE plugin table wipe:")
+        try:
+            conn_temp = sqlite3.connect(DB_FILENAME)
+            conn_temp.row_factory = sqlite3.Row
+            cursor_temp = conn_temp.cursor()
+            cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+            plugin_table_names_tuples = cursor_temp.fetchall()
+            for table_name_tuple in plugin_table_names_tuples:
+                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix="CLEAR_DB PRE-WIPE")
+            conn_temp.close()
+        except Exception as e_plugin_log_pre:
+            logger.bind(lifecycle=True).error(f"CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}")
+
+    # Clear core tables
     try:
-        logger.debug(f'Using database file: {DB_FILENAME}')
-        conn = sqlite3.connect(DB_FILENAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
-        plugin_tables = cursor.fetchall()
-        table_names = [table[0] for table in plugin_tables]
-        log.warning('Found plugin tables', f"Tables to clear: {', '.join(table_names)}")
-        cleared_count = 0
-        for table_name, in plugin_tables:
-            try:
-                cursor.execute(f'SELECT count(*) FROM {table_name}')
-                row_count = cursor.fetchone()[0]
-                cursor.execute(f'DELETE FROM {table_name}')
-                log.warning(f"Plugin table '{table_name}' cleared", f'Deleted {row_count} records')
-                cleared_count += 1
-                cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
-            except Exception as e:
-                log.error(f'Error clearing table {table_name}', str(e))
-        conn.commit()
-        log.warning('Plugin tables cleanup complete', f'Cleared {cleared_count} tables')
-        conn.close()
+        with sqlite3.connect(DB_FILENAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM store')
+            cursor.execute('DELETE FROM pipeline')
+            cursor.execute('DELETE FROM profile')
+            cursor.execute('DELETE FROM sqlite_sequence')
+            conn.commit()
     except Exception as e:
-        log.error('Error accessing SQLite database', str(e))
+        logger.error(f'Error clearing core tables: {e}')
+        return HTMLResponse(f'Error clearing database: {e}', status_code=500)
+
+    # Clear plugin tables with explicit transaction handling
+    logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {DB_FILENAME}')
+    try:
+        with sqlite3.connect(DB_FILENAME) as conn_delete:
+            cursor_delete = conn_delete.cursor()
+            cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+            plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
+            
+            logger.warning(f'Found plugin tables for deletion: {", ".join(plugin_table_names_to_delete)}')
+            cleared_count = 0
+            for table_name in plugin_table_names_to_delete:
+                try:
+                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')
+                    row_count_before_delete = cursor_delete.fetchone()[0]
+                    cursor_delete.execute(f'DELETE FROM {table_name}')
+                    conn_delete.commit()  # Commit after each delete for plugin tables
+                    
+                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')  # Verify
+                    row_count_after_delete = cursor_delete.fetchone()[0]
+                    
+                    logger.warning(f"Plugin table '{table_name}' cleared: Deleted {row_count_before_delete - row_count_after_delete} records (had {row_count_before_delete})")
+                    if TABLE_LIFECYCLE_LOGGING:
+                        logger.bind(lifecycle=True).info(f"CLEAR_DB: Wiped plugin table '{table_name}'. Rows before: {row_count_before_delete}, Rows after: {row_count_after_delete}")
+
+                    cleared_count += 1
+                    # Attempt to reset sequence, ignore common error if table doesn't use it
+                    try:
+                        cursor_delete.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
+                        conn_delete.commit()
+                    except sqlite3.OperationalError as e_seq:
+                        if "no such table: sqlite_sequence" not in str(e_seq).lower():
+                            logger.error(f'Error resetting sequence for table {table_name}: {e_seq}')
+                except Exception as e_table_clear:
+                    logger.error(f'Error clearing table {table_name}: {e_table_clear}')
+            logger.warning(f'Plugin tables cleanup complete: Cleared {cleared_count} tables')
+    except Exception as e_db_access:
+        logger.error(f'Error accessing SQLite database for plugin table deletion: {e_db_access}')
+        if TABLE_LIFECYCLE_LOGGING:
+            logger.bind(lifecycle=True).error(f"CLEAR_DB: Critical error during plugin table deletion: {e_db_access}")
+
+    # Re-initialize data
     populate_initial_data()
-    log.startup('Database reset to initial state', 'Default profile created')
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: After populate_initial_data.")
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB POST-POPULATE")
+    
     await synchronize_roles_to_db()
-    log.startup('Roles synchronized', 'All plugin roles added to database')
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: After synchronize_roles_to_db.")
+
+    # Restore preserved values
     if last_app_choice:
         db['last_app_choice'] = last_app_choice
     if last_visited_url:
         db['last_visited_url'] = last_visited_url
-    db['temp_message'] = 'Database completely reset to initial state. All data has been cleared and a fresh default profile has been created.'
-    log.startup('Database reset confirmation message set', 'Will display after page reload')
+    if temp_message:
+        db['temp_message'] = temp_message
+
+    # Log final state
+    if TABLE_LIFECYCLE_LOGGING:
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB FINAL (post key restoration)")
+        logger.bind(lifecycle=True).info("CLEAR_DB: Operation fully complete.")
+
     html_response = HTMLResponse('<div>Database reset complete</div>')
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
