@@ -32,8 +32,8 @@ README.md
 # requirements.txt
 server.py
 /home/mike/repos/pipulate/plugins/050_botify_csv_downloader.py
-/home/mike/repos/pipulate/plugins/040_parameter_buster.py
-/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/static/styles.css
 # /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
