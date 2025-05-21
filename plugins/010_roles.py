@@ -12,6 +12,16 @@ from server import DB_FILENAME, BaseCrud
 
 ROLES = []
 
+# Define the standard order of roles
+ROLE_ORDER = {
+    'Core': 0,
+    'Botify Employee': 1,
+    'Tutorial': 2,
+    'Developer': 3,
+    'Components': 4,
+    'Workshop': 5,
+}
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
@@ -79,18 +89,9 @@ class CrudCustomizer(BaseCrud):
         current_profile_id = self.plugin.db_dictlike.get("last_profile_id", 1)
         logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.name}")
 
-        # Define the desired order of roles
-        role_order = {
-            'Core': 0,
-            'Botify Employee': 1,
-            'Tutorial': 2,
-            'Developer': 3,
-            'SEO Practitioner': 4
-        }
-
         # If this is one of our predefined roles, use its specific priority
-        if text in role_order:
-            priority = role_order[text]
+        if text in ROLE_ORDER:
+            priority = ROLE_ORDER[text]
         else:
             # For any other roles, add them after the predefined ones
             items_for_profile = self.table("profile_id = ?", [current_profile_id])
@@ -184,20 +185,11 @@ class CrudUI(PluginIdentityManager):
 
     def initialize_roles(self, profile_id):
         """Initialize roles in the correct order, preserving existing states."""
-        # Define the desired order of roles
-        role_order = [
-            'Core',
-            'Botify Employee',
-            'Tutorial',
-            'Developer',
-            'SEO Practitioner'
-        ]
-
         # Get existing roles and their states
         existing_roles = {role.text: role for role in self.table("profile_id = ?", [profile_id])}
 
         # Insert or update roles in the desired order
-        for priority, role_name in enumerate(role_order):
+        for role_name, priority in ROLE_ORDER.items():
             if role_name in existing_roles:
                 # Update priority for existing role
                 existing_role = existing_roles[role_name]
@@ -236,7 +228,11 @@ class CrudUI(PluginIdentityManager):
         logger.debug(f"Landing page using profile_id: {current_profile_id}")
 
         items_query = self.table(where=f"profile_id = {current_profile_id}")
-        items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
+        # Sort items by priority, with predefined roles taking precedence
+        items = sorted(items_query, key=lambda item: (
+            ROLE_ORDER.get(item.text, float('inf')),  # Predefined roles first, in ROLE_ORDER
+            float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf')  # Then by priority
+        ))
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
         return Div(
