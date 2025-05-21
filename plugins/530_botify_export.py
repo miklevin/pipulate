@@ -984,20 +984,30 @@ class BotifyExport:
             project = step_data.get('project')
             analysis = step_data.get('analysis')
             depth = step_data.get('depth')
-            state[step_id]['local_file'] = str(local_file_path)
+            if step_id not in state:
+                state[step_id] = {}
+            state[step_id].update({
+                'local_file': str(local_file_path),
+                'status': 'DONE',
+                'export_url': str(local_file_path)
+            })
+            # Set the step.done value to mark the step as complete
+            state[step_id][step.done] = str(local_file_path)
             pip.write_state(pipeline_id, state)
             if job_id and all([org, project, analysis, depth]):
                 self.update_export_job(org, project, analysis, depth, job_id, {'local_file': str(local_file_path)})
             file_size_bytes = local_file_path.stat().st_size
             file_size_mb = file_size_bytes / (1024 * 1024)
             await self.message_queue.add(pip, f'Successfully downloaded and prepared CSV file:\nPath: {local_file_path}\nSize: {file_size_mb:.2f} MB', verbatim=True)
+            
+            # Format the tree display
             dir_tree = self.format_path_as_tree(str(local_file_path.parent))
             tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
             tree_display = pip.tree_display(tree_path)
             
-            # Use standard display_revert_widget pattern
+            # Create the widget display with revert header
             display_msg = f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)'
-            content_container = pip.display_revert_widget(
+            widget_display = pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
                 message=display_msg,
@@ -1005,16 +1015,10 @@ class BotifyExport:
                 steps=steps
             )
             
-            # Return with chain reaction for finalize
-            return Div(
-                content_container,
-                Div(
-                    id=next_step_id,
-                    hx_get=f'/{app_name}/{next_step_id}',
-                    hx_trigger='stepComplete-step_04 from:step_04'
-                ),
-                id=step_id
-            )
+            # Add the next step trigger
+            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+            
+            return Div(widget_display, next_step_trigger, id=step_id)
         except Exception as e:
             return Div(Card(H3('Download Error'), P(f'Error downloading CSV file: {str(e)}', style=pip.get_style('error')), P(f'Download URL: {download_url}'), P(f'Target file: {local_file_path}'), Button('Try Again ▸', type='button', cls='primary', hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
 
