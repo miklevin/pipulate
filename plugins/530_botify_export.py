@@ -6,6 +6,7 @@ from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+import uuid
 
 import httpx
 from fasthtml.common import *
@@ -13,7 +14,7 @@ from loguru import logger
 
 ROLES = ['Developer']
 '\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
-EXPORT_REGISTRY_FILE = Path('downloads/export_registry.json')
+EXPORT_REGISTRY_FILE = Path('downloads/botify_csv/export_registry.json')
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
@@ -796,7 +797,7 @@ class BotifyExport:
 
     async def create_download_directory(self, org, project, analysis):
         """Create a nested directory structure for downloads"""
-        download_path = Path('downloads') / org / project / analysis
+        download_path = Path('downloads/botify_csv') / org / project / analysis
         download_path.mkdir(parents=True, exist_ok=True)
         return download_path
 
@@ -1460,3 +1461,69 @@ def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
     except Exception as e:
         logging.error(f'Error loading CSV {Path(file_path).name}: {e}')
         return None
+
+def ensure_directories():
+    """Ensure all required directories exist."""
+    base_dir = Path('downloads/botify_csv')
+    base_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create registry directory
+    registry_dir = base_dir / 'registry'
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create exports directory
+    exports_dir = base_dir / 'exports'
+    exports_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create downloads directory
+    downloads_dir = base_dir / 'downloads'
+    downloads_dir.mkdir(parents=True, exist_ok=True)
+    
+    return {
+        'base': base_dir,
+        'registry': registry_dir,
+        'exports': exports_dir,
+        'downloads': downloads_dir
+    }
+
+def create_export_job(project_url, analysis_id, depth, fields):
+    """Create a new export job."""
+    job_id = str(uuid.uuid4())
+    job = {
+        'id': job_id,
+        'project_url': project_url,
+        'analysis_id': analysis_id,
+        'depth': depth,
+        'fields': fields,
+        'status': 'pending',
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat()
+    }
+    
+    # Save job to registry
+    registry = load_export_registry()
+    registry[job_id] = job
+    save_export_registry(registry)
+    
+    return job
+
+def update_export_job(job_id, status, download_url=None):
+    """Update an export job's status."""
+    registry = load_export_registry()
+    if job_id in registry:
+        registry[job_id]['status'] = status
+        registry[job_id]['updated_at'] = datetime.now().isoformat()
+        if download_url:
+            registry[job_id]['download_url'] = download_url
+        save_export_registry(registry)
+        return registry[job_id]
+    return None
+
+def get_export_job(job_id):
+    """Get an export job by ID."""
+    registry = load_export_registry()
+    return registry.get(job_id)
+
+def list_export_jobs():
+    """List all export jobs."""
+    return load_export_registry()

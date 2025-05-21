@@ -4,7 +4,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Core', 'SEO Practitioner', 'Botify Employee', 'Developer', 'Tutorial']
+ROLES = ['Developer', 'Tutorial']
 
 """
 Pipulate Workflow Template (Hello World Example)
