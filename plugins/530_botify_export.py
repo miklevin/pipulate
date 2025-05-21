@@ -994,7 +994,27 @@ class BotifyExport:
             dir_tree = self.format_path_as_tree(str(local_file_path.parent))
             tree_path = f"{dir_tree}\n{'    ' * len(local_file_path.parent.parts)}└─{local_file_path.name}"
             tree_display = pip.tree_display(tree_path)
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)', widget=tree_display, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            
+            # Use standard display_revert_widget pattern
+            display_msg = f'{step.show}: CSV downloaded ({file_size_mb:.2f} MB)'
+            content_container = pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message=display_msg,
+                widget=tree_display,
+                steps=steps
+            )
+            
+            # Return with chain reaction for finalize
+            return Div(
+                content_container,
+                Div(
+                    id=next_step_id,
+                    hx_get=f'/{app_name}/{next_step_id}',
+                    hx_trigger='stepComplete-step_04 from:step_04'
+                ),
+                id=step_id
+            )
         except Exception as e:
             return Div(Card(H3('Download Error'), P(f'Error downloading CSV file: {str(e)}', style=pip.get_style('error')), P(f'Download URL: {download_url}'), P(f'Target file: {local_file_path}'), Button('Try Again ▸', type='button', cls='primary', hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), id=step_id)
 
