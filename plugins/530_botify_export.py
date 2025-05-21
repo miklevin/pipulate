@@ -14,7 +14,6 @@ from loguru import logger
 
 ROLES = ['Developer']
 '\n=============================================================================\nBotify CSV Export Workflow\n=============================================================================\n\nCore functionality for exporting Botify data to CSV files with:\n- Project URL validation\n- Analysis selection\n- Depth calculation\n- Field selection\n- Export job management\n- Download handling\n\nThe workflow is organized into these main sections:\n1. Core Setup & Configuration\n2. Step Handlers (step_01 through step_04)\n3. Export Job Management\n4. File & Directory Management\n5. API Integration\n6. UI Helper Functions\n7. State Management\n'
-EXPORT_REGISTRY_FILE = Path('downloads/botify_csv/export_registry.json')
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
@@ -120,6 +119,7 @@ class BotifyExport:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
+        self.EXPORT_REGISTRY_FILE = Path(f'downloads/{self.app_name}/export_registry.json')
         steps = [Step(id='step_01', done='url', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis', show='Analysis Selection', refill=False), Step(id='step_03', done='depth', show='Maximum Click Depth', refill=False), Step(id='step_04', done='export_url', show='CSV Export', refill=False)]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
@@ -731,8 +731,8 @@ class BotifyExport:
     def load_export_registry(self):
         """Load the export registry from file"""
         try:
-            if EXPORT_REGISTRY_FILE.exists():
-                with open(EXPORT_REGISTRY_FILE, 'r') as f:
+            if self.EXPORT_REGISTRY_FILE.exists():
+                with open(self.EXPORT_REGISTRY_FILE, 'r') as f:
                     return json.load(f)
             return {}
         except Exception as e:
@@ -742,8 +742,8 @@ class BotifyExport:
     def save_export_registry(self, registry):
         """Save the export registry to file"""
         try:
-            EXPORT_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(EXPORT_REGISTRY_FILE, 'w') as f:
+            self.EXPORT_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.EXPORT_REGISTRY_FILE, 'w') as f:
                 json.dump(registry, f, indent=2)
         except Exception as e:
             logger.error(f'Error saving export registry: {e}')
@@ -797,7 +797,7 @@ class BotifyExport:
 
     async def create_download_directory(self, org, project, analysis):
         """Create a nested directory structure for downloads"""
-        download_path = Path('downloads/botify_csv') / org / project / analysis
+        download_path = Path(f'downloads/{self.app_name}') / org / project / analysis
         download_path.mkdir(parents=True, exist_ok=True)
         return download_path
 
@@ -1464,7 +1464,7 @@ def load_csv_with_options(self, file_path, skip_rows=0, encoding='utf-8'):
 
 def ensure_directories():
     """Ensure all required directories exist."""
-    base_dir = Path('downloads/botify_csv')
+    base_dir = Path(f'downloads/{self.app_name}')
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Create registry directory
