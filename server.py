@@ -37,6 +37,7 @@ import urllib.parse
 
 DEBUG_MODE = False
 STATE_TABLES = False
+TABLE_LIFECYCLE_LOGGING = False  # Set to True manually for targeted table state logging
 
 
 def get_app_name(force_app_name=None):
@@ -97,33 +98,130 @@ def set_current_environment(environment):
 
 
 def setup_logging():
-    """Set up unified logging between console and file with synchronized formats.
-
-    Designed to:
-    1. Default to INFO level (quiet but informative)
-    2. Use consistent formatting between console and file
-    3. Enable easy switching to DEBUG via the DEBUG_MODE constant
-    4. Keep a single log file that's reset on server restart
-    """
-    logger.remove()
+    """Set up unified logging between console, file, and optional lifecycle log."""
+    logger.remove()  # Standard Loguru practice to remove default handlers
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
+    
     app_log_path = logs_dir / f'{APP_NAME}.log'
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
+
+    # Clear main app log on server restart
     if app_log_path.exists():
         app_log_path.unlink()
     for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
-        try:
-            old_log.unlink()
-        except Exception as e:
-            print(f'Failed to delete old log file {old_log}: {e}')
+        try: old_log.unlink()
+        except Exception as e: print(f'Failed to delete old log file {old_log}: {e}')
+
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
-    logger.add(app_log_path, level=log_level, format=f'{time_format} | {message_format}', enqueue=True)
-    logger.add(sys.stderr, level=log_level, format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', colorize=True, filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'])))
+    
+    # Main application log (file)
+    logger.add(
+        app_log_path, 
+        level=log_level, 
+        format=f'{time_format} | {message_format}', 
+        enqueue=True
+    )
+    
+    # Console log (stderr)
+    logger.add(
+        sys.stderr, 
+        level=log_level, 
+        format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', 
+        colorize=True, 
+        filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role']))
+    )
+
     if STATE_TABLES:
-        logger.info(f'🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed)')
-    return logger
+        logger.info(f'🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed on console)')
+
+    # Dedicated Table Lifecycle Log Sink
+    if TABLE_LIFECYCLE_LOGGING:
+        lifecycle_log_path = logs_dir / 'table_lifecycle.log'
+        if lifecycle_log_path.exists():
+            lifecycle_log_path.unlink()  # Clear on each server start
+
+        def lifecycle_filter(record):
+            return record["extra"].get("lifecycle") is True
+
+        logger.add(
+            lifecycle_log_path,
+            level="INFO",  # Capture INFO and above for this specific log
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {message}",  # Simpler format for this log
+            filter=lifecycle_filter,
+            enqueue=True,
+            rotation="10 MB"  # Optional: manage log file size
+        )
+        # Use a bound logger to announce activation to the lifecycle log itself
+        logger.bind(lifecycle=True).info("TABLE_LIFECYCLE_LOGGING ENABLED. This log will show table states at critical points.")
+        # Also announce to main log for general awareness
+        logger.info("📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log")
+        
+    return logger  # Return the configured Loguru logger instance
+
+# Table Lifecycle Logging Helpers
+def _format_records_for_lifecycle_log(records_iterable):
+    """Helper to format records (list of dicts/objects) to a readable JSON string."""
+    if not records_iterable:
+        return "[] # Empty"
+    
+    processed_records = []
+    for r in records_iterable:
+        if hasattr(r, '__dict__') and not isinstance(r, type):  # Handle dataclass-like objects
+            # Exclude private attributes from fastlite/dataclasses for cleaner logs
+            processed_records.append({k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')})
+        elif isinstance(r, dict):
+            processed_records.append(r)
+        else:
+            try:  # Attempt to convert sqlite3.Row or similar to dict
+                processed_records.append(dict(r))
+            except (TypeError, ValueError):
+                processed_records.append(str(r))  # Fallback to string representation
+    
+    try:
+        return json.dumps(processed_records, indent=2, default=str)  # default=str for datetime, etc.
+    except Exception as e:
+        return f"[Error formatting records: {e}] Original: {str(processed_records)}"
+
+def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ""):
+    """Logs state of a table obtained via a callable (e.g., fastlite table object)."""
+    if not TABLE_LIFECYCLE_LOGGING:
+        return
+    try:
+        records = list(data_source_callable())  # Execute the callable to get records
+        content = _format_records_for_lifecycle_log(records)
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' ---\n{content}\n--- End Snapshot '{table_name}' ---")
+    except Exception as e:
+        logger.bind(lifecycle=True).error(f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+
+def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ""):
+    """Logs state of a DictLikeDB instance."""
+    if not TABLE_LIFECYCLE_LOGGING:
+        return
+    try:
+        items = dict(db_instance.items())
+        content = json.dumps(items, indent=2, default=str)
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n{content}\n--- End Snapshot '{db_name}' ---")
+    except Exception as e:
+        logger.bind(lifecycle=True).error(f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+
+def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ""):
+    """Logs state of a table using a raw SQL query via provided sqlite3 connection."""
+    if not TABLE_LIFECYCLE_LOGGING:
+        return
+    original_row_factory = db_conn.row_factory
+    db_conn.row_factory = sqlite3.Row  # Ensure we can convert rows to dicts
+    try:
+        cursor = db_conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name}")
+        rows = cursor.fetchall()
+        content = _format_records_for_lifecycle_log(rows)
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n{content}\n--- End Snapshot '{table_name}' (Raw SQL) ---")
+    except Exception as e:
+        logger.bind(lifecycle=True).error(f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+    finally:
+        db_conn.row_factory = original_row_factory  # Restore original row factory
 
 
 logger = setup_logging()
@@ -1771,7 +1869,12 @@ logger.debug('Database wrapper initialized.')
 
 
 def populate_initial_data():
-    """Populate initial data in the database if it doesn't exist."""
+    """Populate initial data in the database."""
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("POPULATE_INITIAL_DATA: Starting.")
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="POPULATE_INITIAL_DATA: Profiles BEFORE")
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="POPULATE_INITIAL_DATA: db BEFORE")
+
     if not profiles():
         default_profile_name_for_db_entry = 'Default Profile'
         existing_default_list = list(profiles('name=?', (default_profile_name_for_db_entry,)))
@@ -1805,6 +1908,11 @@ def populate_initial_data():
     if 'profile_locked' not in db:
         db['profile_locked'] = '0'
         logger.debug("Initialized profile_locked to '0'")
+
+    if TABLE_LIFECYCLE_LOGGING:
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="POPULATE_INITIAL_DATA: Profiles AFTER")
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="POPULATE_INITIAL_DATA: db AFTER")
+        logger.bind(lifecycle=True).info("POPULATE_INITIAL_DATA: Finished.")
 
 
 populate_initial_data()
@@ -1844,6 +1952,11 @@ async def synchronize_roles_to_db():
         except ValueError:
             logger.error(f"SYNC_ROLES: Invalid profile_id '{current_profile_id_str}' found in db. Skipping.")
             return
+
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info(f"SYNC_ROLES: Starting for profile_id: {current_profile_id}.")
+        log_dynamic_table_state("roles", lambda: roles_table_handler(profile_id=current_profile_id), title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) BEFORE")
+
     logger.debug(f'SYNC_ROLES: Synchronizing roles for profile_id: {current_profile_id}')
     discovered_roles_set = set()
     for plugin_key, plugin_instance_obj in plugin_instances.items():
@@ -1924,6 +2037,10 @@ async def synchronize_roles_to_db():
         console.print(roles_rich_table)
         console.print('\n')
         logger.info(f'SYNC_ROLES: Roles synchronization display complete for profile_id {current_profile_id}.')
+
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info(f"SYNC_ROLES: Finished for profile_id: {current_profile_id}.")
+        log_dynamic_table_state("roles", lambda: roles_table_handler(profile_id=current_profile_id), title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) AFTER")
 
 
 def discover_plugin_files():
@@ -2133,7 +2250,16 @@ additional_menu_items = []
 
 @app.on_event('startup')
 async def startup_event():
-    await synchronize_roles_to_db()
+    """Initialize the application on startup."""
+    logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.")
+    await synchronize_roles_to_db()  # synchronize_roles_to_db will have its own lifecycle logging
+    logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:")
+    log_dictlike_db_to_lifecycle("db", db, title_prefix="STARTUP FINAL")
+    log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="STARTUP FINAL")
+    log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="STARTUP FINAL")
+    # Roles are best logged from within synchronize_roles_to_db due to profile context
+
+
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
