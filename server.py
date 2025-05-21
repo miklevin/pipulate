@@ -2705,25 +2705,25 @@ def get_intro_page_content(page_num_str: str):
     card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
     if page_num == 1:
         title = f'Welcome to {APP_NAME}'
-        intro = f"Here's the layout:"
-        features = [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client/Customer profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')]
+        intro = f"Layout:"
+        features = [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')]
         getting_started = 'Getting Started'
         nav_help = f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.'
-        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click Next ▸'
-        content = Card(H2(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
+        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'
+        content = Card(H2(title), H4(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
         return (content, llm_context)
     elif page_num == 2:
-        experimenting_title = 'Experimenting'
-        experimenting_steps = ['Stay on DEV mode at first. Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable. That\'s what DEV mode is for', 'Add profiles. Rerrange them. Check and uncheck them. Look at effect on PROFILE menu.', 'Change what APPs show by going to Roles and checking or unchecking Tutorials, Developer, etc. Look at the effect on the APP menu.']
+        experimenting_title = 'Positive First Experience'
+        experimenting_steps = ['You can do no harm in DEV mode. Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.']
         interface_title = 'Understanding the Interface'
-        interface_items = [('PROFILE menu', 'Set up real Clients in Prod mode. Use nicknames (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APP menu', 'Try the Tasks app. Tasks are kept separate for each profile, so each Client gets their own To-Do list.'), ('Parameter Buster', 'The first ready-to-use workflow. Try it!')]
+        interface_items = [('PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APPS', 'Try Parameter Buster on your Client. It\'s a big potential win.')]
         content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')
         llm_context = f"The user is viewing the Experimenting page which shows:\n\n{experimenting_title}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(experimenting_steps)))}\n\n{interface_title}\n{chr(10).join((f'• {name}: {desc}' for name, desc in interface_items))}"
         return (content, llm_context)
     elif page_num == 3:
         title = 'Tips for Effective Use'
-        tips = [('Connect With Botify', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('Delete Workflows', 'Workflows are easily re-created. They are disposable. So if you lost a particular workflow, just make it again with the same inputs. 🤯'), ('Side Effects', 'Anything you do that crawls sites or downloads files like CSVs stays on the machine even if you delete workflows and will re-attach given the same inputs — more reason to be fine with deleting workflows.'), ('Lock PROFILE', 'Lock the profile (under 🤖 in lower-right corner) to avoid any chance of showing other Clinet names.'), ('Surfing Files', 'All the side-effect downloads go into the Downloads in the folder you ran this from. You can surf there and see the files.')]
+        tips = [('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'), ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'), ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'), ('BROWSE', 'Go look where things are saved.')]
         content = Card(
             H3(title), 
             Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]),

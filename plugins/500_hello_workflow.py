@@ -4,7 +4,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Tutorial', 'Developer']
+ROLES = ['Core']
 
 """
 Pipulate Workflow Template (Hello World Example)
@@ -122,7 +122,7 @@ class HelloFlow:
     """
     APP_NAME = 'hello'
     DISPLAY_NAME = 'Hello Workflow'
-    ENDPOINT_MESSAGE = 'Press Enter to start a new Workflow with this Key. Keys are arbitrary. Key standard is: Profile_Name-App_Name-XX'
+    ENDPOINT_MESSAGE = 'Start a new Workflow. Keys are automaticly PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
@@ -262,11 +262,11 @@ class HelloFlow:
         finalize_data = pip.get_step_data(pipeline_id, finalize_step.id, {})
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
-                return Card(H3('Workflow is locked.'), P('You can unlock the workflow to make changes.', style=pip.get_style('muted')), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                return Card(H3('Workflow is locked.'), P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', style=pip.get_style('muted')), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes. Or clear the Key and press Enter for a new Workflow. Or toggle the lock.', style=pip.get_style('muted')), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
+                    return Card(H3('All steps complete. Finalize?'), P('At the end they get locked. Or you can go back.', style=pip.get_style('muted')), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container', hx_swap='outerHTML'), id=finalize_step.id)
                 else:
                     return Div(id=finalize_step.id)
         else:
@@ -362,7 +362,7 @@ class HelloFlow:
             form_msg = 'Showing name input form. No name has been entered yet.'
             await self.message_queue.add(pip, form_msg, verbatim=True)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = "Workflows are like Python Notebooks where you don't have to look at the code to use it. Here we just collect some data."
+            explanation = "Workflows are like Python Notebooks with no code. Let's collect some data..."
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
@@ -435,7 +435,7 @@ class HelloFlow:
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P("Here we simply piped the output of the last step into the input for this step. That's all this workflow does.", style=pip.get_style('muted')), Form(pip.wrap_with_inline_button(Input(type='text', name=step.done, value=display_value, placeholder=f'{step.show} (generated)', required=True, autofocus=True, _onfocus='this.setSelectionRange(this.value.length, this.value.length)'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
+            return Div(Card(H3(f'{pip.fmt(step.id)}: Enter {step.show}'), P("That's it! Workflows just compel you from one step to the Next ▸", style=pip.get_style('muted')), Form(pip.wrap_with_inline_button(Input(type='text', name=step.done, value=display_value, placeholder=f'{step.show} (generated)', required=True, autofocus=True, _onfocus='this.setSelectionRange(this.value.length, this.value.length)'), button_label='Next ▸'), hx_post=f'/{app_name}/{step.id}_submit', hx_target=f'#{step.id}')), Div(id=next_step_id), id=step.id)
 
     async def step_02_submit(self, request):
         """ Handles POST submission for Step 2: Validates, saves state, returns navigation. """
