@@ -11,7 +11,7 @@ from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
 
-ROLES = ['Developer']
+ROLES = ['Components']
 '\nFile Upload Widget Workflow\n\nThis workflow demonstrates a widget that allows users to upload files to the server.\nFiles are saved in a designated directory with proper organization and tracking.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 

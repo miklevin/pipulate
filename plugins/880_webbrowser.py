@@ -8,7 +8,7 @@ from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
 
-ROLES = ['Developer']
+ROLES = ['Components']
 '\nPipulate Webbrowser URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in the default system browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 

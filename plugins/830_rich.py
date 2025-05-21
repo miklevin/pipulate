@@ -7,7 +7,7 @@ from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
 
-ROLES = ['Developer']
+ROLES = ['Components']
 '\nPipulate Rich Table Widget Workflow\nA workflow for demonstrating the Rich Table widget with beautiful styling.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 

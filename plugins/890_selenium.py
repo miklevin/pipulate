@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
 from webdriver_manager.chrome import ChromeDriverManager
 
-ROLES = ['Developer']
+ROLES = ['Components']
 '\nPipulate Selenium URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 

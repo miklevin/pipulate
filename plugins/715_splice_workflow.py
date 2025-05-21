@@ -5,7 +5,7 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Developer']
+ROLES = ['Components']
 '\nPipulate Workflow Template\nA guide for creating multi-step workflows with proper chain reaction behavior.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
