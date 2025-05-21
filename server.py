@@ -37,7 +37,7 @@ import urllib.parse
 
 DEBUG_MODE = False
 STATE_TABLES = False
-TABLE_LIFECYCLE_LOGGING = True  # Set to True manually for targeted table state logging
+TABLE_LIFECYCLE_LOGGING = False  # Set to True manually for targeted table state logging
 
 
 def get_app_name(force_app_name=None):
@@ -2705,11 +2705,11 @@ def get_intro_page_content(page_num_str: str):
     card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
     if page_num == 1:
         title = f'Welcome to {APP_NAME}'
-        intro = f"Here's how {APP_NAME} works:"
-        features = [('PROFILE', 'Manage your different Customers or Clients. Each profile is a separate workspace.'), ('APP', 'Access various tools and workflows, like To-Do lists and the Parameter Buster.'), ('DEV/Prod', "Switch between 'Development' for testing and 'Production' for live work.")]
+        intro = f"Here's the layout:"
+        features = [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client/Customer profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')]
         getting_started = 'Getting Started'
-        nav_help = 'Navigate using the PROFILE and APP menus in the upper right. Your selections are shown in the breadcrumb headline above. The idea is to do something for each PROFILE with each APP.'
-        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you.'
+        nav_help = f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.'
+        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click Next ▸'
         content = Card(H2(title), P(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
         return (content, llm_context)
@@ -3136,5 +3136,3 @@ def run_server_with_watchdog():
 
 if __name__ == '__main__':
     run_server_with_watchdog()
-
-
