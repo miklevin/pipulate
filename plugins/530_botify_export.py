@@ -1197,7 +1197,15 @@ class BotifyExport:
                     await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
                     return (False, None, error_msg)
                 else:
-                    await self.message_queue.add(self.pipulate, 'Export job is still processing... Checking status in 2 seconds.', verbatim=True)
+                    # Get the current poll count from the state
+                    state = self.pipulate.read_state(self.db.get('pipeline_id', 'unknown'))
+                    step_data = self.pipulate.get_step_data(self.db.get('pipeline_id', 'unknown'), 'step_04', {})
+                    poll_count = step_data.get('poll_count', 0)
+                    
+                    # Calculate next delay using exponential backoff
+                    delay = min(2 * (2 ** poll_count), 30)
+                    
+                    await self.message_queue.add(self.pipulate, f'Export job is still processing... Next check in {delay} seconds.', verbatim=True)
                     return (False, None, None)
         except Exception as e:
             error_msg = f'Error polling job status: {str(e)}'
