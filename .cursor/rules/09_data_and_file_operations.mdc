@@ -1,5 +1,11 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
+
+## description: Handling data persistence with MiniDataAPI, DictLikeDB, and managing file uploads/downloads. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
+
 
 ## description: Handling data persistence with MiniDataAPI, DictLikeDB, and managing file uploads/downloads. globs: ["pipulate/plugins/*.py", "server.py"] alwaysApply: true
 
@@ -81,7 +87,43 @@ The schema is defined in `server.py` during `fast_app` initialization.
   * **Storage**: Conventionally, save to `downloads/{APP_NAME}/{pipeline_id}/{filename}`.
   * **State**: Store file metadata (path, name, size, type) in the workflow step's state.
 
-## 6. File Downloads
+## 6. Plugin-Specific Download Directories
+
+  * **Namespace Isolation**: Each plugin's `APP_NAME` creates its own namespace within the `downloads/` directory.
+    ```python
+    # Example directory structure:
+    downloads/
+      botify_csv/           # Plugin APP_NAME namespace
+        org1/
+          project1/
+            analysis1/
+              export.csv
+      another_plugin/       # Different plugin's namespace
+        data/
+          output.csv
+    ```
+  * **Benefits**:
+      * Prevents filename collisions between different plugins
+      * Maintains clear organization of plugin-specific data
+      * Allows plugins to create their own subdirectory structure
+      * Makes cleanup and management easier
+  * **Implementation**:
+    ```python
+    # In plugin's __init__ or helper method
+    self.download_base = Path("downloads") / self.APP_NAME
+    self.download_base.mkdir(parents=True, exist_ok=True)
+    
+    # When saving files
+    save_path = self.download_base / "subdir" / filename
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    ```
+  * **Best Practices**:
+      * Always use `self.APP_NAME` for the top-level directory
+      * Create subdirectories as needed for organization
+      * Use `mkdir(parents=True, exist_ok=True)` for safe directory creation
+      * Consider using `pipeline_id` in paths for workflow-specific data
+
+## 7. File Downloads
 
   * Workflows can generate files (e.g., CSVs, text files) and offer them for download.
   * Save generated files to a known location (e.g., `downloads/`).
