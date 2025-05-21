@@ -27,10 +27,13 @@ from typing import Dict, List, Optional, Union
 # ls -1 -d "$PWD"/*
 
 FILES_TO_INCLUDE = """\
-# README.md
+README.md
 # flake.nix
-#requirements.txt
+# requirements.txt
 server.py
+/home/mike/repos/pipulate/plugins/050_botify_csv_downloader.py
+/home/mike/repos/pipulate/plugins/040_parameter_buster.py
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/static/styles.css
 # /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
@@ -46,26 +49,25 @@ server.py
 # /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
 # /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
-/home/mike/repos/pipulate/helpers/prompt_foo.py
-/home/mike/repos/pipulate/helpers/create_workflow.py
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py
-/home/mike/repos/pipulate/plugins/510_workflow_genesis.py
-/home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-/home/mike/repos/pipulate/plugins/720_text_field.py
-/home/mike/repos/pipulate/plugins/730_text_area.py
-/home/mike/repos/pipulate/plugins/740_dropdown.py
-/home/mike/repos/pipulate/plugins/750_checkboxes.py
-/home/mike/repos/pipulate/plugins/760_radios.py
-/home/mike/repos/pipulate/plugins/770_range.py
-/home/mike/repos/pipulate/plugins/780_switch.py
-/home/mike/repos/pipulate/plugins/800_markdown.py
-/home/mike/repos/pipulate/plugins/810_mermaid.py
-/home/mike/repos/pipulate/plugins/820_pandas.py
-/home/mike/repos/pipulate/plugins/830_rich.py
-/home/mike/repos/pipulate/plugins/840_matplotlib.py
-/home/mike/repos/pipulate/plugins/850_prism.py
-/home/mike/repos/pipulate/plugins/860_javascript.py
-/home/mike/repos/pipulate/plugins/870_upload.py
+# /home/mike/repos/pipulate/helpers/prompt_foo.py
+# /home/mike/repos/pipulate/helpers/create_workflow.py
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
+# /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
+# /home/mike/repos/pipulate/plugins/720_text_field.py
+# /home/mike/repos/pipulate/plugins/730_text_area.py
+# /home/mike/repos/pipulate/plugins/740_dropdown.py
+# /home/mike/repos/pipulate/plugins/750_checkboxes.py
+# /home/mike/repos/pipulate/plugins/760_radios.py
+# /home/mike/repos/pipulate/plugins/770_range.py
+# /home/mike/repos/pipulate/plugins/780_switch.py
+# /home/mike/repos/pipulate/plugins/800_markdown.py
+# /home/mike/repos/pipulate/plugins/810_mermaid.py
+# /home/mike/repos/pipulate/plugins/820_pandas.py
+# /home/mike/repos/pipulate/plugins/830_rich.py
+# /home/mike/repos/pipulate/plugins/840_matplotlib.py
+# /home/mike/repos/pipulate/plugins/850_prism.py
+# /home/mike/repos/pipulate/plugins/860_javascript.py
+# /home/mike/repos/pipulate/plugins/870_upload.py
 # /home/mike/repos/pipulate/plugins/520_widget_examples.py
 # /home/mike/repos/MikeLev.in/_posts/2025-05-19-core-workflow-helpers-development.md
 /home/mike/repos/Pipulate.com/development.md
