@@ -631,7 +631,7 @@ class BotifyExport:
             job_url = job['job_url']
             if step_id not in state:
                 state[step_id] = {}
-            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'status': 'PROCESSING', 'include_fields': {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}})
+            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'status': 'PROCESSING', 'include_fields': {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}, 'poll_count': 0})
             state[step_id][step.done] = job_url
             pip.write_state(pipeline_id, state)
             created = job.get('created', 'Unknown')
@@ -641,7 +641,25 @@ class BotifyExport:
             except:
                 created_str = created
             await self.message_queue.add(pip, f'Using existing export job (ID: {job_id}).\nThis job is still processing (started: {created_str}).', verbatim=True)
-            return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Using existing export job ID: {job_id}', cls='mb-2'), P(f'Started: {created_str}', cls='mb-2'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}'), cls='polling-status no-chain-reaction', id=step_id)
+            return Div(
+                Card(
+                    H3(f'🔒 {step.show}: Complete ✅'),
+                    P(f'Using existing export job ID: {job_id}', cls='mb-2'),
+                    P(f'Started: {created_str}', cls='mb-2'),
+                    Div(
+                        Progress(),
+                        P('Checking status automatically... (Next check in 2s)', cls='text-muted'),
+                        id='progress-container'
+                    )
+                ),
+                cls='polling-status no-chain-reaction',
+                hx_get=f'/{app_name}/download_job_status',
+                hx_trigger='load delay:2s',
+                hx_target=f'#{step_id}',
+                hx_swap='outerHTML',
+                hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                id=step_id
+            )
         try:
             include_fields = {'title': include_title, 'meta_desc': include_meta_desc, 'h1': include_h1}
             api_token = self.read_api_token()
@@ -656,7 +674,7 @@ class BotifyExport:
                 self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
             if step_id not in state:
                 state[step_id] = {}
-            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'download_url': download_url if is_complete else None, 'status': 'DONE' if is_complete else 'PROCESSING', 'download_path': str(download_dir), 'include_fields': include_fields})
+            state[step_id].update({'job_url': job_url, 'job_id': job_id, 'org': org, 'project': project, 'analysis': analysis, 'depth': depth, 'download_url': download_url if is_complete else None, 'status': 'DONE' if is_complete else 'PROCESSING', 'download_path': str(download_dir), 'include_fields': include_fields, 'poll_count': 0})
             state[step_id][step.done] = job_url
             pip.write_state(pipeline_id, state)
             if is_complete:
@@ -670,7 +688,22 @@ class BotifyExport:
                 download_button = Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')
                 return Div(result_card, download_button, cls='terminal-response no-chain-reaction', id=step_id)
             else:
-                return Div(result_card, P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container'), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load, every 2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
+                return Div(
+                    result_card,
+                    P('Status updating automatically...', style='color: #666; margin-bottom: 1rem;'),
+                    Div(
+                        Progress(),
+                        P('Checking status automatically... (Next check in 2s)', cls='text-muted'),
+                        id='progress-container'
+                    ),
+                    cls='polling-status no-chain-reaction',
+                    hx_get=f'/{app_name}/download_job_status',
+                    hx_trigger='load delay:2s',
+                    hx_target=f'#{step_id}',
+                    hx_swap='outerHTML',
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id
+                )
         except Exception as e:
             logger.error(f'Error in export submission: {str(e)}')
             return P(f'An error occurred: {str(e)}', style=pip.get_style('error'))
@@ -1266,9 +1299,39 @@ class BotifyExport:
                 await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nThe export is ready for download.', verbatim=True)
                 return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'The export is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
             else:
+                # Get current poll count and calculate next delay
+                poll_count = step_data.get('poll_count', 0) + 1
+                state[step_id]['poll_count'] = poll_count
+                
+                # Calculate delay using exponential backoff with a max of 30 seconds
+                # Start at 2s, double each time, cap at 30s
+                delay = min(2 * (2 ** (poll_count - 1)), 30)
+                
+                # Update state with new poll count
+                pip.write_state(pipeline_id, state)
+                
                 include_fields = step_data.get('include_fields', {})
                 fields_list = ', '.join([k for k, v in include_fields.items() if v]) or 'URL only'
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'Exporting URLs up to depth {depth}', cls='mb-2'), P(f'Including fields: {fields_list}', cls='mb-4'), Div(Progress(), P('Checking status automatically...', cls='text-muted'), id='progress-container')), cls='polling-status no-chain-reaction', hx_get=f'/{app_name}/download_job_status', hx_trigger='load delay:2s', hx_target=f'#{step_id}', hx_swap='outerHTML', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}', id=step_id)
+                return Div(
+                    Card(
+                        H3(f'🔒 {step.show}: Complete ✅'),
+                        P(f'Job ID: {job_id}', cls='mb-2'),
+                        P(f'Exporting URLs up to depth {depth}', cls='mb-2'),
+                        P(f'Including fields: {fields_list}', cls='mb-4'),
+                        Div(
+                            Progress(),
+                            P(f'Checking status automatically... (Next check in {delay}s)', cls='text-muted'),
+                            id='progress-container'
+                        )
+                    ),
+                    cls='polling-status no-chain-reaction',
+                    hx_get=f'/{app_name}/download_job_status',
+                    hx_trigger=f'load delay:{delay}s',
+                    hx_target=f'#{step_id}',
+                    hx_swap='outerHTML',
+                    hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}',
+                    id=step_id
+                )
         except Exception as e:
             logger.error(f'Error checking job status: {str(e)}')
             return P(f'Error checking export status: {str(e)}', style=pip.get_style('error'))

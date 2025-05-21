@@ -35,7 +35,7 @@ import subprocess
 import platform
 import urllib.parse
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 STATE_TABLES = False
 
 
