@@ -2466,7 +2466,7 @@ def create_app_menu(menux):
         if not instance:
             logger.warning(f"Instance for plugin_key '{plugin_key}' not found in plugin_instances. Skipping.")
             continue
-        if plugin_key == profiles_plugin_key:
+        if plugin_key == profiles_plugin_key or plugin_key == 'roles':  # Skip both profiles and roles
             continue
         if plugin_key == 'separator':
             menu_items.append(Li(Hr(), cls='dropdown-separator'))
@@ -2476,8 +2476,6 @@ def create_app_menu(menux):
         plugin_module = sys.modules.get(plugin_module_path)
         plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
         is_core_plugin = 'Core' in plugin_defined_roles
-        if plugin_key == 'roles':
-            is_core_plugin = True
         has_matching_active_role = any((p_role in active_role_names for p_role in plugin_defined_roles))
         if not (is_core_plugin or has_matching_active_role):
             logger.debug(f"Filtering out plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
@@ -2681,7 +2679,7 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    return Div(id='flyout-panel', style='display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(Li(Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_workflow else None, Li(Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_dev_mode else None), style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'))
+    return Div(id='flyout-panel', style='display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(Li(Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('👥 Manage Roles', hx_post='/redirect/roles', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_workflow else None, Li(Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_dev_mode else None), style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'))
 
 
 @rt('/poke-flyout-hide', methods=['GET'])
