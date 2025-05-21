@@ -1154,16 +1154,23 @@ class BotifyExport:
                 if job_status == 'DONE':
                     download_url = status_data.get('results', {}).get('download_url')
                     if download_url:
+                        await self.message_queue.add(self.pipulate, 'Export job completed successfully!', verbatim=True)
                         return (True, download_url, None)
                     else:
+                        await self.message_queue.add(self.pipulate, 'Job completed but no download URL found', verbatim=True)
                         return (False, None, 'Job completed but no download URL found')
                 elif job_status == 'FAILED':
-                    return (False, None, f"Export job failed: {status_data.get('results')}")
+                    error_msg = f"Export job failed: {status_data.get('results')}"
+                    await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
+                    return (False, None, error_msg)
                 else:
+                    await self.message_queue.add(self.pipulate, 'Export job is still processing...', verbatim=True)
                     return (False, None, None)
         except Exception as e:
-            logger.error(f'Error polling job status: {str(e)}')
-            return (False, None, f'Error polling job status: {str(e)}')
+            error_msg = f'Error polling job status: {str(e)}'
+            await self.message_queue.add(self.pipulate, error_msg, verbatim=True)
+            logger.error(error_msg)
+            return (False, None, error_msg)
 
     def clean_job_id_for_display(self, job_id):
         """
