@@ -1304,8 +1304,33 @@ class BotifyExport:
                 pip.write_state(pipeline_id, state)
                 if all([org, project, analysis, depth]):
                     self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
-                await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nThe export is ready for download.', verbatim=True)
-                return Div(Card(H3(f'🔒 {step.show}: Complete ✅'), P(f'Job ID: {job_id}', cls='mb-2'), P(f'The export is ready for download.', cls='mb-4'), Form(Button('Download CSV ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/download_csv', hx_target=f'#{step_id}', hx_vals=f'{{"pipeline_id": "{pipeline_id}"}}')), cls='terminal-response no-chain-reaction', id=step_id)
+                await self.message_queue.add(pip, f'Export job completed! Job ID: {job_id}\nStarting download...', verbatim=True)
+                
+                # Automatically trigger download when job completes
+                try:
+                    download_dir = await self.create_download_directory(org, project, analysis)
+                    include_fields = step_data.get('include_fields', {})
+                    fields_suffix = '_'.join((k for k, v in include_fields.items() if v)) or 'url_only'
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f'{org}_{project}_{analysis}_depth_{depth}_{fields_suffix}_{timestamp}.csv'
+                    local_file_path = download_dir / filename
+                    
+                    return Div(
+                        Card(
+                            H3('Downloading CSV File'),
+                            P(f'Downloading export to {local_file_path}', cls='mb-4'),
+                            Progress(value='10', max='100', style='width: 100%;'),
+                            P('Please wait, this may take a few minutes for large files...', cls='text-secondary')
+                        ),
+                        hx_get=f'/{app_name}/download_progress',
+                        hx_trigger='load',
+                        hx_target=f'#{step_id}',
+                        hx_vals=f'{{"pipeline_id": "{pipeline_id}", "download_url": "{download_url}", "local_file": "{local_file_path}"}}',
+                        id=step_id
+                    )
+                except Exception as e:
+                    logger.error(f'Error preparing download: {str(e)}')
+                    return P(f'Error preparing download: {str(e)}', style=pip.get_style('error'))
             else:
                 # Get current poll count and calculate next delay
                 poll_count = step_data.get('poll_count', 0) + 1
