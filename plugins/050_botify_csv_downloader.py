@@ -66,7 +66,7 @@ class BotifyCsvDownloaderWorkflow:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False)]
+        steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True)]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST']), (f'/{app_name}/parameter_preview', self.parameter_preview, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -785,67 +785,26 @@ class BotifyCsvDownloaderWorkflow:
         return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('Set thresholds for parameter optimization:'), Form(Div(Div(Small('Lower GSC Threshold to lower risk (generally keep set to 0)', style='color: #888; font-style: italic;'), Div(Label(NotStr('GSC Threshold:'), For='gsc_threshold', style='min-width: 180px; color: #888;'), Input(type='range', name='gsc_threshold_slider', id='gsc_threshold_slider', value=gsc_threshold, min='0', max='100', step='1', style='width: 60%; margin: 0 10px;', _oninput="document.getElementById('gsc_threshold').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='input changed delay:300ms, load', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), Input(type='number', name='gsc_threshold', id='gsc_threshold', value=gsc_threshold, min='0', max='100', style='width: 150px;', _oninput="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();", _onchange="document.getElementById('gsc_threshold_slider').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='none', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), style='display: flex; align-items: center; gap: 5px;')), Div(Small('Higher Minimum Frequency to reduce to only the biggest offenders', style='color: #888; font-style: italic;'), Div(Label(NotStr('<strong>Minimum Frequency:</strong>'), For='min_frequency', style='min-width: 180px;'), Input(type='range', name='min_frequency_slider', id='min_frequency_slider', value=min_frequency, min='0', max=str(max_frequency), step='1', style='flex-grow: 1; margin: 0 10px;', _oninput="document.getElementById('min_frequency').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='input changed delay:300ms', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), Input(type='number', name='min_frequency', id='min_frequency', value=min_frequency, min='0', max=str(max_frequency), step='1', style='width: 150px;', _oninput="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();", _onchange="document.getElementById('min_frequency_slider').value = this.value; triggerParameterPreview();", hx_post=f'/{app_name}/parameter_preview', hx_trigger='none', hx_target='#parameter-preview', hx_include='#gsc_threshold, #min_frequency'), style='display: flex; align-items: center; gap: 5px;'), style='margin-bottom: 15px;'), NotStr(breakpoints_html) if breakpoints_html else None, Div(H4('Parameters That Would Be Optimized:'), Div(P('Adjust thresholds above to see which parameters would be optimized.', style='color: #888; font-style: italic;'), id='parameter-preview', style='max-height: 300px; overflow-y: auto; background: #111; border-radius: 5px; padding: 10px; margin-bottom: 15px;'), style='margin-bottom: 20px;'), Div(Button('Create Optimization ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_06_submit(self, request):
-        """Process the submission for the parameter threshold settings."""
+        """Process the submission for Parameter Optimization step."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_06'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
+        next_step_id = 'finalize'  # Changed from step_07 to finalize
         pipeline_id = db.get('pipeline_id', 'unknown')
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
-        gsc_threshold = form.get('gsc_threshold', '0')
-        min_frequency = form.get('min_frequency', '100000')
-        prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
-        prev_data_str = prev_step_data.get('placeholder', '')
-        selected_params = []
+        min_frequency = form.get('min_frequency', '').strip()
+        if not min_frequency:
+            return P('Error: Minimum frequency is required', style=pip.get_style('error'))
         try:
-            if prev_data_str:
-                summary_data = json.loads(prev_data_str)
-                cache_path = summary_data.get('cache_path')
-                if cache_path and os.path.exists(cache_path):
-                    with open(cache_path, 'rb') as f:
-                        cache_data = pickle.load(f)
-                    raw_counters = cache_data.get('raw_counters', {})
-                    weblogs_counter = None
-                    gsc_counter = None
-                    not_indexable_counter = None
-                    source_mapping = {'weblogs': ['weblogs', 'weblog', 'logs', 'log'], 'gsc': ['gsc', 'search_console', 'searchconsole', 'google'], 'not_indexable': ['not_indexable', 'crawl', 'non_indexable', 'nonindexable']}
-                    for source, possible_keys in source_mapping.items():
-                        for key in possible_keys:
-                            if key in raw_counters:
-                                if source == 'weblogs':
-                                    weblogs_counter = raw_counters[key]
-                                elif source == 'gsc':
-                                    gsc_counter = raw_counters[key]
-                                elif source == 'not_indexable':
-                                    not_indexable_counter = raw_counters[key]
-                                break
-                    if gsc_counter and (weblogs_counter or not_indexable_counter):
-                        combined_counter = Counter()
-                        if weblogs_counter:
-                            combined_counter.update(weblogs_counter)
-                        if not_indexable_counter:
-                            combined_counter.update(not_indexable_counter)
-                        for param, count in combined_counter.items():
-                            param_gsc_count = gsc_counter.get(param, 0)
-                            if param_gsc_count <= int(gsc_threshold) and count >= int(min_frequency):
-                                selected_params.append(param)
-            selected_params_js_array = json.dumps(selected_params)
-            js_code = f"""// Function to remove query parameters from a URL\nfunction removeQueryParams(url, paramsToRemove) {{\n    let urlParts = url.split('?');\n    if (urlParts.length >= 2) {{\n        let queryParams = urlParts[1].split('&');\n        let updatedParams = [];\n        for (let i = 0; i < queryParams.length; i++) {{\n            let paramParts = queryParams[i].split('=');\n            if (!paramsToRemove.includes(paramParts[0])) {{\n                updatedParams.push(queryParams[i]);\n            }}\n        }}\n        if (updatedParams.length > 0) {{\n            return urlParts[0] + '?' + updatedParams.join('&');\n        }} else {{\n            return urlParts[0];\n        }}\n    }} else {{\n        return url;\n    }}\n}}\n  \n// Remove wasteful parameters from all links\nfunction removeWastefulParams() {{\n    const DOM = runtime.getDOM();\n    const removeParameters = {selected_params_js_array};\n    DOM.getAllElements("[href]").forEach(function(el) {{\n        let targetURL = el.getAttribute("href");\t\n        let newTargetURL = removeQueryParams(targetURL, removeParameters);\n        if (targetURL != newTargetURL) {{\n            // console.log("FROM:" + targetURL + " TO:" + newTargetURL);\n            el.setAttribute("href", newTargetURL);\n            el.setAttribute("data-bty-pw-id", "REPLACE_ME!!!");\n        }}\n    }});\n}}\n\n// Execute the function\nremoveWastefulParams();\n"""
-            pip.append_to_history(f'[OPTIMIZATION CODE] Generated PageWorkers optimization for {len(selected_params)} parameters:\n{js_code}', quiet=True)
-            threshold_data = {'gsc_threshold': gsc_threshold, 'min_frequency': min_frequency, 'selected_params': selected_params, 'js_code': js_code}
-            user_val = json.dumps(threshold_data)
-            await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(js_code, widget_id, 'javascript')
-            from fasthtml.common import to_xml
-            from starlette.responses import HTMLResponse
-            response = HTMLResponse(to_xml(Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'Parameter Optimization with {(len(selected_params) if selected_params else 0)} parameters', widget=prism_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
-        except Exception as e:
-            logging.exception(f'Error in step_06_submit: {e}')
-            return P(f'Error creating parameter optimization: {str(e)}', style=pip.get_style('error'))
+            min_frequency = int(min_frequency)
+            if min_frequency < 1:
+                return P('Error: Minimum frequency must be at least 1', style=pip.get_style('error'))
+        except ValueError:
+            return P('Error: Minimum frequency must be a number', style=pip.get_style('error'))
+        await pip.set_step_data(pipeline_id, step_id, min_frequency, steps)
+        await self.message_queue.add(pip, f"{step.show} complete: {min_frequency}", verbatim=True)
+        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {min_frequency}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     def validate_botify_url(self, url):
         """Validate a Botify project URL and extract project information."""
