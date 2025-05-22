@@ -122,7 +122,7 @@ class HelloFlow:
     """
     APP_NAME = 'hello'
     DISPLAY_NAME = 'Hello Workflow'
-    ENDPOINT_MESSAGE = 'Start a new Workflow. Keys are automaticly PROFILE_Name-APP_Name-XX (just press Enter)...'
+    ENDPOINT_MESSAGE = 'Start a new Workflow. Keys are auto: PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
