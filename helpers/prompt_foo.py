@@ -26,7 +26,7 @@ from typing import Dict, List, Optional, Union
 # Here is the command I use to get the list of files:
 # ls -1 -d "$PWD"/*
 
-FILES_TO_INCLUDE = """\
+FILES_TO_INCLUDE_RAW = """\
 
 # CORE FILES
 README.md        <-- Main GitHub README sets the tone
@@ -54,12 +54,19 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
-""".strip().splitlines()
+"""
+
+# Now process the raw string into the list we'll use
+FILES_TO_INCLUDE = FILES_TO_INCLUDE_RAW.strip().splitlines()
 
 # Filter out any commented lines
 FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if not line.strip().startswith('#')]
 # Filter out blank lines
 FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if line.strip()]
+
+# Store the original content for the manifest
+ORIGINAL_FILES_TO_INCLUDE = "\n".join(FILES_TO_INCLUDE)
+
 # Strip off any <-- comments (handling variable whitespace)
 FILES_TO_INCLUDE = [line.split('<--')[0].rstrip() for line in FILES_TO_INCLUDE]
 
@@ -533,6 +540,8 @@ def create_pipulate_manifest(file_paths):
     # Define the environment
     manifest.set_environment("Runtime", "Python 3.12 in a Nix-managed virtualenv (.venv)")
     manifest.set_environment("Package Management", "Hybrid approach using Nix flakes for system dependencies + pip for Python packages")
+    # Add the raw FILES_TO_INCLUDE content for context
+    manifest.set_environment("Files Selection", "Below is the raw FILES_TO_INCLUDE content before any processing:\n\n" + FILES_TO_INCLUDE_RAW)
     
     # Check for missing files and collect them
     missing_files = []
