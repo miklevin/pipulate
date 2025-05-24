@@ -798,13 +798,32 @@ import os
 from typing import Optional, Dict, Any
 from pathlib import Path
 
+def load_api_token() -> str:
+    \"\"\"
+    Load the Botify API token from environment variable or file.
+    Returns the API token as a string.
+    \"\"\"
+    # Try to get token from environment variable first
+    token = os.getenv('BOTIFY_API_TOKEN')
+    if token:
+        return token.strip()
+    
+    # If not in environment, try to load from file
+    token_file = Path.home() / '.botify' / 'api_token.txt'
+    if token_file.exists():
+        return token_file.read_text().strip()
+    
+    # If neither exists, return placeholder
+    return "{api_token_placeholder}"
+
 # Configuration
-API_TOKEN = "{api_token_placeholder}"  # Replace with your Botify API token
+API_TOKEN = load_api_token()
 URL = "{url}"
 METHOD = "{method.lower()}"
 
 # Headers setup
 def get_headers() -> Dict[str, str]:
+    \"\"\"Generate headers for the API request.\"\"\"
     return {{
         'Authorization': f'Token {{API_TOKEN}}',
         'Content-Type': 'application/json',
@@ -884,7 +903,9 @@ async def main():
     try:
         # Validate API token
         if API_TOKEN == "{api_token_placeholder}":
-            raise ValueError("Please replace the API_TOKEN placeholder with your actual Botify API token")
+            raise ValueError("Please set your Botify API token in either:\n"
+                           "1. BOTIFY_API_TOKEN environment variable\n"
+                           "2. ~/.botify/api_token.txt file")
             
         # Make the API call
         result = await make_api_call(
