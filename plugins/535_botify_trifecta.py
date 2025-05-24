@@ -676,18 +676,22 @@ class BotifyCsvDownloaderWorkflow:
         all_slugs = []
         next_url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
         headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+        is_first_page = True
 
         while next_url:
             # Log the API call
             python_cmd = self._generate_python_api_code(
                 method="GET", url=next_url, headers=headers
             )
-            await self.pipulate.log_api_call_details(
-                pipeline_id="fetch_analyses", step_id="analysis_menu",
-                call_description="Fetch Available Analyses",
-                method="GET", url=next_url, headers=headers,
-                python_command=python_cmd
-            )
+            
+            # Only log API call details for first page
+            if is_first_page:
+                await self.pipulate.log_api_call_details(
+                    pipeline_id="fetch_analyses", step_id="analysis_menu",
+                    call_description="Fetch Available Analyses",
+                    method="GET", url=next_url, headers=headers,
+                    python_command=python_cmd
+                )
 
             try:
                 async with httpx.AsyncClient() as client:
@@ -696,7 +700,20 @@ class BotifyCsvDownloaderWorkflow:
                     logging.error(f'API error: Status {response.status_code} for {next_url}')
                     break
                 data = response.json()
-                logging.info(f'API response keys: {data.keys()}')
+                
+                # Only log detailed response info for first page
+                if is_first_page:
+                    logging.info(f'API response keys: {data.keys()}')
+                    # Log the full response for the first page
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id="fetch_analyses", step_id="analysis_menu",
+                        call_description="First Page Response",
+                        method="GET", url=next_url, headers=headers,
+                        response_status=response.status_code,
+                        response_preview=json.dumps(data, indent=2)
+                    )
+                    is_first_page = False
+                
                 if 'results' not in data:
                     logging.error(f"No 'results' key in response: {data}")
                     break
