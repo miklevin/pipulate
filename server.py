@@ -2290,44 +2290,37 @@ async def download_file_endpoint(request):
     Expects 'file' as a query parameter, which should be relative to the downloads directory.
     """
     file_path = request.query_params.get("file")
-    logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
-    logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
-    
+    if DEBUG_MODE:
+        logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
+        logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
     if not file_path:
         logger.error("[📥 DOWNLOAD] No file path provided")
         return HTMLResponse("File path is required", status_code=400)
-    
     try:
-        # Get the project root directory (where server.py is located)
         PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parent
         PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
-        logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
-        logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
-        
-        # Construct the full file path
+        if DEBUG_MODE:
+            logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
+            logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
         full_file_path = PLUGIN_DOWNLOADS_BASE_DIR / file_path
-        logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
-        logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
-        if full_file_path.exists():
-            logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
-            logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
-            logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
-        
-        # Basic security check - ensure the file is within the downloads directory
+        if DEBUG_MODE:
+            logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
+            logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
+            if full_file_path.exists():
+                logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
+                logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
+                logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
         try:
-            # Resolve the path to handle any .. or . components
             resolved_path = full_file_path.resolve()
-            # Check if the resolved path is within the downloads directory
             relative_path = resolved_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
-            logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
-            logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
+            if DEBUG_MODE:
+                logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
+                logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
         except (ValueError, RuntimeError) as e:
             logger.error(f"[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}")
             logger.error(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
             logger.error(f"[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
             return HTMLResponse("Invalid file path - must be within downloads directory", status_code=400)
-        
-        # Check if file exists and is a file
         if not full_file_path.exists():
             logger.error(f"[📥 DOWNLOAD] File not found: {full_file_path}")
             logger.error(f"[📥 DOWNLOAD] Directory contents: {list(PLUGIN_DOWNLOADS_BASE_DIR.glob('**/*'))}")

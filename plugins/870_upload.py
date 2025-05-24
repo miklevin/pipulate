@@ -414,7 +414,6 @@ class FileUploadWidget:
                 
                 widget_elements.append(
                     P(
-                        f"📄 {file_display_name}: ",
                         open_folder_link_ui,
                         download_file_link_ui,
                         style="margin-top: 0.5em; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;"
