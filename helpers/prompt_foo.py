@@ -31,8 +31,20 @@ README.md
 flake.nix
 requirements.txt
 server.py
+/home/mike/repos/pipulate/plugins/000_profiles.py
 /home/mike/repos/pipulate/plugins/010_roles.py
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py
 /home/mike/repos/Pipulate.com/development.md
+/home/mike/repos/pipulate/plugins/870_upload.py
+/home/mike/repos/pipulate/plugins/530_botify_api_tutorial.py
+/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
+# /home/mike/repos/pipulate/helpers/create_workflow.py
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
+# /home/mike/repos/pipulate/plugins/520_widget_examples.py
+# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
+# /home/mike/repos/pipulate/helpers/prompt_foo.py
 """.strip().splitlines()
 
 # Filter out any commented lines
@@ -296,6 +308,23 @@ def format_token_count(num: int) -> str:
     """Format a token count with commas."""
     return f"{num:,} tokens"
 
+def run_tree_command():
+    """Run the tree command and return its output."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['tree', '-I', '__pycache__|client|data|*.csv|*.zip|*.pkl'],
+            capture_output=True,
+            text=True,
+            cwd=repo_root
+        )
+        if result.returncode == 0:
+            return result.stdout
+        else:
+            return f"Error running tree command: {result.stderr}"
+    except Exception as e:
+        return f"Error running tree command: {str(e)}"
+
 # --- AI Assistant Manifest System ---
 class AIAssistantManifest:
     """
@@ -326,6 +355,9 @@ class AIAssistantManifest:
             "manifest_structure": 0,
             "total_content": 0  # Running total of file contents
         }
+        # Add tree output to environment info
+        tree_output = run_tree_command()
+        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip\"' showing the current state of the codebase:\n\n{tree_output}")
     
     def add_file(self, path, description, key_components=None, content=None):
         """Register a file that will be provided to the assistant."""
