@@ -175,7 +175,7 @@ class FileUploadWidget:
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and file_summary:
             try:
-                save_directory = Path('downloads') / app_name / pipeline_id
+                save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
                 return Div(Card(H3(f'🔒 {step.show}'), P('Uploaded files summary:'), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             except Exception as e:
                 logger.error(f'Error creating file summary in locked view: {str(e)}')
@@ -183,19 +183,19 @@ class FileUploadWidget:
         elif state.get('_finalized'):
             try:
                 file_summary = pip.get_step_data(pipeline_id, step_id)
-                save_directory = Path('downloads') / app_name / pipeline_id
+                save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
                 return Div(Card(f'🔒 {step.show}', P("Uploaded files summary:"), Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; background-color: var(--pico-card-background-color); padding: 1em; border-radius: var(--pico-border-radius);'), P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
                 logger.error(f'Error creating file summary in locked view: {str(e)}')
                 return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
         elif file_summary and state.get('_revert_target') != step_id:
-            save_directory = Path('downloads') / app_name / pipeline_id
+            save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
             content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files previously uploaded', widget=Div(
                 Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'),
                 P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")
             ), steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow and pipeline ID.'
+        explanation = 'Select one or more files. They will be saved to the `downloads` directory in a subfolder named after this workflow.'
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
         await self.message_queue.add(pip, explanation, verbatim=True)
         return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
@@ -214,7 +214,13 @@ class FileUploadWidget:
             await self.message_queue.add(pip, 'No files selected. Please try again.', verbatim=True)
             explanation = 'Select one or more files. They will be saved to the `downloads` directory.'
             return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', style=pip.get_style('error')), P(explanation, style=pip.get_style('muted')), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
-        save_directory = Path('downloads') / app_name / pipeline_id
+        
+        # Get the project root directory (where server.py is located)
+        PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
+        
+        # Use the same base directory as the download endpoint
+        save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
         try:
             save_directory.mkdir(parents=True, exist_ok=True)
         except Exception as e:
@@ -222,8 +228,11 @@ class FileUploadWidget:
             logger.error(error_msg)
             await self.message_queue.add(pip, error_msg, verbatim=True)
             return P(f'Error creating save directory. Please check permissions or disk space. Details: {error_msg}', style=pip.get_style('error'))
-        file_info_list = []
+        
+        file_info_list_for_summary = []  # For the existing text summary
+        actual_saved_file_details = []    # New list to store structured details
         total_size = 0
+        
         for uploaded_file in uploaded_files:
             if not uploaded_file.filename:
                 continue
@@ -231,24 +240,102 @@ class FileUploadWidget:
                 contents = await uploaded_file.read()
                 file_size = len(contents)
                 total_size += file_size
+                
+                # Save with original filename directly in file_upload_widget directory
                 file_save_path = save_directory / uploaded_file.filename
                 with open(file_save_path, 'wb') as f:
                     f.write(contents)
-                file_info_list.append(f'📄 {uploaded_file.filename} ({file_size:,} bytes) -> {file_save_path}')
+                
+                # For the existing text summary
+                file_info_list_for_summary.append(f'📄 {uploaded_file.filename} ({file_size:,} bytes) -> {file_save_path}')
+                
+                # Store structured details for link generation
+                actual_saved_file_details.append({
+                    'path_obj': file_save_path,
+                    'filename': uploaded_file.filename,
+                    'size_bytes': file_size,
+                    'save_dir_path_obj': save_directory
+                })
             except Exception as e:
                 error_msg = f'Error saving file {uploaded_file.filename}: {str(e)}'
                 logger.error(error_msg)
                 await self.message_queue.add(pip, error_msg, verbatim=True)
                 return P(f'Error saving file {uploaded_file.filename}. Details: {error_msg}', style=pip.get_style('error'))
-        file_summary = '\n'.join(file_info_list)
-        file_summary += f'\n\nTotal: {len(file_info_list)} files, {total_size:,} bytes'
+        
+        # Construct the text summary
+        file_summary = '\n'.join(file_info_list_for_summary)
+        file_summary += f'\n\nTotal: {len(actual_saved_file_details)} files, {total_size:,} bytes'
         file_summary += f'\nSaved to directory: {save_directory.resolve()}'
+        
         await pip.set_step_data(pipeline_id, step_id, file_summary, steps)
         pip.append_to_history(f'[WIDGET CONTENT] {step.show}:\n{file_summary}')
         pip.append_to_history(f'[WIDGET STATE] {step.show}: Files saved')
-        await self.message_queue.add(pip, f'Successfully saved {len(file_info_list)} files to {save_directory}', verbatim=True)
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Files Uploaded Successfully!', widget=Div(
-            Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);'),
-            P("Open folder: ", A("📂 View Files", href="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_get="/open-folder?path=" + urllib.parse.quote(str(save_directory.resolve())), hx_swap="none"), style="margin-top: 1em;")
-        ), steps=steps)
-        return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        await self.message_queue.add(pip, f'Successfully saved {len(actual_saved_file_details)} files to {save_directory}', verbatim=True)
+        
+        # Start building the widget content
+        widget_elements = [
+            Pre(file_summary, style='white-space: pre-wrap; font-size: 0.9em; margin-top:1em; padding: 1em; background-color: var(--pico-code-background); border-radius: var(--pico-border-radius);')
+        ]
+        
+        if actual_saved_file_details:
+            widget_elements.append(H4("File Actions:", style="margin-top: 1rem; margin-bottom: 0.5rem;"))
+            
+            for detail in actual_saved_file_details:
+                file_abs_path = detail['path_obj']
+                file_display_name = detail['filename']
+                parent_dir_abs_path = detail['save_dir_path_obj'].resolve()
+                
+                # Calculate the path for the download URL - it should be relative to the downloads directory
+                try:
+                    # The path should be relative to the downloads directory
+                    path_for_url = file_abs_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
+                    # Convert to string and ensure forward slashes for URL
+                    path_for_url = str(path_for_url).replace('\\', '/')
+                except ValueError as e:
+                    logger.error(f"Path resolution error: {str(e)}")
+                    logger.error(f"File path: {file_abs_path}")
+                    logger.error(f"Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
+                    # Use a more descriptive error path
+                    path_for_url = f"error/path-resolution-failed/{app_name}/{file_display_name}"
+                
+                open_folder_link_ui = A(
+                    "📂 View Folder",
+                    href="#",
+                    hx_get="/open-folder?path=" + urllib.parse.quote(str(parent_dir_abs_path)),
+                    hx_swap="none",
+                    title=f"Open folder: {parent_dir_abs_path}",
+                    style="margin-right: 10px;"
+                )
+                
+                download_file_link_ui = A(
+                    f"⬇️ Download {file_display_name}",
+                    href=f"/download_file?file={urllib.parse.quote(path_for_url)}",
+                    target="_blank",
+                    role="button",
+                    cls="outline contrast"
+                )
+                
+                widget_elements.append(
+                    P(
+                        f"📄 {file_display_name}: ",
+                        open_folder_link_ui,
+                        download_file_link_ui,
+                        style="margin-top: 0.5em; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;"
+                    )
+                )
+        
+        final_widget_content = Div(*widget_elements)
+        
+        content_container = pip.display_revert_widget(
+            step_id=step_id,
+            app_name=app_name,
+            message=f'{step.show}: {len(actual_saved_file_details)} File(s) Uploaded Successfully!',
+            widget=final_widget_content,
+            steps=steps
+        )
+        
+        return Div(
+            content_container,
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )

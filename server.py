@@ -34,6 +34,7 @@ from watchdog.observers import Observer
 import subprocess
 import platform
 import urllib.parse
+from starlette.responses import FileResponse
 
 DEBUG_MODE = False
 STATE_TABLES = False
@@ -2282,48 +2283,93 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
 
-@rt('/download-csv/{pipeline_id}/{step_id}', methods=['GET'])
-async def download_csv_endpoint(request):
+@rt('/download_file', methods=['GET'])
+async def download_file_endpoint(request):
     """
-    Downloads a CSV file for a specific pipeline step.
-    Expects pipeline_id and step_id as path parameters.
+    Downloads a file from the server.
+    Expects 'file' as a query parameter, which should be relative to the downloads directory.
     """
-    pipeline_id = request.path_params.get("pipeline_id")
-    step_id = request.path_params.get("step_id")
+    file_path = request.query_params.get("file")
+    logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
+    logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
     
-    if not pipeline_id or not step_id:
-        return HTMLResponse("Pipeline ID and Step ID are required", status_code=400)
+    if not file_path:
+        logger.error("[📥 DOWNLOAD] No file path provided")
+        return HTMLResponse("File path is required", status_code=400)
     
     try:
-        # Get the step data from the database
-        step_data = pip.get_step_data(pipeline_id, step_id)
-        if not step_data:
-            return HTMLResponse("No data found for this pipeline step", status_code=404)
-            
-        # Convert the data to CSV format
-        import csv
-        import io
+        # Get the project root directory (where server.py is located)
+        PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parent
+        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
+        logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
+        logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
         
-        output = io.StringIO()
-        writer = csv.writer(output)
+        # Construct the full file path
+        full_file_path = PLUGIN_DOWNLOADS_BASE_DIR / file_path
+        logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
+        logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
+        if full_file_path.exists():
+            logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
+            logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
+            logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
         
-        # Write header row
-        writer.writerow(['Pipeline ID', 'Step ID', 'Data'])
-        # Write data row
-        writer.writerow([pipeline_id, step_id, step_data])
+        # Basic security check - ensure the file is within the downloads directory
+        try:
+            # Resolve the path to handle any .. or . components
+            resolved_path = full_file_path.resolve()
+            # Check if the resolved path is within the downloads directory
+            relative_path = resolved_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
+            logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
+            logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
+        except (ValueError, RuntimeError) as e:
+            logger.error(f"[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}")
+            logger.error(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
+            logger.error(f"[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
+            return HTMLResponse("Invalid file path - must be within downloads directory", status_code=400)
         
-        # Create the response with the CSV data
-        csv_data = output.getvalue()
+        # Check if file exists and is a file
+        if not full_file_path.exists():
+            logger.error(f"[📥 DOWNLOAD] File not found: {full_file_path}")
+            logger.error(f"[📥 DOWNLOAD] Directory contents: {list(PLUGIN_DOWNLOADS_BASE_DIR.glob('**/*'))}")
+            return HTMLResponse("File not found", status_code=404)
+        if not full_file_path.is_file():
+            logger.error(f"[📥 DOWNLOAD] Path is not a file: {full_file_path}")
+            return HTMLResponse("Path is not a file", status_code=400)
+        
+        # Determine content type based on file extension
+        content_type = "application/octet-stream"  # Default
+        if full_file_path.suffix.lower() == '.csv':
+            content_type = 'text/csv'
+        elif full_file_path.suffix.lower() == '.txt':
+            content_type = 'text/plain'
+        elif full_file_path.suffix.lower() == '.json':
+            content_type = 'application/json'
+        elif full_file_path.suffix.lower() == '.pdf':
+            content_type = 'application/pdf'
+        elif full_file_path.suffix.lower() in ['.jpg', '.jpeg']:
+            content_type = 'image/jpeg'
+        elif full_file_path.suffix.lower() == '.png':
+            content_type = 'image/png'
+        elif full_file_path.suffix.lower() == '.gif':
+            content_type = 'image/gif'
+        
+        logger.info(f"[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}")
+        
+        # Create the response with the file data
         headers = {
-            'Content-Disposition': f'attachment; filename="{pipeline_id}_{step_id}.csv"',
-            'Content-Type': 'text/csv'
+            'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
+            'Content-Type': content_type
         }
+        logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
         
-        return HTMLResponse(csv_data, headers=headers)
+        return FileResponse(full_file_path, headers=headers)
         
     except Exception as e:
-        logger.error(f"Error generating CSV: {str(e)}")
-        return HTMLResponse(f"Error generating CSV: {str(e)}", status_code=500)
+        logger.error(f"[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}")
+        logger.error(f"[📥 DOWNLOAD] Exception type: {type(e)}")
+        import traceback
+        logger.error(f"[📥 DOWNLOAD] Traceback: {traceback.format_exc()}")
+        return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
 
 
 @rt('/open-folder', methods=['GET'])
