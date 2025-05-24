@@ -377,7 +377,7 @@ class AIAssistantManifest:
         }
         # Add tree output to environment info
         tree_output = run_tree_command()
-        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip\"' showing the current state of the codebase:\n\n{tree_output}")
+        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip|*.pkl\"' showing the current state of the codebase:\n\n{tree_output}")
     
     def add_file(self, path, description, key_components=None, content=None):
         """Register a file that will be provided to the assistant."""
