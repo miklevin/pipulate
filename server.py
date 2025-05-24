@@ -40,7 +40,6 @@ from starlette.responses import FileResponse
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
-API_LOG_BQL_ONLY = False
 API_LOG_ROTATION_COUNT = 4  # Number of historical API logs to keep (plus current api.log)
 
 
@@ -156,12 +155,8 @@ def setup_logging():
     
     # API log (file) with filter - no rotation since we handle it on server restart
     def api_log_filter(record):
-        if API_LOG_BQL_ONLY:
-            # Only log if record["extra"].get("bql_api_call") is True
-            return record["extra"].get("bql_api_call") is True
-        else:
-            # Log all API calls that have the extra key set
-            return record["extra"].get("api_call") is True
+        # Log all API calls that have the extra key set
+        return record["extra"].get("api_call") is True
     logger.add(
         api_log_path,
         level='INFO',
@@ -711,11 +706,14 @@ class Pipulate:
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
             logged_headers['Authorization'] = "Token f{YOUR_BOTIFY_API_TOKEN}"
-        log_entry_parts.append(f"  Headers:\n{json.dumps(logged_headers, indent=2)}")
+        log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
 
         if payload:
             try:
-                log_entry_parts.append(f"  Payload:\n{json.dumps(payload, indent=2)}")
+                payload_str = json.dumps(payload, indent=2)
+                if len(payload_str) > 1000: # Limit logged payload size for readability
+                    payload_str = payload_str[:1000] + "...\n(Payload truncated in log)"
+                log_entry_parts.append(f"  Payload:\n{payload_str}")
             except TypeError:
                 log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
         
@@ -734,14 +732,8 @@ class Pipulate:
         if response_status is not None:
             log_entry_parts.append(f"  Response Status: {response_status}")
         if response_preview:
-            try:
-                # Try to parse and pretty-print if it's JSON
-                preview_json = json.loads(response_preview)
-                preview = json.dumps(preview_json, indent=2)
-            except json.JSONDecodeError:
-                # If not JSON, use as is
-                preview = response_preview
-            log_entry_parts.append(f"  Response Preview:\n{preview}")
+            preview = response_preview[:500] + ("..." if len(response_preview) > 500 else "")
+            log_entry_parts.append(f"  Response Preview: {preview}")
 
         if file_path:
             log_entry_parts.append(f"  Associated File Path: {file_path}")
