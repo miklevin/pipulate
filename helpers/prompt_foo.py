@@ -27,16 +27,24 @@ from typing import Dict, List, Optional, Union
 # ls -1 -d "$PWD"/*
 
 FILES_TO_INCLUDE = """\
+
+# CORE FILES
 README.md
+/home/mike/repos/Pipulate.com/development.md
 flake.nix
 requirements.txt
 server.py
-/home/mike/repos/pipulate/plugins/000_profiles.py
-/home/mike/repos/pipulate/plugins/010_roles.py
+
+## ROLES & PROFILES OFTEN INCLUDED
+# /home/mike/repos/pipulate/plugins/000_profiles.py
+# /home/mike/repos/pipulate/plugins/010_roles.py
+
 /home/mike/repos/pipulate/plugins/500_hello_workflow.py
-/home/mike/repos/Pipulate.com/development.md
 /home/mike/repos/pipulate/plugins/870_upload.py
 /home/mike/repos/pipulate/plugins/530_botify_api_tutorial.py
+/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
+/home/mike/repos/MikeLev.in/_posts/2025-05-22-the-calm-before-the-nlweb.md
+/home/mike/repos/MikeLev.in/_posts/2025-05-23-force-multiplying-ikigai-in-ai-age.md
 /home/mike/repos/pipulate/plugins/535_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
