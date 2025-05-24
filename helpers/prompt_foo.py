@@ -57,6 +57,8 @@ server.py
 
 # Filter out any commented lines
 FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if not line.strip().startswith('#')]
+# Filter out blank lines
+FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if line.strip()]
 
 # FILES_TO_INCLUDE = """\
 # """.strip().splitlines()
