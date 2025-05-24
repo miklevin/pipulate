@@ -304,7 +304,9 @@ class FileUploadWidget:
                     hx_get="/open-folder?path=" + urllib.parse.quote(str(parent_dir_abs_path)),
                     hx_swap="none",
                     title=f"Open folder: {parent_dir_abs_path}",
-                    style="margin-right: 10px;"
+                    style="margin-right: 10px;",
+                    role="button",
+                    cls="outline contrast"
                 )
                 
                 download_file_link_ui = A(
