@@ -39,6 +39,7 @@ from starlette.responses import FileResponse
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False  # Set to True manually for targeted table state logging
+API_LOG_BQL_ONLY = False  # If True, only BQL-related API calls go to api.log; if False, all API calls are logged
 
 
 def get_app_name(force_app_name=None):
@@ -105,6 +106,7 @@ def setup_logging():
     logs_dir.mkdir(parents=True, exist_ok=True)
     
     app_log_path = logs_dir / f'{APP_NAME}.log'
+    api_log_path = logs_dir / 'api.log'
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
 
     # Clear main app log on server restart
@@ -114,6 +116,10 @@ def setup_logging():
         try: old_log.unlink()
         except Exception as e: print(f'Failed to delete old log file {old_log}: {e}')
 
+    # Clear API log on server restart
+    if api_log_path.exists():
+        api_log_path.unlink()
+
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
     
@@ -122,6 +128,22 @@ def setup_logging():
         app_log_path, 
         level=log_level, 
         format=f'{time_format} | {message_format}', 
+        enqueue=True
+    )
+    
+    # API log (file) with filter
+    def api_log_filter(record):
+        if API_LOG_BQL_ONLY:
+            # Only log if record["extra"].get("bql_api_call") is True
+            return record["extra"].get("bql_api_call") is True
+        else:
+            # Log all API calls that have the extra key set
+            return record["extra"].get("api_call") is True
+    logger.add(
+        api_log_path,
+        level='INFO',
+        format='{time:YYYY-MM-DD HH:mm:ss} | {message}',
+        filter=api_log_filter,
         enqueue=True
     )
     
@@ -700,6 +722,11 @@ class Pipulate:
 
         full_log_message = "\n".join(log_entry_parts)
         logger.debug(f"\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---")
+
+        # API log: decide if this is a BQL call
+        is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
+        # Always set api_call extra, and bql_api_call if BQL
+        logger.bind(api_call=True, bql_api_call=is_bql).info(full_log_message)
 
     def fmt(self, endpoint: str) -> str:
         """Format an endpoint string into a human-readable form."""
