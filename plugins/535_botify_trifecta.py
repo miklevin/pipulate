@@ -672,7 +672,7 @@ class BotifyCsvDownloaderWorkflow:
         if not org or not project or (not api_token):
             logging.error(f'Missing required parameters: org={org}, project={project}')
             return []
-        url = f'https://api.botify.com/v1/analyses/{org}/{project}'
+        url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
         headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
 
         # Log the API call
