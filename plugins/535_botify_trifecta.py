@@ -790,34 +790,123 @@ class BotifyCsvDownloaderWorkflow:
             except TypeError:
                 python_payload_str_for_script = "{# Payload not shown due to non-serializable content #}"
         
-        python_command = f"""# Python httpx snippet (async)
+        python_command = f"""# Botify API Call Example
 import httpx
 import json
 import asyncio
+import os
+from typing import Optional, Dict, Any
+from pathlib import Path
 
-url = "{url}"
-headers = {json.dumps(safe_headers_for_display, indent=4)}
-payload = {python_payload_str_for_script}
+# Configuration
+API_TOKEN = "{api_token_placeholder}"  # Replace with your Botify API token
+URL = "{url}"
+METHOD = "{method.lower()}"
 
-async def make_api_call():
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json',
+        # Add any additional headers from the original request
+        {', '.join(f"'{k}': '{v}'" for k, v in safe_headers_for_display.items() if k != 'Authorization')}
+    }}
+
+# Payload setup
+PAYLOAD = {python_payload_str_for_script}
+
+async def make_api_call(
+    url: str,
+    method: str,
+    headers: Dict[str, str],
+    payload: Optional[Dict[str, Any]] = None,
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    \"\"\"
+    Make an API call to the Botify API with proper error handling and response processing.
+    
+    Args:
+        url: The API endpoint URL
+        method: HTTP method (get, post, etc.)
+        headers: Request headers
+        payload: Optional request payload
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Dict containing the API response data
+        
+    Raises:
+        ValueError: If the API call fails or returns an error
+    \"\"\"
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.{method.lower()}(url, headers=headers, json=payload if payload else None)
-            response.raise_for_status() # Raise an exception for HTTP 4xx or 5xx status codes
+            # Make the API call
+            response = await client.request(
+                method=method,
+                url=url,
+                headers=headers,
+                json=payload if payload else None,
+                timeout=timeout
+            )
+            
+            # Log response details
             print(f"Status Code: {{response.status_code}}")
+            print(f"Response Headers: {{dict(response.headers)}}")
+            
+            # Handle response
+            response.raise_for_status()
+            
             try:
-                print("Response JSON:")
-                print(json.dumps(response.json(), indent=2))
+                result = response.json()
+                print("\\nResponse JSON:")
+                print(json.dumps(result, indent=2))
+                return result
             except json.JSONDecodeError:
-                print("Response Text:")
+                print("\\nResponse Text (not JSON):")
                 print(response.text)
+                return {{"text": response.text}}
+                
         except httpx.HTTPStatusError as e:
-            print(f"HTTP error occurred: {{e}} - {{e.response.text}}")
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
         except httpx.RequestError as e:
-            print(f"An error occurred while requesting {{e.request.url!r}}: {{e}}")
+            error_msg = f"Request error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
 
+async def main():
+    \"\"\"Main execution function\"\"\"
+    try:
+        # Validate API token
+        if API_TOKEN == "{api_token_placeholder}":
+            raise ValueError("Please replace the API_TOKEN placeholder with your actual Botify API token")
+            
+        # Make the API call
+        result = await make_api_call(
+            url=URL,
+            method=METHOD,
+            headers=get_headers(),
+            payload=PAYLOAD
+        )
+        
+        # Process the result as needed
+        return result
+        
+    except Exception as e:
+        print(f"\\n❌ Execution failed: {{str(e)}}")
+        raise
+
+# For Jupyter Notebook use, you can run the main function directly:
+# await main()
+
+# For script execution:
 if __name__ == "__main__":
-    asyncio.run(make_api_call())
+    asyncio.run(main())
 """
         return curl_command, python_command
 
