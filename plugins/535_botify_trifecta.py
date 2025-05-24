@@ -658,43 +658,42 @@ class BotifyCsvDownloaderWorkflow:
             return (False, f'An unexpected error occurred: {e}')
 
     async def fetch_analyses(self, org, project, api_token):
-        """
-        Fetch analysis slugs for a Botify project.
+        """Fetch analysis slugs for a given project from Botify API."""
+        url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
+        headers = {'Authorization': f'Token {api_token}'}
+        slugs = []
+        async with httpx.AsyncClient() as client:
+            try:
+                while url:
+                    # Log the API call
+                    curl_cmd, python_cmd = self._generate_api_call_representations(
+                        method="GET", url=url, headers=headers
+                    )
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id="fetch_analyses", step_id="analyses",
+                        call_description="Fetch Analysis List",
+                        method="GET", url=url, headers=headers,
+                        curl_command=curl_cmd, python_command=python_cmd
+                    )
 
-        Args:
-            org: Organization slug
-            project: Project slug
-            api_token: Botify API token
+                    response = await client.get(url, headers=headers)
+                    response.raise_for_status()
+                    data = response.json()
 
-        Returns:
-            List of analysis slugs or empty list on error
-        """
-        if not org or not project or (not api_token):
-            logging.error(f'Missing required parameters: org={org}, project={project}')
-            return []
-        url = f'https://api.botify.com/v1/analyses/{org}/{project}'
-        headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, headers=headers, timeout=60.0)
-            if response.status_code != 200:
-                logging.error(f'API error: Status {response.status_code} for {url}')
-                return []
-            data = response.json()
-            logging.info(f'API response keys: {data.keys()}')
-            if 'results' not in data:
-                logging.error(f"No 'results' key in response: {data}")
-                return []
-            analyses = data['results']
-            if not analyses:
-                logging.error('Analyses list is empty')
-                return []
-            logging.info(f'Found {len(analyses)} analyses')
-            slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
-            return slugs
-        except Exception as e:
-            logging.exception(f'Error fetching analyses: {str(e)}')
-            return []
+                    # Log the response
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id="fetch_analyses", step_id="analyses",
+                        call_description="Analysis List Response",
+                        method="GET", url=url, headers=headers,
+                        response_status=response.status_code,
+                        response_preview=json.dumps(data)
+                    )
+
+                    slugs.extend((a['slug'] for a in data.get('results', [])))
+                    url = data.get('next')
+                return slugs
+            except httpx.RequestError as e:
+                raise ValueError(f'Error fetching analyses: {e}')
 
     def read_api_token(self):
         """Read the Botify API token from the token file."""
