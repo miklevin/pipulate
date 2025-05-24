@@ -37,7 +37,7 @@ import urllib.parse
 from starlette.responses import FileResponse
 
 # Core settings
-DEBUG_MODE = False
+DEBUG_MODE = True
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
@@ -145,12 +145,19 @@ def setup_logging():
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
     
-    # Main application log (file)
+    # Main application log (file) with enhanced debug logging
     logger.add(
         app_log_path, 
         level=log_level, 
         format=f'{time_format} | {message_format}', 
-        enqueue=True
+        enqueue=True,
+        filter=lambda record: record["level"].name != "DEBUG" or any(
+            key in record["message"] for key in [
+                "HTTP Request:", "Pipeline ID:", "State changed:", 
+                "Creating", "Updated", "Plugin", "Role",
+                "DEBUG_POINT:", "BINARY_SEARCH:", "STATE_TRANSITION:"
+            ]
+        )
     )
     
     # API log (file) with filter - no rotation since we handle it on server restart
@@ -165,13 +172,19 @@ def setup_logging():
         enqueue=True
     )
     
-    # Console log (stderr)
+    # Console log (stderr) with enhanced debug visibility
     logger.add(
         sys.stderr, 
         level=log_level, 
         format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', 
         colorize=True, 
-        filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role']))
+        filter=lambda record: record['level'].name != 'DEBUG' or any(
+            key in record['message'] for key in [
+                'HTTP Request:', 'Pipeline ID:', 'State changed:', 
+                'Creating', 'Updated', 'Plugin', 'Role',
+                'DEBUG_POINT:', 'BINARY_SEARCH:', 'STATE_TRANSITION:'
+            ]
+        )
     )
 
     if STATE_TABLES:
@@ -179,7 +192,7 @@ def setup_logging():
 
     # Dedicated Table Lifecycle Log Sink
     if TABLE_LIFECYCLE_LOGGING:
-        lifecycle_log_path = logs_dir / 'table_lifecycle.log'
+        lifecycle_log_path = logs_dir / 'lifecycle.log'
         if lifecycle_log_path.exists():
             lifecycle_log_path.unlink()  # Clear on each server start
 
@@ -200,6 +213,28 @@ def setup_logging():
         logger.info("📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log")
         
     return logger  # Return the configured Loguru logger instance
+
+# Add debug point markers for binary search debugging
+def debug_point(point_name: str, data: dict = None):
+    """Add a strategic debug point for binary search debugging."""
+    message = f"DEBUG_POINT: {point_name}"
+    if data:
+        message += f"\nData: {json.dumps(data, indent=2)}"
+    logger.debug(message)
+
+def binary_search_debug(phase: str, data: dict = None):
+    """Add a binary search phase marker for debugging."""
+    message = f"BINARY_SEARCH: Phase {phase}"
+    if data:
+        message += f"\nData: {json.dumps(data, indent=2)}"
+    logger.debug(message)
+
+def state_transition_debug(from_state: str, to_state: str, trigger: str = None):
+    """Log state transitions for debugging."""
+    message = f"STATE_TRANSITION: {from_state} -> {to_state}"
+    if trigger:
+        message += f"\nTrigger: {trigger}"
+    logger.debug(message)
 
 # Table Lifecycle Logging Helpers
 def _format_records_for_lifecycle_log(records_iterable):
