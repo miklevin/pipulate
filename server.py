@@ -40,7 +40,7 @@ from starlette.responses import FileResponse
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
-API_LOG_ROTATION_COUNT = 4  # Number of historical API logs to keep (plus current api.log)
+API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
 
 
 def get_app_name(force_app_name=None):
