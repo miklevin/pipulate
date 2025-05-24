@@ -711,7 +711,7 @@ class Pipulate:
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
             logged_headers['Authorization'] = "Token f{YOUR_BOTIFY_API_TOKEN}"
-        log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
+        log_entry_parts.append(f"  Headers:\n{json.dumps(logged_headers, indent=2)}")
 
         if payload:
             try:
@@ -737,8 +737,15 @@ class Pipulate:
         if response_status is not None:
             log_entry_parts.append(f"  Response Status: {response_status}")
         if response_preview:
-            preview = response_preview[:500] + ("..." if len(response_preview) > 500 else "")
-            log_entry_parts.append(f"  Response Preview: {preview}")
+            try:
+                # Try to parse and pretty-print if it's JSON
+                preview_json = json.loads(response_preview)
+                preview = json.dumps(preview_json, indent=2)
+            except json.JSONDecodeError:
+                # If not JSON, use as is
+                preview = response_preview
+            preview = preview[:500] + ("..." if len(preview) > 500 else "")
+            log_entry_parts.append(f"  Response Preview:\n{preview}")
 
         if file_path:
             log_entry_parts.append(f"  Associated File Path: {file_path}")
