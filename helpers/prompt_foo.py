@@ -168,9 +168,15 @@ def print_structured_output(manifest, pre_prompt, files, post_prompt, total_toke
         tokens_str = f" ({token_counts.get(file, 0):,} tokens)" if file in token_counts else ""
         print(f"• {file}{tokens_str}")
     
-    print("\n--- Post-Prompt ---\n")
+    print("\n--- Post-Prompt ---")
+    # Show the actual prompt content if it's a direct string
+    if post_prompt and not os.path.exists(post_prompt):
+        print("\nDirect String Prompt:")
+        print(f"  {post_prompt}")
+    elif post_prompt:
+        print(f"\nPrompt File: {post_prompt}")
     
-    print("--- Token Summary ---")
+    print("\n--- Token Summary ---")
     print(f"Total tokens: {format_token_count(total_tokens)}")
     
     print("\n=== End Prompt Structure ===\n")
@@ -699,6 +705,7 @@ final_file_list = file_list.copy()  # Start with the default list
 # Handle prompt file - now with default prompt.md behavior
 prompt_path = args.prompt
 prompt_content = None
+direct_prompt = None  # New variable to store direct string prompts
 
 if prompt_path:
     # Check if the prompt is a file path or direct string
@@ -716,6 +723,7 @@ if prompt_path:
             sys.exit(1)
     else:
         # It's a direct string prompt
+        direct_prompt = prompt_path  # Store the direct string
         prompt_content = prompt_path
         print("Using direct string prompt")
 else:
@@ -759,6 +767,10 @@ output_filename = args.output
 # Set the pre and post prompts from the selected template
 pre_prompt = prompt_templates[template_index]["pre_prompt"]
 post_prompt = prompt_templates[template_index]["post_prompt"]
+
+# Override post_prompt with direct string if provided
+if direct_prompt:
+    post_prompt = direct_prompt
 
 print(f"Using template {template_index}: {prompt_templates[template_index]['name']}")
 print(f"Output will be written to: {output_filename}")
@@ -864,3 +876,7 @@ if not args.no_clipboard:
         print("Output copied to clipboard")
 
 print("\nScript finished.")
+
+# When creating the final output, use direct_prompt if available
+if direct_prompt:
+    post_prompt = direct_prompt  # Use the direct string instead of template XML
