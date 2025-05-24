@@ -756,28 +756,13 @@ class BotifyCsvDownloaderWorkflow:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None) -> tuple[str, str]:
+    def _generate_python_api_code(self, method: str, url: str, headers: dict, payload: Optional[dict] = None) -> str:
         api_token_placeholder = "{YOUR_BOTIFY_API_TOKEN}" 
         
         safe_headers_for_display = headers.copy()
         if 'Authorization' in safe_headers_for_display:
             # Display placeholder for token in snippets
             safe_headers_for_display['Authorization'] = f"Token {api_token_placeholder}"
-
-        header_str_curl = ""
-        for k, v in safe_headers_for_display.items():
-            header_str_curl += f" -H '{k}: {v}'"
-
-        curl_command = f"curl -X {method.upper()} '{url}'{header_str_curl}"
-        payload_json_str_for_curl = ""
-        if payload:
-            try:
-                payload_json_str_for_curl = json.dumps(payload)
-                # Escape single quotes for shell if payload might contain them
-                payload_json_str_for_curl = payload_json_str_for_curl.replace("'", "'\\''")
-                curl_command += f" --data-raw '{payload_json_str_for_curl}'"
-            except TypeError: # Handle non-serializable payload if it occurs
-                curl_command += " # Payload not shown due to non-serializable content"
 
         python_payload_str_for_script = "None"
         if payload:
@@ -920,7 +905,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 """
-        return curl_command, python_command
+        return python_command
 
     async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
@@ -1031,6 +1016,29 @@ if __name__ == "__main__":
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+            
+            # First check the count of records
+            check_query_payload = {
+                'collections': ['search_console'],
+                'periods': [[start_date, end_date]],
+                'query': {
+                    'dimensions': [],
+                    'metrics': [{'function': 'count', 'args': ['search_console.url']}]
+                }
+            }
+            check_url = f'https://api.botify.com/v1/projects/{username}/{project_name}/query'
+            
+            # Log the check query
+            python_cmd = self._generate_python_api_code(
+                method="POST", url=check_url, headers=headers, payload=check_query_payload
+            )
+            await self.pipulate.log_api_call_details(
+                pipeline_id="build_exports", step_id="gsc_export",
+                call_description="Search Console Count Check",
+                method="POST", url=check_url, headers=headers, payload=check_query_payload,
+                python_command=python_cmd
+            )
+            
             export_job_payload = {
                 'job_type': 'export',
                 'payload': {
@@ -1058,29 +1066,10 @@ if __name__ == "__main__":
                     'export_job_name': 'Search Console Export'
                 }
             }
-            check_query_payload = {
-                'collections': ['search_console'],
-                'periods': [[start_date, end_date]],
-                'query': {
-                    'dimensions': [],
-                    'metrics': [{'function': 'count', 'args': ['search_console.url']}]
-                }
-            }
-
-            # Log the GSC export details
-            curl_cmd, python_cmd = self._generate_api_call_representations(
-                method="POST", url=base_url, headers=headers, payload=export_job_payload
-            )
-            await self.pipulate.log_api_call_details(
-                pipeline_id="build_exports", step_id="gsc_export",
-                call_description="Search Console Export Job Creation",
-                method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                curl_command=curl_cmd, python_command=python_cmd
-            )
 
             return {
                 'check_query_payload': check_query_payload,
-                'check_url': f'/v1/projects/{username}/{project_name}/query',
+                'check_url': check_url,
                 'export_job_payload': export_job_payload,
                 'export_url': '/v1/jobs',
                 'data_type': data_type
@@ -1119,14 +1108,14 @@ if __name__ == "__main__":
             }
 
             # Log the crawl export details
-            curl_cmd, python_cmd = self._generate_api_call_representations(
+            python_cmd = self._generate_python_api_code(
                 method="POST", url=base_url, headers=headers, payload=export_job_payload
             )
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="crawl_export",
                 call_description="Crawl Analysis Export Job Creation",
                 method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                curl_command=curl_cmd, python_command=python_cmd
+                python_command=python_cmd
             )
 
             return {
@@ -1174,14 +1163,14 @@ if __name__ == "__main__":
             }
 
             # Log the weblog export details
-            curl_cmd, python_cmd = self._generate_api_call_representations(
+            python_cmd = self._generate_python_api_code(
                 method="POST", url=base_url, headers=headers, payload=export_job_payload
             )
             await self.pipulate.log_api_call_details(
                 pipeline_id="build_exports", step_id="weblog_export",
                 call_description="Web Logs Export Job Creation",
                 method="POST", url=base_url, headers=headers, payload=export_job_payload,
-                curl_command=curl_cmd, python_command=python_cmd
+                python_command=python_cmd
             )
 
             return {
@@ -1254,7 +1243,7 @@ if __name__ == "__main__":
                 headers = {'Authorization': f'Token {api_token}'}
                 
                 # Log the polling request
-                curl_cmd, python_cmd = self._generate_api_call_representations(
+                python_cmd = self._generate_python_api_code(
                     method="GET", url=job_url, headers=headers
                 )
                 if attempt == 0 or status == 'DONE':
@@ -1262,7 +1251,7 @@ if __name__ == "__main__":
                         pipeline_id="poll_job_status", step_id=step_context or "polling",
                         call_description=f"Job Status Poll Attempt {attempt + 1}",
                         method="GET", url=job_url, headers=headers,
-                        curl_command=curl_cmd, python_command=python_cmd
+                        python_command=python_cmd
                     )
 
                 async with httpx.AsyncClient(timeout=45.0) as client:
@@ -1391,6 +1380,42 @@ if __name__ == "__main__":
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
+                
+                # First check the count of records
+                check_query = {
+                    'collections': [f'crawl.{analysis_slug}'],
+                    'query': {
+                        'dimensions': [],
+                        'metrics': [{'function': 'count', 'args': [f'crawl.{analysis_slug}.url']}],
+                        'filters': {'field': f'crawl.{analysis_slug}.compliant.is_compliant', 'value': False}
+                    }
+                }
+                check_url = f'https://api.botify.com/v1/projects/{username}/{project_name}/query'
+                headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                
+                # Log the check query
+                python_cmd = self._generate_python_api_code(
+                    method="POST", url=check_url, headers=headers, payload=check_query
+                )
+                await self.pipulate.log_api_call_details(
+                    pipeline_id=pipeline_id, step_id=step_id,
+                    call_description="Crawl Analysis Count Check",
+                    method="POST", url=check_url, headers=headers, payload=check_query,
+                    python_command=python_cmd
+                )
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(check_url, headers=headers, json=check_query, timeout=60.0)
+                    response.raise_for_status()
+                    count_data = response.json()
+                    # Parse the count from the API response format
+                    total_count = 0
+                    if isinstance(count_data, list) and len(count_data) > 0:
+                        metrics = count_data[0].get('metrics', {})
+                        total_count = metrics.get('count', 0)
+                    if total_count > 10000:
+                        await self.message_queue.add(pip, f'⚠️ Warning: Export will be limited to 10,000 rows (total available: {total_count:,})', verbatim=True)
+                
                 export_query = {'job_type': 'export', 'payload': {'username': username, 'project': project_name, 'connector': 'direct_download', 'formatter': 'csv', 'export_size': 10000, 'query': {'collections': [f'crawl.{analysis_slug}'], 'query': {'dimensions': [f'crawl.{analysis_slug}.url', f'crawl.{analysis_slug}.compliant.main_reason', f'crawl.{analysis_slug}.compliant.detailed_reason'], 'metrics': [{'function': 'count', 'args': [f'crawl.{analysis_slug}.url']}], 'filters': {'field': f'crawl.{analysis_slug}.compliant.is_compliant', 'value': False}}}}}
                 job_url = 'https://api.botify.com/v1/jobs'
                 headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
@@ -1504,6 +1529,43 @@ if __name__ == "__main__":
                         analysis_date_obj = datetime.now()
                     date_end = analysis_date_obj.strftime('%Y-%m-%d')
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                    
+                    # First check the count of records
+                    check_query = {
+                        'collections': ['logs'],
+                        'periods': [[date_start, date_end]],
+                        'query': {
+                            'dimensions': [],
+                            'metrics': [{'function': 'count', 'args': ['logs.url']}],
+                            'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}
+                        }
+                    }
+                    check_url = f'https://api.botify.com/v1/projects/{username}/{project_name}/query'
+                    headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                    
+                    # Log the check query
+                    python_cmd = self._generate_python_api_code(
+                        method="POST", url=check_url, headers=headers, payload=check_query
+                    )
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id=pipeline_id, step_id=step_id,
+                        call_description="Web Logs Count Check",
+                        method="POST", url=check_url, headers=headers, payload=check_query,
+                        python_command=python_cmd
+                    )
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(check_url, headers=headers, json=check_query, timeout=60.0)
+                        response.raise_for_status()
+                        count_data = response.json()
+                        # Parse the count from the API response format
+                        total_count = 0
+                        if isinstance(count_data, list) and len(count_data) > 0:
+                            metrics = count_data[0].get('metrics', {})
+                            total_count = metrics.get('count', 0)
+                        if total_count > 1000000:
+                            await self.message_queue.add(pip, f'⚠️ Warning: Export will be limited to 1,000,000 rows (total available: {total_count:,})', verbatim=True)
+                    
                     export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': 1000000, 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
