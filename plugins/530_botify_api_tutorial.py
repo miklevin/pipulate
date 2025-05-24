@@ -506,7 +506,7 @@ class BotifyExport:
             else:
                 try:
                     api_token = self.read_api_token()
-                    is_complete, download_url, _ = await self.poll_job_status(user_val, api_token)
+                    is_complete, download_url, _ = await self.poll_job_status(user_val, api_token, step_context="export")
                     if is_complete and download_url:
                         state[step_id]['download_url'] = download_url
                         state[step_id]['status'] = 'DONE'
@@ -545,7 +545,7 @@ class BotifyExport:
                 job_url = job['job_url']
                 job_id = job['job_id']
                 try:
-                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token)
+                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token, step_context="export")
                     if is_complete and download_url:
                         self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
                         completed_jobs.append({**job, 'status': 'DONE', 'download_url': download_url})
@@ -626,7 +626,7 @@ class BotifyExport:
                 job_url = job['job_url']
                 job_id = job['job_id']
                 try:
-                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token)
+                    is_complete, download_url, _ = await self.poll_job_status(job_url, api_token, step_context="export")
                     if is_complete and download_url:
                         self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
                         job_with_url = {**job, 'status': 'DONE', 'download_url': download_url}
@@ -671,7 +671,7 @@ class BotifyExport:
                 return P(f'Error initiating export: {error}', style=pip.get_style('error'))
             job_id = job_url.split('/')[-1]
             self.register_export_job(org, project, analysis, depth, job_url, job_id)
-            is_complete, download_url, poll_error = await self.poll_job_status(job_url, api_token)
+            is_complete, download_url, poll_error = await self.poll_job_status(job_url, api_token, step_context="export")
             if is_complete and download_url:
                 self.update_export_job(org, project, analysis, depth, job_id, {'status': 'DONE', 'download_url': download_url})
             if step_id not in state:
@@ -1134,13 +1134,14 @@ class BotifyExport:
             logger.error(f'Error initiating export job: {str(e)}')
             return (None, f'Error initiating export job: {str(e)}')
 
-    async def poll_job_status(self, job_url, api_token, max_attempts=12):
+    async def poll_job_status(self, job_url, api_token, max_attempts=12, step_context=None):
         """Poll the job status URL to check for completion.
 
         Args:
             job_url: Full job URL to poll
             api_token: Botify API token
             max_attempts: Maximum number of polling attempts (default: 12)
+            step_context: Optional context for the step
 
         Returns:
             Tuple of (success, result_dict_or_error_message)
@@ -1220,7 +1221,7 @@ class BotifyExport:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         try:
             api_token = self.read_api_token()
-            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token, step_context="export")
             if is_complete and download_url:
                 state[step_id]['download_url'] = download_url
                 state[step_id]['status'] = 'DONE'
@@ -1269,7 +1270,7 @@ class BotifyExport:
             return P('Job information not found in state', style=pip.get_style('error'))
         try:
             api_token = self.read_api_token()
-            is_complete, download_url, error = await self.poll_job_status(job_url, api_token)
+            is_complete, download_url, error = await self.poll_job_status(job_url, api_token, step_context="export")
             if is_complete and download_url:
                 state[step_id]['download_url'] = download_url
                 state[step_id]['status'] = 'DONE'

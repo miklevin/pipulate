@@ -1073,7 +1073,7 @@ class ParameterBusterWorkflow:
                 await self.message_queue.add(pip, f'❌ Error creating export job: {str(e)}', verbatim=True)
                 raise
             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
-            success, result = await self.poll_job_status(full_job_url, api_token)
+            success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
             if not success:
                 error_message = isinstance(result, str) and result or 'Export job failed'
                 await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
@@ -1155,7 +1155,7 @@ class ParameterBusterWorkflow:
         export_job_payload = {'job_type': 'export', 'payload': {'username': username, 'project': project_name, 'connector': 'direct_download', 'formatter': 'csv', 'export_size': 1000000, 'query': bql_query, 'formatter_config': {'print_header': True}}}
         return {'check_query_payload': check_query_payload, 'check_url': f'/v1/projects/{username}/{project_name}/query', 'export_job_payload': export_job_payload, 'export_url': '/v1/jobs', 'data_type': data_type}
 
-    async def poll_job_status(self, job_url, api_token, max_attempts=20):
+    async def poll_job_status(self, job_url, api_token, max_attempts=20, step_context=None):
         """
         Poll the job status URL to check for completion with improved error handling
 
@@ -1341,7 +1341,7 @@ class ParameterBusterWorkflow:
                     except Exception as e:
                         await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
                         raise
-                success, result = await self.poll_job_status(full_job_url, api_token)
+                success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                 if not success:
                     error_message = isinstance(result, str) and result or 'Export job failed'
                     await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
@@ -1461,7 +1461,7 @@ class ParameterBusterWorkflow:
                     if job_id:
                         await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                    success, result = await self.poll_job_status(full_job_url, api_token)
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)

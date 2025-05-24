@@ -965,7 +965,7 @@ if __name__ == "__main__":
                 await self.message_queue.add(pip, f'❌ Error creating export job: {str(e)}', verbatim=True)
                 raise
             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
-            success, result = await self.poll_job_status(full_job_url, api_token)
+            success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
             if not success:
                 error_message = isinstance(result, str) and result or 'Export job failed'
                 await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
@@ -1194,7 +1194,7 @@ if __name__ == "__main__":
         else:
             raise ValueError(f'Unknown data type: {data_type}')
 
-    async def poll_job_status(self, job_url, api_token, max_attempts=20):
+    async def poll_job_status(self, job_url, api_token, max_attempts=20, step_context=None):
         """
         Poll the job status URL to check for completion with improved error handling
 
@@ -1202,6 +1202,7 @@ if __name__ == "__main__":
             job_url: Full job URL to poll
             api_token: Botify API token
             max_attempts: Maximum number of polling attempts
+            step_context: Optional string identifying which step is making the request
 
         Returns:
             Tuple of (success, result_dict_or_error_message)
@@ -1226,19 +1227,26 @@ if __name__ == "__main__":
                     await self.message_queue.add(self.pipulate, f'Using job ID {job_id} for polling...', verbatim=True)
         except Exception:
             pass
-        poll_msg = f'Starting polling for job: {job_url}' + (f' (ID: {job_id})' if job_id else '')
+        step_prefix = f'[{step_context}] ' if step_context else ''
+        poll_msg = f'{step_prefix}Starting polling for job: {job_url}' + (f' (ID: {job_id})' if job_id else '')
         logging.info(poll_msg)
         await self.message_queue.add(self.pipulate, poll_msg, verbatim=True)
         
         while attempt < max_attempts:
             try:
-                poll_attempt_msg = f'Poll attempt {attempt + 1}/{max_attempts} for job: {job_url}'
-                logging.info(poll_attempt_msg)
-                await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
+                if attempt == 0:
+                    poll_attempt_msg = f'{step_prefix}Poll attempt {attempt + 1}/{max_attempts} for job: {job_url}'
+                    logging.info(poll_attempt_msg)
+                    await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
+                elif attempt > 0:
+                    poll_attempt_msg = f'{step_prefix}Poll attempt {attempt + 1}/{max_attempts}'
+                    logging.info(poll_attempt_msg)
+                    await self.message_queue.add(self.pipulate, poll_attempt_msg, verbatim=True)
+
                 if consecutive_network_errors >= 2 and job_id:
                     alternative_url = f'https://api.botify.com/v1/jobs/{job_id}'
                     if alternative_url != job_url:
-                        url_switch_msg = f'Switching to direct job ID URL: {alternative_url}'
+                        url_switch_msg = f'{step_prefix}Switching to direct job ID URL: {alternative_url}'
                         logging.info(url_switch_msg)
                         await self.message_queue.add(self.pipulate, url_switch_msg, verbatim=True)
                         job_url = alternative_url
@@ -1250,7 +1258,7 @@ if __name__ == "__main__":
                     method="GET", url=job_url, headers=headers
                 )
                 await self.pipulate.log_api_call_details(
-                    pipeline_id="poll_job_status", step_id="polling",
+                    pipeline_id="poll_job_status", step_id=step_context or "polling",
                     call_description=f"Job Status Poll Attempt {attempt + 1}",
                     method="GET", url=job_url, headers=headers,
                     curl_command=curl_cmd, python_command=python_cmd
@@ -1265,24 +1273,25 @@ if __name__ == "__main__":
                     except:
                         logging.debug(f'Could not parse response as JSON. Status: {response.status_code}, Raw: {response.text[:500]}')
                     if response.status_code == 401:
-                        error_msg = 'Authentication failed. Please check your API token.'
+                        error_msg = f'{step_prefix}Authentication failed. Please check your API token.'
                         logging.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, error_msg)
                     if response.status_code >= 400:
-                        error_msg = f'API error {response.status_code}: {response.text}'
+                        error_msg = f'{step_prefix}API error {response.status_code}: {response.text}'
                         logging.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, error_msg)
                     job_data = response.json()
                     status = job_data.get('job_status')
-                    status_msg = f'Poll attempt {attempt + 1}: status={status}'
-                    logging.info(status_msg)
-                    await self.message_queue.add(self.pipulate, status_msg, verbatim=True)
+                    if attempt == 0:
+                        status_msg = f'{step_prefix}Poll attempt {attempt + 1}: status={status}'
+                        logging.info(status_msg)
+                        await self.message_queue.add(self.pipulate, status_msg, verbatim=True)
 
                     # Log the polling response
                     await self.pipulate.log_api_call_details(
-                        pipeline_id="poll_job_status", step_id="polling",
+                        pipeline_id="poll_job_status", step_id=step_context or "polling",
                         call_description=f"Job Status Poll Response {attempt + 1}",
                         method="GET", url=job_url, headers=headers,
                         response_status=response.status_code,
@@ -1291,7 +1300,7 @@ if __name__ == "__main__":
 
                     if status == 'DONE':
                         results = job_data.get('results', {})
-                        success_msg = 'Job completed successfully!'
+                        success_msg = f'{step_prefix}Job completed successfully!'
                         logging.info(success_msg)
                         await self.message_queue.add(self.pipulate, f'✓ {success_msg}', verbatim=True)
                         return (True, {'download_url': results.get('download_url'), 'row_count': results.get('row_count'), 'file_size': results.get('file_size'), 'filename': results.get('filename'), 'expires_at': results.get('expires_at')})
@@ -1299,43 +1308,46 @@ if __name__ == "__main__":
                         error_details = job_data.get('error', {})
                         error_message = error_details.get('message', 'Unknown error')
                         error_type = error_details.get('type', 'Unknown type')
-                        error_msg = f'Job failed with error type: {error_type}, message: {error_message}'
+                        error_msg = f'{step_prefix}Job failed with error type: {error_type}, message: {error_message}'
                         logging.error(error_msg)
                         await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                         return (False, f'Export failed: {error_message} (Type: {error_type})')
                     attempt += 1
-                    wait_msg = f'Job still processing. Waiting {int(delay)} seconds before next attempt...'
+                    if attempt == 1:
+                        wait_msg = f'{step_prefix}Job still processing. Waiting {int(delay)} seconds before next attempt...'
+                    else:
+                        wait_msg = f'{step_prefix}Still processing... (attempt {attempt + 1}/{max_attempts})'
                     logging.info(wait_msg)
                     await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                     await asyncio.sleep(delay)
                     delay = min(int(delay * 1.5), 20)
             except (httpx.RequestError, socket.gaierror, socket.timeout) as e:
                 consecutive_network_errors += 1
-                error_msg = f'Network error polling job status: {str(e)}'
+                error_msg = f'{step_prefix}Network error polling job status: {str(e)}'
                 logging.error(error_msg)
                 await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                 if job_id:
                     job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                    retry_msg = f'Retry with direct job ID URL: {job_url}'
+                    retry_msg = f'{step_prefix}Retry with direct job ID URL: {job_url}'
                     logging.warning(retry_msg)
                     await self.message_queue.add(self.pipulate, retry_msg, verbatim=True)
                 attempt += 1
-                wait_msg = f'Network error. Waiting {int(delay)} seconds before retry...'
+                wait_msg = f'{step_prefix}Network error. Waiting {int(delay)} seconds before retry...'
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(int(delay * 2), 30)
             except Exception as e:
-                error_msg = f'Unexpected error in polling: {str(e)}'
+                error_msg = f'{step_prefix}Unexpected error in polling: {str(e)}'
                 logging.exception(error_msg)
                 await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                 attempt += 1
-                wait_msg = f'Unexpected error. Waiting {int(delay)} seconds before retry...'
+                wait_msg = f'{step_prefix}Unexpected error. Waiting {int(delay)} seconds before retry...'
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
                 delay = min(int(delay * 2), 30)
-        max_attempts_msg = 'Maximum polling attempts reached'
+        max_attempts_msg = f'{step_prefix}Maximum polling attempts reached'
         logging.warning(max_attempts_msg)
         await self.message_queue.add(self.pipulate, f'⚠️ {max_attempts_msg}', verbatim=True)
         return (False, 'Maximum polling attempts reached. The export job may still complete in the background.')
@@ -1405,7 +1417,7 @@ if __name__ == "__main__":
                     except Exception as e:
                         await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
                         raise
-                success, result = await self.poll_job_status(full_job_url, api_token)
+                success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                 if not success:
                     error_message = isinstance(result, str) and result or 'Export job failed'
                     await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
@@ -1525,7 +1537,7 @@ if __name__ == "__main__":
                     if job_id:
                         await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                    success, result = await self.poll_job_status(full_job_url, api_token)
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
