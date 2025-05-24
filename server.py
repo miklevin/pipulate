@@ -684,8 +684,10 @@ class Pipulate:
             f"  Request: {method.upper()} {url}"
         ]
         
-        # Redact token from headers for logging
-        logged_headers = {k: (v[:15] + "..." if isinstance(v, str) and k.lower() == 'authorization' else v) for k,v in headers.items()}
+        # Redact token from headers for logging - use a consistent placeholder
+        logged_headers = headers.copy()
+        if 'Authorization' in logged_headers:
+            logged_headers['Authorization'] = "Token {YOUR_BOTIFY_API_TOKEN}"
         log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
 
         if payload:
@@ -700,7 +702,9 @@ class Pipulate:
         if curl_command:
             log_entry_parts.append(f"  cURL Command:\n{curl_command}")
         if python_command:
+            # Add a note about token loading if this is a Python command
             log_entry_parts.append(f"  Python (httpx) Snippet:\n{python_command}")
+            log_entry_parts.append("  Note: The API token should be loaded from a secure file location.")
 
         if estimated_rows is not None:
             log_entry_parts.append(f"  Estimated Rows (from pre-check): {estimated_rows:,}")
