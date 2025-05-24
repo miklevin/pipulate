@@ -116,9 +116,30 @@ def setup_logging():
         try: old_log.unlink()
         except Exception as e: print(f'Failed to delete old log file {old_log}: {e}')
 
-    # Clear API log on server restart
+    # Handle API log rotation on server restart
     if api_log_path.exists():
-        api_log_path.unlink()
+        # Shift existing numbered logs
+        for i in range(4, 1, -1):  # Start from 4 down to 2
+            old_path = logs_dir / f'api-{i}.log'
+            new_path = logs_dir / f'api-{i+1}.log'
+            if old_path.exists():
+                try:
+                    old_path.rename(new_path)
+                except Exception as e:
+                    print(f'Failed to rotate API log {old_path}: {e}')
+        
+        # Move current api.log to api-2.log
+        try:
+            api_log_path.rename(logs_dir / 'api-2.log')
+        except Exception as e:
+            print(f'Failed to rotate current API log: {e}')
+        
+        # Clean up any logs beyond api-5.log
+        for old_log in logs_dir.glob('api-[6-9].log'):
+            try:
+                old_log.unlink()
+            except Exception as e:
+                print(f'Failed to delete old API log {old_log}: {e}')
 
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
@@ -131,7 +152,7 @@ def setup_logging():
         enqueue=True
     )
     
-    # API log (file) with filter
+    # API log (file) with filter - no rotation since we handle it on server restart
     def api_log_filter(record):
         if API_LOG_BQL_ONLY:
             # Only log if record["extra"].get("bql_api_call") is True
@@ -687,7 +708,7 @@ class Pipulate:
         # Redact token from headers for logging - use a consistent placeholder
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
-            logged_headers['Authorization'] = "Token {YOUR_BOTIFY_API_TOKEN}"
+            logged_headers['Authorization'] = "Token f{YOUR_BOTIFY_API_TOKEN}"
         log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
 
         if payload:
@@ -3276,3 +3297,4 @@ def run_server_with_watchdog():
 
 if __name__ == '__main__':
     run_server_with_watchdog()
+
