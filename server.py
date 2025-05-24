@@ -2282,6 +2282,50 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
 
+@rt('/download-csv/{pipeline_id}/{step_id}', methods=['GET'])
+async def download_csv_endpoint(request):
+    """
+    Downloads a CSV file for a specific pipeline step.
+    Expects pipeline_id and step_id as path parameters.
+    """
+    pipeline_id = request.path_params.get("pipeline_id")
+    step_id = request.path_params.get("step_id")
+    
+    if not pipeline_id or not step_id:
+        return HTMLResponse("Pipeline ID and Step ID are required", status_code=400)
+    
+    try:
+        # Get the step data from the database
+        step_data = pip.get_step_data(pipeline_id, step_id)
+        if not step_data:
+            return HTMLResponse("No data found for this pipeline step", status_code=404)
+            
+        # Convert the data to CSV format
+        import csv
+        import io
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header row
+        writer.writerow(['Pipeline ID', 'Step ID', 'Data'])
+        # Write data row
+        writer.writerow([pipeline_id, step_id, step_data])
+        
+        # Create the response with the CSV data
+        csv_data = output.getvalue()
+        headers = {
+            'Content-Disposition': f'attachment; filename="{pipeline_id}_{step_id}.csv"',
+            'Content-Type': 'text/csv'
+        }
+        
+        return HTMLResponse(csv_data, headers=headers)
+        
+    except Exception as e:
+        logger.error(f"Error generating CSV: {str(e)}")
+        return HTMLResponse(f"Error generating CSV: {str(e)}", status_code=500)
+
+
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
     """
