@@ -698,33 +698,49 @@ final_file_list = file_list.copy()  # Start with the default list
 
 # Handle prompt file - now with default prompt.md behavior
 prompt_path = args.prompt
-if not prompt_path:
+prompt_content = None
+
+if prompt_path:
+    # Check if the prompt is a file path or direct string
+    if os.path.exists(prompt_path):
+        # It's a file path
+        if not os.path.isabs(prompt_path):
+            prompt_path = os.path.join(os.getcwd(), prompt_path)
+        
+        try:
+            with open(prompt_path, 'r', encoding='utf-8') as f:
+                prompt_content = f.read()
+            print(f"Using prompt file: {prompt_path}")
+        except Exception as e:
+            print(f"Error reading prompt file {prompt_path}: {e}")
+            sys.exit(1)
+    else:
+        # It's a direct string prompt
+        prompt_content = prompt_path
+        print("Using direct string prompt")
+else:
     # If no prompt specified, look for prompt.md in current directory
     prompt_path = os.path.join(os.getcwd(), "prompt.md")
     if os.path.exists(prompt_path):
-        print(f"Using default prompt file: {prompt_path}")
+        try:
+            with open(prompt_path, 'r', encoding='utf-8') as f:
+                prompt_content = f.read()
+            print(f"Using default prompt file: {prompt_path}")
+        except Exception as e:
+            print(f"Error reading default prompt file: {e}")
+            sys.exit(1)
     else:
         print("No prompt file specified and prompt.md not found in current directory.")
         print("Running without a prompt file.")
-        prompt_path = None
 
-if prompt_path:
-    # Check if the prompt file exists
-    if not os.path.isabs(prompt_path):
-        prompt_path = os.path.join(os.getcwd(), prompt_path)
-    
-    if not os.path.exists(prompt_path):
-        print(f"Error: Prompt file not found at {prompt_path}")
-        sys.exit(1)
-    
+if prompt_content:
     # Add prompt file to files list if not already present
-    if prompt_path not in final_file_list:
+    if prompt_path and os.path.exists(prompt_path) and prompt_path not in final_file_list:
         final_file_list.append(prompt_path)
     
     # Use article analysis template by default for prompt files
     args.template = 1  # Use the material analysis template
     
-    print(f"Using prompt file: {prompt_path}")
     print(f"Using template {args.template}: {prompt_templates[args.template]['name']}")
     print(f"Output will be written to: {args.output}\n")
 
