@@ -36,10 +36,12 @@ import platform
 import urllib.parse
 from starlette.responses import FileResponse
 
+# Core settings
 DEBUG_MODE = False
 STATE_TABLES = False
-TABLE_LIFECYCLE_LOGGING = False  # Set to True manually for targeted table state logging
-API_LOG_BQL_ONLY = False  # If True, only BQL-related API calls go to api.log; if False, all API calls are logged
+TABLE_LIFECYCLE_LOGGING = False
+API_LOG_BQL_ONLY = False
+API_LOG_ROTATION_COUNT = 4  # Number of historical API logs to keep (plus current api.log)
 
 
 def get_app_name(force_app_name=None):
@@ -119,7 +121,7 @@ def setup_logging():
     # Handle API log rotation on server restart
     if api_log_path.exists():
         # Shift existing numbered logs
-        for i in range(4, 1, -1):  # Start from 4 down to 2
+        for i in range(API_LOG_ROTATION_COUNT, 1, -1):  # Start from max down to 2
             old_path = logs_dir / f'api-{i}.log'
             new_path = logs_dir / f'api-{i+1}.log'
             if old_path.exists():
@@ -134,8 +136,8 @@ def setup_logging():
         except Exception as e:
             print(f'Failed to rotate current API log: {e}')
         
-        # Clean up any logs beyond api-5.log
-        for old_log in logs_dir.glob('api-[6-9].log'):
+        # Clean up any logs beyond the rotation count
+        for old_log in logs_dir.glob(f'api-[{API_LOG_ROTATION_COUNT+1}-9].log'):
             try:
                 old_log.unlink()
             except Exception as e:
