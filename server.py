@@ -706,13 +706,11 @@ class Pipulate:
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
             logged_headers['Authorization'] = "Token f{YOUR_BOTIFY_API_TOKEN}"
-        log_entry_parts.append(f"  Headers: {json.dumps(logged_headers)}")
+        log_entry_parts.append(f"  Headers:\n{json.dumps(logged_headers, indent=2)}")
 
         if payload:
             try:
                 payload_str = json.dumps(payload, indent=2)
-                if len(payload_str) > 1000: # Limit logged payload size for readability
-                    payload_str = payload_str[:1000] + "...\n(Payload truncated in log)"
                 log_entry_parts.append(f"  Payload:\n{payload_str}")
             except TypeError:
                 log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
@@ -732,8 +730,13 @@ class Pipulate:
         if response_status is not None:
             log_entry_parts.append(f"  Response Status: {response_status}")
         if response_preview:
-            preview = response_preview[:500] + ("..." if len(response_preview) > 500 else "")
-            log_entry_parts.append(f"  Response Preview: {preview}")
+            # Try to pretty-print JSON if possible
+            try:
+                parsed = json.loads(response_preview)
+                pretty_preview = json.dumps(parsed, indent=2)
+                log_entry_parts.append(f"  Response Preview:\n{pretty_preview}")
+            except Exception:
+                log_entry_parts.append(f"  Response Preview:\n{response_preview}")
 
         if file_path:
             log_entry_parts.append(f"  Associated File Path: {file_path}")
