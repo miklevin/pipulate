@@ -35,24 +35,25 @@ requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md <-- Development notes for Pipulate.com
 
-## ROLES & PROFILES OFTEN INCLUDED
-# /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Required DRY CRUD plugin controls profile management (PROFILE menu)
-# /home/mike/repos/pipulate/plugins/010_roles.py     <-- Required DRY CRUD plugin controls role management (APP menu)
+## REQUIRED PLUGINS: ROLES & PROFILES (OFTEN INCLUDED)
+# /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+# /home/mike/repos/pipulate/plugins/010_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
 
-/home/mike/repos/pipulate/plugins/500_hello_workflow.py
-/home/mike/repos/pipulate/plugins/870_upload.py
-/home/mike/repos/pipulate/plugins/530_botify_api_tutorial.py
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
-/home/mike/repos/MikeLev.in/_posts/2025-05-22-the-calm-before-the-nlweb.md
-/home/mike/repos/MikeLev.in/_posts/2025-05-23-force-multiplying-ikigai-in-ai-age.md
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
-# /home/mike/repos/pipulate/helpers/create_workflow.py
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py
-# /home/mike/repos/pipulate/plugins/520_widget_examples.py
-# /home/mike/repos/pipulate/plugins/040_parameter_buster.py
-# /home/mike/repos/pipulate/helpers/prompt_foo.py
+## STATIC RESOURCES
+# /home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/static/chat-interface.js
+# /home/mike/repos/pipulate/static/chat-scripts.js
+# /home/mike/repos/pipulate/static/widget-scripts.js
+
+## SAMPLE WORKFLOWS
+# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
+
+## HELPER SCRIPTS
+# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+
 """.strip().splitlines()
 
 # Filter out any commented lines
