@@ -29,15 +29,15 @@ from typing import Dict, List, Optional, Union
 FILES_TO_INCLUDE = """\
 
 # CORE FILES
-README.md
-/home/mike/repos/Pipulate.com/development.md
-flake.nix
-requirements.txt
-server.py
+README.md        <-- Main GitHub README sets the tone
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+requirements.txt <-- Python package dependencies for the project
+server.py        <-- Main server file for the project
+/home/mike/repos/Pipulate.com/development.md <-- Development notes for Pipulate.com
 
 ## ROLES & PROFILES OFTEN INCLUDED
-# /home/mike/repos/pipulate/plugins/000_profiles.py
-# /home/mike/repos/pipulate/plugins/010_roles.py
+# /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Required DRY CRUD plugin controls profile management (PROFILE menu)
+# /home/mike/repos/pipulate/plugins/010_roles.py     <-- Required DRY CRUD plugin controls role management (APP menu)
 
 /home/mike/repos/pipulate/plugins/500_hello_workflow.py
 /home/mike/repos/pipulate/plugins/870_upload.py
@@ -59,6 +59,8 @@ server.py
 FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if not line.strip().startswith('#')]
 # Filter out blank lines
 FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if line.strip()]
+# Strip off any <-- comments (handling variable whitespace)
+FILES_TO_INCLUDE = [line.split('<--')[0].rstrip() for line in FILES_TO_INCLUDE]
 
 # FILES_TO_INCLUDE = """\
 # """.strip().splitlines()
