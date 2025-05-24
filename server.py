@@ -715,10 +715,7 @@ class Pipulate:
 
         if payload:
             try:
-                payload_str = json.dumps(payload, indent=2)
-                if len(payload_str) > 1000: # Limit logged payload size for readability
-                    payload_str = payload_str[:1000] + "...\n(Payload truncated in log)"
-                log_entry_parts.append(f"  Payload:\n{payload_str}")
+                log_entry_parts.append(f"  Payload:\n{json.dumps(payload, indent=2)}")
             except TypeError:
                 log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
         
@@ -744,7 +741,6 @@ class Pipulate:
             except json.JSONDecodeError:
                 # If not JSON, use as is
                 preview = response_preview
-            preview = preview[:500] + ("..." if len(preview) > 500 else "")
             log_entry_parts.append(f"  Response Preview:\n{preview}")
 
         if file_path:
