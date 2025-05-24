@@ -715,8 +715,6 @@ class Pipulate:
             except TypeError:
                 log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
         
-        if curl_command:
-            log_entry_parts.append(f"  cURL Command:\n{curl_command}")
         if python_command:
             # Add a note about token loading if this is a Python command
             log_entry_parts.append(f"  Python (httpx) Snippet:\n{python_command}")
