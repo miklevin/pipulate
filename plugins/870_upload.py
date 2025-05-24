@@ -11,6 +11,9 @@ from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
 
+PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
+
 ROLES = ['Components']
 '\nFile Upload Widget Workflow\n\nThis workflow demonstrates a widget that allows users to upload files to the server.\nFiles are saved in a designated directory with proper organization and tracking.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
@@ -214,10 +217,6 @@ class FileUploadWidget:
             await self.message_queue.add(pip, 'No files selected. Please try again.', verbatim=True)
             explanation = 'Select one or more files. They will be saved to the `downloads` directory.'
             return Div(Card(H3(f'{pip.fmt(step_id)}: {step.show}'), P('No files were selected. Please try again.', style=pip.get_style('error')), P(explanation, style=pip.get_style('muted')), Form(Input(type='file', name='uploaded_files', multiple='true', required='true', cls='contrast'), Button('Upload Files ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}', enctype='multipart/form-data')), Div(id=next_step_id), id=step_id)
-        
-        # Get the project root directory (where server.py is located)
-        PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parents[1]
-        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
         
         # Use the same base directory as the download endpoint
         save_directory = PLUGIN_DOWNLOADS_BASE_DIR / app_name
