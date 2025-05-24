@@ -21,6 +21,7 @@ from fasthtml.common import *
 from loguru import logger
 
 ROLES = ['Workshop']
+TOKEN_FILE = 'botify_token.txt'
 '\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -616,7 +617,6 @@ class BotifyCsvDownloaderWorkflow:
         Returns:
             (True, None) if found, (False, None) if not found, or (False, error_message) on error.
         """
-        TOKEN_FILE = 'botify_token.txt'
         try:
             if not os.path.exists(TOKEN_FILE):
                 return (False, f"Token file '{TOKEN_FILE}' not found.")
@@ -698,7 +698,6 @@ class BotifyCsvDownloaderWorkflow:
 
     def read_api_token(self):
         """Read the Botify API token from the token file."""
-        TOKEN_FILE = 'botify_token.txt'
         try:
             if not os.path.exists(TOKEN_FILE):
                 return None
@@ -796,25 +795,23 @@ import json
 import asyncio
 import os
 from typing import Optional, Dict, Any
-from pathlib import Path
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
 
 def load_api_token() -> str:
-    \"\"\"
-    Load the Botify API token from environment variable or file.
-    Returns the API token as a string.
-    \"\"\"
-    # Try to get token from environment variable first
-    token = os.getenv('BOTIFY_API_TOKEN')
-    if token:
-        return token.strip()
-    
-    # If not in environment, try to load from file
-    token_file = Path.home() / '.botify' / 'api_token.txt'
-    if token_file.exists():
-        return token_file.read_text().strip()
-    
-    # If neither exists, return placeholder
-    return "{api_token_placeholder}"
+    \"\"\"Load the Botify API token from the token file.\"\"\"
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            raise ValueError(f"Token file '{{TOKEN_FILE}}' not found.")
+        with open(TOKEN_FILE) as f:
+            content = f.read().strip()
+            api_key = content.split('\\n')[0].strip()
+            if not api_key:
+                raise ValueError(f"Token file '{{TOKEN_FILE}}' is empty.")
+            return api_key
+    except Exception as e:
+        raise ValueError(f"Error loading API token: {{str(e)}}")
 
 # Configuration
 API_TOKEN = load_api_token()
@@ -901,12 +898,6 @@ async def make_api_call(
 async def main():
     \"\"\"Main execution function\"\"\"
     try:
-        # Validate API token
-        if API_TOKEN == "{api_token_placeholder}":
-            raise ValueError("Please set your Botify API token in either:\n"
-                           "1. BOTIFY_API_TOKEN environment variable\n"
-                           "2. ~/.botify/api_token.txt file")
-            
         # Make the API call
         result = await make_api_call(
             url=URL,
