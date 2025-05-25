@@ -22,12 +22,7 @@ from loguru import logger
 
 ROLES = ['Workshop']
 TOKEN_FILE = 'botify_token.txt'
-"""
-Multi-Export Workflow
-====================
 
-A workflow for performing multiple CSV exports from Botify.
-"""
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
