@@ -82,6 +82,7 @@ class BotifyCsvDownloaderWorkflow:
         routes.append((f'/{app_name}/step_02_toggle', self.step_02_toggle, ['GET']))
         routes.append((f'/{app_name}/step_03_toggle', self.step_03_toggle, ['GET']))
         routes.append((f'/{app_name}/step_04_toggle', self.step_04_toggle, ['GET']))
+        routes.append((f'/{app_name}/step_05_toggle', self.step_05_toggle, ['GET']))
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
@@ -346,24 +347,18 @@ class BotifyCsvDownloaderWorkflow:
             H3(f'{step.show}'),
             P(f"Downloading data for analysis '{analysis_slug}'..."),
             Progress(style='margin-top: 10px;'),
-            Script("""
-                setTimeout(function() {
-                    htmx.ajax('POST', '/{app_name}/step_02_process', {
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/step_02_process', {{
                         target: '#{step_id}',
-                        values: {
+                        values: {{
                             'analysis_slug': '{analysis_slug}',
                             'username': '{username}',
                             'project_name': '{project_name}'
-                        }
-                    });
-                }, 500);
-            """.format(
-                app_name=app_name,
-                step_id=step_id,
-                analysis_slug=analysis_slug,
-                username=username,
-                project_name=project_name
-            )),
+                        }}
+                    }});
+                }}, 500);
+            """),
             id=step_id
         )
 
@@ -634,8 +629,19 @@ class BotifyCsvDownloaderWorkflow:
         placeholder_result_str = json.dumps(placeholder_result)
         await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
-        
-        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        widget = Div(
+            Button('Hide/Show Code', 
+                cls='secondary outline',
+                hx_get=f'/{app_name}/{step_id}_toggle',
+                hx_target=f'#{step_id}_widget',
+                hx_swap='innerHTML'
+            ),
+            Div(
+                Pre('Placeholder step completed', cls='code-block-container'),
+                id=f'{step_id}_widget'
+            )
+        )
+        return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05_process(self, request):
         """Process parameter analysis using raw parameter counting and caching."""
@@ -1608,7 +1614,19 @@ if __name__ == "__main__":
             await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
             analysis_result_str = json.dumps(analysis_result)
             await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (data downloaded)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Analysis: {analysis_slug} (data downloaded)', cls='code-block-container'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (data downloaded)', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
@@ -1750,7 +1768,19 @@ if __name__ == "__main__":
             download_message = ''
             if has_logs:
                 download_message = ' (data downloaded)'
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color};'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} web logs{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
@@ -1827,4 +1857,23 @@ if __name__ == "__main__":
             return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
         else:
             return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+
+    async def step_05_toggle(self, request):
+        """Toggle visibility of step 5 widget content."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_05'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # Check if widget is currently visible
+        state = pip.read_state(pipeline_id)
+        is_visible = state.get(f'{step_id}_widget_visible', True)
+        
+        # Toggle visibility
+        state[f'{step_id}_widget_visible'] = not is_visible
+        pip.write_state(pipeline_id, state)
+        
+        if is_visible:
+            return Pre('Placeholder step completed', cls='code-block-container')
+        else:
+            return Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
 
