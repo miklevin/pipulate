@@ -1824,9 +1824,9 @@ if __name__ == "__main__":
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
-        else:
             return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+        else:
+            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1857,9 +1857,9 @@ if __name__ == "__main__":
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
-        else:
             return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+        else:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
 
     async def step_04_toggle(self, request):
         """Toggle visibility of step 4 widget content."""
@@ -1890,9 +1890,9 @@ if __name__ == "__main__":
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
-        else:
             return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+        else:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
 
     async def step_05_toggle(self, request):
         """Toggle visibility of step 5 widget content."""
@@ -1917,7 +1917,7 @@ if __name__ == "__main__":
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre('Placeholder step completed', cls='code-block-container')
-        else:
             return Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
+        else:
+            return Pre('Placeholder step completed', cls='code-block-container')
 
