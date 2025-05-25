@@ -2160,3 +2160,173 @@ await main()
             logging.exception(f'Error in step_04_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
+    def convert_jobs_to_query_payload(self, jobs_payload, username, project_name, page_size=100):
+        """
+        Convert a /jobs export payload to a /query payload for debugging in Jupyter.
+        
+        The key differences:
+        1. URL: /jobs -> /projects/{org}/{project}/query  
+        2. Payload structure: Remove export-specific fields, flatten query
+        3. Add pagination parameters
+        4. Remove username/project from payload (they go in URL for /query)
+        
+        Args:
+            jobs_payload: The original /jobs payload dict
+            username: Organization slug (goes in URL for /query)
+            project_name: Project slug (goes in URL for /query)  
+            page_size: Number of results per page (default 100)
+            
+        Returns:
+            dict: Converted payload for /query endpoint
+        """
+        # Extract the core query from the jobs payload
+        if 'payload' in jobs_payload and 'query' in jobs_payload['payload']:
+            # Standard export job structure
+            core_query = jobs_payload['payload']['query']
+        elif 'query' in jobs_payload:
+            # Direct query structure (some job types)
+            core_query = jobs_payload['query']
+        else:
+            raise ValueError("Could not find query structure in jobs payload")
+        
+        # Build the /query payload
+        query_payload = {
+            "collections": core_query.get("collections", []),
+            "query": core_query.get("query", {}),
+            "size": page_size  # Add pagination
+        }
+        
+        # Handle periods if present (for GSC and logs)
+        if "periods" in core_query:
+            query_payload["periods"] = core_query["periods"]
+            
+        return query_payload
+    
+    def generate_query_api_call(self, jobs_payload, username, project_name, page_size=100):
+        """
+        Generate a complete /query API call from a /jobs payload for Jupyter debugging.
+        
+        Args:
+            jobs_payload: The original /jobs export payload
+            username: Organization slug
+            project_name: Project slug
+            page_size: Results per page
+            
+        Returns:
+            tuple: (query_url, query_payload, python_code)
+        """
+        # Convert the payload
+        query_payload = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size)
+        
+        # Build the query URL
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query"
+        
+        # Generate Python code for Jupyter
+        python_code = f'''# Botify Query API Call (for debugging the export query)
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+def load_api_token() -> str:
+    """Load the Botify API token from the token file."""
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            raise ValueError(f"Token file '{{TOKEN_FILE}}' not found.")
+        with open(TOKEN_FILE) as f:
+            content = f.read().strip()
+            api_key = content.split('\\n')[0].strip()
+            if not api_key:
+                raise ValueError(f"Token file '{{TOKEN_FILE}}' is empty.")
+            return api_key
+    except Exception as e:
+        raise ValueError(f"Error loading API token: {{str(e)}}")
+
+# Configuration
+API_TOKEN = load_api_token()
+URL = "{query_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Query payload (converted from export job)
+PAYLOAD = {json.dumps(query_payload, indent=4)}
+
+async def make_query_call(
+    url: str,
+    headers: Dict[str, str],
+    payload: Dict[str, Any],
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    """
+    Make a query API call to debug the export query structure.
+    
+    Returns:
+        Dict containing the API response data
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                url=url,
+                headers=headers,
+                json=payload,
+                timeout=timeout
+            )
+            
+            print(f"Status Code: {{response.status_code}}")
+            response.raise_for_status()
+            
+            result = response.json()
+            print(f"\\nResults returned: {{len(result.get('results', []))}}")
+            print(f"Total count: {{result.get('count', 'N/A')}}")
+            
+            # Show first few results for inspection
+            results = result.get('results', [])
+            if results:
+                print("\\nFirst result structure:")
+                print(json.dumps(results[0], indent=2))
+                
+            return result
+            
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+
+async def main():
+    """Main execution function for query debugging"""
+    try:
+        result = await make_query_call(
+            url=URL,
+            headers=get_headers(),
+            payload=PAYLOAD
+        )
+        return result
+        
+    except Exception as e:
+        print(f"\\n❌ Query failed: {{str(e)}}")
+        raise
+
+# Execute in Jupyter Notebook:
+await main()
+
+# For standalone script execution:
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())
+'''
+        
+        return query_url, query_payload, python_code
+
