@@ -79,6 +79,9 @@ class BotifyCsvDownloaderWorkflow:
         routes.append((f'/{app_name}/step_02_process', self.step_02_process, ['POST']))
         routes.append((f'/{app_name}/step_03_process', self.step_03_process, ['POST']))
         routes.append((f'/{app_name}/step_05_process', self.step_05_process, ['POST']))
+        routes.append((f'/{app_name}/step_02_toggle', self.step_02_toggle, ['GET']))
+        routes.append((f'/{app_name}/step_03_toggle', self.step_03_toggle, ['GET']))
+        routes.append((f'/{app_name}/step_04_toggle', self.step_04_toggle, ['GET']))
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
@@ -280,7 +283,18 @@ class BotifyCsvDownloaderWorkflow:
         if 'finalized' in finalize_data and selected_slug:
             return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), P(f'Selected Analysis: {selected_slug}', style='font-weight: bold;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_slug and state.get('_revert_target') != step_id:
-            widget = Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container')
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {selected_slug}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         try:
             api_token = self.read_api_token()
@@ -355,13 +369,35 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
-            widget = Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
-            widget = Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -418,13 +454,35 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
-            widget = Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif check_result and state.get('_revert_target') != step_id:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
-            widget = Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
@@ -1643,4 +1701,77 @@ if __name__ == "__main__":
         except Exception as e:
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+
+    async def step_02_toggle(self, request):
+        """Toggle visibility of step 2 widget content."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_02'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        analysis_result_str = step_data.get('analysis_selection', '')
+        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+        selected_slug = analysis_result.get('analysis_slug', '')
+        
+        # Check if widget is currently visible
+        state = pip.read_state(pipeline_id)
+        is_visible = state.get(f'{step_id}_widget_visible', True)
+        
+        # Toggle visibility
+        state[f'{step_id}_widget_visible'] = not is_visible
+        pip.write_state(pipeline_id, state)
+        
+        if is_visible:
+            return Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container')
+        else:
+            return Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+
+    async def step_03_toggle(self, request):
+        """Toggle visibility of step 3 widget content."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_03'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        check_result_str = step_data.get('weblogs_check', '')
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        has_logs = check_result.get('has_logs', False)
+        status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
+        status_color = 'green' if has_logs else 'red'
+        
+        # Check if widget is currently visible
+        state = pip.read_state(pipeline_id)
+        is_visible = state.get(f'{step_id}_widget_visible', True)
+        
+        # Toggle visibility
+        state[f'{step_id}_widget_visible'] = not is_visible
+        pip.write_state(pipeline_id, state)
+        
+        if is_visible:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+        else:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+
+    async def step_04_toggle(self, request):
+        """Toggle visibility of step 4 widget content."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_04'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        check_result_str = step_data.get('search_console_check', '')
+        check_result = json.loads(check_result_str) if check_result_str else {}
+        has_search_console = check_result.get('has_search_console', False)
+        status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
+        status_color = 'green' if has_search_console else 'red'
+        
+        # Check if widget is currently visible
+        state = pip.read_state(pipeline_id)
+        is_visible = state.get(f'{step_id}_widget_visible', True)
+        
+        # Toggle visibility
+        state[f'{step_id}_widget_visible'] = not is_visible
+        pip.write_state(pipeline_id, state)
+        
+        if is_visible:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+        else:
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
 
