@@ -130,6 +130,15 @@ class BotifyCsvDownloaderWorkflow:
         }
     }
 
+    # Template Configuration - Controls which templates are actually used
+    # ===================================================================
+    # Change these values to switch between different query templates
+    # without modifying the workflow logic.
+    TEMPLATE_CONFIG = {
+        'crawl': 'Not Compliant',      # Options: 'Crawl Basic', 'Not Compliant'
+        'gsc': 'GSC Performance'       # Options: 'GSC Performance'
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -140,7 +149,17 @@ class BotifyCsvDownloaderWorkflow:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)]
+        # Build step names dynamically based on template configuration
+        crawl_template = self.get_configured_template('crawl')
+        gsc_template = self.get_configured_template('gsc')
+        
+        steps = [
+            Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), 
+            Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False), 
+            Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), 
+            Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False), 
+            Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)
+        ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -176,6 +195,10 @@ class BotifyCsvDownloaderWorkflow:
             return ['GSC Performance']
         else:
             return []
+
+    def get_configured_template(self, data_type):
+        """Get the configured template for a specific data type."""
+        return self.TEMPLATE_CONFIG.get(data_type)
 
     def apply_template(self, template_key, collection=None):
         """Apply a query template with collection substitution."""
@@ -421,7 +444,8 @@ class BotifyCsvDownloaderWorkflow:
                 if exists:
                     downloaded_slugs.add(slug)
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Select(*[Option(f'{slug} (Downloaded)' if slug in downloaded_slugs else slug, value=slug, selected=slug == selected_value) for slug in slugs], name='analysis_slug', required=True, autofocus=True), Button('Download Crawl Analysis ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            crawl_template = self.get_configured_template('crawl')
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Select(*[Option(f'{slug} (Downloaded)' if slug in downloaded_slugs else slug, value=slug, selected=slug == selected_value) for slug in slugs], name='analysis_slug', required=True, autofocus=True), Button(f'Download Crawl Analysis: {crawl_template} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
@@ -628,7 +652,8 @@ class BotifyCsvDownloaderWorkflow:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button('Download Search Console ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            gsc_template = self.get_configured_template('gsc')
+            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(f'Download Search Console: {gsc_template} ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
@@ -1391,8 +1416,9 @@ await main()
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-            # Use template for query structure
-            template_query = self.apply_template('GSC Performance')
+            # Use the configured GSC template
+            gsc_template = self.get_configured_template('gsc')
+            template_query = self.apply_template(gsc_template)
             export_job_payload = {
                 'job_type': 'export',
                 'payload': {
@@ -1443,8 +1469,9 @@ await main()
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
-            # Use template for query structure
-            template_query = self.apply_template('Crawl Basic', collection)
+            # Use the configured crawl template
+            crawl_template = self.get_configured_template('crawl')
+            template_query = self.apply_template(crawl_template, collection)
             bql_query = {
                 'collections': [collection],
                 'query': template_query
@@ -1743,9 +1770,10 @@ await main()
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
-                # Use the Not Compliant template for consistency
+                # Use the configured crawl template
                 collection = f'crawl.{analysis_slug}'
-                template_query = self.apply_template('Not Compliant', collection)
+                crawl_template = self.get_configured_template('crawl')
+                template_query = self.apply_template(crawl_template, collection)
                 export_query = {
                     'job_type': 'export', 
                     'payload': {
