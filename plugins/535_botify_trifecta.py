@@ -672,29 +672,41 @@ class BotifyCsvDownloaderWorkflow:
         if not org or not project or (not api_token):
             logging.error(f'Missing required parameters: org={org}, project={project}')
             return []
-        url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
-        headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, headers=headers, timeout=60.0)
-            if response.status_code != 200:
-                logging.error(f'API error: Status {response.status_code} for {url}')
-                return []
-            data = response.json()
-            logging.info(f'API response keys: {data.keys()}')
-            if 'results' not in data:
-                logging.error(f"No 'results' key in response: {data}")
-                return []
-            analyses = data['results']
-            if not analyses:
-                logging.error('Analyses list is empty')
-                return []
-            logging.info(f'Found {len(analyses)} analyses')
-            slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
-            return slugs
-        except Exception as e:
-            logging.exception(f'Error fetching analyses: {str(e)}')
-            return []
+        
+        all_slugs = []
+        next_url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
+        
+        while next_url:
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(next_url, headers=headers, timeout=60.0)
+                if response.status_code != 200:
+                    logging.error(f'API error: Status {response.status_code} for {next_url}')
+                    return all_slugs
+                
+                data = response.json()
+                if 'results' not in data:
+                    logging.error(f"No 'results' key in response: {data}")
+                    return all_slugs
+                
+                analyses = data['results']
+                if not analyses:
+                    logging.error('Analyses list is empty')
+                    return all_slugs
+                
+                page_slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
+                all_slugs.extend(page_slugs)
+                
+                # Get next page URL if it exists
+                next_url = data.get('next')
+                
+            except Exception as e:
+                logging.exception(f'Error fetching analyses: {str(e)}')
+                return all_slugs
+        
+        logging.info(f'Found {len(all_slugs)} total analyses')
+        return all_slugs
 
     def read_api_token(self):
         """Read the Botify API token from the token file."""
