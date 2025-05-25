@@ -105,6 +105,15 @@ class BotifyCsvDownloaderWorkflow:
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
+        'not_compliant': {
+            'name': 'Non-Compliant Pages',
+            'description': 'URLs with compliance issues and their reasons',
+            'query': {
+                'dimensions': ['{collection}.url', '{collection}.compliant.main_reason', '{collection}.compliant.detailed_reason'],
+                'metrics': [{'function': 'count', 'args': ['{collection}.url']}],
+                'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}
+            }
+        },
         'gsc_performance': {
             'name': 'GSC Performance',
             'description': 'Impressions, clicks, CTR, and position',
@@ -162,7 +171,7 @@ class BotifyCsvDownloaderWorkflow:
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
         if data_type == 'crawl':
-            return ['crawl_basic']
+            return ['crawl_basic', 'not_compliant']
         elif data_type == 'gsc':
             return ['gsc_performance']
         else:
@@ -1734,7 +1743,23 @@ await main()
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
-                export_query = {'job_type': 'export', 'payload': {'username': username, 'project': project_name, 'connector': 'direct_download', 'formatter': 'csv', 'export_size': 10000, 'query': {'collections': [f'crawl.{analysis_slug}'], 'query': {'dimensions': [f'crawl.{analysis_slug}.url', f'crawl.{analysis_slug}.compliant.main_reason', f'crawl.{analysis_slug}.compliant.detailed_reason'], 'metrics': [{'function': 'count', 'args': [f'crawl.{analysis_slug}.url']}], 'filters': {'field': f'crawl.{analysis_slug}.compliant.is_compliant', 'value': False}}}}}
+                # Use the not_compliant template for consistency
+                collection = f'crawl.{analysis_slug}'
+                template_query = self.apply_template('not_compliant', collection)
+                export_query = {
+                    'job_type': 'export', 
+                    'payload': {
+                        'username': username, 
+                        'project': project_name, 
+                        'connector': 'direct_download', 
+                        'formatter': 'csv', 
+                        'export_size': 10000, 
+                        'query': {
+                            'collections': [collection], 
+                            'query': template_query
+                        }
+                    }
+                }
                 job_url = 'https://api.botify.com/v1/jobs'
                 headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                 logging.info(f'Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}')
