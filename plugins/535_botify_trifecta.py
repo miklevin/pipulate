@@ -1111,8 +1111,8 @@ await main()
             job_url = 'https://api.botify.com/v1/jobs'
             headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
             
-            # Generate Python command snippet
-            _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query['export_job_payload'])
+            # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+            _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
             check_result['python_command'] = python_command
             try:
                 logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
@@ -1567,8 +1567,8 @@ await main()
                 headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                 logging.info(f'Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}')
                 
-                # Generate Python command snippet
-                _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query)
+                # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
                 analysis_result['python_command'] = python_command
                 
                 async with httpx.AsyncClient() as client:
@@ -1697,8 +1697,8 @@ await main()
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logging.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
                     
-                    # Generate Python command snippet
-                    _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query)
+                    # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                    _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
                     check_result['python_command'] = python_command
                     
                     job_id = None
@@ -2054,8 +2054,8 @@ await main()
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logging.info(f'Submitting Search Console export job with payload: {json.dumps(export_query["export_job_payload"], indent=2)}')
                     
-                    # Generate Python command snippet
-                    _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query['export_job_payload'])
+                    # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                    _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
                     check_result['python_command'] = python_command
                     
                     job_id = None
