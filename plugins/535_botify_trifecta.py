@@ -1820,20 +1820,23 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
+        # Format as proper Python comments for syntax highlighting
+        formatted_content = f'# Selected analysis: {selected_slug}\n# Step 2: Download Crawl Analysis\n\n{python_command}'
+        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container')
+            return Pre(formatted_content, cls='code-block-container')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container', style='display: none;')
+            return Pre(formatted_content, cls='code-block-container', style='display: none;')
         else:
-            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container')
+            return Pre(formatted_content, cls='code-block-container')
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1854,20 +1857,23 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
+        # Format as proper Python comments for syntax highlighting
+        formatted_content = f'# Status: Project {status_text}\n# Step 3: Download Web Logs\n\n{python_command}'
+        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color}; display: none;')
         else:
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
 
     async def step_04_toggle(self, request):
         """Toggle visibility of step 4 widget content."""
@@ -1888,20 +1894,23 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
+        # Format as proper Python comments for syntax highlighting
+        formatted_content = f'# Status: Project {status_text}\n# Step 4: Download Search Console\n\n{python_command}'
+        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color}; display: none;')
         else:
-            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
 
     async def step_05_toggle(self, request):
         """Toggle visibility of step 5 widget content."""
