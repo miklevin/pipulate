@@ -22,22 +22,47 @@ from loguru import logger
 
 ROLES = ['Workshop']
 TOKEN_FILE = 'botify_token.txt'
-'\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
+"""
+Multi-Export Workflow
+====================
+
+A workflow for performing multiple CSV exports from Botify.
+"""
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
 class BotifyCsvDownloaderWorkflow:
     """
-    Parameter Buster Workflow
+    Botify Trifecta Workflow - Multi-Export Data Collection
 
-    A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls, 
-    web logs, and Search Console) to identify optimization opportunities. This workflow demonstrates:
+    A comprehensive workflow that downloads three types of Botify data (crawl analysis, web logs, 
+    and Search Console) and generates Jupyter-friendly Python code for API debugging. This workflow 
+    demonstrates:
 
     - Multi-step form collection with chain reaction progression
     - Data fetching from external APIs with proper retry and error handling
     - File caching and management for large datasets
     - Background processing with progress indicators
     - Complex data analysis with pandas
+
+    CRITICAL INSIGHT: Botify API Evolution Complexity
+    ================================================
+    
+    This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but 
+    BOTH versions coexist and are required for different data types:
+    
+    - Web Logs: Uses BQLv1 with special endpoint (app.botify.com/api/v1/logs/...)
+    - Crawl/GSC: Uses BQLv2 with standard endpoint (api.botify.com/v1/projects/.../query)
+    
+    The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
+    essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
+    
+    PAINFUL LESSONS LEARNED:
+    1. Web logs API uses different base URL (app.botify.com vs api.botify.com)
+    2. BQLv1 puts dates at payload level, BQLv2 puts them in periods array
+    3. Same job_type can have different payload structures (legacy vs modern)
+    4. Missing dates = broken URLs = 404 errors
+    5. PrismJS syntax highlighting requires explicit language classes and manual triggers
 
     IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger 
     the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
@@ -52,6 +77,8 @@ class BotifyCsvDownloaderWorkflow:
     - Background tasks use Script tags with htmx.ajax for better UX during long operations
     - File paths are deterministic based on username/project/analysis to enable caching
     - All API errors are handled with specific error messages for better troubleshooting
+    - Python code generation optimized for Jupyter Notebook debugging workflow
+    - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
     """
     APP_NAME = 'trifecta'
     DISPLAY_NAME = 'Botify Trifecta'
@@ -924,6 +951,40 @@ class BotifyCsvDownloaderWorkflow:
             os.makedirs(directory)
 
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None) -> tuple[str, str]:
+        """Generate both cURL and Python representations of API calls for debugging.
+        
+        CRITICAL INSIGHT: Jupyter Notebook Debugging Pattern
+        ===================================================
+        
+        This method generates Python code specifically optimized for Jupyter Notebook debugging:
+        
+        1. Uses 'await main()' instead of 'asyncio.run(main())' for Jupyter compatibility
+        2. Includes comprehensive error handling with detailed output
+        3. Provides token loading from file (not hardcoded) for security
+        4. Generates both /jobs (export) and /query (debugging) versions
+        
+        The Python code is designed to be:
+        - Copy-pasteable into Jupyter cells
+        - Self-contained with all imports and functions
+        - Educational with clear variable names and comments
+        - Debuggable with detailed error messages and response inspection
+        
+        This pattern emerged from painful debugging sessions where users needed to:
+        - Quickly test API calls outside the workflow
+        - Understand the exact structure of requests/responses
+        - Debug authentication and payload issues
+        - Learn the Botify API through working examples
+        
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full API endpoint URL
+            headers: Request headers dict
+            payload: Optional request payload dict
+            step_context: Optional context string for identification
+            
+        Returns:
+            tuple: (curl_command_string, python_code_string)
+        """
         api_token_placeholder = "{YOUR_BOTIFY_API_TOKEN}" 
         
         safe_headers_for_display = headers.copy()
@@ -1209,7 +1270,39 @@ await main()
             raise
 
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
-        """Builds BQLv2 query objects and export job payloads."""
+        """Builds BQLv2 query objects and export job payloads.
+        
+        CRITICAL INSIGHT: Multiple BQL Structures in One Method
+        =======================================================
+        
+        This method generates DIFFERENT payload structures depending on data_type:
+        
+        1. data_type='gsc': BQLv2 with periods array for Search Console
+        2. data_type='crawl': BQLv2 with collections for crawl analysis  
+        3. data_type='weblog': BQLv2 with periods for web logs (NEWER structure)
+        
+        IMPORTANT: The weblog structure here is DIFFERENT from step_03_process!
+        - build_exports creates: BQLv2 with periods in query.periods
+        - step_03_process creates: BQLv1 with date_start/date_end at payload level
+        
+        This dual structure exists because:
+        - build_exports follows modern BQLv2 patterns
+        - step_03_process uses legacy BQLv1 patterns that actually work
+        - Both must be supported for backward compatibility
+        
+        The conversion logic in _convert_bqlv1_to_query handles both patterns.
+        
+        Args:
+            username: Organization slug
+            project_name: Project slug
+            analysis_slug: Analysis slug (required for crawl data)
+            data_type: Type of data ('crawl', 'weblog', 'gsc')
+            start_date: Start date for time-based queries
+            end_date: End date for time-based queries
+            
+        Returns:
+            dict: Export configuration with query payloads and URLs
+        """
         api_token = self.read_api_token()
         base_url = "https://api.botify.com/v1/jobs"
         headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
@@ -1708,6 +1801,8 @@ await main()
                         analysis_date_obj = datetime.now()
                     date_end = analysis_date_obj.strftime('%Y-%m-%d')
                     date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                    # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
+                    # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
                     export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': 1000000, 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
@@ -2182,6 +2277,18 @@ await main()
         
         Handles both BQLv1 (web logs) and BQLv2 (crawl, GSC) query formats.
         
+        CRITICAL INSIGHT: BQL Version Detection
+        ======================================
+        
+        The same job_type can use different BQL versions:
+        - 'logs_urls_export' = BQLv1 (legacy web logs structure)
+        - 'export' = BQLv2 (modern crawl/GSC structure)
+        
+        This detection is ESSENTIAL because:
+        1. BQLv1 and BQLv2 have completely different payload structures
+        2. They use different API endpoints (app.botify.com vs api.botify.com)
+        3. Wrong detection = wrong conversion = 404 errors
+        
         Args:
             jobs_payload: The original /jobs payload dict
             username: Organization slug (goes in URL for /query)
@@ -2227,7 +2334,61 @@ await main()
         return query_payload, page_size, "BQLv2"
     
     def _convert_bqlv1_to_query(self, jobs_payload, username, project_name, page_size):
-        """Convert BQLv1 jobs payload to web logs endpoint format"""
+        """Convert BQLv1 jobs payload to web logs endpoint format
+        
+        CRITICAL INSIGHT: Botify Web Logs API Evolution
+        ===============================================
+        
+        The Botify API has evolved from BQLv1 to BQLv2, but BOTH patterns coexist in the same codebase.
+        This method must handle TWO different payload structures for the SAME job_type ('logs_urls_export'):
+        
+        LEGACY BQLv1 Structure (used by step_03_process):
+        {
+            'job_type': 'logs_urls_export',
+            'payload': {
+                'date_start': '2025-04-25',  # <-- DATES AT PAYLOAD LEVEL
+                'date_end': '2025-05-25',    # <-- DATES AT PAYLOAD LEVEL
+                'query': {
+                    'filters': {...},
+                    'fields': [...],
+                    'sort': [...]
+                }
+            }
+        }
+        
+        MODERN BQLv2 Structure (used by build_exports):
+        {
+            'job_type': 'logs_urls_export',
+            'payload': {
+                'query': {
+                    'collections': ['logs'],
+                    'periods': [['2025-04-25', '2025-05-25']],  # <-- DATES IN PERIODS
+                    'query': {...}
+                }
+            }
+        }
+        
+        PAINFUL LESSON: The date extraction logic MUST check payload level FIRST because:
+        1. The actual workflow (step_03_process) uses BQLv1 structure
+        2. Looking for 'periods' first will fail for real payloads
+        3. Missing dates = broken URLs = 404 errors
+        
+        URL STRUCTURE CRITICAL: Web logs use different base URL than other Botify APIs:
+        - Standard API: https://api.botify.com/v1/...
+        - Web Logs API: https://app.botify.com/api/v1/logs/.../urls/{start_date}/{end_date}
+        
+        Args:
+            jobs_payload: The original /jobs export payload (either BQLv1 or BQLv2 structure)
+            username: Organization slug (goes in URL path)
+            project_name: Project slug (goes in URL path)
+            page_size: Results per page (not used for BQLv1, kept for consistency)
+            
+        Returns:
+            tuple: (query_payload_dict, page_size, "BQLv1")
+            
+        Raises:
+            ValueError: If payload structure is unrecognized or dates cannot be extracted
+        """
         # Web logs use a special BQLv1 endpoint: /v1/logs/{username}/{project}/urls/{start_date}/{end_date}
         
         # Extract the payload from the jobs payload
@@ -2240,13 +2401,15 @@ await main()
         start_date = ""
         end_date = ""
         
-        # Try to get dates from payload level first (actual BQLv1 structure)
+        # CRITICAL: Check payload level FIRST - this is the actual BQLv1 structure used by step_03_process
+        # The step_03_process method generates payloads with 'date_start'/'date_end' at payload level
         if 'date_start' in payload and 'date_end' in payload:
             # Convert from YYYY-MM-DD to YYYYMMDD format for the endpoint
             start_date = payload['date_start'].replace("-", "")
             end_date = payload['date_end'].replace("-", "")
         elif 'query' in payload and 'periods' in payload['query']:
-            # Fallback: try to get from nested query periods (newer structure)
+            # Fallback: try to get from nested query periods (newer BQLv2-style structure)
+            # This handles payloads generated by build_exports method with modern structure
             periods = payload['query'].get("periods", [])
             if periods and len(periods) > 0 and len(periods[0]) >= 2:
                 start_date = periods[0][0].replace("-", "")
@@ -2420,7 +2583,26 @@ await main()
         return query_url, query_payload, python_code
     
     def _generate_bqlv1_python_code(self, query_payload, username, project_name, jobs_payload):
-        """Generate Python code for BQLv1 queries (web logs)"""
+        """Generate Python code for BQLv1 queries (web logs)
+        
+        CRITICAL: Web Logs API uses different base URL than other Botify APIs
+        ====================================================================
+        
+        Web Logs API: https://app.botify.com/api/v1/logs/{org}/{project}/urls/{start}/{end}
+        Standard API: https://api.botify.com/v1/projects/{org}/{project}/query
+        
+        This difference is NOT documented well and will cause 404 errors if wrong base URL is used.
+        The web logs endpoint also requires dates in YYYYMMDD format in the URL path itself.
+        
+        Args:
+            query_payload: Converted query payload with extracted dates and query body
+            username: Organization slug
+            project_name: Project slug  
+            jobs_payload: Original jobs payload for step identification
+            
+        Returns:
+            tuple: (logs_url, query_payload, python_code_string)
+        """
         # Extract the web logs specific data
         start_date = query_payload.get("start_date", "")
         end_date = query_payload.get("end_date", "")
@@ -2430,6 +2612,8 @@ await main()
         query_body_json = json.dumps(query_body, indent=4)
         query_body_json = query_body_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
         
+        # CRITICAL: Web logs API uses app.botify.com/api NOT api.botify.com like other endpoints!
+        # Dates must be in YYYYMMDD format in URL path (not query params)
         # Build the web logs endpoint URL with correct base URL
         logs_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
         
