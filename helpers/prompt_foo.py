@@ -30,13 +30,13 @@ FILES_TO_INCLUDE_RAW = """\
 
 # CORE FILES
 README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT
-# /home/mike/repos/MikeLev.in/_posts/2025-05-21-ai-wrangling-code-transparency.md  <-- BQL Transparency Logging Infrastructure
+/home/mike/repos/MikeLev.in/_posts/2025-05-21-ai-wrangling-code-transparency.md  <-- BQL Transparency Logging Infrastructure
 /home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- Started implementing BQL Transparency Logging Infrastructure (needs separate log file)
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (OFTEN INCLUDED)
