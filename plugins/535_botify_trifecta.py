@@ -2167,7 +2167,7 @@ await main()
         The key differences:
         1. URL: /jobs -> /projects/{org}/{project}/query  
         2. Payload structure: Remove export-specific fields, flatten query
-        3. Add pagination parameters
+        3. Pagination goes in URL as query parameter, not payload
         4. Remove username/project from payload (they go in URL for /query)
         
         Args:
@@ -2177,7 +2177,7 @@ await main()
             page_size: Number of results per page (default 100)
             
         Returns:
-            dict: Converted payload for /query endpoint
+            tuple: (query_payload, page_size) - page_size for URL parameter
         """
         # Extract the core query from the jobs payload
         if 'payload' in jobs_payload and 'query' in jobs_payload['payload']:
@@ -2189,18 +2189,17 @@ await main()
         else:
             raise ValueError("Could not find query structure in jobs payload")
         
-        # Build the /query payload
+        # Build the /query payload (no size field - that goes in URL)
         query_payload = {
             "collections": core_query.get("collections", []),
-            "query": core_query.get("query", {}),
-            "size": page_size  # Add pagination
+            "query": core_query.get("query", {})
         }
         
         # Handle periods if present (for GSC and logs)
         if "periods" in core_query:
             query_payload["periods"] = core_query["periods"]
             
-        return query_payload
+        return query_payload, page_size
     
     def generate_query_api_call(self, jobs_payload, username, project_name, page_size=100):
         """
@@ -2216,10 +2215,15 @@ await main()
             tuple: (query_url, query_payload, python_code)
         """
         # Convert the payload
-        query_payload = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size)
+        query_payload, page_size = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size)
         
-        # Build the query URL
-        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query"
+        # Build the query URL with pagination parameter
+        query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size={page_size}"
+        
+        # Convert Python objects to proper JSON representation
+        payload_json = json.dumps(query_payload, indent=4)
+        # Fix Python boolean/null values for proper Python code
+        payload_json = payload_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
         
         # Generate Python code for Jupyter
         python_code = f'''# Botify Query API Call (for debugging the export query)
@@ -2258,7 +2262,7 @@ def get_headers() -> Dict[str, str]:
     }}
 
 # Query payload (converted from export job)
-PAYLOAD = {json.dumps(query_payload, indent=4)}
+PAYLOAD = {payload_json}
 
 async def make_query_call(
     url: str,
