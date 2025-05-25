@@ -80,6 +80,22 @@ class BotifyCsvDownloaderWorkflow:
     TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 
     # Query Templates - Extracted from build_exports for reusability
+    # 
+    # NOTE: Web Logs are intentionally NOT templated (KISS principle)
+    # ================================================================
+    # Web logs queries are simple, consistent, and rarely change:
+    # - Always same fields: ['url', 'crawls.google.count'] 
+    # - Always same filter: crawls.google.count > 0
+    # - Uses legacy BQLv1 structure (different from crawl/GSC)
+    # - Different API endpoint (app.botify.com vs api.botify.com)
+    # 
+    # Adding web logs to templates would require:
+    # - Separate BQLv1 template system
+    # - Handling different endpoint/payload structures  
+    # - More complexity for minimal benefit
+    # 
+    # Current approach: hardcode the simple query inline where used.
+    # This is a perfect example of knowing when NOT to abstract.
     QUERY_TEMPLATES = {
         'crawl_basic': {
             'name': 'Basic Crawl Data',
