@@ -1489,7 +1489,7 @@ if __name__ == "__main__":
                         return (False, f'Export failed: {error_message} (Type: {error_type})')
                     attempt += 1
                     if attempt == 1:
-                        wait_msg = f'{step_prefix}Job still processing. Waiting {int(delay)} seconds before next attempt...'
+                        wait_msg = f'{step_prefix}Job still processing.'
                     else:
                         wait_msg = f'{step_prefix}Still processing...'
                     logging.info(wait_msg)
@@ -1507,7 +1507,7 @@ if __name__ == "__main__":
                     logging.warning(retry_msg)
                     await self.message_queue.add(self.pipulate, retry_msg, verbatim=True)
                 attempt += 1
-                wait_msg = f'{step_prefix}Network error. Waiting {int(delay)} seconds before retry...'
+                wait_msg = f'{step_prefix}Network error.'
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
@@ -1517,7 +1517,7 @@ if __name__ == "__main__":
                 logging.exception(error_msg)
                 await self.message_queue.add(self.pipulate, f'❌ {error_msg}', verbatim=True)
                 attempt += 1
-                wait_msg = f'{step_prefix}Unexpected error. Waiting {int(delay)} seconds before retry...'
+                wait_msg = f'{step_prefix}Unexpected error.'
                 logging.info(wait_msg)
                 await self.message_queue.add(self.pipulate, wait_msg, verbatim=True)
                 await asyncio.sleep(delay)
@@ -1820,23 +1820,47 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Format as proper Python comments for syntax highlighting
-        formatted_content = f'# Selected analysis: {selected_slug}\n# Step 2: Download Crawl Analysis\n\n{python_command}'
-        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(formatted_content, cls='code-block-container')
+            return Div(
+                P(f'Selected analysis: {selected_slug}'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(formatted_content, cls='code-block-container', style='display: none;')
+            return Div(
+                P(f'Selected analysis: {selected_slug}'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                style='display: none;'
+            )
         else:
-            return Pre(formatted_content, cls='code-block-container')
+            return Div(
+                P(f'Selected analysis: {selected_slug}'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1857,23 +1881,47 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Format as proper Python comments for syntax highlighting
-        formatted_content = f'# Status: Project {status_text}\n# Step 3: Download Web Logs\n\n{python_command}'
-        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                style='display: none;'
+            )
         else:
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
 
     async def step_04_toggle(self, request):
         """Toggle visibility of step 4 widget content."""
@@ -1894,23 +1942,47 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Format as proper Python comments for syntax highlighting
-        formatted_content = f'# Status: Project {status_text}\n# Step 4: Download Search Console\n\n{python_command}'
-        
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                style='display: none;'
+            )
         else:
-            return Pre(formatted_content, cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
+                H4('Python Command:'),
+                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+                Script(f"""
+                    setTimeout(function() {{
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                        }}
+                    }}, 100);
+                """)
+            )
 
     async def step_05_toggle(self, request):
         """Toggle visibility of step 5 widget content."""
