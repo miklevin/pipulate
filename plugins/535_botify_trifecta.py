@@ -543,14 +543,14 @@ class BotifyCsvDownloaderWorkflow:
             H3(f'{step.show}'),
             P(f"Downloading Search Console data for '{project_name}'..."),
             Progress(style='margin-top: 10px;'),
-            Script("""
-                setTimeout(function() {
-                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {{
                         target: '#{step_id}',
-                        values: { 'delay_complete': 'true' }
-                    });
-                }, 1500);
-            """.format(app_name=app_name, step_id=step_id)),
+                        values: {{ 'delay_complete': 'true' }}
+                    }});
+                }}, 1500);
+            """),
             id=step_id
         )
 
