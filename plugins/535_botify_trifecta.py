@@ -284,8 +284,9 @@ class BotifyCsvDownloaderWorkflow:
         if 'finalized' in finalize_data and selected_slug:
             return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), P(f'Selected Analysis: {selected_slug}', style='font-weight: bold;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_slug and state.get('_revert_target') != step_id:
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -387,8 +388,9 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -404,8 +406,9 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -489,8 +492,9 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -506,8 +510,9 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -1905,6 +1910,7 @@ if __name__ == "__main__":
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
