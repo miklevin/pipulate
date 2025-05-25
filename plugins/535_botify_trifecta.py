@@ -1826,16 +1826,40 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+            return Div(
+                Button('Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+            )
         else:
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            )
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1859,16 +1883,40 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Div(
+                Button('Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            )
         else:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            )
 
     async def step_04_toggle(self, request):
         """Toggle visibility of step 4 widget content."""
@@ -1892,16 +1940,40 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Div(
+                Button('Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            )
         else:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            )
 
     async def step_05_toggle(self, request):
         """Toggle visibility of step 5 widget content."""
@@ -1911,7 +1983,6 @@ if __name__ == "__main__":
         step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
@@ -1920,14 +1991,38 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre('Placeholder step completed', cls='code-block-container')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre('Placeholder step completed', cls='code-block-container')
+            )
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
+            return Div(
+                Button('Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
+            )
         else:
-            return Pre('Placeholder step completed', cls='code-block-container')
+            return Div(
+                Button('Hide Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Pre('Placeholder step completed', cls='code-block-container')
+            )
 
