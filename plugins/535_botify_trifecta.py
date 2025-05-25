@@ -38,7 +38,6 @@ class BotifyCsvDownloaderWorkflow:
     - Data fetching from external APIs with proper retry and error handling
     - File caching and management for large datasets
     - Background processing with progress indicators
-    - Complex data analysis with pandas
 
     CRITICAL INSIGHT: Botify API Evolution Complexity
     ================================================
@@ -80,6 +79,32 @@ class BotifyCsvDownloaderWorkflow:
     ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
     TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 
+    # Query Templates - Extracted from build_exports for reusability
+    QUERY_TEMPLATES = {
+        'crawl_basic': {
+            'name': 'Basic Crawl Data',
+            'description': 'URL, HTTP status, and page title',
+            'query': {
+                'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
+            }
+        },
+        'gsc_performance': {
+            'name': 'GSC Performance',
+            'description': 'Impressions, clicks, CTR, and position',
+            'query': {
+                'dimensions': ['url'],
+                'metrics': [
+                    {'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'},
+                    {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'},
+                    {'field': 'search_console.period_0.ctr', 'name': 'CTR'},
+                    {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}
+                ],
+                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+            }
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -117,6 +142,41 @@ class BotifyCsvDownloaderWorkflow:
         self.step_messages['step_05'] = {'input': f"{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+
+    def get_available_templates_for_data_type(self, data_type):
+        """Get available query templates for a specific data type."""
+        if data_type == 'crawl':
+            return ['crawl_basic']
+        elif data_type == 'gsc':
+            return ['gsc_performance']
+        else:
+            return []
+
+    def apply_template(self, template_key, collection=None):
+        """Apply a query template with collection substitution."""
+        if template_key not in self.QUERY_TEMPLATES:
+            raise ValueError(f"Unknown template: {template_key}")
+        
+        template = self.QUERY_TEMPLATES[template_key].copy()
+        query = template['query'].copy()
+        
+        if collection and '{collection}' in str(query):
+            # Simple string replacement for collection placeholders
+            query_str = json.dumps(query)
+            query_str = query_str.replace('{collection}', collection)
+            query = json.loads(query_str)
+        
+        return query
+
+    def list_available_templates(self):
+        """List all available query templates with descriptions."""
+        return {
+            key: {
+                'name': template['name'],
+                'description': template['description']
+            }
+            for key, template in self.QUERY_TEMPLATES.items()
+        }
 
     async def landing(self, request):
         """Renders the initial landing page with the key input form or a message if Botify token is missing."""
@@ -1306,22 +1366,15 @@ await main()
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+            # Use template for query structure
+            template_query = self.apply_template('gsc_performance')
             export_job_payload = {
                 'job_type': 'export',
                 'payload': {
                     'query': {
                         'collections': ['search_console'],
                         'periods': [[start_date, end_date]],
-                        'query': {
-                            'dimensions': ['url'],
-                            'metrics': [
-                                {'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'},
-                                {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'},
-                                {'field': 'search_console.period_0.ctr', 'name': 'CTR'},
-                                {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}
-                            ],
-                            'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
-                        }
+                        'query': template_query
                     },
                     'export_size': 10000,
                     'formatter': 'csv',
@@ -1365,12 +1418,11 @@ await main()
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
+            # Use template for query structure
+            template_query = self.apply_template('crawl_basic', collection)
             bql_query = {
                 'collections': [collection],
-                'query': {
-                    'dimensions': [f'{collection}.url', f'{collection}.http_code', f'{collection}.metadata.title.content'],
-                    'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}
-                }
+                'query': template_query
             }
             check_query_payload = {
                 'collections': [collection],
