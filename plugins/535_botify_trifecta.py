@@ -1813,7 +1813,13 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Toggle visibility
+        # Special case: If this is the first toggle after download (state not set yet)
+        if f'{step_id}_widget_visible' not in state:
+            state[f'{step_id}_widget_visible'] = True
+            pip.write_state(pipeline_id, state)
+            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+        
+        # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
@@ -1840,7 +1846,13 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Toggle visibility
+        # Special case: If this is the first toggle after download (state not set yet)
+        if f'{step_id}_widget_visible' not in state:
+            state[f'{step_id}_widget_visible'] = True
+            pip.write_state(pipeline_id, state)
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+        
+        # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
@@ -1867,7 +1879,13 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Toggle visibility
+        # Special case: If this is the first toggle after download (state not set yet)
+        if f'{step_id}_widget_visible' not in state:
+            state[f'{step_id}_widget_visible'] = True
+            pip.write_state(pipeline_id, state)
+            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+        
+        # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
@@ -1888,7 +1906,13 @@ if __name__ == "__main__":
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
-        # Toggle visibility
+        # Special case: If this is the first toggle after download (state not set yet)
+        if f'{step_id}_widget_visible' not in state:
+            state[f'{step_id}_widget_visible'] = True
+            pip.write_state(pipeline_id, state)
+            return Pre('Placeholder step completed', cls='code-block-container')
+        
+        # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
