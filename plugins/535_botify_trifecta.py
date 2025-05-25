@@ -581,12 +581,14 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
             if error_message:
                 return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'timestamp': datetime.now().isoformat()}
+            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             if has_search_console:
                 await self.message_queue.add(pip, f'✓ Project has Search Console data, downloading...', verbatim=True)
                 await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
             else:
                 await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
+                # Add empty python_command for consistency with other steps
+                check_result['python_command'] = ''
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
@@ -1108,6 +1110,10 @@ if __name__ == "__main__":
             export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=start_date, end_date=end_date)
             job_url = 'https://api.botify.com/v1/jobs'
             headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            # Generate Python command snippet
+            _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query['export_job_payload'])
+            check_result['python_command'] = python_command
             try:
                 logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
                 async with httpx.AsyncClient() as client:
