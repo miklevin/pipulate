@@ -342,7 +342,30 @@ class BotifyCsvDownloaderWorkflow:
         analysis_result = {'analysis_slug': analysis_slug, 'project': project_name, 'username': username, 'timestamp': datetime.now().isoformat(), 'download_started': True}
         analysis_result_str = json.dumps(analysis_result)
         await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
-        return Card(H3(f'{step.show}'), P(f"Downloading data for analysis '{analysis_slug}'..."), Progress(style='margin-top: 10px;'), Script("\n            setTimeout(function() {\n                htmx.ajax('POST', '" + f'/{app_name}/step_02_process' + "', {\n                    target: '#" + step_id + "',\n                    values: { \n                        'analysis_slug': '" + analysis_slug + "',\n                        'username': '" + username + "',\n                        'project_name': '" + project_name + "'\n                    }\n                });\n            }, 500);\n            "), id=step_id)
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading data for analysis '{analysis_slug}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script("""
+                setTimeout(function() {
+                    htmx.ajax('POST', '/{app_name}/step_02_process', {
+                        target: '#{step_id}',
+                        values: {
+                            'analysis_slug': '{analysis_slug}',
+                            'username': '{username}',
+                            'project_name': '{project_name}'
+                        }
+                    });
+                }, 500);
+            """.format(
+                app_name=app_name,
+                step_id=step_id,
+                analysis_slug=analysis_slug,
+                username=username,
+                project_name=project_name
+            )),
+            id=step_id
+        )
 
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
@@ -427,7 +450,24 @@ class BotifyCsvDownloaderWorkflow:
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
         await self.message_queue.add(pip, f"Downloading Web Logs for '{project_name}'...", verbatim=True)
-        return Card(H3(f'{step.show}'), P(f"Downloading Web Logs for '{project_name}'..."), Progress(style='margin-top: 10px;'), Script("\n            setTimeout(function() {\n                htmx.ajax('POST', '" + f'/{app_name}/step_03_process' + "', {\n                    target: '#" + step_id + "',\n                    values: { \n                        'analysis_slug': '" + analysis_slug + "',\n                        'username': '" + username + "',\n                        'project_name': '" + project_name + "'\n                    }\n                });\n            }, 500);\n            "), id=step_id)
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading Web Logs for '{project_name}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/step_03_process', {{
+                        target: '#{step_id}',
+                        values: {{
+                            'analysis_slug': '{analysis_slug}',
+                            'username': '{username}',
+                            'project_name': '{project_name}'
+                        }}
+                    }});
+                }}, 500);
+            """),
+            id=step_id
+        )
 
     async def step_04(self, request):
         """Handles GET request for checking if a Botify project has Search Console data."""
@@ -504,7 +544,20 @@ class BotifyCsvDownloaderWorkflow:
         project_data = json.loads(prev_data_str)
         project_name = project_data.get('project_name', '')
         username = project_data.get('username', '')
-        return Card(H3(f'{step.show}'), P(f"Downloading Search Console data for '{project_name}'..."), Progress(style='margin-top: 10px;'), Script("\n            setTimeout(function() {\n                htmx.ajax('POST', '" + f'/{app_name}/{step_id}_complete' + "', {\n                    target: '#" + step_id + "',\n                    values: { 'delay_complete': 'true' }\n                });\n            }, 1500);\n            "), id=step_id)
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading Search Console data for '{project_name}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script("""
+                setTimeout(function() {
+                    htmx.ajax('POST', '/{app_name}/{step_id}_complete', {
+                        target: '#{step_id}',
+                        values: { 'delay_complete': 'true' }
+                    });
+                }, 1500);
+            """.format(app_name=app_name, step_id=step_id)),
+            id=step_id
+        )
 
     async def step_04_complete(self, request):
         """Handles completion after the progress indicator has been shown."""
