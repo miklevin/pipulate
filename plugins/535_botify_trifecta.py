@@ -1081,7 +1081,7 @@ async def main():
         raise
 
 # Execute in Jupyter Notebook:
-# Simply run: await main()
+await main()
 
 # For standalone script execution:
 # if __name__ == "__main__":
