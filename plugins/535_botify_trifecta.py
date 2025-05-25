@@ -1080,12 +1080,12 @@ async def main():
         print(f"\\n❌ Execution failed: {{str(e)}}")
         raise
 
-# For Jupyter Notebook use, you can run the main function directly:
-# await main()
+# Execute in Jupyter Notebook:
+# Simply run: await main()
 
-# For script execution:
-if __name__ == "__main__":
-    asyncio.run(main())
+# For standalone script execution:
+# if __name__ == "__main__":
+#     asyncio.run(main())
 """
         return curl_command, python_command
 
