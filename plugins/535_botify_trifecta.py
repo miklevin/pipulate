@@ -675,6 +675,7 @@ class BotifyCsvDownloaderWorkflow:
         
         all_slugs = []
         next_url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
+        is_first_page = True
         
         while next_url:
             headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
@@ -694,6 +695,24 @@ class BotifyCsvDownloaderWorkflow:
                 if not analyses:
                     logging.error('Analyses list is empty')
                     return all_slugs
+                
+                # Log first page in detail to API log
+                if is_first_page:
+                    curl_cmd, python_cmd = self._generate_api_call_representations(
+                        method="GET", url=next_url, headers=headers
+                    )
+                    await self.pipulate.log_api_call_details(
+                        pipeline_id="fetch_analyses", step_id="analyses_list",
+                        call_description="Fetch Analysis List (First Page)",
+                        method="GET", url=next_url, headers=headers,
+                        response_status=response.status_code,
+                        response_preview=json.dumps(data),
+                        curl_command=curl_cmd, python_command=python_cmd
+                    )
+                    is_first_page = False
+                else:
+                    # Just log that we're fetching subsequent pages
+                    logging.info(f'Fetching next page of analyses: {next_url}')
                 
                 page_slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
                 all_slugs.extend(page_slugs)
