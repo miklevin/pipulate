@@ -1560,6 +1560,11 @@ if __name__ == "__main__":
                 job_url = 'https://api.botify.com/v1/jobs'
                 headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                 logging.info(f'Submitting crawl export job with payload: {json.dumps(export_query, indent=2)}')
+                
+                # Generate Python command snippet
+                _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query)
+                analysis_result['python_command'] = python_command
+                
                 async with httpx.AsyncClient() as client:
                     try:
                         response = await client.post(job_url, headers=headers, json=export_query, timeout=60.0)
@@ -1685,6 +1690,11 @@ if __name__ == "__main__":
                     job_url = 'https://api.botify.com/v1/jobs'
                     headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
                     logging.info(f'Submitting logs export job with payload: {json.dumps(export_query, indent=2)}')
+                    
+                    # Generate Python command snippet
+                    _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query)
+                    check_result['python_command'] = python_command
+                    
                     job_id = None
                     async with httpx.AsyncClient() as client:
                         try:
@@ -1722,17 +1732,7 @@ if __name__ == "__main__":
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
-                        if 'Unknown error (Type: Unknown type)' in error_message:
-                            await self.message_queue.add(pip, 'This likely means no web logs were retrieved for this analysis period. Try selecting a different analysis in Step 2.', verbatim=True)
-                            check_result['has_logs'] = False
-                            check_result['download_complete'] = True
-                            check_result['error'] = error_message
-                            check_result['note'] = "Project doesn't support logs export format"
-                            check_result_str = json.dumps(check_result)
-                            await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-                            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Project logs couldn't be processed (using fallback)", steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-                        else:
-                            raise ValueError(f'Export failed: {error_message}')
+                        raise ValueError(f'Export failed: {error_message}')
                     await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
                     download_url = result.get('download_url')
                     if not download_url:
@@ -1808,6 +1808,7 @@ if __name__ == "__main__":
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         selected_slug = analysis_result.get('analysis_slug', '')
+        python_command = analysis_result.get('python_command', '')
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
@@ -1817,16 +1818,16 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container', style='display: none;')
         else:
-            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
+            return Pre(f'Selected analysis: {selected_slug}\n\nPython Command:\n{python_command}', cls='code-block-container')
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1841,6 +1842,7 @@ if __name__ == "__main__":
         has_logs = check_result.get('has_logs', False)
         status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
         status_color = 'green' if has_logs else 'red'
+        python_command = check_result.get('python_command', '')
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
@@ -1850,16 +1852,16 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color}; display: none;')
         else:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
 
     async def step_04_toggle(self, request):
         """Toggle visibility of step 4 widget content."""
@@ -1874,6 +1876,7 @@ if __name__ == "__main__":
         has_search_console = check_result.get('has_search_console', False)
         status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
         status_color = 'green' if has_search_console else 'red'
+        python_command = check_result.get('python_command', '')
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
@@ -1883,16 +1886,16 @@ if __name__ == "__main__":
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color}; display: none;')
         else:
-            return Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};')
+            return Pre(f'Status: Project {status_text}\n\nPython Command:\n{python_command}', cls='code-block-container', style=f'color: {status_color};')
 
     async def step_05_toggle(self, request):
         """Toggle visibility of step 5 widget content."""
@@ -1920,4 +1923,153 @@ if __name__ == "__main__":
             return Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
         else:
             return Pre('Placeholder step completed', cls='code-block-container')
+
+    async def step_04_process(self, request):
+        """Process the search console check and download if available."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_04'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        form = await request.form()
+        analysis_slug = form.get('analysis_slug', '').strip()
+        username = form.get('username', '').strip()
+        project_name = form.get('project_name', '').strip()
+        if not all([analysis_slug, username, project_name]):
+            return P('Error: Missing required parameters', style=pip.get_style('error'))
+        try:
+            has_search_console, error_message = await self.check_if_project_has_collection(username, project_name, 'search_console')
+            if error_message:
+                return P(f'Error: {error_message}', style=pip.get_style('error'))
+            check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
+            status_text = 'HAS' if has_search_console else 'does NOT have'
+            await self.message_queue.add(pip, f'{step.show} complete: Project {status_text} Search Console data', verbatim=True)
+            if has_search_console:
+                gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
+                file_exists, file_info = await self.check_file_exists(gsc_filepath)
+                if file_exists:
+                    await self.message_queue.add(pip, f"✓ Using cached Search Console data ({file_info['size']})", verbatim=True)
+                    check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
+                else:
+                    await self.message_queue.add(pip, '🔄 Initiating Search Console data export...', verbatim=True)
+                    api_token = self.read_api_token()
+                    if not api_token:
+                        raise ValueError('Cannot read API token')
+                    try:
+                        analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    except ValueError:
+                        analysis_date_obj = datetime.now()
+                    date_end = analysis_date_obj.strftime('%Y-%m-%d')
+                    date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=date_start, end_date=date_end)
+                    job_url = 'https://api.botify.com/v1/jobs'
+                    headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                    logging.info(f'Submitting Search Console export job with payload: {json.dumps(export_query["export_job_payload"], indent=2)}')
+                    
+                    # Generate Python command snippet
+                    _, python_command = self._generate_api_call_representations('POST', job_url, headers, export_query['export_job_payload'])
+                    check_result['python_command'] = python_command
+                    
+                    job_id = None
+                    async with httpx.AsyncClient() as client:
+                        try:
+                            response = await client.post(job_url, headers=headers, json=export_query['export_job_payload'], timeout=60.0)
+                            if response.status_code >= 400:
+                                error_detail = 'Unknown error'
+                                try:
+                                    error_body = response.json()
+                                    error_detail = json.dumps(error_body, indent=2)
+                                    logging.error(f'API error details: {error_detail}')
+                                except Exception:
+                                    error_detail = response.text[:500]
+                                    logging.error(f'API error text: {error_detail}')
+                                response.raise_for_status()
+                            job_data = response.json()
+                            job_url_path = job_data.get('job_url')
+                            if not job_url_path:
+                                raise ValueError('Failed to get job URL from response')
+                            job_id = job_url_path.strip('/').split('/')[-1]
+                            if not job_id:
+                                raise ValueError('Failed to extract job ID from job URL')
+                            full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
+                            await self.message_queue.add(pip, f'✓ Search Console export job created successfully! (Job ID: {job_id})', verbatim=True)
+                            await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
+                        except httpx.HTTPStatusError as e:
+                            await self.message_queue.add(pip, f'❌ Export request failed: HTTP {e.response.status_code}', verbatim=True)
+                            raise
+                        except Exception as e:
+                            await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
+                            raise
+                    if job_id:
+                        await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
+                        full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
+                    if not success:
+                        error_message = isinstance(result, str) and result or 'Export job failed'
+                        await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
+                        raise ValueError(f'Export failed: {error_message}')
+                    await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                    download_url = result.get('download_url')
+                    if not download_url:
+                        await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
+                        raise ValueError('No download URL found in job result')
+                    await self.message_queue.add(pip, '🔄 Downloading Search Console data...', verbatim=True)
+                    await self.ensure_directory_exists(gsc_filepath)
+                    try:
+                        compressed_path = f'{gsc_filepath}.compressed'
+                        async with httpx.AsyncClient() as client:
+                            async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
+                                response.raise_for_status()
+                                with open(compressed_path, 'wb') as f:
+                                    async for chunk in response.aiter_bytes():
+                                        f.write(chunk)
+                        try:
+                            with gzip.open(compressed_path, 'rb') as f_in:
+                                with open(gsc_filepath, 'wb') as f_out:
+                                    shutil.copyfileobj(f_in, f_out)
+                            logging.info(f'Successfully extracted gzip file to {gsc_filepath}')
+                        except gzip.BadGzipFile:
+                            try:
+                                with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
+                                    csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
+                                    if not csv_files:
+                                        raise ValueError('No CSV files found in the zip archive')
+                                    with zip_ref.open(csv_files[0]) as source:
+                                        with open(gsc_filepath, 'wb') as target:
+                                            shutil.copyfileobj(source, target)
+                                logging.info(f'Successfully extracted zip file to {gsc_filepath}')
+                            except zipfile.BadZipFile:
+                                shutil.copy(compressed_path, gsc_filepath)
+                                logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
+                        if os.path.exists(compressed_path):
+                            os.remove(compressed_path)
+                        _, file_info = await self.check_file_exists(gsc_filepath)
+                        await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                    except Exception as e:
+                        await self.message_queue.add(pip, f'❌ Error downloading file: {str(e)}', verbatim=True)
+                        raise
+                await self.message_queue.add(pip, f"✓ Search Console data downloaded: {file_info['size']}", verbatim=True)
+            check_result_str = json.dumps(check_result)
+            await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
+            status_color = 'green' if has_search_console else 'red'
+            download_message = ''
+            if has_search_console:
+                download_message = ' (data downloaded)'
+            widget = Div(
+                Button('Hide/Show Code', 
+                    cls='secondary outline',
+                    hx_get=f'/{app_name}/{step_id}_toggle',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                Div(
+                    Pre(f'Status: Project {status_text} Search Console data{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
+                    id=f'{step_id}_widget'
+                )
+            )
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text} Search Console data{download_message}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        except Exception as e:
+            logging.exception(f'Error in step_04_process: {e}')
+            return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
