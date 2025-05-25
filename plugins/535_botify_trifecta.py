@@ -585,8 +585,8 @@ class BotifyCsvDownloaderWorkflow:
         if not url:
             return (False, 'URL is required', {})
         try:
-            if not url.startswith(('https://app.botify.com/', 'https://analyze.botify.com/')):
-                return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)', {})
+            if not url.startswith(('https://app.botify.com/')):
+                return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/)', {})
             parsed_url = urlparse(url)
             path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
             if len(path_parts) < 2:
@@ -672,7 +672,7 @@ class BotifyCsvDownloaderWorkflow:
         if not org or not project or (not api_token):
             logging.error(f'Missing required parameters: org={org}, project={project}')
             return []
-        url = f'https://api.botify.com/v1/analyses/{org}/{project}'
+        url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
         headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
         try:
             async with httpx.AsyncClient() as client:
