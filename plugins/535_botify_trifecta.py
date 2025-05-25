@@ -2180,11 +2180,7 @@ await main()
         """
         Convert a /jobs export payload to a /query payload for debugging in Jupyter.
         
-        The key differences:
-        1. URL: /jobs -> /projects/{org}/{project}/query  
-        2. Payload structure: Remove export-specific fields, flatten query
-        3. Pagination goes in URL as query parameter, not payload
-        4. Remove username/project from payload (they go in URL for /query)
+        Handles both BQLv1 (web logs) and BQLv2 (crawl, GSC) query formats.
         
         Args:
             jobs_payload: The original /jobs payload dict
@@ -2193,8 +2189,21 @@ await main()
             page_size: Number of results per page (default 100)
             
         Returns:
-            tuple: (query_payload, page_size) - page_size for URL parameter
+            tuple: (query_payload, page_size, bql_version) 
         """
+        # Detect BQL version and job type
+        job_type = jobs_payload.get('job_type', 'export')
+        is_bqlv1 = job_type == 'logs_urls_export'
+        
+        if is_bqlv1:
+            # BQLv1 Web Logs - different structure
+            return self._convert_bqlv1_to_query(jobs_payload, username, project_name, page_size)
+        else:
+            # BQLv2 Crawl/GSC - standard structure  
+            return self._convert_bqlv2_to_query(jobs_payload, username, project_name, page_size)
+    
+    def _convert_bqlv2_to_query(self, jobs_payload, username, project_name, page_size):
+        """Convert BQLv2 jobs payload to query format (crawl, GSC)"""
         # Extract the core query from the jobs payload
         if 'payload' in jobs_payload and 'query' in jobs_payload['payload']:
             # Standard export job structure
@@ -2211,11 +2220,54 @@ await main()
             "query": core_query.get("query", {})
         }
         
-        # Handle periods if present (for GSC and logs)
+        # Handle periods if present (for GSC)
         if "periods" in core_query:
             query_payload["periods"] = core_query["periods"]
             
-        return query_payload, page_size
+        return query_payload, page_size, "BQLv2"
+    
+    def _convert_bqlv1_to_query(self, jobs_payload, username, project_name, page_size):
+        """Convert BQLv1 jobs payload to web logs endpoint format"""
+        # Web logs use a special BQLv1 endpoint: /v1/logs/{username}/{project}/urls/{start_date}/{end_date}
+        
+        # Extract the payload from the jobs payload
+        if 'payload' not in jobs_payload:
+            raise ValueError("Could not find payload in jobs payload")
+        
+        payload = jobs_payload['payload']
+        
+        # Extract dates from the payload level (BQLv1 structure)
+        start_date = ""
+        end_date = ""
+        
+        # Try to get dates from payload level first (actual BQLv1 structure)
+        if 'date_start' in payload and 'date_end' in payload:
+            # Convert from YYYY-MM-DD to YYYYMMDD format for the endpoint
+            start_date = payload['date_start'].replace("-", "")
+            end_date = payload['date_end'].replace("-", "")
+        elif 'query' in payload and 'periods' in payload['query']:
+            # Fallback: try to get from nested query periods (newer structure)
+            periods = payload['query'].get("periods", [])
+            if periods and len(periods) > 0 and len(periods[0]) >= 2:
+                start_date = periods[0][0].replace("-", "")
+                end_date = periods[0][1].replace("-", "")
+        
+        # Extract the actual BQLv1 query structure
+        if 'query' in payload:
+            query_body = payload['query']
+        else:
+            raise ValueError("Could not find query structure in payload")
+        
+        query_payload = {
+            "endpoint_type": "web_logs_bqlv1",
+            "start_date": start_date,
+            "end_date": end_date,
+            "query_body": query_body,
+            "date_start_original": payload.get('date_start', ''),
+            "date_end_original": payload.get('date_end', '')
+        }
+        
+        return query_payload, page_size, "BQLv1"
     
     def generate_query_api_call(self, jobs_payload, username, project_name, page_size=100):
         """
@@ -2231,8 +2283,15 @@ await main()
             tuple: (query_url, query_payload, python_code)
         """
         # Convert the payload
-        query_payload, page_size = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size)
+        query_payload, page_size, bql_version = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size)
         
+        if bql_version == "BQLv1":
+            return self._generate_bqlv1_python_code(query_payload, username, project_name, jobs_payload)
+        else:
+            return self._generate_bqlv2_python_code(query_payload, username, project_name, page_size, jobs_payload)
+    
+    def _generate_bqlv2_python_code(self, query_payload, username, project_name, page_size, jobs_payload):
+        """Generate Python code for BQLv2 queries (crawl, GSC)"""
         # Build the query URL with pagination parameter
         query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size={page_size}"
         
@@ -2243,7 +2302,7 @@ await main()
         
         # Generate Python code for Jupyter
         python_code = f'''# =============================================================================
-# Botify Query API Call (for debugging the export query)
+# Botify Query API Call (BQLv2 - for debugging the export query)
 # Generated by: {self.DISPLAY_NAME} Workflow
 # Step: {self._get_step_name_from_payload(jobs_payload)}
 # Organization: {username}
@@ -2297,7 +2356,7 @@ async def make_query_call(
     timeout: float = 60.0
 ) -> Dict[str, Any]:
     """
-    Make a query API call to debug the export query structure.
+    Make a BQLv2 query API call to debug the export query structure.
     
     Returns:
         Dict containing the API response data
@@ -2336,7 +2395,7 @@ async def make_query_call(
             raise ValueError(error_msg)
 
 async def main():
-    """Main execution function for query debugging"""
+    """Main execution function for BQLv2 query debugging"""
     try:
         result = await make_query_call(
             url=URL,
@@ -2359,6 +2418,224 @@ await main()
 '''
         
         return query_url, query_payload, python_code
+    
+    def _generate_bqlv1_python_code(self, query_payload, username, project_name, jobs_payload):
+        """Generate Python code for BQLv1 queries (web logs)"""
+        # Extract the web logs specific data
+        start_date = query_payload.get("start_date", "")
+        end_date = query_payload.get("end_date", "")
+        query_body = query_payload.get("query_body", {})
+        
+        # Convert to proper JSON representation
+        query_body_json = json.dumps(query_body, indent=4)
+        query_body_json = query_body_json.replace(': false', ': False').replace(': true', ': True').replace(': null', ': None')
+        
+        # Build the web logs endpoint URL with correct base URL
+        logs_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
+        
+        # Generate Python code for Jupyter
+        python_code = f'''# =============================================================================
+# Botify Web Logs API Call (BQLv1 - /logs endpoint)
+# Generated by: {self.DISPLAY_NAME} Workflow
+# Step: {self._get_step_name_from_payload(jobs_payload)}
+# Organization: {username}
+# Project: {project_name}
+# Date Range: {start_date} to {end_date}
+# 
+# 📚 For Botify API tutorials and examples, visit:
+# http://localhost:8888/lab/tree/helpers/botify/botify_api.ipynb
+# =============================================================================
+
+import httpx
+import json
+import os
+from typing import Dict, Any
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+def load_api_token() -> str:
+    """Load the Botify API token from the token file."""
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            raise ValueError(f"Token file '{{TOKEN_FILE}}' not found.")
+        with open(TOKEN_FILE) as f:
+            content = f.read().strip()
+            api_key = content.split('\\n')[0].strip()
+            if not api_key:
+                raise ValueError(f"Token file '{{TOKEN_FILE}}' is empty.")
+            return api_key
+    except Exception as e:
+        raise ValueError(f"Error loading API token: {{str(e)}}")
+
+# Configuration
+API_TOKEN = load_api_token()
+BASE_URL = "{logs_url}"
+
+# Headers setup
+def get_headers() -> Dict[str, str]:
+    """Generate headers for the API request."""
+    return {{
+        'Authorization': f'Token {{API_TOKEN}}',
+        'Content-Type': 'application/json'
+    }}
+
+# Web Logs Query Payload (BQLv1 format)
+QUERY_PAYLOAD = {query_body_json}
+
+async def make_web_logs_call(
+    base_url: str,
+    headers: Dict[str, str],
+    payload: Dict[str, Any],
+    page: int = 1,
+    size: int = 50,
+    sampling: int = 100,
+    timeout: float = 60.0
+) -> Dict[str, Any]:
+    """
+    Make a BQLv1 web logs API call to debug the export query structure.
+    
+    Args:
+        base_url: The base logs endpoint URL
+        headers: Request headers
+        payload: BQLv1 query payload
+        page: Page number (default 1)
+        size: Results per page (default 50)
+        sampling: Sampling percentage (default 100)
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Dict containing the API response data
+    """
+    # Add pagination parameters to URL
+    url = f"{{base_url}}?page={{page}}&size={{size}}&sampling={{sampling}}"
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                url=url,
+                headers=headers,
+                json=payload,
+                timeout=timeout
+            )
+            
+            print(f"Status Code: {{response.status_code}}")
+            print(f"Request URL: {{url}}")
+            response.raise_for_status()
+            
+            result = response.json()
+            print(f"\\nResults returned: {{len(result.get('results', []))}}")
+            print(f"Total count: {{result.get('count', 'N/A')}}")
+            print(f"Current page: {{result.get('page', 'N/A')}}")
+            print(f"Page size: {{result.get('size', 'N/A')}}")
+            
+            # Show pagination info
+            if result.get('next'):
+                print(f"Next page available: {{result['next']}}")
+            if result.get('previous'):
+                print(f"Previous page available: {{result['previous']}}")
+            
+            # Show first few results for inspection
+            results = result.get('results', [])
+            if results:
+                print("\\nFirst result structure:")
+                print(json.dumps(results[0], indent=2))
+                
+                if len(results) > 1:
+                    print("\\nSecond result structure:")
+                    print(json.dumps(results[1], indent=2))
+                
+            return result
+            
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {{e.response.status_code}}: {{e.response.text}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error: {{str(e)}}"
+            print(f"\\n❌ Error: {{error_msg}}")
+            raise ValueError(error_msg)
+
+async def get_all_pages(max_pages: int = 5):
+    """
+    Fetch multiple pages of web logs data for comprehensive analysis.
+    
+    Args:
+        max_pages: Maximum number of pages to fetch (default 5)
+        
+    Returns:
+        List of all results across pages
+    """
+    all_results = []
+    page = 1
+    
+    while page <= max_pages:
+        print(f"\\n🔄 Fetching page {{page}}...")
+        
+        try:
+            result = await make_web_logs_call(
+                base_url=BASE_URL,
+                headers=get_headers(),
+                payload=QUERY_PAYLOAD,
+                page=page,
+                size=50
+            )
+            
+            results = result.get('results', [])
+            all_results.extend(results)
+            
+            # Check if there's a next page
+            if not result.get('next'):
+                print(f"\\n✅ Reached last page ({{page}})")
+                break
+                
+            page += 1
+            
+        except Exception as e:
+            print(f"\\n❌ Error on page {{page}}: {{str(e)}}")
+            break
+    
+    print(f"\\n📊 Total results collected: {{len(all_results)}}")
+    return all_results
+
+async def main():
+    """Main execution function for BQLv1 web logs debugging"""
+    print("🔄 Fetching Web Logs Data (BQLv1)...")
+    print(f"Date Range: {start_date} to {end_date}")
+    print(f"Organization: {username}")
+    print(f"Project: {project_name}")
+    
+    try:
+        # Option 1: Get single page
+        print("\\n1. Fetching first page...")
+        result = await make_web_logs_call(
+            base_url=BASE_URL,
+            headers=get_headers(),
+            payload=QUERY_PAYLOAD,
+            page=1,
+            size=50
+        )
+        
+        # Option 2: Get multiple pages (uncomment to use)
+        # print("\\n2. Fetching multiple pages...")
+        # all_results = await get_all_pages(max_pages=3)
+        
+        return result
+        
+    except Exception as e:
+        print(f"\\n❌ Web logs query failed: {{str(e)}}")
+        raise
+
+# Execute in Jupyter Notebook:
+await main()
+
+# For standalone script execution:
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())
+'''
+        
+        return logs_url, query_payload, python_code
     
     def _get_step_name_from_payload(self, jobs_payload):
         """
