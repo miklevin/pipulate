@@ -591,8 +591,9 @@ class BotifyCsvDownloaderWorkflow:
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
             completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -641,8 +642,9 @@ class BotifyCsvDownloaderWorkflow:
         placeholder_result_str = json.dumps(placeholder_result)
         await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
+        state = pip.read_state(pipeline_id)
         widget = Div(
-            Button('Hide/Show Code', 
+            Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                 cls='secondary outline',
                 hx_get=f'/{app_name}/{step_id}_toggle',
                 hx_target=f'#{step_id}_widget',
@@ -1626,8 +1628,9 @@ if __name__ == "__main__":
             await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
             analysis_result_str = json.dumps(analysis_result)
             await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
@@ -1780,8 +1783,9 @@ if __name__ == "__main__":
             download_message = ''
             if has_logs:
                 download_message = ' (data downloaded)'
+            state = pip.read_state(pipeline_id)
             widget = Div(
-                Button('Hide/Show Code', 
+                Button('Hide Code' if state.get(f'{step_id}_widget_visible', False) else 'Show Code', 
                     cls='secondary outline',
                     hx_get=f'/{app_name}/{step_id}_toggle',
                     hx_target=f'#{step_id}_widget',
