@@ -292,7 +292,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container'),
+                    Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -395,7 +395,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -412,7 +412,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -497,7 +497,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -514,7 +514,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color};'),
+                    Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -599,7 +599,7 @@ class BotifyCsvDownloaderWorkflow:
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"};'),
+                    Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -649,7 +649,7 @@ class BotifyCsvDownloaderWorkflow:
                 hx_swap='innerHTML'
             ),
             Div(
-                Pre('Placeholder step completed', cls='code-block-container'),
+                Pre('Placeholder step completed', cls='code-block-container', style='display: none;'),
                 id=f'{step_id}_widget'
             )
         )
@@ -1634,7 +1634,7 @@ if __name__ == "__main__":
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Analysis: {analysis_slug} (data downloaded)', cls='code-block-container'),
+                    Pre(f'Analysis: {analysis_slug} (data downloaded)', cls='code-block-container', style='display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -1788,7 +1788,7 @@ if __name__ == "__main__":
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color};'),
+                    Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
@@ -1809,16 +1809,16 @@ if __name__ == "__main__":
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', True)
+        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
         # Toggle visibility
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container')
+            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container')
         else:
-            return Pre(f'Selected Analysis: {selected_slug}', cls='code-block-container', style='display: none;')
+            return Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;')
 
     async def step_03_toggle(self, request):
         """Toggle visibility of step 3 widget content."""
@@ -1826,7 +1826,7 @@ if __name__ == "__main__":
         step_id = 'step_03'
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        check_result_str = step_data.get('weblogs_check', '')
+        check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
         has_logs = check_result.get('has_logs', False)
         status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
@@ -1834,7 +1834,7 @@ if __name__ == "__main__":
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', True)
+        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
         # Toggle visibility
         state[f'{step_id}_widget_visible'] = not is_visible
@@ -1851,7 +1851,7 @@ if __name__ == "__main__":
         step_id = 'step_04'
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        check_result_str = step_data.get('search_console_check', '')
+        check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
         has_search_console = check_result.get('has_search_console', False)
         status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
@@ -1859,7 +1859,7 @@ if __name__ == "__main__":
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', True)
+        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
         # Toggle visibility
         state[f'{step_id}_widget_visible'] = not is_visible
@@ -1878,7 +1878,7 @@ if __name__ == "__main__":
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', True)
+        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
         
         # Toggle visibility
         state[f'{step_id}_widget_visible'] = not is_visible
