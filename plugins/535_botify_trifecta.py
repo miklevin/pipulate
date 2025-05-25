@@ -130,6 +130,15 @@ class BotifyCsvDownloaderWorkflow:
         }
     }
 
+    # Template Configuration - Controls which templates are actually used
+    # ===================================================================
+    # Change these values to switch between different query templates
+    # without modifying the workflow logic.
+    TEMPLATE_CONFIG = {
+        'crawl': 'not_compliant',      # Options: 'crawl_basic', 'not_compliant'
+        'gsc': 'gsc_performance'       # Options: 'gsc_performance'
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -176,6 +185,10 @@ class BotifyCsvDownloaderWorkflow:
             return ['gsc_performance']
         else:
             return []
+
+    def get_configured_template(self, data_type):
+        """Get the configured template for a specific data type."""
+        return self.TEMPLATE_CONFIG.get(data_type)
 
     def apply_template(self, template_key, collection=None):
         """Apply a query template with collection substitution."""
@@ -1391,8 +1404,9 @@ await main()
             if not start_date or not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-            # Use template for query structure
-            template_query = self.apply_template('gsc_performance')
+            # Use the configured GSC template
+            gsc_template = self.get_configured_template('gsc')
+            template_query = self.apply_template(gsc_template)
             export_job_payload = {
                 'job_type': 'export',
                 'payload': {
@@ -1443,8 +1457,9 @@ await main()
             if not analysis_slug:
                 raise ValueError("analysis_slug is required for data_type 'crawl'")
             collection = f'crawl.{analysis_slug}'
-            # Use template for query structure
-            template_query = self.apply_template('crawl_basic', collection)
+            # Use the configured crawl template
+            crawl_template = self.get_configured_template('crawl')
+            template_query = self.apply_template(crawl_template, collection)
             bql_query = {
                 'collections': [collection],
                 'query': template_query
@@ -1743,9 +1758,10 @@ await main()
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
-                # Use the not_compliant template for consistency
+                # Use the configured crawl template
                 collection = f'crawl.{analysis_slug}'
-                template_query = self.apply_template('not_compliant', collection)
+                crawl_template = self.get_configured_template('crawl')
+                template_query = self.apply_template(crawl_template, collection)
                 export_query = {
                     'job_type': 'export', 
                     'payload': {
