@@ -1801,9 +1801,11 @@ if __name__ == "__main__":
         """Toggle visibility of step 2 widget content."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        analysis_result_str = step_data.get('analysis_selection', '')
+        analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         selected_slug = analysis_result.get('analysis_slug', '')
         
@@ -1824,6 +1826,8 @@ if __name__ == "__main__":
         """Toggle visibility of step 3 widget content."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
@@ -1849,6 +1853,8 @@ if __name__ == "__main__":
         """Toggle visibility of step 4 widget content."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_04'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         check_result_str = step_data.get(step.done, '')
@@ -1874,6 +1880,8 @@ if __name__ == "__main__":
         """Toggle visibility of step 5 widget content."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_05'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
         pipeline_id = db.get('pipeline_id', 'unknown')
         
         # Check if widget is currently visible
