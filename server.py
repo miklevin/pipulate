@@ -401,15 +401,24 @@ def step_name(step: str, preserve: bool = False) -> str:
     return f"Step {number.lstrip('0')}"
 
 
-def step_button(step: str, preserve: bool = False, revert_label: str = None) -> str:
-    logger.debug(f'[format_step_button] Entry - step={step}, preserve={preserve}, revert_label={revert_label}')
-    _, number = step.split('_')
+def step_button(visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
+    """
+    Formats the revert button text.
+    Uses visual_step_number for "Step X" numbering if revert_label is not provided.
+    
+    Args:
+        visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
+        preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
+        revert_label: Custom label to use instead of "Step X" format
+    """
+    logger.debug(f'[format_step_button] Entry - visual_step_number={visual_step_number}, preserve={preserve}, revert_label={revert_label}')
     symbol = '⟲' if preserve else '↶'
-    label = revert_label if revert_label else 'Step'
+    
     if revert_label:
-        button_text = f'{symbol}\xa0{label}'
+        button_text = f'{symbol}\xa0{revert_label}'
     else:
-        button_text = f"{symbol}\xa0{label}\xa0{number.lstrip('0')}"
+        button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
+        
     logger.debug(f'[format_step_button] Generated button text: {button_text}')
     return button_text
 
@@ -912,6 +921,7 @@ class Pipulate:
     def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None, remove_padding: bool = False):
         """
         Create a UI control for reverting to a previous workflow step.
+        The button label will now use the visual sequence number of the step.
 
         Args:
             step_id: The ID of the step to revert to
@@ -926,21 +936,51 @@ class Pipulate:
             Card: A FastHTML Card component with revert functionality
         """
         pipeline_id = db.get('pipeline_id', '')
-        finalize_step = steps[-1]
-        if pipeline_id:
+        finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
+        
+        if pipeline_id and finalize_step:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
-        step = next((s for s in steps if s.id == step_id))
+                
+        step = next((s for s in steps if s.id == step_id), None)
+        if not step:
+            logger.error(f"Step with id '{step_id}' not found in steps list for display_revert_header.")
+            return Div(f"Error: Step {step_id} not found.")
+            
+        # --- Calculate Visual Step Number ---
+        # Filter out the 'finalize' step to get only data collection steps for numbering
+        data_collection_steps = [s for s in steps if s.id != 'finalize']
+        visual_step_number = "N/A"  # Fallback
+        
+        try:
+            # Find the 0-based index in the list of data_collection_steps
+            visual_index_0_based = data_collection_steps.index(step)
+            visual_step_number = str(visual_index_0_based + 1)  # Convert to 1-based for display
+        except ValueError:
+            # This step_id was not found among data_collection_steps
+            logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps for visual numbering. Revert button might show 'Step N/A'.")
+        
         refill = getattr(step, 'refill', False)
         if not target_id:
             target_id = f'{app_name}-container'
-        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(step_button(step_id, refill, revert_label), type='submit', cls='button-revert'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML')
+            
+        # Use the calculated visual_step_number instead of step_id
+        form = Form(
+            Input(type='hidden', name='step_id', value=step_id), 
+            Button(step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), 
+            hx_post=f'/{app_name}/revert', 
+            hx_target=f'#{target_id}', 
+            hx_swap='outerHTML'
+        )
+        
         if not message:
             return form
+            
         article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
         if remove_padding:
             article_style += ' padding: 0;'
+            
         return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
 
     def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str = None, widget=None, target_id: str = None, revert_label: str = None, widget_style=None):
