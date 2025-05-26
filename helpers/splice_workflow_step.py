@@ -6,12 +6,54 @@ import os
 
 # EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
 """
+# Works from any location - script automatically finds Pipulate project root:
 python splice_workflow_step.py 035_kungfu_workflow.py
+python splice_workflow_step.py 035_kungfu_workflow    # .py extension optional
+python splice_workflow_step.py plugins/035_kungfu_workflow.py  # plugins/ prefix optional
+
+# Can be run from project root:
+python helpers/splice_workflow_step.py 035_kungfu_workflow.py
+
+# Can be run from helpers directory:
+cd helpers && python splice_workflow_step.py 035_kungfu_workflow.py
+
+# Can be run from anywhere with full path:
+python /path/to/pipulate/helpers/splice_workflow_step.py 035_kungfu_workflow.py
 """
 
-# Define paths relative to this script's location (pipulate/helpers/)
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+def find_pipulate_root():
+    """
+    Find the Pipulate project root directory by looking for key files.
+    This allows the script to work from any location.
+    """
+    # Start from the script's directory and work upward
+    current_dir = Path(__file__).resolve().parent
+    
+    # Look for Pipulate project markers
+    while current_dir != current_dir.parent:  # Stop at filesystem root
+        # Check for key Pipulate files/directories
+        if (current_dir / "plugins").is_dir() and (current_dir / "server.py").is_file():
+            return current_dir
+        current_dir = current_dir.parent
+    
+    # If not found by traversing up, try some common locations
+    possible_roots = [
+        Path.cwd(),  # Current working directory
+        Path.home() / "repos" / "pipulate",  # Common location
+        Path("/home/mike/repos/pipulate"),  # Hardcoded fallback
+    ]
+    
+    for root in possible_roots:
+        if root.exists() and (root / "plugins").is_dir() and (root / "server.py").is_file():
+            return root
+    
+    raise FileNotFoundError(
+        "Could not find Pipulate project root. Please ensure you're running this script "
+        "from within a Pipulate project or that the project exists at a standard location."
+    )
+
+# Define paths - now dynamically found
+PROJECT_ROOT = find_pipulate_root()
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
 # Markers to find insertion points
@@ -109,19 +151,51 @@ async def {step_id_str}_submit(self, request):
 def main():
     parser = argparse.ArgumentParser(
         description="Splice a new placeholder step into an existing Pipulate workflow plugin.",
-        formatter_class=argparse.RawTextHelpFormatter
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="""
+Examples:
+  python splice_workflow_step.py 035_kungfu_workflow.py
+  python splice_workflow_step.py plugins/035_kungfu_workflow.py
+  python splice_workflow_step.py /full/path/to/plugins/035_kungfu_workflow.py
+        """
     )
-    parser.add_argument("target_filename", help="The filename of the workflow to modify in the plugins/ directory (e.g., 035_kungfu_workflow.py)")
+    parser.add_argument("target_filename", help="The filename of the workflow to modify (e.g., 035_kungfu_workflow.py)")
     args = parser.parse_args()
 
-    # Fix path handling: If the target filename includes 'plugins/', strip it
+    print(f"Pipulate project root found at: {PROJECT_ROOT}")
+    print(f"Plugins directory: {PLUGINS_DIR}")
+    print()
+
+    # Normalize the target filename to just the basename
     target_filename = args.target_filename
+    
+    # Handle various input formats:
+    # 1. Just filename: "035_kungfu_workflow.py"
+    # 2. With plugins/ prefix: "plugins/035_kungfu_workflow.py"  
+    # 3. Full path: "/some/path/plugins/035_kungfu_workflow.py"
     if target_filename.startswith('plugins/'):
         target_filename = target_filename[8:]  # Remove 'plugins/' prefix
+    elif '/' in target_filename:
+        # Extract just the filename from any path
+        target_filename = Path(target_filename).name
+    
+    # Ensure it has .py extension
+    if not target_filename.endswith('.py'):
+        target_filename += '.py'
     
     target_file_path = PLUGINS_DIR / target_filename
+    
+    print(f"Looking for workflow file: {target_file_path}")
+    
     if not target_file_path.is_file():
         print(f"ERROR: Target workflow file not found at {target_file_path}")
+        print(f"Available workflow files in {PLUGINS_DIR}:")
+        try:
+            workflow_files = [f.name for f in PLUGINS_DIR.glob("*.py") if not f.name.startswith('__')]
+            for wf in sorted(workflow_files):
+                print(f"  {wf}")
+        except Exception:
+            print("  (Could not list files)")
         return
 
     try:
