@@ -176,7 +176,7 @@ class DevAssistant:
     async def unfinalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         pipeline_id = db.get('pipeline_id', 'unknown')
-        await pip.clear_steps_from(pipeline_id, 'finalize', self.steps)
+        await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Development analysis session unlocked for editing.', verbatim=True)
         return pip.rebuild(app_name, self.steps)
 
@@ -251,7 +251,8 @@ class DevAssistant:
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
+        # Get the actual plugin filename that was analyzed
+        user_val = step_data.get('plugin_analysis', '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         
         if 'finalized' in finalize_data:
@@ -262,7 +263,7 @@ class DevAssistant:
             )
         elif user_val and state.get('_revert_target') != step_id:
             return Div(
-                pip.display_revert_header(step_id, app_name, f'{step.show}: {user_val}', steps),
+                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: {user_val}'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -342,7 +343,7 @@ class DevAssistant:
             )
         elif user_val and state.get('_revert_target') != step_id:
             return Div(
-                pip.display_revert_header(step_id, app_name, f'{step.show}: Patterns Validated', steps),
+                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Patterns Validated'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -414,7 +415,7 @@ class DevAssistant:
             )
         elif user_val and state.get('_revert_target') != step_id:
             return Div(
-                pip.display_revert_header(step_id, app_name, f'{step.show}: Debug Guidance Provided', steps),
+                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Debug Guidance Provided'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -491,7 +492,7 @@ class DevAssistant:
             )
         elif user_val and state.get('_revert_target') != step_id:
             return Div(
-                pip.display_revert_header(step_id, app_name, f'{step.show}: Expert Guidance Provided', steps),
+                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Expert Guidance Provided'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
