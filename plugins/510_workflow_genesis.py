@@ -176,12 +176,12 @@ class WorkflowGenesis:
             response.headers['HX-Refresh'] = 'true'
             return response
         
-        _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
-        if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
-            pipeline_id = user_input_key
-        else: 
-             _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
-             pipeline_id = f'{prefix}{user_part}'
+            _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
+            if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
+                pipeline_id = user_input_key
+            else: 
+                 _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
+                 pipeline_id = f'{prefix}{user_part}'
         
         db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name}) 
