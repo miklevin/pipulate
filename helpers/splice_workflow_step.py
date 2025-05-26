@@ -424,6 +424,25 @@ Examples:
         
         print(f"Inserted method definitions for {new_step_id_str}.")
         
+        # --- 9. If inserting at top, update the init method to start with the new first step ---
+        if args.position == "top":
+            # Find and update the init method to start with the new first step
+            init_pattern = re.compile(
+                r"(return Div\(Div\(id=')[^']+(',\s*hx_get=f'/\{app_name\}/)[^']+(',\s*hx_trigger='load'\))",
+                re.MULTILINE
+            )
+            
+            def replace_init_step(match):
+                return f"{match.group(1)}{new_step_id_str}{match.group(2)}{new_step_id_str}{match.group(3)}"
+            
+            content, init_replacements = init_pattern.subn(replace_init_step, content)
+            
+            if init_replacements > 0:
+                print(f"Updated init method to start with {new_step_id_str} (made {init_replacements} replacement(s)).")
+            else:
+                print(f"Warning: Could not find init method pattern to update. The workflow may still start with the old first step.")
+                print("You may need to manually update the init method to start with the new first step.")
+        
         with open(target_file_path, "w", encoding="utf-8") as f:
             f.write(content)
         
