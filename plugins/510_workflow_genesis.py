@@ -261,7 +261,7 @@ class WorkflowGenesis:
             # Splice Commands Section
             Div(
                 H5('Splice Workflow Step Commands:'),
-                P('Add new placeholder steps to your workflow with flexible positioning. Use --position top to insert after the first step, or --position bottom (default) to insert before finalize:', cls='text-secondary', style='margin-bottom: 0.5rem; font-size: 0.9rem;'),
+                P('Add new placeholder steps to your workflow with flexible positioning. Use --position top to become the new first data step, or --position bottom (default) to insert before finalize:', cls='text-secondary', style='margin-bottom: 0.5rem; font-size: 0.9rem;'),
                 
                 # Basic usage (default)
                 Div(
@@ -287,7 +287,7 @@ class WorkflowGenesis:
                 
                 # Insert at top
                 Div(
-                    P('Insert at top (after first step):', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
+                    P('Insert at top (becomes new first data step):', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
                     Textarea(splice_cmd_top, id=textarea_id_splice_top, style='display: none;'),
                     Pre(
                         Code(splice_cmd_top, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),

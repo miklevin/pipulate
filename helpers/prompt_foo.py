@@ -36,8 +36,8 @@ server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT
-# /home/mike/repos/MikeLev.in/_posts/2025-05-21-ai-wrangling-code-transparency.md  <-- BQL Transparency Logging Infrastructure
-# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- Started implementing BQL Transparency Logging Infrastructure (needs separate log file)
+/home/mike/repos/pipulate/plugins/510_workflow_genesis.py
+/home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (OFTEN INCLUDED)
 # /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management

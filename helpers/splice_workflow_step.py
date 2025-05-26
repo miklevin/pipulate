@@ -12,7 +12,7 @@ import os
 python splice_workflow_step.py 035_kungfu_workflow.py
 python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
 
-# Insert at top (after first step):
+# Insert at top (becomes the new first data step):
 python splice_workflow_step.py 035_kungfu_workflow.py --position top
 
 # Flexible filename handling:
@@ -167,7 +167,7 @@ Examples:
   python splice_workflow_step.py 035_kungfu_workflow.py
   python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
   
-  # Insert at top (after first step):
+  # Insert at top (becomes the new first data step):
   python splice_workflow_step.py 035_kungfu_workflow.py --position top
   
   # Works with various path formats:
@@ -177,7 +177,7 @@ Examples:
     )
     parser.add_argument("target_filename", help="The filename of the workflow to modify (e.g., 035_kungfu_workflow.py)")
     parser.add_argument("--position", choices=["top", "bottom"], default="bottom", 
-                       help="Where to insert the new step: 'top' (after first step) or 'bottom' (before finalize, default)")
+                       help="Where to insert the new step: 'top' (becomes first data step) or 'bottom' (before finalize, default)")
     args = parser.parse_args()
 
     print(f"Pipulate project root found at: {PROJECT_ROOT}")
@@ -276,57 +276,32 @@ Examples:
 
         # --- 5. Insert the new Step definition based on position ---
         if args.position == "top":
-            # Insert after the first Step definition
+            # Insert BEFORE the first Step definition to become the new first data step
             lines = steps_list_content.splitlines()
             new_lines = []
             inserted = False
-            i = 0
             
-            while i < len(lines):
-                line = lines[i]
-                new_lines.append(line)
+            for i, line in enumerate(lines):
+                stripped_line = line.lstrip()
                 
-                # Look for the start of the first Step definition
-                if not inserted and line.strip().startswith("Step("):
-                    # Find the matching closing parenthesis for this Step
-                    paren_count = 0
-                    j = i
-                    
-                    # Count through all lines until we find the matching closing paren
-                    while j < len(lines):
-                        for char in lines[j]:
-                            if char == '(':
-                                paren_count += 1
-                            elif char == ')':
-                                paren_count -= 1
-                                if paren_count == 0:
-                                    # Found the end of this Step definition
-                                    # Add any remaining lines of this Step that we haven't added yet
-                                    for k in range(i + 1, j + 1):
-                                        if k < len(lines):
-                                            new_lines.append(lines[k])
-                                    
-                                    # Insert new step after this one
-                                    new_lines.append(new_step_definition)
-                                    inserted = True
-                                    
-                                    # Skip to after the step we just processed
-                                    i = j + 1
-                                    break
-                        if paren_count == 0:
-                            break
-                        j += 1
-                    
-                    if not inserted:
-                        print("WARNING: Could not find matching closing parenthesis for first Step. Falling back to bottom insertion.")
-                        args.position = "bottom"
-                        break
-                else:
-                    i += 1
+                # Look for the first actual Step definition (not comments or empty lines)
+                if not inserted and stripped_line.startswith("Step("):
+                    # Insert new step BEFORE this first Step definition
+                    for new_step_line in new_step_definition.splitlines():
+                        new_lines.append(new_step_line)
+                    # Now add the original first step and all remaining lines
+                    new_lines.extend(lines[i:])
+                    inserted = True
+                    break
+                elif not inserted:
+                    # Keep adding lines until we find the first Step
+                    new_lines.append(line)
             
-            if not inserted and args.position == "top":
-                print("WARNING: Could not find first Step definition for top insertion. Falling back to bottom insertion.")
-                args.position = "bottom"
+            if not inserted:
+                # If no Step definitions found, add the new step at the end
+                for new_step_line in new_step_definition.splitlines():
+                    new_lines.append(new_step_line)
+                print("WARNING: No existing Step definitions found. Added new step as first item.")
         
         if args.position == "bottom":
             # Insert before the finalize step or before the marker
