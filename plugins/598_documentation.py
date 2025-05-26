@@ -110,7 +110,7 @@ class DocumentationPlugin:
                 if key == doc_key:
                     nav_links_html.append(f'<span class="current-doc">{info["title"]}</span>')
                 else:
-                    nav_links_html.append(f'<a href="/docs/{key}" target="_blank">{info["title"]}</a>')
+                    nav_links_html.append(f'<a href="/docs/{key}">{info["title"]}</a>')
             
             # Create the full HTML page as a string
             page_html = f"""<!DOCTYPE html>
