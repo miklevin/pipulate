@@ -2,6 +2,21 @@
 # -*- coding: utf-8 -*-
 """
 Downloads JavaScript libraries from specified URLs and saves them locally.
+
+I need to figure out a way to make this look for all the latest versions and
+harmlessly report them, giving the option to update each locally.
+
+Currently it's just hardwired to the latest known versions of each at the last
+time I ran it. Not that you want to just blindly update every local library
+every time you run this. Such libraries being frozen locally is part of the
+Pipulate advantage, so I need to think through under what conditions and for
+what reasons local JavaScript (and CSS) libraries and dependencies get updated.
+
+Also, certain things like Prism are handled differently because of their
+download systems. Currently, the download selections for Prism are set to:
+
+https://prismjs.com/download#themes=prism&languages=markup+css+clike+javascript+bash+diff+json+json5+jsonp+liquid+lua+markdown+markup-templating+mermaid+nix+python+regex+yaml&plugins=line-highlight+line-numbers+show-language+jsonp-highlight+toolbar+copy-to-clipboard+download-button+diff-highlight+treeview
+
 """
 
 import requests
@@ -10,6 +25,7 @@ import sys
 from typing import List, Dict, Union, Optional
 
 # Library definitions - URLs and file types
+# List the CDN paths of each static library here.
 LIBRARIES = {
     "prism-core": {
         "url": "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js",
