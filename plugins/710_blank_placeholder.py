@@ -81,8 +81,8 @@ class BlankPlaceholder:
                 }
             else:
                 self.step_messages[step_obj.id] = {
-                    'input': f'{pip.fmt(step_obj.id)}: Please complete {step_obj.show}.', 
-                    'complete': f'{step_obj.show} complete. Continue to next step.'
+                    'input': f'{step_obj.show}: Please provide the required input.', 
+                    'complete': f'{step_obj.show} is complete. Proceed to the next action.'
                 }
 
     async def landing(self, request):

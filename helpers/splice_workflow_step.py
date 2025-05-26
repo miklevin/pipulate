@@ -245,7 +245,7 @@ Examples:
         new_step_num = max_step_num + 1
         new_step_id_str = f"step_{new_step_num:02d}"
         new_step_done_key = f"placeholder_{new_step_num:02d}"
-        new_step_show_name = f"Step {new_step_num} Placeholder"
+        new_step_show_name = f"Placeholder Step {new_step_num} (Edit Me)"
         
         print(f"Identified current max data collection step number: {max_step_num}")
         print(f"New step will be: {new_step_id_str} (Show: '{new_step_show_name}', Done key: '{new_step_done_key}')")

@@ -301,7 +301,16 @@ class WorkflowGenesis:
                     P('Flexible filename handling:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
                     P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
                     P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
-                    style='margin-bottom: 0.5rem;'
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                # Cosmetic Renaming Feature
+                Div(
+                    P('💡 Cosmetic Step Renaming:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #0066cc;'),
+                    P('New steps get names like "Placeholder Step 3 (Edit Me)" that you can customize in the show= attribute.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
+                    P('Internal IDs (step_01, step_02) reflect creation order but are hidden from users.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
+                    P('Example: step_06 with show="Data Collection" appears as "Data Collection" in the UI.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
+                    style='margin-bottom: 0.5rem; padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #0066cc; border-radius: 4px;'
                 ),
                 
                 cls='mt-4'
