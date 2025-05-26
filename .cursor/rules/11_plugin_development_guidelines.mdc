@@ -100,3 +100,30 @@ alwaysApply: false
     * `finalize_workflow_step` (GET/POST)
     * `unfinalize_workflow_step` (POST)
     * `handle_revert` (POST)
+
+## 8. Documentation System Plugin Pattern
+
+For plugins that serve static content (like documentation), follow the pattern established in [598_documentation.py](mdc:plugins/598_documentation.py):
+
+* **Route Registration**: Register custom routes in `__init__` method:
+  ```python
+  def __init__(self, app, pipulate, pipeline, db):
+      # Register routes for serving content
+      for doc_key in self.DOCS.keys():
+          app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_document)
+  ```
+
+* **HTML Response**: Return proper HTML strings, not FastHTML components:
+  ```python
+  async def serve_document(self, request):
+      # Process content...
+      page_html = f"""<!DOCTYPE html>
+      <html>
+      <head><title>{title}</title></head>
+      <body>{content}</body>
+      </html>"""
+      return HTMLResponse(page_html)
+  ```
+
+* **Navigation**: Use same-tab navigation within served content (no `target="_blank"` for internal links)
+* **Integration**: Initial access from workflows should use `target="_blank"` to open in new tab
