@@ -252,7 +252,8 @@ class DevAssistant:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         # Get the actual plugin filename that was analyzed
-        user_val = step_data.get('plugin_analysis', '')
+        # The step_data structure is: {'plugin_analysis': filename, 'analysis_results': {...}}
+        user_val = step_data.get('plugin_analysis', '') if step_data else ''
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         
         if 'finalized' in finalize_data:
