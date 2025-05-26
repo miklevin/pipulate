@@ -1954,11 +1954,35 @@ await main()
                             await self.message_queue.add(pip, f'✓ Web logs export job created successfully! (Job ID: {job_id})', verbatim=True)
                             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                         except httpx.HTTPStatusError as e:
-                            await self.message_queue.add(pip, f'❌ Export request failed: HTTP {e.response.status_code}', verbatim=True)
-                            raise
+                            error_message = f'Export request failed: HTTP {e.response.status_code}'
+                            await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': error_message,
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': error_message,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                            has_logs = False
+                            job_id = None  # Prevent polling
                         except Exception as e:
-                            await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
-                            raise
+                            error_message = f'Export request failed: {str(e)}'
+                            await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': error_message,
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': error_message,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                            has_logs = False
+                            job_id = None  # Prevent polling
                     if job_id:
                         await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
@@ -1966,54 +1990,94 @@ await main()
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
-                        raise ValueError(f'Export failed: {error_message}')
-                    await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
-                    download_url = result.get('download_url')
-                    if not download_url:
-                        await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
-                        raise ValueError('No download URL found in job result')
-                    await self.message_queue.add(pip, '🔄 Downloading web logs data...', verbatim=True)
-                    await self.ensure_directory_exists(logs_filepath)
-                    try:
-                        compressed_path = f'{logs_filepath}.compressed'
-                        async with httpx.AsyncClient() as client:
-                            async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                response.raise_for_status()
-                                with open(compressed_path, 'wb') as f:
-                                    async for chunk in response.aiter_bytes():
-                                        f.write(chunk)
-                        try:
-                            with gzip.open(compressed_path, 'rb') as f_in:
-                                with open(logs_filepath, 'wb') as f_out:
-                                    shutil.copyfileobj(f_in, f_out)
-                            logging.info(f'Successfully extracted gzip file to {logs_filepath}')
-                        except gzip.BadGzipFile:
+                        # Store the error in check_result but don't raise exception
+                        check_result.update({
+                            'download_complete': False, 
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False, 
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                        # Set has_logs to False to indicate failure
+                        has_logs = False
+                        # Skip the download section and go directly to widget creation
+                    else:
+                        await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                        download_url = result.get('download_url')
+                        if not download_url:
+                            await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': 'No download URL found in job result',
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': 'No download URL found in job result',
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                            has_logs = False
+                        else:
+                            await self.message_queue.add(pip, '🔄 Downloading web logs data...', verbatim=True)
+                            await self.ensure_directory_exists(logs_filepath)
                             try:
-                                with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
-                                    csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
-                                    if not csv_files:
-                                        raise ValueError('No CSV files found in the zip archive')
-                                    with zip_ref.open(csv_files[0]) as source:
-                                        with open(logs_filepath, 'wb') as target:
-                                            shutil.copyfileobj(source, target)
-                                logging.info(f'Successfully extracted zip file to {logs_filepath}')
-                            except zipfile.BadZipFile:
-                                shutil.copy(compressed_path, logs_filepath)
-                                logging.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
-                        if os.path.exists(compressed_path):
-                            os.remove(compressed_path)
-                        _, file_info = await self.check_file_exists(logs_filepath)
-                        await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                    except Exception as e:
-                        await self.message_queue.add(pip, f'❌ Error downloading file: {str(e)}', verbatim=True)
-                        raise
-                await self.message_queue.add(pip, f"✓ Web logs data downloaded: {file_info['size']}", verbatim=True)
+                                compressed_path = f'{logs_filepath}.compressed'
+                                async with httpx.AsyncClient() as client:
+                                    async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
+                                        response.raise_for_status()
+                                        with open(compressed_path, 'wb') as f:
+                                            async for chunk in response.aiter_bytes():
+                                                f.write(chunk)
+                                try:
+                                    with gzip.open(compressed_path, 'rb') as f_in:
+                                        with open(logs_filepath, 'wb') as f_out:
+                                            shutil.copyfileobj(f_in, f_out)
+                                    logging.info(f'Successfully extracted gzip file to {logs_filepath}')
+                                except gzip.BadGzipFile:
+                                    try:
+                                        with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
+                                            csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
+                                            if not csv_files:
+                                                raise ValueError('No CSV files found in the zip archive')
+                                            with zip_ref.open(csv_files[0]) as source:
+                                                with open(logs_filepath, 'wb') as target:
+                                                    shutil.copyfileobj(source, target)
+                                        logging.info(f'Successfully extracted zip file to {logs_filepath}')
+                                    except zipfile.BadZipFile:
+                                        shutil.copy(compressed_path, logs_filepath)
+                                        logging.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
+                                if os.path.exists(compressed_path):
+                                    os.remove(compressed_path)
+                                _, file_info = await self.check_file_exists(logs_filepath)
+                                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                await self.message_queue.add(pip, f"✓ Web logs data downloaded: {file_info['size']}", verbatim=True)
+                            except Exception as e:
+                                await self.message_queue.add(pip, f'❌ Error downloading file: {str(e)}', verbatim=True)
+                                # Store the error in check_result but don't raise exception
+                                check_result.update({
+                                    'download_complete': False, 
+                                    'error': f'Error downloading file: {str(e)}',
+                                    'download_info': {
+                                        'has_file': False, 
+                                        'error': f'Error downloading file: {str(e)}',
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                })
+                                has_logs = False
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_color = 'green' if has_logs else 'red'
-            download_message = ''
-            if has_logs:
-                download_message = ' (data downloaded)'
+            
+            # Determine status message and color based on success/failure
+            if 'error' in check_result:
+                status_color = 'red'
+                download_message = f' (FAILED: {check_result["error"]})'
+                status_text = 'FAILED to download'
+            else:
+                status_color = 'green' if has_logs else 'red'
+                download_message = ' (data downloaded)' if has_logs else ''
+            
             widget = Div(
                 Button('Hide/Show Code', 
                     cls='secondary outline',
@@ -2101,9 +2165,15 @@ await main()
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
         has_logs = check_result.get('has_logs', False)
-        status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
-        status_color = 'green' if has_logs else 'red'
         python_command = check_result.get('python_command', '')
+        
+        # Determine status message and color based on success/failure
+        if 'error' in check_result:
+            status_text = f'FAILED to download web logs: {check_result["error"]}'
+            status_color = 'red'
+        else:
+            status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
+            status_color = 'green' if has_logs else 'red'
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
@@ -2115,7 +2185,7 @@ await main()
             pip.write_state(pipeline_id, state)
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
@@ -2133,14 +2203,14 @@ await main()
         if is_visible:
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 style='display: none;'
             )
         else:
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
