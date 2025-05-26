@@ -104,96 +104,96 @@ class DocumentationPlugin:
             content = file_path.read_text(encoding='utf-8')
             html_content = self.markdown_to_html(content)
             
-            # Create navigation
-            nav_links = []
+            # Create navigation links as HTML strings
+            nav_links_html = []
             for key, info in self.DOCS.items():
                 if key == doc_key:
-                    nav_links.append(Span(info['title'], cls='current-doc'))
+                    nav_links_html.append(f'<span class="current-doc">{info["title"]}</span>')
                 else:
-                    nav_links.append(A(info['title'], href=f'/docs/{key}', target='_blank'))
+                    nav_links_html.append(f'<a href="/docs/{key}" target="_blank">{info["title"]}</a>')
             
-            # Create the full HTML page
-            page_html = Html(
-                Head(
-                    Title(doc_info['title']),
-                    Style("""
-                        body { 
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            line-height: 1.6; 
-                            max-width: 1200px; 
-                            margin: 0 auto; 
-                            padding: 20px;
-                            background: #fafafa;
-                        }
-                        .nav { 
-                            background: #fff; 
-                            padding: 15px; 
-                            margin-bottom: 20px; 
-                            border-radius: 8px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        }
-                        .nav a { 
-                            margin-right: 20px; 
-                            color: #0066cc; 
-                            text-decoration: none;
-                        }
-                        .nav a:hover { text-decoration: underline; }
-                        .current-doc { 
-                            font-weight: bold; 
-                            color: #333; 
-                            margin-right: 20px;
-                        }
-                        .content { 
-                            background: #fff; 
-                            padding: 30px; 
-                            border-radius: 8px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        }
-                        pre { 
-                            background: #f5f5f5; 
-                            padding: 15px; 
-                            border-radius: 4px; 
-                            overflow-x: auto;
-                            border-left: 4px solid #0066cc;
-                        }
-                        code { 
-                            background: #f0f0f0; 
-                            padding: 2px 4px; 
-                            border-radius: 3px;
-                            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-                        }
-                        h1, h2, h3, h4 { color: #333; }
-                        h1 { border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
-                        h2 { border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-                        blockquote { 
-                            border-left: 4px solid #ddd; 
-                            margin: 0; 
-                            padding-left: 20px; 
-                            color: #666;
-                        }
-                        .alert { 
-                            background: #fff3cd; 
-                            border: 1px solid #ffeaa7; 
-                            padding: 15px; 
-                            border-radius: 4px; 
-                            margin: 15px 0;
-                        }
-                    """)
-                ),
-                Body(
-                    Div(
-                        H3("Pipulate Documentation"),
-                        *nav_links,
-                        cls='nav'
-                    ),
-                    Div(
-                        NotStr(html_content),  # Use NotStr to prevent HTML escaping
-                        cls='content'
-                    )
-                )
-            )
+            # Create the full HTML page as a string
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{doc_info['title']}</title>
+    <meta charset="utf-8">
+    <style>
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #fafafa;
+        }}
+        .nav {{ 
+            background: #fff; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .nav a {{ 
+            margin-right: 20px; 
+            color: #0066cc; 
+            text-decoration: none;
+        }}
+        .nav a:hover {{ text-decoration: underline; }}
+        .current-doc {{ 
+            font-weight: bold; 
+            color: #333; 
+            margin-right: 20px;
+        }}
+        .content {{ 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        pre {{ 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto;
+            border-left: 4px solid #0066cc;
+        }}
+        code {{ 
+            background: #f0f0f0; 
+            padding: 2px 4px; 
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }}
+        h1, h2, h3, h4 {{ color: #333; }}
+        h1 {{ border-bottom: 2px solid #0066cc; padding-bottom: 10px; }}
+        h2 {{ border-bottom: 1px solid #ddd; padding-bottom: 5px; }}
+        blockquote {{ 
+            border-left: 4px solid #ddd; 
+            margin: 0; 
+            padding-left: 20px; 
+            color: #666;
+        }}
+        .alert {{ 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            padding: 15px; 
+            border-radius: 4px; 
+            margin: 15px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <h3>Pipulate Documentation</h3>
+        {' '.join(nav_links_html)}
+    </div>
+    <div class="content">
+        {html_content}
+    </div>
+</body>
+</html>"""
             
-            return HTMLResponse(str(page_html))
+            return HTMLResponse(page_html)
             
         except Exception as e:
             logger.error(f"Error serving document {doc_key}: {str(e)}")
