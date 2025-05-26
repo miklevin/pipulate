@@ -252,8 +252,8 @@ class DevAssistant:
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         # Get the actual plugin filename that was analyzed
-        # The step_data structure is: {'plugin_analysis': filename, 'analysis_results': {...}}
-        user_val = step_data.get('plugin_analysis', '') if step_data else ''
+        # The step_data structure is now: {'plugin_analysis': filename, 'analysis_results': {...}}
+        user_val = step_data.get(step.done, '') if step_data else ''
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         
         if 'finalized' in finalize_data:
@@ -311,10 +311,15 @@ class DevAssistant:
         file_path = Path("plugins") / selected_file
         analysis = self.analyze_plugin_file(file_path)
         
-        await pip.set_step_data(pipeline_id, step_id, {
-            'plugin_analysis': selected_file,
-            'analysis_results': analysis
-        }, steps)
+        # Store the filename as the step value, and analysis results separately
+        await pip.set_step_data(pipeline_id, step_id, selected_file, steps)
+        
+        # Store analysis results in the step data
+        state = pip.read_state(pipeline_id)
+        if step_id not in state:
+            state[step_id] = {}
+        state[step_id]['analysis_results'] = analysis
+        pip.write_state(pipeline_id, state)
         
         await self.message_queue.add(pip, f'Analyzed plugin: {selected_file}', verbatim=True)
         
@@ -387,7 +392,7 @@ class DevAssistant:
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        await pip.set_step_data(pipeline_id, step_id, {'pattern_validation': 'complete'}, steps)
+        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
         await self.message_queue.add(pip, 'Pattern validation completed.', verbatim=True)
         
         return pip.chain_reverter(step_id, step_index, steps, app_name, 'Patterns Validated')
@@ -468,7 +473,7 @@ class DevAssistant:
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        await pip.set_step_data(pipeline_id, step_id, {'debug_assistance': 'complete'}, steps)
+        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
         await self.message_queue.add(pip, 'Debug assistance provided.', verbatim=True)
         
         return pip.chain_reverter(step_id, step_index, steps, app_name, 'Debug Guidance Provided')
@@ -552,7 +557,7 @@ class DevAssistant:
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        await pip.set_step_data(pipeline_id, step_id, {'recommendations': 'complete'}, steps)
+        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
         await self.message_queue.add(pip, 'Expert recommendations provided. Development analysis complete.', verbatim=True)
         
         return pip.chain_reverter(step_id, step_index, steps, app_name, 'Expert Guidance Provided') 
