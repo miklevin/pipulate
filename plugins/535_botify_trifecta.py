@@ -414,12 +414,21 @@ class BotifyCsvDownloaderWorkflow:
         if 'finalized' in finalize_data and selected_slug:
             return Div(Card(H3(f'🔒 {step.show}'), Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), P(f'Selected Analysis: {selected_slug}', style='font-weight: bold;'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif selected_slug and state.get('_revert_target') != step_id:
+            # Get step data to create action buttons
+            analysis_result_str = step_data.get(step.done, '')
+            analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+            action_buttons = self._create_action_buttons(analysis_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;'),
@@ -518,12 +527,18 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -535,12 +550,18 @@ class BotifyCsvDownloaderWorkflow:
             has_logs = check_result.get('has_logs', False)
             status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
             status_color = 'green' if has_logs else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -620,12 +641,18 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -637,12 +664,18 @@ class BotifyCsvDownloaderWorkflow:
             has_search_console = check_result.get('has_search_console', False)
             status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
             status_color = 'green' if has_search_console else 'red'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -725,12 +758,18 @@ class BotifyCsvDownloaderWorkflow:
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
             status_text = 'HAS' if has_search_console else 'does NOT have'
             completed_message = 'Data downloaded successfully' if has_search_console else 'No Search Console data available'
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
@@ -1975,12 +2014,18 @@ await main()
                 download_message = ' (data downloaded)' if analysis_result.get('download_complete', False) else ''
                 status_text = 'downloaded' if analysis_result.get('download_complete', False) else 'FAILED to download'
             
+            action_buttons = self._create_action_buttons(analysis_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Analysis {status_text}{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -2211,12 +2256,18 @@ await main()
                 status_color = 'green' if has_logs else 'red'
                 download_message = ' (data downloaded)' if has_logs else ''
             
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -2670,12 +2721,18 @@ await main()
                 download_message = ' (data downloaded)' if has_search_console and check_result.get('download_complete', False) else ''
                 status_text = 'HAS' if has_search_console else 'does NOT have'
             
+            action_buttons = self._create_action_buttons(check_result, step_id)
+            
             widget = Div(
-                Button('Hide/Show Code', 
-                    cls='secondary outline',
-                    hx_get=f'/{app_name}/{step_id}_toggle',
-                    hx_target=f'#{step_id}_widget',
-                    hx_swap='innerHTML'
+                Div(
+                    Button('Hide/Show Code', 
+                        cls='secondary outline',
+                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -3346,6 +3403,60 @@ await main()
                     
         except Exception as e:
             return f"Diagnosis failed: {str(e)}"
+
+    def _create_action_buttons(self, step_data, step_id):
+        """Create View Folder and Download CSV buttons for a step."""
+        from urllib.parse import quote
+        
+        # Always create the View Folder button
+        folder_button = A(
+            "📂 View Folder",
+            href="#",
+            hx_get=f"/open-folder?path={quote(str((Path.cwd() / 'downloads' / self.APP_NAME).resolve()))}",
+            hx_swap="none",
+            title=f"Open folder: {(Path.cwd() / 'downloads' / self.APP_NAME).resolve()}",
+            style="margin-right: 10px;",
+            role="button",
+            cls="outline contrast"
+        )
+        
+        buttons = [folder_button]
+        
+        # Create download button if file exists
+        download_complete = False
+        file_path = None
+        
+        # Check different data structures based on step
+        if step_id == 'step_02':
+            # Step 2 uses analysis_result structure
+            download_complete = step_data.get('download_complete', False)
+            if download_complete and step_data.get('download_info', {}).get('has_file'):
+                file_path = step_data['download_info'].get('file_path', '')
+        else:
+            # Steps 3 and 4 use check_result structure
+            download_complete = step_data.get('download_complete', False)
+            if download_complete and step_data.get('download_info', {}).get('has_file'):
+                file_path = step_data['download_info'].get('file_path', '')
+        
+        if download_complete and file_path:
+            try:
+                file_path_obj = Path(file_path)
+                downloads_base = Path.cwd() / 'downloads'
+                path_for_url = file_path_obj.relative_to(downloads_base)
+                path_for_url = str(path_for_url).replace('\\', '/')
+                download_button = A(
+                    "⬇️ Download CSV",
+                    href=f"/download_file?file={quote(path_for_url)}",
+                    target="_blank",
+                    role="button",
+                    cls="outline contrast",
+                    style="margin-left: 10px;"
+                )
+                buttons.append(download_button)
+            except Exception as e:
+                logger.error(f"Error creating download button for {step_id}: {e}")
+        
+        return buttons
 
     # --- STEP_METHODS_INSERTION_POINT ---
 
