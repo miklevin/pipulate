@@ -514,12 +514,11 @@ EOF
               cudaPackages
             );
             shellHook = ''
-              # Kill any running server instances first
-              pkill -f "python server.py" || true
-              
-              ${baseEnvSetup pkgs}
-              # Minimal confirmation, can be removed for zero output
-              echo "Quiet Nix environment activated."
+              # Set up the Python virtual environment (minimal, no pip install)
+              test -d .venv || ${pkgs.python3}/bin/python -m venv .venv
+              export VIRTUAL_ENV="$(pwd)/.venv"
+              export PATH="$VIRTUAL_ENV/bin:$PATH"
+              export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath commonPackages}:$LD_LIBRARY_PATH
             '';
           };
         };
