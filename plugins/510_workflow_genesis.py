@@ -238,6 +238,23 @@ class WorkflowGenesis:
         textarea_id_create = f'{widget_id}_create_cmd'
         textarea_id_splice = f'{widget_id}_splice_cmd'
         
+        # Extract filename from splice_cmd for enhanced examples
+        filename = splice_cmd.split()[-1] if splice_cmd.split() else "your_workflow.py"
+        
+        # Create enhanced splice command examples
+        enhanced_splice_examples = f"""# Basic usage (inserts before finalize step):
+{splice_cmd}
+
+# Insert at bottom (explicit, same as default):
+{splice_cmd} --position bottom
+
+# Insert at top (after first step):
+{splice_cmd} --position top
+
+# Flexible filename handling:
+python splice_workflow_step.py {filename.replace('.py', '')}  # .py extension optional
+python splice_workflow_step.py plugins/{filename}  # plugins/ prefix optional"""
+        
         container = Div(
             # Create Command Box
             Div(
@@ -249,12 +266,13 @@ class WorkflowGenesis:
                 ),
                 cls='mt-4'
             ),
-            # Splice Command Box
+            # Enhanced Splice Command Box
             Div(
-                H5('Splice Workflow Step Command:'),
-                Textarea(splice_cmd, id=textarea_id_splice, style='display: none;'),
+                H5('Splice Workflow Step Commands:'),
+                P('Add new placeholder steps to your workflow with flexible positioning. Use --position top to insert after the first step, or --position bottom (default) to insert before finalize:', cls='text-secondary', style='margin-bottom: 0.5rem; font-size: 0.9rem;'),
+                Textarea(enhanced_splice_examples, id=textarea_id_splice, style='display: none;'),
                 Pre(
-                    Code(splice_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                    Code(enhanced_splice_examples, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
                     cls='line-numbers'
                 ),
                 cls='mt-4'

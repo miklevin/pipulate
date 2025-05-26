@@ -7,18 +7,26 @@ import os
 # EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
 """
 # Works from any location - script automatically finds Pipulate project root:
+
+# Insert at bottom (default - before finalize step):
 python splice_workflow_step.py 035_kungfu_workflow.py
+python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
+
+# Insert at top (after first step):
+python splice_workflow_step.py 035_kungfu_workflow.py --position top
+
+# Flexible filename handling:
 python splice_workflow_step.py 035_kungfu_workflow    # .py extension optional
 python splice_workflow_step.py plugins/035_kungfu_workflow.py  # plugins/ prefix optional
 
 # Can be run from project root:
-python helpers/splice_workflow_step.py 035_kungfu_workflow.py
+python helpers/splice_workflow_step.py 035_kungfu_workflow.py --position top
 
 # Can be run from helpers directory:
-cd helpers && python splice_workflow_step.py 035_kungfu_workflow.py
+cd helpers && python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
 
 # Can be run from anywhere with full path:
-python /path/to/pipulate/helpers/splice_workflow_step.py 035_kungfu_workflow.py
+python /path/to/pipulate/helpers/splice_workflow_step.py 035_kungfu_workflow.py --position top
 """
 
 def find_pipulate_root():
@@ -77,8 +85,8 @@ async def {step_id_str}(self, request):
     step_id = "{step_id_str}"
     step_index = self.steps_indices[step_id]
     step = steps[step_index]
-    # Determine next_step_id dynamically. If this is the last data step, next is 'finalize'.
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 2 else 'finalize' # -2 because finalize is last
+    # Determine next_step_id dynamically based on runtime position in steps list
+    next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
     pipeline_id = db.get("pipeline_id", "unknown")
     state = pip.read_state(pipeline_id)
     step_data = pip.get_step_data(pipeline_id, step_id, {{}})
@@ -125,7 +133,7 @@ async def {step_id_str}_submit(self, request):
     step_id = "{step_id_str}"
     step_index = self.steps_indices[step_id]
     step = steps[step_index]
-    next_step_id = steps[step_index + 1].id if step_index < len(steps) - 2 else 'finalize' # -2 because finalize is last
+    next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
     pipeline_id = db.get("pipeline_id", "unknown")
     
     form_data = await request.form()
@@ -155,12 +163,21 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Examples:
+  # Insert at bottom (default - before finalize step):
   python splice_workflow_step.py 035_kungfu_workflow.py
-  python splice_workflow_step.py plugins/035_kungfu_workflow.py
-  python splice_workflow_step.py /full/path/to/plugins/035_kungfu_workflow.py
+  python splice_workflow_step.py 035_kungfu_workflow.py --position bottom
+  
+  # Insert at top (after first step):
+  python splice_workflow_step.py 035_kungfu_workflow.py --position top
+  
+  # Works with various path formats:
+  python splice_workflow_step.py plugins/035_kungfu_workflow.py --position top
+  python splice_workflow_step.py /full/path/to/plugins/035_kungfu_workflow.py --position bottom
         """
     )
     parser.add_argument("target_filename", help="The filename of the workflow to modify (e.g., 035_kungfu_workflow.py)")
+    parser.add_argument("--position", choices=["top", "bottom"], default="bottom", 
+                       help="Where to insert the new step: 'top' (after first step) or 'bottom' (before finalize, default)")
     args = parser.parse_args()
 
     print(f"Pipulate project root found at: {PROJECT_ROOT}")
@@ -204,66 +221,149 @@ Examples:
         with open(target_file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # --- 1. Determine new step number ---
-        # Regex to find the steps list content up to the insertion point
-        # This looks for 'steps = [' followed by any characters (non-greedy) up to the marker
-        steps_list_regex = re.compile(r"steps\s*=\s*\[(.*?)" + re.escape(STEPS_LIST_MARKER), re.DOTALL)
+        # --- 1. Find the complete self.steps list definition ---
+        # Look for the entire self.steps = [...] block
+        steps_list_regex = re.compile(r"(self\.steps\s*=\s*\[)(.*?)(\])", re.DOTALL)
         match = steps_list_regex.search(content)
 
         if not match:
-            print(f"ERROR: Could not find the 'steps = [' block or '{STEPS_LIST_MARKER}' in {target_file_path}.")
-            print("Please ensure your workflow file's steps list definition ends with the marker.")
+            print(f"ERROR: Could not find the 'self.steps = [...]' block in {target_file_path}.")
+            print("Please ensure your workflow file has a properly formatted self.steps list.")
             return
         
-        steps_definitions_block = match.group(1)
+        steps_list_prefix = match.group(1)  # "self.steps = ["
+        steps_list_content = match.group(2)  # Everything between [ and ]
+        steps_list_suffix = match.group(3)  # "]"
         
-        # Find existing Step definitions like Step(id='step_XX', ...) within this block
-        step_id_matches = re.findall(r"Step\s*\(\s*id='step_(\d+)'", steps_definitions_block)
+        # --- 2. Scan ALL existing Step definitions to find max step number ---
+        # Find all Step(id='step_XX', ...) in the entire steps list content
+        step_id_matches = re.findall(r"Step\s*\(\s*id=['\"]step_(\d+)['\"]", steps_list_content)
         max_step_num = 0
         if step_id_matches:
             max_step_num = max(int(num_str) for num_str in step_id_matches)
         
         new_step_num = max_step_num + 1
         new_step_id_str = f"step_{new_step_num:02d}"
-        new_step_done_key = f"placeholder_{new_step_num:02d}" # Unique key for step.done
+        new_step_done_key = f"placeholder_{new_step_num:02d}"
         new_step_show_name = f"Step {new_step_num} Placeholder"
         
         print(f"Identified current max data collection step number: {max_step_num}")
         print(f"New step will be: {new_step_id_str} (Show: '{new_step_show_name}', Done key: '{new_step_done_key}')")
+        print(f"Insertion position: {args.position}")
 
-        # --- 2. Create the new Step tuple string ---
-        # Determine indentation from the line containing the marker
-        lines_before_marker = content.split(STEPS_LIST_MARKER)[0].splitlines()
+        # --- 3. Determine indentation by finding existing Step definitions ---
         indent_for_step_tuple = ""
-        if lines_before_marker:
-            # Try to find existing Step( for indentation reference
-            for line in reversed(lines_before_marker):
-                stripped_line = line.lstrip()
-                if stripped_line.startswith("Step("):
-                    indent_for_step_tuple = line[:len(line) - len(stripped_line)]
-                    break
-            if not indent_for_step_tuple and STEPS_LIST_MARKER in lines_before_marker[-1]: # if marker is on its own line
-                 indent_for_step_tuple = lines_before_marker[-1][:len(lines_before_marker[-1]) - len(lines_before_marker[-1].lstrip())]
+        lines = steps_list_content.splitlines()
+        for line in lines:
+            stripped_line = line.lstrip()
+            if stripped_line.startswith("Step("):
+                indent_for_step_tuple = line[:len(line) - len(stripped_line)]
+                break
+        
+        # Fallback to reasonable default if no Step found
+        if not indent_for_step_tuple:
+            indent_for_step_tuple = "            "  # 12 spaces (typical for list items in class)
 
-
-        new_step_definition_str = (
+        # --- 4. Create the new Step tuple string ---
+        new_step_definition = (
             f"{indent_for_step_tuple}Step(\n"
             f"{indent_for_step_tuple}    id='{new_step_id_str}',\n"
             f"{indent_for_step_tuple}    done='{new_step_done_key}',\n"
             f"{indent_for_step_tuple}    show='{new_step_show_name}',\n"
             f"{indent_for_step_tuple}    refill=False,\n"
-            f"{indent_for_step_tuple}),\n"
-            f"{indent_for_step_tuple}{STEPS_LIST_MARKER}" # Add marker back for next splice
+            f"{indent_for_step_tuple}),"
         )
 
-        # --- 3. Insert the new Step tuple into the steps list ---
-        content = content.replace(STEPS_LIST_MARKER, new_step_definition_str)
-        print(f"Inserted Step definition for {new_step_id_str} into the steps list.")
+        # --- 5. Insert the new Step definition based on position ---
+        if args.position == "top":
+            # Insert after the first Step definition
+            lines = steps_list_content.splitlines()
+            new_lines = []
+            inserted = False
+            i = 0
+            
+            while i < len(lines):
+                line = lines[i]
+                new_lines.append(line)
+                
+                # Look for the start of the first Step definition
+                if not inserted and line.strip().startswith("Step("):
+                    # Find the matching closing parenthesis for this Step
+                    paren_count = 0
+                    j = i
+                    
+                    # Count through all lines until we find the matching closing paren
+                    while j < len(lines):
+                        for char in lines[j]:
+                            if char == '(':
+                                paren_count += 1
+                            elif char == ')':
+                                paren_count -= 1
+                                if paren_count == 0:
+                                    # Found the end of this Step definition
+                                    # Add any remaining lines of this Step that we haven't added yet
+                                    for k in range(i + 1, j + 1):
+                                        if k < len(lines):
+                                            new_lines.append(lines[k])
+                                    
+                                    # Insert new step after this one
+                                    new_lines.append(new_step_definition)
+                                    inserted = True
+                                    
+                                    # Skip to after the step we just processed
+                                    i = j + 1
+                                    break
+                        if paren_count == 0:
+                            break
+                        j += 1
+                    
+                    if not inserted:
+                        print("WARNING: Could not find matching closing parenthesis for first Step. Falling back to bottom insertion.")
+                        args.position = "bottom"
+                        break
+                else:
+                    i += 1
+            
+            if not inserted and args.position == "top":
+                print("WARNING: Could not find first Step definition for top insertion. Falling back to bottom insertion.")
+                args.position = "bottom"
+        
+        if args.position == "bottom":
+            # Insert before the finalize step or before the marker
+            lines = steps_list_content.splitlines()
+            new_lines = []
+            inserted = False
+            
+            for line in lines:
+                # Check if this line contains the finalize step or the insertion marker
+                if (not inserted and 
+                    (line.strip().startswith("Step(id='finalize'") or 
+                     line.strip().startswith('Step(id="finalize"') or
+                     STEPS_LIST_MARKER in line)):
+                    # Insert new step before this line
+                    new_lines.append(new_step_definition)
+                    inserted = True
+                new_lines.append(line)
+            
+            if not inserted:
+                # If no finalize step or marker found, append at the end
+                new_lines.append(new_step_definition)
+                print("WARNING: No finalize step or insertion marker found. Added step at end of list.")
+        
+        # --- 6. Reconstruct the steps list content ---
+        new_steps_list_content = "\n".join(new_lines)
+        
+        # Replace the original steps list with the modified one
+        original_steps_block = steps_list_prefix + steps_list_content + steps_list_suffix
+        new_steps_block = steps_list_prefix + new_steps_list_content + steps_list_suffix
+        content = content.replace(original_steps_block, new_steps_block)
+        
+        print(f"Inserted Step definition for {new_step_id_str} at position '{args.position}'.")
 
-        # --- 4. Generate the new async methods for this step ---
+        # --- 7. Generate the new async methods for this step ---
         new_methods_code = generate_step_method_templates(new_step_id_str, new_step_done_key, new_step_show_name)
         
-        # --- 5. Insert new methods before the methods marker ---
+        # --- 8. Insert new methods before the methods marker ---
         # The STEP_METHODS_MARKER is assumed to be at the class level (e.g., 4 spaces indent)
         # If the marker has a different indentation in the template, adjust class_member_indent
         class_member_indent = "    " # Typical indent for class members / method definitions
