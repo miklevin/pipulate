@@ -1759,7 +1759,35 @@ await main()
             if file_exists:
                 await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
                 analysis_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
-                return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (already downloaded, using cached)', steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+                
+                # Generate Python debugging code even for cached files
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                except ValueError:
+                    analysis_date_obj = datetime.now()
+                period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                period_end = analysis_date_obj.strftime('%Y-%m-%d')
+                # Use the configured crawl template
+                collection = f'crawl.{analysis_slug}'
+                crawl_template = self.get_configured_template('crawl')
+                template_query = self.apply_template(crawl_template, collection)
+                export_query = {
+                    'job_type': 'export', 
+                    'payload': {
+                        'username': username, 
+                        'project': project_name, 
+                        'connector': 'direct_download', 
+                        'formatter': 'csv', 
+                        'export_size': 10000, 
+                        'query': {
+                            'collections': [collection], 
+                            'query': template_query
+                        }
+                    }
+                }
+                # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
+                analysis_result['python_command'] = python_command
             else:
                 await self.message_queue.add(pip, '🔄 Initiating crawl data export...', verbatim=True)
                 api_token = self.read_api_token()
@@ -1991,6 +2019,20 @@ await main()
                 if file_exists:
                     await self.message_queue.add(pip, f"✓ Using cached web logs data ({file_info['size']})", verbatim=True)
                     check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': logs_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
+                    
+                    # Generate Python debugging code even for cached files
+                    try:
+                        analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    except ValueError:
+                        analysis_date_obj = datetime.now()
+                    date_end = analysis_date_obj.strftime('%Y-%m-%d')
+                    date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                    # CRITICAL: This creates BQLv1 structure with dates at payload level (NOT in periods)
+                    # This structure is what _convert_bqlv1_to_query expects to find for proper conversion
+                    export_query = {'job_type': 'logs_urls_export', 'payload': {'query': {'filters': {'field': 'crawls.google.count', 'predicate': 'gt', 'value': 0}, 'fields': ['url', 'crawls.google.count'], 'sort': [{'crawls.google.count': {'order': 'desc'}}]}, 'export_size': 1000000, 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'date_start': date_start, 'date_end': date_end, 'username': username, 'project': project_name}}
+                    # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                    _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
+                    check_result['python_command'] = python_command
                 else:
                     await self.message_queue.add(pip, '🔄 Initiating web logs export...', verbatim=True)
                     api_token = self.read_api_token()
@@ -2442,6 +2484,18 @@ await main()
                 if file_exists:
                     await self.message_queue.add(pip, f"✓ Using cached Search Console data ({file_info['size']})", verbatim=True)
                     check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
+                    
+                    # Generate Python debugging code even for cached files
+                    try:
+                        analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                    except ValueError:
+                        analysis_date_obj = datetime.now()
+                    date_end = analysis_date_obj.strftime('%Y-%m-%d')
+                    date_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
+                    export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=date_start, end_date=date_end)
+                    # Generate Python command snippet (using /query endpoint for Jupyter debugging)
+                    _, _, python_command = self.generate_query_api_call(export_query['export_job_payload'], username, project_name)
+                    check_result['python_command'] = python_command
                 else:
                     await self.message_queue.add(pip, '🔄 Initiating Search Console data export...', verbatim=True)
                     api_token = self.read_api_token()
