@@ -16,179 +16,13 @@ class DocumentationPlugin:
     DISPLAY_NAME = "Documentation"
     ENDPOINT_MESSAGE = "Displaying Pipulate documentation..."
 
-    # Define the available documentation files - Featured guides first
-    DOCS = {
-        # Featured Ultimate Guides
-        'guide1': {
-            'title': 'Ultimate Pipulate Guide - Part 1: Core Patterns',
-            'file': 'training/ULTIMATE_PIPULATE_GUIDE.md',
-            'description': 'Essential patterns every developer must know',
-            'category': 'featured',
-            'priority': 1
-        },
-        'guide2': {
-            'title': 'Ultimate Pipulate Guide - Part 2: Advanced Patterns', 
-            'file': 'training/ULTIMATE_PIPULATE_GUIDE_PART2.md',
-            'description': 'Advanced workflow and data handling patterns',
-            'category': 'featured',
-            'priority': 2
-        },
-        'guide3': {
-            'title': 'Ultimate Pipulate Guide - Part 3: Expert Mastery',
-            'file': 'training/ULTIMATE_PIPULATE_GUIDE_PART3.md', 
-            'description': 'Expert-level patterns and advanced techniques',
-            'category': 'featured',
-            'priority': 3
-        },
-        'quick_ref': {
-            'title': 'Quick Reference Card',
-            'file': 'training/QUICK_REFERENCE.md',
-            'description': 'Essential patterns and debugging checklist',
-            'category': 'featured',
-            'priority': 4
-        },
-        
-        # Training Files
-        'dev_assistant': {
-            'title': 'Development Assistant Guide',
-            'file': 'training/dev_assistant.md',
-            'description': 'Using the development assistant plugin',
-            'category': 'training'
-        },
-        'hello_workflow': {
-            'title': 'Hello Workflow Tutorial',
-            'file': 'training/hello_workflow.md',
-            'description': 'Basic workflow creation tutorial',
-            'category': 'training'
-        },
-        'system_prompt': {
-            'title': 'System Prompt',
-            'file': 'training/system_prompt.md',
-            'description': 'LLM system prompt configuration',
-            'category': 'training'
-        },
-        'tasks': {
-            'title': 'Tasks Guide',
-            'file': 'training/tasks.md',
-            'description': 'Task management patterns',
-            'category': 'training'
-        },
-        'widget_examples': {
-            'title': 'Widget Examples',
-            'file': 'training/widget_examples.md',
-            'description': 'UI widget implementation examples',
-            'category': 'training'
-        },
-        'botify_api_tutorial': {
-            'title': 'Botify API Tutorial',
-            'file': 'training/botify_api_tutorial.md',
-            'description': 'Working with Botify API integration',
-            'category': 'training'
-        },
-        'botify_workflow': {
-            'title': 'Botify Workflow',
-            'file': 'training/botify_workflow.md',
-            'description': 'Botify-specific workflow patterns',
-            'category': 'training'
-        },
-        
-        # Rules Files
-        'rule_philosophy': {
-            'title': 'Philosophy',
-            'file': '.cursor/rules/00_philosophy.mdc',
-            'description': 'Core philosophy and principles',
-            'category': 'rules'
-        },
-        'rule_architecture': {
-            'title': 'Architecture Overview',
-            'file': '.cursor/rules/01_architecture_overview.mdc',
-            'description': 'High-level architecture and components',
-            'category': 'rules'
-        },
-        'rule_environment': {
-            'title': 'Environment & Installation',
-            'file': '.cursor/rules/02_environment_and_installation.mdc',
-            'description': 'Nix environment setup and installation',
-            'category': 'rules'
-        },
-        'rule_workflow_core': {
-            'title': 'Workflow Core',
-            'file': '.cursor/rules/03_workflow_core.mdc',
-            'description': 'Core workflow concepts and patterns',
-            'category': 'rules'
-        },
-        'rule_chain_reaction': {
-            'title': 'Chain Reaction Pattern',
-            'file': '.cursor/rules/04_chain_reaction_pattern.mdc',
-            'description': 'HTMX step progression patterns',
-            'category': 'rules'
-        },
-        'rule_key_system': {
-            'title': 'Key System',
-            'file': '.cursor/rules/06_key_system.mdc',
-            'description': 'Pipeline ID management system',
-            'category': 'rules'
-        },
-        'rule_ui_htmx': {
-            'title': 'UI & HTMX',
-            'file': '.cursor/rules/07_ui_and_htmx.mdc',
-            'description': 'UI patterns and HTMX integration',
-            'category': 'rules'
-        },
-        'rule_llm_integration': {
-            'title': 'LLM Integration',
-            'file': '.cursor/rules/08_llm_integration.mdc',
-            'description': 'Local LLM integration with Ollama',
-            'category': 'rules'
-        },
-        'rule_data_operations': {
-            'title': 'Data & File Operations',
-            'file': '.cursor/rules/09_data_and_file_operations.mdc',
-            'description': 'Data persistence and file handling',
-            'category': 'rules'
-        },
-        'rule_browser_automation': {
-            'title': 'Browser Automation',
-            'file': '.cursor/rules/10_browser_automation.mdc',
-            'description': 'Selenium browser automation patterns',
-            'category': 'rules'
-        },
-        'rule_plugin_development': {
-            'title': 'Plugin Development',
-            'file': '.cursor/rules/11_plugin_development_guidelines.mdc',
-            'description': 'Plugin development best practices',
-            'category': 'rules'
-        },
-        'rule_server_overview': {
-            'title': 'Server.py Overview',
-            'file': '.cursor/rules/12_server_py_overview.mdc',
-            'description': 'Server internals and core instances',
-            'category': 'rules'
-        },
-        'rule_testing_debugging': {
-            'title': 'Testing & Debugging',
-            'file': '.cursor/rules/13_testing_and_debugging.mdc',
-            'description': 'Testing and debugging techniques',
-            'category': 'rules'
-        },
-        'rule_critical_environment': {
-            'title': 'Critical Server Environment',
-            'file': '.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT.mdc',
-            'description': 'Critical server and environment rules',
-            'category': 'rules'
-        },
-        'rule_meta_routing': {
-            'title': 'Meta Rule Routing',
-            'file': '.cursor/rules/meta_rule_routing.mdc',
-            'description': 'Rule routing and organization guide',
-            'category': 'rules'
-        }
-    }
-
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"DocumentationPlugin initialized with NAME: {self.NAME}")
         self.pipulate = pipulate
         self._has_streamed = False
+        
+        # Dynamically discover all documentation files
+        self.DOCS = self.discover_documentation_files()
         
         # Register routes for serving individual documents
         for doc_key in self.DOCS.keys():
@@ -196,6 +30,224 @@ class DocumentationPlugin:
         
         # Register route for documentation browser
         app.route('/docs', methods=['GET'])(self.serve_browser)
+
+    def discover_documentation_files(self):
+        """Dynamically discover all documentation files from training and rules directories"""
+        docs = {}
+        
+        # Scan training directory
+        training_dir = Path('training')
+        if training_dir.exists():
+            for file_path in training_dir.glob('*.md'):
+                key, info = self.process_training_file(file_path)
+                if key and info:
+                    docs[key] = info
+        
+        # Scan cursor rules directory
+        rules_dir = Path('.cursor/rules')
+        if rules_dir.exists():
+            for file_path in rules_dir.glob('*.mdc'):
+                key, info = self.process_rules_file(file_path)
+                if key and info:
+                    docs[key] = info
+        
+        logger.info(f"Discovered {len(docs)} documentation files")
+        return docs
+
+    def process_training_file(self, file_path):
+        """Process a training file and extract metadata"""
+        filename = file_path.stem
+        
+        # Determine category and priority based on filename patterns
+        category = 'training'
+        priority = 100  # Default priority
+        
+        # Featured files get special treatment
+        if 'ULTIMATE_PIPULATE_GUIDE' in filename:
+            category = 'featured'
+            if 'PART2' in filename:
+                priority = 2
+            elif 'PART3' in filename:
+                priority = 3
+            else:
+                priority = 1  # Part 1
+        elif 'QUICK_REFERENCE' in filename:
+            category = 'featured'
+            priority = 4
+        
+        # Generate title from filename or extract from file content
+        title = self.generate_title_from_filename(filename)
+        
+        # Try to extract title and description from file content
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            extracted_title, description = self.extract_metadata_from_content(content, title)
+            if extracted_title:
+                title = extracted_title
+        except Exception as e:
+            logger.warning(f"Could not read {file_path}: {e}")
+            description = f"Documentation file: {filename}"
+        
+        key = self.generate_key_from_filename(filename, 'training')
+        
+        return key, {
+            'title': title,
+            'file': str(file_path),
+            'description': description,
+            'category': category,
+            'priority': priority,
+            'filename': filename
+        }
+
+    def process_rules_file(self, file_path):
+        """Process a rules file and extract metadata"""
+        filename = file_path.stem
+        
+        # Generate title from filename
+        title = self.generate_title_from_filename(filename)
+        
+        # Try to extract title and description from file content
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            extracted_title, description = self.extract_metadata_from_content(content, title)
+            if extracted_title:
+                title = extracted_title
+        except Exception as e:
+            logger.warning(f"Could not read {file_path}: {e}")
+            description = f"Framework rule: {filename}"
+        
+        key = self.generate_key_from_filename(filename, 'rules')
+        
+        return key, {
+            'title': title,
+            'file': str(file_path),
+            'description': description,
+            'category': 'rules',
+            'priority': self.get_rules_priority(filename),
+            'filename': filename
+        }
+
+    def generate_title_from_filename(self, filename):
+        """Generate a human-readable title from filename"""
+        # Remove numeric prefixes and clean up
+        title = re.sub(r'^\d+_', '', filename)
+        title = re.sub(r'^[Xx][Xx]_', '', title)
+        
+        # Handle special cases
+        title_mappings = {
+            'ULTIMATE_PIPULATE_GUIDE': 'Ultimate Pipulate Guide - Part 1: Core Patterns',
+            'ULTIMATE_PIPULATE_GUIDE_PART2': 'Ultimate Pipulate Guide - Part 2: Advanced Patterns',
+            'ULTIMATE_PIPULATE_GUIDE_PART3': 'Ultimate Pipulate Guide - Part 3: Expert Mastery',
+            'QUICK_REFERENCE': 'Quick Reference Card',
+            'dev_assistant': 'Development Assistant Guide',
+            'hello_workflow': 'Hello Workflow Tutorial',
+            'system_prompt': 'System Prompt Configuration',
+            'widget_examples': 'Widget Examples',
+            'botify_api_tutorial': 'Botify API Tutorial',
+            'botify_workflow': 'Botify Workflow Guide',
+            '00_philosophy': 'Philosophy & Core Principles',
+            '01_architecture_overview': 'Architecture Overview',
+            '02_environment_and_installation': 'Environment & Installation',
+            '03_workflow_core': 'Workflow Core Concepts',
+            '04_chain_reaction_pattern': 'Chain Reaction Pattern',
+            '06_key_system': 'Pipeline Key System',
+            '07_ui_and_htmx': 'UI & HTMX Patterns',
+            '08_llm_integration': 'LLM Integration',
+            '09_data_and_file_operations': 'Data & File Operations',
+            '10_browser_automation': 'Browser Automation',
+            '11_plugin_development_guidelines': 'Plugin Development Guidelines',
+            '12_server_py_overview': 'Server.py Overview',
+            '13_testing_and_debugging': 'Testing & Debugging',
+            '00_CRITICAL_SERVER_ENVIRONMENT': 'Critical Server Environment',
+            'meta_rule_routing': 'Meta Rule Routing'
+        }
+        
+        if filename in title_mappings:
+            return title_mappings[filename]
+        
+        # Default: convert underscores to spaces and title case
+        title = title.replace('_', ' ').title()
+        return title
+
+    def generate_key_from_filename(self, filename, category):
+        """Generate a unique key for the document"""
+        # Remove numeric prefixes and special characters
+        clean_name = re.sub(r'^\d+_', '', filename)
+        clean_name = re.sub(r'^[Xx][Xx]_', '', clean_name)
+        clean_name = re.sub(r'[^a-zA-Z0-9_]', '_', clean_name).lower()
+        
+        # Add category prefix to avoid collisions
+        if category == 'training':
+            return clean_name
+        elif category == 'rules':
+            return f"rule_{clean_name}"
+        
+        return clean_name
+
+    def extract_metadata_from_content(self, content, default_title):
+        """Extract title and description from file content"""
+        lines = content.split('\n')
+        title = default_title
+        description = ""
+        
+        # Look for title in first few lines
+        for i, line in enumerate(lines[:10]):
+            line = line.strip()
+            
+            # Check for markdown headers
+            if line.startswith('# '):
+                title = line[2:].strip()
+                # Clean up title
+                title = re.sub(r'🚨\s*\*\*', '', title)
+                title = re.sub(r'\*\*\s*🚨', '', title)
+                title = title.replace('**', '').strip()
+                break
+            
+            # Check for description patterns
+            if line.startswith('## description:'):
+                description = line[15:].strip()
+                break
+        
+        # If no description found, look for first paragraph or summary
+        if not description:
+            for line in lines[:20]:
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('```') and len(line) > 20:
+                    description = line[:150] + ('...' if len(line) > 150 else '')
+                    break
+        
+        # Fallback description
+        if not description:
+            if 'training' in str(content).lower():
+                description = "Training guide and documentation"
+            elif 'rule' in str(content).lower() or 'pattern' in str(content).lower():
+                description = "Framework rules and patterns"
+            else:
+                description = "Documentation and guidelines"
+        
+        return title, description
+
+    def get_rules_priority(self, filename):
+        """Determine priority for rules files based on importance"""
+        priority_map = {
+            '00_CRITICAL_SERVER_ENVIRONMENT': 1,
+            '00_philosophy': 2,
+            '01_architecture_overview': 3,
+            '03_workflow_core': 4,
+            '04_chain_reaction_pattern': 5,
+            '06_key_system': 6,
+            '02_environment_and_installation': 7,
+            '07_ui_and_htmx': 8,
+            '11_plugin_development_guidelines': 9,
+            '09_data_and_file_operations': 10,
+            '08_llm_integration': 11,
+            '10_browser_automation': 12,
+            '12_server_py_overview': 13,
+            '13_testing_and_debugging': 14,
+            'meta_rule_routing': 15
+        }
+        
+        return priority_map.get(filename, 100)
 
     def markdown_to_html(self, markdown_content):
         """Convert markdown to HTML with enhanced formatting"""
@@ -256,10 +308,8 @@ class DocumentationPlugin:
         
         return '\n'.join(processed_lines)
 
-    async def serve_browser(self, request):
-        """Serve the documentation browser with tree view"""
-        
-        # Group documents by category
+    def get_categorized_docs(self):
+        """Get documents organized by category with proper sorting"""
         featured_docs = []
         training_docs = []
         rules_docs = []
@@ -273,8 +323,18 @@ class DocumentationPlugin:
             elif category == 'rules':
                 rules_docs.append((key, info))
         
-        # Sort featured by priority
-        featured_docs.sort(key=lambda x: x[1].get('priority', 999))
+        # Sort by priority, then by title
+        featured_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
+        training_docs.sort(key=lambda x: x[1]['title'])
+        rules_docs.sort(key=lambda x: (x[1].get('priority', 999), x[1]['title']))
+        
+        return featured_docs, training_docs, rules_docs
+
+    async def serve_browser(self, request):
+        """Serve the documentation browser with tree view"""
+        
+        # Get categorized documents
+        featured_docs, training_docs, rules_docs = self.get_categorized_docs()
         
         # Create tree view HTML
         tree_html = self.create_tree_view(featured_docs, training_docs, rules_docs)
@@ -382,6 +442,14 @@ class DocumentationPlugin:
             color: #495057;
         }}
         
+        .stats {{
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }}
+        
         /* Responsive */
         @media (max-width: 768px) {{
             .container {{
@@ -401,13 +469,20 @@ class DocumentationPlugin:
     <div class="container">
         <div class="sidebar">
             <h3>📚 Documentation</h3>
+            <div class="stats">
+                📊 {len(self.DOCS)} documents discovered<br>
+                🌟 {len(featured_docs)} featured guides<br>
+                📖 {len(training_docs)} training files<br>
+                ⚙️ {len(rules_docs)} framework rules
+            </div>
             {tree_html}
         </div>
         <div class="content">
             <div class="welcome">
                 <h2>Welcome to Pipulate Documentation</h2>
                 <p>Select a document from the sidebar to view its content.</p>
-                <p>Start with the <strong>Ultimate Pipulate Guides</strong> for comprehensive learning.</p>
+                <p>Start with the <strong>Featured Guides</strong> for comprehensive learning.</p>
+                <p><em>Documentation is automatically discovered from training/ and .cursor/rules/ directories.</em></p>
             </div>
         </div>
     </div>
@@ -424,52 +499,55 @@ class DocumentationPlugin:
         html_parts = []
         
         # Featured section
-        html_parts.append('<div class="tree-category">')
-        html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
-        html_parts.append('<ul class="tree">')
-        for key, info in featured_docs:
-            html_parts.append(f'''
-                <li class="tree-item">
-                    <a href="/docs/{key}" class="tree-link featured" target="content">
-                        {info["title"]}
-                    </a>
-                    <div class="tree-description">{info["description"]}</div>
-                </li>
-            ''')
-        html_parts.append('</ul>')
-        html_parts.append('</div>')
+        if featured_docs:
+            html_parts.append('<div class="tree-category">')
+            html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in featured_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link featured" target="content">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{info["description"]}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
         
         # Training section
-        html_parts.append('<div class="tree-category">')
-        html_parts.append('<span class="tree-label">📖 Training Guides</span>')
-        html_parts.append('<ul class="tree">')
-        for key, info in training_docs:
-            html_parts.append(f'''
-                <li class="tree-item">
-                    <a href="/docs/{key}" class="tree-link" target="content">
-                        {info["title"]}
-                    </a>
-                    <div class="tree-description">{info["description"]}</div>
-                </li>
-            ''')
-        html_parts.append('</ul>')
-        html_parts.append('</div>')
+        if training_docs:
+            html_parts.append('<div class="tree-category">')
+            html_parts.append('<span class="tree-label">📖 Training Guides</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in training_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link" target="content">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{info["description"]}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
         
         # Rules section
-        html_parts.append('<div class="tree-category">')
-        html_parts.append('<span class="tree-label">⚙️ Framework Rules</span>')
-        html_parts.append('<ul class="tree">')
-        for key, info in rules_docs:
-            html_parts.append(f'''
-                <li class="tree-item">
-                    <a href="/docs/{key}" class="tree-link" target="content">
-                        {info["title"]}
-                    </a>
-                    <div class="tree-description">{info["description"]}</div>
-                </li>
-            ''')
-        html_parts.append('</ul>')
-        html_parts.append('</div>')
+        if rules_docs:
+            html_parts.append('<div class="tree-category">')
+            html_parts.append('<span class="tree-label">⚙️ Framework Rules</span>')
+            html_parts.append('<ul class="tree">')
+            for key, info in rules_docs:
+                html_parts.append(f'''
+                    <li class="tree-item">
+                        <a href="/docs/{key}" class="tree-link" target="content">
+                            {info["title"]}
+                        </a>
+                        <div class="tree-description">{info["description"]}</div>
+                    </li>
+                ''')
+            html_parts.append('</ul>')
+            html_parts.append('</div>')
         
         return ''.join(html_parts)
 
@@ -497,6 +575,15 @@ class DocumentationPlugin:
                 'training': '📖 Training Guides', 
                 'rules': '⚙️ Framework Rules'
             }.get(category, 'Documentation')
+            
+            # Get featured docs for quick navigation
+            featured_docs, _, _ = self.get_categorized_docs()
+            quick_nav_links = []
+            for key, info in featured_docs[:4]:  # Show first 4 featured
+                if key == doc_key:
+                    quick_nav_links.append(f'<span class="current-doc">{info["title"][:20]}...</span>')
+                else:
+                    quick_nav_links.append(f'<a href="/docs/{key}">{info["title"][:20]}...</a>')
             
             page_html = f"""<!DOCTYPE html>
 <html>
@@ -699,10 +786,7 @@ class DocumentationPlugin:
         <h3>Quick Navigation</h3>
         <div class="nav-links">
             <a href="/docs">🏠 Browser</a>
-            <a href="/docs/guide1">📖 Part 1</a>
-            <a href="/docs/guide2">📖 Part 2</a>
-            <a href="/docs/guide3">📖 Part 3</a>
-            <a href="/docs/quick_ref">⚡ Quick Ref</a>
+            {' '.join(quick_nav_links)}
         </div>
     </div>
     
@@ -766,14 +850,16 @@ class DocumentationPlugin:
                 )
 
                 # Then append the documentation info to history without displaying
-                docs_message = "Available Documentation:\n"
-                featured_docs = [(k, v) for k, v in self.DOCS.items() if v.get('category') == 'featured']
-                featured_docs.sort(key=lambda x: x[1].get('priority', 999))
+                featured_docs, training_docs, rules_docs = self.get_categorized_docs()
                 
-                for key, info in featured_docs:
-                    docs_message += f"- {info['title']}: {info['description']}\n"
+                docs_message = f"Available Documentation ({len(self.DOCS)} files discovered):\n"
                 
-                docs_message += f"\nPlus {len([d for d in self.DOCS.values() if d.get('category') != 'featured'])} additional training guides and framework rules."
+                if featured_docs:
+                    docs_message += "\nFeatured Guides:\n"
+                    for key, info in featured_docs:
+                        docs_message += f"- {info['title']}: {info['description']}\n"
+                
+                docs_message += f"\nPlus {len(training_docs)} training guides and {len(rules_docs)} framework rules automatically discovered."
                 
                 self.pipulate.append_to_history(
                     f"[WIDGET CONTENT] Pipulate Documentation Browser\n{docs_message}",
@@ -787,8 +873,7 @@ class DocumentationPlugin:
                 logger.error(f"Error in documentation plugin: {str(e)}")
 
         # Create featured documentation links
-        featured_docs = [(k, v) for k, v in self.DOCS.items() if v.get('category') == 'featured']
-        featured_docs.sort(key=lambda x: x[1].get('priority', 999))
+        featured_docs, training_docs, rules_docs = self.get_categorized_docs()
         
         featured_links = []
         for key, info in featured_docs:
@@ -808,9 +893,8 @@ class DocumentationPlugin:
             H2("📚 Documentation Browser"),
             P("Essential guides and comprehensive documentation for Pipulate development."),
             
-            # Featured guides
-            H3("🌟 Featured Guides"),
-            Ul(*featured_links, style="list-style: none; padding: 0; margin-bottom: 2rem;"),
+            # Featured guides (if any)
+            *([H3("🌟 Featured Guides"), Ul(*featured_links, style="list-style: none; padding: 0; margin-bottom: 2rem;")] if featured_docs else []),
             
             # Browse all button
             A(
@@ -821,7 +905,7 @@ class DocumentationPlugin:
             ),
             
             P(
-                f"Includes {len(self.DOCS)} total documents: Ultimate Guides, Quick Reference, Training materials, and Framework Rules.",
+                f"Automatically discovered {len(self.DOCS)} documents: {len(featured_docs)} featured guides, {len(training_docs)} training files, and {len(rules_docs)} framework rules.",
                 style="margin-top: 1rem; font-size: 0.9em; color: var(--pico-muted-color);"
             ),
             
