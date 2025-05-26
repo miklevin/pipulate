@@ -154,6 +154,37 @@ class BotifyCsvDownloaderWorkflow:
         }
     }
 
+    # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
+    # ==================================================================================
+    TOGGLE_CONFIG = {
+        'step_02': {
+            'data_key': 'analysis_result',
+            'status_field': 'download_complete',
+            'success_text': 'HAS crawl analysis',
+            'failure_text': 'does NOT have crawl analysis',
+            'error_prefix': 'FAILED to download crawl analysis'
+        },
+        'step_03': {
+            'data_key': 'check_result', 
+            'status_field': 'has_logs',
+            'success_text': 'HAS web logs',
+            'failure_text': 'does NOT have web logs',
+            'error_prefix': 'FAILED to download web logs',
+            'status_prefix': 'Project '
+        },
+        'step_04': {
+            'data_key': 'check_result',
+            'status_field': 'has_search_console', 
+            'success_text': 'HAS Search Console data',
+            'failure_text': 'does NOT have Search Console data',
+            'error_prefix': 'FAILED to download Search Console data',
+            'status_prefix': 'Project '
+        },
+        'step_05': {
+            'simple_content': 'Placeholder step completed'
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -185,10 +216,7 @@ class BotifyCsvDownloaderWorkflow:
         routes.append((f'/{app_name}/step_02_process', self.step_02_process, ['POST']))
         routes.append((f'/{app_name}/step_03_process', self.step_03_process, ['POST']))
         routes.append((f'/{app_name}/step_05_process', self.step_05_process, ['POST']))
-        routes.append((f'/{app_name}/step_02_toggle', self.step_02_toggle, ['GET']))
-        routes.append((f'/{app_name}/step_03_toggle', self.step_03_toggle, ['GET']))
-        routes.append((f'/{app_name}/step_04_toggle', self.step_04_toggle, ['GET']))
-        routes.append((f'/{app_name}/step_05_toggle', self.step_05_toggle, ['GET']))
+        routes.append((f'/{app_name}/toggle', self.common_toggle, ['GET']))
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
@@ -438,7 +466,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -548,7 +576,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -571,7 +599,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -662,7 +690,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -685,7 +713,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -779,7 +807,7 @@ class BotifyCsvDownloaderWorkflow:
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -832,7 +860,7 @@ class BotifyCsvDownloaderWorkflow:
         widget = Div(
             Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                 cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                hx_get=f'/{app_name}/{step_id}_toggle',
+                hx_get=f'/{app_name}/toggle?step_id={step_id}',
                 hx_target=f'#{step_id}_widget',
                 hx_swap='innerHTML'
             ),
@@ -2035,7 +2063,7 @@ await main()
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -2277,7 +2305,7 @@ await main()
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
@@ -2294,234 +2322,101 @@ await main()
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_02_toggle(self, request):
-        """Toggle visibility of step 2 widget content."""
+
+
+
+
+
+
+
+
+    async def common_toggle(self, request):
+        """Unified toggle method for all step widgets using configuration-driven approach."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        
+        # Extract step_id from query parameters
+        step_id = request.query_params.get('step_id')
+        if not step_id or step_id not in self.TOGGLE_CONFIG:
+            return Div("Invalid step ID", style="color: red;")
+        
+        config = self.TOGGLE_CONFIG[step_id]
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # Handle simple content case (step_05)
+        if 'simple_content' in config:
+            state = pip.read_state(pipeline_id)
+            is_visible = state.get(f'{step_id}_widget_visible', False)
+            
+            if f'{step_id}_widget_visible' not in state:
+                state[f'{step_id}_widget_visible'] = True
+                pip.write_state(pipeline_id, state)
+                return Pre(config['simple_content'], cls='code-block-container')
+            
+            state[f'{step_id}_widget_visible'] = not is_visible
+            pip.write_state(pipeline_id, state)
+            
+            if is_visible:
+                return Pre(config['simple_content'], cls='code-block-container', style='display: none;')
+            else:
+                return Pre(config['simple_content'], cls='code-block-container')
+        
+        # Handle complex data-driven content
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        analysis_result_str = step_data.get(step.done, '')
-        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
-        selected_slug = analysis_result.get('analysis_slug', '')
-        python_command = analysis_result.get('python_command', '')
         
-        # Determine status message and color based on success/failure
-        if 'error' in analysis_result:
-            status_text = f'FAILED to download crawl analysis: {analysis_result["error"]}'
+        # Extract data based on configuration
+        data_str = step_data.get(step.done, '')
+        data_obj = json.loads(data_str) if data_str else {}
+        
+        # Get python command for display
+        python_command = data_obj.get('python_command', '')
+        
+        # Determine status message and color
+        status_prefix = config.get('status_prefix', '')
+        if 'error' in data_obj:
+            status_text = f'{config["error_prefix"]}: {data_obj["error"]}'
             status_color = 'red'
         else:
-            download_complete = analysis_result.get('download_complete', False)
-            status_text = 'HAS crawl analysis' if download_complete else 'does NOT have crawl analysis'
-            status_color = 'green' if download_complete else 'red'
+            has_data = data_obj.get(config['status_field'], False)
+            status_text = f'{status_prefix}{config["success_text"] if has_data else config["failure_text"]}'
+            status_color = 'green' if has_data else 'red'
         
-        # Check if widget is currently visible
+        # Handle visibility toggle
         state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
+        is_visible = state.get(f'{step_id}_widget_visible', False)
+        
+        # Create the content div
+        content_div = Div(
+            P(f'Status: {status_text}', style=f'color: {status_color};'),
+            H4('Python Command (for debugging):'),
+            Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
+            Script(f"""
+                setTimeout(function() {{
+                    if (typeof Prism !== 'undefined') {{
+                        Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
+                    }}
+                }}, 100);
+            """)
+        )
         
         # Special case: If this is the first toggle after download (state not set yet)
         if f'{step_id}_widget_visible' not in state:
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
-            return Div(
-                P(f'Status: {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
+            return content_div
         
         # Normal toggle behavior
         state[f'{step_id}_widget_visible'] = not is_visible
         pip.write_state(pipeline_id, state)
         
         if is_visible:
-            return Div(
-                P(f'Status: {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                style='display: none;'
-            )
+            # Hide the content
+            content_div.attrs['style'] = 'display: none;'
+            return content_div
         else:
-            return Div(
-                P(f'Status: {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
-
-    async def step_03_toggle(self, request):
-        """Toggle visibility of step 3 widget content."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        check_result_str = step_data.get(step.done, '')
-        check_result = json.loads(check_result_str) if check_result_str else {}
-        has_logs = check_result.get('has_logs', False)
-        python_command = check_result.get('python_command', '')
-        
-        # Determine status message and color based on success/failure
-        if 'error' in check_result:
-            status_text = f'FAILED to download web logs: {check_result["error"]}'
-            status_color = 'red'
-        else:
-            status_text = 'HAS web logs' if has_logs else 'does NOT have web logs'
-            status_color = 'green' if has_logs else 'red'
-        
-        # Check if widget is currently visible
-        state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
-        
-        # Special case: If this is the first toggle after download (state not set yet)
-        if f'{step_id}_widget_visible' not in state:
-            state[f'{step_id}_widget_visible'] = True
-            pip.write_state(pipeline_id, state)
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
-        
-        # Normal toggle behavior
-        state[f'{step_id}_widget_visible'] = not is_visible
-        pip.write_state(pipeline_id, state)
-        
-        if is_visible:
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                style='display: none;'
-            )
-        else:
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
-
-    async def step_04_toggle(self, request):
-        """Toggle visibility of step 4 widget content."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        check_result_str = step_data.get(step.done, '')
-        check_result = json.loads(check_result_str) if check_result_str else {}
-        has_search_console = check_result.get('has_search_console', False)
-        python_command = check_result.get('python_command', '')
-        
-        # Determine status message and color based on success/failure
-        if 'error' in check_result:
-            status_text = f'FAILED to download Search Console data: {check_result["error"]}'
-            status_color = 'red'
-        else:
-            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-            status_color = 'green' if has_search_console else 'red'
-        
-        # Check if widget is currently visible
-        state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
-        
-        # Special case: If this is the first toggle after download (state not set yet)
-        if f'{step_id}_widget_visible' not in state:
-            state[f'{step_id}_widget_visible'] = True
-            pip.write_state(pipeline_id, state)
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
-        
-        # Normal toggle behavior
-        state[f'{step_id}_widget_visible'] = not is_visible
-        pip.write_state(pipeline_id, state)
-        
-        if is_visible:
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                style='display: none;'
-            )
-        else:
-            return Div(
-                P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command (for debugging):'),
-                Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-                Script(f"""
-                    setTimeout(function() {{
-                        if (typeof Prism !== 'undefined') {{
-                            Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                        }}
-                    }}, 100);
-                """)
-            )
-
-    async def step_05_toggle(self, request):
-        """Toggle visibility of step 5 widget content."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_05'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        
-        # Check if widget is currently visible
-        state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
-        
-        # Special case: If this is the first toggle after download (state not set yet)
-        if f'{step_id}_widget_visible' not in state:
-            state[f'{step_id}_widget_visible'] = True
-            pip.write_state(pipeline_id, state)
-            return Pre('Placeholder step completed', cls='code-block-container')
-        
-        # Normal toggle behavior
-        state[f'{step_id}_widget_visible'] = not is_visible
-        pip.write_state(pipeline_id, state)
-        
-        if is_visible:
-            return Pre('Placeholder step completed', cls='code-block-container', style='display: none;')
-        else:
-            return Pre('Placeholder step completed', cls='code-block-container')
+            # Show the content
+            return content_div
 
     async def step_04_process(self, request):
         """Process the search console check and download if available."""
@@ -2742,7 +2637,7 @@ await main()
                 Div(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
-                        hx_get=f'/{app_name}/{step_id}_toggle',
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
