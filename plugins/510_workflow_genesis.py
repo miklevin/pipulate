@@ -21,14 +21,45 @@ def derive_public_endpoint_from_filename(filename_str: str) -> str:
 
 class WorkflowGenesis:
     """
-    Blank Placeholder Workflow
-    A minimal template for creating new Pipulate workflows.
-    It includes one placeholder step and the necessary structure for expansion.
+    Workflow Creation Helper
+    
+    An interactive assistant for creating new Pipulate workflows with intelligent template selection
+    and step management. This tool demonstrates the full workflow scaffolding capabilities including:
+    
+    - Template-based workflow creation (blank vs. complex templates like trifecta)
+    - Flexible step insertion (top/bottom positioning)
+    - Command generation with copy-friendly syntax highlighting
+    - Template selection guidance based on use case
+    
+    ## Template Strategy
+    
+    **Blank Template (710_blank_placeholder.py)**:
+    - Single placeholder step for simple workflows
+    - Minimal structure, easy to understand
+    - Best for: Custom workflows, learning, prototyping
+    
+    **Trifecta Template (535_botify_trifecta.py)**:
+    - Complex multi-step workflow with API integration
+    - Background processing, file management, error handling
+    - Best for: Data collection workflows, API-heavy processes
+    
+    ## Step Insertion Patterns
+    
+    **Top Insertion**: New step becomes the first data step
+    - Use when: Adding authentication, setup, or prerequisite steps
+    - Updates init() method to start with new step
+    
+    **Bottom Insertion**: New step added before finalize
+    - Use when: Adding processing, validation, or output steps
+    - Maintains existing workflow flow
+    
+    This workflow showcases the enhanced create_workflow.py and splice_workflow_step.py
+    capabilities that make Pipulate development more efficient and accessible.
     """
     APP_NAME = 'workflow_genesis' 
     DISPLAY_NAME = 'Workflow Creation Helper' 
-    ENDPOINT_MESSAGE = """This interactive assistant guides you through creating new Pipulate workflows, adding initial steps, and preparing for AI-assisted customization by generating necessary commands and prompts."""
-    TRAINING_PROMPT = """The user is interacting with the 'Workflow Creation Helper'. This tool assists them in: 1. Defining parameters for a new Pipulate workflow. 2. Generating create_workflow.py and splice_workflow_step.py commands. 3. (Future) Selecting a source widget and target placeholder for a 'swap' operation. 4. (Future) Generating a prompt.md and a prompt_foo.py manifest for AI-assisted code integration. Guide the user on the purpose of each input field, the commands generated, and the subsequent actions they need to perform in their terminal or with their AI assistant."""
+    ENDPOINT_MESSAGE = """Create new Pipulate workflows with intelligent template selection and flexible step management. Choose from minimal blank templates or complex multi-step patterns, then add placeholder steps with precise positioning control."""
+    TRAINING_PROMPT = """You are assisting with the 'Workflow Creation Helper' that generates scaffolding commands for Pipulate workflows. Help users understand: 1. Template selection (blank vs. trifecta) based on their needs. 2. The create_workflow.py command parameters and their purposes. 3. The splice_workflow_step.py positioning options (top vs. bottom). 4. When to use each template type and positioning strategy. 5. How to customize the generated placeholder steps. Guide them through the decision-making process and explain the generated commands."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
@@ -43,6 +74,8 @@ class WorkflowGenesis:
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
             Step(id='step_01', done='new_workflow_params', show='1. Define New Workflow', refill=True),
+            Step(id='step_02', done='template_selection', show='2. Select Template & Strategy', refill=True),
+            Step(id='step_03', done='step_management', show='3. Add Placeholder Steps', refill=True),
             # --- STEPS_LIST_INSERTION_POINT --- 
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
         ]
@@ -83,8 +116,18 @@ class WorkflowGenesis:
                 }
             elif step_obj.id == 'step_01':
                 self.step_messages[step_obj.id] = {
-                    'input': 'Please provide the details for the new workflow you want to create.',
-                    'complete': 'New workflow parameters captured. Commands generated below.'
+                    'input': 'Define the basic parameters for your new workflow (name, class, endpoints).',
+                    'complete': 'Workflow parameters defined. Choose your template strategy next.'
+                }
+            elif step_obj.id == 'step_02':
+                self.step_messages[step_obj.id] = {
+                    'input': 'Select the appropriate template and understand the creation strategy.',
+                    'complete': 'Template selected. Create workflow command generated.'
+                }
+            elif step_obj.id == 'step_03':
+                self.step_messages[step_obj.id] = {
+                    'input': 'Add placeholder steps to your workflow with precise positioning control.',
+                    'complete': 'Step management commands generated. Ready to build your workflow.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -233,7 +276,7 @@ class WorkflowGenesis:
         # Otherwise return as is
         return text
 
-    def create_prism_widget(self, create_cmd, splice_cmd, widget_id):
+    def create_prism_widget(self, create_cmd, splice_cmd, widget_id, template_info=None):
         """Create a Prism.js syntax highlighting widget with copy functionality for each command."""
         textarea_id_create = f'{widget_id}_create_cmd'
         textarea_id_splice_basic = f'{widget_id}_splice_basic'
@@ -247,7 +290,23 @@ class WorkflowGenesis:
         splice_cmd_bottom = f"{splice_cmd} --position bottom"
         splice_cmd_top = f"{splice_cmd} --position top"
         
+        # Template information section
+        template_section = ""
+        if template_info:
+            template_section = Div(
+                H5('Template Information:'),
+                Div(
+                    P(f"Selected Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500;'),
+                    P(f"Use Case: {template_info.get('description', 'No description')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
+                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                ),
+                cls='mt-4'
+            )
+        
         container = Div(
+            # Template Information (if provided)
+            template_section,
             # Create Command Box
             Div(
                 H5('Create Workflow Command:'),
@@ -357,62 +416,26 @@ class WorkflowGenesis:
         if 'finalized' in finalize_sys_data and current_value:
             # Finalized Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
-            # Generate commands for display
-            params = current_value
-            create_cmd = f"""python create_workflow.py \\
-{params['target_filename']} \\
-{params['class_name']} \\
-{params['internal_app_name']} \\
-{self.format_bash_command(params['display_name'])} \\
-{self.format_bash_command(params['endpoint_message'])} \\
-{self.format_bash_command(params['training_prompt'])} \\
---force"""
-            splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
-            
-            # Create PrismJS widget for commands
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
-            
-            response = HTMLResponse(to_xml(Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=prism_widget),
+            return Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=P(f"Workflow: {current_value.get('display_name', 'Unknown')}", cls='text-success')),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
+            )
             
         elif current_value and state.get('_revert_target') != step_id:
             # Revert/Completed Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
-            # Generate commands for display
-            params = current_value
-            create_cmd = f"""python create_workflow.py \\
-{params['target_filename']} \\
-{params['class_name']} \\
-{params['internal_app_name']} \\
-{self.format_bash_command(params['display_name'])} \\
-{self.format_bash_command(params['endpoint_message'])} \\
-{self.format_bash_command(params['training_prompt'])} \\
---force"""
-            splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
-            
-            # Create PrismJS widget for commands
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
-            
-            response = HTMLResponse(to_xml(Div(
+            return Div(
                 pip.display_revert_widget(
                     step_id=step_id,
                     app_name=app_name,
-                    message="Scaffolding Commands Generated",
-                    widget=prism_widget,
+                    message="Workflow Parameters Defined",
+                    widget=P(f"Workflow: {current_value.get('display_name', 'Unknown')}", cls='text-success'),
                     steps=current_steps_for_logic
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
+            )
         else:
             # Input Phase
             pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing input form')
@@ -538,30 +561,231 @@ class WorkflowGenesis:
         # Store the parameters
         await pip.set_step_data(pipeline_id, step_id, params, current_steps_for_logic)
         
-        # Generate commands for display
-        create_cmd = f"""python create_workflow.py \\
-{params['target_filename']} \\
-{params['class_name']} \\
-{params['internal_app_name']} \\
-{self.format_bash_command(params['display_name'])} \\
-{self.format_bash_command(params['endpoint_message'])} \\
-{self.format_bash_command(params['training_prompt'])} \\
---force"""
-        splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
-        
-        # Create PrismJS widget for commands
-        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id)
-        
         pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{params}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
-        await self.message_queue.add(pip, f'{step_obj.show} complete.', verbatim=True)
+        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+        
+        return Div(
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message="Workflow Parameters Defined",
+                widget=P(f"Workflow: {params['display_name']}", cls='text-success'),
+                steps=current_steps_for_logic
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
+
+    async def step_02(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_02'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get step_01 data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+
+        if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
+            
+            # Generate create command with selected template
+            template_name = current_value.get('template', 'blank')
+            create_cmd = f"""python create_workflow.py \\
+{workflow_params.get('target_filename', 'workflow.py')} \\
+{workflow_params.get('class_name', 'MyWorkflow')} \\
+{workflow_params.get('internal_app_name', 'my_workflow')} \\
+{self.format_bash_command(workflow_params.get('display_name', 'My Workflow'))} \\
+{self.format_bash_command(workflow_params.get('endpoint_message', 'Welcome message'))} \\
+{self.format_bash_command(workflow_params.get('training_prompt', 'Training prompt'))} \\
+--template {template_name} \\
+--force"""
+            
+            splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
+            
+            # Template info for display
+            template_info = self.get_template_info(template_name)
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=prism_widget),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
+        elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
+            
+            # Generate create command with selected template
+            template_name = current_value.get('template', 'blank')
+            create_cmd = f"""python create_workflow.py \\
+{workflow_params.get('target_filename', 'workflow.py')} \\
+{workflow_params.get('class_name', 'MyWorkflow')} \\
+{workflow_params.get('internal_app_name', 'my_workflow')} \\
+{self.format_bash_command(workflow_params.get('display_name', 'My Workflow'))} \\
+{self.format_bash_command(workflow_params.get('endpoint_message', 'Welcome message'))} \\
+{self.format_bash_command(workflow_params.get('training_prompt', 'Training prompt'))} \\
+--template {template_name} \\
+--force"""
+            
+            splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
+            
+            # Template info for display
+            template_info = self.get_template_info(template_name)
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Create Workflow Command Generated",
+                    widget=prism_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+        else:
+            # Input Phase
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing template selection form')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            form_content = Form(
+                # Template Selection
+                Fieldset(
+                    Legend("Choose Your Template"),
+                    
+                    # Blank Template Option
+                    Label(
+                        Input(type="radio", name="template", value="blank", checked=True),
+                        " Blank Template",
+                        **{'for': 'template_blank'}
+                    ),
+                    Div(
+                        P("🎯 Best for: Custom workflows, learning, simple processes", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
+                        P("📋 Starting with: 1 placeholder step + finalize", cls='text-secondary', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.85rem;'),
+                        P("⚡ Complexity: Minimal - easy to understand and modify", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
+                    ),
+                    
+                    # Trifecta Template Option  
+                    Label(
+                        Input(type="radio", name="template", value="trifecta"),
+                        " Trifecta Template",
+                        **{'for': 'template_trifecta'}
+                    ),
+                    Div(
+                        P("🎯 Best for: API integration, data collection, complex workflows", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
+                        P("📋 Starting with: 5 data steps + finalize (Botify API pattern)", cls='text-secondary', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.85rem;'),
+                        P("⚡ Complexity: Advanced - includes background processing, file management, error handling", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
+                    ),
+                    
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                # Strategy Information
+                Details(
+                    Summary("💡 Template Selection Guide"),
+                    Div(
+                        H6("When to choose Blank Template:"),
+                        Ul(
+                            Li("Building a custom workflow from scratch"),
+                            Li("Learning Pipulate development patterns"),
+                            Li("Simple form-based processes"),
+                            Li("Prototyping new ideas"),
+                            style='margin-bottom: 1rem;'
+                        ),
+                        H6("When to choose Trifecta Template:"),
+                        Ul(
+                            Li("Integrating with external APIs"),
+                            Li("Processing large datasets"),
+                            Li("Need background job processing"),
+                            Li("Complex multi-step data workflows"),
+                            style='margin-bottom: 1rem;'
+                        ),
+                        P("💡 You can always add steps later using splice_workflow_step.py!", cls='text-info', style='font-weight: 500;'),
+                        style='padding: 1rem; background-color: #f8f9fa; border-radius: 4px;'
+                    ),
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                Button('Generate Create Command ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
+            )
+            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
+
+    async def step_02_submit(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_02'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        form_data = await request.form()
+        
+        # Get step_01 data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        
+        # Collect template selection
+        template_selection = {
+            'template': form_data.get('template', 'blank'),
+            'workflow_params': workflow_params  # Store for later use
+        }
+        
+        # Store the template selection
+        await pip.set_step_data(pipeline_id, step_id, template_selection, current_steps_for_logic)
+        
+        # Generate create command with selected template
+        template_name = template_selection['template']
+        create_cmd = f"""python create_workflow.py \\
+{workflow_params.get('target_filename', 'workflow.py')} \\
+{workflow_params.get('class_name', 'MyWorkflow')} \\
+{workflow_params.get('internal_app_name', 'my_workflow')} \\
+{self.format_bash_command(workflow_params.get('display_name', 'My Workflow'))} \\
+{self.format_bash_command(workflow_params.get('endpoint_message', 'Welcome message'))} \\
+{self.format_bash_command(workflow_params.get('training_prompt', 'Training prompt'))} \\
+--template {template_name} \\
+--force"""
+        
+        splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
+        
+        # Template info for display
+        template_info = self.get_template_info(template_name)
+        
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+        
+        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{template_selection}')
+        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
+        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         response = HTMLResponse(to_xml(Div(
             pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
-                message="Scaffolding Commands Generated",
+                message="Create Workflow Command Generated",
                 widget=prism_widget,
                 steps=current_steps_for_logic
             ),
@@ -570,5 +794,295 @@ class WorkflowGenesis:
         )))
         response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
         return response
+
+    def get_template_info(self, template_name):
+        """Get information about a template for display purposes."""
+        templates = {
+            'blank': {
+                'name': 'Blank Placeholder Template',
+                'description': 'Minimal single-step workflow for custom development',
+                'steps': '1 placeholder step + finalize',
+                'file': '710_blank_placeholder.py'
+            },
+            'trifecta': {
+                'name': 'Botify Trifecta Template', 
+                'description': 'Complex multi-step API workflow with background processing',
+                'steps': '5 data collection steps + finalize',
+                'file': '535_botify_trifecta.py'
+            }
+        }
+        return templates.get(template_name, templates['blank'])
+
+    async def step_03(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        template_selection = step_02_data.get('template_selection', {})
+        
+        filename = workflow_params.get('target_filename', 'workflow.py')
+
+        if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
+            
+            # Generate all splice commands
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=splice_widget),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
+        elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
+            
+            # Generate all splice commands
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Step Management Commands Generated",
+                    widget=splice_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+        else:
+            # Input Phase
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing step management form')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            template_name = template_selection.get('template', 'blank')
+            template_info = self.get_template_info(template_name)
+            
+            form_content = Form(
+                # Current Workflow Context
+                Div(
+                    H5("Current Workflow Context:"),
+                    P(f"📁 File: {filename}", style='margin: 0.25rem 0; font-family: monospace;'),
+                    P(f"🏗️ Template: {template_info['name']}", style='margin: 0.25rem 0;'),
+                    P(f"📋 Current Steps: {template_info['steps']}", style='margin: 0.25rem 0;'),
+                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; margin-bottom: 1rem;'
+                ),
+                
+                # Step Positioning Strategy
+                Fieldset(
+                    Legend("Step Insertion Strategy"),
+                    
+                    # Top Position
+                    Label(
+                        Input(type="radio", name="position_strategy", value="top", checked=True),
+                        " Insert at Top (Becomes First Data Step)",
+                        **{'for': 'position_top'}
+                    ),
+                    Div(
+                        P("🎯 Use when: Adding authentication, setup, or prerequisite steps", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
+                        P("⚡ Effect: New step becomes the workflow entry point", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
+                    ),
+                    
+                    # Bottom Position
+                    Label(
+                        Input(type="radio", name="position_strategy", value="bottom"),
+                        " Insert at Bottom (Before Finalize)",
+                        **{'for': 'position_bottom'}
+                    ),
+                    Div(
+                        P("🎯 Use when: Adding processing, validation, or output steps", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
+                        P("⚡ Effect: Maintains existing workflow flow", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
+                    ),
+                    
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                # Advanced Information
+                Details(
+                    Summary("🔧 Advanced Step Management"),
+                    Div(
+                        H6("Position Strategy Guide:"),
+                        Ul(
+                            Li("Top insertion updates the init() method automatically"),
+                            Li("Bottom insertion preserves existing step flow"),
+                            Li("You can run splice commands multiple times"),
+                            Li("Each new step gets a unique ID (step_06, step_07, etc.)"),
+                            style='margin-bottom: 1rem;'
+                        ),
+                        H6("Customization Tips:"),
+                        Ul(
+                            Li("Edit the 'show' attribute for user-friendly step names"),
+                            Li("Modify the input forms in the generated step methods"),
+                            Li("Add validation logic in the _submit handlers"),
+                            Li("Use the 'done' key to store step completion data"),
+                            style='margin-bottom: 1rem;'
+                        ),
+                        style='padding: 1rem; background-color: #f8f9fa; border-radius: 4px;'
+                    ),
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                Button('Generate Step Commands ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
+            )
+            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
+
+    async def step_03_submit(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        form_data = await request.form()
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        filename = workflow_params.get('target_filename', 'workflow.py')
+        
+        # Collect step management preferences
+        step_management = {
+            'position_strategy': form_data.get('position_strategy', 'bottom'),
+            'filename': filename
+        }
+        
+        # Store the step management preferences
+        await pip.set_step_data(pipeline_id, step_id, step_management, current_steps_for_logic)
+        
+        # Generate all splice commands
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        splice_widget = self.create_splice_commands_widget(filename, widget_id)
+        
+        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{step_management}')
+        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
+        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+        
+        response = HTMLResponse(to_xml(Div(
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message="Step Management Commands Generated",
+                widget=splice_widget,
+                steps=current_steps_for_logic
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )))
+        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+        return response
+
+    def create_splice_commands_widget(self, filename, widget_id):
+        """Create a comprehensive splice commands widget with individual copy-able commands."""
+        # Individual command IDs
+        cmd_basic_id = f'{widget_id}_basic'
+        cmd_bottom_id = f'{widget_id}_bottom'
+        cmd_top_id = f'{widget_id}_top'
+        
+        # Generate commands
+        basic_cmd = f"python splice_workflow_step.py {filename}"
+        bottom_cmd = f"python splice_workflow_step.py {filename} --position bottom"
+        top_cmd = f"python splice_workflow_step.py {filename} --position top"
+        
+        container = Div(
+            H5('Step Management Commands:'),
+            P('Add new placeholder steps to your workflow with flexible positioning control:', cls='text-secondary', style='margin-bottom: 1rem; font-size: 0.9rem;'),
+            
+            # Basic usage (default)
+            Div(
+                H6('Basic Usage (Default - Before Finalize):', style='margin-bottom: 0.5rem; color: #495057;'),
+                Textarea(basic_cmd, id=cmd_basic_id, style='display: none;'),
+                Pre(
+                    Code(basic_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Bottom position (explicit)
+            Div(
+                H6('Bottom Position (Explicit - Same as Default):', style='margin-bottom: 0.5rem; color: #495057;'),
+                Textarea(bottom_cmd, id=cmd_bottom_id, style='display: none;'),
+                Pre(
+                    Code(bottom_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Top position
+            Div(
+                H6('Top Position (Becomes New First Step):', style='margin-bottom: 0.5rem; color: #495057;'),
+                Textarea(top_cmd, id=cmd_top_id, style='display: none;'),
+                Pre(
+                    Code(top_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Usage tips
+            Div(
+                H6('💡 Usage Tips:', style='margin-bottom: 0.5rem; color: #007bff;'),
+                Ul(
+                    Li(f"Extension optional: splice_workflow_step.py {filename.replace('.py', '')}", style='font-family: monospace; font-size: 0.85rem;'),
+                    Li(f"Prefix optional: splice_workflow_step.py plugins/{filename}", style='font-family: monospace; font-size: 0.85rem;'),
+                    Li("Run multiple times to add multiple steps", style='font-size: 0.85rem;'),
+                    Li("Each step gets a unique ID (step_06, step_07, etc.)", style='font-size: 0.85rem;'),
+                    Li("Customize step names by editing the 'show' attribute", style='font-size: 0.85rem;'),
+                ),
+                style='padding: 0.75rem; background-color: #e7f3ff; border-left: 3px solid #007bff; border-radius: 4px;'
+            ),
+            
+            id=widget_id
+        )
+        
+        init_script = Script(f"""
+            (function() {{
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
+                document.body.addEventListener('initializePrism', function(event) {{
+                    if (event.detail.targetId === '{widget_id}') {{
+                        console.log('Received initializePrism event for {widget_id}');
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                        }} else {{
+                            console.error('Prism library not found for {widget_id}');
+                        }}
+                    }}
+                }});
+            }})();
+        """, type='text/javascript')
+        
+        return Div(container, init_script)
 
     # --- STEP_METHODS_INSERTION_POINT ---
