@@ -45,3 +45,13 @@ nix develop .#quiet
 - Make file changes and test immediately
 - Trust the watchdog to handle reloads
 - Work within the established Nix flake structure
+
+## ⏱️ Nix Performance Expectations
+
+**Nix has inherent overhead - this is normal:**
+
+- `nix develop .#quiet` takes ~7 seconds (this is expected)
+- Nix prioritizes reproducibility over speed
+- The quiet shell is optimized (no pip installs, no git operations)
+- Don't try to "fix" Nix's startup time - it's a design trade-off
+- Accept the 7-second cost for environment consistency
