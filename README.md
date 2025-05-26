@@ -296,32 +296,11 @@ home (Root Component)
         +-- create_grid_left
             |
         +-- create_notebook_interface (Displays steps/cells)
-                |
-                +-- render_notebook_cells()
-                    |
-                    +-- render_notebook_cell(step_01)
-                    +-- render_notebook_cell(step_02)
-                    +-- ...
-        |
-        +-- create_chat_interface
-            |
-            +-- mk_chat_input_group
-        |
-        +-- create_poke_button
 ```
 
 </details>
 
-### Communication Channels
-
-Pipulate uses standard web technologies for real-time updates:
-
-* **WebSockets:** Bidirectional communication, primarily used for streaming LLM interactions (user-to-LLM prompts, LLM-to-user responses, potential tool calls).
-* **Server-Sent Events (SSE):** Unidirectional (server-to-client) communication used for pushing UI updates triggered by server-side state changes or live reloading during development.
-
 ### File Structure
-
-The project aims for a flat, understandable structure:
 
 ```plaintext
     .
@@ -343,7 +322,91 @@ The project aims for a flat, understandable structure:
     └── start/stop            # Scripts for managing Jupyter (if used)
 ```
 
------
+## Critical Implementation Patterns for LLMs
+
+**These patterns are essential for LLMs working with Pipulate and are frequently missed:**
+
+### 1. The Auto-Key Generation Pattern (MOST CRITICAL)
+
+When a user hits Enter on an empty key field, this specific sequence occurs:
+
+1. **Form Submission**: POSTs to `/{APP_NAME}/init` with empty `pipeline_id`
+2. **Server Response**: The `init` method MUST return an `HX-Refresh` response:
+   ```python
+   if not user_input:
+       from starlette.responses import Response
+       response = Response('')
+       response.headers['HX-Refresh'] = 'true'
+       return response
+   ```
+3. **Page Reload**: HTMX triggers a full page reload
+4. **Auto-Key Population**: The `landing()` method calls `pip.generate_pipeline_key(self)` to populate the input field
+5. **User Interaction**: User hits Enter again to start the workflow
+
+### 2. The Chain Reaction Pattern
+
+Pipulate uses HTMX-driven step progression:
+
+1. **Initial Trigger**: After `init`, first step loads with `hx_trigger="load"`
+2. **Step Handlers**: Each step has GET (display) and POST (submit) handlers
+3. **Automatic Progression**: Completed steps trigger next step with `hx_trigger="load"`
+4. **State Persistence**: Each step stores data in pipeline state
+
+### 3. APP_NAME vs. Filename Distinction
+
+**Critical for data integrity:**
+
+* **Filename** (e.g., `510_workflow_genesis.py`): Determines public URL endpoint and menu ordering
+* **APP_NAME Constant** (e.g., `APP_NAME = "workflow_genesis_internal"`): Internal identifier that MUST REMAIN STABLE
+
+### 4. State Management via DictLikeDB
+
+* State stored as JSON blobs in pipeline table
+* Accessed via `pip.get_step_data()` and `pip.set_step_data()`
+* All state changes are transparent and observable
+
+### 5. Plugin Discovery System
+
+* Files in `plugins/` directory are auto-discovered
+* Numeric prefixes control menu ordering
+* Classes must have `landing` method and name attributes
+* Automatic dependency injection based on `__init__` signature
+
+## Workflow Development Helper Scripts
+
+Pipulate includes sophisticated helper scripts for workflow development:
+
+### `create_workflow.py`
+Creates new workflows from templates:
+```bash
+python create_workflow.py workflow.py MyWorkflow my_workflow \
+  "My Workflow" "Welcome message" "Training prompt" \
+  --template trifecta --force
+```
+
+### `splice_workflow_step.py`
+Adds steps to existing workflows:
+```bash
+python splice_workflow_step.py workflow.py --position top
+python splice_workflow_step.py workflow.py --position bottom
+```
+
+### Template System
+* `blank`: Minimal workflow with one step
+* `trifecta`: Three-step workflow pattern
+* Automatic method generation and insertion
+
+## Common LLM Implementation Mistakes
+
+**LLMs frequently make these errors:**
+
+1. **Missing HX-Refresh Response**: Forgetting to return the refresh response for empty keys
+2. **Incorrect Key Generation**: Not using `pip.generate_pipeline_key(self)` properly
+3. **Missing Cursor Positioning**: Forgetting the `_onfocus` attribute for user experience
+4. **Wrong Route Handling**: Not understanding the difference between landing page and init routes
+5. **State Inconsistency**: Not properly handling the key generation and storage flow
+6. **APP_NAME Changes**: Modifying APP_NAME after deployment, orphaning existing data
+7. **Chain Reaction Breaks**: Not properly implementing the HTMX step progression pattern
 
 ## Key Design Guidelines & Patterns
 
@@ -357,163 +420,9 @@ These "speedbumps" reinforce Pipulate's core philosophy:
   * **WebSocket Pattern:** Use the dedicated `Chat` class for managing LLM interactions. Avoid raw WebSocket handling elsewhere.
   * **Workflow Progression Pattern:** Workflows use an explicit chain reaction pattern with `hx_trigger="load"` to manage step progression. This pattern must be preserved exactly as implemented. See the workflow documentation for details.
 
------
-
 ## Core Concepts & Internal Components
 
-Pipulate uses two main patterns for adding functionality:
-
-1.  **CRUD Apps (`BaseCrud`):** For standard data management tasks (Create, Read, Update, Delete). Inherit from `BaseCrud` provided by the framework. Examples: `profiles_app.py`, `todo_app.py`.
-2.  **Workflows (No Superclass):** For linear, step-by-step processes, often ported from Jupyter Notebooks. These are plain Python classes following a specific convention (steps list, `step_XX` / `step_XX_submit` methods). Example: `hello_flow.py`, `botify_export.py`.
-
-New apps/workflows placed in the `plugins/` directory are automatically discovered and added to the UI navigation.
-
------
-
-## Understanding FastHTML & MiniDataAPI
-
-These are key libraries underpinning Pipulate.
-
-### FastHTML vs. FastAPI
-
-FastHTML is chosen for its radical simplicity in building server-rendered UIs with HTMX, *not* for building high-performance JSON APIs like FastAPI. If your goal is a traditional API, FastAPI is likely a better choice. If your goal is a highly interactive, server-rendered UI with minimal JavaScript, FastHTML excels.
-
-<details>
-<summary>FastHTML Code Examples (Click to Expand)</summary>
-
-### Minimal Example
-
-```python
-from fasthtml.common import *
-
-app, rt = fast_app()
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("Welcome to FastHTML!"),
-                P("Creating clean web pages with minimal Python code.")
-            )
-        )
-    )
-
-serve()
-```
-
-### HTMX Integration Example
-
-```python
-from fasthtml.common import *
-
-app, rt = fast_app()
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("Interactive Example"),
-                Input(
-                    name="username", 
-                    placeholder="Enter your name", 
-                    hx_post="/welcome", 
-                    hx_target="#welcome-msg", 
-                    hx_swap="innerHTML"
-                ),
-                Div(id="welcome-msg")
-            )
-        )
-    )
-
-@rt('/welcome', methods=['POST'])
-def welcome(username: str = ""):
-    return P(f"Welcome {username}!")
-```
-
-### MiniDataAPI Example
-
-```python
-from fasthtml.common import *
-
-# Create app with SQLite database
-app, rt, users, User = fast_app('data.db', users={'username': str})
-
-@rt('/')
-def get():
-    return HTML(
-        Body(
-            Main(
-                H1("User List"),
-                Form(
-                    Input(name="username", placeholder="New user"),
-                    Button("Add", type="submit"),
-                    hx_post="/add-user",
-                    hx_target="#user-list",
-                    hx_swap="innerHTML"
-                ),
-                Ul(
-                    id="user-list",
-                    *[Li(user.username) for user in users()]
-                )
-            )
-        )
-    )
-
-@rt('/add-user', methods=['POST'])
-def add_user(username: str = ""):
-    if username:
-        users.insert(username=username)
-    return Ul(*[Li(user.username) for user in users()])
-```
-
-</details>
-
-### MiniDataAPI Spec
-
-MiniDataAPI provides simple, dictionary-based interaction with SQLite tables.
-
-  * **Philosophy:** Avoids ORM complexity.
-  * **Operations:** `insert()`, `update()`, `delete()`, `.xtra()` (for filtering/ordering), `()` (for fetching).
-  * **Type Safety:** Uses paired dataclasses (like `Task` for the `tasks` table object) generated by `fast_app`.
-
-### The `fast_app` Helper
-
-The `fast_app` function in FastHTML is a powerful (and unconventional) helper for setting up the application, router, and database connections.
-
-```python
-# Example unpacking from server.py
-app, rt, (store, Store), (tasks, Task), (profiles, Profile), (pipeline, Pipeline) = fast_app(
-    "data/data.db",  # DB file path
-    # Other config like hdrs, live, exts...
-    # Schema definitions as keyword arguments:
-    store={'key': str, 'value': str, 'pk': 'key'},
-    task={'id': int, 'name': str, 'done': bool, 'pk': 'id'},
-    profile={'id': int, 'name': str, 'pk': 'id'},
-    pipeline={'url': str, 'app_name': str, 'data': str, 'pk': 'url'}
-)
-```
-
-**Unpacking Explained:**
-`fast_app` returns a tuple. We use Python's tuple unpacking:
-
-1.  `app`: The core application instance (like Flask/Starlette/FastAPI).
-2.  `rt`: The route decorator (`@rt('/path')`).
-3.  `(table_obj, TableClass)` pairs: For each keyword argument defining a table schema (like `task={...}`), `fast_app` returns a tuple containing:
-      * The **table object** (e.g., `tasks`) for DB operations (`tasks.insert(...)`).
-      * The **dataclass** (e.g., `Task`) representing a row (`Task(...)`).
-
-The order of these pairs in the returned tuple matches the order of the keyword arguments defining the schemas. See the [FastHTML source for `fast_app`](https://github.com/AnswerDotAI/fasthtml/blob/main/fasthtml/fastapp.py) and [this blog post on unpacking](https://mikelev.in/futureproof/unpacking-fasthtml-databases/) for deeper dives.
-
------
-
-## Persistence & Monitoring
-
-  * **Persistence:** State for workflows is stored in the `pipeline` table (managed by DictLikeDB), while CRUD apps use tables defined via MiniDataAPI (like `profile`, `task`). All data resides in the local `data/data.db` SQLite file.
   * **Monitoring:** A file system watchdog monitors code changes. Valid changes trigger an automatic, monitored server restart via Uvicorn, facilitating live development.
-
-<!-- end list -->
 
 ```
         ┌─────────────┐         ┌──────────────┐
@@ -626,9 +535,6 @@ PLUGINS
 - Line Highlight11.66KB
 - Line Numbers kuba-kubula 7.23KB
 - Toolbar mAAdhaTTah 5.63KB
-- Copy to Clipboard Button
-- Diff Highlight RunDevelopment 3.17KB
-- Treeview Golmote 9.32KB
 
 ## Contributing
 

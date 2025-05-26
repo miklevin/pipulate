@@ -11,56 +11,96 @@ alwaysApply: false
 
 Pipulate workflows are the fundamental building blocks of the framework. They provide a structured way to create interactive, step-by-step processes that can be easily shared and reused.
 
-## 2. Workflow Structure
+## 2. CRITICAL: The Auto-Key Generation Pattern
+
+**THE MOST IMPORTANT PATTERN THAT LLMs CONSISTENTLY MISS:**
+
+When a user hits Enter on an empty key field, this specific sequence occurs:
+
+1. **Form Submission**: POSTs to `/{APP_NAME}/init` with empty `pipeline_id`
+2. **Server Response**: The `init` method MUST return an `HX-Refresh` response:
+   ```python
+   if not user_input:
+       from starlette.responses import Response
+       response = Response('')
+       response.headers['HX-Refresh'] = 'true'
+       return response
+   ```
+3. **Page Reload**: HTMX triggers a full page reload
+4. **Auto-Key Population**: The `landing()` method calls `pip.generate_pipeline_key(self)` to populate the input field
+5. **User Interaction**: User hits Enter again to start the workflow
+
+**Critical Implementation Details:**
+- The `_onfocus='this.setSelectionRange(this.value.length, this.value.length)'` attribute positions cursor at end
+- This allows users to easily modify the suggested key
+- The pattern ensures predictable, sequential key generation
+
+## 3. Workflow Structure
 
 A workflow consists of:
-- A series of steps
-- State management
-- UI components
-- Chain reaction progression
-- Revert functionality
+- A series of steps defined as namedtuples
+- State management via DictLikeDB (JSON storage)
+- UI components using FastHTML
+- Chain reaction progression via HTMX
+- Revert functionality for going back to previous steps
 
-## 3. Step Definition
+## 4. Step Definition Pattern
 
-Steps are defined in the `steps` list of a workflow class:
+Steps are defined using namedtuples with specific attributes:
 
 ```python
+from collections import namedtuple
+Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
+
 steps = [
     Step(
-        id="step_01",
-        show="Step 1",
-        description="Description of step 1"
+        id="step_01",           # Unique identifier for routing
+        done="✓ Step 1",        # Display text when completed  
+        show="Step 1: Input",   # Display text when active
+        refill=None,           # Optional: function to populate form data
+        transform=None         # Optional: function to transform data
     ),
-    Step(
-        id="step_02",
-        show="Step 2",
-        description="Description of step 2"
-    )
+    # ... more steps
 ]
 ```
 
-## 4. State Management
+**Critical Attributes:**
+- `id`: Used for routing (`/{APP_NAME}/{step_id}`) and state storage
+- `done`: Text shown in revert headers when step is completed
+- `show`: Text shown when step is active or being reverted to
+- `refill`: Function to pre-populate form fields when reverting
+- `transform`: Function to process/validate step data
 
-1. **Step Completion**:
-   - Track completed steps in `self.completed_steps`
-   - Store step values using `self.save_step_value()`
-   - Check completion with `step_id in self.completed_steps`
+## 5. The Chain Reaction Pattern
 
-2. **Revert Handling**:
-   - Check if step is being reverted to with `self.is_reverting_to(step_id)`
-   - Clear subsequent steps when reverting
-   - Preserve state of previous steps
+Pipulate uses HTMX-driven step progression:
 
-3. **Finalization**:
-   - Check workflow finalization with `self.is_finalized`
-   - Lock steps after finalization
-   - Prevent further modifications
+1. **Initial Trigger**: After `init`, first step loads with `hx_trigger="load"`:
+   ```python
+   return Div(Div(id=first_step_id, hx_get=f'/{app_name}/{first_step_id}', hx_trigger='load'), 
+             id=f'{app_name}-container')
+   ```
 
-## 5. Revert Functionality
+2. **Step Handlers**: Each step has GET (display) and POST (submit) handlers
+3. **Automatic Progression**: Completed steps trigger next step with `hx_trigger="load"`
+4. **State Persistence**: Each step stores data in pipeline state
 
-The revert functionality allows users to go back to previous steps in a workflow, modifying their inputs and triggering a re-run of subsequent steps.
+## 6. State Management
 
-### 5.1 Revert UI Components
+1. **DictLikeDB Storage**: State stored as JSON blobs in pipeline table
+2. **Step Data Access**:
+   ```python
+   pip.set_step_data(pipeline_id, step_id, step_value, steps)
+   step_data = pip.get_step_data(pipeline_id, step_id, default={})
+   ```
+3. **Finalization**: Workflows can be locked via `pip.finalize_workflow(pipeline_id)`
+4. **Observability**: All state changes are transparent JSON
+
+## 7. Revert Functionality
+
+The revert system allows users to go back to previous steps:
+
+### 7.1 Revert UI Components
 
 1. **Standard Revert Header**:
    ```python
@@ -94,104 +134,37 @@ The revert functionality allows users to go back to previous steps in a workflow
    )
    ```
 
-### 5.2 Revert Behavior
+### 7.2 Revert Behavior
 
-1. **Revert Button Click**:
-   - Triggers a POST request to `/{app_name}/revert/{step_id}`
-   - Clears the step's state and all subsequent steps
-   - Returns the step's input form
+1. **Revert Button Click**: Triggers POST to `/{app_name}/revert/{step_id}`
+2. **State Clearing**: Clears the step's state and all subsequent steps
+3. **Chain Restart**: Returns input form and restarts chain reaction
 
-2. **Step Handler Response**:
-   - When a step is reverted to, its GET handler should:
-     - Return the input form
-     - Include an empty placeholder for the next step (NO `hx_trigger="load"`)
-   - The chain reaction will only continue after the user submits the form
+## 8. Plugin System & Types
 
-### 5.3 Best Practices
+Pipulate features automatic plugin discovery:
 
-1. **Always Include Revert Option**:
-   - Every completed step should have a revert button
-   - Use the standard revert header or widget display methods
+* **CRUD Apps (`BaseCrud`)**: For standard data management. Inherit from `BaseCrud`. Follow DRY principles.
+* **Workflows (Plain Classes)**: For linear, step-by-step processes. Follow WET (explicit) principles.
 
-2. **State Handling**:
-   - Clear all subsequent step states when reverting
-   - Preserve state of steps before the reverted step
+## 9. CRITICAL: APP_NAME vs. Filename Distinction
 
-3. **UI Consistency**:
-   - Use the provided helper methods for consistent UI
-   - Maintain the same revert behavior across all steps
+**This distinction is crucial for data integrity:**
 
-4. **Error Handling**:
-   - Handle revert failures gracefully
-   - Provide clear feedback to users
+* **Filename** (e.g., `510_workflow_genesis.py`):
+  - Determines **public URL endpoint** (`/workflow_genesis`)
+  - Numeric prefix controls **menu ordering**
+  - Can be changed for UI/organizational purposes
 
-## 6. Workflow Lifecycle
+* **APP_NAME Constant** (e.g., `APP_NAME = "workflow_genesis_internal"`):
+  - **Internal identifier** for the workflow type
+  - Used for **step routing** (`/{APP_NAME}/step_01`)
+  - Used as `app_name` in **pipeline database table**
+  - **MUST REMAIN STABLE** once workflows have stored data
 
-1. **Initialization**:
-   - Workflow is created with a unique ID
-   - Steps are defined and initialized
-   - State is set to initial values
+**Critical Rule**: Never change `APP_NAME` after workflows have been created, or existing workflow data will be orphaned.
 
-2. **Progression**:
-   - Steps are completed in sequence
-   - State is updated at each step
-   - UI is updated to reflect progress
-
-3. **Reverting**:
-   - Steps can be reverted to
-   - State is cleared for subsequent steps
-   - UI is updated to show input form
-
-4. **Finalization**:
-   - Workflow can be finalized
-   - Steps are locked
-   - Final output is generated
-
-## 7. Best Practices
-
-1. **Step Design**:
-   - Keep steps focused and atomic
-   - Provide clear descriptions
-   - Handle edge cases
-
-2. **State Management**:
-   - Validate state changes
-   - Handle errors gracefully
-   - Maintain consistency
-
-3. **UI/UX**:
-   - Provide clear feedback
-   - Show progress
-   - Allow easy navigation
-
-4. **Error Handling**:
-   - Validate inputs
-   - Handle exceptions
-   - Provide helpful messages
-
-## 1. Plugin System & Types
-
-Pipulate features an automatic plugin system. Files in the `plugins/` directory are auto-discovered.
-
-  * **CRUD Apps (`BaseCrud`)**: For standard data management (Create, Read, Update, Delete). Inherit from `BaseCrud` in `server.py`. Examples: `profiles_app.py`, `010_tasks.py`. Follow DRY principles.
-  * **Workflows (Plain Classes)**: For linear, step-by-step processes, often ported from Jupyter Notebooks. These are plain Python classes adhering to specific conventions. Follow WET (Write Everything Twice/Explicit) principles for clarity and customizability. Example: `020_hello_workflow.py`.
-
-## 2. Workflow Identity: `APP_NAME` vs. Filename
-
-A critical distinction for workflows:
-
-  * **Filename**: e.g., `020_hello_workflow.py`.
-      * Determines the **public-facing URL endpoint** for the workflow's landing page (e.g., `/hello_workflow`).
-      * The numeric prefix (e.g., `020_`) dictates the **menu order** in the UI.
-      * Can be changed (e.g., for reordering or clearer URLs) without breaking existing data IF `APP_NAME` remains consistent.
-  * **`APP_NAME` (Class Constant)**: e.g., `APP_NAME = "hello_workflow_internal"`.
-      * The **internal identifier** for the workflow.
-      * Used for constructing **step-specific routes** (e.g., `/{APP_NAME}/step_01`).
-      * Used as the `app_name` value in the `pipeline` database table to **associate stored workflow state** with this workflow type.
-      * **CRITICAL**: `APP_NAME` should be unique across all workflows and **must remain stable** once workflows using it have stored data, otherwise existing data for that workflow type will be orphaned.
-      * It's good practice for `APP_NAME` to be different from the filename (minus prefix) if you anticipate renaming files for UI/URL purposes but want to keep the underlying data association.
-
-## 3. Workflow Class Structure (`__init__`)
+## 10. Workflow Class Structure
 
 A typical workflow class:
 
@@ -202,195 +175,34 @@ from collections import namedtuple
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 class MyWorkflow:
-    APP_NAME = "my_workflow_internal_id" # Stable internal ID
-    DISPLAY_NAME = "My User-Friendly Workflow" # For UI menus
-    ENDPOINT_MESSAGE = "Welcome! This workflow does X, Y, Z." # For LLM context on landing
-    TRAINING_PROMPT = "my_workflow_training.md" # File in training/ for LLM
-
-    def __init__(self, app, pipulate_instance, pipeline_table, db_key_value_store):
-        self.app = app # FastHTML app instance
-        self.pipulate = pipulate_instance # Core Pipulate helpers from server.py
-        self.pipeline_table = pipeline_table # MiniDataAPI object for 'pipeline' table
-        self.db = db_key_value_store # DictLikeDB object for 'store' table (global K/V)
-        self.app_name = self.APP_NAME # Convenient access
-
-        self.message_queue = self.pipulate.get_message_queue()
-
+    APP_NAME = "my_workflow_internal_id"  # Stable internal ID
+    DISPLAY_NAME = "My Workflow"          # User-facing name
+    ENDPOINT_MESSAGE = "Welcome message"   # Landing page description
+    
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        # Standard initialization pattern
+        self.app = app
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.db = db
+        self.app_name = app_name
+        self.message_queue = pipulate.get_message_queue()
+        
         # Define steps
         self.steps = [
-            Step(id='step_01', done='input_data', show='Provide Input', refill=True),
-            Step(id='step_02', done='processed_data', show='Process Data', refill=False, transform=self._transform_step1_output),
-            # ... more steps ...
-            Step(id='finalize', done='finalized', show='Finalize', refill=False) # Standard final step
+            Step(id="step_01", done="✓ Step 1", show="Step 1: Input"),
+            Step(id="finalize", done="✓ Complete", show="Finalize")
         ]
-        self.steps_indices = {step.id: i for i, step in enumerate(self.steps)}
-
+        
         # Register routes
-        self.register_routes(self.app.route)
-
-    def register_routes(self, rt_decorator):
-        # Standard workflow routes
-        rt_decorator(f'/{self.app_name_from_filename()}', methods=['GET'])(self.landing) # Filename-based landing
-        rt_decorator(f'/{self.APP_NAME}/init', methods=['POST'])(self.init)
-        rt_decorator(f'/{self.APP_NAME}/revert', methods=['POST'])(self.handle_revert)
-        rt_decorator(f'/{self.APP_NAME}/finalize', methods=['GET', 'POST'])(self.finalize_workflow_step) # Renamed for clarity
-        rt_decorator(f'/{self.APP_NAME}/unfinalize', methods=['POST'])(self.unfinalize_workflow_step) # Renamed
-
-        # Step-specific routes
-        for step in self.steps:
-            if step.id != 'finalize': # Finalize uses its specific handler
-                rt_decorator(f'/{self.APP_NAME}/{step.id}', methods=['GET'])(getattr(self, step.id))
-                rt_decorator(f'/{self.APP_NAME}/{step.id}_submit', methods=['POST'])(getattr(self, f"{step.id}_submit"))
-
-    def app_name_from_filename(self):
-        # Helper to derive public URL from filename (convention)
-        # Assuming filename is like "NNN_actual_app_name.py"
-        # This logic would typically be handled by server.py during plugin discovery
-        # For this example, assume it's correctly passed or derived.
-        # Example: if filename 020_hello_workflow.py -> "hello_workflow"
-        module_file = inspect.getfile(self.__class__)
-        base_name = Path(module_file).stem
-        return re.sub(r'^\d+_', '', base_name)
-
-    def landing(self, request):  # Note: request parameter is required
-        # Landing page logic here
-        pass
-
-    def init(self, request):  # Note: request parameter is required
-        # Initialization logic here
-        pass
-
-    def step_01(self, request):  # Note: request parameter is required
-        # Step 1 logic here
-        pass
-
-    def step_01_submit(self, request):  # Note: request parameter is required
-        # Step 1 submission logic here
-        pass
-
-    # ... other methods ...
+        self.register_routes(app.route)
 ```
 
-  * **`Step` NamedTuple**:
-      * `id` (str): Unique ID (e.g., `step_01`), used in routes and DOM IDs.
-      * `done` (str): Key for this step's primary data in the workflow state JSON.
-      * `show` (str): User-friendly name for UI.
-      * `refill` (bool): If `True`, pre-fill form from existing state on revisit.
-      * `transform` (function, optional): Processes data from a *previous* step for current step's input suggestion.
-  * **Dependencies**: `app`, `pipulate`, `pipeline_table`, `db` are injected by `server.py` during plugin instantiation.
-  * **Routes**:
-      * The public landing page URL is derived from the filename (e.g., `plugins/020_hello_workflow.py` -\> `/hello_workflow`).
-      * All internal workflow operations (init, steps, finalize) use routes prefixed with `self.APP_NAME`.
+## 11. Best Practices
 
-## 4. Request Handling
-
-All plugin methods that handle HTTP requests must accept a `request` parameter. This is a fundamental requirement of the Pipulate framework:
-
-1. **Required Parameter**: Every method that handles an HTTP request (GET or POST) must accept a `request` parameter as its first argument after `self`:
-   ```python
-   def landing(self, request):  # Required
-       # Landing page logic here
-       pass
-
-   def step_01_submit(self, request):  # Required
-       form_data = request.form
-       # Process form data...
-       pass
-   ```
-
-2. **Framework Integration**: The `request` object is essential for:
-   - Accessing form data via `request.form`
-   - Reading query parameters via `request.query_params`
-   - Accessing headers and other HTTP context
-
-3. **Consistent Interface**: This requirement applies to:
-   - `landing` method (GET)
-   - `init` method (POST)
-   - Step handlers (GET)
-   - Step submission handlers (POST)
-   - `finalize_workflow_step` (GET/POST)
-   - `unfinalize_workflow_step` (POST)
-   - `handle_revert` (POST)
-
-4. **Error Handling**: Always handle missing or invalid request data gracefully:
-   ```python
-   def step_01_submit(self, request):
-       try:
-           user_input = request.form.get('user_input')
-           if not user_input:
-               return self.pipulate.error_message("Input is required")
-           # Process valid input...
-       except Exception as e:
-           return self.pipulate.error_message(f"Error processing input: {str(e)}")
-   ```
-
-## 5. Step Navigation Implementation
-
-### Handler Phase Consistency
-- GET handlers must implement all three phases:
-  1. **Finalize Phase**: Shows locked view with 🔒 when workflow is finalized
-  2. **Revert Phase**: Shows completed view with revert control
-  3. **Input Phase**: Shows form without next step trigger
-- POST handler return must match GET handler's Revert Phase structure
-- Maintain consistent DOM structure across all phases
-
-### Navigation Component Selection
-- Use `display_revert_header` for standard steps:
-  ```python
-  return Div(
-      pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
-      Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-      id=step_id
-  )
-  ```
-- Use `display_widget_container` for steps with visualizations:
-  ```python
-  return Div(
-      pip.display_widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
-      Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-      id=step_id
-  )
-  ```
-- Use `display_step_navigation` for simple, standard steps
-- Use direct construction only when necessary for custom layouts
-
-### DOM Structure Requirements
-- Outer `Div` with step ID as container
-- Navigation component (revert control or widget container)
-- Next step trigger with `hx_trigger="load"`
-- Consistent styling and spacing across all phases
-
-### Phase Transition Rules
-1. **Finalize Phase**:
-   ```python
-   if 'finalized' in finalize_data and user_val:
-       return Div(
-           Card(H3(f'🔒 {step.show}'), widget),
-           Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-       )
-   ```
-
-2. **Revert Phase**:
-   ```python
-   elif user_val and state.get('_revert_target') != step_id:
-       return Div(
-           pip.display_widget_container(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=widget, steps=steps),
-           Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
-       )
-   ```
-
-3. **Input Phase**:
-   ```python
-   else:
-       return Div(
-           Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'),
-                Form(...)),
-           Div(id=next_step_id),
-           id=step_id
-       )
-   ```
-
-4. **Submit Handler**:
-   - Must match Revert Phase structure
-   - Should include next step trigger
-   - Must maintain consistent DOM hierarchy
+1. **Auto-Key Generation**: Always implement the HX-Refresh pattern for empty keys
+2. **Step Design**: Keep steps focused and atomic
+3. **State Management**: Use the provided helper methods for consistency
+4. **Error Handling**: Validate inputs and handle exceptions gracefully
+5. **UI/UX**: Use standardized revert components for consistency
+6. **Data Integrity**: Never change APP_NAME after deployment
