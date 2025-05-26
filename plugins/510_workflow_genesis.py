@@ -311,7 +311,7 @@ class WorkflowGenesis:
 {self.format_bash_command(params['endpoint_message'])} \\
 {self.format_bash_command(params['training_prompt'])} \\
 --force"""
-            splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+            splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
             
             # Create PrismJS widget for commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -338,7 +338,7 @@ class WorkflowGenesis:
 {self.format_bash_command(params['endpoint_message'])} \\
 {self.format_bash_command(params['training_prompt'])} \\
 --force"""
-            splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+            splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
             
             # Create PrismJS widget for commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -491,7 +491,7 @@ class WorkflowGenesis:
 {self.format_bash_command(params['endpoint_message'])} \\
 {self.format_bash_command(params['training_prompt'])} \\
 --force"""
-        splice_cmd = f"python splice_workflow_step.py plugins/{params['target_filename']}"
+        splice_cmd = f"python splice_workflow_step.py {params['target_filename']}"
         
         # Create PrismJS widget for commands
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
