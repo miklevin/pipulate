@@ -421,7 +421,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -531,7 +531,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -554,7 +554,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -645,7 +645,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -668,7 +668,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -762,7 +762,7 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -815,7 +815,7 @@ class BotifyCsvDownloaderWorkflow:
         await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
         widget = Div(
-            Button('Hide/Show Code', 
+            Button('🐍 Hide/Show Code', 
                 cls='secondary outline',
                 hx_get=f'/{app_name}/{step_id}_toggle',
                 hx_target=f'#{step_id}_widget',
@@ -2018,7 +2018,7 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -2260,7 +2260,7 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -2725,7 +2725,7 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('Hide/Show Code', 
+                    Button('🐍 Hide/Show Code', 
                         cls='secondary outline',
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
@@ -3431,9 +3431,8 @@ await main()
             hx_get=f"/open-folder?path={quote(folder_path)}",
             hx_swap="none",
             title=folder_title,
-            style="margin-right: 10px;",
             role="button",
-            cls="outline contrast"
+            cls="secondary outline"
         )
         
         buttons = [folder_button]
@@ -3466,8 +3465,7 @@ await main()
                         href=f"/download_file?file={quote(path_for_url)}",
                         target="_blank",
                         role="button",
-                        cls="outline contrast",
-                        style="margin-left: 10px;"
+                        cls="secondary outline"
                     )
                     buttons.append(download_button)
                 else:
@@ -3494,8 +3492,7 @@ await main()
                             href=f"/download_file?file={quote(path_for_url)}",
                             target="_blank",
                             role="button",
-                            cls="outline contrast",
-                            style="margin-left: 10px;"
+                            cls="secondary outline"
                         )
                         buttons.append(download_button)
                 except Exception as e:
