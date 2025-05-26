@@ -236,24 +236,16 @@ class WorkflowGenesis:
     def create_prism_widget(self, create_cmd, splice_cmd, widget_id):
         """Create a Prism.js syntax highlighting widget with copy functionality for each command."""
         textarea_id_create = f'{widget_id}_create_cmd'
-        textarea_id_splice = f'{widget_id}_splice_cmd'
+        textarea_id_splice_basic = f'{widget_id}_splice_basic'
+        textarea_id_splice_bottom = f'{widget_id}_splice_bottom'
+        textarea_id_splice_top = f'{widget_id}_splice_top'
         
         # Extract filename from splice_cmd for enhanced examples
         filename = splice_cmd.split()[-1] if splice_cmd.split() else "your_workflow.py"
         
-        # Create enhanced splice command examples
-        enhanced_splice_examples = f"""# Basic usage (inserts before finalize step):
-{splice_cmd}
-
-# Insert at bottom (explicit, same as default):
-{splice_cmd} --position bottom
-
-# Insert at top (after first step):
-{splice_cmd} --position top
-
-# Flexible filename handling:
-python splice_workflow_step.py {filename.replace('.py', '')}  # .py extension optional
-python splice_workflow_step.py plugins/{filename}  # plugins/ prefix optional"""
+        # Create individual splice commands
+        splice_cmd_bottom = f"{splice_cmd} --position bottom"
+        splice_cmd_top = f"{splice_cmd} --position top"
         
         container = Div(
             # Create Command Box
@@ -266,15 +258,52 @@ python splice_workflow_step.py plugins/{filename}  # plugins/ prefix optional"""
                 ),
                 cls='mt-4'
             ),
-            # Enhanced Splice Command Box
+            # Splice Commands Section
             Div(
                 H5('Splice Workflow Step Commands:'),
                 P('Add new placeholder steps to your workflow with flexible positioning. Use --position top to insert after the first step, or --position bottom (default) to insert before finalize:', cls='text-secondary', style='margin-bottom: 0.5rem; font-size: 0.9rem;'),
-                Textarea(enhanced_splice_examples, id=textarea_id_splice, style='display: none;'),
-                Pre(
-                    Code(enhanced_splice_examples, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
-                    cls='line-numbers'
+                
+                # Basic usage (default)
+                Div(
+                    P('Basic usage (inserts before finalize step):', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
+                    Textarea(splice_cmd, id=textarea_id_splice_basic, style='display: none;'),
+                    Pre(
+                        Code(splice_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                        cls='line-numbers'
+                    ),
+                    style='margin-bottom: 1rem;'
                 ),
+                
+                # Insert at bottom (explicit)
+                Div(
+                    P('Insert at bottom (explicit, same as default):', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
+                    Textarea(splice_cmd_bottom, id=textarea_id_splice_bottom, style='display: none;'),
+                    Pre(
+                        Code(splice_cmd_bottom, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                        cls='line-numbers'
+                    ),
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                # Insert at top
+                Div(
+                    P('Insert at top (after first step):', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
+                    Textarea(splice_cmd_top, id=textarea_id_splice_top, style='display: none;'),
+                    Pre(
+                        Code(splice_cmd_top, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                        cls='line-numbers'
+                    ),
+                    style='margin-bottom: 1rem;'
+                ),
+                
+                # Flexible filename handling (informational, no Prism)
+                Div(
+                    P('Flexible filename handling:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
+                    P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
+                    P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
+                    style='margin-bottom: 0.5rem;'
+                ),
+                
                 cls='mt-4'
             ),
             id=widget_id
