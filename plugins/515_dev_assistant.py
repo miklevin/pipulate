@@ -535,9 +535,9 @@ class DevAssistant:
                     Ul(*[Li(rec) for rec in expert_recommendations]),
                     H4('📚 Key Resources:'),
                     Ul(
-                        Li(A('Ultimate Pipulate Guide Part 1', href='/static/ULTIMATE_PIPULATE_GUIDE.md', target='_blank')),
-                        Li(A('Ultimate Pipulate Guide Part 2', href='/static/ULTIMATE_PIPULATE_GUIDE_PART2.md', target='_blank')),
-                        Li(A('Ultimate Pipulate Guide Part 3', href='/static/ULTIMATE_PIPULATE_GUIDE_PART3.md', target='_blank')),
+                        Li(A('Ultimate Pipulate Guide Part 1', href='/docs/guide1', target='_blank')),
+                        Li(A('Ultimate Pipulate Guide Part 2', href='/docs/guide2', target='_blank')),
+                        Li(A('Ultimate Pipulate Guide Part 3', href='/docs/guide3', target='_blank')),
                         Li('Workflow Genesis Plugin (510_workflow_genesis)'),
                         Li('Helper Scripts (create_workflow.py, splice_workflow_step.py)')
                     ),
