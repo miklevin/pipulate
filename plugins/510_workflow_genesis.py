@@ -126,8 +126,8 @@ class WorkflowGenesis:
                 }
             elif step_obj.id == 'step_03':
                 self.step_messages[step_obj.id] = {
-                    'input': 'Learn step management strategies and generate positioning commands.',
-                    'complete': 'Complete step management guide generated. Ready to build your workflow.'
+                    'input': 'View comprehensive step management commands for flexible workflow building.',
+                    'complete': 'Step management commands ready. Use top/bottom positioning as needed.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -171,14 +171,17 @@ class WorkflowGenesis:
         user_input_key = form.get('pipeline_id', '').strip()
 
         if not user_input_key:
-            pipeline_id, _, _ = pip.generate_pipeline_key(self)
-        else:
-            _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
-            if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
-                pipeline_id = user_input_key
-            else: 
-                 _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
-                 pipeline_id = f'{prefix}{user_part}'
+            from starlette.responses import Response
+            response = Response('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
+        
+        _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
+        if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
+            pipeline_id = user_input_key
+        else: 
+             _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
+             pipeline_id = f'{prefix}{user_part}'
         
         db['pipeline_id'] = pipeline_id
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name}) 
@@ -896,12 +899,17 @@ class WorkflowGenesis:
             return response
         else:
             # Input Phase
-            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing step management form')
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing step management commands')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             template_name = template_selection.get('template', 'blank')
             template_info = self.get_template_info(template_name)
             
+            # Generate all splice commands immediately
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            
+            # Simple proceed form
             form_content = Form(
                 # Current Workflow Context
                 Div(
@@ -912,61 +920,9 @@ class WorkflowGenesis:
                     style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 
-                # Step Positioning Strategy
-                Fieldset(
-                    Legend("Step Insertion Strategy"),
-                    
-                    # Top Position
-                    Label(
-                        Input(type="radio", name="position_strategy", value="top", checked=True),
-                        " Insert at Top (Becomes First Data Step)",
-                        **{'for': 'position_top'}
-                    ),
-                    Div(
-                        P("🎯 Use when: Adding authentication, setup, or prerequisite steps", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
-                        P("⚡ Effect: New step becomes the workflow entry point", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
-                    ),
-                    
-                    # Bottom Position
-                    Label(
-                        Input(type="radio", name="position_strategy", value="bottom"),
-                        " Insert at Bottom (Before Finalize)",
-                        **{'for': 'position_bottom'}
-                    ),
-                    Div(
-                        P("🎯 Use when: Adding processing, validation, or output steps", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
-                        P("⚡ Effect: Maintains existing workflow flow", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
-                    ),
-                    
-                    style='margin-bottom: 1rem;'
-                ),
+                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", cls='text-secondary', style='margin-bottom: 1rem;'),
                 
-                # Advanced Information
-                Details(
-                    Summary("🔧 Advanced Step Management"),
-                    Div(
-                        H6("Position Strategy Guide:"),
-                        Ul(
-                            Li("Top insertion updates the init() method automatically"),
-                            Li("Bottom insertion preserves existing step flow"),
-                            Li("You can run splice commands multiple times"),
-                            Li("Each new step gets a unique ID (step_06, step_07, etc.)"),
-                            style='margin-bottom: 1rem;'
-                        ),
-                        H6("Customization Tips:"),
-                        Ul(
-                            Li("Edit the 'show' attribute for user-friendly step names"),
-                            Li("Modify the input forms in the generated step methods"),
-                            Li("Add validation logic in the _submit handlers"),
-                            Li("Use the 'done' key to store step completion data"),
-                            style='margin-bottom: 1rem;'
-                        ),
-                        style='padding: 1rem; background-color: #f8f9fa; border-radius: 4px;'
-                    ),
-                    style='margin-bottom: 1rem;'
-                ),
-                
-                Button('Generate Step Commands ▸', type='submit', cls='primary'),
+                Button('Show Step Management Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
@@ -981,20 +937,19 @@ class WorkflowGenesis:
         next_step_id = current_steps_for_logic[step_index + 1].id
         
         pipeline_id = db.get('pipeline_id', 'unknown')
-        form_data = await request.form()
         
         # Get previous step data for context
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         workflow_params = step_01_data.get('new_workflow_params', {})
         filename = workflow_params.get('target_filename', 'workflow.py')
         
-        # Collect step management preferences
+        # Store simple completion data
         step_management = {
-            'position_strategy': form_data.get('position_strategy', 'bottom'),
+            'completed': True,
             'filename': filename
         }
         
-        # Store the step management preferences
+        # Store the step completion
         await pip.set_step_data(pipeline_id, step_id, step_management, current_steps_for_logic)
         
         # Generate all splice commands
