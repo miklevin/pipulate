@@ -121,13 +121,13 @@ class WorkflowGenesis:
                 }
             elif step_obj.id == 'step_02':
                 self.step_messages[step_obj.id] = {
-                    'input': 'Select the appropriate template and understand the creation strategy.',
-                    'complete': 'Template selected. Create workflow command generated.'
+                    'input': 'Choose your workflow template to generate the creation command.',
+                    'complete': 'Template selected. Create workflow command ready to run.'
                 }
             elif step_obj.id == 'step_03':
                 self.step_messages[step_obj.id] = {
-                    'input': 'Add placeholder steps to your workflow with precise positioning control.',
-                    'complete': 'Step management commands generated. Ready to build your workflow.'
+                    'input': 'Learn step management strategies and generate positioning commands.',
+                    'complete': 'Complete step management guide generated. Ready to build your workflow.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -275,6 +275,62 @@ class WorkflowGenesis:
             
         # Otherwise return as is
         return text
+
+    def create_creation_command_widget(self, create_cmd, widget_id, template_info=None):
+        """Create a focused widget for just the creation command."""
+        textarea_id_create = f'{widget_id}_create_cmd'
+        
+        # Template information section
+        template_section = ""
+        if template_info:
+            template_section = Div(
+                H5('Selected Template:'),
+                Div(
+                    P(f"Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500;'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
+                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                ),
+                cls='mt-4'
+            )
+        
+        container = Div(
+            # Template Information (if provided)
+            template_section,
+            # Create Command Box
+            Div(
+                H5('Create Workflow Command:'),
+                P('Run this command to create your new workflow file:', cls='text-secondary', style='margin-bottom: 0.5rem; font-size: 0.9rem;'),
+                Textarea(create_cmd, id=textarea_id_create, style='display: none;'),
+                Pre(
+                    Code(create_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0 0 0 0;'),
+                    cls='line-numbers'
+                ),
+                cls='mt-4'
+            ),
+            id=widget_id
+        )
+        
+        init_script = Script(f"""
+            (function() {{
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
+                document.body.addEventListener('initializePrism', function(event) {{
+                    if (event.detail.targetId === '{widget_id}') {{
+                        console.log('Received initializePrism event for {widget_id}');
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                        }} else {{
+                            console.error('Prism library not found for {widget_id}');
+                        }}
+                    }}
+                }});
+            }})();
+        """, type='text/javascript')
+        return Div(container, init_script)
 
     def create_prism_widget(self, create_cmd, splice_cmd, widget_id, template_info=None):
         """Create a Prism.js syntax highlighting widget with copy functionality for each command."""
@@ -611,13 +667,11 @@ class WorkflowGenesis:
 --template {template_name} \\
 --force"""
             
-            splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
-            
             # Template info for display
             template_info = self.get_template_info(template_name)
             
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+            prism_widget = self.create_creation_command_widget(create_cmd, widget_id, template_info)
             
             response = HTMLResponse(to_xml(Div(
                 pip.finalized_content(message=f"🔒 {step_obj.show}", content=prism_widget),
@@ -643,13 +697,11 @@ class WorkflowGenesis:
 --template {template_name} \\
 --force"""
             
-            splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
-            
             # Template info for display
             template_info = self.get_template_info(template_name)
             
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+            prism_widget = self.create_creation_command_widget(create_cmd, widget_id, template_info)
             
             response = HTMLResponse(to_xml(Div(
                 pip.display_revert_widget(
@@ -677,54 +729,26 @@ class WorkflowGenesis:
                     # Blank Template Option
                     Label(
                         Input(type="radio", name="template", value="blank", checked=True),
-                        " Blank Template",
+                        " Blank Template (Simple & Clean)",
                         **{'for': 'template_blank'}
                     ),
-                    Div(
-                        P("🎯 Best for: Custom workflows, learning, simple processes", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
-                        P("📋 Starting with: 1 placeholder step + finalize", cls='text-secondary', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.85rem;'),
-                        P("⚡ Complexity: Minimal - easy to understand and modify", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
-                    ),
+                    P("Minimal single-step workflow - perfect for custom development", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.9rem;'),
                     
                     # Trifecta Template Option  
                     Label(
                         Input(type="radio", name="template", value="trifecta"),
-                        " Trifecta Template",
+                        " Trifecta Template (Feature-Rich)",
                         **{'for': 'template_trifecta'}
                     ),
-                    Div(
-                        P("🎯 Best for: API integration, data collection, complex workflows", cls='text-success', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem;'),
-                        P("📋 Starting with: 5 data steps + finalize (Botify API pattern)", cls='text-secondary', style='margin: 0.25rem 0 0 1.5rem; font-size: 0.85rem;'),
-                        P("⚡ Complexity: Advanced - includes background processing, file management, error handling", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.85rem;'),
-                    ),
+                    P("Multi-step API workflow with advanced features", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.9rem;'),
                     
                     style='margin-bottom: 1rem;'
                 ),
                 
-                # Strategy Information
-                Details(
-                    Summary("💡 Template Selection Guide"),
-                    Div(
-                        H6("When to choose Blank Template:"),
-                        Ul(
-                            Li("Building a custom workflow from scratch"),
-                            Li("Learning Pipulate development patterns"),
-                            Li("Simple form-based processes"),
-                            Li("Prototyping new ideas"),
-                            style='margin-bottom: 1rem;'
-                        ),
-                        H6("When to choose Trifecta Template:"),
-                        Ul(
-                            Li("Integrating with external APIs"),
-                            Li("Processing large datasets"),
-                            Li("Need background job processing"),
-                            Li("Complex multi-step data workflows"),
-                            style='margin-bottom: 1rem;'
-                        ),
-                        P("💡 You can always add steps later using splice_workflow_step.py!", cls='text-info', style='font-weight: 500;'),
-                        style='padding: 1rem; background-color: #f8f9fa; border-radius: 4px;'
-                    ),
-                    style='margin-bottom: 1rem;'
+                # Next Step Preview
+                Div(
+                    P("💡 After creating your workflow, you'll learn how to add custom steps with flexible positioning!", cls='text-info', style='font-weight: 500; text-align: center;'),
+                    style='padding: 0.75rem; background-color: #e7f3ff; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 
                 Button('Generate Create Command ▸', type='submit', cls='primary'),
@@ -769,13 +793,11 @@ class WorkflowGenesis:
 --template {template_name} \\
 --force"""
         
-        splice_cmd = f"python splice_workflow_step.py {workflow_params.get('target_filename', 'workflow.py')}"
-        
         # Template info for display
         template_info = self.get_template_info(template_name)
         
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        prism_widget = self.create_prism_widget(create_cmd, splice_cmd, widget_id, template_info)
+        prism_widget = self.create_creation_command_widget(create_cmd, widget_id, template_info)
         
         pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{template_selection}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
