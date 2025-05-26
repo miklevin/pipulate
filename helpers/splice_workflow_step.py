@@ -54,6 +54,7 @@ def find_pipulate_root():
 
 # Define paths - now dynamically found
 PROJECT_ROOT = find_pipulate_root()
+TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "710_blank_placeholder.py"
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
 # Markers to find insertion points
@@ -163,6 +164,7 @@ Examples:
     args = parser.parse_args()
 
     print(f"Pipulate project root found at: {PROJECT_ROOT}")
+    print(f"Template file: {TEMPLATE_FILE_PATH}")
     print(f"Plugins directory: {PLUGINS_DIR}")
     print()
 
