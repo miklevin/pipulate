@@ -69,6 +69,125 @@ PLUGINS_DIR = PROJECT_ROOT / "plugins"
 STEPS_LIST_MARKER = "# --- STEPS_LIST_INSERTION_POINT ---"
 STEP_METHODS_MARKER = "# --- STEP_METHODS_INSERTION_POINT ---"
 
+def find_steps_list_definition(content):
+    """
+    Find the steps list definition in the content, handling both direct and indirect assignment patterns.
+    
+    Returns a tuple of (steps_list_prefix, steps_list_content, steps_list_suffix, original_full_block)
+    or (None, None, None, None) if not found.
+    """
+    
+    # Pattern 1: Direct assignment `self.steps = [...]`
+    direct_assignment_regex = re.compile(
+        r"(\bself\.steps\s*=\s*\[)"  # Group 1: "self.steps = [" (with word boundary)
+        r"(.*?)"                     # Group 2: The content of the list (non-greedy)
+        r"(\])",                     # Group 3: The closing "]"
+        re.DOTALL | re.MULTILINE
+    )
+    direct_match = direct_assignment_regex.search(content)
+    
+    if direct_match:
+        print("Found direct 'self.steps = [...]' assignment.")
+        return (
+            direct_match.group(1),  # prefix
+            direct_match.group(2),  # content
+            direct_match.group(3),  # suffix
+            direct_match.group(0)   # full block
+        )
+    
+    print("Direct 'self.steps = [...]' not found. Trying indirect 'self.steps = var_name' then 'var_name = [...]'.")
+    
+    # Pattern 2: Indirect assignment `self.steps = variable_name`
+    indirect_assignment_regex = re.compile(
+        r"^\s*self\.steps\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[;#]|$)",  # Capture variable name
+        re.MULTILINE
+    )
+    indirect_match = indirect_assignment_regex.search(content)
+    
+    if indirect_match:
+        variable_name = indirect_match.group(1)
+        print(f"Found indirect 'self.steps = {variable_name}'. Now searching for '{variable_name} = [...]'.")
+        
+        # Pattern 2b: Find the definition of `variable_name = [...]`
+        variable_definition_regex = re.compile(
+            rf"(^\s*{re.escape(variable_name)}\s*=\s*\[)"  # Group 1: "variable_name = [" (possibly indented)
+            r"(.*?)"                                      # Group 2: Content of the list
+            r"(\])",                                      # Group 3: Closing "]"
+            re.DOTALL | re.MULTILINE
+        )
+        var_def_match = variable_definition_regex.search(content)
+        
+        if var_def_match:
+            print(f"Found definition block for '{variable_name}'.")
+            return (
+                var_def_match.group(1),  # prefix
+                var_def_match.group(2),  # content
+                var_def_match.group(3),  # suffix
+                var_def_match.group(0)   # full block
+            )
+        else:
+            print(f"ERROR: Found 'self.steps = {variable_name}' but could not find the list definition for '{variable_name} = [...]'.")
+            print("Ensure the variable is assigned a list literal directly like 'variable_name = [Step(...)]'.")
+            return (None, None, None, None)
+    else:
+        print(f"ERROR: Could not find 'self.steps = [...]' or 'self.steps = variable_name' pattern.")
+        print("The script expects 'self.steps' to be initialized either with a direct list or via an intermediate variable that is itself a list literal.")
+        return (None, None, None, None)
+
+def insert_step_in_list_content(steps_list_content, new_step_definition, position, steps_list_marker):
+    """
+    Insert a new step definition into the steps list content based on position.
+    
+    Args:
+        steps_list_content: The content between [ and ] of the steps list
+        new_step_definition: The new Step(...) definition to insert
+        position: "top" or "bottom"
+        steps_list_marker: The marker to look for in bottom position
+    
+    Returns:
+        The modified steps list content
+    """
+    current_step_lines = steps_list_content.splitlines()
+    processed_lines = []
+    
+    if position == "top":
+        # Find the first actual Step definition
+        first_actual_step_line_index = -1
+        for i, line in enumerate(current_step_lines):
+            if line.lstrip().startswith("Step("):
+                first_actual_step_line_index = i
+                break
+        
+        if first_actual_step_line_index != -1:
+            # Insert before the first existing Step definition
+            processed_lines.extend(current_step_lines[:first_actual_step_line_index])
+            processed_lines.extend(new_step_definition.splitlines())
+            processed_lines.extend(current_step_lines[first_actual_step_line_index:])
+        else:
+            # No existing Step definitions, new step is the first
+            processed_lines.extend(new_step_definition.splitlines())
+            processed_lines.extend(current_step_lines)
+    
+    elif position == "bottom":
+        # Look for the marker first
+        marker_index = -1
+        for i, line in enumerate(current_step_lines):
+            if steps_list_marker in line:
+                marker_index = i
+                break
+        
+        if marker_index != -1:
+            # Marker found, insert before it
+            processed_lines.extend(current_step_lines[:marker_index])
+            processed_lines.extend(new_step_definition.splitlines())
+            processed_lines.extend(current_step_lines[marker_index:])
+        else:
+            # No marker, append to the end
+            processed_lines.extend(current_step_lines)
+            processed_lines.extend(new_step_definition.splitlines())
+    
+    return "\n".join(processed_lines)
+
 def generate_step_method_templates(step_id_str: str, step_done_key: str, step_show_name: str, app_name_var: str = "self.app_name"):
     """
     Generates the Python code for a new step's GET and POST handlers.
@@ -221,22 +340,13 @@ Examples:
         with open(target_file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # --- 1. Find the complete self.steps list definition ---
-        # Look for the entire self.steps = [...] block
-        steps_list_regex = re.compile(r"(self\.steps\s*=\s*\[)(.*?)(\])", re.DOTALL)
-        match = steps_list_regex.search(content)
-
-        if not match:
-            print(f"ERROR: Could not find the 'self.steps = [...]' block in {target_file_path}.")
-            print("Please ensure your workflow file has a properly formatted self.steps list.")
-            return
+        # --- 1. Find the steps list definition using the new flexible approach ---
+        steps_list_prefix, steps_list_content, steps_list_suffix, original_full_block = find_steps_list_definition(content)
         
-        steps_list_prefix = match.group(1)  # "self.steps = ["
-        steps_list_content = match.group(2)  # Everything between [ and ]
-        steps_list_suffix = match.group(3)  # "]"
+        if steps_list_content is None:
+            return  # Error messages already printed by find_steps_list_definition
         
         # --- 2. Scan ALL existing Step definitions to find max step number ---
-        # Find all Step(id='step_XX', ...) in the entire steps list content
         step_id_matches = re.findall(r"Step\s*\(\s*id=['\"]step_(\d+)['\"]", steps_list_content)
         max_step_num = 0
         if step_id_matches:
@@ -275,63 +385,13 @@ Examples:
         )
 
         # --- 5. Insert the new Step definition based on position ---
-        if args.position == "top":
-            # Insert BEFORE the first Step definition to become the new first data step
-            lines = steps_list_content.splitlines()
-            new_lines = []
-            inserted = False
-            
-            for i, line in enumerate(lines):
-                stripped_line = line.lstrip()
-                
-                # Look for the first actual Step definition (not comments or empty lines)
-                if not inserted and stripped_line.startswith("Step("):
-                    # Insert new step BEFORE this first Step definition
-                    for new_step_line in new_step_definition.splitlines():
-                        new_lines.append(new_step_line)
-                    # Now add the original first step and all remaining lines
-                    new_lines.extend(lines[i:])
-                    inserted = True
-                    break
-                elif not inserted:
-                    # Keep adding lines until we find the first Step
-                    new_lines.append(line)
-            
-            if not inserted:
-                # If no Step definitions found, add the new step at the end
-                for new_step_line in new_step_definition.splitlines():
-                    new_lines.append(new_step_line)
-                print("WARNING: No existing Step definitions found. Added new step as first item.")
+        new_steps_list_content = insert_step_in_list_content(
+            steps_list_content, new_step_definition, args.position, STEPS_LIST_MARKER
+        )
         
-        if args.position == "bottom":
-            # Insert before the finalize step or before the marker
-            lines = steps_list_content.splitlines()
-            new_lines = []
-            inserted = False
-            
-            for line in lines:
-                # Check if this line contains the finalize step or the insertion marker
-                if (not inserted and 
-                    (line.strip().startswith("Step(id='finalize'") or 
-                     line.strip().startswith('Step(id="finalize"') or
-                     STEPS_LIST_MARKER in line)):
-                    # Insert new step before this line
-                    new_lines.append(new_step_definition)
-                    inserted = True
-                new_lines.append(line)
-            
-            if not inserted:
-                # If no finalize step or marker found, append at the end
-                new_lines.append(new_step_definition)
-                print("WARNING: No finalize step or insertion marker found. Added step at end of list.")
-        
-        # --- 6. Reconstruct the steps list content ---
-        new_steps_list_content = "\n".join(new_lines)
-        
-        # Replace the original steps list with the modified one
-        original_steps_block = steps_list_prefix + steps_list_content + steps_list_suffix
-        new_steps_block = steps_list_prefix + new_steps_list_content + steps_list_suffix
-        content = content.replace(original_steps_block, new_steps_block)
+        # --- 6. Reconstruct the steps list and replace in content ---
+        new_full_block = steps_list_prefix + new_steps_list_content + steps_list_suffix
+        content = content.replace(original_full_block, new_full_block, 1)
         
         print(f"Inserted Step definition for {new_step_id_str} at position '{args.position}'.")
 
@@ -339,8 +399,6 @@ Examples:
         new_methods_code = generate_step_method_templates(new_step_id_str, new_step_done_key, new_step_show_name)
         
         # --- 8. Insert new methods before the methods marker ---
-        # The STEP_METHODS_MARKER is assumed to be at the class level (e.g., 4 spaces indent)
-        # If the marker has a different indentation in the template, adjust class_member_indent
         class_member_indent = "    " # Typical indent for class members / method definitions
         replacement_for_methods_marker = f"{new_methods_code.rstrip()}\n\n{class_member_indent}{STEP_METHODS_MARKER}"
         

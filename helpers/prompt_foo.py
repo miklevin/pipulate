@@ -33,11 +33,11 @@ FILES_TO_INCLUDE_RAW = """\
 # flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT
 # /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py
 /home/mike/repos/pipulate/plugins/999_test_trifecta.py
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
 
