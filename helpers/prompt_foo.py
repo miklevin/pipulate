@@ -36,8 +36,8 @@ server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT
-/home/mike/repos/MikeLev.in/_posts/2025-05-21-ai-wrangling-code-transparency.md  <-- BQL Transparency Logging Infrastructure
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- Started implementing BQL Transparency Logging Infrastructure (needs separate log file)
+# /home/mike/repos/MikeLev.in/_posts/2025-05-21-ai-wrangling-code-transparency.md  <-- BQL Transparency Logging Infrastructure
+# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- Started implementing BQL Transparency Logging Infrastructure (needs separate log file)
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (OFTEN INCLUDED)
 # /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
@@ -50,12 +50,12 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## SAMPLE WORKFLOWS
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
 
 ## HELPER SCRIPTS
-# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 """
