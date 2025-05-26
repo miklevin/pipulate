@@ -139,6 +139,21 @@ class BotifyCsvDownloaderWorkflow:
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
 
+    # UI Constants - Centralized button labels and styles
+    # ===================================================
+    # Standardized labels and styles for consistent UI across the workflow
+    UI_CONSTANTS = {
+        'BUTTON_LABELS': {
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Download CSV'
+        },
+        'BUTTON_STYLES': {
+            'STANDARD': 'secondary outline',
+            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;'
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -421,14 +436,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;'),
@@ -531,14 +546,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -554,14 +569,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -645,14 +660,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -668,14 +683,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -762,14 +777,14 @@ class BotifyCsvDownloaderWorkflow:
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
@@ -815,8 +830,8 @@ class BotifyCsvDownloaderWorkflow:
         await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
         widget = Div(
-            Button('🐍 Hide/Show Code', 
-                cls='secondary outline',
+            Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                 hx_get=f'/{app_name}/{step_id}_toggle',
                 hx_target=f'#{step_id}_widget',
                 hx_swap='innerHTML'
@@ -2018,14 +2033,14 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Analysis {status_text}{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -2260,14 +2275,14 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -2725,14 +2740,14 @@ await main()
             
             widget = Div(
                 Div(
-                    Button('🐍 Hide/Show Code', 
-                        cls='secondary outline',
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'], 
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/{step_id}_toggle',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style="display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;"
+                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -3426,13 +3441,13 @@ await main()
         
         # Always create the View Folder button
         folder_button = A(
-            "📂 View Folder",
+            self.UI_CONSTANTS['BUTTON_LABELS']['VIEW_FOLDER'],
             href="#",
             hx_get=f"/open-folder?path={quote(folder_path)}",
             hx_swap="none",
             title=folder_title,
             role="button",
-            cls="secondary outline"
+            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
         )
         
         buttons = [folder_button]
@@ -3461,11 +3476,11 @@ await main()
                     path_for_url = expected_file_path.relative_to(downloads_base)
                     path_for_url = str(path_for_url).replace('\\', '/')
                     download_button = A(
-                        "⬇️ Download CSV",
+                        self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                         href=f"/download_file?file={quote(path_for_url)}",
                         target="_blank",
                         role="button",
-                        cls="secondary outline"
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                     )
                     buttons.append(download_button)
                 else:
@@ -3488,11 +3503,11 @@ await main()
                         path_for_url = file_path_obj.relative_to(downloads_base)
                         path_for_url = str(path_for_url).replace('\\', '/')
                         download_button = A(
-                            "⬇️ Download CSV",
+                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                             href=f"/download_file?file={quote(path_for_url)}",
                             target="_blank",
                             role="button",
-                            cls="secondary outline"
+                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(download_button)
                 except Exception as e:
