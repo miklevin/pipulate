@@ -183,6 +183,17 @@ def insert_step_in_list_content(steps_list_content, new_step_definition, positio
             processed_lines.extend(current_step_lines[marker_index:])
         else:
             # No marker, append to the end
+            # First, ensure the last step has a comma
+            if current_step_lines:
+                # Find the last line that contains a Step definition closing
+                last_step_line_index = -1
+                for i in range(len(current_step_lines) - 1, -1, -1):
+                    line = current_step_lines[i].strip()
+                    if line.endswith(')') and not line.endswith(','):
+                        # This is likely the last step without a comma
+                        current_step_lines[i] = current_step_lines[i] + ','
+                        break
+            
             processed_lines.extend(current_step_lines)
             processed_lines.extend(new_step_definition.splitlines())
     
