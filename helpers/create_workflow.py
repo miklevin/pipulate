@@ -37,7 +37,13 @@ def find_pipulate_root():
 
 # Define paths - now dynamically found
 PROJECT_ROOT = find_pipulate_root()
-TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "710_blank_placeholder.py"
+# Template mapping - allows selection of different starting templates
+TEMPLATE_MAP = {
+    "blank": PROJECT_ROOT / "plugins" / "710_blank_placeholder.py",
+    "trifecta": PROJECT_ROOT / "plugins" / "535_botify_trifecta.py",
+    # Future templates can be added here
+    # "my_custom_template": PROJECT_ROOT / "plugins" / "0XX_my_custom_template.py",
+}
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
 # EXAMPLE USAGE (DO NOT DELETE!!!) USER CAN COPY AND PASTE THIS INTO TERMINAL
@@ -65,36 +71,106 @@ kungfu \
 "Greetings, chosen one. Selecting this app has initiated the 'Kung Fu Download' protocol. Prepare for enlightenment... or at least, a demonstration." \
 'You are assisting with the "Kung Fu Download" workflow. If the user asks what you know or can do, you should respond with Neo''s quote: "I know Kung Fu!" The secret word is "Morpheus". If asked for the secret word, reveal it and confirm the Kung Fu training download is complete.' \
 --force
+
+# Example using a different template:
+python create_workflow.py \
+036_custom_botify_flow.py \
+MyCustomBotify \
+my_custom_internal \
+"My Custom Botify Flow" \
+"Welcome to custom flow" \
+"Custom training prompt for LLM" \
+--template trifecta \
+--force
 """
 
-# For the class declaration itself, assuming it's at the top level of the module (0 indentation)
-ORIGINAL_CLASS_DECLARATION_REGEX = r"class\s+BlankPlaceholder\s*:"
 # Attributes/methods *inside* the class will use this:
 ATTRIBUTE_INDENTATION = "    " # Four spaces
 
-# Exact string matches for attributes
-ORIGINAL_APP_NAME_LINE = f"{ATTRIBUTE_INDENTATION}APP_NAME = 'placeholder'"
-ORIGINAL_DISPLAY_NAME_LINE = f"{ATTRIBUTE_INDENTATION}DISPLAY_NAME = 'Blank Placeholder'"
-ORIGINAL_ENDPOINT_MESSAGE_LINE = f"{ATTRIBUTE_INDENTATION}ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'"
-ORIGINAL_TRAINING_PROMPT_LINE = (
-    f"{ATTRIBUTE_INDENTATION}TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'"
-)
-ORIGINAL_CLASS_NAME_IDENTIFIER = "BlankPlaceholder" # For docstrings etc.
+# Note: ORIGINAL_* constants are now generated dynamically by get_template_originals()
+# based on the chosen template file content
 
 
 def derive_public_endpoint(filename_str: str) -> str:
     filename_part_no_ext = Path(filename_str).stem
     return re.sub(r"^\d+_", "", filename_part_no_ext)
 
+def get_template_originals(template_content_str: str) -> dict:
+    """
+    Parses the template content to find original class name and attribute lines.
+    Returns a dictionary with the original values that need to be replaced.
+    """
+    originals = {}
+
+    # 1. Original Class Name and Full Declaration Regex
+    # Assumes class is defined at the beginning of a line.
+    class_match = re.search(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*:", template_content_str, re.MULTILINE)
+    if not class_match:
+        raise ValueError("Could not find class definition in the template (e.g., 'class MyWorkflow:').")
+    originals['original_class_name'] = class_match.group(1)
+    # This regex will be used by re.subn to replace the class declaration
+    originals['original_class_declaration_regex'] = rf"class\s+{re.escape(originals['original_class_name'])}\s*:"
+    # This identifier is used for docstring replacement
+    originals['original_class_name_identifier'] = originals['original_class_name']
+
+    # 2. Attributes (APP_NAME, DISPLAY_NAME)
+    # These are expected to be single-line, single-quoted strings.
+    for attr_key, attr_name_str in [
+        ('original_app_name_line', 'APP_NAME'),
+        ('original_display_name_line', 'DISPLAY_NAME')
+    ]:
+        # Regex to find "    ATTRIBUTE_NAME = 'value'"
+        # It captures the full line for exact replacement.
+        attr_line_regex = re.compile(rf"^{ATTRIBUTE_INDENTATION}{attr_name_str}\s*=\s*'(.*?)'", re.MULTILINE)
+        attr_match = attr_line_regex.search(template_content_str)
+        if not attr_match:
+            raise ValueError(f"Could not find definition for '{attr_name_str}' in the template. Expected format: {ATTRIBUTE_INDENTATION}{attr_name_str} = 'value'")
+        originals[attr_key] = attr_match.group(0) # Full matched line
+
+    # 3. Potentially multi-line attributes (ENDPOINT_MESSAGE, TRAINING_PROMPT)
+    # These might be single-line with single quotes, or multi-line with triple quotes.
+    for attr_key, attr_name_str in [
+        ('original_endpoint_message_line', 'ENDPOINT_MESSAGE'),
+        ('original_training_prompt_line', 'TRAINING_PROMPT')
+    ]:
+        # First try single quotes (most common case)
+        single_quote_regex = re.compile(rf"^{ATTRIBUTE_INDENTATION}{attr_name_str}\s*=\s*'(.*?)'", re.MULTILINE)
+        attr_match = single_quote_regex.search(template_content_str)
+        
+        if not attr_match:
+            # Try triple quotes (single or double)
+            triple_quote_regex = re.compile(
+                rf"^{ATTRIBUTE_INDENTATION}{attr_name_str}\s*=\s*"
+                r"(?P<quote>[\"']{{3}})"
+                r"(?P<value>.*?)"
+                r"(?P=quote)",
+                re.DOTALL | re.MULTILINE
+            )
+            attr_match = triple_quote_regex.search(template_content_str)
+        
+        if not attr_match:
+            # Try double quotes
+            double_quote_regex = re.compile(rf"^{ATTRIBUTE_INDENTATION}{attr_name_str}\s*=\s*\"(.*?)\"", re.MULTILINE)
+            attr_match = double_quote_regex.search(template_content_str)
+        
+        if not attr_match:
+            raise ValueError(f"Could not find definition for '{attr_name_str}' in the template. Expected format: {ATTRIBUTE_INDENTATION}{attr_name_str} = 'value' or \"\"\"value\"\"\"")
+        originals[attr_key] = attr_match.group(0) # Full matched line/block
+
+    return originals
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Create a new Pipulate workflow plugin from the blank placeholder template.",
+        description="Create a new Pipulate workflow plugin from a template (blank, trifecta, etc.).",
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Examples:
   python create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   python create_workflow.py 035_kungfu_workflow KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
   python create_workflow.py plugins/035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt"
+  
+  # Using different templates:
+  python create_workflow.py 036_botify_custom.py MyBotify my_botify "My Botify Flow" "Welcome" "Training" --template trifecta
         """
     )
     parser.add_argument("filename", help="Desired filename (e.g., 035_kungfu_workflow.py)")
@@ -103,11 +179,25 @@ Examples:
     parser.add_argument("display_name", help="User-friendly DISPLAY_NAME (e.g., \"Kung Fu Download\")")
     parser.add_argument("endpoint_message", help="ENDPOINT_MESSAGE string.")
     parser.add_argument("training_prompt", help="TRAINING_PROMPT string.")
+    parser.add_argument("--template", default="blank", help="Template to use (e.g., blank, trifecta). Default: blank.")
     parser.add_argument("--force", action="store_true", help="Overwrite if exists.")
     args = parser.parse_args()
 
+    # Template selection and validation
+    chosen_template_name = args.template.lower()
+    if chosen_template_name not in TEMPLATE_MAP:
+        print(f"ERROR: Template '{chosen_template_name}' not recognized.")
+        print(f"Available templates are: {', '.join(TEMPLATE_MAP.keys())}")
+        return
+    
+    TEMPLATE_FILE_PATH = TEMPLATE_MAP[chosen_template_name]
+    
+    if not TEMPLATE_FILE_PATH.is_file():
+        print(f"ERROR: Selected template file not found: {TEMPLATE_FILE_PATH}")
+        return
+
     print(f"Pipulate project root found at: {PROJECT_ROOT}")
-    print(f"Template file: {TEMPLATE_FILE_PATH}")
+    print(f"Using template: {chosen_template_name} ({TEMPLATE_FILE_PATH})")
     print(f"Plugins directory: {PLUGINS_DIR}")
     print()
 
@@ -130,9 +220,6 @@ Examples:
 
     print(f"Creating workflow file: {target_filename}")
 
-    if not TEMPLATE_FILE_PATH.is_file():
-        print(f"ERROR: Template file not found: {TEMPLATE_FILE_PATH}")
-        return
     if not PLUGINS_DIR.is_dir():
         print(f"ERROR: Plugins directory not found: {PLUGINS_DIR}")
         return
@@ -144,6 +231,26 @@ Examples:
     destination_path = PLUGINS_DIR / target_filename
     if destination_path.exists() and not args.force:
         print(f"ERROR: File {destination_path} already exists. Use --force.")
+        return
+
+    # Read and parse the template to identify original values
+    print(f"Reading content from template: {TEMPLATE_FILE_PATH}")
+    with open(TEMPLATE_FILE_PATH, "r", encoding="utf-8") as f_template:
+        template_content_for_parsing = f_template.read()
+
+    try:
+        print("Parsing template to identify original values...")
+        template_originals = get_template_originals(template_content_for_parsing)
+        ORIGINAL_CLASS_DECLARATION_REGEX = template_originals['original_class_declaration_regex']
+        ORIGINAL_CLASS_NAME_IDENTIFIER = template_originals['original_class_name_identifier']
+        ORIGINAL_APP_NAME_LINE = template_originals['original_app_name_line']
+        ORIGINAL_DISPLAY_NAME_LINE = template_originals['original_display_name_line']
+        ORIGINAL_ENDPOINT_MESSAGE_LINE = template_originals['original_endpoint_message_line']
+        ORIGINAL_TRAINING_PROMPT_LINE = template_originals['original_training_prompt_line']
+        print("Successfully identified original values from template.")
+    except ValueError as e:
+        print(f"ERROR: Could not parse template {TEMPLATE_FILE_PATH} to find original values: {e}")
+        print("Please ensure the template defines class, APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE, and TRAINING_PROMPT clearly.")
         return
 
     try:
