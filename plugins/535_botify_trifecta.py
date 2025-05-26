@@ -1818,51 +1818,135 @@ await main()
                         await self.message_queue.add(pip, '✓ Crawl export job created successfully!', verbatim=True)
                         await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                     except httpx.HTTPStatusError as e:
-                        await self.message_queue.add(pip, f'❌ Export request failed: HTTP {e.response.status_code}', verbatim=True)
-                        raise
+                        error_message = f'Export request failed: HTTP {e.response.status_code}'
+                        await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                        # Store the error in analysis_result but don't raise exception
+                        analysis_result.update({
+                            'download_complete': False, 
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False, 
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                        full_job_url = None  # Prevent polling
                     except Exception as e:
-                        await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
-                        raise
-                success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
-                if not success:
-                    error_message = isinstance(result, str) and result or 'Export job failed'
-                    await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
-                    raise ValueError(f'Export failed: {error_message}')
-                await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
-                download_url = result.get('download_url')
-                if not download_url:
-                    await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
-                    raise ValueError('No download URL found in job result')
-                await self.message_queue.add(pip, '🔄 Downloading crawl data...', verbatim=True)
-                await self.ensure_directory_exists(crawl_filepath)
-                try:
-                    gz_filepath = f'{crawl_filepath}.gz'
-                    async with httpx.AsyncClient(timeout=300.0) as client:
-                        async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                            response.raise_for_status()
-                            with open(gz_filepath, 'wb') as gz_file:
-                                async for chunk in response.aiter_bytes():
-                                    gz_file.write(chunk)
-                    with gzip.open(gz_filepath, 'rb') as f_in:
-                        with open(crawl_filepath, 'wb') as f_out:
-                            shutil.copyfileobj(f_in, f_out)
-                    os.remove(gz_filepath)
-                    _, file_info = await self.check_file_exists(crawl_filepath)
-                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                    df = pd.read_csv(crawl_filepath)
-                    df.columns = ['Full URL', 'Compliance Status', 'Compliance Details', 'Occurrence Count']
-                    df.to_csv(crawl_filepath, index=False)
-                    download_info = {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': False}
-                    analysis_result.update({'download_complete': True, 'download_info': download_info})
-                except httpx.ReadTimeout as e:
-                    await self.message_queue.add(pip, f'❌ Timeout error during file download: {str(e)}', verbatim=True)
-                    raise
-                except Exception as e:
-                    await self.message_queue.add(pip, f'❌ Error downloading or decompressing file: {str(e)}', verbatim=True)
-                    raise
-            await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
+                        error_message = f'Export request failed: {str(e)}'
+                        await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                        # Store the error in analysis_result but don't raise exception
+                        analysis_result.update({
+                            'download_complete': False, 
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False, 
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                        full_job_url = None  # Prevent polling
+                if full_job_url:
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
+                    if not success:
+                        error_message = isinstance(result, str) and result or 'Export job failed'
+                        await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
+                        
+                        # Try to get more detailed error by testing the /query endpoint
+                        detailed_error = await self._diagnose_query_endpoint_error(export_query, username, project_name, api_token)
+                        if detailed_error:
+                            error_message = f"{error_message} | Detailed diagnosis: {detailed_error}"
+                            await self.message_queue.add(pip, f'🔍 Detailed error diagnosis: {detailed_error}', verbatim=True)
+                        
+                        # Store the error in analysis_result but don't raise exception
+                        analysis_result.update({
+                            'download_complete': False, 
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False, 
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                    else:
+                        await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                        download_url = result.get('download_url')
+                        if not download_url:
+                            await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
+                            # Store the error in analysis_result but don't raise exception
+                            analysis_result.update({
+                                'download_complete': False, 
+                                'error': 'No download URL found in job result',
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': 'No download URL found in job result',
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                        else:
+                            await self.message_queue.add(pip, '🔄 Downloading crawl data...', verbatim=True)
+                            await self.ensure_directory_exists(crawl_filepath)
+                            try:
+                                gz_filepath = f'{crawl_filepath}.gz'
+                                async with httpx.AsyncClient(timeout=300.0) as client:
+                                    async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
+                                        response.raise_for_status()
+                                        with open(gz_filepath, 'wb') as gz_file:
+                                            async for chunk in response.aiter_bytes():
+                                                gz_file.write(chunk)
+                                with gzip.open(gz_filepath, 'rb') as f_in:
+                                    with open(crawl_filepath, 'wb') as f_out:
+                                        shutil.copyfileobj(f_in, f_out)
+                                os.remove(gz_filepath)
+                                _, file_info = await self.check_file_exists(crawl_filepath)
+                                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                df = pd.read_csv(crawl_filepath)
+                                df.columns = ['Full URL', 'Compliance Status', 'Compliance Details', 'Occurrence Count']
+                                df.to_csv(crawl_filepath, index=False)
+                                download_info = {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': False}
+                                analysis_result.update({'download_complete': True, 'download_info': download_info})
+                            except httpx.ReadTimeout as e:
+                                error_message = f'Timeout error during file download: {str(e)}'
+                                await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                                # Store the error in analysis_result but don't raise exception
+                                analysis_result.update({
+                                    'download_complete': False, 
+                                    'error': error_message,
+                                    'download_info': {
+                                        'has_file': False, 
+                                        'error': error_message,
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                })
+                            except Exception as e:
+                                error_message = f'Error downloading or decompressing file: {str(e)}'
+                                await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                                # Store the error in analysis_result but don't raise exception
+                                analysis_result.update({
+                                    'download_complete': False, 
+                                    'error': error_message,
+                                    'download_info': {
+                                        'has_file': False, 
+                                        'error': error_message,
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                })
+            # Only show success message if download was actually successful
+            if analysis_result.get('download_complete', False) and 'error' not in analysis_result:
+                await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
+            
             analysis_result_str = json.dumps(analysis_result)
             await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
+            
+            # Determine status message and color based on success/failure
+            if 'error' in analysis_result:
+                status_color = 'red'
+                download_message = f' (FAILED: {analysis_result["error"]})'
+                status_text = 'FAILED to download'
+            else:
+                status_color = 'green' if analysis_result.get('download_complete', False) else 'red'
+                download_message = ' (data downloaded)' if analysis_result.get('download_complete', False) else ''
+                status_text = 'downloaded' if analysis_result.get('download_complete', False) else 'FAILED to download'
+            
             widget = Div(
                 Button('Hide/Show Code', 
                     cls='secondary outline',
@@ -1871,11 +1955,11 @@ await main()
                     hx_swap='innerHTML'
                 ),
                 Div(
-                    Pre(f'Analysis: {analysis_slug} (data downloaded)', cls='code-block-container', style='display: none;'),
+                    Pre(f'Status: Analysis {status_text}{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
                     id=f'{step_id}_widget'
                 )
             )
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug} (data downloaded)', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Analysis {status_text}{download_message}', widget=widget, steps=self.steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
             logging.exception(f'Error in step_02_process: {e}')
             return P(f'Error: {str(e)}', style=pip.get_style('error'))
@@ -1990,6 +2074,13 @@ await main()
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
+                        
+                        # Try to get more detailed error by testing the /query endpoint
+                        detailed_error = await self._diagnose_query_endpoint_error(export_query, username, project_name, api_token)
+                        if detailed_error:
+                            error_message = f"{error_message} | Detailed diagnosis: {detailed_error}"
+                            await self.message_queue.add(pip, f'🔍 Detailed error diagnosis: {detailed_error}', verbatim=True)
+                        
                         # Store the error in check_result but don't raise exception
                         check_result.update({
                             'download_complete': False, 
@@ -2108,6 +2199,15 @@ await main()
         selected_slug = analysis_result.get('analysis_slug', '')
         python_command = analysis_result.get('python_command', '')
         
+        # Determine status message and color based on success/failure
+        if 'error' in analysis_result:
+            status_text = f'FAILED to download crawl analysis: {analysis_result["error"]}'
+            status_color = 'red'
+        else:
+            download_complete = analysis_result.get('download_complete', False)
+            status_text = 'HAS crawl analysis' if download_complete else 'does NOT have crawl analysis'
+            status_color = 'green' if download_complete else 'red'
+        
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
         is_visible = state.get(f'{step_id}_widget_visible', False)  # Default to hidden
@@ -2117,8 +2217,8 @@ await main()
             state[f'{step_id}_widget_visible'] = True
             pip.write_state(pipeline_id, state)
             return Div(
-                P(f'Selected analysis: {selected_slug}'),
-                H4('Python Command:'),
+                P(f'Status: {status_text}', style=f'color: {status_color};'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
@@ -2135,15 +2235,15 @@ await main()
         
         if is_visible:
             return Div(
-                P(f'Selected analysis: {selected_slug}'),
-                H4('Python Command:'),
+                P(f'Status: {status_text}', style=f'color: {status_color};'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 style='display: none;'
             )
         else:
             return Div(
-                P(f'Selected analysis: {selected_slug}'),
-                H4('Python Command:'),
+                P(f'Status: {status_text}', style=f'color: {status_color};'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
@@ -2232,9 +2332,15 @@ await main()
         check_result_str = step_data.get(step.done, '')
         check_result = json.loads(check_result_str) if check_result_str else {}
         has_search_console = check_result.get('has_search_console', False)
-        status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
-        status_color = 'green' if has_search_console else 'red'
         python_command = check_result.get('python_command', '')
+        
+        # Determine status message and color based on success/failure
+        if 'error' in check_result:
+            status_text = f'FAILED to download Search Console data: {check_result["error"]}'
+            status_color = 'red'
+        else:
+            status_text = 'HAS Search Console data' if has_search_console else 'does NOT have Search Console data'
+            status_color = 'green' if has_search_console else 'red'
         
         # Check if widget is currently visible
         state = pip.read_state(pipeline_id)
@@ -2246,7 +2352,7 @@ await main()
             pip.write_state(pipeline_id, state)
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
@@ -2264,14 +2370,14 @@ await main()
         if is_visible:
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 style='display: none;'
             )
         else:
             return Div(
                 P(f'Status: Project {status_text}', style=f'color: {status_color};'),
-                H4('Python Command:'),
+                H4('Python Command (for debugging):'),
                 Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
                 Script(f"""
                     setTimeout(function() {{
@@ -2381,66 +2487,135 @@ await main()
                             await self.message_queue.add(pip, f'✓ Search Console export job created successfully! (Job ID: {job_id})', verbatim=True)
                             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                         except httpx.HTTPStatusError as e:
-                            await self.message_queue.add(pip, f'❌ Export request failed: HTTP {e.response.status_code}', verbatim=True)
-                            raise
+                            error_message = f'Export request failed: HTTP {e.response.status_code}'
+                            await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': error_message,
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': error_message,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                            job_id = None  # Prevent polling
                         except Exception as e:
-                            await self.message_queue.add(pip, f'❌ Export request failed: {str(e)}', verbatim=True)
-                            raise
+                            error_message = f'Export request failed: {str(e)}'
+                            await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': error_message,
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': error_message,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                            job_id = None  # Prevent polling
                     if job_id:
                         await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
-                    if not success:
-                        error_message = isinstance(result, str) and result or 'Export job failed'
-                        await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
-                        raise ValueError(f'Export failed: {error_message}')
-                    await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
-                    download_url = result.get('download_url')
-                    if not download_url:
-                        await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
-                        raise ValueError('No download URL found in job result')
-                    await self.message_queue.add(pip, '🔄 Downloading Search Console data...', verbatim=True)
-                    await self.ensure_directory_exists(gsc_filepath)
-                    try:
-                        compressed_path = f'{gsc_filepath}.compressed'
-                        async with httpx.AsyncClient() as client:
-                            async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                                response.raise_for_status()
-                                with open(compressed_path, 'wb') as f:
-                                    async for chunk in response.aiter_bytes():
-                                        f.write(chunk)
-                        try:
-                            with gzip.open(compressed_path, 'rb') as f_in:
-                                with open(gsc_filepath, 'wb') as f_out:
-                                    shutil.copyfileobj(f_in, f_out)
-                            logging.info(f'Successfully extracted gzip file to {gsc_filepath}')
-                        except gzip.BadGzipFile:
-                            try:
-                                with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
-                                    csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
-                                    if not csv_files:
-                                        raise ValueError('No CSV files found in the zip archive')
-                                    with zip_ref.open(csv_files[0]) as source:
-                                        with open(gsc_filepath, 'wb') as target:
-                                            shutil.copyfileobj(source, target)
-                                logging.info(f'Successfully extracted zip file to {gsc_filepath}')
-                            except zipfile.BadZipFile:
-                                shutil.copy(compressed_path, gsc_filepath)
-                                logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
-                        if os.path.exists(compressed_path):
-                            os.remove(compressed_path)
-                        _, file_info = await self.check_file_exists(gsc_filepath)
-                        await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                    except Exception as e:
-                        await self.message_queue.add(pip, f'❌ Error downloading file: {str(e)}', verbatim=True)
-                        raise
-                await self.message_queue.add(pip, f"✓ Search Console data downloaded: {file_info['size']}", verbatim=True)
+                        success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
+                        if not success:
+                            error_message = isinstance(result, str) and result or 'Export job failed'
+                            await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
+                            
+                            # Try to get more detailed error by testing the /query endpoint
+                            detailed_error = await self._diagnose_query_endpoint_error(export_query, username, project_name, api_token)
+                            if detailed_error:
+                                error_message = f"{error_message} | Detailed diagnosis: {detailed_error}"
+                                await self.message_queue.add(pip, f'🔍 Detailed error diagnosis: {detailed_error}', verbatim=True)
+                            
+                            # Store the error in check_result but don't raise exception
+                            check_result.update({
+                                'download_complete': False, 
+                                'error': error_message,
+                                'download_info': {
+                                    'has_file': False, 
+                                    'error': error_message,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                        else:
+                            await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                            download_url = result.get('download_url')
+                            if not download_url:
+                                await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
+                                # Store the error in check_result but don't raise exception
+                                check_result.update({
+                                    'download_complete': False, 
+                                    'error': 'No download URL found in job result',
+                                    'download_info': {
+                                        'has_file': False, 
+                                        'error': 'No download URL found in job result',
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                })
+                            else:
+                                await self.message_queue.add(pip, '🔄 Downloading Search Console data...', verbatim=True)
+                                await self.ensure_directory_exists(gsc_filepath)
+                                try:
+                                    compressed_path = f'{gsc_filepath}.compressed'
+                                    async with httpx.AsyncClient() as client:
+                                        async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
+                                            response.raise_for_status()
+                                            with open(compressed_path, 'wb') as f:
+                                                async for chunk in response.aiter_bytes():
+                                                    f.write(chunk)
+                                    try:
+                                        with gzip.open(compressed_path, 'rb') as f_in:
+                                            with open(gsc_filepath, 'wb') as f_out:
+                                                shutil.copyfileobj(f_in, f_out)
+                                        logging.info(f'Successfully extracted gzip file to {gsc_filepath}')
+                                    except gzip.BadGzipFile:
+                                        try:
+                                            with zipfile.ZipFile(compressed_path, 'r') as zip_ref:
+                                                csv_files = [f for f in zip_ref.namelist() if f.endswith('.csv')]
+                                                if not csv_files:
+                                                    raise ValueError('No CSV files found in the zip archive')
+                                                with zip_ref.open(csv_files[0]) as source:
+                                                    with open(gsc_filepath, 'wb') as target:
+                                                        shutil.copyfileobj(source, target)
+                                            logging.info(f'Successfully extracted zip file to {gsc_filepath}')
+                                        except zipfile.BadZipFile:
+                                            shutil.copy(compressed_path, gsc_filepath)
+                                            logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
+                                    if os.path.exists(compressed_path):
+                                        os.remove(compressed_path)
+                                    _, file_info = await self.check_file_exists(gsc_filepath)
+                                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                except Exception as e:
+                                    error_message = f'Error downloading file: {str(e)}'
+                                    await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                                    # Store the error in check_result but don't raise exception
+                                    check_result.update({
+                                        'download_complete': False, 
+                                        'error': error_message,
+                                        'download_info': {
+                                            'has_file': False, 
+                                            'error': error_message,
+                                            'timestamp': datetime.now().isoformat()
+                                        }
+                                    })
+                # Only show success message if download was actually successful
+                if has_search_console and check_result.get('download_complete', False) and 'error' not in check_result:
+                    await self.message_queue.add(pip, f"✓ Search Console data downloaded: {file_info['size']}", verbatim=True)
+            
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
-            status_color = 'green' if has_search_console else 'red'
-            download_message = ''
-            if has_search_console:
-                download_message = ' (data downloaded)'
+            
+            # Determine status message and color based on success/failure
+            if 'error' in check_result:
+                status_color = 'red'
+                download_message = f' (FAILED: {check_result["error"]})'
+                status_text = 'FAILED to download'
+            else:
+                status_color = 'green' if has_search_console else 'red'
+                download_message = ' (data downloaded)' if has_search_console and check_result.get('download_complete', False) else ''
+                status_text = 'HAS' if has_search_console else 'does NOT have'
+            
             widget = Div(
                 Button('Hide/Show Code', 
                     cls='secondary outline',
@@ -3049,6 +3224,74 @@ await main()
             
         except Exception:
             return "Botify Data Export"
+
+    async def _diagnose_query_endpoint_error(self, jobs_payload, username, project_name, api_token):
+        """
+        When the /jobs endpoint fails with generic errors, test the /query endpoint 
+        to get more detailed error information for debugging.
+        
+        This method converts the jobs payload to a query payload and tests it against
+        the /query endpoint that the Python debugging code uses, which often provides
+        much more descriptive error messages.
+        """
+        try:
+            # Use the same conversion logic as the Python debugging code
+            query_payload, page_size, bql_version = self.convert_jobs_to_query_payload(jobs_payload, username, project_name, page_size=1)
+            
+            headers = {
+                'Authorization': f'Token {api_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Handle different BQL versions with different endpoints
+            if bql_version == "BQLv1":
+                # For web logs, construct the BQLv1 endpoint URL
+                start_date = query_payload.get('start_date', '')
+                end_date = query_payload.get('end_date', '')
+                if not start_date or not end_date:
+                    return "Missing date range for web logs query"
+                
+                # Use the same endpoint as the Python debugging code
+                query_url = f"https://app.botify.com/api/v1/logs/{username}/{project_name}/urls/{start_date}/{end_date}"
+                
+                # Add pagination parameters to URL (same as Python debugging code)
+                query_url_with_params = f"{query_url}?page=1&size=1&sampling=100"
+                
+                # Extract the query body for POST request (same as Python debugging code)
+                query_body = query_payload.get('query_body', {})
+                
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(query_url_with_params, headers=headers, json=query_body)
+                    
+            else:
+                # For BQLv2 (crawl, GSC), use the standard query endpoint
+                query_url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query?size=1"
+                
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(query_url, headers=headers, json=query_payload)
+            
+            # Process the response
+            if response.status_code >= 400:
+                try:
+                    error_body = response.json()
+                    if 'error' in error_body:
+                        error_info = error_body['error']
+                        if isinstance(error_info, dict):
+                            error_code = error_info.get('error_code', 'Unknown')
+                            error_message = error_info.get('message', 'Unknown error')
+                            return f"Error {error_code}: {error_message}"
+                        else:
+                            return str(error_info)
+                    else:
+                        return json.dumps(error_body, indent=2)
+                except Exception:
+                    return f"HTTP {response.status_code}: {response.text[:200]}"
+            else:
+                # Query endpoint worked, so the issue might be with the /jobs endpoint specifically
+                return "Query endpoint works fine - issue may be with /jobs endpoint or export processing"
+                    
+        except Exception as e:
+            return f"Diagnosis failed: {str(e)}"
 
     # --- STEP_METHODS_INSERTION_POINT ---
 
