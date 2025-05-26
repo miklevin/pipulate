@@ -3408,13 +3408,29 @@ await main()
         """Create View Folder and Download CSV buttons for a step."""
         from urllib.parse import quote
         
+        # Extract analysis-specific folder information
+        username = step_data.get('username', '')
+        project_name = step_data.get('project_name', '') or step_data.get('project', '')
+        analysis_slug = step_data.get('analysis_slug', '')
+        
+        # Construct the specific analysis folder path
+        if username and project_name and analysis_slug:
+            analysis_folder = Path.cwd() / 'downloads' / self.APP_NAME / username / project_name / analysis_slug
+            folder_path = str(analysis_folder.resolve())
+            folder_title = f"Open analysis folder: {username}/{project_name}/{analysis_slug}"
+        else:
+            # Fallback to general trifecta folder if analysis info is missing
+            analysis_folder = Path.cwd() / 'downloads' / self.APP_NAME
+            folder_path = str(analysis_folder.resolve())
+            folder_title = f"Open folder: {analysis_folder.resolve()}"
+        
         # Always create the View Folder button
         folder_button = A(
             "📂 View Folder",
             href="#",
-            hx_get=f"/open-folder?path={quote(str((Path.cwd() / 'downloads' / self.APP_NAME).resolve()))}",
+            hx_get=f"/open-folder?path={quote(folder_path)}",
             hx_swap="none",
-            title=f"Open folder: {(Path.cwd() / 'downloads' / self.APP_NAME).resolve()}",
+            title=folder_title,
             style="margin-right: 10px;",
             role="button",
             cls="outline contrast"
