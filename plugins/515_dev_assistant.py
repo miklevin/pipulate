@@ -147,7 +147,7 @@ class DevAssistant:
         if request.method == 'POST':
             await pip.set_step_data(pipeline_id, 'finalize', {'finalized': True}, self.steps)
             await self.message_queue.add(pip, 'Development analysis session finalized.', verbatim=True)
-            return pip.chain_reverter('finalize', len(self.steps) - 1, self.steps, app_name, 'Analysis Complete')
+            return pip.rebuild(app_name, self.steps)
         
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
@@ -157,7 +157,7 @@ class DevAssistant:
                 Form(
                     Button('🔓 Unfinalize', type='submit', cls='secondary'),
                     hx_post=f'/{app_name}/unfinalize',
-                    hx_target='#finalize'
+                    hx_target=f'#{app_name}-container'
                 ),
                 id='finalize'
             )
@@ -168,7 +168,7 @@ class DevAssistant:
                 Form(
                     Button('🔒 Finalize', type='submit', cls='primary'),
                     hx_post=f'/{app_name}/finalize',
-                    hx_target='#finalize'
+                    hx_target=f'#{app_name}-container'
                 ),
                 id='finalize'
             )
@@ -176,9 +176,9 @@ class DevAssistant:
     async def unfinalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         pipeline_id = db.get('pipeline_id', 'unknown')
-        await pip.clear_step_data(pipeline_id, 'finalize', self.steps)
+        await pip.clear_steps_from(pipeline_id, 'finalize', self.steps)
         await self.message_queue.add(pip, 'Development analysis session unlocked for editing.', verbatim=True)
-        return await self.finalize(request)
+        return pip.rebuild(app_name, self.steps)
 
     async def handle_revert(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
@@ -347,7 +347,8 @@ class DevAssistant:
                 id=step_id
             )
         else:
-            if not analysis_results:
+            # Check if step 1 has been completed by looking for plugin_analysis
+            if not step_01_data.get('plugin_analysis'):
                 return Div(
                     Card(
                         H3(f'{step.show}'),
@@ -418,6 +419,17 @@ class DevAssistant:
                 id=step_id
             )
         else:
+            # Check if step 1 has been completed by looking for plugin_analysis
+            if not step_01_data.get('plugin_analysis'):
+                return Div(
+                    Card(
+                        H3(f'{step.show}'),
+                        P('Please complete Plugin Analysis first.', style='color: orange;')
+                    ),
+                    Div(id=next_step_id),
+                    id=step_id
+                )
+            
             recommendations = analysis_results.get('recommendations', [])
             
             debug_checklist = [
@@ -484,6 +496,20 @@ class DevAssistant:
                 id=step_id
             )
         else:
+            # Get analysis from step 1 for consistency
+            step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+            
+            # Check if step 1 has been completed by looking for plugin_analysis
+            if not step_01_data.get('plugin_analysis'):
+                return Div(
+                    Card(
+                        H3(f'{step.show}'),
+                        P('Please complete Plugin Analysis first.', style='color: orange;')
+                    ),
+                    Div(id=next_step_id),
+                    id=step_id
+                )
+            
             expert_recommendations = [
                 "📚 Study the Ultimate Pipulate Guide patterns (all 25 priorities)",
                 "🔧 Use the Workflow Genesis plugin for new workflow creation",
