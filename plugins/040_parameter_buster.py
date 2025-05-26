@@ -985,6 +985,7 @@ class ParameterBusterWorkflow:
         # 1. Create deterministic paths based on user/project identifiers
         # 2. Check if files exist before re-downloading
         # 3. Store metadata about cached files for user feedback
+        # 4. Use APP_NAME namespace to prevent collisions between workflows
 
         Args:
             username: Organization username
@@ -995,7 +996,7 @@ class ParameterBusterWorkflow:
         Returns:
             String path to either the file location or base directory
         """
-        base_dir = f'downloads/{username}/{project_name}/{analysis_slug}'
+        base_dir = f'downloads/{self.APP_NAME}/{username}/{project_name}/{analysis_slug}'
         if not data_type:
             return base_dir
         filenames = {'crawl': 'crawl.csv', 'weblog': 'weblog.csv', 'gsc': 'gsc.csv'}

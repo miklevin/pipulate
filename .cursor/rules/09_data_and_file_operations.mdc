@@ -87,26 +87,62 @@ The schema is defined in `server.py` during `fast_app` initialization.
   * **Storage**: Conventionally, save to `downloads/{APP_NAME}/{pipeline_id}/{filename}`.
   * **State**: Store file metadata (path, name, size, type) in the workflow step's state.
 
-## 6. Plugin-Specific Download Directories
+## 6. 🚨 CRITICAL: APP_NAME Download Namespace (MANDATORY)
+
+**EVERY workflow MUST use APP_NAME namespace for downloads. NO EXCEPTIONS.**
+
+  * **Rule**: All download paths MUST start with `downloads/{self.APP_NAME}/`
+  * **Never**: Create paths directly under `downloads/` without APP_NAME namespace
+  * **Why**: Prevents file collisions between workflows and maintains clean organization
+
+  * **Correct Pattern**:
+    ```python
+    # ✅ CORRECT - Always include APP_NAME namespace
+    base_dir = f'downloads/{self.APP_NAME}/{username}/{project_name}/{analysis_slug}'
+    file_path = f'downloads/{self.APP_NAME}/data/output.csv'
+    save_path = Path("downloads") / self.APP_NAME / "subdir" / filename
+    ```
+
+  * **Wrong Pattern**:
+    ```python
+    # ❌ WRONG - Missing APP_NAME namespace
+    base_dir = f'downloads/{username}/{project_name}/{analysis_slug}'  # BAD!
+    file_path = f'downloads/data/output.csv'  # BAD!
+    save_path = Path("downloads") / "subdir" / filename  # BAD!
+    ```
+
+  * **Template Examples**:
+    * Botify Trifecta: `downloads/trifecta/org/project/analysis/`
+    * Parameter Buster: `downloads/param_buster/org/project/analysis/`
+    * Your Plugin: `downloads/{YOUR_APP_NAME}/your/structure/`
+
+## 7. Plugin-Specific Download Directories
 
   * **Namespace Isolation**: Each plugin's `APP_NAME` creates its own namespace within the `downloads/` directory.
     ```python
     # Example directory structure:
     downloads/
-      botify_csv/           # Plugin APP_NAME namespace
+      trifecta/             # APP_NAME namespace for Botify Trifecta
         org1/
           project1/
             analysis1/
-              export.csv
-      another_plugin/       # Different plugin's namespace
-        data/
-          output.csv
+              crawl.csv
+              weblog.csv
+              gsc.csv
+      param_buster/         # APP_NAME namespace for Parameter Buster
+        org1/
+          project1/
+            analysis1/
+              crawl.csv
+              weblog.csv
+              gsc.csv
     ```
   * **Benefits**:
       * Prevents filename collisions between different plugins
       * Maintains clear organization of plugin-specific data
       * Allows plugins to create their own subdirectory structure
       * Makes cleanup and management easier
+      * Enables safe deletion of plugin-specific data
   * **Implementation**:
     ```python
     # In plugin's __init__ or helper method
@@ -122,8 +158,9 @@ The schema is defined in `server.py` during `fast_app` initialization.
       * Create subdirectories as needed for organization
       * Use `mkdir(parents=True, exist_ok=True)` for safe directory creation
       * Consider using `pipeline_id` in paths for workflow-specific data
+      * Pipeline records are ephemeral - downloads should survive pipeline deletion
 
-## 7. File Downloads
+## 8. File Downloads
 
   * Workflows can generate files (e.g., CSVs, text files) and offer them for download.
   * Save generated files to a known location (e.g., `downloads/`).
