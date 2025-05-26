@@ -30,6 +30,9 @@ class DocumentationPlugin:
         
         # Register route for documentation browser
         app.route('/docs', methods=['GET'])(self.serve_browser)
+        
+        # Register route for serving raw markdown content
+        app.route('/docs/raw/{doc_key}', methods=['GET'])(self.serve_raw_markdown)
 
     def discover_documentation_files(self):
         """Dynamically discover all documentation files from training and rules directories"""
@@ -551,6 +554,26 @@ class DocumentationPlugin:
         
         return ''.join(html_parts)
 
+    async def serve_raw_markdown(self, request):
+        """Serve raw markdown content for copying"""
+        doc_key = request.path_params.get('doc_key') or request.url.path.split('/')[-1]
+        
+        if doc_key not in self.DOCS:
+            return HTMLResponse("Document not found", status_code=404)
+        
+        doc_info = self.DOCS[doc_key]
+        file_path = Path(doc_info['file'])
+        
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            return Response(content, media_type='text/plain; charset=utf-8')
+        except Exception as e:
+            logger.error(f"Error serving raw markdown {doc_key}: {str(e)}")
+            return HTMLResponse("Error reading file", status_code=500)
+
     async def serve_document(self, request):
         """Serve individual documentation files with enhanced styling"""
         doc_key = request.path_params.get('doc_key') or request.url.path.split('/')[-1]
@@ -662,6 +685,34 @@ class DocumentationPlugin:
             background-color: #e9ecef;
             padding: 5px 10px;
             border-radius: 4px;
+        }}
+        
+        .copy-markdown-btn {{
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }}
+        
+        .copy-markdown-btn:hover {{
+            background: #218838;
+        }}
+        
+        .copy-markdown-btn:active {{
+            background: #1e7e34;
+        }}
+        
+        .copy-markdown-btn.copying {{
+            background: #ffc107;
+            color: #212529;
+        }}
+        
+        .copy-markdown-btn.success {{
+            background: #20c997;
         }}
         
         .content {{ 
@@ -787,6 +838,7 @@ class DocumentationPlugin:
         <div class="nav-links">
             <a href="/docs">🏠 Browser</a>
             {' '.join(quick_nav_links)}
+            <button id="copy-markdown-btn" class="copy-markdown-btn">📋 Copy Markdown</button>
         </div>
     </div>
     
@@ -797,31 +849,85 @@ class DocumentationPlugin:
     <!-- Prism JS -->
     <script src="/static/prism.js"></script>
     
-    <!-- Auto-highlight code blocks -->
+    <!-- Auto-highlight code blocks and Copy Markdown functionality -->
     <script>
-        // Ensure Prism highlights all code blocks
-        if (typeof Prism !== 'undefined') {{
-            Prism.highlightAll();
-        }}
-        
-        // Add copy buttons to code blocks
-        document.querySelectorAll('pre code').forEach(function(block) {{
-            const button = document.createElement('button');
-            button.textContent = 'Copy';
-            button.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 4px 8px; font-size: 12px; background: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer;';
+        document.addEventListener('DOMContentLoaded', function() {{
+            // Ensure Prism highlights all code blocks
+            if (typeof Prism !== 'undefined') {{
+                Prism.highlightAll();
+            }}
             
-            const pre = block.parentElement;
-            pre.style.position = 'relative';
-            pre.appendChild(button);
-            
-            button.addEventListener('click', function() {{
-                navigator.clipboard.writeText(block.textContent).then(function() {{
-                    button.textContent = 'Copied!';
-                    setTimeout(function() {{
-                        button.textContent = 'Copy';
-                    }}, 2000);
+            // Add copy buttons to code blocks
+            document.querySelectorAll('pre code').forEach(function(block) {{
+                const button = document.createElement('button');
+                button.textContent = 'Copy';
+                button.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 4px 8px; font-size: 12px; background: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer;';
+                
+                const pre = block.parentElement;
+                pre.style.position = 'relative';
+                pre.appendChild(button);
+                
+                button.addEventListener('click', function() {{
+                    navigator.clipboard.writeText(block.textContent).then(function() {{
+                        button.textContent = 'Copied!';
+                        setTimeout(function() {{
+                            button.textContent = 'Copy';
+                        }}, 2000);
+                    }});
                 }});
             }});
+            
+            // Copy Markdown functionality - check if button exists
+            const copyMarkdownBtn = document.getElementById('copy-markdown-btn');
+            if (copyMarkdownBtn) {{
+                copyMarkdownBtn.addEventListener('click', async function() {{
+                    const button = this;
+                    const originalText = button.textContent;
+                    
+                    try {{
+                        // Show loading state
+                        button.textContent = '⏳ Fetching...';
+                        button.classList.add('copying');
+                        button.disabled = true;
+                        
+                        // Fetch the raw markdown content
+                        const response = await fetch('/docs/raw/{doc_key}');
+                        if (!response.ok) {{
+                            throw new Error('Failed to fetch markdown content');
+                        }}
+                        
+                        const markdownContent = await response.text();
+                        
+                        // Copy to clipboard
+                        await navigator.clipboard.writeText(markdownContent);
+                        
+                        // Show success state
+                        button.textContent = '✅ Copied!';
+                        button.classList.remove('copying');
+                        button.classList.add('success');
+                        
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.classList.remove('success');
+                            button.disabled = false;
+                        }}, 3000);
+                        
+                    }} catch (error) {{
+                        console.error('Error copying markdown:', error);
+                        
+                        // Show error state
+                        button.textContent = '❌ Error';
+                        button.classList.remove('copying');
+                        
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }}, 3000);
+                    }}
+                }});
+            }}
         }});
     </script>
 </body>
