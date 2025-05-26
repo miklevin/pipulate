@@ -3439,38 +3439,67 @@ await main()
         buttons = [folder_button]
         
         # Create download button if file exists
-        download_complete = False
-        file_path = None
+        download_complete = step_data.get('download_complete', False)
         
-        # Check different data structures based on step
+        # Determine the expected filename based on step
+        expected_filename = None
         if step_id == 'step_02':
-            # Step 2 uses analysis_result structure
-            download_complete = step_data.get('download_complete', False)
-            if download_complete and step_data.get('download_info', {}).get('has_file'):
-                file_path = step_data['download_info'].get('file_path', '')
-        else:
-            # Steps 3 and 4 use check_result structure
-            download_complete = step_data.get('download_complete', False)
-            if download_complete and step_data.get('download_info', {}).get('has_file'):
-                file_path = step_data['download_info'].get('file_path', '')
+            expected_filename = 'crawl.csv'
+        elif step_id == 'step_03':
+            expected_filename = 'weblog.csv'
+        elif step_id == 'step_04':
+            expected_filename = 'gsc.csv'
         
-        if download_complete and file_path:
+        # Check if download was successful and try to find the file
+        if download_complete and expected_filename and username and project_name and analysis_slug:
             try:
-                file_path_obj = Path(file_path)
-                downloads_base = Path.cwd() / 'downloads'
-                path_for_url = file_path_obj.relative_to(downloads_base)
-                path_for_url = str(path_for_url).replace('\\', '/')
-                download_button = A(
-                    "⬇️ Download CSV",
-                    href=f"/download_file?file={quote(path_for_url)}",
-                    target="_blank",
-                    role="button",
-                    cls="outline contrast",
-                    style="margin-left: 10px;"
-                )
-                buttons.append(download_button)
+                # Construct the expected file path
+                expected_file_path = Path.cwd() / 'downloads' / self.APP_NAME / username / project_name / analysis_slug / expected_filename
+                
+                # Check if file actually exists
+                if expected_file_path.exists():
+                    downloads_base = Path.cwd() / 'downloads'
+                    path_for_url = expected_file_path.relative_to(downloads_base)
+                    path_for_url = str(path_for_url).replace('\\', '/')
+                    download_button = A(
+                        "⬇️ Download CSV",
+                        href=f"/download_file?file={quote(path_for_url)}",
+                        target="_blank",
+                        role="button",
+                        cls="outline contrast",
+                        style="margin-left: 10px;"
+                    )
+                    buttons.append(download_button)
+                else:
+                    logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
                 logger.error(f"Error creating download button for {step_id}: {e}")
+        
+        # Fallback: check the old way for backward compatibility
+        elif download_complete:
+            file_path = None
+            download_info = step_data.get('download_info', {})
+            if download_info.get('has_file'):
+                file_path = download_info.get('file_path', '')
+                
+            if file_path:
+                try:
+                    file_path_obj = Path(file_path)
+                    if file_path_obj.exists():
+                        downloads_base = Path.cwd() / 'downloads'
+                        path_for_url = file_path_obj.relative_to(downloads_base)
+                        path_for_url = str(path_for_url).replace('\\', '/')
+                        download_button = A(
+                            "⬇️ Download CSV",
+                            href=f"/download_file?file={quote(path_for_url)}",
+                            target="_blank",
+                            role="button",
+                            cls="outline contrast",
+                            style="margin-left: 10px;"
+                        )
+                        buttons.append(download_button)
+                except Exception as e:
+                    logger.error(f"Error creating fallback download button for {step_id}: {e}")
         
         return buttons
 
