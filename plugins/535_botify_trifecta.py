@@ -2166,10 +2166,15 @@ await main()
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
         
-        # Extract dynamic parameters from analysis_result
+        # Get export_type from current template configuration (for cache detection)
+        # This ensures cache works even before the step data is fully stored
+        active_crawl_template_key = self.get_configured_template('crawl')
+        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+        export_type = active_template_details.get('export_type', 'crawl_attributes')
+        
+        # Extract dynamic parameters from analysis_result (may be empty on first run)
         dynamic_param_value = analysis_result.get('dynamic_parameter_value')
         placeholder_for_dynamic_param = analysis_result.get('parameter_placeholder_in_main_query')
-        export_type = analysis_result.get('export_type', 'crawl_attributes')
         try:
             crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
             file_exists, file_info = await self.check_file_exists(crawl_filepath)
