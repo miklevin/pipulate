@@ -479,7 +479,7 @@ class BotifyCsvDownloaderWorkflow:
             return P(f'Error: {message}', style=pip.get_style('error'))
         project_data_str = json.dumps(project_data)
         await pip.set_step_data(pipeline_id, step_id, project_data_str, steps)
-        await self.message_queue.add(pip, f"{step.show} complete: {project_data['project_name']}", verbatim=True)
+        await self.message_queue.add(pip, f"✳️ {step.show} complete: {project_data['project_name']}", verbatim=True)
         project_name = project_data.get('project_name', '')
         project_url = project_data.get('url', '')
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
