@@ -28,38 +28,43 @@ from typing import Dict, List, Optional, Union
 
 FILES_TO_INCLUDE_RAW = """\
 
-# CORE FILES
+# HI GEMINI! HERE'S SOME SUPER OVER-ARCHING CONTEXT OF THIS XML
+# THE STUFF IN THIS XML PAYLOAD IS STILL ONLY PART OF THE STORY
+# BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
+
+# CORE FILES (Background for the story)
 README.md        <-- Main GitHub README sets the tone
 flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
-## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT
-/home/mike/repos/pipulate/plugins/040_parameter_buster.py
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
+## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
+/home/mike/organize/botifython/botifython.py  <-- THIS IS THE NEW THING ADDED WHERE YOUR ATTENTION SHOULD GO
+# /home/mike/repos/pipulate/plugins/040_parameter_buster.py  <-- This (and below in this block) are from the last thing I was thinking about with you
+# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 # /home/mike/repos/pipulate/plugins/999_test_trifecta.py
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
 
-## REQUIRED PLUGINS: ROLES & PROFILES (OFTEN INCLUDED)
+## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
 # /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
 # /home/mike/repos/pipulate/plugins/010_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
 
-## STATIC RESOURCES
+## STATIC RESOURCES (Plot devices)
 # /home/mike/repos/pipulate/static/styles.css
 # /home/mike/repos/pipulate/static/chat-interface.js
 # /home/mike/repos/pipulate/static/chat-scripts.js
 # /home/mike/repos/pipulate/static/widget-scripts.js
 
-## SAMPLE WORKFLOWS
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
-
-## HELPER SCRIPTS
+## HELPER SCRIPTS (Meta plot devices)
 # /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+
+## SAMPLE WORKFLOWS (Frequently recurring challenges)
+# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
+# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
 
 """
 
