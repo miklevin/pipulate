@@ -590,9 +590,16 @@ class BotifyCsvDownloaderWorkflow:
                     option_text = slug
                 dropdown_options.append(Option(option_text, value=slug, selected=slug == selected_value))
             
-            # For MVP: Always show "Download" text to avoid stale button text when dropdown changes
-            # TODO: Implement HTMX reactivity to update button text when dropdown selection changes
-            button_text = f'Download {button_suffix} ▸'
+            # Check cache status for the initially selected analysis to set correct initial button text
+            selected_analysis = selected_value if selected_value else (slugs[0] if slugs else '')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            export_type = active_template_details.get('export_type', 'crawl_attributes')
+            
+            is_cached = False
+            if selected_analysis:
+                is_cached = await self.check_cached_file_for_button_text(username, project_name, selected_analysis, export_type)
+            
+            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
             
             return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, hx_get=f'/{app_name}/check_cache_status', hx_trigger='change', hx_target='#step-02-button', hx_include=f'[name="username"],[name="project_name"]'), Input(type='hidden', name='username', value=username), Input(type='hidden', name='project_name', value=project_name), Div(Button(button_text, type='submit', cls='mt-10px primary'), id='step-02-button'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:

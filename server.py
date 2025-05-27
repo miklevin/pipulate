@@ -1759,7 +1759,53 @@ class BaseCrud:
         raise NotImplementedError('Subclasses must implement prepare_update_data')
 
 
-app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(DB_FILENAME, exts='ws', live=True, default_hdrs=False, hdrs=(Meta(charset='utf-8'), Link(rel='stylesheet', href='/static/pico.css'), Link(rel='stylesheet', href='/static/prism.css'), Link(rel='stylesheet', href='/static/rich-table.css'), Script(src='/static/htmx.js'), Script(src='/static/fasthtml.js'), Script(src='/static/surreal.js'), Script(src='/static/script.js'), Script(src='/static/Sortable.js'), Script(src='/static/mermaid.min.js'), Script(src='/static/marked.min.js'), Script(src='/static/prism.js'), Script(src='/static/widget-scripts.js'), create_chat_scripts('.sortable'), Script(type='module')), store={'key': str, 'value': str, 'pk': 'key'}, profile={'id': int, 'name': str, 'real_name': str, 'address': str, 'code': str, 'active': bool, 'priority': int, 'pk': 'id'}, pipeline={'pkey': str, 'app_name': str, 'data': str, 'created': str, 'updated': str, 'pk': 'pkey'})
+# Initialize FastHTML app with database and table configurations
+app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+    DB_FILENAME,
+    exts='ws',
+    live=True,
+    default_hdrs=False,
+    hdrs=(
+        Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/pico.css'),
+        Link(rel='stylesheet', href='/static/prism.css'),
+        Link(rel='stylesheet', href='/static/rich-table.css'),
+        Script(src='/static/htmx.js'),
+        Script(src='/static/fasthtml.js'),
+        Script(src='/static/surreal.js'),
+        Script(src='/static/script.js'),
+        Script(src='/static/Sortable.js'),
+        Script(src='/static/mermaid.min.js'),
+        Script(src='/static/marked.min.js'),
+        Script(src='/static/prism.js'),
+        Script(src='/static/widget-scripts.js'),
+        create_chat_scripts('.sortable'),
+        Script(type='module')
+    ),
+    store={
+        'key': str,
+        'value': str,
+        'pk': 'key'
+    },
+    profile={
+        'id': int,
+        'name': str,
+        'real_name': str,
+        'address': str,
+        'code': str,
+        'active': bool,
+        'priority': int,
+        'pk': 'id'
+    },
+    pipeline={
+        'pkey': str,
+        'app_name': str,
+        'data': str,
+        'created': str,
+        'updated': str,
+        'pk': 'pkey'
+    }
+)
 
 
 class Chat:
@@ -2947,7 +2993,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system', quiet=True)
-    nav_buttons = [Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='width: 140px; min-width: 140px;', disabled=page_num == 1), Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='width: 140px; min-width: 140px;', disabled=page_num == MAX_INTRO_PAGES)]
+    nav_buttons = [Button('◂\xa0Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == 1), Button('Next\xa0▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == MAX_INTRO_PAGES)]
     return Div(page_content_area, Div(*nav_buttons, style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'), id='grid-left-content')
 
 
