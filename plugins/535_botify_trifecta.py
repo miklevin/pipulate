@@ -100,6 +100,9 @@ class BotifyCsvDownloaderWorkflow:
         'Crawl Basic': {
             'name': 'Basic Crawl Data',
             'description': 'URL, HTTP status, and page title',
+            'export_type': 'crawl_attributes',
+            'user_message': 'This will download basic crawl data including URLs, HTTP status codes, and page titles.',
+            'button_label_suffix': 'Basic Attributes',
             'query': {
                 'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
@@ -108,15 +111,65 @@ class BotifyCsvDownloaderWorkflow:
         'Not Compliant': {
             'name': 'Non-Compliant Pages',
             'description': 'URLs with compliance issues and their reasons',
+            'export_type': 'crawl_attributes',
+            'user_message': 'This will download a list of non-compliant URLs with their compliance reasons.',
+            'button_label_suffix': 'Non-Compliant Attributes',
             'query': {
                 'dimensions': ['{collection}.url', '{collection}.compliant.main_reason', '{collection}.compliant.detailed_reason'],
                 'metrics': [{'function': 'count', 'args': ['{collection}.url']}],
                 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}
+            },
+            'qualifier_config': {
+                'enabled': True,
+                'qualifier_bql_template': {
+                    "dimensions": [],
+                    "metrics": [{"function": "count", "args": ["{collection}.url"]}],
+                    "filters": {"field": "{collection}.compliant.is_compliant", "predicate": "eq", "value": False}
+                },
+                'parameter_placeholder_in_main_query': None,  # No substitution needed
+                'iterative_parameter_name': 'non_compliant_url_count',
+                'target_metric_path': ["results", 0, "metrics", 0],
+                'max_value_threshold': 5000000,  # Allow larger attribute exports
+                'iteration_range': (1, 1, 1),  # Non-iterative, just one check
+                'user_message_running': 'Estimating size of Non-Compliant Pages export...',
+                'user_message_found': 'Non-Compliant Pages export estimated at {metric_value:,} URLs. Proceeding.',
+                'user_message_threshold_exceeded': 'Warning: Non-Compliant Pages export is very large ({metric_value:,} URLs). Proceeding with caution.'
+            }
+        },
+        'Link Graph Edges': {
+            'name': 'Link Graph Edges',
+            'description': 'Exports internal link graph (source URL -> target URL). Automatically finds optimal depth for ~1M edges.',
+            'export_type': 'link_graph_edges',
+            'user_message': 'This will download the site\'s internal link graph (source-target pairs). An optimal depth will be found first.',
+            'button_label_suffix': 'Link Graph',
+            'query': {
+                'dimensions': ['{collection}.url', '{collection}.outlinks_internal.graph.url'],
+                'metrics': [],
+                'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}
+            },
+            'qualifier_config': {
+                'enabled': True,
+                'qualifier_bql_template': {
+                    "dimensions": [],
+                    "metrics": [{"function": "sum", "args": ["{collection}.outlinks_internal.nb.total"]}],
+                    "filters": {"field": "{collection}.depth", "predicate": "lte", "value": "{ITERATION_VALUE}"}
+                },
+                'parameter_placeholder_in_main_query': '{OPTIMAL_DEPTH}',
+                'iterative_parameter_name': 'depth',
+                'target_metric_path': ["results", 0, "metrics", 0],
+                'max_value_threshold': 1000000,
+                'iteration_range': (1, 10, 1),  # (start, end, step_increment)
+                'user_message_running': 'Finding optimal depth for Link Graph Edges...',
+                'user_message_found': 'Optimal depth for Link Graph: {param_value} (for {metric_value:,} edges).',
+                'user_message_threshold_exceeded': 'Edge count exceeds threshold even at shallowest depth. Proceeding with depth 1.'
             }
         },
         'GSC Performance': {
             'name': 'GSC Performance',
             'description': 'Impressions, clicks, CTR, and position',
+            'export_type': 'gsc_data',
+            'user_message': 'This will download Search Console performance data including impressions, clicks, CTR, and average position.',
+            'button_label_suffix': 'GSC Performance',
             'query': {
                 'dimensions': ['url'],
                 'metrics': [
@@ -135,7 +188,7 @@ class BotifyCsvDownloaderWorkflow:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'crawl': 'Not Compliant',      # Options: 'Crawl Basic', 'Not Compliant'
+        'crawl': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
 
@@ -496,8 +549,15 @@ class BotifyCsvDownloaderWorkflow:
                 if exists:
                     downloaded_slugs.add(slug)
             await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
-            crawl_template = self.get_configured_template('crawl')
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Select(*[Option(f'{slug} (Downloaded)' if slug in downloaded_slugs else slug, value=slug, selected=slug == selected_value) for slug in slugs], name='analysis_slug', required=True, autofocus=True), Button(f'Download Crawl Analysis: {crawl_template} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            
+            # Get active template details for dynamic UI
+            active_crawl_template_key = self.get_configured_template('crawl')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            template_name = active_template_details.get('name', active_crawl_template_key)
+            user_message = active_template_details.get('user_message', 'This will download crawl data.')
+            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*[Option(f'{slug} (Downloaded)' if slug in downloaded_slugs else slug, value=slug, selected=slug == selected_value) for slug in slugs], name='analysis_slug', required=True, autofocus=True), Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
@@ -523,7 +583,49 @@ class BotifyCsvDownloaderWorkflow:
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
         await self.message_queue.add(pip, f'Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
-        analysis_result = {'analysis_slug': analysis_slug, 'project': project_name, 'username': username, 'timestamp': datetime.now().isoformat(), 'download_started': True}
+        
+        # Get active template details and check for qualifier config
+        active_crawl_template_key = self.get_configured_template('crawl')
+        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+        qualifier_config = active_template_details.get('qualifier_config', {'enabled': False})
+        
+        analysis_result = {
+            'analysis_slug': analysis_slug, 
+            'project': project_name, 
+            'username': username, 
+            'timestamp': datetime.now().isoformat(), 
+            'download_started': True,
+            'export_type': active_template_details.get('export_type', 'crawl_attributes')
+        }
+        
+        # Execute qualifier logic if enabled
+        if qualifier_config.get('enabled'):
+            try:
+                api_token = self.read_api_token()
+                if not api_token:
+                    return P('Error: Botify API token not found. Please connect with Botify first.', style=pip.get_style('error'))
+                
+                await self.message_queue.add(pip, qualifier_config['user_message_running'], verbatim=True)
+                qualifier_outcome = await self._execute_qualifier_logic(username, project_name, analysis_slug, api_token, qualifier_config)
+                
+                # Store qualifier results
+                analysis_result['dynamic_parameter_value'] = qualifier_outcome['parameter_value']
+                analysis_result['metric_at_dynamic_parameter'] = qualifier_outcome['metric_at_parameter']
+                analysis_result['parameter_placeholder_in_main_query'] = qualifier_config['parameter_placeholder_in_main_query']
+                
+                # Send completion message
+                await self.message_queue.add(pip, qualifier_config['user_message_found'].format(
+                    param_value=qualifier_outcome['parameter_value'],
+                    metric_value=qualifier_outcome['metric_at_parameter']
+                ), verbatim=True)
+                
+            except Exception as e:
+                await self.message_queue.add(pip, f'Error during qualifier logic: {str(e)}', verbatim=True)
+                # Continue with default values
+                analysis_result['dynamic_parameter_value'] = None
+                analysis_result['metric_at_dynamic_parameter'] = 0
+                analysis_result['parameter_placeholder_in_main_query'] = None
+        
         analysis_result_str = json.dumps(analysis_result)
         await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
         return Card(
@@ -1089,6 +1191,108 @@ class BotifyCsvDownloaderWorkflow:
         except Exception:
             return None
 
+    async def _execute_qualifier_logic(self, username, project_name, analysis_slug, api_token, qualifier_config):
+        """Execute the generic qualifier logic to determine a dynamic parameter.
+        
+        This method implements the generalized pattern for finding optimal parameters
+        (like depth for link graphs) that keep exports within API limits. It iteratively
+        tests values and finds the largest parameter that stays under the threshold.
+        
+        Args:
+            username: Organization username
+            project_name: Project name  
+            analysis_slug: Analysis slug
+            api_token: Botify API token
+            qualifier_config: Configuration dict from template's qualifier_config
+            
+        Returns:
+            dict: {'parameter_value': determined_value, 'metric_at_parameter': metric_value}
+        """
+        import httpx
+        import json
+        
+        pip = self.pipulate
+        iter_param_name = qualifier_config['iterative_parameter_name']
+        bql_template_str = json.dumps(qualifier_config['qualifier_bql_template'])
+        collection_name = f"crawl.{analysis_slug}"
+        
+        # Replace collection placeholder
+        bql_template_str = bql_template_str.replace("{collection}", collection_name)
+        
+        # Initialize iteration variables
+        start_val, end_val, step_val = qualifier_config['iteration_range']
+        determined_param_value = start_val
+        metric_at_determined_param = 0
+        threshold = qualifier_config['max_value_threshold']
+        
+        # Iterate through the range to find optimal parameter
+        for current_iter_val in range(start_val, end_val + 1, step_val):
+            # Replace iteration placeholder
+            current_bql_str = bql_template_str.replace("{ITERATION_VALUE}", str(current_iter_val))
+            current_bql_payload = json.loads(current_bql_str)
+            
+            # Construct full query payload
+            query_payload = {
+                "collections": [collection_name],
+                "query": current_bql_payload
+            }
+            
+            # Make API call
+            url = f"https://api.botify.com/v1/projects/{username}/{project_name}/query"
+            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+            
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(url, headers=headers, json=query_payload, timeout=60.0)
+                
+                if response.status_code != 200:
+                    await self.message_queue.add(pip, f"API error during qualifier check at {iter_param_name}={current_iter_val}: Status {response.status_code}", verbatim=True)
+                    break
+                
+                data = response.json()
+                
+                # Extract metric using the configured path
+                try:
+                    metric_value = data
+                    for path_element in qualifier_config['target_metric_path']:
+                        metric_value = metric_value[path_element]
+                    
+                    # Convert to int if it's a number
+                    if isinstance(metric_value, (int, float)):
+                        metric_value = int(metric_value)
+                    else:
+                        metric_value = 0
+                        
+                except (KeyError, IndexError, TypeError):
+                    await self.message_queue.add(pip, f"Could not extract metric from response at {iter_param_name}={current_iter_val}", verbatim=True)
+                    metric_value = 0
+                
+                await self.message_queue.add(pip, f"Qualifier '{iter_param_name}' at {current_iter_val}: {metric_value:,} items.", verbatim=True)
+                
+                # Check if we're within threshold
+                if metric_value <= threshold:
+                    determined_param_value = current_iter_val
+                    metric_at_determined_param = metric_value
+                    # Continue to find the largest value still under threshold
+                else:
+                    # Threshold exceeded
+                    if current_iter_val == start_val:
+                        # Even the first value exceeds threshold
+                        await self.message_queue.add(pip, qualifier_config['user_message_threshold_exceeded'].format(metric_value=metric_value), verbatim=True)
+                        determined_param_value = start_val
+                        metric_at_determined_param = metric_value
+                    # Break since further iterations will also exceed
+                    break
+                    
+            except Exception as e:
+                await self.message_queue.add(pip, f"Error during qualifier check at {iter_param_name}={current_iter_val}: {str(e)}", verbatim=True)
+                break
+        
+        return {
+            'parameter_value': determined_param_value,
+            'metric_at_parameter': metric_at_determined_param
+        }
+
     async def get_deterministic_filepath(self, username, project_name, analysis_slug, data_type=None):
         """Generate a deterministic file path for a given data export.
 
@@ -1110,7 +1314,14 @@ class BotifyCsvDownloaderWorkflow:
         base_dir = f'downloads/{self.APP_NAME}/{username}/{project_name}/{analysis_slug}'
         if not data_type:
             return base_dir
-        filenames = {'crawl': 'crawl.csv', 'weblog': 'weblog.csv', 'gsc': 'gsc.csv'}
+        filenames = {
+            'crawl': 'crawl.csv', 
+            'weblog': 'weblog.csv', 
+            'gsc': 'gsc.csv',
+            'crawl_attributes': 'crawl.csv',
+            'link_graph_edges': 'link_graph.csv',
+            'gsc_data': 'gsc.csv'
+        }
         if data_type not in filenames:
             raise ValueError(f'Unknown data type: {data_type}')
         filename = filenames[data_type]
@@ -1457,7 +1668,7 @@ await main()
             await self.message_queue.add(pip, f'❌ Error processing Search Console data: {str(e)}', verbatim=True)
             raise
 
-    async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
+    async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None, dynamic_param_value=None, placeholder_for_dynamic_param=None):
         """Builds BQLv2 query objects and export job payloads.
         
         CRITICAL INSIGHT: Multiple BQL Structures in One Method
@@ -1555,6 +1766,13 @@ await main()
             # Use the configured crawl template
             crawl_template = self.get_configured_template('crawl')
             template_query = self.apply_template(crawl_template, collection)
+            
+            # Apply dynamic parameter substitution if needed
+            if placeholder_for_dynamic_param and dynamic_param_value is not None:
+                query_str = json.dumps(template_query)
+                query_str = query_str.replace(placeholder_for_dynamic_param, str(dynamic_param_value))
+                template_query = json.loads(query_str)
+            
             bql_query = {
                 'collections': [collection],
                 'query': template_query
@@ -1835,8 +2053,13 @@ await main()
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         analysis_result_str = step_data.get(step.done, '')
         analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+        
+        # Extract dynamic parameters from analysis_result
+        dynamic_param_value = analysis_result.get('dynamic_parameter_value')
+        placeholder_for_dynamic_param = analysis_result.get('parameter_placeholder_in_main_query')
+        export_type = analysis_result.get('export_type', 'crawl_attributes')
         try:
-            crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'crawl')
+            crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
             file_exists, file_info = await self.check_file_exists(crawl_filepath)
             if file_exists:
                 await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
@@ -1849,10 +2072,16 @@ await main()
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
-                # Use the configured crawl template
+                # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 crawl_template = self.get_configured_template('crawl')
                 template_query = self.apply_template(crawl_template, collection)
+                
+                # Apply dynamic parameter substitution if needed
+                if placeholder_for_dynamic_param and dynamic_param_value is not None:
+                    query_str = json.dumps(template_query)
+                    query_str = query_str.replace(placeholder_for_dynamic_param, str(dynamic_param_value))
+                    template_query = json.loads(query_str)
                 export_query = {
                     'job_type': 'export', 
                     'payload': {
@@ -1881,10 +2110,17 @@ await main()
                     analysis_date_obj = datetime.now()
                 period_start = (analysis_date_obj - timedelta(days=30)).strftime('%Y-%m-%d')
                 period_end = analysis_date_obj.strftime('%Y-%m-%d')
-                # Use the configured crawl template
+                # Use the configured crawl template with dynamic parameters
                 collection = f'crawl.{analysis_slug}'
                 crawl_template = self.get_configured_template('crawl')
                 template_query = self.apply_template(crawl_template, collection)
+                
+                # Apply dynamic parameter substitution if needed
+                if placeholder_for_dynamic_param and dynamic_param_value is not None:
+                    query_str = json.dumps(template_query)
+                    query_str = query_str.replace(placeholder_for_dynamic_param, str(dynamic_param_value))
+                    template_query = json.loads(query_str)
+                
                 export_query = {
                     'job_type': 'export', 
                     'payload': {
