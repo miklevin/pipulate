@@ -34,15 +34,15 @@ FILES_TO_INCLUDE_RAW = """\
 
 # CORE FILES (Background for the story)
 README.md        <-- Main GitHub README sets the tone
-flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-requirements.txt <-- Python package dependencies for the project
-server.py        <-- Main server file for the project
+# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# requirements.txt <-- Python package dependencies for the project
+# server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
 /home/mike/organize/botifython/botifython.py  <-- THIS IS THE NEW THING ADDED WHERE YOUR ATTENTION SHOULD GO
+/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/040_parameter_buster.py  <-- This (and below in this block) are from the last thing I was thinking about with you
-# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 # /home/mike/repos/pipulate/plugins/999_test_trifecta.py
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
