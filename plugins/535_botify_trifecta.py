@@ -2096,8 +2096,8 @@ await main()
 
                     if status == 'DONE':
                         results = job_data.get('results', {})
-                        success_msg = f'{step_prefix}Job completed successfully!'
-                        logging.info(success_msg)
+                        success_msg = 'Job completed successfully!'
+                        logging.info(f'{step_prefix}{success_msg}')
                         await self.message_queue.add(self.pipulate, f'✅ {success_msg}', verbatim=True)
                         return (True, {'download_url': results.get('download_url'), 'row_count': results.get('row_count'), 'file_size': results.get('file_size'), 'filename': results.get('filename'), 'expires_at': results.get('expires_at')})
                     if status == 'FAILED':
