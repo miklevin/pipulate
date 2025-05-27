@@ -2655,6 +2655,18 @@ await main()
                                 _, file_info = await self.check_file_exists(logs_filepath)
                                 await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                                 await self.message_queue.add(pip, f"✓ Web logs data downloaded: {file_info['size']}", verbatim=True)
+                                
+                                # Mark download as complete for button creation
+                                check_result.update({
+                                    'download_complete': True, 
+                                    'download_info': {
+                                        'has_file': True, 
+                                        'file_path': logs_filepath,
+                                        'timestamp': file_info['created'], 
+                                        'size': file_info['size'], 
+                                        'cached': False
+                                    }
+                                })
                             except Exception as e:
                                 await self.message_queue.add(pip, f'❌ Error downloading file: {str(e)}', verbatim=True)
                                 # Store the error in check_result but don't raise exception
