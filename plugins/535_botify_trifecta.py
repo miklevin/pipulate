@@ -2286,7 +2286,32 @@ await main()
                                 _, file_info = await self.check_file_exists(crawl_filepath)
                                 await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                                 df = pd.read_csv(crawl_filepath)
-                                df.columns = ['Full URL', 'Compliance Status', 'Compliance Details', 'Occurrence Count']
+                                
+                                # Apply appropriate column names based on export type
+                                active_crawl_template_key = self.get_configured_template('crawl')
+                                active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+                                export_type = active_template_details.get('export_type', 'crawl_attributes')
+                                
+                                if export_type == 'link_graph_edges':
+                                    # Link graph exports have 2 columns: source URL, target URL
+                                    if len(df.columns) == 2:
+                                        df.columns = ['Source URL', 'Target URL']
+                                    else:
+                                        # Fallback for unexpected column count
+                                        df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
+                                elif export_type == 'crawl_attributes':
+                                    # Attribute exports vary by template, use generic names
+                                    if len(df.columns) == 4:
+                                        df.columns = ['Full URL', 'Compliance Status', 'Compliance Details', 'Occurrence Count']
+                                    elif len(df.columns) == 3:
+                                        df.columns = ['Full URL', 'HTTP Status', 'Page Title']
+                                    else:
+                                        # Fallback for unexpected column count
+                                        df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
+                                else:
+                                    # Generic fallback for unknown export types
+                                    df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
+                                
                                 df.to_csv(crawl_filepath, index=False)
                                 download_info = {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': False}
                                 analysis_result.update({'download_complete': True, 'download_info': download_info})
