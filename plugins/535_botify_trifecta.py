@@ -3833,7 +3833,7 @@ await main()
             return f"Diagnosis failed: {str(e)}"
 
     async def check_cache_status(self, request):
-        """HTMX endpoint to check cache status and return button text."""
+        """HTMX endpoint to check cache status and return button element."""
         try:
             # Get parameters from query string
             analysis_slug = request.query_params.get('analysis_slug', '')
@@ -3841,7 +3841,7 @@ await main()
             project_name = request.query_params.get('project_name', '')
             
             if not all([analysis_slug, username, project_name]):
-                return 'Download Link Graph ▸'
+                return Button('Download Link Graph ▸', type='submit', cls='mt-10px primary')
             
             # Get active template details
             active_crawl_template_key = self.get_configured_template('crawl')
@@ -3852,12 +3852,13 @@ await main()
             # Check if files are cached
             is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
             
-            # Return just the button text
-            return f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            # Return the actual button element with updated text
+            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            return Button(button_text, type='submit', cls='mt-10px primary')
             
         except Exception as e:
-            # Fallback to default text on any error
-            return 'Download Link Graph ▸'
+            # Fallback to default button on any error
+            return Button('Download Link Graph ▸', type='submit', cls='mt-10px primary')
 
     def _create_action_buttons(self, step_data, step_id):
         """Create View Folder and Download CSV buttons for a step."""
