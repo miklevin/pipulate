@@ -309,8 +309,7 @@ The application interface is organized into distinct areas:
     └─────────────────────────────┘
 ```
 
-<details>
-<summary>UI Component Hierarchy (Click to Expand)</summary>
+UI Component Hierarchy (Click to Expand)
 
 ```
 home (Root Component)
@@ -328,8 +327,6 @@ home (Root Component)
             |
         +-- create_notebook_interface (Displays steps/cells)
 ```
-
-</details>
 
 ### File Structure
 
