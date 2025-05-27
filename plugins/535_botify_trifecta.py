@@ -925,7 +925,7 @@ class BotifyCsvDownloaderWorkflow:
                 return Div(P(f'Error: {error_message}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
             check_result = {'has_search_console': has_search_console, 'project': project_name, 'username': username, 'analysis_slug': analysis_slug, 'timestamp': datetime.now().isoformat()}
             if has_search_console:
-                await self.message_queue.add(pip, f'✓ Project has Search Console data, downloading...', verbatim=True)
+                await self.message_queue.add(pip, f'✅ Project has Search Console data, downloading...', verbatim=True)
                 await self.process_search_console_data(pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result)
             else:
                 await self.message_queue.add(pip, f'Project does not have Search Console data (skipping download)', verbatim=True)
@@ -1055,7 +1055,7 @@ class BotifyCsvDownloaderWorkflow:
             parameter_summary['total_unique_parameters'] = len(total_unique_params)
             summary_str = json.dumps(parameter_summary)
             await pip.set_step_data(pipeline_id, step_id, summary_str, steps)
-            await self.message_queue.add(pip, f"✓ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", verbatim=True)
+            await self.message_queue.add(pip, f"✅ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", verbatim=True)
             visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         except Exception as e:
@@ -1657,7 +1657,7 @@ await main()
             gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
             file_exists, file_info = await self.check_file_exists(gsc_filepath)
             if file_exists:
-                await self.message_queue.add(pip, f"✓ Using cached GSC data ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✅ Using cached GSC data ({file_info['size']})", verbatim=True)
                 check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
                 check_result_str = json.dumps(check_result)
                 await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
@@ -1691,7 +1691,7 @@ await main()
                         raise ValueError('Failed to get job URL from response')
                     full_job_url = f'https://api.botify.com{job_url_path}'
                     logging.info(f'Got job URL: {full_job_url}')
-                    await self.message_queue.add(pip, '✓ Export job created successfully!', verbatim=True)
+                    await self.message_queue.add(pip, '✅ Export job created successfully!', verbatim=True)
             except Exception as e:
                 logging.exception(f'Error creating export job: {str(e)}')
                 await self.message_queue.add(pip, f'❌ Error creating export job: {str(e)}', verbatim=True)
@@ -1702,7 +1702,7 @@ await main()
                 error_message = isinstance(result, str) and result or 'Export job failed'
                 await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
                 raise ValueError(f'Export failed: {error_message}')
-            await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+            await self.message_queue.add(pip, '✅ Export completed and ready for download!', verbatim=True)
             download_url = result.get('download_url')
             if not download_url:
                 await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
@@ -1734,7 +1734,7 @@ await main()
                 if os.path.exists(zip_path):
                     os.remove(zip_path)
                 _, file_info = await self.check_file_exists(gsc_filepath)
-                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                 df = pd.read_csv(gsc_filepath, skiprows=1)
                 df.to_csv(gsc_filepath, index=False)
                 download_info = {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': False}
@@ -1742,7 +1742,7 @@ await main()
             except Exception as e:
                 await self.message_queue.add(pip, f'❌ Error downloading or extracting file: {str(e)}', verbatim=True)
                 raise
-            await self.message_queue.add(pip, '✓ Search Console data ready for analysis!', verbatim=True)
+            await self.message_queue.add(pip, '✅ Search Console data ready for analysis!', verbatim=True)
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
         except Exception as e:
@@ -2013,7 +2013,13 @@ await main()
                     await self.message_queue.add(self.pipulate, f'Using job ID {job_id} for polling...', verbatim=True)
         except Exception:
             pass
-        step_prefix = f'[{step_context}] ' if step_context else ''
+        # Use emoji for export context, otherwise use brackets
+        if step_context == "export":
+            step_prefix = '⏳ '
+        elif step_context:
+            step_prefix = f'[{step_context}] '
+        else:
+            step_prefix = ''
         poll_msg = f'{step_prefix}Starting polling for job: {job_url}' + (f' (ID: {job_id})' if job_id else '')
         logging.info(poll_msg)
         await self.message_queue.add(self.pipulate, poll_msg, verbatim=True)
@@ -2092,7 +2098,7 @@ await main()
                         results = job_data.get('results', {})
                         success_msg = f'{step_prefix}Job completed successfully!'
                         logging.info(success_msg)
-                        await self.message_queue.add(self.pipulate, f'✓ {success_msg}', verbatim=True)
+                        await self.message_queue.add(self.pipulate, f'✅ {success_msg}', verbatim=True)
                         return (True, {'download_url': results.get('download_url'), 'row_count': results.get('row_count'), 'file_size': results.get('file_size'), 'filename': results.get('filename'), 'expires_at': results.get('expires_at')})
                     if status == 'FAILED':
                         error_details = job_data.get('error', {})
@@ -2168,7 +2174,7 @@ await main()
             crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
             file_exists, file_info = await self.check_file_exists(crawl_filepath)
             if file_exists:
-                await self.message_queue.add(pip, f"✓ Using cached crawl data ({file_info['size']})", verbatim=True)
+                await self.message_queue.add(pip, f"✅ Using cached crawl data ({file_info['size']})", verbatim=True)
                 analysis_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': crawl_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
                 
                 # Generate Python debugging code even for cached files
@@ -2281,7 +2287,7 @@ await main()
                         if not job_url_path:
                             raise ValueError('Failed to get job URL from response')
                         full_job_url = f'https://api.botify.com{job_url_path}'
-                        await self.message_queue.add(pip, '✓ Crawl export job created successfully!', verbatim=True)
+                        await self.message_queue.add(pip, '✅ Crawl export job created successfully!', verbatim=True)
                         await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                     except httpx.HTTPStatusError as e:
                         error_message = f'Export request failed: HTTP {e.response.status_code}'
@@ -2334,7 +2340,7 @@ await main()
                             }
                         })
                     else:
-                        await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                        await self.message_queue.add(pip, '✅ Export completed and ready for download!', verbatim=True)
                         download_url = result.get('download_url')
                         if not download_url:
                             await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
@@ -2364,7 +2370,7 @@ await main()
                                         shutil.copyfileobj(f_in, f_out)
                                 os.remove(gz_filepath)
                                 _, file_info = await self.check_file_exists(crawl_filepath)
-                                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                                 df = pd.read_csv(crawl_filepath)
                                 
                                 # Apply appropriate column names based on export type
@@ -2423,7 +2429,7 @@ await main()
                                 })
             # Only show success message if download was actually successful
             if analysis_result.get('download_complete', False) and 'error' not in analysis_result:
-                await self.message_queue.add(pip, f"✓ Crawl data downloaded: {file_info['size']}", verbatim=True)
+                await self.message_queue.add(pip, f"✅ Crawl data downloaded: {file_info['size']}", verbatim=True)
             
             analysis_result_str = json.dumps(analysis_result)
             await pip.set_step_data(pipeline_id, step_id, analysis_result_str, self.steps)
@@ -2486,7 +2492,7 @@ await main()
                 logs_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'weblog')
                 file_exists, file_info = await self.check_file_exists(logs_filepath)
                 if file_exists:
-                    await self.message_queue.add(pip, f"✓ Using cached web logs data ({file_info['size']})", verbatim=True)
+                    await self.message_queue.add(pip, f"✅ Using cached web logs data ({file_info['size']})", verbatim=True)
                     check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': logs_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
                     
                     # Generate Python debugging code even for cached files
@@ -2546,7 +2552,7 @@ await main()
                             if not job_id:
                                 raise ValueError('Failed to extract job ID from job URL')
                             full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                            await self.message_queue.add(pip, f'✓ Web logs export job created successfully! (Job ID: {job_id})', verbatim=True)
+                            await self.message_queue.add(pip, f'✅ Web logs export job created successfully! (Job ID: {job_id})', verbatim=True)
                             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                         except httpx.HTTPStatusError as e:
                             error_message = f'Export request failed: HTTP {e.response.status_code}'
@@ -2606,7 +2612,7 @@ await main()
                         has_logs = False
                         # Skip the download section and go directly to widget creation
                     else:
-                        await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                        await self.message_queue.add(pip, '✅ Export completed and ready for download!', verbatim=True)
                         download_url = result.get('download_url')
                         if not download_url:
                             await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
@@ -2653,8 +2659,8 @@ await main()
                                 if os.path.exists(compressed_path):
                                     os.remove(compressed_path)
                                 _, file_info = await self.check_file_exists(logs_filepath)
-                                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                                await self.message_queue.add(pip, f"✓ Web logs data downloaded: {file_info['size']}", verbatim=True)
+                                await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                await self.message_queue.add(pip, f"✅ Web logs data downloaded: {file_info['size']}", verbatim=True)
                                 
                                 # Mark download as complete for button creation
                                 check_result.update({
@@ -2836,7 +2842,7 @@ await main()
                 gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
                 file_exists, file_info = await self.check_file_exists(gsc_filepath)
                 if file_exists:
-                    await self.message_queue.add(pip, f"✓ Using cached Search Console data ({file_info['size']})", verbatim=True)
+                    await self.message_queue.add(pip, f"✅ Using cached Search Console data ({file_info['size']})", verbatim=True)
                     check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
                     
                     # Generate Python debugging code even for cached files
@@ -2892,7 +2898,7 @@ await main()
                             if not job_id:
                                 raise ValueError('Failed to extract job ID from job URL')
                             full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
-                            await self.message_queue.add(pip, f'✓ Search Console export job created successfully! (Job ID: {job_id})', verbatim=True)
+                            await self.message_queue.add(pip, f'✅ Search Console export job created successfully! (Job ID: {job_id})', verbatim=True)
                             await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
                         except httpx.HTTPStatusError as e:
                             error_message = f'Export request failed: HTTP {e.response.status_code}'
@@ -2947,7 +2953,7 @@ await main()
                                 }
                             })
                         else:
-                            await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
+                            await self.message_queue.add(pip, '✅ Export completed and ready for download!', verbatim=True)
                             download_url = result.get('download_url')
                             if not download_url:
                                 await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
@@ -2993,7 +2999,7 @@ await main()
                                     if os.path.exists(compressed_path):
                                         os.remove(compressed_path)
                                     _, file_info = await self.check_file_exists(gsc_filepath)
-                                    await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                    await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
                                 except Exception as e:
                                     error_message = f'Error downloading file: {str(e)}'
                                     await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
@@ -3009,7 +3015,7 @@ await main()
                                     })
                 # Only show success message if download was actually successful
                 if has_search_console and check_result.get('download_complete', False) and 'error' not in check_result:
-                    await self.message_queue.add(pip, f"✓ Search Console data downloaded: {file_info['size']}", verbatim=True)
+                    await self.message_queue.add(pip, f"✅ Search Console data downloaded: {file_info['size']}", verbatim=True)
             
             check_result_str = json.dumps(check_result)
             await pip.set_step_data(pipeline_id, step_id, check_result_str, steps)
