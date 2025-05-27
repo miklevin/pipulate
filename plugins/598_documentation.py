@@ -1517,10 +1517,24 @@ class DocumentationPlugin:
         <button id="copy-markdown-btn" class="copy-markdown-btn">📋 Copy Page Markdown</button>
     </div>
     
+    <!-- Top Navigation -->
+    <div class="navigation">
+        <div>
+            {prev_button}
+        </div>
+        <div class="nav-center">
+            <a href="/docs/botify_api" class="nav-button toc">📋 Table of Contents</a>
+        </div>
+        <div>
+            {next_button}
+        </div>
+    </div>
+    
     <div class="content">
         {html_content}
     </div>
     
+    <!-- Bottom Navigation -->
     <div class="navigation">
         <div>
             {prev_button}
