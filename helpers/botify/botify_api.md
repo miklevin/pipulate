@@ -1,102 +1,859 @@
----
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.17.1
-  kernelspec:
-    display_name: Python 3 (ipykernel)
-    language: python
-    name: python3
----
+# Botifython Bootcamp
 
-# What is Botify?
+## Run Two Scripts
 
-Botify is an enterprise SEO platform that crawls websites and provides detailed analytics about their technical SEO health. The Botify API allows you to:
+Welcome to Botify API Bootcamp! It is primarily for Botify Employees who have a Botify API Token. It's also for the LLMs who are following along getting trained-up fast on the Botify API. Botify Clients and Customers may also find this useful. This Notebook runs from the JupyterLab on your local machine that gets installed side-by-side with Botifython. Botifython is the white-labeled version of the Pipuate free and open source software. It gets installed from Pipulate.com We run 2 fairly large and intimidating looking scripts to set you up. 
 
-- Access crawl data and site metrics
-- Generate custom reports and analyses 
-- Build automated SEO workflows
-- Track site performance over time
+- Cell 2 makes sure you have your `botify_token.txt` set up
+- Cell 3 makes sure you have an example `config.json` set up
 
-## Authentication: Getting Started with the API
+The next 2 cells will *"lock up"* the notebook ***waiting for input from you*** until you provide it and hit Enter. If ou get confused, hit `Esc` + `0` + `0` + `Enter` and that will *restart the kernel.*
 
-Before running any queries, you'll need to:
+Yes, that's **Esc 00 Enter** — *it's a Notebook thing.*
 
-1. Get your API token from [Botify Account Settings](https://app.botify.com/account/)
-2. Store it securely (we'll show you how)
-3. Test the connection with a basic API call
+Good luck!
 
-## Secure Token Storage
+## Script #1: Get Your Token
 
-**⚠️ SECURITY WARNING**: API tokens provide full access to your Botify account. Never:
-- Commit tokens to version control
-- Share notebooks with tokens
-- Run token-using code on public platforms
 
-For local development:
+```python
+#!/usr/bin/env python3
+"""
+Botify Token Setup
+==================
 
-1. Create a `.gitignore` file if you don't have one
-2. Add these lines:
+A standalone Jupyter notebook program that:
+1. Guides users to get their Botify API token
+2. Validates the token with the Botify API
+3. Saves the token to botify_token.txt for use in other programs
+
+This replicates the functionality of the "Connect With Botify" workflow
+but as a simple standalone script for Jupyter notebooks.
+"""
+
+import asyncio
+import getpass
+import json
+import os
+import sys
+from pathlib import Path
+from typing import Optional
+
+import httpx
+
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+ACCOUNT_URL = "https://app.botify.com/account"
+
+
+def display_instructions():
+    """Display instructions for getting the Botify API token."""
+    print("🚀 Botify API Token Setup")
+    print("=" * 50)
+    print()
+    print("To use Botify API tutorials and tools, you need to set up your API token.")
+    print()
+    print("📋 Steps to get your token:")
+    print("1. Visit your Botify account page:")
+    print(f"   🔗 {ACCOUNT_URL}")
+    print("2. Look for the 'API' or 'Tokens' section")
+    print("3. Copy your 'Main Token' (not a project-specific token)")
+    print("4. Paste it in the input box below")
+    print()
+
+
+def check_existing_token() -> Optional[str]:
+    """Check if a token file already exists and return its content."""
+    # Search for token file in multiple locations (same logic as config generator)
+    search_paths = [
+        TOKEN_FILE,  # Current directory
+        os.path.join(os.getcwd(), TOKEN_FILE),  # Explicit current directory
+        os.path.join(os.path.expanduser('~'), TOKEN_FILE),  # Home directory
+        os.path.join('/home/mike/repos/pipulate', TOKEN_FILE),  # Pipulate root
+        os.path.join('/home/mike/repos', TOKEN_FILE),  # Repos root
+    ]
+    
+    # Add script directory if __file__ is available (not in Jupyter)
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        search_paths.insert(3, os.path.join(script_dir, TOKEN_FILE))
+    except NameError:
+        # __file__ not available (running in Jupyter), skip script directory
+        pass
+    
+    # Also check if we're in a subdirectory and look up the tree
+    current_dir = os.getcwd()
+    while current_dir != os.path.dirname(current_dir):  # Not at filesystem root
+        search_paths.append(os.path.join(current_dir, TOKEN_FILE))
+        current_dir = os.path.dirname(current_dir)
+    
+    for path in search_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    content = f.read().strip()
+                    token = content.split('\n')[0].strip()
+                    if token:
+                        print(f"🔍 Found existing token file: {path}")
+                        return token
+            except Exception:
+                continue
+    
+    return None
+
+
+async def validate_botify_token(token: str) -> Optional[str]:
+    """
+    Validate the Botify API token and return the username if successful.
+    
+    Args:
+        token: The Botify API token to validate
+        
+    Returns:
+        str or None: The username if token is valid, None otherwise
+    """
+    url = "https://api.botify.com/v1/authentication/profile"
+    headers = {"Authorization": f"Token {token}"}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, timeout=30.0)
+            response.raise_for_status()
+            
+            # Extract username if the token is valid
+            user_data = response.json()
+            username = user_data["data"]["username"]
+            return username
+            
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:
+            print(f"❌ Authentication failed: Invalid token")
+        elif e.response.status_code == 403:
+            print(f"❌ Access forbidden: Token may not have required permissions")
+        else:
+            print(f"❌ HTTP error {e.response.status_code}: {e.response.text}")
+        return None
+    except httpx.RequestError as e:
+        print(f"❌ Network error: {str(e)}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid response format: {str(e)}")
+        return None
+    except KeyError as e:
+        print(f"❌ Unexpected response structure: Missing {str(e)}")
+        return None
+    except Exception as e:
+        print(f"❌ Unexpected error: {str(e)}")
+        return None
+
+
+def save_token(token: str, username: str) -> bool:
+    """
+    Save the validated token to the token file in the current working directory.
+    Always saves locally to ensure relative paths work for sample scripts.
+    
+    Args:
+        token: The validated Botify API token
+        username: The username associated with the token
+        
+    Returns:
+        bool: True if saved successfully, False otherwise
+    """
+    try:
+        # Always save to current working directory for notebook compatibility
+        local_token_path = os.path.join(os.getcwd(), TOKEN_FILE)
+        
+        # Save token with a comment containing the username
+        with open(local_token_path, 'w') as f:
+            f.write(f"{token}\n# username: {username}")
+        
+        print(f"✅ Token saved locally to: {local_token_path}")
+        print(f"📁 This ensures relative paths work for sample scripts and notebooks.")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error saving token: {str(e)}")
+        return False
+
+
+async def main():
+    """Main execution function"""
+    display_instructions()
+    
+    # Check for existing token
+    existing_token = check_existing_token()
+    if existing_token:
+        print("⚠️  You already have a Botify API token configured.")
+        print()
+        
+        # Validate existing token
+        print("🔍 Validating existing token...")
+        username = await validate_botify_token(existing_token)
+        
+        if username:
+            print(f"✅ Existing token is valid for user: {username}")
+            print()
+            
+            # Check if token is already local to current directory
+            local_token_path = os.path.join(os.getcwd(), TOKEN_FILE)
+            existing_token_path = None
+            
+            # Find where the existing token is located
+            search_paths = [
+                TOKEN_FILE,  # Current directory
+                os.path.join(os.getcwd(), TOKEN_FILE),  # Explicit current directory
+                os.path.join(os.path.expanduser('~'), TOKEN_FILE),  # Home directory
+                os.path.join('/home/mike/repos/pipulate', TOKEN_FILE),  # Pipulate root
+                os.path.join('/home/mike/repos', TOKEN_FILE),  # Repos root
+            ]
+            
+            for path in search_paths:
+                if os.path.exists(path):
+                    existing_token_path = path
+                    break
+            
+            # If token is not in current directory, copy it locally
+            if existing_token_path and os.path.abspath(existing_token_path) != os.path.abspath(local_token_path):
+                print(f"📋 Copying token from {existing_token_path} to current directory...")
+                if save_token(existing_token, username):
+                    print("✅ Token copied locally for notebook compatibility.")
+                else:
+                    print("⚠️  Failed to copy token locally, but existing token is still valid.")
+            
+            # Ask if they want to update it
+            update_choice = getpass.getpass("Do you want to update your token? (y/N): ").strip().lower()
+            if update_choice not in ['y', 'yes']:
+                print("🎉 Setup complete! Your token is ready to use.")
+                return True  # Return success status, not the token
+        else:
+            print("❌ Existing token is invalid. You'll need to enter a new one.")
+        
+        print()
+    
+    # Get token from user
+    print("📝 Please paste your Botify API 'Main Token' below:")
+    print("(The input will be hidden for security)")
+    print()
+    
+    # Diagnostic information
+    print(f"🔧 Running in: {sys.executable}")
+    print(f"🔧 sys.stdin.isatty(): {sys.stdin.isatty()}")
+    print()
+    
+    # Use getpass for hidden input - no fallback to visible input
+    try:
+        token = getpass.getpass("Botify API Token: ").strip()
+        if token:
+            print(f"✅ Token received (length: {len(token)})")
+        else:
+            print("❌ No token provided. Setup cancelled.")
+            return False
+    except Exception as e:
+        print(f"❌ getpass.getpass() failed: {e}")
+        print("❌ Secure input not available. Setup cancelled.")
+        print("💡 Try running this in a proper terminal or Jupyter environment.")
+        return False
+    
+    # Validate the token
+    print()
+    print("🔍 Validating your token...")
+    username = await validate_botify_token(token)
+    
+    if not username:
+        print("❌ Token validation failed. Please check your token and try again.")
+        print()
+        print("💡 Make sure you're using the 'Main Token' from:")
+        print(f"   {ACCOUNT_URL}")
+        return False
+    
+    print(f"✅ Token validated successfully for user: {username}")
+    
+    # Save the token
+    print()
+    print("💾 Saving token...")
+    if save_token(token, username):
+        print()
+        print("🎉 Botify API setup complete!")
+        print()
+        print("📄 You can now use:")
+        print("   • Botify API tutorials and examples")
+        print("   • The Botify configuration generator")
+        print("   • Any Botify-related workflows")
+        print()
+        print("🔧 Next steps:")
+        print("   1. Run the Botify configuration generator to set up project config")
+        print("   2. Explore the Botify API tutorials in the notebooks")
+        
+        return True  # Return success status, not the token
+    else:
+        print("❌ Failed to save token. Setup incomplete.")
+        return False
+
+
+# For Jupyter Notebook execution
+if __name__ == "__main__":
+    # Check if we're in Jupyter (has get_ipython function)
+    try:
+        get_ipython()
+        print("🔬 Running in Jupyter environment")
+        # In Jupyter, use await directly
+        success = await main()
+    except NameError:
+        # Not in Jupyter, use asyncio.run()
+        print("🖥️  Running in standard Python environment")
+        success = asyncio.run(main()) 
 ```
-botify_token.txt
-config.json
-.ipynb_checkpoints/
-__pycache__/
+
+    🔬 Running in Jupyter environment
+    🚀 Botify API Token Setup
+    ==================================================
+    
+    To use Botify API tutorials and tools, you need to set up your API token.
+    
+    📋 Steps to get your token:
+    1. Visit your Botify account page:
+       🔗 https://app.botify.com/account
+    2. Look for the 'API' or 'Tokens' section
+    3. Copy your 'Main Token' (not a project-specific token)
+    4. Paste it in the input box below
+    
+    🔍 Found existing token file: botify_token.txt
+    ⚠️  You already have a Botify API token configured.
+    
+    🔍 Validating existing token...
+    ✅ Existing token is valid for user: michael.levin
+    
+
+
+    Do you want to update your token? (y/N):  ········
+
+
+    🎉 Setup complete! Your token is ready to use.
+
+
+## Script #2: Setup config file
+
+
+```python
+#!/usr/bin/env python3
+"""
+Botify Configuration Generator
+=============================
+
+A standalone Jupyter notebook program that:
+1. Asks for a Botify project URL via input()
+2. Validates the URL and extracts org/project info
+3. Fetches the most recent analysis from Botify API
+4. Generates a configuration JSON file
+
+Based on the Botify Trifecta workflow patterns.
+"""
+
+import asyncio
+import json
+import os
+import re
+from pathlib import Path
+from urllib.parse import urlparse
+from typing import Tuple, Optional, Dict, Any
+
+import httpx
+
+
+# Configuration
+TOKEN_FILE = 'botify_token.txt'
+
+
+def load_api_token() -> str:
+    """Load the Botify API token from the token file."""
+    # Search for token file in multiple locations
+    search_paths = [
+        TOKEN_FILE,  # Current directory
+        os.path.join(os.getcwd(), TOKEN_FILE),  # Explicit current directory
+        os.path.join(os.path.expanduser('~'), TOKEN_FILE),  # Home directory
+        os.path.join('/home/mike/repos/pipulate', TOKEN_FILE),  # Pipulate root
+        os.path.join('/home/mike/repos', TOKEN_FILE),  # Repos root
+    ]
+    
+    # Add script directory if __file__ is available (not in Jupyter)
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        search_paths.insert(3, os.path.join(script_dir, TOKEN_FILE))
+    except NameError:
+        # __file__ not available (running in Jupyter), skip script directory
+        pass
+    
+    # Also check if we're in a subdirectory and look up the tree
+    current_dir = os.getcwd()
+    while current_dir != os.path.dirname(current_dir):  # Not at filesystem root
+        search_paths.append(os.path.join(current_dir, TOKEN_FILE))
+        current_dir = os.path.dirname(current_dir)
+    
+    token_path = None
+    for path in search_paths:
+        if os.path.exists(path):
+            token_path = path
+            break
+    
+    if not token_path:
+        searched_locations = '\n  - '.join(search_paths[:6])  # Show first 6 locations
+        raise ValueError(f"Token file '{TOKEN_FILE}' not found in any of these locations:\n  - {searched_locations}\n\nPlease ensure the file exists in one of these locations.")
+    
+    try:
+        with open(token_path) as f:
+            content = f.read().strip()
+            api_key = content.split('\n')[0].strip()
+            if not api_key:
+                raise ValueError(f"Token file '{token_path}' is empty.")
+            print(f"🔑 Using token from: {token_path}")
+            return api_key
+    except Exception as e:
+        raise ValueError(f"Error reading token file '{token_path}': {str(e)}")
+
+
+def validate_botify_url(url: str) -> Tuple[bool, str, Dict[str, str]]:
+    """
+    Validate a Botify project URL and extract project information.
+    
+    Args:
+        url: The Botify project URL to validate
+        
+    Returns:
+        Tuple of (is_valid, message, project_data)
+    """
+    url = url.strip()
+    if not url:
+        return (False, 'URL is required', {})
+    
+    try:
+        if not url.startswith(('https://app.botify.com/')):
+            return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/)', {})
+        
+        parsed_url = urlparse(url)
+        path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
+        
+        if len(path_parts) < 2:
+            return (False, 'Invalid Botify URL: must contain at least organization and project', {})
+        
+        org_slug = path_parts[0]
+        project_slug = path_parts[1]
+        
+        canonical_url = f'https://{parsed_url.netloc}/{org_slug}/{project_slug}/'
+        
+        project_data = {
+            'url': canonical_url,
+            'username': org_slug,
+            'project_name': project_slug,
+            'project_id': f'{org_slug}/{project_slug}'
+        }
+        
+        return (True, f'Valid Botify project: {project_slug}', project_data)
+        
+    except Exception as e:
+        return (False, f'Error parsing URL: {str(e)}', {})
+
+
+async def get_username(api_token: str) -> Optional[str]:
+    """
+    Fetch the username associated with the API key.
+    
+    Args:
+        api_token: Botify API token
+        
+    Returns:
+        Username string or None if error
+    """
+    headers = {"Authorization": f"Token {api_token}"}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://api.botify.com/v1/authentication/profile", headers=headers, timeout=60.0)
+            response.raise_for_status()
+            return response.json()["data"]["username"]
+    except Exception as e:
+        print(f'❌ Error fetching username: {str(e)}')
+        return None
+
+
+async def fetch_projects(username: str, api_token: str) -> Optional[list]:
+    """
+    Fetch all projects for a given username from Botify API.
+    
+    Args:
+        username: Username to fetch projects for
+        api_token: Botify API token
+        
+    Returns:
+        List of project tuples (name, slug, user_or_org) or None if error
+    """
+    url = f"https://api.botify.com/v1/projects/{username}"
+    headers = {"Authorization": f"Token {api_token}"}
+    projects = []
+    
+    try:
+        while url:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=60.0)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Extract project info as tuples (name, slug, user_or_org)
+                for p in data.get('results', []):
+                    projects.append((
+                        p['name'], 
+                        p['slug'], 
+                        p['user']['login']
+                    ))
+                
+                url = data.get('next')
+        
+        return sorted(projects) if projects else None
+        
+    except Exception as e:
+        print(f'❌ Error fetching projects for {username}: {str(e)}')
+        return None
+
+
+async def fetch_most_recent_analysis(org: str, project: str, api_token: str, quiet: bool = False) -> Optional[str]:
+    """
+    Fetch the most recent analysis slug for a Botify project.
+    
+    Args:
+        org: Organization slug
+        project: Project slug
+        api_token: Botify API token
+        
+    Returns:
+        Most recent analysis slug or None if error/no analyses found
+    """
+    if not org or not project or not api_token:
+        print(f'❌ Missing required parameters: org={org}, project={project}')
+        return None
+    
+    # Fetch first page of analyses (they should be sorted by date, most recent first)
+    url = f'https://api.botify.com/v1/analyses/{org}/{project}/light'
+    headers = {
+        'Authorization': f'Token {api_token}',
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, timeout=60.0)
+            
+        if response.status_code != 200:
+            print(f'❌ API error: Status {response.status_code} for {url}')
+            print(f'Response: {response.text}')
+            return None
+        
+        data = response.json()
+        if 'results' not in data:
+            print(f"❌ No 'results' key in response: {data}")
+            return None
+        
+        analyses = data['results']
+        if not analyses:
+            if not quiet:
+                print('❌ No analyses found for this project')
+            return None
+        
+        # Get the first (most recent) analysis
+        most_recent = analyses[0]
+        analysis_slug = most_recent.get('slug')
+        
+        if not analysis_slug:
+            if not quiet:
+                print('❌ No slug found in most recent analysis')
+            return None
+        
+        if not quiet:
+            print(f'✅ Found most recent analysis: {analysis_slug}')
+            print(f'📊 Total analyses available: {len(analyses)}')
+            
+            # Show some details about the most recent analysis
+            if 'date_created' in most_recent:
+                print(f'📅 Created: {most_recent["date_created"]}')
+            if 'date_last_modified' in most_recent:
+                print(f'🔄 Last modified: {most_recent["date_last_modified"]}')
+        
+        return analysis_slug
+        
+    except httpx.HTTPStatusError as e:
+        print(f'❌ HTTP error: {e.response.status_code} - {e.response.text}')
+        return None
+    except httpx.RequestError as e:
+        print(f'❌ Network error: {str(e)}')
+        return None
+    except json.JSONDecodeError as e:
+        print(f'❌ JSON decode error: {str(e)}')
+        return None
+    except Exception as e:
+        print(f'❌ Unexpected error: {str(e)}')
+        return None
+
+
+def generate_config(org: str, project: str, analysis_slug: str) -> Dict[str, str]:
+    """
+    Generate the configuration dictionary.
+    
+    Args:
+        org: Organization slug
+        project: Project slug  
+        analysis_slug: Analysis slug
+        
+    Returns:
+        Configuration dictionary
+    """
+    return {
+        "org": org,
+        "project": project,
+        "analysis": analysis_slug,
+        "collection": f"crawl.{analysis_slug}"
+    }
+
+
+async def get_default_configuration(api_token: str) -> Optional[Dict[str, str]]:
+    """
+    Get default configuration using first available project with analyses.
+    
+    Args:
+        api_token: Botify API token
+        
+    Returns:
+        Default configuration dictionary or None if unable to generate
+    """
+    print("🔍 Fetching your default configuration...")
+    
+    # Step 1: Get username
+    print("👤 Fetching username...")
+    username = await get_username(api_token)
+    if not username:
+        print("❌ Could not fetch username")
+        return None
+    
+    print(f"👤 Using username: {username}")
+    
+    # Step 2: Get projects for username
+    print(f"📁 Fetching projects for {username}...")
+    projects = await fetch_projects(username, api_token)
+    if not projects:
+        print("❌ No projects found")
+        return None
+    
+    print(f"📊 Found {len(projects)} projects. Searching for one with analyses...")
+    
+    # Step 3: Try each project until we find one with analyses
+    for i, project_tuple in enumerate(projects):
+        project_name = project_tuple[0]  # name
+        project_slug = project_tuple[1]  # slug
+        org_slug = project_tuple[2]      # user_or_org
+        
+        print(f"🔍 Trying project {i+1}/{len(projects)}: {org_slug}/{project_slug}")
+        
+        # Try to get latest analysis for this project (quiet mode during search)
+        analysis_slug = await fetch_most_recent_analysis(org_slug, project_slug, api_token, quiet=True)
+        
+        if analysis_slug:
+            print(f"✅ Found project with analyses!")
+            print(f"🏢 Using organization: {org_slug}")
+            print(f"📁 Using project: {project_slug}")
+            
+            # Now get the analysis details with full output
+            print(f"🔍 Fetching analysis details...")
+            await fetch_most_recent_analysis(org_slug, project_slug, api_token, quiet=False)
+            
+            # Step 4: Generate configuration
+            config = generate_config(org_slug, project_slug, analysis_slug)
+            return config
+        else:
+            print(f"⏭️  No analyses found for {org_slug}/{project_slug}, trying next project...")
+    
+    # If we get here, no projects had analyses
+    print("❌ No projects found with analyses")
+    return None
+
+
+def save_config(config: Dict[str, str], filename: str = "botify_config.json") -> None:
+    """
+    Save the configuration to a JSON file.
+    
+    Args:
+        config: Configuration dictionary
+        filename: Output filename
+    """
+    try:
+        with open(filename, 'w') as f:
+            json.dump(config, f, indent=4)
+        print(f'✅ Configuration saved to: {filename}')
+    except Exception as e:
+        print(f'❌ Error saving configuration: {str(e)}')
+
+
+async def main():
+    """Main execution function"""
+    print("🚀 Botify Configuration Generator")
+    print("=" * 50)
+    
+    # Step 1: Load API token
+    try:
+        api_token = load_api_token()
+        print(f"✅ API token loaded from {TOKEN_FILE}")
+    except Exception as e:
+        print(f"❌ {str(e)}")
+        return
+    
+    # Step 2: Get Botify project URL from user (with default option)
+    while True:
+        print("\n📝 Please enter your Botify project URL:")
+        print("Example: https://app.botify.com/your-org/your-project/")
+        print("💡 Or just hit Enter to use your default (first org, first project, latest analysis)")
+        
+        botify_url = input("Botify Project URL (or Enter for default): ").strip()
+        
+        # Check if user wants default configuration
+        if not botify_url:
+            print("\n🎯 Using default configuration...")
+            config = await get_default_configuration(api_token)
+            
+            if config:
+                print("✅ Default configuration generated successfully!")
+                break
+            else:
+                print("❌ Could not generate default configuration.")
+                print("💡 Please enter a specific Botify project URL instead.")
+                continue
+        
+        # Step 3: Validate URL
+        is_valid, message, project_data = validate_botify_url(botify_url)
+        
+        if not is_valid:
+            print(f"❌ {message}")
+            print("💡 Please try again or hit Enter for default configuration.")
+            continue
+        
+        print(f"✅ {message}")
+        
+        org = project_data['username']
+        project = project_data['project_name']
+        
+        print(f"🏢 Organization: {org}")
+        print(f"📁 Project: {project}")
+        
+        # Step 4: Fetch most recent analysis
+        print(f"\n🔍 Fetching most recent analysis for {org}/{project}...")
+        
+        analysis_slug = await fetch_most_recent_analysis(org, project, api_token)
+        
+        if not analysis_slug:
+            print("❌ Could not fetch analysis information")
+            print("💡 Please try a different URL or hit Enter for default configuration.")
+            continue
+        
+        # Step 5: Generate configuration
+        config = generate_config(org, project, analysis_slug)
+        break
+    
+    # Display and save configuration
+    if config:
+        print(f"\n📋 Generated Configuration:")
+        print("=" * 30)
+        print(json.dumps(config, indent=4))
+        
+        # Step 6: Save configuration
+        print(f"\n💾 Saving configuration...")
+        save_config(config, "config.json")
+        
+        print(f"\n🎉 Configuration generation complete!")
+        print(f"📄 You can now use the generated config.json file in your projects.")
+        
+        return config
+    else:
+        print("❌ Configuration generation failed.")
+        return None
+
+
+# For Jupyter Notebook execution
+if __name__ == "__main__":
+    # Check if we're in Jupyter (has get_ipython function)
+    try:
+        get_ipython()
+        print("🔬 Running in Jupyter environment")
+        # In Jupyter, use await directly
+        config = await main()
+    except NameError:
+        # Not in Jupyter, use asyncio.run()
+        print("🖥️  Running in standard Python environment")
+        config = asyncio.run(main()) 
 ```
 
-3. If using Cursor IDE, also create a `.cursorignore` file with:
-```
-botify_token.txt
-```
+    🔬 Running in Jupyter environment
+    🚀 Botify Configuration Generator
+    ==================================================
+    🔑 Using token from: botify_token.txt
+    ✅ API token loaded from botify_token.txt
+    
+    📝 Please enter your Botify project URL:
+    Example: https://app.botify.com/your-org/your-project/
+    💡 Or just hit Enter to use your default (first org, first project, latest analysis)
 
-<!-- #region -->
+
+    Botify Project URL (or Enter for default):  https://app.botify.com/michaellevin-org/mikelev.in
+
+
+    ✅ Valid Botify project: mikelev.in
+    🏢 Organization: michaellevin-org
+    📁 Project: mikelev.in
+    
+    🔍 Fetching most recent analysis for michaellevin-org/mikelev.in...
+    ✅ Found most recent analysis: 20250525
+    📊 Total analyses available: 10
+    📅 Created: 2025-05-25T20:01:00.485287Z
+    🔄 Last modified: 2025-05-25T20:29:49.803865Z
+    
+    📋 Generated Configuration:
+    ==============================
+    {
+        "org": "michaellevin-org",
+        "project": "mikelev.in",
+        "analysis": "20250525",
+        "collection": "crawl.20250525"
+    }
+    
+    💾 Saving configuration...
+    ✅ Configuration saved to: config.json
+    
+    🎉 Configuration generation complete!
+    📄 You can now use the generated config.json file in your projects.
+
+
+--------------------------------------------------------------------------------
+
 # Introduction to BQL (Botify Query Language)
 
-BQL is a specialized query language for accessing and analyzing website crawl data through the Botify API. This guide will help you understand how to effectively use BQL for website analysis and SEO insights.
+Botify API interactions come in many shapes and forms. The example shown below is the most popular: BQLv2 (Botify Query Language V2), but there are others — not just BQLv1 but also a vast array of *specialized endpoints* for custom reports and analysis. Of all the variations you will find, two "endpoints" (URLs that you make requests to) rise above all the others in their utility and frequency you'll encounter them. And they are:
 
-## Core Capabilities
-- **Data Extraction**: Query and analyze large-scale crawl datasets
-- **Query Filtering**: Target specific page segments or URL attributes
-- **Metric Creation**: Define and calculate custom analytics metrics
-- **Site Segmentation**: Organize and categorize URLs by structural patterns
+1. The `/query` endpoint
+2. The `/jobs` endpoint
 
-## Technical Requirements
-Required dependencies:
-- `httpx` library for API communication
-- `pandas` for data manipulation
-- Authentication files:
-  - `botify_token.txt` for API authentication
-  - `config.json` for project configuration
-
-## Key Operations
-- Execute API queries against crawl data
-- Generate customized analytical reports
-- Create data pipelines for site analysis
-- Convert crawl data into actionable insights
-
-## Query Structure
-Every BQL query consists of four main components:
-1. **Collections**: Source datasets for analysis
-2. **Dimensions**: Data segmentation parameters
-3. **Metrics**: Measurement criteria
-4. **Sorting**: Result organization rules
-
-### Example BQL Query
-
-This example retrieves URL counts by page type:
+## `/query` Endpoint Example
 
 ```python
 import httpx
 
-# Define API variables
+# This is set by the botify_token.txt file you just created above.
+api_key = "your_api_key_here"
+
+# These part are read from the config.json file you just created above.
 org = "your_organization_slug"
 project = "your_project_slug"
+analysis = "your_analysis_slug"
 collection = "your_collection_name"
-api_key = "your_api_key_here"
-url = f"https://api.botify.com/v1/projects/{org}/{project}/query"
+
+# This is an "endpoint". Endpoints are URLs that you can "submit" requests to.
+url = f"https://api.botify.com/v1/projects/{org}/{project}/query"  # <-- SEE!!! This is the `/query` endpoint!
+
+# This sets values that need to be sent WITH the request that you submit to the endpoint.
 headers = {"Authorization": f"Token {api_key}", "Content-Type": "application/json"}
 
 # BQL query payload
@@ -117,86 +874,20 @@ response = httpx.post(url, headers=headers, json=payload)
 response.raise_for_status()
 print(response.json())
 ```
-<!-- #endregion -->
 
-```python
-import httpx
-from getpass import getpass
+--------------------------------------------------------------------------------
 
-def validate_token(token):
-    """Check if the Botify API token is valid and return the username if successful."""
-    url = "https://api.botify.com/v1/authentication/profile"
-    headers = {"Authorization": f"Token {token}"}
-    try:
-        response = httpx.get(url, headers=headers)
-        response.raise_for_status()
-        # Extract username if the token is valid
-        user_data = response.json()
-        username = user_data["data"]["username"]
-        return username
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 401:
-            print("Authentication failed: Invalid or expired token")
-        else:
-            print(f"API request failed: {e}")
-        return None
-    except httpx.RequestError as e:
-        print(f"Request error: {e}")
-        return None
+# Use API: Simplest Example
 
-# Define token file
-token_file = "botify_token.txt"
+Remember when I told you there are lots of specialized endpoints? Well, this is the first and easiest to have an immediate API success. If you did the above API step correctly, you should be able to get your username with this bare minimum Botify API script.
 
-# Attempt to read the token from the file
-try:
-    with open(token_file) as f:
-        token = f.read().strip()
-    username = validate_token(token)
-    if username:
-        print(f"Using saved token. Welcome, {username}!")
-    else:
-        print("Invalid saved token. Please provide a new token.")
-        token = None
-except FileNotFoundError:
-    token = None
-    print(f"No token file found at {token_file}")
-
-# If no valid token, prompt once
-if not token:
-    print("\nTo get your API token, visit: https://app.botify.com/account")
-    token = getpass("Enter your API token: ").strip()
-    
-    if token:
-        username = validate_token(token)
-        if username:
-            with open(token_file, 'w') as f:
-                f.write(token)
-            print(f"API Token validated and saved. Welcome, {username}!")
-        else:
-            print("Token validation failed. Please try again later.")
-    else:
-        print("No token provided.")
-
-print("Done. And remember, never let your browser save this token!")
-```
-
-**Sample Output**:
-
-    Enter your API token or hit 'Esc 00' & Restart to quit (it's a Jupyter thing):  ········
-    Invalid token, please try again.
-    Enter your API token or hit 'Esc 00' & Restart to quit (it's a Jupyter thing):  ········
-    API Token validated and saved. Welcome, michael.levin!
-    Done. And remember, never let your browser save this token!
-
-**Rationale**: Botify API-calls need access to your Botify API Token. We therefore retreive it smack it right down in the same folder where your script runs. This way, we can open it with a Python 1-liner, dump it into a global-scope `api_key` variable your functons can use anywhere. There's so much wrong with this except for the fact that it works every time. Don't deploy to production. Now go away or I shall taunt you a second time.
-
-
-# Use API: How To Have Your First Initial Success With Botify API By Getting Username
 
 ```python
 import httpx
 
-api_key = open('botify_token.txt').read().strip()
+# Read only the first line (the token) from botify_token.txt
+# This handles the multi-line format: token on line 1, comment on line 2
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 
 headers = {"Authorization": f"Token {api_key}"}
 user_data = httpx.get("https://api.botify.com/v1/authentication/profile", headers=headers).json()
@@ -205,20 +896,23 @@ username = user_data["data"]["username"]
 print(username)
 ```
 
+    michael.levin
+
+
 **Sample Output**: 
 
     first.last
 
-**Rationale**: To create a first successful experience connecting to the Botify API. If you run this and see your name, congratulations! You're a Botify employee. Also, you're successfully connecting to the API.
-
+--------------------------------------------------------------------------------
 
 # List Orgs: How To Get the List of Projects And Their Orgs Given Username
+
 
 ```python
 import httpx
 
 # Load API key
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 headers = {"Authorization": f"Token {api_key}"}
 
 def get_username():
@@ -259,6 +953,20 @@ else:
     print("Failed to retrieve username or projects.")
 ```
 
+    Project Name                   Project Slug                        User or Org    
+    ================================================================================
+    Comp Crawl Test                comp-crawl-test                     uhnd-com       
+    LinkedIn Article Content       linkedin-article-content            michaellevin-org
+    MikeLev.in                     mikelev.in                          michaellevin-org
+    Redirect Tests                 redirect-tests                      uhnd-com       
+    Test ad-hoc                    test-ad-hoc                         uhnd-com       
+    UHND - Ad Hoc Crawls           uhnd-ad-hoc-crawls                  uhnd-com       
+    UHND Character Crawl Test      uhnd-character-crawl-test           uhnd-com       
+    UHND.com - Demo Account        uhnd.com-demo-account               uhnd-com       
+    test2                          test2                               uhnd-com       
+    test3                          test3                               uhnd-com       
+
+
 **Sample Output**:
 
 ```
@@ -272,6 +980,7 @@ Baz Test                       baz.com                             baz-org
 
 **Rationale**: You need an Organization slug (**org**) for these exercises. It goes in your **config.json** to get started. Your personal login username will usually be used for one Project, but then an offical ***org slug*** (aka group) will usually appear on the others. By convention, these values often end with `-org`.
 
+--------------------------------------------------------------------------------
 
 # List Projects: How To Get the List of Projects Given an Organization
 
@@ -286,6 +995,7 @@ Your config.json should look like:
     "project": "project_name"
 }
 ```
+
 
 ```python
 import json
@@ -337,8 +1047,10 @@ Fabled Catalog of Curiosities  fabled-catalog-of-curiosities       foo-org
 
 **Rationale**: Next, you need Project slugs for these exercises.
 
+--------------------------------------------------------------------------------
 
 # List Analyses: How To Get the List of Analysis Slugs Given a Project
+
 
 
 ```python
@@ -347,7 +1059,7 @@ import httpx
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org, project = config['org'], config['project']
 
 def fetch_analyses(org, project):
@@ -387,6 +1099,7 @@ print("\nDone")
 
 **Rationale**: Analysis slugs are dates in YYYYMMDD format but sometimes get incremeted with `-n` extensions starting with `-2`. They're the third thing you typically need in **config.json** for these exercises.
 
+--------------------------------------------------------------------------------
 
 # List URLs: How To Get a List of the First 500 URLs
 
@@ -403,13 +1116,14 @@ Your `config.json` should include:
 
 The analysis slug is typically a date in YYYYMMDD format (like "20240301") as shown in the sample output below. Without this value in your config file, you'll encounter a KeyError.
 
+
 ```python
 import json
 import httpx
 import pandas as pd
 
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -473,8 +1187,10 @@ for i, url in enumerate(list_of_urls):
 
 You're welcome.
 
+--------------------------------------------------------------------------------
 
 # List SEO Fields: How To Get a List of the First 500 URLs, Titles, Meta Descriptions and H1s
+
 
 ```python
 import json
@@ -483,7 +1199,7 @@ import pandas as pd
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -529,7 +1245,6 @@ print("Data saved to first_500_urls.csv")
 df.head()
 ```
 
-<!-- #region -->
 **Sample Output**:
 
 
@@ -544,7 +1259,7 @@ df.head()
 *Data saved to `first_500_urls.csv`*
 
 **Rationale**: To show you the main endpoint for listing 500 lines at a time, paging and quick aggregate queries. To show you how `org` and `project` are in the url (so you notice them disappearing later when we export csv downloads). To introduce the infinitely popular and useful `pandas` data library for manipulating ***row & column*** data.
-<!-- #endregion -->
+
 
 ```python
 import json
@@ -553,7 +1268,7 @@ import pandas as pd
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -653,7 +1368,6 @@ print("Data saved to first_500_urls_titles.csv")
 df.head()
 ```
 
-<!-- #region -->
 **Sample Output**:
 
 | | url                               | title              | impressions | clicks |
@@ -664,7 +1378,8 @@ df.head()
 
 
 **Rationale**: So that I can jump up and down screaming that BQL is not SQL and tell the LLMs to stop showing me SQL examples for BQL. Surely SQL is down there somewhere, but it's ***API-wrapped***. Though this does not spare us from some SQL methodology. For example, table-joins across Collections are a thing—demonstrated here as `search_console` joined with `crawl.YYMMDD`, left-outer if I'm reading it correctly (I may have to amend that). If you really wanna know, Collections are table aliases that help with the API-wrapping.
-<!-- #endregion -->
+
+--------------------------------------------------------------------------------
 
 # # Query Segments: How to Get Pagetype Segment Data for a Project With URL Counts
 
@@ -678,6 +1393,7 @@ Example config.json:
     "collection": "crawl.20241230"
 }
 ```
+
 
 
 
@@ -696,7 +1412,7 @@ analysis = config["analysis"]
 collection = config["collection"]
 
 # Load the API key from botify_token.txt
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 
 # Define the URL for the API request
 url = f"https://api.botify.com/v1/projects/{org}/{project}/query"
@@ -759,8 +1475,10 @@ print(json.dumps(results, indent=4, separators=(',', ': ')))
 
 **Rationale**: To give you an example that uses dimensions, metrics and sorting all at once. Also to show you the `page` parameter on the querystring making you think it's the **GET method**, `org` & `project` arguments posing as folders, and finally a JSON `payload` showing you it's actually using the **POST method**. Ahhh, *gotta love the Botify API*.
 
+--------------------------------------------------------------------------------
 
 # List Collections: How To Get the List of Collections Given a Project
+
 
 ```python
 # Get List of Collections Given a Project
@@ -769,7 +1487,7 @@ import json
 import httpx
 
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 
@@ -807,8 +1525,10 @@ ID: search_engines_orphans.20240715, Name: Search Engines Orphans
 
 **Rationale**: To let you know how tough Collections are once you start digging in. The first challenge is simply knowing what collections you have and what you can do with them—though 9 out of 10 times it's `crawl.YYYYMMDD` and `search_console`. If not, come talk to me, I wanna pick your brain.
 
+--------------------------------------------------------------------------------
 
 # List Fields: How To Get The List of Fields Given a Collection
+
 
 ```python
 # Get List of Fields Given a Collection
@@ -817,7 +1537,7 @@ import json
 import httpx
 
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 collection = config['collection']
@@ -859,8 +1579,10 @@ ID: afield_a_complaint, Name: Red Swingline
 
 **Rationale**: So you've got a collection and have no idea what to do with it? Well, you can always start by listing its fields. Yeah, let's list the fields.
 
+--------------------------------------------------------------------------------
 
 # Get Pagetypes: How To Get the Unfiltered URL Counts by Pagetype for a Specific Analysis
+
 
 ```python
 import json
@@ -869,7 +1591,7 @@ import pandas as pd
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 website = config['project']  # Assuming 'project' here refers to the website
 analysis_date = config['analysis']  # Date of analysis, formatted as 'YYYYMMDD'
@@ -942,8 +1664,10 @@ Data saved to pagetype_url_counts.csv
 
 **Rationale**: Do you ever get the feeling a website's folder-structure can tell you something about how it's organized? Yeah, me too. Thankfully, we here at Botify do the ***Regular Expressions*** so you don't have to. And it makes really great great color-coding in the link-graph visualizations. Psst! Wanna see the Death Star?
 
+--------------------------------------------------------------------------------
 
 # Get Short Titles: How To Get the First 500 URLs With Short Titles Given Pagetype
+
 
 ```python
 # Get the First 500 URLs With Short Titles Given Pagetype
@@ -952,8 +1676,7 @@ import json
 import httpx
 import pandas as pd
 
-config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -1048,15 +1771,17 @@ df.head(10)
 
 **Rationale**: Ahh, ***title tags***. They show in browser bookmarks, tabs and SERPs—the only relevancy factor that will remain standing after SEO Armageddon. You could ditch every other factor but ***anchor text***, set your uber-crawler go off-site, use a click-depth of 4—and harvest yourself a pretty good link-graph of the entire Internet... were it not for spammers.
 
+--------------------------------------------------------------------------------
 
 # Count Short Titles: How To Count Number of URLs Having Short Titles
+
 
 ```python
 import json
 import httpx
 
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -1117,8 +1842,10 @@ else:
 
 **Rationale**: Sometimes ya gotta count what you're trying to get before you go try and download it. Plus, learn ***filtering*** in the Botify API! But I think really I just wanted to show you how easy it is to format `f"{big_numbers:,}"` with commas using ***f-strings*** (I'm talking to you humans—because the LLMs *already know*).
 
+--------------------------------------------------------------------------------
 
 # Download CSV: How To Download Up to 10K URLs Having Short Titles As a CSV
+
 
 ```python
 import json
@@ -1128,7 +1855,7 @@ import gzip
 import shutil
 
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -1255,8 +1982,10 @@ else:
 
 **Rationale**: Is it pulling or pooling? I could never remember. In either case, exporting and downloading csv-files is not as straightforward as you think. First, you make the request. Then you look for ***where*** to check progress, then keep re-checking until done. Then you sacrifice a chicken to help you debug useless errors. Lastly, you notice how your endpoint has changed to`https://api.botify.com/v1/jobs` with `org` and `project` moved into the JSON payload. Or is that firstly? Yeah, definitely firstly.
 
+--------------------------------------------------------------------------------
 
 # Get Total Count: How To Get Aggregate Count of All URLs Crawled During Analysis
+
 
 ```python
 import json
@@ -1267,7 +1996,7 @@ import httpx
 # Basic error handling for loading is good practice even in tutorials
 try:
     config = json.load(open("config.json"))
-    api_key = open('botify_token.txt').read().strip()
+    api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
     # Get specific config values needed
     ORG_SLUG = config['org']
     PROJECT_SLUG = config['project']
@@ -1362,8 +2091,10 @@ Result: Grand Total URLs in Crawl = 3,000,000
 
 **Rationale**: Before doing a download of a CSV it is often worth checking if the number of rows returned will be under the 1-million row API limit.
 
+--------------------------------------------------------------------------------
 
 # Get Depth Count: How To Get Aggregate Count of URLs at Particular Click Depth
+
 
 ```python
 import json
@@ -1374,7 +2105,7 @@ import httpx
 # Basic error handling for loading is good practice even in tutorials
 try:
     config = json.load(open("config.json"))
-    api_key = open('botify_token.txt').read().strip()
+    api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
     # Get specific config values needed
     ORG_SLUG = config['org']
     PROJECT_SLUG = config['project']
@@ -1465,8 +2196,10 @@ Total URLs at depth 5 or less: 1,500,000
 
 **Rationale**: Before doing a download of a CSV it is often worth checking if the number of rows returned will be under the 1-million row API limit. By using a depth filter, we now have the foundation for reducing depth until we get a downloadable number.
 
+--------------------------------------------------------------------------------
 
 # Get Aggregates: How To Get Map of Click-Depths Aggregates Given Analysis Slug
+
 
 ```python
 import json
@@ -1477,7 +2210,7 @@ import pprint # Keep pprint for the final output as in the original
 # Load necessary details from files (adjust paths if needed)
 try:
     config = json.load(open("config.json"))
-    api_key = open('botify_token.txt').read().strip()
+    api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
     # Get specific config values needed
     ORG_SLUG = config['org']
     PROJECT_SLUG = config['project']
@@ -1610,8 +2343,6 @@ Requesting URL counts per depth from Botify API...
 Data received successfully.
 Processing API response...
 Processing complete.
-
---- URL Distribution by Depth (Scaled Generic Example) ---
 { 0: 10,        # Start pages (kept small)
   1: 550,
   2: 28000,     # Rounded 5k * 5.5
@@ -1633,13 +2364,15 @@ Processing complete.
  18: 3000,      # Rounded 500 * 5.5
  19: 1100,      # 200 * 5.5
  20: 550 }      # 100 * 5.5
---------------------------------------------------------
+--------------------------------------------------
 ```
 
 **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
 
+--------------------------------------------------------------------------------
 
 # Get Aggregates: How To Get Map of CUMULATIVE Click-Depths Aggregates Given Analysis Slug
+
 
 ```python
 import json
@@ -1650,7 +2383,7 @@ import pprint # Keep pprint for the final output
 # Load necessary details from files (adjust paths if needed)
 try:
     config = json.load(open("config.json"))
-    api_key = open('botify_token.txt').read().strip()
+    api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
     # Get specific config values needed
     ORG_SLUG = config['org']
     PROJECT_SLUG = config['project']
@@ -1788,8 +2521,6 @@ Processing API response...
 Processing complete.
 
 Calculating cumulative URL counts by depth...
-
---- Cumulative URL Distribution by Depth (Scaled Generic Example) ---
 { 0: 10,
   1: 560,          # (10 + 550)
   2: 28560,        # (560 + 28000)
@@ -1811,13 +2542,15 @@ Calculating cumulative URL counts by depth...
  18: 2997560,      # (2994560 + 3000)
  19: 2998660,      # (2997560 + 1100)
  20: 2999210 }      # (2998660 + 550) <-- Final cumulative total ~3M
-------------------------------------------------------------------
+------------------------------------------------------------
 ```
 
 **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
 
+--------------------------------------------------------------------------------
 
 # Download Link Graph: How to Download a Link Graph for a Specified Organization, Project, and Analysis For Website Visualization.
+
 
 ```python
 import os
@@ -1829,7 +2562,7 @@ import pandas as pd
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 project = config['project']
 analysis = config['analysis']
@@ -1974,8 +2707,10 @@ Link graph saved to: downloads/org_project_analysis_linkgraph_depth-3.csv
 
 **Rationale**: And now, the moment you’ve all been waiting for—the elusive, hard-to-visualize link-graph of your website. Think Admiral Ackbar scrutinizing a hologram of the Death Star, examining every strength and vulnerability, now superimposed with Google Search Console Clicks and Impressions. The Rebels lean in, studying surprise hot spots and patches of dead wood. Every faceted search site ends up looking like the Death Star. But if you’ve done it right, with solid topical clustering, you’ll have something that resembles broccoli or cauliflower... are those called nodules? Florets? Either way, it’s a good look.
 
+--------------------------------------------------------------------------------
 
 # Check Link-Graph Enhancements: How To Check What Data is Available to Enhance Link-Graph Visualization.
+
 
 ```python
 import os
@@ -2305,7 +3040,7 @@ if __name__ == "__main__":
     ==================================================
     
     📊 Data Sample Analysis
-    ------------------------------
+------------------------
     • URL: https://www.example.com/...
       └─ Performance: 123,456 impressions, 12,345 clicks
     • URL: https://www.example.com/site/retail/seasonal-sale/pcmcat...
@@ -2314,7 +3049,7 @@ if __name__ == "__main__":
       └─ Performance: 54,321 impressions, 4,321 clicks
     
     🎯 Data Quality Check
-    ------------------------------
+------------------------
     ✓ URLs found: 404
     ✓ Search metrics: Available
     ✓ Depth limit: 2
@@ -2387,8 +3122,10 @@ if __name__ == "__main__":
 
 **Rationale**: Just because you happen to work at an enterprise SEO company and possess this peculiar intersection of skills—like crafting prompts that give LLMs instant deep-knowledge (think Neo suddenly knowing kung fu)—doesn't mean you actually understand BQL. In fact, needing to write this prompt rather proves the opposite... wait, did I just create a paradox? Anyway, there's a very subtle chicken-and-egg problem that this file in general and this example in particular helps address: ***validation of collection fields*** so you can template automations without them being too fragile.
 
+--------------------------------------------------------------------------------
 
 # Color-Code Link-Graphs: How To Download Data to Enhance Website Link-Graph Visualization.
+
 
 ```python
 import os
@@ -2756,7 +3493,7 @@ if __name__ == "__main__":
     ==================================================
     
     📊 Data Sample Analysis
-    ------------------------------
+------------------------
     • URL: https://www.example.com/...
       └─ Performance: 123,456 impressions, 12,345 clicks
     • URL: https://www.example.com/site/retail/seasonal-sale/pcmcat...
@@ -2765,7 +3502,7 @@ if __name__ == "__main__":
       └─ Performance: 54,321 impressions, 4,321 clicks
     
     🎯 Data Quality Check
-    ------------------------------
+------------------------
     ✓ URLs found: 404
     ✓ Search metrics: Available
     ✓ Depth limit: 2
@@ -2814,7 +3551,212 @@ if __name__ == "__main__":
  
 Next-generation SEO requires adapting to these AI-driven changes. Now, let's examine the process of converting from BQLv1 to the collection-based BQLv2 format...
 
-<!-- #region -->
+--------------------------------------------------------------------------------
+
+# Web Logs: How To Check If A Project Has a Web Logs Collection
+
+
+```python
+import httpx
+import json
+import os
+# No typing imports needed
+
+# --- Configuration ---
+CONFIG_FILE = "config.json"
+TOKEN_FILE = "botify_token.txt"
+# The specific collection ID we are looking for
+TARGET_LOG_COLLECTION_ID = "logs"
+
+# --- !!! EASY OVERRIDE SECTION !!! ---
+# Set these variables to directly specify org/project, bypassing config.json
+# Leave as None to use config.json or prompts.
+# https://app.botify.com/michaellevin-org/mikelev.in
+# ORG_OVERRIDE = None
+# PROJECT_OVERRIDE = None
+ORG_OVERRIDE = "michaellevin-org"
+PROJECT_OVERRIDE = "mikelev.in"
+# Example:
+# ORG_OVERRIDE = "my-direct-org"
+# PROJECT_OVERRIDE = "my-direct-project.com"
+# --- END OVERRIDE SECTION ---
+
+
+# --- Helper Functions ---
+
+def load_api_key():
+    """Loads the API key from the token file. Returns None on error."""
+    try:
+        if not os.path.exists(TOKEN_FILE):
+            print(f"Error: Token file '{TOKEN_FILE}' not found.")
+            return None
+        with open(TOKEN_FILE) as f:
+            api_key = f.read().strip().split('\n')[0].strip()
+            if not api_key:
+                print(f"Error: Token file '{TOKEN_FILE}' is empty.")
+                return None
+        return api_key
+    except Exception as e:
+        print(f"Error loading API key: {e}")
+        return None
+
+def load_org_project_from_config():
+    """Loads org and project from config file. Returns (None, None) on error or if missing."""
+    org_config = None
+    project_config = None
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE) as f:
+                config_data = json.load(f)
+                org_config = config_data.get('org')
+                project_config = config_data.get('project')
+        # No error if file doesn't exist, just return None
+    except json.JSONDecodeError:
+        print(f"Warning: '{CONFIG_FILE}' contains invalid JSON.")
+    except Exception as e:
+        print(f"Warning: Could not load org/project from {CONFIG_FILE}: {e}")
+    return org_config, project_config
+
+def get_api_headers(api_key):
+    """Returns standard API headers."""
+    return {
+        "Authorization": f"Token {api_key}",
+        "Content-Type": "application/json"
+    }
+
+def check_if_log_collection_exists(org_slug, project_slug, api_key):
+    """
+    Checks if a collection with ID 'logs' exists for the given org and project.
+    Returns True if found, False otherwise or on error.
+    """
+    if not org_slug or not project_slug or not api_key:
+        print("Error: Org slug, project slug, and API key are required for check.")
+        return False
+
+    collections_url = f"https://api.botify.com/v1/projects/{org_slug}/{project_slug}/collections"
+    headers = get_api_headers(api_key)
+
+    print(f"\nChecking for collection '{TARGET_LOG_COLLECTION_ID}' in {org_slug}/{project_slug}...")
+
+    try:
+        response = httpx.get(collections_url, headers=headers, timeout=60.0)
+
+        if response.status_code == 401:
+            print("Error: Authentication failed (401). Check your API token.")
+            return False
+        elif response.status_code == 403:
+             print("Error: Forbidden (403). You may not have access to this project or endpoint.")
+             return False
+        elif response.status_code == 404:
+             print("Error: Project not found (404). Check org/project slugs.")
+             return False
+
+        response.raise_for_status() # Raise errors for other bad statuses (like 5xx)
+        collections_data = response.json()
+
+        if not isinstance(collections_data, list):
+             print(f"Error: Unexpected API response format. Expected a list.")
+             return False
+
+        for collection in collections_data:
+            if isinstance(collection, dict) and collection.get('id') == TARGET_LOG_COLLECTION_ID:
+                print(f"Success: Found collection with ID '{TARGET_LOG_COLLECTION_ID}'.")
+                return True
+
+        print(f"Result: Collection with ID '{TARGET_LOG_COLLECTION_ID}' was not found in the list.")
+        return False
+
+    except httpx.HTTPStatusError as e:
+         print(f"API Error checking collections: {e.response.status_code}")
+         return False
+    except httpx.RequestError as e:
+        print(f"Network error checking collections: {e}")
+        return False
+    except json.JSONDecodeError:
+        print("Error: Could not decode the API response as JSON.")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occurred during check: {e}")
+        return False
+
+# --- Main Function ---
+
+def run_check(org_override=None, project_override=None):
+    """
+    Orchestrates the check for the 'logs' collection.
+    Uses override values if provided, otherwise falls back to config file, then prompts.
+    """
+    print("Starting Botify Log Collection Check...")
+
+    # 1. Load API Key (Essential)
+    api_key = load_api_key()
+    if not api_key:
+        print("Cannot proceed without a valid API key.")
+        return # Exit the function
+
+    # 2. Determine Org and Project to use
+    org_config, project_config = load_org_project_from_config()
+
+    # Apply overrides if they exist
+    org_to_use = org_override if org_override is not None else org_config
+    project_to_use = project_override if project_override is not None else project_config
+
+    # If still missing after config and overrides, prompt the user
+    if not org_to_use:
+        print(f"Organization slug not found in config or override.")
+        org_to_use = input("Enter the organization slug: ").strip()
+
+    if not project_to_use:
+        print(f"Project slug not found in config or override.")
+        project_to_use = input("Enter the project slug: ").strip()
+
+    # Final check before running API call
+    if not org_to_use or not project_to_use:
+        print("Organization and Project slugs are required to run the check. Exiting.")
+        return
+
+    # 3. Run the core check function
+    has_logs = check_if_log_collection_exists(org_to_use, project_to_use, api_key)
+
+    # 4. Report Final Result
+    print("\n--- Check Complete ---")
+    if has_logs:
+        print(f"The project '{org_to_use}/{project_to_use}' appears to HAVE a '{TARGET_LOG_COLLECTION_ID}' collection available.")
+    else:
+        print(f"The project '{org_to_use}/{project_to_use}' does NOT appear to have a '{TARGET_LOG_COLLECTION_ID}' collection available (or an error occurred).")
+
+
+# --- Script Execution ---
+if __name__ == "__main__":
+    # Call the main function, passing the override values defined at the top
+    run_check(org_override=ORG_OVERRIDE, project_override=PROJECT_OVERRIDE)
+```
+
+    Starting Botify Log Collection Check...
+    
+    Checking for collection 'logs' in michaellevin-org/mikelev.in...
+    Result: Collection with ID 'logs' was not found in the list.
+The project 'michaellevin-org/mikelev.in' does NOT appear to have a 'logs' collection available (or an error occurred).
+
+
+**Sample Output**:
+
+    Starting Botify Log Collection Check...
+    
+    Checking for collection 'logs' in example-org/example.com...
+    Success: Found collection with ID 'logs'.
+The project 'example-org/example.com' appears to HAVE a 'logs' collection available.
+
+Alternatively:
+
+    Starting Botify Log Collection Check...
+    
+    Checking for collection 'logs' in example-org/example.com...
+    Result: Collection with ID 'logs' was not found in the list.
+The project 'example-org/example.com' does NOT appear to have a 'logs' collection available (or an error occurred).
+
+--------------------------------------------------------------------------------
+
 # Migrating from BQLv1 to BQLv2
 
 This guide explains how to convert BQLv1 queries to BQLv2 format, with practical examples and validation helpers.
@@ -3021,11 +3963,13 @@ def convert_url_query(query_v1, current_analysis, previous_analysis=None):
 4. **Filters**
    - Prefix filter fields with collection name
    - Replace area parameters with explicit URL existence filters
-<!-- #endregion -->
+
+--------------------------------------------------------------------------------
 
 # All Botify API Endpoints: How Do You Generate a Python Code Example for Every Botify Endpoint Given Their OpenAPI Swagger
 
 Botify OpenAPI Swagger File: [https://api.botify.com/v1/swagger.json](https://api.botify.com/v1/swagger.json)
+
 
 ```python
 # Everything From Botify OpenAPI Swagger File: https://api.botify.com/v1/swagger.json
@@ -3040,7 +3984,6 @@ def generate_python_example(method: str, path: str, params: Dict, config: Dict, 
     
     lines = [
         "```python",
-        "# Summon the necessary artifacts",
         "import httpx",
         "import json",
         "",
@@ -3060,7 +4003,7 @@ def generate_python_example(method: str, path: str, params: Dict, config: Dict, 
             "",
             "# Load token from secure storage",
             'with open("botify_token.txt") as f:',
-            '    token = f.read().strip()',
+            r"    token = f.read().strip().split('\n')[0].strip()", 
             ''
         ])
     
@@ -3203,8 +4146,7 @@ if not Path("botify_token.txt").exists():
 else:
     # Load token
     with open("botify_token.txt") as f:
-        token = f.read().strip()
-    
+        token = f.read().strip().split('\n')[0].strip() 
     # Use existing configuration from earlier cells
     config = {
         "token": token,
@@ -3224,2510 +4166,274 @@ else:
         # Generate and display the markdown
         markdown_content = generate_markdown(spec, config)
         print("API documentation generated successfully!")
+        print("Copy/paste the value of markdown_content into a markdown cell if you want ALL THE SWAGGER (Botify Open AI API Specification) part of the final markdown.")
         
         # The markdown content will be rendered in the next cell
     except Exception as e:
         print(f"Error fetching API specification: {e}")
-print(markdown_content)
+        
+# print(markdown_content)  # <-- uncomment this
 ```
 
-<!-- #region -->
-API documentation generated successfully!
-## Everything From Botify OpenAPI Swagger File: https://api.botify.com/v1/swagger.json
+    API documentation generated successfully!
+    Copy/paste the value of markdown_content into a markdown cell if you want ALL THE SWAGGER (Botify Open AI API Specification) part of the final markdown.
 
-Having mastered the arts of BQL, we now document the full spectrum of API invocations.
-Each endpoint is presented with its purpose, capabilities, and Python implementation.
 
-### Endpoint Categories
 
-#### Analysis Invocations
-
-These endpoints allow you to manipulate analysis aspects of your digital realm.
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get an Analysis detail
-
-**Parameters Required:**
-```
-- previous_crawl: Previous analysis identifier
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
 ```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
+# Jupyter Notebook Self-Export and Custom Markdown Processing Script
+# -------------------------------------------------------------------
+# Purpose:
+# This script, when run as a cell in a Jupyter Notebook, automates the conversion
+# of the notebook itself into a clean, well-structured Markdown (.md) file.
+# The process involves two main stages:
+#
+# 1. Self-Export to Raw Markdown:
+#    - The script first identifies the current Jupyter Notebook file.
+#    - It then uses 'jupyter nbconvert' to convert the notebook into a standard
+#      Markdown file, saved in the same directory.
+#
+# 2. Custom Post-Processing with Heading-Based Delineators:
+#    - The script then applies a custom processing function to this Markdown file.
+#    - This custom processing includes:
+#      a. Removing any YAML frontmatter (text between '---' markers at the
+#         very start of the document).
+#      b. Inserting a wide visual delineator (80 hyphens with surrounding
+#         blank lines) *before* every H1 Markdown heading (`# Heading`)
+#         that is not inside a fenced code block. This leverages the semantic
+#         structure of headings for separation.
+#      c. Prepending a global header (currently configured to be blank).
+#    - The processed content then overwrites the initial Markdown file, resulting
+#      in a single .md file named after the original notebook, now with clear
+#      section delineations based on H1 headings.
+#
+# Rationale:
+# This workflow produces LLM-ready Markdown. The H1-triggered delineators
+# enhance readability and provide strong parsing cues for segmenting content
+# based on major sections (as typically denoted by H1s). This approach relies
+# on the semantic use of H1 headings in the notebook's Markdown cells to create
+# logical breaks, offering a more content-aware separation than generic
+# between-cell markers.
 
+# --- Part 1: Necessary Imports ---
+# Purpose: Import required Python standard libraries for file operations,
+#          running external commands, text processing, and date/time.
+import os
+import subprocess
+import re
+from pathlib import Path
+import datetime
 
-    """Get an Analysis detail"""
+# --- Part 2: Custom Markdown Post-Processing Function ---
+# Purpose: This function takes the Markdown content produced by 'nbconvert'
+#          and applies cleaning (frontmatter removal) and custom separator insertion.
 
-# Your configuration sigil should contain:
-#   - token: Your API token
-#   - org: Your organization ID
-#   - project: Your project ID
-#   - analysis: Your analysis ID
-#   - collection: Your collection ID
-# Load token from secure storage
-with open("botify_token.txt") as f:
-    token = f.read().strip()
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
+def process_markdown(input_path, output_path):
+    """
+    Processes a Markdown file generated from a Jupyter Notebook.
+    It removes YAML frontmatter and inserts a wide horizontal rule delineator
+    before each H1 heading (that is not within a code block).
+    The input and output paths can be the same for in-place modification.
+
+    Args:
+        input_path (str or Path): Path to the input Markdown file.
+        output_path (str or Path): Path where the processed Markdown will be saved.
+    
+    Returns:
+        bool: True if processing is successful, False otherwise.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    input_p = Path(input_path)
+    output_p = Path(output_path)
+
+    print(f"INFO: Applying custom post-processing to: '{input_p.name}' (output will be '{output_p.name}')")
+    
+    try:
+        with open(input_p, 'r', encoding='utf-8') as infile:
+            content = infile.read()
+    except FileNotFoundError:
+        print(f"ERROR: Input file for process_markdown not found: '{input_p}'")
+        return False
+    except Exception as e:
+        print(f"ERROR: Could not read input file '{input_p}': {e}")
+        return False
+        
+    # Step 2.1: Remove YAML frontmatter from the very beginning of the document.
+    content_after_frontmatter_removal = re.sub(r'^\s*---.*?---\s*', '', content, flags=re.DOTALL | re.MULTILINE)
+    
+    # --- Step 2.2: Insert Wide Delineators Before H1 Headings ---
+    # Rationale: This "slice-and-dicer" section iterates through the Markdown content
+    #            line by line, identifying H1 headings (e.g., "# Heading") that are
+    #            not part of a fenced code block. A prominent visual separator
+    #            (80 hyphens) is inserted before such headings to clearly mark major
+    #            sections, aiding both visual scanning and LLM parsing.
+
+    lines = content_after_frontmatter_removal.splitlines()
+    processed_lines = []
+    in_code_block = False  # State variable to track if currently inside a fenced code block
+    SEPARATOR = "-" * 80   # The wide delineator
+
+    # Determine if the very first significant content line is an H1.
+    # We might not want a separator before the absolute first H1 (e.g., the main document title).
+    first_actual_content_line_index = -1
+    for idx, line_text in enumerate(lines):
+        if line_text.strip():
+            first_actual_content_line_index = idx
+            break
+            
+    for i, line in enumerate(lines):
+        stripped_line = line.strip()
+
+        # Toggle state if a fenced code block starts or ends
+        if stripped_line.startswith("```"):
+            in_code_block = not in_code_block
+        
+        is_h1_outside_code = not in_code_block and line.startswith("# ")
+
+        if is_h1_outside_code:
+            # Add separator if this H1 is NOT the very first significant line of content.
+            # This prevents a separator at the very top if the document starts with an H1.
+            if i > first_actual_content_line_index or (i == first_actual_content_line_index and i > 0) or \
+               (i == 0 and first_actual_content_line_index > 0): # handles cases where H1 is first after initial blank lines
+                # Ensure a blank line before the separator if the previous content wasn't blank
+                if processed_lines and processed_lines[-1].strip() != "":
+                    processed_lines.append("")
+                
+                processed_lines.append(SEPARATOR)
+                processed_lines.append("") # Blank line after separator, before the H1 heading
+        
+        processed_lines.append(line) # Add the current line (H1 or otherwise)
+
+    content_with_separators = "\n".join(processed_lines)
+    
+    # Step 2.3: Prepare the global header for the final document.
+    header_comment = "" # Currently blank, as per your last preference.
+    final_content = header_comment + content_with_separators
+    
+    try:
+        # Step 2.4: Write the processed content back to the Markdown file.
+        output_p.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_p, 'w', encoding='utf-8') as outfile:
+            outfile.write(final_content)
+        print(f"SUCCESS: Custom post-processing complete. Output: '{output_p.resolve()}'")
+        return True 
+    except Exception as e:
+        print(f"ERROR: Could not write final processed file '{output_p}': {e}")
+        return False
+
+# --- Part 3: Orchestration Logic for Self-Export and Processing ---
+def export_notebook_and_apply_custom_processing():
+    """
+    Orchestrates the notebook self-export and custom Markdown processing.
+    """
+    current_notebook_filename_ipynb = None
+    current_notebook_dir = os.getcwd() 
+
+    # --- Step A: Determine the current notebook's filename and directory ---
+    env_notebook_path_str = os.environ.get('JPY_SESSION_NAME')
+    if env_notebook_path_str and env_notebook_path_str.endswith(".ipynb"):
+        path_obj = Path(env_notebook_path_str)
+        if path_obj.is_absolute():
+            current_notebook_filename_ipynb = path_obj.name
+            current_notebook_dir = str(path_obj.parent)
+        else: 
+            potential_path = Path(os.getcwd()) / env_notebook_path_str
+            if potential_path.exists() and potential_path.is_file():
+                current_notebook_filename_ipynb = potential_path.name
+                current_notebook_dir = str(potential_path.parent)
+            else: 
+                 current_notebook_filename_ipynb = path_obj.name
+        if current_notebook_filename_ipynb:
+             print(f"INFO: Notebook identified as '{current_notebook_filename_ipynb}' in '{current_notebook_dir}' (via JPY_SESSION_NAME).")
+
+    if not current_notebook_filename_ipynb:
+        try:
+            import ipynbname 
+            notebook_path_obj = ipynbname.path()
+            current_notebook_filename_ipynb = notebook_path_obj.name
+            current_notebook_dir = str(notebook_path_obj.parent)
+            print(f"INFO: Notebook identified as '{current_notebook_filename_ipynb}' in '{current_notebook_dir}' (via 'ipynbname').")
+        except ImportError:
+            print("WARNING: 'ipynbname' package not found. For robust name detection, consider `pip install ipynbname`.")
+        except Exception as e: 
+            print(f"WARNING: 'ipynbname' could not determine notebook path (is notebook saved and trusted?): {e}")
+            
+    if not current_notebook_filename_ipynb:
+        print("CRITICAL ERROR: Could not determine the current notebook's .ipynb filename.")
+        return
+
+    target_markdown_filename = Path(current_notebook_filename_ipynb).stem + ".md"
+    target_markdown_path = Path(current_notebook_dir) / target_markdown_filename
+
+    # --- Step B: Convert the current notebook to standard Markdown ---
+    # Rationale: The 'nbconvert' command is now simpler, as separator logic
+    #            is handled in the Python post-processing phase.
+    nbconvert_command = [
+        "jupyter", "nbconvert",
+        "--to", "markdown",
+        current_notebook_filename_ipynb,
+    ]
+    
+    print(f"\nINFO: Exporting '{current_notebook_filename_ipynb}' to '{target_markdown_path}' using 'jupyter nbconvert'...")
+    print(f"      Constructed nbconvert_command list: {nbconvert_command}")
+    print(f"      Running command string (for display): {' '.join(nbconvert_command)}")
+    print(f"      Working directory: '{current_notebook_dir}'")
+    
+    try:
+        result = subprocess.run(
+            nbconvert_command,
+            capture_output=True, text=True, check=True,
+            cwd=current_notebook_dir 
+        )
+        print(f"SUCCESS: Notebook initially exported by 'nbconvert' to '{target_markdown_path}'.")
+        if result.stdout and result.stdout.strip(): 
+            print("--- nbconvert stdout ---")
+            print(result.stdout.strip())
+        if result.stderr and result.stderr.strip(): 
+            print("--- nbconvert stderr (info/warnings) ---")
+            print(result.stderr.strip())
+            
+    except FileNotFoundError:
+        print("\nCRITICAL ERROR: 'jupyter' command (for nbconvert) was not found.")
+        return
+    except subprocess.CalledProcessError as e:
+        print(f"\nERROR: 'jupyter nbconvert' failed with exit code {e.returncode}.")
+        if e.stdout and e.stdout.strip(): print(f"--- nbconvert stdout ---\n{e.stdout.strip()}")
+        if e.stderr and e.stderr.strip(): print(f"--- nbconvert stderr ---\n{e.stderr.strip()}")
+        return
+    except Exception as e:
+        print(f"\nERROR: An unexpected error occurred during 'nbconvert' execution: {e}")
+        return
+
+    # --- Step C: Apply custom post-processing (frontmatter removal & H1 delineators) ---
+    if target_markdown_path.exists():
+        processing_successful = process_markdown(input_path=target_markdown_path, output_path=target_markdown_path)
+        
+        if not processing_successful:
+             print(f"WARNING: Custom post-processing using 'process_markdown' encountered an issue. '{target_markdown_path}' may require review.")
+    else:
+        print(f"\nERROR: The 'nbconvert' output file '{target_markdown_path}' was not found. Skipping custom post-processing.")
+
+# --- Part 4: Execute the Orchestration ---
+export_notebook_and_apply_custom_processing()
 ```
 
----
+    INFO: Notebook identified as 'botify_api.ipynb' in '/home/mike/repos/pipulate/helpers/botify' (via JPY_SESSION_NAME).
+    
+    INFO: Exporting 'botify_api.ipynb' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md' using 'jupyter nbconvert' with cell separators...
+          Constructed nbconvert_command list: ['jupyter', 'nbconvert', '--to', 'markdown', '--MarkdownExporter.output_cell_separator=\\n\\n---\\n\\n', 'botify_api.ipynb']
+          Running command string (for display): jupyter nbconvert --to markdown --MarkdownExporter.output_cell_separator=\n\n---\n\n botify_api.ipynb
+          Working directory: '/home/mike/repos/pipulate/helpers/botify'
+    SUCCESS: Notebook initially exported by 'nbconvert' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md' (with cell separators).
+[NbConvertApp] WARNING | Config option `output_cell_separator` not recognized by `MarkdownExporter`.
+    [NbConvertApp] Converting notebook botify_api.ipynb to markdown
+    [NbConvertApp] Writing 162077 bytes to botify_api.md
+    INFO: Applying custom post-processing to: 'botify_api.md' (output will be 'botify_api.md')
+    SUCCESS: Custom post-processing complete. Output: '/home/mike/repos/pipulate/helpers/botify/botify_api.md'
 
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics
 
-**Purpose:**
-No summary provided.
 
-**Detailed Description:**
-Return global statistics for an analysis
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
 ```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
 
-
-    """Return global statistics for an analysis"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Return crawl statistics grouped by time frequency (1 min, 5 mins or 60 min) for an analysis
-
-**Parameters Required:**
-```
-- limit: max number of elements to retrieve
-- frequency: Aggregation frequency
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Return crawl statistics grouped by time frequency (1 min, 5 mins or 60 min) for an analysis"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/time'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Return a list of 1000 latest URLs crawled (all crawled URLs or only URLS with HTTP errors)
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Return a list of 1000 latest URLs crawled (all crawled URLs or only URLS with HTTP errors)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/crawl_statistics/urls/{list_type}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}
-
-**Purpose:**
-Legacy
-
-**Detailed Description:**
-Legacy    List of Orphan URLs. URLs which generated visits from the selected source according to Google Analytics data, but were not crawled with by the Botify crawler (either because no links to them were found on the website, or because the crawler was not allowed to follow these links according to the project settings).   For a search engine (medium: origanic; sources: all, aol, ask, baidu, bing, google, naver, yahoo, yandex) or a social network (medium: social; sources: all, facebook, google+, linkedin, pinterest, reddit, tumblr, twitter)
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Legacy    List of Orphan URLs. URLs which generated visits from the selected source according to Google Analytics data, but were not crawled with by the Botify crawler (either because no links to them were found on the website, or because the crawler was not allowed to follow these links according to the project settings).   For a search engine (medium: origanic; sources: all, aol, ask, baidu, bing, google, naver, yahoo, yandex) or a social network (medium: social; sources: all, facebook, google+, linkedin, pinterest, reddit, tumblr, twitter)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/ganalytics/orphan_urls/{medium}/{source}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get inlinks percentiles
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Get inlinks percentiles"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/links/percentiles'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Lost pagerank
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Lost pagerank"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/pagerank/lost'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Scoring summary
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Scoring summary"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/scoring/summary'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List clicks and impressions per day
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List clicks and impressions per day"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/search_console/stats'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get global information of the sitemaps found (sitemaps indexes, invalid sitemaps urls, etc.)
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Get global information of the sitemaps found (sitemaps indexes, invalid sitemaps urls, etc.)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/report'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Sample list of URLs which were found in your sitemaps but outside of the crawl perimeter defined for the project, for instance domain/subdomain or protocol (HTTP/HTTPS) not allowed in the crawl settings.
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Sample list of URLs which were found in your sitemaps but outside of the crawl perimeter defined for the project, for instance domain/subdomain or protocol (HTTP/HTTPS) not allowed in the crawl settings."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/out_of_config'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Sample list of URLs which were found in your sitemaps, within the project allowed scope (allowed domains/subdomains/protocols), but not found by the Botify crawler.
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Sample list of URLs which were found in your sitemaps, within the project allowed scope (allowed domains/subdomains/protocols), but not found by the Botify crawler."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/sitemaps/samples/sitemap_only'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Top domains
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Top domains"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/domains'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Top subddomains
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Top subddomains"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/top_domains/subdomains'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List of Orphan URLs. URLs which generated visits from the selected source according to Google Analytics data, but were not crawled with by the Botify crawler (either because no links to them were found on the website, or because the crawler was not allowed to follow these links according to the project settings).   For a search engine (medium: origanic; sources: all, aol, ask, baidu, bing, google, naver, yahoo, yandex) or a social network (medium: social; sources: all, facebook, google+, linkedin, pinterest, reddit, tumblr, twitter)
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List of Orphan URLs. URLs which generated visits from the selected source according to Google Analytics data, but were not crawled with by the Botify crawler (either because no links to them were found on the website, or because the crawler was not allowed to follow these links according to the project settings).   For a search engine (medium: origanic; sources: all, aol, ask, baidu, bing, google, naver, yahoo, yandex) or a social network (medium: social; sources: all, facebook, google+, linkedin, pinterest, reddit, tumblr, twitter)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/features/visits/orphan_urls/{medium}/{source}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/segments
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get the segments feature public metadata of an analysis.
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Get the segments feature public metadata of an analysis."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/segments'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Return an object containing all robots.txt files found on the project's domains. The object is null for virtual robots.txt.
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Return an object containing all robots.txt files found on the project's domains. The object is null for virtual robots.txt."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Return content of a robots.txt file.
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Return content of a robots.txt file."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/staticfiles/robots-txt-indexes/{robots_txt}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Gets AI suggestions of an URL for an analysis
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Gets AI suggestions of an URL for an analysis"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/ai/{url}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Gets an Analysis datamodel
-
-**Parameters Required:**
-```
-- area: Analysis context
-- previous_crawl: Previous analysis identifier
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Gets an Analysis datamodel"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/datamodel'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Gets Analysis Datasets
-
-**Parameters Required:**
-```
-- area: Analysis context
-- previous_crawl: Previous analysis identifier
-- deprecated_fields: Include deprecated fields
-- sequenced: Whether to use sequenced groups
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Gets Analysis Datasets"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/datasets'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-A list of the CSV Exports requests and their current status
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """A list of the CSV Exports requests and their current status"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Checks the status of an CSVUrlExportJob object. Returns json object with the status.
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Checks the status of an CSVUrlExportJob object. Returns json object with the status."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export/{url_export_id}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Gets the HTML of an URL for an analysis
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Gets the HTML of an URL for an analysis"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/html/{url}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Gets the detail of an URL for an analysis
-
-**Parameters Required:**
-```
-- fields: comma separated list of fields to return (c.f. URLs Datamodel)
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Gets the detail of an URL for an analysis"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/{url}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/create/launch
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Create and launch an analysis for a project
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Create and launch an analysis for a project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/create/launch'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/{analysis_slug}/pause
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Pause an analysis for a project
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Pause an analysis for a project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/pause'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/{analysis_slug}/resume
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Resume an analysis for a project
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Resume an analysis for a project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/resume'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/{analysis_slug}/urls
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Executes a query and returns a paginated response
-
-**Parameters Required:**
-```
-- Query: Query
-- area: Analysis context
-- page: Page Number
-- size: Page Size
-- previous_crawl: Previous analysis identifier
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Executes a query and returns a paginated response"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Query aggregator. It accepts multiple queries and dispatches them.
-
-**Parameters Required:**
-```
-- AggsQueries: AggsQueries
-- area: Analysis context
-- previous_crawl: Previous analysis identifier
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Query aggregator. It accepts multiple queries and dispatches them."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/aggs'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /analyses/{username}/{project_slug}/{analysis_slug}/urls/export
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Creates a new UrlExport object and starts a task that will export the results into a csv. Returns the model id that manages the task
-
-**Parameters Required:**
-```
-- Query: Query
-- area: Analysis context
-- previous_crawl: Previous analysis identifier
-- export_size: Maximum size of the export (deprecated => size instead)
-- size: Maximum size of the export
-- compression: Compressed file format
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Creates a new UrlExport object and starts a task that will export the results into a csv. Returns the model id that manages the task"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/{analysis_slug}/urls/export'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### Collections Invocations
-
-These endpoints allow you to manipulate collections aspects of your digital realm.
-
-##### GET /projects/{username}/{project_slug}/collections
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all collections for a project
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all collections for a project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/collections'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
 ```
-
----
-
-##### GET /projects/{username}/{project_slug}/collections/{collection}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get the detail of a collection
-
-**Parameters Required:**
-```
-- sequenced: Whether to use sequenced groups
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Get the detail of a collection"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/collections/{collection}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### Datasource Invocations
-
-These endpoints allow you to manipulate datasource aspects of your digital realm.
-
-##### GET /users/{username}/datasources_summary_by_projects
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Get the datasources details for all projects of a user
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Get the datasources details for all projects of a user"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/users/{username}/datasources_summary_by_projects'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### Job Invocations
-
-These endpoints allow you to manipulate job aspects of your digital realm.
-
-##### GET /jobs
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List All jobs
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-- job_type: The job type
-- project: The project slug
-- analysis: The analysis slug
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List All jobs"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/jobs'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /jobs/{job_id}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Retrieve one job
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Retrieve one job"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/jobs/{job_id}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /jobs
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Creates a job instance of a class which depends on the "job_type" parameter you sent. Returns the model id that manages the task.
-
-**Parameters Required:**
-```
-- JobCreate: Job create
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Creates a job instance of a class which depends on the "job_type" parameter you sent. Returns the model id that manages the task."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/jobs'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### Project Invocations
-
-These endpoints allow you to manipulate project aspects of your digital realm.
-
-##### GET /analyses/{username}/{project_slug}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all analyses for a project
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-- only_success: Return only successfully finished analyses
-- fields: Which fields to return (comma-separated)
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all analyses for a project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /analyses/{username}/{project_slug}/light
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all analyses for a project (light)
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-- only_success: Return only successfully finished analyses
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all analyses for a project (light)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/analyses/{username}/{project_slug}/light'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /projects/{username}/{project_slug}/filters
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all the project's saved filters (each filter's name, ID and filter value)
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-- search: Search query on the filter name
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all the project's saved filters (each filter's name, ID and filter value)"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/filters'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /projects/{username}/{project_slug}/filters/{identifier}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Retrieve a specific project saved, account or recommended filter's name, ID and filter value
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Retrieve a specific project saved, account or recommended filter's name, ID and filter value"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/filters/{identifier}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /projects/{username}/{project_slug}/saved_explorers
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all the project's Saved Explorers.
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all the project's Saved Explorers."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/saved_explorers'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### GET /users/{username}/projects
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all active projects for the user
-
-**Parameters Required:**
-```
-No parameters required
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all active projects for the user"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/users/{username}/projects'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /projects/{username}/{project_slug}/query
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Query collections at a project level.
-
-**Parameters Required:**
-```
-- ProjectQuery: Project Query
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Query collections at a project level."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/query'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /projects/{username}/{project_slug}/urls/aggs
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Project Query aggregator. It accepts multiple queries that will be executed on all completed analyses in the project
-
-**Parameters Required:**
-```
-- AggsQueries: AggsQueries
-- area: Analyses context
-- last_analysis_slug: Last analysis on the trend
-- nb_analyses: Max number of analysis to return
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Project Query aggregator. It accepts multiple queries that will be executed on all completed analyses in the project"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/urls/aggs'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-##### POST /projects/{username}/{project_slug}/values_list/clone
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-Clone all keyword groups of the current project to another one.  This endpoint is a little more general (for further use). That's why you will see a 'type' field (with a default value of: 'keywords').
-
-**Parameters Required:**
-```
-- ValuesListCloneRequestBody: JSON body to use as request body for ValuesList clone operation
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 201: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """Clone all keyword groups of the current project to another one.  This endpoint is a little more general (for further use). That's why you will see a 'type' field (with a default value of: 'keywords')."""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/values_list/clone'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Define the payload for your invocation
-data = {
-    # Add your request parameters here
-}
-# Cast the spell
-response = httpx.post(url, headers=headers, json=data)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### ProjectQuery Invocations
-
-These endpoints allow you to manipulate projectquery aspects of your digital realm.
-
-##### GET /projects/{username}/{project_slug}/account_filters
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all the account saved filters
-
-**Parameters Required:**
-```
-- page: Page Number
-- size: Page Size
-- search: Search query on the filter name
-- disable_project: Flag to return or not filters of this project
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all the account saved filters"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}/{project_slug}/account_filters'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-#### User Invocations
-
-These endpoints allow you to manipulate user aspects of your digital realm.
-
-##### GET /projects/{username}
-
-**Purpose:**
-No summary provided.
-
-**Detailed Description:**
-List all active projects for the user
-
-**Parameters Required:**
-```
-- name: Project's name
-- page: Page Number
-- size: Page Size
-```
-
-**Expected Responses:**
-```
-- default: error payload
-- 200: Successful operation
-```
-
-**Example Implementation:**
-```python
-# Summon the necessary artifacts
-import httpx
-import json
-def example_request():
-
-
-    """List all active projects for the user"""
-
-# Craft the invocation URL
-url = f'https://api.botify.com/v1/projects/{username}'
-# Prepare the headers for your spell
-headers = {
-    "Authorization": f"Token {token}",
-    "Content-Type": "application/json"
-}
-# Cast the spell
-response = httpx.get(url, headers=headers)
-# Interpret the response
-if response.status_code == 200:
-    result = response.json()
-    print(json.dumps(result, indent=2))
-else:
-    print(f'Error: {response.status_code}')
-    print(response.text)
-```
-
----
-
-### LLM Guidance
-
-When deciding which endpoint to use:
-1. Consider the category (tag) that matches your task
-2. Review the Purpose and Description to ensure alignment
-3. Check the required parameters match your available data
-4. Verify the expected responses meet your needs
-
-Example prompt format:
-```
-I need to [task description]. I have access to [available data].
-Which endpoint would be most appropriate?
-```
-
-<!-- #endregion -->
