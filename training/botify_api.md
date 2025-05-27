@@ -307,33 +307,6 @@ if __name__ == "__main__":
         success = asyncio.run(main()) 
 ```
 
-    🔬 Running in Jupyter environment
-    🚀 Botify API Token Setup
-    ==================================================
-    
-    To use Botify API tutorials and tools, you need to set up your API token.
-    
-    📋 Steps to get your token:
-    1. Visit your Botify account page:
-       🔗 https://app.botify.com/account
-    2. Look for the 'API' or 'Tokens' section
-    3. Copy your 'Main Token' (not a project-specific token)
-    4. Paste it in the input box below
-    
-    🔍 Found existing token file: botify_token.txt
-    ⚠️  You already have a Botify API token configured.
-    
-    🔍 Validating existing token...
-    ✅ Existing token is valid for user: michael.levin
-    
-
-
-    Do you want to update your token? (y/N):  ········
-
-
-    🎉 Setup complete! Your token is ready to use.
-
-
 --------------------------------------------------------------------------------
 
 # Script #2: Setup config file
@@ -791,17 +764,6 @@ if __name__ == "__main__":
         config = asyncio.run(main()) 
 ```
 
-    🔬 Running in Jupyter environment
-    🚀 Botify Configuration Generator
-    ==================================================
-    🔑 Using token from: botify_token.txt
-    ✅ API token loaded from botify_token.txt
-    
-    📝 Please enter your Botify project URL:
-    Example: https://app.botify.com/your-org/your-project/
-    💡 Or just hit Enter to use your default (first org, first project, latest analysis)
-
-
 --------------------------------------------------------------------------------
 
 # Introduction to BQL (Botify Query Language)
@@ -871,9 +833,6 @@ username = user_data["data"]["username"]
 print(username)
 ```
 
-    michael.levin
-
-
 **Sample Output**: 
 
     first.last
@@ -927,20 +886,6 @@ if username:
 else:
     print("Failed to retrieve username or projects.")
 ```
-
-    Project Name                   Project Slug                        User or Org    
-    ================================================================================
-    Comp Crawl Test                comp-crawl-test                     uhnd-com       
-    LinkedIn Article Content       linkedin-article-content            michaellevin-org
-    MikeLev.in                     mikelev.in                          michaellevin-org
-    Redirect Tests                 redirect-tests                      uhnd-com       
-    Test ad-hoc                    test-ad-hoc                         uhnd-com       
-    UHND - Ad Hoc Crawls           uhnd-ad-hoc-crawls                  uhnd-com       
-    UHND Character Crawl Test      uhnd-character-crawl-test           uhnd-com       
-    UHND.com - Demo Account        uhnd.com-demo-account               uhnd-com       
-    test2                          test2                               uhnd-com       
-    test3                          test3                               uhnd-com       
-
 
 **Sample Output**:
 
@@ -2484,14 +2429,6 @@ except Exception as e:
     print(f"An unexpected error occurred during the main execution: {e}")
 ```
 
-
-      Cell In[26], line 170
-        **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ^
-    SyntaxError: unterminated string literal (detected at line 170)
-
-
-
 **Sample Output**:
 
 ```plaintext
@@ -3715,13 +3652,6 @@ if __name__ == "__main__":
     run_check(org_override=ORG_OVERRIDE, project_override=PROJECT_OVERRIDE)
 ```
 
-    Starting Botify Log Collection Check...
-    
-    Checking for collection 'logs' in michaellevin-org/mikelev.in...
-    Result: Collection with ID 'logs' was not found in the list.
-The project 'michaellevin-org/mikelev.in' does NOT appear to have a 'logs' collection available (or an error occurred).
-
-
 **Sample Output**:
 
     Starting Botify Log Collection Check...
@@ -4052,15 +3982,6 @@ if __name__ == "__main__":
     fetch_swagger_save_and_count_tokens()
 ```
 
-    INFO: Attempting to download Botify OpenAPI specification from: https://api.botify.com/v1/swagger.json
-    SUCCESS: Downloaded OpenAPI specification.
-             Size: 90,018 bytes
-    SUCCESS: OpenAPI specification saved locally as: '/home/mike/repos/pipulate/helpers/botify/botify_openapi_spec.json'
-    INFO: Using tiktoken encoding: 'cl100k_base'
-Number of tokens (using 'cl100k_base'): 20,039
-    INFO: Token count is comfortably within a typical 128k context window.
-
-
 --------------------------------------------------------------------------------
 
 # All Botify API Endpoints: How Do You Generate a Python Code Example for Every Botify Endpoint Given Their OpenAPI Swagger
@@ -4271,10 +4192,6 @@ else:
         
 # print(markdown_content)  # <-- uncomment this
 ```
-
-    API documentation generated successfully!
-    Copy/paste the value of markdown_content into a markdown cell if you want ALL THE SWAGGER (Botify Open AI API Specification) part of the final markdown.
-
 
 
 ```python
