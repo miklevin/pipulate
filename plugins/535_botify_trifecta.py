@@ -761,8 +761,19 @@ class BotifyCsvDownloaderWorkflow:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             # Check if web logs are cached for the CURRENT analysis
-            # For now, don't show "Use Cached" until we can reliably detect the current analysis
+            analysis_step_id = 'step_02'
+            analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+            analysis_data_str = analysis_step_data.get('analysis_selection', '')
+            
             is_cached = False
+            if analysis_data_str:
+                try:
+                    analysis_data = json.loads(analysis_data_str)
+                    analysis_slug = analysis_data.get('analysis_slug', '')
+                    if analysis_slug:
+                        is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'weblog')
+                except (json.JSONDecodeError, Exception):
+                    is_cached = False
             
             # Set button text based on cache status
             button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
@@ -884,8 +895,19 @@ class BotifyCsvDownloaderWorkflow:
             gsc_template = self.get_configured_template('gsc')
             
             # Check if GSC data is cached for the CURRENT analysis
-            # For now, don't show "Use Cached" until we can reliably detect the current analysis
+            analysis_step_id = 'step_02'
+            analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+            analysis_data_str = analysis_step_data.get('analysis_selection', '')
+            
             is_cached = False
+            if analysis_data_str:
+                try:
+                    analysis_data = json.loads(analysis_data_str)
+                    analysis_slug = analysis_data.get('analysis_slug', '')
+                    if analysis_slug:
+                        is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'gsc')
+                except (json.JSONDecodeError, Exception):
+                    is_cached = False
             
             button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
             
@@ -1423,8 +1445,8 @@ class BotifyCsvDownloaderWorkflow:
         """Check if a file exists for the given parameters and return appropriate button text."""
         try:
             filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
-            file_info = await self.check_file_exists(filepath)
-            return file_info['exists']
+            exists, file_info = await self.check_file_exists(filepath)
+            return exists
         except Exception:
             return False
 
