@@ -159,8 +159,8 @@ class BotifyCsvDownloaderWorkflow:
                 'target_metric_path': ["results", 0, "metrics", 0],
                 'max_value_threshold': 1000000,
                 'iteration_range': (1, 10, 1),  # (start, end, step_increment)
-                'user_message_running': 'Finding optimal depth for Link Graph Edges...',
-                'user_message_found': 'Optimal depth for Link Graph: {param_value} (for {metric_value:,} edges).',
+                'user_message_running': '🔍 Finding optimal depth for Link Graph Edges...',
+                'user_message_found': '🎯 Optimal depth for Link Graph: {param_value} (for {metric_value:,} edges).',
                 'user_message_threshold_exceeded': 'Edge count exceeds threshold even at shallowest depth. Proceeding with depth 1.'
             }
         },
@@ -273,12 +273,12 @@ class BotifyCsvDownloaderWorkflow:
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
-        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'step_02': {'input': f"{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': 'Crawl analysis download complete. Continue to next step.'}}
+        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'step_02': {'input': f"{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'{step.show} complete. Continue to next step.'}
         self.step_messages['step_04'] = {'input': f"{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
-        self.step_messages['step_03'] = {'input': f"{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': 'Web logs check complete. Continue to next step.'}
+        self.step_messages['step_03'] = {'input': f"{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
@@ -426,7 +426,7 @@ class BotifyCsvDownloaderWorkflow:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        await self.message_queue.add(pip, f'Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
+        await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
     async def step_01(self, request):
@@ -614,7 +614,7 @@ class BotifyCsvDownloaderWorkflow:
         analysis_slug = form.get('analysis_slug', '').strip()
         if not analysis_slug:
             return P('Error: No analysis selected', style=pip.get_style('error'))
-        await self.message_queue.add(pip, f'Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
+        await self.message_queue.add(pip, f'📊 Selected analysis: {analysis_slug}. Starting crawl data download...', verbatim=True)
         
         # Get active template details and check for qualifier config
         active_crawl_template_key = self.get_configured_template('crawl')
@@ -773,7 +773,7 @@ class BotifyCsvDownloaderWorkflow:
             return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
         analysis_data = json.loads(analysis_data_str)
         analysis_slug = analysis_data.get('analysis_slug', '')
-        await self.message_queue.add(pip, f"Downloading Web Logs for '{project_name}'...", verbatim=True)
+        await self.message_queue.add(pip, f"📥 Downloading Web Logs for '{project_name}'...", verbatim=True)
         return Card(
             H3(f'{step.show}'),
             P(f"Downloading Web Logs for '{project_name}'..."),
@@ -1311,7 +1311,7 @@ class BotifyCsvDownloaderWorkflow:
                     await self.message_queue.add(pip, f"Could not extract metric from response at {iter_param_name}={current_iter_val}", verbatim=True)
                     metric_value = 0
                 
-                await self.message_queue.add(pip, f"Qualifier '{iter_param_name}' at {current_iter_val}: {metric_value:,} items.", verbatim=True)
+                await self.message_queue.add(pip, f"🔍 Qualifier '{iter_param_name}' at {current_iter_val}: {metric_value:,} items.", verbatim=True)
                 
                 # Check if we're within threshold
                 if metric_value <= threshold:
@@ -2010,7 +2010,7 @@ await main()
                 job_id_index = parts.index('jobs') + 1
                 if job_id_index < len(parts):
                     job_id = parts[job_id_index]
-                    await self.message_queue.add(self.pipulate, f'Using job ID {job_id} for polling...', verbatim=True)
+                    await self.message_queue.add(self.pipulate, f'🎯 🎯 Using job ID {job_id} for polling...', verbatim=True)
         except Exception:
             pass
         # Use emoji for export context, otherwise use brackets
@@ -2590,7 +2590,7 @@ await main()
                             has_logs = False
                             job_id = None  # Prevent polling
                     if job_id:
-                        await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
+                        await self.message_queue.add(pip, f'🎯 Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
                     success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                     if not success:
@@ -2934,7 +2934,7 @@ await main()
                             })
                             job_id = None  # Prevent polling
                     if job_id:
-                        await self.message_queue.add(pip, f'Using job ID {job_id} for polling...', verbatim=True)
+                        await self.message_queue.add(pip, f'🎯 Using job ID {job_id} for polling...', verbatim=True)
                         full_job_url = f'https://api.botify.com/v1/jobs/{job_id}'
                         success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                         if not success:
