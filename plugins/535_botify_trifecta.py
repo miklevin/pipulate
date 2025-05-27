@@ -589,7 +589,18 @@ class BotifyCsvDownloaderWorkflow:
                     option_text = slug
                 dropdown_options.append(Option(option_text, value=slug, selected=slug == selected_value))
             
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Check if files are cached for the selected analysis to determine button text
+            selected_analysis = selected_value if selected_value else (slugs[0] if slugs else '')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            export_type = active_template_details.get('export_type', 'crawl_attributes')
+            
+            is_cached = False
+            if selected_analysis:
+                is_cached = await self.check_cached_file_for_button_text(username, project_name, selected_analysis, export_type)
+            
+            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(button_text, type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
@@ -748,7 +759,59 @@ class BotifyCsvDownloaderWorkflow:
             return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Project {status_text}', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button('Download Web Logs ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            
+            # Check if web logs are cached for the CURRENT analysis
+            # Use the same logic as step_02 to get the current analysis
+            is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
+                
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Debug: Print what we actually have
+                    print(f"DEBUG step_03: analysis_step_data = {analysis_step_data}")
+                    print(f"DEBUG step_03: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
+                    
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    print(f"DEBUG step_03: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+                    
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+                
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    weblog_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
+                    is_cached = os.path.exists(weblog_path)
+            except Exception:
+                is_cached = False
+            
+            # Set button text based on cache status
+            button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(button_text, type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """Process the check for Botify web logs and download if available."""
@@ -863,7 +926,53 @@ class BotifyCsvDownloaderWorkflow:
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             gsc_template = self.get_configured_template('gsc')
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(f'Download Search Console: {gsc_template} ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            
+            # Check if GSC data is cached for the CURRENT analysis
+            # Use the same logic as step_02 to get the current analysis
+            is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
+                
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+                    
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+                
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    gsc_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
+                    is_cached = os.path.exists(gsc_path)
+            except Exception:
+                is_cached = False
+            
+            button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(button_text, type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
@@ -1392,6 +1501,15 @@ class BotifyCsvDownloaderWorkflow:
         directory = os.path.dirname(filepath)
         if not os.path.exists(directory):
             os.makedirs(directory)
+
+    async def check_cached_file_for_button_text(self, username, project_name, analysis_slug, data_type):
+        """Check if a file exists for the given parameters and return appropriate button text."""
+        try:
+            filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
+            file_info = await self.check_file_exists(filepath)
+            return file_info['exists']
+        except Exception:
+            return False
 
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None, template_info: Optional[dict] = None, username: Optional[str] = None, project_name: Optional[str] = None) -> tuple[str, str]:
         """Generate both cURL and Python representations of API calls for debugging.
