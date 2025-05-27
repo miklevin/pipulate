@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ## description: 🚨 CRITICAL: Server and environment management rules that must NEVER be violated. globs: ["*"] alwaysApply: true
 
