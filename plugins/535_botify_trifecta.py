@@ -3651,10 +3651,20 @@ await main()
         # Create download button if file exists
         download_complete = step_data.get('download_complete', False)
         
-        # Determine the expected filename based on step
+        # Determine the expected filename based on step and export type
         expected_filename = None
         if step_id == 'step_02':
-            expected_filename = 'crawl.csv'
+            # For crawl data, determine filename based on active template's export type
+            active_crawl_template_key = self.get_configured_template('crawl')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            export_type = active_template_details.get('export_type', 'crawl_attributes')
+            
+            # Use the same mapping as get_deterministic_filepath
+            filename_mapping = {
+                'crawl_attributes': 'crawl.csv',
+                'link_graph_edges': 'link_graph.csv'
+            }
+            expected_filename = filename_mapping.get(export_type, 'crawl.csv')
         elif step_id == 'step_03':
             expected_filename = 'weblog.csv'
         elif step_id == 'step_04':
