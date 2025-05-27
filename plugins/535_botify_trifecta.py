@@ -1227,9 +1227,21 @@ class BotifyCsvDownloaderWorkflow:
         
         # Iterate through the range to find optimal parameter
         for current_iter_val in range(start_val, end_val + 1, step_val):
-            # Replace iteration placeholder
-            current_bql_str = bql_template_str.replace("{ITERATION_VALUE}", str(current_iter_val))
-            current_bql_payload = json.loads(current_bql_str)
+            # Replace iteration placeholder with proper type preservation
+            current_bql_payload = json.loads(bql_template_str)
+            
+            def replace_iteration_placeholder(obj, placeholder, value):
+                """Recursively replace placeholder strings with properly typed values."""
+                if isinstance(obj, dict):
+                    return {k: replace_iteration_placeholder(v, placeholder, value) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [replace_iteration_placeholder(item, placeholder, value) for item in obj]
+                elif isinstance(obj, str) and obj == placeholder:
+                    return value  # Keep as integer
+                else:
+                    return obj
+            
+            current_bql_payload = replace_iteration_placeholder(current_bql_payload, "{ITERATION_VALUE}", current_iter_val)
             
             # Construct full query payload
             query_payload = {
@@ -1769,9 +1781,23 @@ await main()
             
             # Apply dynamic parameter substitution if needed
             if placeholder_for_dynamic_param and dynamic_param_value is not None:
-                query_str = json.dumps(template_query)
-                query_str = query_str.replace(placeholder_for_dynamic_param, str(dynamic_param_value))
-                template_query = json.loads(query_str)
+                # Use a more sophisticated substitution that preserves data types
+                def replace_placeholder_with_typed_value(obj, placeholder, value):
+                    """Recursively replace placeholder strings with properly typed values."""
+                    if isinstance(obj, dict):
+                        return {k: replace_placeholder_with_typed_value(v, placeholder, value) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [replace_placeholder_with_typed_value(item, placeholder, value) for item in obj]
+                    elif isinstance(obj, str) and obj == placeholder:
+                        # Convert string to appropriate type based on the value
+                        if isinstance(value, (int, float)):
+                            return value  # Keep as number
+                        else:
+                            return str(value)  # Convert to string if needed
+                    else:
+                        return obj
+                
+                template_query = replace_placeholder_with_typed_value(template_query, placeholder_for_dynamic_param, dynamic_param_value)
             
             bql_query = {
                 'collections': [collection],
@@ -2117,9 +2143,23 @@ await main()
                 
                 # Apply dynamic parameter substitution if needed
                 if placeholder_for_dynamic_param and dynamic_param_value is not None:
-                    query_str = json.dumps(template_query)
-                    query_str = query_str.replace(placeholder_for_dynamic_param, str(dynamic_param_value))
-                    template_query = json.loads(query_str)
+                    # Use type-preserving substitution that maintains integer values
+                    def replace_placeholder_with_typed_value(obj, placeholder, value):
+                        """Recursively replace placeholder strings with properly typed values."""
+                        if isinstance(obj, dict):
+                            return {k: replace_placeholder_with_typed_value(v, placeholder, value) for k, v in obj.items()}
+                        elif isinstance(obj, list):
+                            return [replace_placeholder_with_typed_value(item, placeholder, value) for item in obj]
+                        elif isinstance(obj, str) and obj == placeholder:
+                            # Convert string to appropriate type based on the value
+                            if isinstance(value, (int, float)):
+                                return value  # Keep numeric types as-is
+                            else:
+                                return str(value)  # Convert other types to string
+                        else:
+                            return obj
+                    
+                    template_query = replace_placeholder_with_typed_value(template_query, placeholder_for_dynamic_param, dynamic_param_value)
                 
                 export_query = {
                     'job_type': 'export', 
