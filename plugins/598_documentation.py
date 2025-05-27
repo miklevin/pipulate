@@ -26,7 +26,12 @@ class DocumentationPlugin:
         
         # Register routes for serving individual documents
         for doc_key in self.DOCS.keys():
-            app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_document)
+            if doc_key == 'botify_api':
+                # Special routes for paginated botify_api
+                app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_botify_api_toc)
+                app.route(f'/docs/{doc_key}/page/{{page_num}}', methods=['GET'])(self.serve_botify_api_page)
+            else:
+                app.route(f'/docs/{doc_key}', methods=['GET'])(self.serve_document)
         
         # Register route for documentation browser
         app.route('/docs', methods=['GET'])(self.serve_browser)
@@ -77,6 +82,9 @@ class DocumentationPlugin:
         elif 'QUICK_REFERENCE' in filename:
             category = 'featured'
             priority = 4
+        elif filename == 'botify_api':
+            category = 'featured'
+            priority = 5  # After Quick Reference
         
         # Generate title from filename or extract from file content
         title = self.generate_title_from_filename(filename)
@@ -85,7 +93,8 @@ class DocumentationPlugin:
         try:
             content = file_path.read_text(encoding='utf-8')
             extracted_title, description = self.extract_metadata_from_content(content, title)
-            if extracted_title:
+            # Only use extracted title if we don't have a specific mapping for this filename
+            if extracted_title and filename not in ['ULTIMATE_PIPULATE_GUIDE', 'ULTIMATE_PIPULATE_GUIDE_PART2', 'ULTIMATE_PIPULATE_GUIDE_PART3', 'QUICK_REFERENCE', 'botify_api']:
                 title = extracted_title
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
@@ -142,6 +151,7 @@ class DocumentationPlugin:
             'ULTIMATE_PIPULATE_GUIDE_PART2': 'Ultimate Pipulate Guide - Part 2: Advanced Patterns',
             'ULTIMATE_PIPULATE_GUIDE_PART3': 'Ultimate Pipulate Guide - Part 3: Expert Mastery',
             'QUICK_REFERENCE': 'Quick Reference Card',
+            'botify_api': 'Botify API Bootcamp (Paginated)',
             'dev_assistant': 'Development Assistant Guide',
             'hello_workflow': 'Hello Workflow Tutorial',
             'system_prompt': 'System Prompt Configuration',
@@ -256,21 +266,31 @@ class DocumentationPlugin:
         """Convert markdown to HTML with enhanced formatting"""
         html = markdown_content
         
-        # Headers with anchor links
+        # Step 1: Protect code blocks by storing them and replacing with placeholders
+        code_blocks = []
+        placeholder_pattern = "CODEBLOCK_PLACEHOLDER_{}"
+        
+        def store_code_block(match):
+            code_blocks.append(match.group(0))
+            return placeholder_pattern.format(len(code_blocks) - 1)
+        
+        # Find and store all code blocks (any language)
+        html = re.sub(r'```[a-zA-Z]*\s*\n.*?```', store_code_block, html, flags=re.DOTALL)
+        
+        # Step 2: Process headers (now safe from code block interference)
         html = re.sub(r'^# (.*?)$', r'<h1 id="h1-\1">\1</h1>', html, flags=re.MULTILINE)
         html = re.sub(r'^## (.*?)$', r'<h2 id="h2-\1">\1</h2>', html, flags=re.MULTILINE)
         html = re.sub(r'^### (.*?)$', r'<h3 id="h3-\1">\1</h3>', html, flags=re.MULTILINE)
         html = re.sub(r'^#### (.*?)$', r'<h4 id="h4-\1">\1</h4>', html, flags=re.MULTILINE)
         
-        # Code blocks with Prism syntax highlighting
-        html = re.sub(r'```python\n(.*?)\n```', r'<pre><code class="language-python">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```bash\n(.*?)\n```', r'<pre><code class="language-bash">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```javascript\n(.*?)\n```', r'<pre><code class="language-javascript">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```json\n(.*?)\n```', r'<pre><code class="language-json">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```yaml\n(.*?)\n```', r'<pre><code class="language-yaml">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```dockerfile\n(.*?)\n```', r'<pre><code class="language-dockerfile">\1</code></pre>', html, flags=re.DOTALL)
-        html = re.sub(r'```(.*?)\n(.*?)\n```', r'<pre><code class="language-text">\2</code></pre>', html, flags=re.DOTALL)
+        # Step 3: Restore code blocks and convert to HTML
+        for i, code_block in enumerate(code_blocks):
+            placeholder = placeholder_pattern.format(i)
+            # Process the individual code block
+            processed_block = self.process_code_block(code_block)
+            html = html.replace(placeholder, processed_block)
         
+        # Continue with other markdown processing
         # Inline code
         html = re.sub(r'`([^`]+)`', r'<code class="language-text">\1</code>', html)
         
@@ -310,6 +330,16 @@ class DocumentationPlugin:
             processed_lines.append(line)
         
         return '\n'.join(processed_lines)
+    
+    def process_code_block(self, code_block):
+        """Process a single code block and convert to HTML"""
+        # Extract language and content
+        match = re.match(r'```([a-zA-Z]*)\s*\n?(.*?)```', code_block, flags=re.DOTALL)
+        if match:
+            language = match.group(1) or 'text'
+            content = match.group(2)
+            return f'<pre><code class="language-{language}">{content}</code></pre>'
+        return code_block
 
     def get_categorized_docs(self):
         """Get documents organized by category with proper sorting"""
@@ -1016,4 +1046,577 @@ class DocumentationPlugin:
             ),
             
             id=unique_id
-        ) 
+        )
+
+    def parse_botify_api_pages(self, content):
+        """Parse the botify_api.md content into pages separated by 80 hyphens"""
+        pages = []
+        current_page = []
+        lines = content.split('\n')
+        
+        for line in lines:
+            if line.strip() == '-' * 80:
+                # Found a page separator
+                if current_page:
+                    pages.append('\n'.join(current_page))
+                    current_page = []
+            else:
+                current_page.append(line)
+        
+        # Add the last page if there's content
+        if current_page:
+            pages.append('\n'.join(current_page))
+        
+        return pages
+
+    def extract_botify_api_toc(self, pages):
+        """Extract table of contents from botify_api pages"""
+        toc = []
+        
+        for page_num, page_content in enumerate(pages, 1):
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            
+            # Look for the first H1 heading in the page
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+            
+            # Get a brief description from the first paragraph
+            description = ""
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('```') and len(line) > 20:
+                    description = line[:100] + ('...' if len(line) > 100 else '')
+                    break
+            
+            toc.append({
+                'page_num': page_num,
+                'title': page_title,
+                'description': description or "Documentation content"
+            })
+        
+        return toc
+
+    async def serve_botify_api_toc(self, request):
+        """Serve the table of contents for botify_api.md"""
+        doc_info = self.DOCS['botify_api']
+        file_path = Path(doc_info['file'])
+        
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            pages = self.parse_botify_api_pages(content)
+            toc = self.extract_botify_api_toc(pages)
+            
+            # Create table of contents HTML
+            toc_items = []
+            for item in toc:
+                toc_items.append(f'''
+                    <div class="toc-item">
+                        <h3><a href="/docs/botify_api/page/{item['page_num']}">{item['title']}</a></h3>
+                        <p class="toc-description">{item['description']}</p>
+                        <span class="page-number">Page {item['page_num']} of {len(pages)}</span>
+                    </div>
+                ''')
+            
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Botify API Documentation - Table of Contents</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <style>
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #fafafa;
+        }}
+        
+        .breadcrumb {{
+            background: #fff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+        
+        .breadcrumb a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        
+        .header {{
+            background: #fff;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        
+        .header h1 {{
+            color: #333;
+            margin: 0 0 10px 0;
+        }}
+        
+        .header .subtitle {{
+            color: #666;
+            font-size: 1.1em;
+        }}
+        
+        .stats {{
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+            color: #1565c0;
+        }}
+        
+        .toc-container {{
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }}
+        
+        .toc-item {{
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+        }}
+        
+        .toc-item:last-child {{
+            border-bottom: none;
+        }}
+        
+        .toc-item:hover {{
+            background-color: #f8f9fa;
+        }}
+        
+        .toc-item h3 {{
+            margin: 0 0 8px 0;
+        }}
+        
+        .toc-item h3 a {{
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 1.1em;
+        }}
+        
+        .toc-item h3 a:hover {{
+            text-decoration: underline;
+        }}
+        
+        .toc-description {{
+            color: #666;
+            margin: 8px 0;
+            font-size: 0.95em;
+        }}
+        
+        .page-number {{
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }}
+        
+        .navigation {{
+            background: #fff;
+            padding: 15px 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 0 10px;
+            font-weight: 500;
+        }}
+        
+        .nav-button:hover {{
+            background: #0052a3;
+            text-decoration: none;
+        }}
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">
+        <a href="/docs">📚 Documentation</a> → 📖 Training Guides → Botify API Documentation
+    </div>
+    
+    <div class="header">
+        <h1>📊 Botify API Documentation</h1>
+        <p class="subtitle">Complete guide to the Botify API with practical examples</p>
+        <div class="stats">
+            📄 {len(pages)} pages • 📝 {len(content.split())} words • ⏱️ ~{len(content.split()) // 200} min read
+        </div>
+    </div>
+    
+    <div class="toc-container">
+        {''.join(toc_items)}
+    </div>
+    
+    <div class="navigation">
+        <a href="/docs" class="nav-button">🏠 Back to Documentation</a>
+        <a href="/docs/botify_api/page/1" class="nav-button">📖 Start Reading</a>
+    </div>
+</body>
+</html>"""
+            
+            return HTMLResponse(page_html)
+            
+        except Exception as e:
+            logger.error(f"Error serving botify_api TOC: {str(e)}")
+            return HTMLResponse(f"Error loading document: {str(e)}", status_code=500)
+
+    async def serve_botify_api_page(self, request):
+        """Serve a specific page of botify_api.md"""
+        page_num = int(request.path_params.get('page_num', 1))
+        doc_info = self.DOCS['botify_api']
+        file_path = Path(doc_info['file'])
+        
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            pages = self.parse_botify_api_pages(content)
+            
+            if page_num < 1 or page_num > len(pages):
+                return HTMLResponse("Page not found", status_code=404)
+            
+            page_content = pages[page_num - 1]
+            html_content = self.markdown_to_html(page_content)
+            
+            # Get page title
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+            
+            # Navigation buttons
+            prev_button = ""
+            next_button = ""
+            
+            if page_num > 1:
+                prev_button = f'<a href="/docs/botify_api/page/{page_num - 1}" class="nav-button prev">← Previous</a>'
+            
+            if page_num < len(pages):
+                next_button = f'<a href="/docs/botify_api/page/{page_num + 1}" class="nav-button next">Next →</a>'
+            
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{page_title} - Botify API Documentation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Prism CSS -->
+    <link href="/static/prism.css" rel="stylesheet" />
+    
+    <style>
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #fafafa;
+        }}
+        
+        .breadcrumb {{
+            background: #fff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+        
+        .breadcrumb a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        
+        .page-header {{
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        
+        .page-info {{
+            color: #666;
+        }}
+        
+        .copy-markdown-btn {{
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }}
+        
+        .copy-markdown-btn:hover {{
+            background: #218838;
+        }}
+        
+        .copy-markdown-btn.copying {{
+            background: #ffc107;
+            color: #212529;
+        }}
+        
+        .copy-markdown-btn.success {{
+            background: #20c997;
+        }}
+        
+        .content {{ 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }}
+        
+        .navigation {{
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }}
+        
+        .nav-button:hover {{
+            background: #0052a3;
+            text-decoration: none;
+        }}
+        
+        .nav-button.toc {{
+            background: #6c757d;
+        }}
+        
+        .nav-button.toc:hover {{
+            background: #545b62;
+        }}
+        
+        .nav-center {{
+            text-align: center;
+            color: #666;
+        }}
+        
+        pre {{ 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 6px; 
+            overflow-x: auto;
+            border-left: 4px solid #0066cc;
+            margin: 20px 0;
+        }}
+        
+        code:not([class*="language-"]) {{ 
+            background: #f1f3f4; 
+            padding: 2px 6px; 
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }}
+        
+        h1, h2, h3, h4 {{ 
+            color: #333; 
+            margin-top: 2em;
+            margin-bottom: 1em;
+        }}
+        
+        h1 {{ 
+            border-bottom: 3px solid #0066cc; 
+            padding-bottom: 10px; 
+            margin-top: 0;
+        }}
+        
+        h2 {{ 
+            border-bottom: 2px solid #e9ecef; 
+            padding-bottom: 8px; 
+        }}
+        
+        /* Responsive */
+        @media (max-width: 768px) {{
+            .page-header {{
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }}
+            
+            .navigation {{
+                flex-direction: column;
+                gap: 15px;
+            }}
+            
+            .nav-center {{
+                order: -1;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">
+        <a href="/docs">📚 Documentation</a> → 
+        <a href="/docs/botify_api">Botify API</a> → 
+        Page {page_num}
+    </div>
+    
+    <div class="page-header">
+        <div class="page-info">
+            <strong>{page_title}</strong><br>
+            Page {page_num} of {len(pages)}
+        </div>
+        <button id="copy-markdown-btn" class="copy-markdown-btn">📋 Copy Page Markdown</button>
+    </div>
+    
+    <div class="content">
+        {html_content}
+    </div>
+    
+    <div class="navigation">
+        <div>
+            {prev_button}
+        </div>
+        <div class="nav-center">
+            <a href="/docs/botify_api" class="nav-button toc">📋 Table of Contents</a>
+        </div>
+        <div>
+            {next_button}
+        </div>
+    </div>
+    
+    <!-- Prism JS -->
+    <script src="/static/prism.js"></script>
+    
+    <!-- Auto-highlight code blocks and Copy Markdown functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            // Ensure Prism highlights all code blocks
+            if (typeof Prism !== 'undefined') {{
+                Prism.highlightAll();
+            }}
+            
+            // Add copy buttons to code blocks
+            document.querySelectorAll('pre code').forEach(function(block) {{
+                const button = document.createElement('button');
+                button.textContent = 'Copy';
+                button.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 4px 8px; font-size: 12px; background: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer;';
+                
+                const pre = block.parentElement;
+                pre.style.position = 'relative';
+                pre.appendChild(button);
+                
+                button.addEventListener('click', function() {{
+                    navigator.clipboard.writeText(block.textContent).then(function() {{
+                        button.textContent = 'Copied!';
+                        setTimeout(function() {{
+                            button.textContent = 'Copy';
+                        }}, 2000);
+                    }});
+                }});
+            }});
+            
+            // Copy Page Markdown functionality
+            const copyMarkdownBtn = document.getElementById('copy-markdown-btn');
+            if (copyMarkdownBtn) {{
+                copyMarkdownBtn.addEventListener('click', async function() {{
+                    const button = this;
+                    const originalText = button.textContent;
+                    
+                    try {{
+                        // Show loading state
+                        button.textContent = '⏳ Fetching...';
+                        button.classList.add('copying');
+                        button.disabled = true;
+                        
+                        // Get the raw page content
+                        const pageContent = {repr(page_content)};
+                        
+                        // Copy to clipboard
+                        await navigator.clipboard.writeText(pageContent);
+                        
+                        // Show success state
+                        button.textContent = '✅ Copied!';
+                        button.classList.remove('copying');
+                        button.classList.add('success');
+                        
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.classList.remove('success');
+                            button.disabled = false;
+                        }}, 3000);
+                        
+                    }} catch (error) {{
+                        console.error('Error copying markdown:', error);
+                        
+                        // Show error state
+                        button.textContent = '❌ Error';
+                        button.classList.remove('copying');
+                        
+                        // Reset after 3 seconds
+                        setTimeout(function() {{
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }}, 3000);
+                    }}
+                }});
+            }}
+        }});
+    </script>
+</body>
+</html>"""
+            
+            return HTMLResponse(page_html)
+            
+        except Exception as e:
+            logger.error(f"Error serving botify_api page {page_num}: {str(e)}")
+            return HTMLResponse(f"Error loading page: {str(e)}", status_code=500) 
