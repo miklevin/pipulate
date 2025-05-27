@@ -395,7 +395,7 @@ class AIAssistantManifest:
         }
         # Add tree output to environment info
         tree_output = run_tree_command()
-        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip|*.pkl\"' showing the current state of the codebase:\n\n{tree_output}")
+        self.set_environment("Codebase Structure", f"Below is the output of 'tree -I \"__pycache__|client|data|*.csv|*.zip|*.pkl\"' showing the current state of the codebase:\n\n{tree_output}", description="tree")
     
     def add_file(self, path, description, key_components=None, content=None):
         """Register a file that will be provided to the assistant."""
@@ -427,9 +427,9 @@ class AIAssistantManifest:
         self.token_counts["conventions"] += count_tokens(f"{name}: {description}", self.model)
         return self
     
-    def set_environment(self, env_type, details):
+    def set_environment(self, env_type, details, description=None):
         """Describe the execution environment."""
-        self.environment_info[env_type] = details
+        self.environment_info[env_type] = {"details": details, "description": description}
         self.token_counts["environment"] += count_tokens(f"{env_type}: {details}", self.model)
         return self
     
@@ -469,16 +469,19 @@ class AIAssistantManifest:
         files_section.append('</files>')
         manifest.append("\n".join(files_section))
         
-        # Environment section
+        # Environment details as simple detail elements
         if self.environment_info:
-            env_section = ['<environment>']
-            for env_type, details in self.environment_info.items():
-                env_section.append(create_xml_element("setting", [
-                    f"<type>{env_type}</type>",
-                    f"<details>{details}</details>"
-                ]))
-            env_section.append('</environment>')
-            manifest.append("\n".join(env_section))
+            for env_type, env_data in self.environment_info.items():
+                if isinstance(env_data, dict):
+                    details = env_data["details"]
+                    description = env_data.get("description")
+                else:
+                    # Handle backward compatibility for old format
+                    details = env_data
+                    description = None
+                
+                detail_attrs = {"description": description} if description else None
+                manifest.append(create_xml_element("detail", details, detail_attrs))
         
         # Conventions section
         if self.conventions:
@@ -556,10 +559,11 @@ def create_pipulate_manifest(file_paths):
     result_files = []
     
     # Define the environment
-    manifest.set_environment("Runtime", "Python 3.12 in a Nix-managed virtualenv (.venv)")
-    manifest.set_environment("Package Management", "Hybrid approach using Nix flakes for system dependencies + pip for Python packages")
+    # Combine Python/Nix environment details
+    environment_details = "Python 3.12 in a Nix-managed virtualenv (.venv). Hybrid approach using Nix flakes for system dependencies + pip for Python packages."
+    manifest.set_environment("Development Environment", environment_details, description="environment")
     # Add the raw FILES_TO_INCLUDE content for context
-    manifest.set_environment("Files Selection", "Below is the raw FILES_TO_INCLUDE content before any processing:\n\n" + FILES_TO_INCLUDE_RAW)
+    manifest.set_environment("Files Selection", "Below is the raw FILES_TO_INCLUDE content before any processing:\n\n" + FILES_TO_INCLUDE_RAW, description="story")
     
     # Check for missing files and collect them
     missing_files = []
