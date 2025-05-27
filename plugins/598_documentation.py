@@ -539,7 +539,7 @@ class DocumentationPlugin:
             for key, info in featured_docs:
                 html_parts.append(f'''
                     <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link featured" target="content">
+                        <a href="/docs/{key}" class="tree-link featured">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{info["description"]}</div>
@@ -556,7 +556,7 @@ class DocumentationPlugin:
             for key, info in training_docs:
                 html_parts.append(f'''
                     <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link" target="content">
+                        <a href="/docs/{key}" class="tree-link">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{info["description"]}</div>
@@ -573,7 +573,7 @@ class DocumentationPlugin:
             for key, info in rules_docs:
                 html_parts.append(f'''
                     <li class="tree-item">
-                        <a href="/docs/{key}" class="tree-link" target="content">
+                        <a href="/docs/{key}" class="tree-link">
                             {info["title"]}
                         </a>
                         <div class="tree-description">{info["description"]}</div>
