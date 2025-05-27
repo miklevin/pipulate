@@ -827,6 +827,8 @@ if __name__ == "__main__":
     📄 You can now use the generated config.json file in your projects.
 
 
+--------------------------------------------------------------------------------
+
 # Introduction to BQL (Botify Query Language)
 
 Botify API interactions come in many shapes and forms. The example shown below is the most popular: BQLv2 (Botify Query Language V2), but there are others — not just BQLv1 but also a vast array of *specialized endpoints* for custom reports and analysis. Of all the variations you will find, two "endpoints" (URLs that you make requests to) rise above all the others in their utility and frequency you'll encounter them. And they are:
@@ -873,6 +875,8 @@ response.raise_for_status()
 print(response.json())
 ```
 
+--------------------------------------------------------------------------------
+
 # Use API: Simplest Example
 
 Remember when I told you there are lots of specialized endpoints? Well, this is the first and easiest to have an immediate API success. If you did the above API step correctly, you should be able to get your username with this bare minimum Botify API script.
@@ -898,6 +902,8 @@ print(username)
 **Sample Output**: 
 
     first.last
+
+--------------------------------------------------------------------------------
 
 # List Orgs: How To Get the List of Projects And Their Orgs Given Username
 
@@ -974,6 +980,8 @@ Baz Test                       baz.com                             baz-org
 
 **Rationale**: You need an Organization slug (**org**) for these exercises. It goes in your **config.json** to get started. Your personal login username will usually be used for one Project, but then an offical ***org slug*** (aka group) will usually appear on the others. By convention, these values often end with `-org`.
 
+--------------------------------------------------------------------------------
+
 # List Projects: How To Get the List of Projects Given an Organization
 
 Note: 
@@ -1039,6 +1047,8 @@ Fabled Catalog of Curiosities  fabled-catalog-of-curiosities       foo-org
 
 **Rationale**: Next, you need Project slugs for these exercises.
 
+--------------------------------------------------------------------------------
+
 # List Analyses: How To Get the List of Analysis Slugs Given a Project
 
 
@@ -1088,6 +1098,8 @@ print("\nDone")
 ```
 
 **Rationale**: Analysis slugs are dates in YYYYMMDD format but sometimes get incremeted with `-n` extensions starting with `-2`. They're the third thing you typically need in **config.json** for these exercises.
+
+--------------------------------------------------------------------------------
 
 # List URLs: How To Get a List of the First 500 URLs
 
@@ -1174,6 +1186,8 @@ for i, url in enumerate(list_of_urls):
 - The other way to use the counter & url together is ***f-strings***: `f"{i+1} {url}"`, which would also work.
 
 You're welcome.
+
+--------------------------------------------------------------------------------
 
 # List SEO Fields: How To Get a List of the First 500 URLs, Titles, Meta Descriptions and H1s
 
@@ -1365,6 +1379,8 @@ df.head()
 
 **Rationale**: So that I can jump up and down screaming that BQL is not SQL and tell the LLMs to stop showing me SQL examples for BQL. Surely SQL is down there somewhere, but it's ***API-wrapped***. Though this does not spare us from some SQL methodology. For example, table-joins across Collections are a thing—demonstrated here as `search_console` joined with `crawl.YYMMDD`, left-outer if I'm reading it correctly (I may have to amend that). If you really wanna know, Collections are table aliases that help with the API-wrapping.
 
+--------------------------------------------------------------------------------
+
 # # Query Segments: How to Get Pagetype Segment Data for a Project With URL Counts
 
 This query requires the "collection" field in your config.json file, in addition to "org", "project", and "analysis".
@@ -1459,6 +1475,8 @@ print(json.dumps(results, indent=4, separators=(',', ': ')))
 
 **Rationale**: To give you an example that uses dimensions, metrics and sorting all at once. Also to show you the `page` parameter on the querystring making you think it's the **GET method**, `org` & `project` arguments posing as folders, and finally a JSON `payload` showing you it's actually using the **POST method**. Ahhh, *gotta love the Botify API*.
 
+--------------------------------------------------------------------------------
+
 # List Collections: How To Get the List of Collections Given a Project
 
 
@@ -1506,6 +1524,8 @@ ID: search_engines_orphans.20240715, Name: Search Engines Orphans
 ```
 
 **Rationale**: To let you know how tough Collections are once you start digging in. The first challenge is simply knowing what collections you have and what you can do with them—though 9 out of 10 times it's `crawl.YYYYMMDD` and `search_console`. If not, come talk to me, I wanna pick your brain.
+
+--------------------------------------------------------------------------------
 
 # List Fields: How To Get The List of Fields Given a Collection
 
@@ -1558,6 +1578,8 @@ ID: afield_a_complaint, Name: Red Swingline
 ```
 
 **Rationale**: So you've got a collection and have no idea what to do with it? Well, you can always start by listing its fields. Yeah, let's list the fields.
+
+--------------------------------------------------------------------------------
 
 # Get Pagetypes: How To Get the Unfiltered URL Counts by Pagetype for a Specific Analysis
 
@@ -1641,6 +1663,8 @@ Data saved to pagetype_url_counts.csv
 ```
 
 **Rationale**: Do you ever get the feeling a website's folder-structure can tell you something about how it's organized? Yeah, me too. Thankfully, we here at Botify do the ***Regular Expressions*** so you don't have to. And it makes really great great color-coding in the link-graph visualizations. Psst! Wanna see the Death Star?
+
+--------------------------------------------------------------------------------
 
 # Get Short Titles: How To Get the First 500 URLs With Short Titles Given Pagetype
 
@@ -1747,6 +1771,8 @@ df.head(10)
 
 **Rationale**: Ahh, ***title tags***. They show in browser bookmarks, tabs and SERPs—the only relevancy factor that will remain standing after SEO Armageddon. You could ditch every other factor but ***anchor text***, set your uber-crawler go off-site, use a click-depth of 4—and harvest yourself a pretty good link-graph of the entire Internet... were it not for spammers.
 
+--------------------------------------------------------------------------------
+
 # Count Short Titles: How To Count Number of URLs Having Short Titles
 
 
@@ -1815,6 +1841,8 @@ else:
     Number of URLs with short titles: 675,080
 
 **Rationale**: Sometimes ya gotta count what you're trying to get before you go try and download it. Plus, learn ***filtering*** in the Botify API! But I think really I just wanted to show you how easy it is to format `f"{big_numbers:,}"` with commas using ***f-strings*** (I'm talking to you humans—because the LLMs *already know*).
+
+--------------------------------------------------------------------------------
 
 # Download CSV: How To Download Up to 10K URLs Having Short Titles As a CSV
 
@@ -1954,6 +1982,8 @@ else:
 
 **Rationale**: Is it pulling or pooling? I could never remember. In either case, exporting and downloading csv-files is not as straightforward as you think. First, you make the request. Then you look for ***where*** to check progress, then keep re-checking until done. Then you sacrifice a chicken to help you debug useless errors. Lastly, you notice how your endpoint has changed to`https://api.botify.com/v1/jobs` with `org` and `project` moved into the JSON payload. Or is that firstly? Yeah, definitely firstly.
 
+--------------------------------------------------------------------------------
+
 # Get Total Count: How To Get Aggregate Count of All URLs Crawled During Analysis
 
 
@@ -2061,6 +2091,8 @@ Result: Grand Total URLs in Crawl = 3,000,000
 
 **Rationale**: Before doing a download of a CSV it is often worth checking if the number of rows returned will be under the 1-million row API limit.
 
+--------------------------------------------------------------------------------
+
 # Get Depth Count: How To Get Aggregate Count of URLs at Particular Click Depth
 
 
@@ -2163,6 +2195,8 @@ Calculating total URLs for depth <= 5 from received data...
 Total URLs at depth 5 or less: 1,500,000
 
 **Rationale**: Before doing a download of a CSV it is often worth checking if the number of rows returned will be under the 1-million row API limit. By using a depth filter, we now have the foundation for reducing depth until we get a downloadable number.
+
+--------------------------------------------------------------------------------
 
 # Get Aggregates: How To Get Map of Click-Depths Aggregates Given Analysis Slug
 
@@ -2309,8 +2343,6 @@ Requesting URL counts per depth from Botify API...
 Data received successfully.
 Processing API response...
 Processing complete.
-
---- URL Distribution by Depth (Scaled Generic Example) ---
 { 0: 10,        # Start pages (kept small)
   1: 550,
   2: 28000,     # Rounded 5k * 5.5
@@ -2332,10 +2364,12 @@ Processing complete.
  18: 3000,      # Rounded 500 * 5.5
  19: 1100,      # 200 * 5.5
  20: 550 }      # 100 * 5.5
---------------------------------------------------------
+--------------------------------------------------
 ```
 
 **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
+
+--------------------------------------------------------------------------------
 
 # Get Aggregates: How To Get Map of CUMULATIVE Click-Depths Aggregates Given Analysis Slug
 
@@ -2487,8 +2521,6 @@ Processing API response...
 Processing complete.
 
 Calculating cumulative URL counts by depth...
-
---- Cumulative URL Distribution by Depth (Scaled Generic Example) ---
 { 0: 10,
   1: 560,          # (10 + 550)
   2: 28560,        # (560 + 28000)
@@ -2510,10 +2542,12 @@ Calculating cumulative URL counts by depth...
  18: 2997560,      # (2994560 + 3000)
  19: 2998660,      # (2997560 + 1100)
  20: 2999210 }      # (2998660 + 550) <-- Final cumulative total ~3M
-------------------------------------------------------------------
+------------------------------------------------------------
 ```
 
 **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
+
+--------------------------------------------------------------------------------
 
 # Download Link Graph: How to Download a Link Graph for a Specified Organization, Project, and Analysis For Website Visualization.
 
@@ -2672,6 +2706,8 @@ Link graph saved to: downloads/org_project_analysis_linkgraph_depth-3.csv
 ```
 
 **Rationale**: And now, the moment you’ve all been waiting for—the elusive, hard-to-visualize link-graph of your website. Think Admiral Ackbar scrutinizing a hologram of the Death Star, examining every strength and vulnerability, now superimposed with Google Search Console Clicks and Impressions. The Rebels lean in, studying surprise hot spots and patches of dead wood. Every faceted search site ends up looking like the Death Star. But if you’ve done it right, with solid topical clustering, you’ll have something that resembles broccoli or cauliflower... are those called nodules? Florets? Either way, it’s a good look.
+
+--------------------------------------------------------------------------------
 
 # Check Link-Graph Enhancements: How To Check What Data is Available to Enhance Link-Graph Visualization.
 
@@ -3004,7 +3040,7 @@ if __name__ == "__main__":
     ==================================================
     
     📊 Data Sample Analysis
-    ------------------------------
+------------------------
     • URL: https://www.example.com/...
       └─ Performance: 123,456 impressions, 12,345 clicks
     • URL: https://www.example.com/site/retail/seasonal-sale/pcmcat...
@@ -3013,7 +3049,7 @@ if __name__ == "__main__":
       └─ Performance: 54,321 impressions, 4,321 clicks
     
     🎯 Data Quality Check
-    ------------------------------
+------------------------
     ✓ URLs found: 404
     ✓ Search metrics: Available
     ✓ Depth limit: 2
@@ -3085,6 +3121,8 @@ if __name__ == "__main__":
     Data saved to downloads/example_retail-division_20241108_metadata.csv
 
 **Rationale**: Just because you happen to work at an enterprise SEO company and possess this peculiar intersection of skills—like crafting prompts that give LLMs instant deep-knowledge (think Neo suddenly knowing kung fu)—doesn't mean you actually understand BQL. In fact, needing to write this prompt rather proves the opposite... wait, did I just create a paradox? Anyway, there's a very subtle chicken-and-egg problem that this file in general and this example in particular helps address: ***validation of collection fields*** so you can template automations without them being too fragile.
+
+--------------------------------------------------------------------------------
 
 # Color-Code Link-Graphs: How To Download Data to Enhance Website Link-Graph Visualization.
 
@@ -3455,7 +3493,7 @@ if __name__ == "__main__":
     ==================================================
     
     📊 Data Sample Analysis
-    ------------------------------
+------------------------
     • URL: https://www.example.com/...
       └─ Performance: 123,456 impressions, 12,345 clicks
     • URL: https://www.example.com/site/retail/seasonal-sale/pcmcat...
@@ -3464,7 +3502,7 @@ if __name__ == "__main__":
       └─ Performance: 54,321 impressions, 4,321 clicks
     
     🎯 Data Quality Check
-    ------------------------------
+------------------------
     ✓ URLs found: 404
     ✓ Search metrics: Available
     ✓ Depth limit: 2
@@ -3512,6 +3550,8 @@ if __name__ == "__main__":
 **Rationale**: BQL and enterprise SEO diagnostics provide powerful tools for comprehensive website analysis. This code transforms link structures into detailed visualizations of your site's SEO health, presenting search signals and performance metrics in a multi-dimensional view. Similar to how diagnostic imaging reveals underlying conditions, these analyses expose strengths, vulnerabilities, and technical issues within your site architecture. Prepare your site for the increasing number of AI crawlers by optimizing your content and structure. Ensure your schema.org structured data is properly implemented to support real-time crawls that evaluate product availability and other critical information.
  
 Next-generation SEO requires adapting to these AI-driven changes. Now, let's examine the process of converting from BQLv1 to the collection-based BQLv2 format...
+
+--------------------------------------------------------------------------------
 
 # Web Logs: How To Check If A Project Has a Web Logs Collection
 
@@ -3696,9 +3736,7 @@ if __name__ == "__main__":
     
     Checking for collection 'logs' in michaellevin-org/mikelev.in...
     Result: Collection with ID 'logs' was not found in the list.
-    
-    --- Check Complete ---
-    The project 'michaellevin-org/mikelev.in' does NOT appear to have a 'logs' collection available (or an error occurred).
+The project 'michaellevin-org/mikelev.in' does NOT appear to have a 'logs' collection available (or an error occurred).
 
 
 **Sample Output**:
@@ -3707,9 +3745,7 @@ if __name__ == "__main__":
     
     Checking for collection 'logs' in example-org/example.com...
     Success: Found collection with ID 'logs'.
-    
-    --- Check Complete ---
-    The project 'example-org/example.com' appears to HAVE a 'logs' collection available.
+The project 'example-org/example.com' appears to HAVE a 'logs' collection available.
 
 Alternatively:
 
@@ -3717,9 +3753,9 @@ Alternatively:
     
     Checking for collection 'logs' in example-org/example.com...
     Result: Collection with ID 'logs' was not found in the list.
-    
-    --- Check Complete ---
-    The project 'example-org/example.com' does NOT appear to have a 'logs' collection available (or an error occurred).
+The project 'example-org/example.com' does NOT appear to have a 'logs' collection available (or an error occurred).
+
+--------------------------------------------------------------------------------
 
 # Migrating from BQLv1 to BQLv2
 
@@ -3928,6 +3964,8 @@ def convert_url_query(query_v1, current_analysis, previous_analysis=None):
    - Prefix filter fields with collection name
    - Replace area parameters with explicit URL existence filters
 
+--------------------------------------------------------------------------------
+
 # Size Up Botify Open API Swagger
 
 
@@ -4036,11 +4074,11 @@ if __name__ == "__main__":
              Size: 90,018 bytes
     SUCCESS: OpenAPI specification saved locally as: '/home/mike/repos/pipulate/helpers/botify/botify_openapi_spec.json'
     INFO: Using tiktoken encoding: 'cl100k_base'
-    
-    --- Tokenization Complete ---
-    Number of tokens (using 'cl100k_base'): 20,039
+Number of tokens (using 'cl100k_base'): 20,039
     INFO: Token count is comfortably within a typical 128k context window.
 
+
+--------------------------------------------------------------------------------
 
 # All Botify API Endpoints: How Do You Generate a Python Code Example for Every Botify Endpoint Given Their OpenAPI Swagger
 
@@ -4541,8 +4579,7 @@ export_notebook_and_apply_custom_processing()
     
     INFO: Exporting 'botify_api.ipynb' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md' using 'jupyter nbconvert'...
     SUCCESS: Notebook initially exported by 'nbconvert' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md'.
-    --- nbconvert stderr (info/warnings) ---
-    [NbConvertApp] Converting notebook botify_api.ipynb to markdown
+[NbConvertApp] Converting notebook botify_api.ipynb to markdown
     [NbConvertApp] Writing 171151 bytes to botify_api.md
     INFO: Applying custom post-processing to: 'botify_api.md' (output will be '/home/mike/repos/pipulate/helpers/botify/botify_api.md')
     SUCCESS: Custom post-processing complete. Output: '/home/mike/repos/pipulate/helpers/botify/botify_api.md'
