@@ -799,12 +799,11 @@ if args.concat_mode:
 # Create the manifest and incorporate user's pre_prompt
 manifest_xml, processed_files, manifest_tokens = create_pipulate_manifest(final_file_list)
 manifest = manifest_xml
-final_pre_prompt = f"{manifest}\n\n{pre_prompt}"
 
-# Add the pre-prompt and separator
-lines = [final_pre_prompt]
+# Add the pre-prompt and separator (without duplicating manifest)
+lines = [pre_prompt]
 lines.append("=" * 20 + " START CONTEXT " + "=" * 20)
-total_tokens = count_tokens(final_pre_prompt, "gpt-4")
+total_tokens = count_tokens(pre_prompt, "gpt-4")
 
 # Process each file in the manifest file list
 for relative_path in processed_files:
