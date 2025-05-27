@@ -13,7 +13,9 @@ Yes, that's **Esc 00 Enter** — *it's a Notebook thing.*
 
 Good luck!
 
-## Script #1: Get Your Token
+--------------------------------------------------------------------------------
+
+# Script #1: Get Your Token
 
 
 ```python
@@ -332,7 +334,9 @@ if __name__ == "__main__":
     🎉 Setup complete! Your token is ready to use.
 
 
-## Script #2: Setup config file
+--------------------------------------------------------------------------------
+
+# Script #2: Setup config file
 
 
 ```python
@@ -796,35 +800,6 @@ if __name__ == "__main__":
     📝 Please enter your Botify project URL:
     Example: https://app.botify.com/your-org/your-project/
     💡 Or just hit Enter to use your default (first org, first project, latest analysis)
-
-
-    Botify Project URL (or Enter for default):  https://app.botify.com/michaellevin-org/mikelev.in
-
-
-    ✅ Valid Botify project: mikelev.in
-    🏢 Organization: michaellevin-org
-    📁 Project: mikelev.in
-    
-    🔍 Fetching most recent analysis for michaellevin-org/mikelev.in...
-    ✅ Found most recent analysis: 20250525
-    📊 Total analyses available: 10
-    📅 Created: 2025-05-25T20:01:00.485287Z
-    🔄 Last modified: 2025-05-25T20:29:49.803865Z
-    
-    📋 Generated Configuration:
-    ==============================
-    {
-        "org": "michaellevin-org",
-        "project": "mikelev.in",
-        "analysis": "20250525",
-        "collection": "crawl.20250525"
-    }
-    
-    💾 Saving configuration...
-    ✅ Configuration saved to: config.json
-    
-    🎉 Configuration generation complete!
-    📄 You can now use the generated config.json file in your projects.
 
 
 --------------------------------------------------------------------------------
@@ -2508,6 +2483,14 @@ except Exception as e:
     # Catch any unexpected errors during the main execution sequence
     print(f"An unexpected error occurred during the main execution: {e}")
 ```
+
+
+      Cell In[26], line 170
+        **Rationale**: This depth distribution shows how many URLs exist at each click depth level from the homepage (hompage = depth 0). A healthy site typically has most content within 3 or 4 clicks of the homepage. Much more, and it may as well not exist. Such reports help identify potential deep crawl issues, spider-traps, and why (in addition to the infinite spam-cannon of generative AI content), brute-force crawls that *"make a copy of the Internet"* are all but dead. And did I mention that excessively crawl-able faceted search makes your site's link-graph look like the Death Star? Yeah, I think I did.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ^
+    SyntaxError: unterminated string literal (detected at line 170)
+
+
 
 **Sample Output**:
 
@@ -4575,14 +4558,14 @@ export_notebook_and_apply_custom_processing()
 ```
 
     INFO: Notebook identified as 'botify_api.ipynb' in '/home/mike/repos/pipulate/helpers/botify' (via JPY_SESSION_NAME).
-    INFO: Output directory not hardwired. Using notebook's directory for final output: '/home/mike/repos/pipulate/helpers/botify'
+    INFO: Using hardwired output directory: '/home/mike/repos/pipulate/training'
     
     INFO: Exporting 'botify_api.ipynb' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md' using 'jupyter nbconvert'...
     SUCCESS: Notebook initially exported by 'nbconvert' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md'.
 [NbConvertApp] Converting notebook botify_api.ipynb to markdown
-    [NbConvertApp] Writing 171151 bytes to botify_api.md
-    INFO: Applying custom post-processing to: 'botify_api.md' (output will be '/home/mike/repos/pipulate/helpers/botify/botify_api.md')
-    SUCCESS: Custom post-processing complete. Output: '/home/mike/repos/pipulate/helpers/botify/botify_api.md'
+    [NbConvertApp] Writing 171397 bytes to botify_api.md
+    INFO: Applying custom post-processing to: 'botify_api.md' (output will be '/home/mike/repos/pipulate/training/botify_api.md')
+    SUCCESS: Custom post-processing complete. Output: '/home/mike/repos/pipulate/training/botify_api.md'
 
 
 
