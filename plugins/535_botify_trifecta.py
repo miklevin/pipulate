@@ -761,52 +761,8 @@ class BotifyCsvDownloaderWorkflow:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             # Check if web logs are cached for the CURRENT analysis
-            # Use the same logic as step_02 to get the current analysis
+            # For now, don't show "Use Cached" until we can reliably detect the current analysis
             is_cached = False
-            try:
-                # Get the current analysis from step_02 data - try multiple possible keys
-                analysis_step_id = 'step_02'
-                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-                current_analysis_slug = ''
-                
-                # Try to get analysis_slug from the stored data
-                if analysis_step_data:
-                    # Debug: Print what we actually have
-                    print(f"DEBUG step_03: analysis_step_data = {analysis_step_data}")
-                    print(f"DEBUG step_03: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
-                    
-                    # Try the 'analysis_selection' key first
-                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    print(f"DEBUG step_03: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
-                    if analysis_data_str:
-                        try:
-                            analysis_data = json.loads(analysis_data_str)
-                            current_analysis_slug = analysis_data.get('analysis_slug', '')
-                        except (json.JSONDecodeError, AttributeError):
-                            pass
-                    
-                    # If that didn't work, try looking for analysis_slug directly
-                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
-                        for key, value in analysis_step_data.items():
-                            if isinstance(value, str) and value.startswith('20'):
-                                # Looks like an analysis slug (starts with year)
-                                current_analysis_slug = value
-                                break
-                            elif isinstance(value, str):
-                                try:
-                                    data = json.loads(value)
-                                    if isinstance(data, dict) and 'analysis_slug' in data:
-                                        current_analysis_slug = data['analysis_slug']
-                                        break
-                                except (json.JSONDecodeError, AttributeError):
-                                    continue
-                
-                # Only check for cached files if we found an analysis slug
-                if current_analysis_slug:
-                    weblog_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
-                    is_cached = os.path.exists(weblog_path)
-            except Exception:
-                is_cached = False
             
             # Set button text based on cache status
             button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
@@ -928,47 +884,8 @@ class BotifyCsvDownloaderWorkflow:
             gsc_template = self.get_configured_template('gsc')
             
             # Check if GSC data is cached for the CURRENT analysis
-            # Use the same logic as step_02 to get the current analysis
+            # For now, don't show "Use Cached" until we can reliably detect the current analysis
             is_cached = False
-            try:
-                # Get the current analysis from step_02 data - try multiple possible keys
-                analysis_step_id = 'step_02'
-                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-                current_analysis_slug = ''
-                
-                # Try to get analysis_slug from the stored data
-                if analysis_step_data:
-                    # Try the 'analysis_selection' key first
-                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    if analysis_data_str:
-                        try:
-                            analysis_data = json.loads(analysis_data_str)
-                            current_analysis_slug = analysis_data.get('analysis_slug', '')
-                        except (json.JSONDecodeError, AttributeError):
-                            pass
-                    
-                    # If that didn't work, try looking for analysis_slug directly
-                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
-                        for key, value in analysis_step_data.items():
-                            if isinstance(value, str) and value.startswith('20'):
-                                # Looks like an analysis slug (starts with year)
-                                current_analysis_slug = value
-                                break
-                            elif isinstance(value, str):
-                                try:
-                                    data = json.loads(value)
-                                    if isinstance(data, dict) and 'analysis_slug' in data:
-                                        current_analysis_slug = data['analysis_slug']
-                                        break
-                                except (json.JSONDecodeError, AttributeError):
-                                    continue
-                
-                # Only check for cached files if we found an analysis slug
-                if current_analysis_slug:
-                    gsc_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
-                    is_cached = os.path.exists(gsc_path)
-            except Exception:
-                is_cached = False
             
             button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
             
