@@ -542,13 +542,6 @@ class BotifyCsvDownloaderWorkflow:
             if not slugs:
                 return P(f'Error: No analyses found for project {project_name}. Please check your API access.', style=pip.get_style('error'))
             selected_value = selected_slug if selected_slug else slugs[0]
-            downloaded_slugs = set()
-            for slug in slugs:
-                filepath = await self.get_deterministic_filepath(username, project_name, slug, 'crawl')
-                exists, _ = await self.check_file_exists(filepath)
-                if exists:
-                    downloaded_slugs.add(slug)
-            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
             
             # Get active template details for dynamic UI
             active_crawl_template_key = self.get_configured_template('crawl')
@@ -557,7 +550,46 @@ class BotifyCsvDownloaderWorkflow:
             user_message = active_template_details.get('user_message', 'This will download crawl data.')
             button_suffix = active_template_details.get('button_label_suffix', 'Data')
             
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*[Option(f'{slug} (Downloaded)' if slug in downloaded_slugs else slug, value=slug, selected=slug == selected_value) for slug in slugs], name='analysis_slug', required=True, autofocus=True), Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Check for downloaded files using the active template's export type
+            downloaded_files_info = {}
+            for slug in slugs:
+                # Check all possible file types for this analysis
+                files_found = []
+                
+                # Check crawl data (using active template's export type)
+                crawl_filepath = await self.get_deterministic_filepath(username, project_name, slug, active_template_details.get('export_type', 'crawl_attributes'))
+                crawl_exists, crawl_info = await self.check_file_exists(crawl_filepath)
+                if crawl_exists:
+                    filename = os.path.basename(crawl_filepath)
+                    files_found.append(filename)
+                
+                # Check weblog data
+                weblog_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'weblog')
+                weblog_exists, _ = await self.check_file_exists(weblog_filepath)
+                if weblog_exists:
+                    files_found.append('weblog.csv')
+                
+                # Check GSC data
+                gsc_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'gsc')
+                gsc_exists, _ = await self.check_file_exists(gsc_filepath)
+                if gsc_exists:
+                    files_found.append('gsc.csv')
+                
+                if files_found:
+                    downloaded_files_info[slug] = files_found
+            await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('input', f'Select an analysis for {project_name}'), verbatim=True)
+            
+            # Build dropdown options with file summaries
+            dropdown_options = []
+            for slug in slugs:
+                if slug in downloaded_files_info:
+                    files_summary = ', '.join(downloaded_files_info[slug])
+                    option_text = f'{slug} ({files_summary})'
+                else:
+                    option_text = slug
+                dropdown_options.append(Option(option_text, value=slug, selected=slug == selected_value))
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
