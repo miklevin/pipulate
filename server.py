@@ -2934,7 +2934,7 @@ def get_intro_page_content(page_num_str: str):
         return (content, llm_context)
     elif page_num == 2:
         experimenting_title = 'Positive First Experience'
-        experimenting_steps = ['You can do no harm in DEV mode. Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.']
+        experimenting_steps = ['Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.']
         interface_title = 'Understanding the Interface'
         interface_items = [('PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APPS', 'Try Parameter Buster on your Client. It\'s a big potential win.')]
         content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')

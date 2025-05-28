@@ -187,46 +187,22 @@ class MyWorkflow:
         self.db = db
         self.app_name = app_name
         self.message_queue = pipulate.get_message_queue()
-        
+
         # Define steps
         self.steps = [
             Step(id="step_01", done="✓ Step 1", show="Step 1: Input"),
             Step(id="finalize", done="✓ Complete", show="Finalize")
         ]
-        
+
         # Register routes
         self.register_routes(app.route)
 ```
 
-## 11. Three-Phase Step Pattern
-
-Every step handler must implement these phases in exact order:
-
-1. **Finalize Phase** (locked view) - includes `hx_trigger='load'`
-2. **Revert Phase** (completed view) - includes `hx_trigger='load'` 
-3. **Input Phase** (active form) - no `hx_trigger`
-
-```python
-async def step_01(self, request):
-    # Phase 1: Finalize (locked)
-    if pip.is_finalized(pipeline_id):
-        return pip.display_revert_header(step_id, app_name, steps, message)
-    
-    # Phase 2: Revert (completed)  
-    if step_data := pip.get_step_data(pipeline_id, step_id):
-        return pip.display_revert_header(step_id, app_name, steps, message)
-    
-    # Phase 3: Input (active)
-    return Form(...)  # No hx_trigger
-```
-
-## 12. Best Practices
+## 11. Best Practices
 
 1. **Auto-Key Generation**: Always implement the HX-Refresh pattern for empty keys
 2. **Step Design**: Keep steps focused and atomic
 3. **State Management**: Use the provided helper methods for consistency
-4. **Three-Phase Pattern**: Always implement finalize → revert → input phases
-5. **Parameter Order**: Use correct order for helper methods like `display_revert_header(step_id, app_name, steps, message)`
 4. **Error Handling**: Validate inputs and handle exceptions gracefully
 5. **UI/UX**: Use standardized revert components for consistency
 6. **Data Integrity**: Never change APP_NAME after deployment
