@@ -26,7 +26,7 @@ class WorkflowGenesis:
     An interactive assistant for creating new Pipulate workflows with intelligent template selection
     and step management. This tool demonstrates the full workflow scaffolding capabilities including:
     
-    - Template-based workflow creation (blank vs. complex templates like trifecta)
+    - Template-based workflow creation (blank, hello, and trifecta templates)
     - Flexible step insertion (top/bottom positioning)
     - Command generation with copy-friendly syntax highlighting
     - Template selection guidance based on use case
@@ -37,6 +37,11 @@ class WorkflowGenesis:
     - Single placeholder step for simple workflows
     - Minimal structure, easy to understand
     - Best for: Custom workflows, learning, prototyping
+    
+    **Hello Template (500_hello_workflow.py)**:
+    - Two-step interactive workflow demonstrating core patterns
+    - Shows best practices for form handling and chain reactions
+    - Best for: Learning workflow patterns, simple interactive flows
     
     **Trifecta Template (535_botify_trifecta.py)**:
     - Complex multi-step workflow with API integration
@@ -59,7 +64,7 @@ class WorkflowGenesis:
     APP_NAME = 'workflow_genesis' 
     DISPLAY_NAME = 'Workflow Creation Helper' 
     ENDPOINT_MESSAGE = """Create new Pipulate workflows with intelligent template selection and flexible step management. Choose from minimal blank templates or complex multi-step patterns, then add placeholder steps with precise positioning control."""
-    TRAINING_PROMPT = """You are assisting with the 'Workflow Creation Helper' that generates scaffolding commands for Pipulate workflows. Help users understand: 1. Template selection (blank vs. trifecta) based on their needs. 2. The create_workflow.py command parameters and their purposes. 3. The splice_workflow_step.py positioning options (top vs. bottom). 4. When to use each template type and positioning strategy. 5. How to customize the generated placeholder steps. Guide them through the decision-making process and explain the generated commands."""
+    TRAINING_PROMPT = """You are assisting with the 'Workflow Creation Helper' that generates scaffolding commands for Pipulate workflows. Help users understand: 1. Template selection (blank, hello, or trifecta) based on their needs. 2. The create_workflow.py command parameters and their purposes. 3. The splice_workflow_step.py positioning options (top vs. bottom). 4. When to use each template type and positioning strategy. 5. How to customize the generated placeholder steps. Guide them through the decision-making process and explain the generated commands."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
@@ -289,9 +294,9 @@ class WorkflowGenesis:
             template_section = Div(
                 H5('Selected Template:'),
                 Div(
-                    P(f"Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500;'),
-                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
-                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                    P(f"Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500; color: #2c3e50;'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
+                    style='padding: 0.75rem; background-color: #f1f5f9; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 cls='mt-4'
             )
@@ -355,10 +360,10 @@ class WorkflowGenesis:
             template_section = Div(
                 H5('Template Information:'),
                 Div(
-                    P(f"Selected Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500;'),
-                    P(f"Use Case: {template_info.get('description', 'No description')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
-                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.9rem;'),
-                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                    P(f"Selected Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500; color: #2c3e50;'),
+                    P(f"Use Case: {template_info.get('description', 'No description')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
+                    style='padding: 0.75rem; background-color: #f1f5f9; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 cls='mt-4'
             )
@@ -416,19 +421,19 @@ class WorkflowGenesis:
                 
                 # Flexible filename handling (informational, no Prism)
                 Div(
-                    P('Flexible filename handling:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem;'),
-                    P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
-                    P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace;'),
+                    P('Flexible filename handling:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #2c3e50;'),
+                    P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace; color: #5a6c7d;'),
+                    P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace; color: #5a6c7d;'),
                     style='margin-bottom: 1rem;'
                 ),
                 
                 # Cosmetic Renaming Feature
                 Div(
                     P('💡 Cosmetic Step Renaming:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #0066cc;'),
-                    P('New steps get names like "Placeholder Step 3 (Edit Me)" that you can customize in the show= attribute.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
-                    P('Internal IDs (step_01, step_02) reflect creation order but are hidden from users.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
-                    P('Example: step_06 with show="Data Collection" appears as "Data Collection" in the UI.', cls='text-secondary', style='margin: 0.25rem 0; font-size: 0.85rem;'),
-                    style='margin-bottom: 0.5rem; padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #0066cc; border-radius: 4px;'
+                    P('New steps get names like "Placeholder Step 3 (Edit Me)" that you can customize in the show= attribute.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
+                    P('Internal IDs (step_01, step_02) reflect creation order but are hidden from users.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
+                    P('Example: step_06 with show="Data Collection" appears as "Data Collection" in the UI.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
+                    style='margin-bottom: 0.5rem; padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #0066cc; border-radius: 4px;'
                 ),
                 
                 cls='mt-4'
@@ -580,6 +585,7 @@ class WorkflowGenesis:
                     id="training_prompt",
                     name="training_prompt",
                     placeholder="The LLM training prompt for your workflow",
+                    rows="6",
                     required=True
                 ),
                 Small("The training prompt that guides the LLM for your workflow"),
@@ -729,23 +735,30 @@ class WorkflowGenesis:
                 Fieldset(
                     Legend("Choose Your Template"),
                     
-                    # Blank Template Option
-                    Label(
-                        Input(type="radio", name="template", value="blank", checked=True),
-                        " Blank Template (Simple & Clean)",
-                        **{'for': 'template_blank'}
+                    Label("Template Type", **{'for': 'template'}),
+                    Select(
+                        Option("Blank Placeholder - Minimal single-step workflow", value="blank", selected=True),
+                        Option("Hello Workflow - Simple two-step example with best practices", value="hello"),
+                        Option("Botify Trifecta - Complex multi-step API workflow", value="trifecta"),
+                        name="template",
+                        id="template",
+                        required=True
                     ),
-                    P("Minimal single-step workflow - perfect for custom development", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.9rem;'),
-                    
-                    # Trifecta Template Option  
-                    Label(
-                        Input(type="radio", name="template", value="trifecta"),
-                        " Trifecta Template (Feature-Rich)",
-                        **{'for': 'template_trifecta'}
-                    ),
-                    P("Multi-step API workflow with advanced features", cls='text-secondary', style='margin: 0.25rem 0 0.75rem 1.5rem; font-size: 0.9rem;'),
+                    Small("Choose the template that best matches your workflow complexity and use case"),
                     
                     style='margin-bottom: 1rem;'
+                ),
+                
+                # Template Descriptions
+                Div(
+                    H6("Template Descriptions:", style='margin-bottom: 0.5rem; color: #2c3e50;'),
+                    Ul(
+                        Li("🏗️ Blank Placeholder: Perfect for custom development and learning", style='color: #5a6c7d;'),
+                        Li("👋 Hello Workflow: Demonstrates core patterns with name/greeting example", style='color: #5a6c7d;'),
+                        Li("🚀 Botify Trifecta: Advanced API integration with background processing", style='color: #5a6c7d;'),
+                        style='font-size: 0.9rem; margin-bottom: 1rem;'
+                    ),
+                    style='padding: 0.75rem; background-color: #f1f5f9; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 
                 # Next Step Preview
@@ -828,6 +841,12 @@ class WorkflowGenesis:
                 'description': 'Minimal single-step workflow for custom development',
                 'steps': '1 placeholder step + finalize',
                 'file': '710_blank_placeholder.py'
+            },
+            'hello': {
+                'name': 'Hello Workflow Template',
+                'description': 'Simple two-step example demonstrating core workflow patterns',
+                'steps': '2 interactive steps + finalize',
+                'file': '500_hello_workflow.py'
             },
             'trifecta': {
                 'name': 'Botify Trifecta Template', 
@@ -913,14 +932,14 @@ class WorkflowGenesis:
             form_content = Form(
                 # Current Workflow Context
                 Div(
-                    H5("Current Workflow Context:"),
-                    P(f"📁 File: {filename}", style='margin: 0.25rem 0; font-family: monospace;'),
-                    P(f"🏗️ Template: {template_info['name']}", style='margin: 0.25rem 0;'),
-                    P(f"📋 Current Steps: {template_info['steps']}", style='margin: 0.25rem 0;'),
-                    style='padding: 0.75rem; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; margin-bottom: 1rem;'
+                    H5("Current Workflow Context:", style='color: #2c3e50;'),
+                    P(f"📁 File: {filename}", style='margin: 0.25rem 0; font-family: monospace; color: #5a6c7d;'),
+                    P(f"🏗️ Template: {template_info['name']}", style='margin: 0.25rem 0; color: #5a6c7d;'),
+                    P(f"📋 Current Steps: {template_info['steps']}", style='margin: 0.25rem 0; color: #5a6c7d;'),
+                    style='padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #007bff; border-radius: 4px; margin-bottom: 1rem;'
                 ),
                 
-                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", cls='text-secondary', style='margin-bottom: 1rem;'),
+                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", style='margin-bottom: 1rem; color: #5a6c7d;'),
                 
                 Button('Show Step Management Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -987,8 +1006,8 @@ class WorkflowGenesis:
         top_cmd = f"python splice_workflow_step.py {filename} --position top"
         
         container = Div(
-            H5('Step Management Commands:'),
-            P('Add new placeholder steps to your workflow with flexible positioning control:', cls='text-secondary', style='margin-bottom: 1rem; font-size: 0.9rem;'),
+            H5('Step Management Commands:', style='color: #2c3e50;'),
+            P('Add new placeholder steps to your workflow with flexible positioning control:', style='margin-bottom: 1rem; font-size: 0.9rem; color: #5a6c7d;'),
             
             # Basic usage (default)
             Div(
@@ -1027,13 +1046,13 @@ class WorkflowGenesis:
             Div(
                 H6('💡 Usage Tips:', style='margin-bottom: 0.5rem; color: #007bff;'),
                 Ul(
-                    Li(f"Extension optional: splice_workflow_step.py {filename.replace('.py', '')}", style='font-family: monospace; font-size: 0.85rem;'),
-                    Li(f"Prefix optional: splice_workflow_step.py plugins/{filename}", style='font-family: monospace; font-size: 0.85rem;'),
-                    Li("Run multiple times to add multiple steps", style='font-size: 0.85rem;'),
-                    Li("Each step gets a unique ID (step_06, step_07, etc.)", style='font-size: 0.85rem;'),
-                    Li("Customize step names by editing the 'show' attribute", style='font-size: 0.85rem;'),
+                    Li(f"Extension optional: splice_workflow_step.py {filename.replace('.py', '')}", style='font-family: monospace; font-size: 0.85rem; color: #5a6c7d;'),
+                    Li(f"Prefix optional: splice_workflow_step.py plugins/{filename}", style='font-family: monospace; font-size: 0.85rem; color: #5a6c7d;'),
+                    Li("Run multiple times to add multiple steps", style='font-size: 0.85rem; color: #5a6c7d;'),
+                    Li("Each step gets a unique ID (step_06, step_07, etc.)", style='font-size: 0.85rem; color: #5a6c7d;'),
+                    Li("Customize step names by editing the 'show' attribute", style='font-size: 0.85rem; color: #5a6c7d;'),
                 ),
-                style='padding: 0.75rem; background-color: #e7f3ff; border-left: 3px solid #007bff; border-radius: 4px;'
+                style='padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #007bff; border-radius: 4px;'
             ),
             
             id=widget_id

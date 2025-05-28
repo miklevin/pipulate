@@ -12,6 +12,16 @@ Pipulate Workflow Template (Hello World Example)
 This file serves as a starting point for creating linear, step-by-step Pipulate Workflows.
 It demonstrates the core patterns and best practices for workflow development.
 
+=== WET WORKFLOW TEMPLATE ===
+This file is designed to work with the template assembly system:
+- Contains template markers for automated workflow generation
+- Follows WET (Write Everything Twice) conventions for explicit, debuggable code
+- Serves as the base template for create_workflow.py and splice_workflow_step.py
+
+Template Markers:
+- STEPS_LIST_INSERTION_POINT: Where new steps are inserted in the steps list
+- STEP_METHODS_INSERTION_POINT: Where new step methods are added to the class
+
 --- The Chain Reaction Pattern ---
 Pipulate workflows use HTMX's chain reaction pattern to create a "Run All Cells" experience
 similar to Jupyter Notebooks. Each step automatically triggers the next step's loading
@@ -127,6 +137,13 @@ class HelloFlow:
 
     # UI Constants - Centralized button labels and styles following WET conventions
     # ============================================================================
+    # This structure follows WET workflow conventions for consistent UX:
+    # - BUTTON_LABELS: Standardized button text with emojis for visual recognition
+    # - BUTTON_STYLES: PicoCSS classes for consistent styling
+    # - EMOJIS: Categorized emoji constants for message queue feedback
+    #   * Process Status: 🔍🎯⚠️❌✅🔒🔓 (discovery, success, warning, error, completion, locked/unlocked)
+    #   * Data Types: 👤💬🔄 (user input, messages, workflow processes)  
+    #   * Actions: 🔄📝 (processing, input forms)
     UI_CONSTANTS = {
         'BUTTON_LABELS': {
             'ENTER_KEY': '🔑 Enter Key',
@@ -179,6 +196,7 @@ class HelloFlow:
         self.message_queue = pip.message_queue
 
         # Define workflow steps
+        # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         steps = [
             Step(
                 id='step_01',
@@ -192,7 +210,8 @@ class HelloFlow:
                 show='Hello Message',
                 refill=False,
                 transform=lambda name: f'Hello {name}!'  # Transform previous step's output
-            )
+            ),
+            # --- STEPS_LIST_INSERTION_POINT --- 
         ]
 
         # Register standard workflow routes
@@ -591,3 +610,5 @@ class HelloFlow:
             app_name=app_name,
             processed_val=processed_val
         )
+
+    # --- STEP_METHODS_INSERTION_POINT ---
