@@ -263,8 +263,8 @@ class DocumentationPlugin:
         return priority_map.get(filename, 100)
 
     def markdown_to_html(self, markdown_content):
-        """Convert markdown to HTML with enhanced formatting"""
-        html = markdown_content
+        """Convert markdown to HTML with proper Markdown semantics"""
+        import html
         
         # Step 1: Protect code blocks by storing them and replacing with placeholders
         code_blocks = []
@@ -275,71 +275,199 @@ class DocumentationPlugin:
             return placeholder_pattern.format(len(code_blocks) - 1)
         
         # Find and store all code blocks (any language)
-        html = re.sub(r'```[a-zA-Z]*\s*\n.*?```', store_code_block, html, flags=re.DOTALL)
+        content = re.sub(r'```[a-zA-Z]*\s*\n.*?```', store_code_block, markdown_content, flags=re.DOTALL)
         
-        # Step 2: Process headers (now safe from code block interference)
-        html = re.sub(r'^# (.*?)$', r'<h1 id="h1-\1">\1</h1>', html, flags=re.MULTILINE)
-        html = re.sub(r'^## (.*?)$', r'<h2 id="h2-\1">\1</h2>', html, flags=re.MULTILINE)
-        html = re.sub(r'^### (.*?)$', r'<h3 id="h3-\1">\1</h3>', html, flags=re.MULTILINE)
-        html = re.sub(r'^#### (.*?)$', r'<h4 id="h4-\1">\1</h4>', html, flags=re.MULTILINE)
+        # Step 2: Process block-level elements line by line
+        lines = content.split('\n')
+        processed_lines = []
+        i = 0
         
-        # Step 3: Restore code blocks and convert to HTML
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.strip()
+            
+            # Headers
+            if stripped.startswith('# '):
+                header_text = stripped[2:].strip()
+                header_id = self._slugify(header_text)
+                processed_lines.append(f'<h1 id="{header_id}">{html.escape(header_text)}</h1>')
+                i += 1
+            elif stripped.startswith('## '):
+                header_text = stripped[3:].strip()
+                header_id = self._slugify(header_text)
+                processed_lines.append(f'<h2 id="{header_id}">{html.escape(header_text)}</h2>')
+                i += 1
+            elif stripped.startswith('### '):
+                header_text = stripped[4:].strip()
+                header_id = self._slugify(header_text)
+                processed_lines.append(f'<h3 id="{header_id}">{html.escape(header_text)}</h3>')
+                i += 1
+            elif stripped.startswith('#### '):
+                header_text = stripped[5:].strip()
+                header_id = self._slugify(header_text)
+                processed_lines.append(f'<h4 id="{header_id}">{html.escape(header_text)}</h4>')
+                i += 1
+            
+            # Blockquotes
+            elif stripped.startswith('> '):
+                blockquote_lines = []
+                while i < len(lines) and lines[i].strip().startswith('> '):
+                    # Remove the '> ' prefix and collect the content
+                    quote_content = lines[i].strip()[2:]
+                    blockquote_lines.append(quote_content)
+                    i += 1
+                
+                # Process the blockquote content as markdown (recursively)
+                blockquote_content = '\n'.join(blockquote_lines)
+                processed_blockquote = self._process_inline_markdown(blockquote_content)
+                processed_lines.append(f'<blockquote>{processed_blockquote}</blockquote>')
+            
+            # Unordered lists
+            elif stripped.startswith('- ') or stripped.startswith('* ') or stripped.startswith('+ '):
+                list_items = []
+                while i < len(lines):
+                    current_line = lines[i].strip()
+                    if current_line.startswith('- ') or current_line.startswith('* ') or current_line.startswith('+ '):
+                        item_content = current_line[2:].strip()
+                        # Handle multi-line list items
+                        i += 1
+                        while i < len(lines) and lines[i].startswith('  ') and lines[i].strip():
+                            item_content += ' ' + lines[i].strip()
+                            i += 1
+                        list_items.append(self._process_inline_markdown(item_content))
+                    else:
+                        break
+                
+                if list_items:
+                    list_html = '<ul>' + ''.join(f'<li>{item}</li>' for item in list_items) + '</ul>'
+                    processed_lines.append(list_html)
+            
+            # Ordered lists
+            elif re.match(r'^\d+\. ', stripped):
+                list_items = []
+                while i < len(lines):
+                    current_line = lines[i].strip()
+                    if re.match(r'^\d+\. ', current_line):
+                        item_content = re.sub(r'^\d+\. ', '', current_line)
+                        # Handle multi-line list items
+                        i += 1
+                        while i < len(lines) and lines[i].startswith('  ') and lines[i].strip():
+                            item_content += ' ' + lines[i].strip()
+                            i += 1
+                        list_items.append(self._process_inline_markdown(item_content))
+                    else:
+                        break
+                
+                if list_items:
+                    list_html = '<ol>' + ''.join(f'<li>{item}</li>' for item in list_items) + '</ol>'
+                    processed_lines.append(list_html)
+            
+            # Empty lines (potential paragraph breaks)
+            elif not stripped:
+                processed_lines.append('')
+                i += 1
+            
+            # Code block placeholders (preserve as-is)
+            elif placeholder_pattern.format(0).split('_')[0] in stripped:
+                processed_lines.append(line)
+                i += 1
+            
+            # Regular text lines (will be grouped into paragraphs later)
+            else:
+                processed_lines.append(line)
+                i += 1
+        
+        # Step 3: Group consecutive non-empty, non-HTML lines into paragraphs
+        final_lines = []
+        i = 0
+        
+        while i < len(processed_lines):
+            line = processed_lines[i]
+            stripped = line.strip()
+            
+            # If it's an HTML element or empty line, keep as-is
+            if not stripped or stripped.startswith('<') or placeholder_pattern.format(0).split('_')[0] in stripped:
+                final_lines.append(line)
+                i += 1
+            else:
+                # Start collecting paragraph content
+                paragraph_lines = []
+                while i < len(processed_lines):
+                    current_line = processed_lines[i]
+                    current_stripped = current_line.strip()
+                    
+                    # Stop if we hit an empty line, HTML element, or placeholder
+                    if (not current_stripped or 
+                        current_stripped.startswith('<') or 
+                        placeholder_pattern.format(0).split('_')[0] in current_stripped):
+                        break
+                    
+                    # Handle hard line breaks (two spaces at end of line)
+                    if current_line.rstrip().endswith('  '):
+                        paragraph_lines.append(current_line.rstrip()[:-2] + '<br>')
+                    else:
+                        paragraph_lines.append(current_line.strip())
+                    i += 1
+                
+                if paragraph_lines:
+                    # Join lines with spaces and process inline markdown
+                    paragraph_content = ' '.join(paragraph_lines)
+                    processed_paragraph = self._process_inline_markdown(paragraph_content)
+                    final_lines.append(f'<p>{processed_paragraph}</p>')
+        
+        # Step 4: Restore code blocks
+        result = '\n'.join(final_lines)
         for i, code_block in enumerate(code_blocks):
             placeholder = placeholder_pattern.format(i)
-            # Process the individual code block
             processed_block = self.process_code_block(code_block)
-            html = html.replace(placeholder, processed_block)
+            result = result.replace(placeholder, processed_block)
         
-        # Continue with other markdown processing
-        # Inline code
-        html = re.sub(r'`([^`]+)`', r'<code class="language-text">\1</code>', html)
+        return result
+    
+    def _slugify(self, text):
+        """Convert text to URL-friendly slug for header IDs"""
+        import re
+        # Remove HTML tags if any
+        text = re.sub(r'<[^>]+>', '', text)
+        # Convert to lowercase and replace spaces/special chars with hyphens
+        slug = re.sub(r'[^\w\s-]', '', text.lower())
+        slug = re.sub(r'[-\s]+', '-', slug)
+        return slug.strip('-')
+    
+    def _process_inline_markdown(self, text):
+        """Process inline markdown elements (bold, italic, code, alerts)"""
+        import html
+        
+        # Escape HTML first
+        text = html.escape(text)
+        
+        # Alert boxes (process before bold/italic to avoid conflicts)
+        text = re.sub(r'🚨 \*\*(.*?)\*\*', r'<div class="alert alert-critical"><strong>🚨 \1</strong></div>', text)
+        text = re.sub(r'✅ \*\*(.*?)\*\*', r'<div class="alert alert-success"><strong>✅ \1</strong></div>', text)
+        text = re.sub(r'❌ \*\*(.*?)\*\*', r'<div class="alert alert-error"><strong>❌ \1</strong></div>', text)
+        
+        # Inline code (process before bold/italic to avoid conflicts)
+        text = re.sub(r'`([^`]+)`', r'<code class="language-text">\1</code>', text)
         
         # Bold and italic
-        html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', html)
-        html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', html)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+        text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
         
-        # Alert boxes
-        html = re.sub(r'🚨 \*\*(.*?)\*\*', r'<div class="alert alert-critical"><strong>🚨 \1</strong></div>', html)
-        html = re.sub(r'✅ \*\*(.*?)\*\*', r'<div class="alert alert-success"><strong>✅ \1</strong></div>', html)
-        html = re.sub(r'❌ \*\*(.*?)\*\*', r'<div class="alert alert-error"><strong>❌ \1</strong></div>', html)
-        
-        # Lists
-        html = re.sub(r'^- (.*?)$', r'<li>\1</li>', html, flags=re.MULTILINE)
-        html = re.sub(r'(<li>.*?</li>)', r'<ul>\1</ul>', html, flags=re.DOTALL)
-        
-        # Numbered lists
-        html = re.sub(r'^\d+\. (.*?)$', r'<li>\1</li>', html, flags=re.MULTILINE)
-        
-        # Paragraphs
-        lines = html.split('\n')
-        in_code_block = False
-        in_list = False
-        processed_lines = []
-        
-        for line in lines:
-            if line.strip().startswith('<pre>'):
-                in_code_block = True
-            elif line.strip().startswith('</pre>'):
-                in_code_block = False
-            elif line.strip().startswith('<ul>') or line.strip().startswith('<ol>'):
-                in_list = True
-            elif line.strip().startswith('</ul>') or line.strip().startswith('</ol>'):
-                in_list = False
-            elif not in_code_block and not in_list and line.strip() and not line.strip().startswith('<'):
-                line = f'<p>{line}</p>'
-            processed_lines.append(line)
-        
-        return '\n'.join(processed_lines)
-    
+        return text
+
     def process_code_block(self, code_block):
-        """Process a single code block and convert to HTML"""
+        """Process a single code block and convert to HTML with proper escaping"""
+        import html
+        
         # Extract language and content
         match = re.match(r'```([a-zA-Z]*)\s*\n?(.*?)```', code_block, flags=re.DOTALL)
         if match:
             language = match.group(1) or 'text'
             content = match.group(2)
-            return f'<pre><code class="language-{language}">{content}</code></pre>'
-        return code_block
+            # Properly escape HTML in code content
+            escaped_content = html.escape(content)
+            return f'<pre><code class="language-{language}">{escaped_content}</code></pre>'
+        return html.escape(code_block)
 
     def get_categorized_docs(self):
         """Get documents organized by category with proper sorting"""
@@ -1333,7 +1461,7 @@ class DocumentationPlugin:
 <head>
     <title>{page_title} - Botify API Documentation</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=2">
     
     <!-- Prism CSS -->
     <link href="/static/prism.css" rel="stylesheet" />
