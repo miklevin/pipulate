@@ -435,7 +435,7 @@ class DocumentationPlugin:
         return slug.strip('-')
     
     def _process_inline_markdown(self, text):
-        """Process inline markdown elements (bold, italic, code, alerts)"""
+        """Process inline markdown elements (bold, italic, code, alerts, links)"""
         import html
         
         # Escape HTML first
@@ -445,6 +445,21 @@ class DocumentationPlugin:
         text = re.sub(r'🚨 \*\*(.*?)\*\*', r'<div class="alert alert-critical"><strong>🚨 \1</strong></div>', text)
         text = re.sub(r'✅ \*\*(.*?)\*\*', r'<div class="alert alert-success"><strong>✅ \1</strong></div>', text)
         text = re.sub(r'❌ \*\*(.*?)\*\*', r'<div class="alert alert-error"><strong>❌ \1</strong></div>', text)
+        
+        # Markdown links [text](url) - process before inline code to avoid conflicts
+        def process_link(match):
+            link_text = match.group(1)
+            link_url = match.group(2)
+            # Check if it's a relative URL (starts with /) or absolute URL
+            if link_url.startswith('/') or link_url.startswith('http'):
+                return f'<a href="{link_url}">{link_text}</a>'
+            else:
+                # For other URLs, assume they need http:// prefix if not present
+                if not link_url.startswith(('http://', 'https://', 'mailto:', 'ftp://')):
+                    link_url = f'http://{link_url}'
+                return f'<a href="{link_url}">{link_text}</a>'
+        
+        text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', process_link, text)
         
         # Inline code (process before bold/italic to avoid conflicts)
         text = re.sub(r'`([^`]+)`', r'<code class="language-text">\1</code>', text)
@@ -889,6 +904,40 @@ class DocumentationPlugin:
             margin: 20px 0;
         }}
         
+        /* Custom copy button styling - override Prism defaults */
+        pre .copy-button {{
+            position: absolute !important;
+            top: 5px !important;
+            right: 5px !important;
+            padding: 4px 8px !important;
+            font-size: 12px !important;
+            background: #0066cc !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            z-index: 10 !important;
+        }}
+        
+        /* Disable Prism's default hover effects */
+        pre .copy-button:hover {{
+            background: #0052a3 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }}
+        
+        /* Disable any Prism copy button pseudo-elements or overlays */
+        pre .copy-button::before,
+        pre .copy-button::after {{
+            display: none !important;
+        }}
+        
+        /* Ensure pre container is positioned for absolute button positioning */
+        pre {{
+            position: relative !important;
+        }}
+        
         code:not([class*="language-"]) {{ 
             background: #f1f3f4; 
             padding: 2px 6px; 
@@ -917,6 +966,33 @@ class DocumentationPlugin:
         h3 {{
             border-bottom: 1px solid #f1f3f4;
             padding-bottom: 5px;
+        }}
+        
+        /* Link styling */
+        a {{
+            color: #0066cc;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }}
+        
+        a:hover {{
+            color: #0052a3;
+            text-decoration: underline;
+        }}
+        
+        a:visited {{
+            color: #5a6c7d;
+        }}
+        
+        /* Links in content should be more prominent */
+        .content a {{
+            font-weight: 500;
+            border-bottom: 1px solid transparent;
+        }}
+        
+        .content a:hover {{
+            border-bottom-color: #0066cc;
+            text-decoration: none;
         }}
         
         blockquote {{ 
@@ -1019,10 +1095,9 @@ class DocumentationPlugin:
             document.querySelectorAll('pre code').forEach(function(block) {{
                 const button = document.createElement('button');
                 button.textContent = 'Copy';
-                button.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 4px 8px; font-size: 12px; background: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer;';
+                button.className = 'copy-button';
                 
                 const pre = block.parentElement;
-                pre.style.position = 'relative';
                 pre.appendChild(button);
                 
                 button.addEventListener('click', function() {{
@@ -1586,6 +1661,40 @@ class DocumentationPlugin:
             margin: 20px 0;
         }}
         
+        /* Custom copy button styling - override Prism defaults */
+        pre .copy-button {{
+            position: absolute !important;
+            top: 5px !important;
+            right: 5px !important;
+            padding: 4px 8px !important;
+            font-size: 12px !important;
+            background: #0066cc !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            z-index: 10 !important;
+        }}
+        
+        /* Disable Prism's default hover effects */
+        pre .copy-button:hover {{
+            background: #0052a3 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }}
+        
+        /* Disable any Prism copy button pseudo-elements or overlays */
+        pre .copy-button::before,
+        pre .copy-button::after {{
+            display: none !important;
+        }}
+        
+        /* Ensure pre container is positioned for absolute button positioning */
+        pre {{
+            position: relative !important;
+        }}
+        
         code:not([class*="language-"]) {{ 
             background: #f1f3f4; 
             padding: 2px 6px; 
@@ -1609,6 +1718,46 @@ class DocumentationPlugin:
         h2 {{ 
             border-bottom: 2px solid #e9ecef; 
             padding-bottom: 8px; 
+        }}
+        
+        h3 {{
+            border-bottom: 1px solid #f1f3f4;
+            padding-bottom: 5px;
+        }}
+        
+        /* Link styling */
+        a {{
+            color: #0066cc;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }}
+        
+        a:hover {{
+            color: #0052a3;
+            text-decoration: underline;
+        }}
+        
+        a:visited {{
+            color: #5a6c7d;
+        }}
+        
+        /* Links in content should be more prominent */
+        .content a {{
+            font-weight: 500;
+            border-bottom: 1px solid transparent;
+        }}
+        
+        .content a:hover {{
+            border-bottom-color: #0066cc;
+            text-decoration: none;
+        }}
+        
+        blockquote {{ 
+            border-left: 4px solid #ddd; 
+            margin: 20px 0; 
+            padding-left: 20px; 
+            color: #666;
+            font-style: italic;
         }}
         
         /* Responsive */
@@ -1690,10 +1839,9 @@ class DocumentationPlugin:
             document.querySelectorAll('pre code').forEach(function(block) {{
                 const button = document.createElement('button');
                 button.textContent = 'Copy';
-                button.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 4px 8px; font-size: 12px; background: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer;';
+                button.className = 'copy-button';
                 
                 const pre = block.parentElement;
-                pre.style.position = 'relative';
                 pre.appendChild(button);
                 
                 button.addEventListener('click', function() {{
