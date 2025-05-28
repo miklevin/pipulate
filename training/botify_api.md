@@ -4405,7 +4405,7 @@ def export_notebook_and_apply_custom_processing():
             print(f"INFO: Using hardwired output directory: '{final_save_directory_path.resolve()}'")
         except Exception as e:
             print(f"ERROR: Could not create or access hardwired output directory '{prospective_hardwired_path}': {e}.")
-            print(f"       Defaulting to notebook's directory for final output: '{Path(current_notebook_dir).resolve()}'")
+            print(f"        Defaulting to notebook's directory for final output: '{Path(current_notebook_dir).resolve()}'")
             # final_save_directory_path remains current_notebook_dir
     else:
         print(f"INFO: Output directory not hardwired. Using notebook's directory for final output: '{final_save_directory_path.resolve()}'")
@@ -4423,9 +4423,9 @@ def export_notebook_and_apply_custom_processing():
     ]
     
     print(f"\nINFO: Exporting '{current_notebook_filename_ipynb}' to '{nbconvert_output_path_in_notebook_dir}' using 'jupyter nbconvert'...")
-    # print(f"       Constructed nbconvert_command list: {nbconvert_command}")
-    # print(f"       Running command string (for display): {' '.join(nbconvert_command)}")
-    # print(f"       Working directory: '{current_notebook_dir}'")
+    # print(f"        Constructed nbconvert_command list: {nbconvert_command}")
+    # print(f"        Running command string (for display): {' '.join(nbconvert_command)}")
+    # print(f"        Working directory: '{current_notebook_dir}'")
     
     try:
         result = subprocess.run(
@@ -4458,16 +4458,40 @@ def export_notebook_and_apply_custom_processing():
     if nbconvert_output_path_in_notebook_dir.exists():
         processing_successful = process_markdown(
             input_path=nbconvert_output_path_in_notebook_dir, 
-            output_path=final_processed_markdown_path # This is where the final processed file will go
+            output_path=final_processed_markdown_path
         )
         
-        if not processing_successful:
+        if processing_successful:
+            # If a hardwired output path was used, and it resulted in a *different* location
+            # than the notebook's directory, then the initial nbconvert output in the
+            # notebook's directory should be removed.
+            hardwired_path_used_and_different = (
+                OPTIONAL_HARWIRED_OUTPUT_PATH and
+                OPTIONAL_HARWIRED_OUTPUT_PATH.strip() and
+                final_save_directory_path.resolve() != Path(current_notebook_dir).resolve()
+            )
+            
+            if hardwired_path_used_and_different:
+                if nbconvert_output_path_in_notebook_dir.exists(): # Check it exists before trying to delete
+                    try:
+                        nbconvert_output_path_in_notebook_dir.unlink()
+                        print(f"INFO: Removed intermediate Markdown file from notebook directory: '{nbconvert_output_path_in_notebook_dir}' as output was redirected to '{final_processed_markdown_path}'.")
+                    except OSError as e:
+                        print(f"WARNING: Could not remove intermediate Markdown file '{nbconvert_output_path_in_notebook_dir}': {e}")
+            # If hardwired_path_used_and_different is False, it means either:
+            # 1. No hardwired path was used (output is in notebook_dir, overwrite happened via process_markdown, no delete needed).
+            # 2. Hardwired path was used but it resolved to the same as notebook_dir (overwrite happened, no delete needed).
+        else: # processing_successful is False
             print(f"WARNING: Custom post-processing encountered an issue. The intended output '{final_processed_markdown_path}' may require review or might not be complete.")
-        # Note: If OPTIONAL_HARWIRED_OUTPUT_PATH is used, the nbconvert_output_path_in_notebook_dir
-        # will remain, containing the raw nbconvert output. This is by design.
-        # If no hardwired path is used, final_processed_markdown_path will be the same as
-        # nbconvert_output_path_in_notebook_dir, thus overwriting it.
-    else:
+            # In case of processing failure, we leave the intermediate nbconvert output in place for debugging.
+
+        # Note: If OPTIONAL_HARWIRED_OUTPUT_PATH directs output to a different location
+        # and processing is successful, the initial nbconvert output in the notebook's
+        # directory is removed. This ensures the final file exists only in the specified
+        # hardwired location. If no hardwired path is used, or if it points to the
+        # same directory as the notebook, the initial file is overwritten by the
+        # processed version in the notebook's directory.
+    else: # nbconvert_output_path_in_notebook_dir does not exist
         print(f"\nERROR: The 'nbconvert' output file '{nbconvert_output_path_in_notebook_dir}' was not found. Skipping custom post-processing.")
 
 # --- Part 4: Execute the Orchestration ---
@@ -4480,9 +4504,10 @@ export_notebook_and_apply_custom_processing()
     INFO: Exporting 'botify_api.ipynb' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md' using 'jupyter nbconvert'...
     SUCCESS: Notebook initially exported by 'nbconvert' to '/home/mike/repos/pipulate/helpers/botify/botify_api.md'.
 [NbConvertApp] Converting notebook botify_api.ipynb to markdown
-    [NbConvertApp] Writing 171397 bytes to botify_api.md
+    [NbConvertApp] Writing 168060 bytes to botify_api.md
     INFO: Applying custom post-processing to: 'botify_api.md' (output will be '/home/mike/repos/pipulate/training/botify_api.md')
     SUCCESS: Custom post-processing complete. Output: '/home/mike/repos/pipulate/training/botify_api.md'
+    INFO: Removed intermediate Markdown file from notebook directory: '/home/mike/repos/pipulate/helpers/botify/botify_api.md' as output was redirected to '../../training/botify_api.md'.
 
 
 

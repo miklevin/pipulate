@@ -179,7 +179,7 @@
           #!/bin/sh
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -216,7 +216,7 @@
           tmux kill-session -t jupyter 2>/dev/null || true
           
           # Start JupyterLab
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -246,7 +246,7 @@
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -288,7 +288,7 @@
           # Automatically start JupyterLab in background and server in foreground
           # Start JupyterLab in a tmux session
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
