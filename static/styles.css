@@ -18,6 +18,13 @@
     --grid-gap: 20px;                          /* Fixed grid gap */
     --nav-group-actual-height: 60px;           /* Fixed height for nav */
     --nav-padding: var(--space-xs);            /* Smaller padding for nav */
+
+    /* Key Field Colors - The distinctive "key hole" appearance */
+    --key-field-bg: #000000;                   /* Pure black background for key fields */
+    --key-field-text: #ffffff;                 /* White text for contrast */
+    --key-field-placeholder: #888888;          /* Gray placeholder text */
+    --key-field-border: #333333;               /* Dark gray border */
+    --key-field-focus-border: #007bff;         /* Blue border on focus */
 }
 
 /* Core Layout */
@@ -449,4 +456,55 @@ article > div:first-child {
     border-bottom: 1px solid var(--pico-muted-border-color);
     display: block;
     text-align: center;
+}
+
+/* Key Field Styling - Global "Key Hole" Appearance */
+/* All search inputs are key fields and get distinctive black background */
+input[type="search"] {
+    background-color: var(--key-field-bg) !important;
+    color: var(--key-field-text) !important;
+    border-color: var(--key-field-border) !important;
+}
+
+input[type="search"]::placeholder {
+    color: var(--key-field-placeholder) !important;
+    opacity: 1 !important;
+}
+
+input[type="search"]:focus {
+    background-color: var(--key-field-bg) !important;
+    color: var(--key-field-text) !important;
+    border-color: var(--key-field-focus-border) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Ensure key fields work in both light and dark themes */
+[data-theme="light"] input[type="search"],
+[data-theme="dark"] input[type="search"],
+:root:not([data-theme]) input[type="search"] {
+    background-color: var(--key-field-bg) !important;
+    color: var(--key-field-text) !important;
+    border-color: var(--key-field-border) !important;
+}
+
+[data-theme="light"] input[type="search"]::placeholder,
+[data-theme="dark"] input[type="search"]::placeholder,
+:root:not([data-theme]) input[type="search"]::placeholder {
+    color: var(--key-field-placeholder) !important;
+    opacity: 1 !important;
+}
+
+[data-theme="light"] input[type="search"]:focus,
+[data-theme="dark"] input[type="search"]:focus,
+:root:not([data-theme]) input[type="search"]:focus {
+    background-color: var(--key-field-bg) !important;
+    color: var(--key-field-text) !important;
+    border-color: var(--key-field-focus-border) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+hr {
+    margin: 1rem 0;
+    border: none;
+    border-top: 1px solid var(--pico-muted-border-color);
 }
