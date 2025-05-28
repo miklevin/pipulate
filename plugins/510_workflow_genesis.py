@@ -61,6 +61,37 @@ class WorkflowGenesis:
     This workflow showcases the enhanced create_workflow.py and splice_workflow_step.py
     capabilities that make Pipulate development more efficient and accessible.
     """
+    
+    # UI Constants - Centralized control for global appearance
+    UI_CONSTANTS = {
+        'COLORS': {
+            'HEADER_TEXT': '#2c3e50',           # Dark blue-gray for headers
+            'BODY_TEXT': '#5a6c7d',             # Medium blue-gray for body text
+            'SUBHEADER_TEXT': '#495057',        # Slightly darker for subheaders
+            'ACCENT_BLUE': '#007bff',           # Blue accent for tips and highlights
+            'ACCENT_INFO': '#0066cc',           # Info blue for special sections
+            'SUCCESS_GREEN': '#28a745',         # Green for success indicators
+        },
+        'BACKGROUNDS': {
+            'LIGHT_GRAY': '#f1f5f9',           # Soft gray for general sections
+            'LIGHT_BLUE': '#f0f8ff',           # Light blue for blue-themed sections
+            'INFO_BLUE': '#e7f3ff',            # Very light blue for info boxes
+        },
+        'SPACING': {
+            'SECTION_PADDING': '0.75rem',       # Standard section padding
+            'BORDER_RADIUS': '4px',             # Standard border radius
+            'BORDER_WIDTH': '3px',              # Standard border width for accents
+            'MARGIN_BOTTOM': '1rem',            # Standard bottom margin
+            'SMALL_MARGIN': '0.25rem 0',       # Small vertical margins
+            'TINY_MARGIN': '0.5rem',            # Tiny margins
+        },
+        'TYPOGRAPHY': {
+            'SMALL_TEXT': '0.9rem',             # Small text size
+            'TINY_TEXT': '0.85rem',             # Tiny text size
+            'FONT_WEIGHT_MEDIUM': '500',        # Medium font weight
+        }
+    }
+    
     APP_NAME = 'workflow_genesis' 
     DISPLAY_NAME = 'Workflow Creation Helper' 
     ENDPOINT_MESSAGE = """Create new Pipulate workflows with intelligent template selection and flexible step management. Choose from minimal blank templates or complex multi-step patterns, then add placeholder steps with precise positioning control."""
@@ -294,9 +325,9 @@ class WorkflowGenesis:
             template_section = Div(
                 H5('Selected Template:'),
                 Div(
-                    P(f"Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500; color: #2c3e50;'),
-                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
-                    style='padding: 0.75rem; background-color: #f1f5f9; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                    P(f"Template: {template_info.get('name', 'Unknown')}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 cls='mt-4'
             )
@@ -360,10 +391,10 @@ class WorkflowGenesis:
             template_section = Div(
                 H5('Template Information:'),
                 Div(
-                    P(f"Selected Template: {template_info.get('name', 'Unknown')}", style='margin: 0.25rem 0; font-weight: 500; color: #2c3e50;'),
-                    P(f"Use Case: {template_info.get('description', 'No description')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
-                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style='margin: 0.25rem 0; font-size: 0.9rem; color: #5a6c7d;'),
-                    style='padding: 0.75rem; background-color: #f1f5f9; border-left: 3px solid #28a745; border-radius: 4px; margin-bottom: 1rem;'
+                    P(f"Selected Template: {template_info.get('name', 'Unknown')}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                    P(f"Use Case: {template_info.get('description', 'No description')}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P(f"Starting Steps: {template_info.get('steps', 'Unknown')}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 cls='mt-4'
             )
@@ -421,19 +452,19 @@ class WorkflowGenesis:
                 
                 # Flexible filename handling (informational, no Prism)
                 Div(
-                    P('Flexible filename handling:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #2c3e50;'),
-                    P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace; color: #5a6c7d;'),
-                    P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', style='margin: 0.25rem 0; font-size: 0.85rem; font-family: monospace; color: #5a6c7d;'),
-                    style='margin-bottom: 1rem;'
+                    P('Flexible filename handling:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"].split()[0]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                    P(f'• python splice_workflow_step.py {filename.replace(".py", "")}  (extension optional)', style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P(f'• python splice_workflow_step.py plugins/{filename}  (prefix optional)', style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
                 # Cosmetic Renaming Feature
                 Div(
-                    P('💡 Cosmetic Step Renaming:', style='margin-bottom: 0.25rem; font-weight: 500; font-size: 0.9rem; color: #0066cc;'),
-                    P('New steps get names like "Placeholder Step 3 (Edit Me)" that you can customize in the show= attribute.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
-                    P('Internal IDs (step_01, step_02) reflect creation order but are hidden from users.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
-                    P('Example: step_06 with show="Data Collection" appears as "Data Collection" in the UI.', style='margin: 0.25rem 0; font-size: 0.85rem; color: #5a6c7d;'),
-                    style='margin-bottom: 0.5rem; padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #0066cc; border-radius: 4px;'
+                    P('💡 Cosmetic Step Renaming:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"].split()[0]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]};'),
+                    P('New steps get names like "Placeholder Step 3 (Edit Me)" that you can customize in the show= attribute.', style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P('Internal IDs (step_01, step_02) reflect creation order but are hidden from users.', style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P('Example: step_06 with show="Data Collection" appears as "Data Collection" in the UI.', style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
                 ),
                 
                 cls='mt-4'
@@ -751,20 +782,20 @@ class WorkflowGenesis:
                 
                 # Template Descriptions
                 Div(
-                    H6("Template Descriptions:", style='margin-bottom: 0.5rem; color: #2c3e50;'),
+                    H6("Template Descriptions:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
                     Ul(
-                        Li("🏗️ Blank Placeholder: Perfect for custom development and learning", style='color: #5a6c7d;'),
-                        Li("👋 Hello Workflow: Demonstrates core patterns with name/greeting example", style='color: #5a6c7d;'),
-                        Li("🚀 Botify Trifecta: Advanced API integration with background processing", style='color: #5a6c7d;'),
-                        style='font-size: 0.9rem; margin-bottom: 1rem;'
+                        Li("🏗️ Blank Placeholder: Perfect for custom development and learning", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("👋 Hello Workflow: Demonstrates core patterns with name/greeting example", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("🚀 Botify Trifecta: Advanced API integration with background processing", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                     ),
-                    style='padding: 0.75rem; background-color: #f1f5f9; border-radius: 4px; margin-bottom: 1rem;'
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
                 # Next Step Preview
                 Div(
-                    P("💡 After creating your workflow, you'll learn how to add custom steps with flexible positioning!", cls='text-info', style='font-weight: 500; text-align: center;'),
-                    style='padding: 0.75rem; background-color: #e7f3ff; border-radius: 4px; margin-bottom: 1rem;'
+                    P("💡 After creating your workflow, you'll learn how to add custom steps with flexible positioning!", cls='text-info', style=f'font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; text-align: center;'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
                 Button('Generate Create Command ▸', type='submit', cls='primary'),
@@ -932,14 +963,14 @@ class WorkflowGenesis:
             form_content = Form(
                 # Current Workflow Context
                 Div(
-                    H5("Current Workflow Context:", style='color: #2c3e50;'),
-                    P(f"📁 File: {filename}", style='margin: 0.25rem 0; font-family: monospace; color: #5a6c7d;'),
-                    P(f"🏗️ Template: {template_info['name']}", style='margin: 0.25rem 0; color: #5a6c7d;'),
-                    P(f"📋 Current Steps: {template_info['steps']}", style='margin: 0.25rem 0; color: #5a6c7d;'),
-                    style='padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #007bff; border-radius: 4px; margin-bottom: 1rem;'
+                    H5("Current Workflow Context:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                    P(f"📁 File: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P(f"🏗️ Template: {template_info['name']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P(f"📋 Current Steps: {template_info['steps']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
-                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", style='margin-bottom: 1rem; color: #5a6c7d;'),
+                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
                 
                 Button('Show Step Management Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -1006,12 +1037,12 @@ class WorkflowGenesis:
         top_cmd = f"python splice_workflow_step.py {filename} --position top"
         
         container = Div(
-            H5('Step Management Commands:', style='color: #2c3e50;'),
-            P('Add new placeholder steps to your workflow with flexible positioning control:', style='margin-bottom: 1rem; font-size: 0.9rem; color: #5a6c7d;'),
+            H5('Step Management Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+            P('Add new placeholder steps to your workflow with flexible positioning control:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
             
             # Basic usage (default)
             Div(
-                H6('Basic Usage (Default - Before Finalize):', style='margin-bottom: 0.5rem; color: #495057;'),
+                H6('Basic Usage (Default - Before Finalize):', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
                 Textarea(basic_cmd, id=cmd_basic_id, style='display: none;'),
                 Pre(
                     Code(basic_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
@@ -1022,7 +1053,7 @@ class WorkflowGenesis:
             
             # Bottom position (explicit)
             Div(
-                H6('Bottom Position (Explicit - Same as Default):', style='margin-bottom: 0.5rem; color: #495057;'),
+                H6('Bottom Position (Explicit - Same as Default):', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
                 Textarea(bottom_cmd, id=cmd_bottom_id, style='display: none;'),
                 Pre(
                     Code(bottom_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
@@ -1033,7 +1064,7 @@ class WorkflowGenesis:
             
             # Top position
             Div(
-                H6('Top Position (Becomes New First Step):', style='margin-bottom: 0.5rem; color: #495057;'),
+                H6('Top Position (Becomes New First Step):', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
                 Textarea(top_cmd, id=cmd_top_id, style='display: none;'),
                 Pre(
                     Code(top_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
@@ -1044,15 +1075,15 @@ class WorkflowGenesis:
             
             # Usage tips
             Div(
-                H6('💡 Usage Tips:', style='margin-bottom: 0.5rem; color: #007bff;'),
+                H6('💡 Usage Tips:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
                 Ul(
-                    Li(f"Extension optional: splice_workflow_step.py {filename.replace('.py', '')}", style='font-family: monospace; font-size: 0.85rem; color: #5a6c7d;'),
-                    Li(f"Prefix optional: splice_workflow_step.py plugins/{filename}", style='font-family: monospace; font-size: 0.85rem; color: #5a6c7d;'),
-                    Li("Run multiple times to add multiple steps", style='font-size: 0.85rem; color: #5a6c7d;'),
-                    Li("Each step gets a unique ID (step_06, step_07, etc.)", style='font-size: 0.85rem; color: #5a6c7d;'),
-                    Li("Customize step names by editing the 'show' attribute", style='font-size: 0.85rem; color: #5a6c7d;'),
+                    Li(f"Extension optional: splice_workflow_step.py {filename.replace('.py', '')}", style=f'font-family: monospace; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li(f"Prefix optional: splice_workflow_step.py plugins/{filename}", style=f'font-family: monospace; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Run multiple times to add multiple steps", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Each step gets a unique ID (step_06, step_07, etc.)", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Customize step names by editing the 'show' attribute", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
                 ),
-                style='padding: 0.75rem; background-color: #f0f8ff; border-left: 3px solid #007bff; border-radius: 4px;'
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
             ),
             
             id=widget_id
