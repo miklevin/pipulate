@@ -4419,6 +4419,7 @@ def export_notebook_and_apply_custom_processing():
     nbconvert_command = [
         "jupyter", "nbconvert",
         "--to", "markdown",
+        "--MarkdownExporter.exclude_output=True",  # Prevent cell outputs from being written
         current_notebook_filename_ipynb, 
         # '--output-dir', current_notebook_dir, # Explicitly stating, though it's default with CWD
         # '--output', markdown_basename, # nbconvert derives this from input name
