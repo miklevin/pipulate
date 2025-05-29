@@ -1003,6 +1003,44 @@ class DocumentationPlugin:
             font-style: italic;
         }}
         
+        /* Enhanced blockquote styling */
+        blockquote {{
+            background: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            margin: 25px 0;
+            padding: 20px 25px;
+            position: relative;
+            font-style: italic;
+            color: #495057;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }}
+        
+        blockquote::before {{
+            content: '"';
+            font-size: 4em;
+            color: #0066cc;
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            font-family: Georgia, serif;
+            opacity: 0.3;
+        }}
+        
+        blockquote p {{
+            margin: 0;
+            padding-left: 30px;
+            line-height: 1.7;
+        }}
+        
+        blockquote p:first-child {{
+            margin-top: 0;
+        }}
+        
+        blockquote p:last-child {{
+            margin-bottom: 0;
+        }}
+        
         .alert {{
             padding: 15px 20px;
             border-radius: 6px;
@@ -1413,13 +1451,19 @@ class DocumentationPlugin:
         }}
         
         .toc-item h3 a {{
-            color: #0066cc;
+            color: #0066cc !important;
             text-decoration: none;
             font-size: 1.1em;
+            font-weight: 600;
         }}
         
         .toc-item h3 a:hover {{
+            color: #0052a3 !important;
             text-decoration: underline;
+        }}
+        
+        .toc-item h3 a:visited {{
+            color: #0066cc !important;
         }}
         
         .toc-description {{
@@ -1450,184 +1494,7 @@ class DocumentationPlugin:
             display: inline-block;
             padding: 10px 20px;
             background: #0066cc;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            margin: 0 10px;
-            font-weight: 500;
-        }}
-        
-        .nav-button:hover {{
-            background: #0052a3;
-            text-decoration: none;
-        }}
-    </style>
-</head>
-<body>
-    <div class="breadcrumb">
-        <a href="/docs">📚 Documentation</a> → 📖 Training Guides → Botify API Documentation
-    </div>
-    
-    <div class="header">
-        <h1>📊 Botify API Documentation</h1>
-        <p class="subtitle">Complete guide to the Botify API with practical examples</p>
-        <div class="stats">
-            📄 {len(pages)} pages • 📝 {len(content.split())} words • ⏱️ ~{len(content.split()) // 200} min read
-        </div>
-    </div>
-    
-    <div class="toc-container">
-        {''.join(toc_items)}
-    </div>
-    
-    <div class="navigation">
-        <a href="/docs" class="nav-button">🏠 Back to Documentation</a>
-        <a href="/docs/botify_api/page/1" class="nav-button">📖 Start Reading</a>
-    </div>
-</body>
-</html>"""
-            
-            return HTMLResponse(page_html)
-            
-        except Exception as e:
-            logger.error(f"Error serving botify_api TOC: {str(e)}")
-            return HTMLResponse(f"Error loading document: {str(e)}", status_code=500)
-
-    async def serve_botify_api_page(self, request):
-        """Serve a specific page of botify_api.md"""
-        page_num = int(request.path_params.get('page_num', 1))
-        doc_info = self.DOCS['botify_api']
-        file_path = Path(doc_info['file'])
-        
-        if not file_path.exists():
-            return HTMLResponse("File not found", status_code=404)
-        
-        try:
-            content = file_path.read_text(encoding='utf-8')
-            pages = self.parse_botify_api_pages(content)
-            
-            if page_num < 1 or page_num > len(pages):
-                return HTMLResponse("Page not found", status_code=404)
-            
-            page_content = pages[page_num - 1]
-            html_content = self.markdown_to_html(page_content)
-            
-            # Get page title
-            lines = page_content.split('\n')
-            page_title = f"Page {page_num}"
-            for line in lines:
-                line = line.strip()
-                if line.startswith('# ') and not line.startswith('```'):
-                    page_title = line[2:].strip()
-                    break
-            
-            # Navigation buttons
-            prev_button = ""
-            next_button = ""
-            
-            if page_num > 1:
-                prev_button = f'<a href="/docs/botify_api/page/{page_num - 1}" class="nav-button prev">← Previous</a>'
-            
-            if page_num < len(pages):
-                next_button = f'<a href="/docs/botify_api/page/{page_num + 1}" class="nav-button next">Next →</a>'
-            
-            page_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{page_title} - Botify API Documentation</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=2">
-    
-    <!-- Prism CSS -->
-    <link href="/static/prism.css" rel="stylesheet" />
-    
-    <style>
-        body {{ 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            padding: 20px;
-            background: #fafafa;
-        }}
-        
-        .breadcrumb {{
-            background: #fff;
-            padding: 10px 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 0.9em;
-            color: #6c757d;
-        }}
-        
-        .breadcrumb a {{
-            color: #0066cc;
-            text-decoration: none;
-        }}
-        
-        .page-header {{
-            background: #fff;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-        
-        .page-info {{
-            color: #666;
-        }}
-        
-        .copy-markdown-btn {{
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s;
-        }}
-        
-        .copy-markdown-btn:hover {{
-            background: #218838;
-        }}
-        
-        .copy-markdown-btn.copying {{
-            background: #ffc107;
-            color: #212529;
-        }}
-        
-        .copy-markdown-btn.success {{
-            background: #20c997;
-        }}
-        
-        .content {{ 
-            background: #fff; 
-            padding: 30px; 
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }}
-        
-        .navigation {{
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-        
-        .nav-button {{
-            display: inline-block;
-            padding: 10px 20px;
-            background: #0066cc;
-            color: white;
+            color: white !important;
             text-decoration: none;
             border-radius: 6px;
             font-weight: 500;
@@ -1636,15 +1503,26 @@ class DocumentationPlugin:
         
         .nav-button:hover {{
             background: #0052a3;
+            color: white !important;
             text-decoration: none;
+        }}
+        
+        .nav-button:visited {{
+            color: white !important;
         }}
         
         .nav-button.toc {{
             background: #6c757d;
+            color: white !important;
         }}
         
         .nav-button.toc:hover {{
             background: #545b62;
+            color: white !important;
+        }}
+        
+        .nav-button.toc:visited {{
+            color: white !important;
         }}
         
         .nav-center {{
@@ -1758,6 +1636,503 @@ class DocumentationPlugin:
             padding-left: 20px; 
             color: #666;
             font-style: italic;
+        }}
+        
+        /* Enhanced blockquote styling */
+        blockquote {{
+            background: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            margin: 25px 0;
+            padding: 20px 25px;
+            position: relative;
+            font-style: italic;
+            color: #495057;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }}
+        
+        blockquote::before {{
+            content: '"';
+            font-size: 4em;
+            color: #0066cc;
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            font-family: Georgia, serif;
+            opacity: 0.3;
+        }}
+        
+        blockquote p {{
+            margin: 0;
+            padding-left: 30px;
+            line-height: 1.7;
+        }}
+        
+        blockquote p:first-child {{
+            margin-top: 0;
+        }}
+        
+        blockquote p:last-child {{
+            margin-bottom: 0;
+        }}
+        
+        .alert {{
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }}
+        
+        .alert-critical {{
+            background: #fff5f5;
+            border-left-color: #e53e3e;
+            color: #742a2a;
+        }}
+        
+        .alert-success {{
+            background: #f0fff4;
+            border-left-color: #38a169;
+            color: #276749;
+        }}
+        
+        .alert-error {{
+            background: #fffaf0;
+            border-left-color: #ed8936;
+            color: #9c4221;
+        }}
+        
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }}
+        
+        th, td {{
+            border: 1px solid #e9ecef;
+            padding: 12px;
+            text-align: left;
+        }}
+        
+        th {{
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }}
+        
+        /* Responsive */
+        @media (max-width: 768px) {{
+            .page-header {{
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }}
+            
+            .navigation {{
+                flex-direction: column;
+                gap: 15px;
+            }}
+            
+            .nav-center {{
+                order: -1;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">
+        <a href="/docs">📚 Documentation</a> → 📖 Training Guides → Botify API Documentation
+    </div>
+    
+    <div class="header">
+        <h1>📊 Botify API Documentation</h1>
+        <p class="subtitle">Complete guide to the Botify API with practical examples</p>
+        <div class="stats">
+            📄 {len(pages)} pages • 📝 {len(content.split())} words • ⏱️ ~{len(content.split()) // 200} min read
+        </div>
+    </div>
+    
+    <div class="toc-container">
+        {''.join(toc_items)}
+    </div>
+    
+    <div class="navigation">
+        <a href="/docs" class="nav-button">🏠 Back to Documentation</a>
+        <a href="/docs/botify_api/page/1" class="nav-button">📖 Start Reading</a>
+    </div>
+</body>
+</html>"""
+            
+            return HTMLResponse(page_html)
+            
+        except Exception as e:
+            logger.error(f"Error serving botify_api TOC: {str(e)}")
+            return HTMLResponse(f"Error loading document: {str(e)}", status_code=500)
+
+    async def serve_botify_api_page(self, request):
+        """Serve a specific page of botify_api.md"""
+        page_num = int(request.path_params.get('page_num', 1))
+        doc_info = self.DOCS['botify_api']
+        file_path = Path(doc_info['file'])
+        
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            pages = self.parse_botify_api_pages(content)
+            
+            if page_num < 1 or page_num > len(pages):
+                return HTMLResponse("Page not found", status_code=404)
+            
+            page_content = pages[page_num - 1]
+            html_content = self.markdown_to_html(page_content)
+            
+            # Get page title
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+            
+            # Navigation buttons
+            prev_button = ""
+            next_button = ""
+            
+            if page_num > 1:
+                prev_button = f'<a href="/docs/botify_api/page/{page_num - 1}" class="nav-button prev">← Previous</a>'
+            
+            if page_num < len(pages):
+                next_button = f'<a href="/docs/botify_api/page/{page_num + 1}" class="nav-button next">Next →</a>'
+            
+            page_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{page_title} - Botify API Documentation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2">
+    
+    <!-- Prism CSS -->
+    <link href="/static/prism.css" rel="stylesheet" />
+    
+    <style>
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #fafafa;
+        }}
+        
+        .breadcrumb {{
+            background: #fff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            color: #6c757d;
+        }}
+        
+        .breadcrumb a {{
+            color: #0066cc !important;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+        
+        .breadcrumb a:hover {{
+            color: #0052a3 !important;
+            text-decoration: underline;
+        }}
+        
+        .breadcrumb a:visited {{
+            color: #0066cc !important;
+        }}
+        
+        .page-header {{
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        
+        .page-info {{
+            color: #666;
+        }}
+        
+        .copy-markdown-btn {{
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }}
+        
+        .copy-markdown-btn:hover {{
+            background: #218838;
+        }}
+        
+        .copy-markdown-btn.copying {{
+            background: #ffc107;
+            color: #212529;
+        }}
+        
+        .copy-markdown-btn.success {{
+            background: #20c997;
+        }}
+        
+        .content {{ 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }}
+        
+        .navigation {{
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        
+        .nav-button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }}
+        
+        .nav-button:hover {{
+            background: #0052a3;
+            color: white !important;
+            text-decoration: none;
+        }}
+        
+        .nav-button:visited {{
+            color: white !important;
+        }}
+        
+        .nav-button.toc {{
+            background: #6c757d;
+            color: white !important;
+        }}
+        
+        .nav-button.toc:hover {{
+            background: #545b62;
+            color: white !important;
+        }}
+        
+        .nav-button.toc:visited {{
+            color: white !important;
+        }}
+        
+        .nav-center {{
+            text-align: center;
+            color: #666;
+        }}
+        
+        pre {{ 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 6px; 
+            overflow-x: auto;
+            border-left: 4px solid #0066cc;
+            margin: 20px 0;
+        }}
+        
+        /* Custom copy button styling - override Prism defaults */
+        pre .copy-button {{
+            position: absolute !important;
+            top: 5px !important;
+            right: 5px !important;
+            padding: 4px 8px !important;
+            font-size: 12px !important;
+            background: #0066cc !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            z-index: 10 !important;
+        }}
+        
+        /* Disable Prism's default hover effects */
+        pre .copy-button:hover {{
+            background: #0052a3 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }}
+        
+        /* Disable any Prism copy button pseudo-elements or overlays */
+        pre .copy-button::before,
+        pre .copy-button::after {{
+            display: none !important;
+        }}
+        
+        /* Ensure pre container is positioned for absolute button positioning */
+        pre {{
+            position: relative !important;
+        }}
+        
+        code:not([class*="language-"]) {{ 
+            background: #f1f3f4; 
+            padding: 2px 6px; 
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }}
+        
+        h1, h2, h3, h4 {{ 
+            color: #333; 
+            margin-top: 2em;
+            margin-bottom: 1em;
+        }}
+        
+        h1 {{ 
+            border-bottom: 3px solid #0066cc; 
+            padding-bottom: 10px; 
+            margin-top: 0;
+        }}
+        
+        h2 {{ 
+            border-bottom: 2px solid #e9ecef; 
+            padding-bottom: 8px; 
+        }}
+        
+        h3 {{
+            border-bottom: 1px solid #f1f3f4;
+            padding-bottom: 5px;
+        }}
+        
+        /* Link styling */
+        a {{
+            color: #0066cc;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }}
+        
+        a:hover {{
+            color: #0052a3;
+            text-decoration: underline;
+        }}
+        
+        a:visited {{
+            color: #5a6c7d;
+        }}
+        
+        /* Links in content should be more prominent */
+        .content a {{
+            font-weight: 500;
+            border-bottom: 1px solid transparent;
+        }}
+        
+        .content a:hover {{
+            border-bottom-color: #0066cc;
+            text-decoration: none;
+        }}
+        
+        blockquote {{ 
+            border-left: 4px solid #ddd; 
+            margin: 20px 0; 
+            padding-left: 20px; 
+            color: #666;
+            font-style: italic;
+        }}
+        
+        /* Enhanced blockquote styling */
+        blockquote {{
+            background: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            margin: 25px 0;
+            padding: 20px 25px;
+            position: relative;
+            font-style: italic;
+            color: #495057;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }}
+        
+        blockquote::before {{
+            content: '"';
+            font-size: 4em;
+            color: #0066cc;
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            font-family: Georgia, serif;
+            opacity: 0.3;
+        }}
+        
+        blockquote p {{
+            margin: 0;
+            padding-left: 30px;
+            line-height: 1.7;
+        }}
+        
+        blockquote p:first-child {{
+            margin-top: 0;
+        }}
+        
+        blockquote p:last-child {{
+            margin-bottom: 0;
+        }}
+        
+        .alert {{
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }}
+        
+        .alert-critical {{
+            background: #fff5f5;
+            border-left-color: #e53e3e;
+            color: #742a2a;
+        }}
+        
+        .alert-success {{
+            background: #f0fff4;
+            border-left-color: #38a169;
+            color: #276749;
+        }}
+        
+        .alert-error {{
+            background: #fffaf0;
+            border-left-color: #ed8936;
+            color: #9c4221;
+        }}
+        
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }}
+        
+        th, td {{
+            border: 1px solid #e9ecef;
+            padding: 12px;
+            text-align: left;
+        }}
+        
+        th {{
+            background-color: #f8f9fa;
+            font-weight: 600;
         }}
         
         /* Responsive */
