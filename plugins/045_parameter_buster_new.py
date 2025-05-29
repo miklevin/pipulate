@@ -279,21 +279,28 @@ class ParameterBusterNewWorkflow:
         ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
-        for step_obj in steps: # Renamed step to step_obj to avoid conflict with Step namedtuple
+        for step_obj in steps: 
             step_id = step_obj.id
-            routes.append((f'/{app_name}/{step_id}', getattr(self, step_id)))
-            routes.append((f'/{app_name}/{step_id}_submit', getattr(self, f'{step_id}_submit'), ['POST']))
-        
+            # Conditionally add routes only if the methods are expected to exist (i.e., not for step_06 and step_07)
+            if step_id not in ['step_06', 'step_07']:
+                if hasattr(self, step_id):
+                    routes.append((f'/{app_name}/{step_id}', getattr(self, step_id)))
+                if hasattr(self, f'{step_id}_submit'):
+                    routes.append((f'/{app_name}/{step_id}_submit', getattr(self, f'{step_id}_submit'), ['POST']))
+            elif step_id == 'finalize': # Ensure finalize step is still routed if it doesn't have a _submit
+                 if hasattr(self, step_id): # finalize GET and POST are handled by the same method
+                    routes.append((f'/{app_name}/{step_id}', getattr(self, step_id)))
+
         # Existing process routes for data download steps
         routes.append((f'/{app_name}/step_02_process', self.step_02_process, ['POST']))
         routes.append((f'/{app_name}/step_03_process', self.step_03_process, ['POST']))
-        routes.append((f'/{app_name}/step_04_complete', self.step_04_complete, ['POST'])) # Retains original name from Trifecta
+        routes.append((f'/{app_name}/step_04_complete', self.step_04_complete, ['POST'])) 
         
-        # New process routes for Parameter Buster steps
+        # New process routes for Parameter Buster steps (only Step 5 is fully implemented)
         routes.append((f'/{app_name}/step_05_process', self.step_05_process, ['POST']))
-        # step_06_submit handles its own processing, parameter_preview is a separate view
-        routes.append((f'/{app_name}/parameter_preview', self.parameter_preview, ['POST']))
-        # step_07_submit handles its own processing
+        
+        # Removed route for parameter_preview as it's not implemented
+        # routes.append((f'/{app_name}/parameter_preview', self.parameter_preview, ['POST']))
 
         # Common routes
         routes.append((f'/{app_name}/toggle', self.common_toggle, ['GET']))
