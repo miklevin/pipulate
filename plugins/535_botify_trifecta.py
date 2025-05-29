@@ -147,6 +147,7 @@ class BotifyCsvDownloaderWorkflow:
                 'metrics': [],
                 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}
             },
+            'hardwired_depth': 0,  # Set to integer (e.g., 2) to override automatic depth optimization
             'qualifier_config': {
                 'enabled': True,
                 'qualifier_bql_template': {
@@ -188,7 +189,7 @@ class BotifyCsvDownloaderWorkflow:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'crawl': 'Not Compliant',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
+        'crawl': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
 
@@ -1293,6 +1294,19 @@ class BotifyCsvDownloaderWorkflow:
         import json
         
         pip = self.pipulate
+        
+        # Check for hardwired depth override in Link Graph Edges template
+        crawl_template_name = self.get_configured_template('crawl')
+        if crawl_template_name == 'Link Graph Edges':
+            template = self.QUERY_TEMPLATES[crawl_template_name]
+            hardwired_depth = template.get('hardwired_depth')
+            if hardwired_depth is not None:
+                await self.message_queue.add(pip, f"🎯 Using hardwired depth: {hardwired_depth} (automatic optimization bypassed).", verbatim=True)
+                return {
+                    'parameter_value': hardwired_depth,
+                    'metric_at_parameter': 0  # We don't know the actual count, but it's not needed
+                }
+        
         iter_param_name = qualifier_config['iterative_parameter_name']
         bql_template_str = json.dumps(qualifier_config['qualifier_bql_template'])
         collection_name = f"crawl.{analysis_slug}"
@@ -1418,6 +1432,16 @@ class BotifyCsvDownloaderWorkflow:
         if data_type not in filenames:
             raise ValueError(f'Unknown data type: {data_type}')
         filename = filenames[data_type]
+        
+        # Special handling for link_graph_edges with hardwired depth
+        if data_type == 'link_graph_edges':
+            crawl_template_name = self.get_configured_template('crawl')
+            if crawl_template_name == 'Link Graph Edges':
+                template = self.QUERY_TEMPLATES[crawl_template_name]
+                hardwired_depth = template.get('hardwired_depth')
+                if hardwired_depth is not None:
+                    filename = f'link_graph-depth-{hardwired_depth}.csv'
+        
         return f'{base_dir}/{filename}'
 
     async def check_file_exists(self, filepath):

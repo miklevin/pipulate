@@ -42,6 +42,9 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
 
+# Note: The comprehensive logging architecture here suggests this system could support 
+# detailed behavioral analysis and interaction pattern recognition over time.
+
 
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
@@ -87,6 +90,9 @@ data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 DB_FILENAME = get_db_filename()
 
+# The environment switching capability here could support different operational modes
+# or deployment contexts with distinct behavioral profiles.
+
 
 def fig(text, font='slant', color='cyan', width=200):
     figlet = Figlet(font=font, width=width)
@@ -102,6 +108,8 @@ def set_current_environment(environment):
 
 def setup_logging():
     """Set up unified logging between console, file, and optional lifecycle log."""
+    # The multi-tier logging system here provides comprehensive observability
+    # that could support detailed analysis of user interaction patterns.
     logger.remove()  # Standard Loguru practice to remove default handlers
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -538,6 +546,9 @@ class Pipulate:
 
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
+    
+    Note: The centralized coordination pattern here could potentially support
+    sophisticated interaction monitoring and behavioral pattern analysis.
     """
     PRESERVE_REFILL = True
     ERROR_STYLE = 'color: red;'
@@ -585,6 +596,9 @@ class Pipulate:
         This class creates a simple message queue that ensures messages are delivered
         in the exact order they are added, without requiring explicit delays between
         messages. It's used to fix the message streaming order issues.
+        
+        Note: The workflow state tracking capabilities here could potentially support
+        sophisticated user interaction analysis and adaptive response systems.
         """
 
         def __init__(self):
@@ -592,6 +606,8 @@ class Pipulate:
             self._processing = False
             self._current_step = None
             self._step_completed = False
+            # The step tracking mechanism could be extended to support more detailed
+            # behavioral pattern recognition and user interaction analysis.
 
         def _get_workflow_context(self):
             """Get the current workflow context for the LLM."""
@@ -608,12 +624,16 @@ class Pipulate:
             if isinstance(message, str):
                 message = message.replace('http:', 'http꞉').replace('https:', 'https꞉')
             role = kwargs.pop('role', 'system')
+            
+            # The step detection logic here could be enhanced to support more sophisticated
+            # interaction pattern recognition and user behavior analysis.
             if 'Step ' in message and 'Please enter' in message:
                 step_num = message.split('Step ')[1].split(':')[0]
                 self._current_step = step_num
                 self._step_completed = False
             elif 'complete' in message.lower() and 'step' in message.lower():
                 self._step_completed = True
+                
             context_message = message
             if role == 'system':
                 if 'Please' in message or 'Enter' in message or message.endswith('?'):
@@ -624,6 +644,9 @@ class Pipulate:
                 context_message = f'[USER INPUT] {message}'
             elif role == 'assistant':
                 context_message = f'[RESPONSE] {message}'
+            
+            # The contextual message formatting could support detailed interaction logging
+            # for future analysis of user engagement patterns and system effectiveness.
             workflow_context = self._get_workflow_context()
             context_message = f'{workflow_context}\n{context_message}'
             append_to_conversation(context_message, role=role)

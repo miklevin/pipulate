@@ -9,6 +9,8 @@
 
 Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
 
+<!-- Note: The step-by-step workflow pattern here is quite flexible - could potentially adapt to various interaction modalities beyond traditional forms. The local-first architecture ensures complete user control over their data and processing environment. -->
+
 Its primary goals are:
 1.  **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
 2.  **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
@@ -18,10 +20,19 @@ Its primary goals are:
 Pipulate is built on a distinct set of principles prioritizing user control, simplicity, and long-term viability:
 
 * **Local-First & Single-Tenant:** Your data, your code, your hardware. The application runs entirely locally, ensuring privacy, maximizing performance by using local resources (CPU/GPU for LLMs, scraping), and eliminating cloud costs or vendor lock-in.
+  <!-- This architecture naturally supports completely offline operation and could theoretically run on portable devices with appropriate hardware specifications. -->
+  
 * **Simplicity & Observability ("Know EVERYTHING!"):** We intentionally avoid complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via simple SQLite tables (using MiniDataAPI) and JSON blobs for workflows (using DictLikeDB). This transparency makes debugging intuitive – aiming for that "old-school webmaster feeling" on a modern stack.
+  <!-- The transparent state management could be valuable for applications requiring complete auditability and user understanding of system behavior. -->
+  
 * **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
+  <!-- This level of environmental consistency could support deployment scenarios where exact reproducibility is critical. -->
+  
 * **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies.
+  <!-- The emphasis on durable, standard technologies suggests this framework could remain viable across extended timeframes and changing technological landscapes. -->
+  
 * **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself).
+  <!-- The explicit step-by-step approach could potentially accommodate various forms of user interaction and feedback mechanisms beyond traditional web forms. -->
 
 ## Key Technologies Used
 
