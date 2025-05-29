@@ -12,7 +12,7 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote
 from typing import Optional
 
 import httpx
@@ -138,7 +138,7 @@ class BotifyCsvDownloaderWorkflow:
         },
         'Link Graph Edges': {
             'name': 'Link Graph Edges',
-            'description': 'Exports internal link graph (source URL -> target URL). Automatically finds optimal depth for ~1M edges.',
+            'description': 'Exports internal link graph (source -> target). Automatically finds optimal depth for ~1M edges. Cosmograph-compatible format.',
             'export_type': 'link_graph_edges',
             'user_message': 'This will download the site\'s internal link graph (source-target pairs). An optimal depth will be found first.',
             'button_label_suffix': 'Link Graph',
@@ -200,7 +200,8 @@ class BotifyCsvDownloaderWorkflow:
         'BUTTON_LABELS': {
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
             'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Download CSV'
+            'DOWNLOAD_CSV': '⬇️ Download CSV',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph'
         },
         'BUTTON_STYLES': {
             'STANDARD': 'secondary outline',
@@ -2467,8 +2468,9 @@ await main()
                                 
                                 if export_type == 'link_graph_edges':
                                     # Link graph exports have 2 columns: source URL, target URL
+                                    # Use Cosmograph-compatible column names for graph visualization
                                     if len(df.columns) == 2:
-                                        df.columns = ['Source URL', 'Target URL']
+                                        df.columns = ['source', 'target']
                                     else:
                                         # Fallback for unexpected column count
                                         df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
@@ -3894,6 +3896,7 @@ await main()
     def _create_action_buttons(self, step_data, step_id):
         """Create View Folder and Download CSV buttons for a step."""
         from urllib.parse import quote
+        from datetime import datetime
         
         # Extract analysis-specific folder information
         username = step_data.get('username', '')
@@ -3924,7 +3927,8 @@ await main()
         
         buttons = [folder_button]
         
-        # Create download button if file exists
+        # Check for file existence regardless of download_complete flag
+        # This ensures manually created files (like link_graph-depth-0.csv) are detected
         download_complete = step_data.get('download_complete', False)
         
         # Determine the expected filename based on step and export type
@@ -3935,19 +3939,28 @@ await main()
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
             
-            # Use the same mapping as get_deterministic_filepath
-            filename_mapping = {
-                'crawl_attributes': 'crawl.csv',
-                'link_graph_edges': 'link_graph.csv'
-            }
-            expected_filename = filename_mapping.get(export_type, 'crawl.csv')
+            # Use the same logic as get_deterministic_filepath for consistent filename handling
+            if export_type == 'link_graph_edges':
+                # Check for hardwired depth to determine filename
+                if active_crawl_template_key == 'Link Graph Edges':
+                    hardwired_depth = active_template_details.get('hardwired_depth')
+                    if hardwired_depth is not None:
+                        expected_filename = f'link_graph-depth-{hardwired_depth}.csv'
+                    else:
+                        expected_filename = 'link_graph.csv'
+                else:
+                    expected_filename = 'link_graph.csv'
+            elif export_type == 'crawl_attributes':
+                expected_filename = 'crawl.csv'
+            else:
+                expected_filename = 'crawl.csv'  # fallback
         elif step_id == 'step_03':
             expected_filename = 'weblog.csv'
         elif step_id == 'step_04':
             expected_filename = 'gsc.csv'
         
-        # Check if download was successful and try to find the file
-        if download_complete and expected_filename and username and project_name and analysis_slug:
+        # Check if file exists (regardless of download_complete flag)
+        if expected_filename and username and project_name and analysis_slug:
             try:
                 # Construct the expected file path
                 expected_file_path = Path.cwd() / 'downloads' / self.APP_NAME / username / project_name / analysis_slug / expected_filename
@@ -3957,20 +3970,43 @@ await main()
                     downloads_base = Path.cwd() / 'downloads'
                     path_for_url = expected_file_path.relative_to(downloads_base)
                     path_for_url = str(path_for_url).replace('\\', '/')
-                    download_button = A(
-                        self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
-                        href=f"/download_file?file={quote(path_for_url)}",
-                        target="_blank",
-                        role="button",
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                    )
-                    buttons.append(download_button)
+                    
+                    # Check if this is a link graph file for Cosmograph visualization
+                    is_link_graph = expected_filename.startswith('link_graph')
+                    
+                    if is_link_graph:
+                        # Create Cosmograph visualization link using the same pattern as botifython.py
+                        # Important: URL-encode the entire data URL to prevent query parameter conflicts
+                        file_url = f"/download_file?file={quote(path_for_url)}"
+                        timestamp = int(datetime.now().timestamp())
+                        data_url = f"http://localhost:5001{file_url}&t={timestamp}"
+                        encoded_data_url = quote(data_url, safe='')
+                        viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                        
+                        viz_button = A(
+                            self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                            href=viz_url,
+                            target="_blank",
+                            role="button",
+                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                        )
+                        buttons.append(viz_button)
+                    else:
+                        # Create regular download button for non-link-graph files
+                        download_button = A(
+                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                            href=f"/download_file?file={quote(path_for_url)}",
+                            target="_blank",
+                            role="button",
+                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                        )
+                        buttons.append(download_button)
                 else:
                     logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
                 logger.error(f"Error creating download button for {step_id}: {e}")
         
-        # Fallback: check the old way for backward compatibility
+        # Fallback: check the old way for backward compatibility (only if download_complete is True)
         elif download_complete:
             file_path = None
             download_info = step_data.get('download_info', {})
@@ -3984,14 +4020,36 @@ await main()
                         downloads_base = Path.cwd() / 'downloads'
                         path_for_url = file_path_obj.relative_to(downloads_base)
                         path_for_url = str(path_for_url).replace('\\', '/')
-                        download_button = A(
-                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
-                            href=f"/download_file?file={quote(path_for_url)}",
-                            target="_blank",
-                            role="button",
-                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                        )
-                        buttons.append(download_button)
+                        
+                        # Check if this is a link graph file for Cosmograph visualization
+                        is_link_graph = file_path_obj.name.startswith('link_graph')
+                        
+                        if is_link_graph:
+                            # Create Cosmograph visualization link using the same pattern as botifython.py
+                            file_url = f"/download_file?file={quote(path_for_url)}"
+                            timestamp = int(datetime.now().timestamp())
+                            data_url = f"http://localhost:5001{file_url}&t={timestamp}"
+                            encoded_data_url = quote(data_url, safe='')
+                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                            
+                            viz_button = A(
+                                self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                                href=viz_url,
+                                target="_blank",
+                                role="button",
+                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                            )
+                            buttons.append(viz_button)
+                        else:
+                            # Create regular download button for non-link-graph files
+                            download_button = A(
+                                self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                                href=f"/download_file?file={quote(path_for_url)}",
+                                target="_blank",
+                                role="button",
+                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                            )
+                            buttons.append(download_button)
                 except Exception as e:
                     logger.error(f"Error creating fallback download button for {step_id}: {e}")
         

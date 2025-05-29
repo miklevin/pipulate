@@ -2442,12 +2442,22 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
 
-@rt('/download_file', methods=['GET'])
+@rt('/download_file', methods=['GET', 'OPTIONS'])
 async def download_file_endpoint(request):
     """
     Downloads a file from the server.
     Expects 'file' as a query parameter, which should be relative to the downloads directory.
     """
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Max-Age': '86400'  # Cache preflight for 24 hours
+        }
+        return HTMLResponse('', headers=headers)
+    
     file_path = request.query_params.get("file")
     if DEBUG_MODE:
         logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
@@ -2510,7 +2520,10 @@ async def download_file_endpoint(request):
         # Create the response with the file data
         headers = {
             'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
-            'Content-Type': content_type
+            'Content-Type': content_type,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': '*',
+            'Access-Control-Allow-Headers': '*'
         }
         logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
         
