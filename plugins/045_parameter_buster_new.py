@@ -56,6 +56,98 @@ class ParameterBusterNewWorkflow:
     ENDPOINT_MESSAGE = 'Extract and analyze URL parameters from any web address. Perfect for understanding tracking codes and URL structure.'
     TRAINING_PROMPT = 'This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms.'
 
+    # Query Templates - Inherited from Botify Trifecta for data collection functionality
+    QUERY_TEMPLATES = {
+        'Crawl Basic': {
+            'name': 'Basic Crawl Data',
+            'description': 'URL, HTTP status, and page title for successful crawls',
+            'export_type': 'crawl_attributes',
+            'user_message': 'This will download basic crawl data including URLs, status codes, and page titles.',
+            'button_label_suffix': 'Crawl Analysis',
+            'query': {
+                'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
+            }
+        },
+        'Not Compliant': {
+            'name': 'Non-Compliant Pages',
+            'description': 'Pages that are not compliant with SEO best practices',
+            'export_type': 'crawl_attributes',
+            'user_message': 'This will download pages that are not compliant with SEO best practices.',
+            'button_label_suffix': 'Non-Compliant Analysis',
+            'query': {
+                'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.compliant.is_compliant'],
+                'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}
+            }
+        },
+        'GSC Performance': {
+            'name': 'Search Console Performance',
+            'description': 'Search Console performance data with impressions, clicks, CTR, and position',
+            'export_type': 'gsc_data',
+            'user_message': 'This will download Search Console performance data including impressions, clicks, and rankings.',
+            'button_label_suffix': 'Search Console Data',
+            'query': {
+                'dimensions': ['url'],
+                'metrics': [
+                    {'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'},
+                    {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'},
+                    {'field': 'search_console.period_0.ctr', 'name': 'CTR'},
+                    {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}
+                ],
+                'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]
+            }
+        }
+    }
+
+    # Template Configuration - Default templates for each data type
+    TEMPLATE_CONFIG = {
+        'crawl': 'Crawl Basic',
+        'gsc': 'GSC Performance'
+    }
+
+    # UI Constants - Centralized control for global appearance
+    UI_CONSTANTS = {
+        'COLORS': {
+            'HEADER_TEXT': '#2c3e50',
+            'BODY_TEXT': '#5a6c7d',
+            'SUBHEADER_TEXT': '#495057',
+            'ACCENT_BLUE': '#007bff',
+            'SUCCESS_GREEN': '#28a745',
+        },
+        'BACKGROUNDS': {
+            'LIGHT_GRAY': '#f1f5f9',
+            'LIGHT_BLUE': '#f0f8ff',
+        },
+        'SPACING': {
+            'SECTION_PADDING': '0.75rem',
+            'BORDER_RADIUS': '4px',
+            'BORDER_WIDTH': '3px',
+            'MARGIN_BOTTOM': '1rem',
+            'SMALL_MARGIN': '0.25rem 0',
+        },
+        'TYPOGRAPHY': {
+            'SMALL_TEXT': '0.9rem',
+            'FONT_WEIGHT_MEDIUM': '500',
+        },
+        'BUTTON_LABELS': {
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Download CSV',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph'
+        },
+        'BUTTON_STYLES': {
+            'STANDARD': 'secondary',
+            'FLEX_CONTAINER': 'display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;'
+        }
+    }
+
+    # Toggle Configuration
+    TOGGLE_CONFIG = {
+        'default_state': 'hidden',
+        'show_text': 'Show Code',
+        'hide_text': 'Hide Code'
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
         self.app = app
@@ -66,6 +158,10 @@ class ParameterBusterNewWorkflow:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
+        
+        # Template variables for step display names
+        crawl_template = self.TEMPLATE_CONFIG.get('crawl', 'Crawl Basic')
+        gsc_template = self.TEMPLATE_CONFIG.get('gsc', 'GSC Performance')
         
         # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
         # This section handles the complete Botify data collection workflow (steps 1-4):
