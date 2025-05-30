@@ -34,18 +34,37 @@ FILES_TO_INCLUDE_RAW = """\
 
 # CORE FILES (Background for the story)
 README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-# requirements.txt <-- Python package dependencies for the project
-# server.py        <-- Main server file for the project
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+requirements.txt <-- Python package dependencies for the project
+server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/organize/botifython/botifython.py  <-- THIS IS THE NEW THING ADDED WHERE YOUR ATTENTION SHOULD GO
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py
+/home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- This is a template file intended to create new stubs just like 710_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/040_parameter_buster.py  <-- This (and below in this block) are from the last thing I was thinking about with you
 # /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 # /home/mike/repos/pipulate/plugins/999_test_trifecta.py
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
+
+## DA RULES
+# /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
+# /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
+# /home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
+# /home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
+# /home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
+# /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
+/home/mike/repos/pipulate/.cursor/rules/14_wet_workflow_conventions.mdc
+/home/mike/repos/pipulate/.cursor/rules/15_atomic_transplantation_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/16_cleanup_helpers_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
 # /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
@@ -58,13 +77,14 @@ README.md        <-- Main GitHub README sets the tone
 # /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## HELPER SCRIPTS (Meta plot devices)
-# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/swap_workflow_step.py   <-- THE SCRIPT I'M ASKING YOU PLAN THE IMPLEMENTATION OF
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 ## SAMPLE WORKFLOWS (Frequently recurring challenges)
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
-# /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
+/home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
 
 """
 
