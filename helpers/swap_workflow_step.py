@@ -110,73 +110,69 @@ def extract_step_definition(content: str, step_id: str) -> Optional[str]:
         return None
     
     # Find the Step definition with matching id starting from steps_start_line
-    # We need to handle multi-line Step definitions where Step( and id= are on different lines
-    in_step_def = False
-    step_start_line = None
-    step_lines = []
-    paren_count = 0
-    looking_for_step_id = False
+    i = steps_start_line
     
-    for i in range(steps_start_line, len(lines)):
+    while i < len(lines):
         line = lines[i]
         
         # Check if this line starts a Step definition
         if re.search(r'Step\s*\(', line):
-            in_step_def = True
+            # This could be our target step, let's check
             step_start_line = i
-            step_lines = [line]
             paren_count = 0
-            looking_for_step_id = True
+            found_target_id = False
+            step_lines = []
             
-            # Count parentheses from this line
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-            
-            # Check if the step_id is on the same line
-            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
-            if re.search(step_id_pattern, line):
-                looking_for_step_id = False  # Found it on same line
-        
-        elif in_step_def and looking_for_step_id:
-            step_lines.append(line)
-            
-            # Check if this line contains our step_id
-            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
-            if re.search(step_id_pattern, line):
-                looking_for_step_id = False  # Found our target step
-            
-            # Count parentheses
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-            
-            # If we haven't found our step_id yet and the Step definition ended,
-            # this isn't our target step
-            if looking_for_step_id and paren_count == 0:
-                in_step_def = False
-                step_start_line = None
-                step_lines = []
-                looking_for_step_id = False
-        
-        elif in_step_def and not looking_for_step_id:
-            # We're in our target Step definition, collect lines until it ends
-            step_lines.append(line)
-            
-            # Count parentheses
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-            
-            # If we've closed all parentheses for this Step, we're done
-            if paren_count == 0:
-                return '\n'.join(step_lines)
+            # Scan from this line until we find the matching closing parenthesis
+            for j in range(i, len(lines)):
+                current_line = lines[j]
+                step_lines.append(current_line)
+                
+                # Count parentheses, but ignore ones inside strings
+                in_string = False
+                quote_char = None
+                k = 0
+                while k < len(current_line):
+                    char = current_line[k]
+                    
+                    # Handle string literals
+                    if not in_string and char in ['"', "'"]:
+                        in_string = True
+                        quote_char = char
+                    elif in_string and char == quote_char:
+                        # Check if it's escaped
+                        if k == 0 or current_line[k-1] != '\\':
+                            in_string = False
+                            quote_char = None
+                    
+                    # Count parentheses only when not in strings
+                    elif not in_string:
+                        if char == '(':
+                            paren_count += 1
+                        elif char == ')':
+                            paren_count -= 1
+                    
+                    k += 1
+                
+                # Check if this line contains our target step_id
+                step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
+                if re.search(step_id_pattern, current_line):
+                    found_target_id = True
+                
+                # If we've closed all parentheses for this Step definition
+                if paren_count == 0:
+                    # If this was our target step, return it
+                    if found_target_id:
+                        return '\n'.join(step_lines)
+                    else:
+                        # This wasn't our target step, continue searching
+                        i = j + 1
+                        break
+            else:
+                # Reached end of file without closing parentheses
+                break
+        else:
+            i += 1
     
     return None
 
@@ -186,66 +182,71 @@ def replace_step_definition_in_target(content: str, target_step_id: str, new_ste
     
     lines = content.split('\n')
     
-    # Find the Step definition with target_step_id using the same logic as extraction
-    in_step_def = False
+    # Find the Step definition with target_step_id using improved logic
     step_start_line = None
     step_end_line = None
-    paren_count = 0
-    looking_for_step_id = False
+    i = 0
     
-    for i, line in enumerate(lines):
+    while i < len(lines):
+        line = lines[i]
+        
         # Check if this line starts a Step definition
         if re.search(r'Step\s*\(', line):
-            in_step_def = True
+            # This could be our target step, let's check
             step_start_line = i
             paren_count = 0
-            looking_for_step_id = True
+            found_target_id = False
             
-            # Count parentheses from this line
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
+            # Scan from this line until we find the matching closing parenthesis
+            for j in range(i, len(lines)):
+                current_line = lines[j]
+                
+                # Count parentheses, but ignore ones inside strings
+                in_string = False
+                quote_char = None
+                k = 0
+                while k < len(current_line):
+                    char = current_line[k]
+                    
+                    # Handle string literals
+                    if not in_string and char in ['"', "'"]:
+                        in_string = True
+                        quote_char = char
+                    elif in_string and char == quote_char:
+                        # Check if it's escaped
+                        if k == 0 or current_line[k-1] != '\\':
+                            in_string = False
+                            quote_char = None
+                    
+                    # Count parentheses only when not in strings
+                    elif not in_string:
+                        if char == '(':
+                            paren_count += 1
+                        elif char == ')':
+                            paren_count -= 1
+                    
+                    k += 1
+                
+                # Check if this line contains our target step_id
+                step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(target_step_id)}[\'\"]'
+                if re.search(step_id_pattern, current_line):
+                    found_target_id = True
+                
+                # If we've closed all parentheses for this Step definition
+                if paren_count == 0:
+                    step_end_line = j
+                    break
             
-            # Check if the target_step_id is on the same line
-            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(target_step_id)}[\'\"]'
-            if re.search(step_id_pattern, line):
-                looking_for_step_id = False  # Found our target step
-        
-        elif in_step_def and looking_for_step_id:
-            # Check if this line contains our target_step_id
-            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(target_step_id)}[\'\"]'
-            if re.search(step_id_pattern, line):
-                looking_for_step_id = False  # Found our target step
-            
-            # Count parentheses
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-            
-            # If we haven't found our target_step_id yet and the Step definition ended,
-            # this isn't our target step
-            if looking_for_step_id and paren_count == 0:
-                in_step_def = False
-                step_start_line = None
-                looking_for_step_id = False
-        
-        elif in_step_def and not looking_for_step_id:
-            # We're in our target Step definition, count until it ends
-            # Count parentheses
-            for char in line:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-            
-            # If we've closed all parentheses for this Step, we found the end
-            if paren_count == 0:
-                step_end_line = i
+            # If this was our target step, we're done
+            if found_target_id and step_end_line is not None:
                 break
+            else:
+                # This wasn't our target step, continue searching
+                step_start_line = None
+                step_end_line = None
+                i = step_end_line + 1 if step_end_line is not None else i + 1
+        else:
+            i += 1
     
     if step_start_line is None or step_end_line is None:
         return content, False
