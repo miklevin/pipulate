@@ -255,7 +255,9 @@ class BotifyCsvDownloaderWorkflow:
         gsc_template = self.get_configured_template('gsc')
         
         steps = [
+            # --- SECTION_STEP_DEFINITION ---
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), 
+            # --- END_SECTION_STEP_DEFINITION ---
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False), 
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), 
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False), 
@@ -432,6 +434,10 @@ class BotifyCsvDownloaderWorkflow:
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
+    # --- START_WORKFLOW_SECTION: step_01_botify_project_url ---
+    # This section handles Botify Project URL input and validation.
+
+    # --- SECTION_STEP_METHODS ---
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
 
@@ -487,6 +493,31 @@ class BotifyCsvDownloaderWorkflow:
         project_url = project_data.get('url', '')
         project_info = Div(H4(f'Project: {project_name}'), Small(project_url, style='word-break: break-all;'), style='padding: 10px; background: #f8f9fa; border-radius: 5px;')
         return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {project_url}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+    # --- END_SECTION_STEP_METHODS ---
+
+    # --- SECTION_HELPER_METHODS ---
+    def validate_botify_url(self, url):
+        """Validate a Botify project URL and extract project information."""
+        url = url.strip()
+        if not url:
+            return (False, 'URL is required', {})
+        try:
+            if not url.startswith(('https://app.botify.com/')):
+                return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/)', {})
+            parsed_url = urlparse(url)
+            path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
+            if len(path_parts) < 2:
+                return (False, 'Invalid Botify URL: must contain at least organization and project', {})
+            org_slug = path_parts[0]
+            project_slug = path_parts[1]
+            canonical_url = f'https://{parsed_url.netloc}/{org_slug}/{project_slug}/'
+            project_data = {'url': canonical_url, 'username': org_slug, 'project_name': project_slug, 'project_id': f'{org_slug}/{project_slug}'}
+            return (True, f'Valid Botify project: {project_slug}', project_data)
+        except Exception as e:
+            return (False, f'Error parsing URL: {str(e)}', {})
+    # --- END_SECTION_HELPER_METHODS ---
+
+    # --- END_WORKFLOW_SECTION: step_01_botify_project_url ---
 
     async def step_02(self, request):
         """Handles GET request for Analysis selection between steps 1 and 2."""
@@ -1113,7 +1144,7 @@ class BotifyCsvDownloaderWorkflow:
             logging.exception(f'Error in step_05_process: {e}')
             return P(f'Error generating optimization: {str(e)}', style=pip.get_style('error'))
 
-
+    # --- SECTION_HELPER_METHODS ---
     def validate_botify_url(self, url):
         """Validate a Botify project URL and extract project information."""
         url = url.strip()
@@ -1133,6 +1164,7 @@ class BotifyCsvDownloaderWorkflow:
             return (True, f'Valid Botify project: {project_slug}', project_data)
         except Exception as e:
             return (False, f'Error parsing URL: {str(e)}', {})
+    # --- END_SECTION_HELPER_METHODS ---
 
     async def check_if_project_has_collection(self, org_slug, project_slug, collection_id='logs'):
         """
@@ -1729,6 +1761,7 @@ await main()
 
 # For standalone script execution:
 # if __name__ == "__main__":
+#     import asyncio
 #     asyncio.run(main())
 """
         return curl_command, python_command
@@ -4056,4 +4089,3 @@ await main()
         return buttons
 
     # --- STEP_METHODS_INSERTION_POINT ---
-
