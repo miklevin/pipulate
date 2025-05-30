@@ -23,6 +23,8 @@ from loguru import logger
 ROLES = ['Workshop']
 TOKEN_FILE = 'botify_token.txt'
 
+
+
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
@@ -94,7 +96,6 @@ class BotifyCsvDownloaderWorkflow:
     # - Handling different endpoint/payload structures  
     # - More complexity for minimal benefit
     # 
-    # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
     # This section handles the complete Botify data collection workflow (steps 1-4):
     # - Step 1: Botify Project URL input and validation
     # - Step 2: Crawl Analysis selection and download with template support
@@ -104,6 +105,7 @@ class BotifyCsvDownloaderWorkflow:
 
     # Current approach: hardcode the simple query inline where used.
     # This is a perfect example of knowing when NOT to abstract.
+    # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
     QUERY_TEMPLATES = {
         'Crawl Basic': {
             'name': 'Basic Crawl Data',

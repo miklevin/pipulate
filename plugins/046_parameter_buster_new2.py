@@ -52,7 +52,7 @@ class ParameterBusterWorkflow:
     - All API errors are handled with specific error messages for better troubleshooting
     """
     APP_NAME = 'param_buster'
-    DISPLAY_NAME = 'Parameter Buster'
+    DISPLAY_NAME = 'Parameter Buster New 2'
     ENDPOINT_MESSAGE = 'Extract and analyze URL parameters from any web address. Perfect for understanding tracking codes and URL structure.'
     TRAINING_PROMPT = 'This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms.'
 
@@ -69,15 +69,6 @@ class ParameterBusterWorkflow:
         pip = self.pipulate
         self.message_queue = pip.message_queue
                     # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
-    # This section handles the complete Botify data collection workflow (steps 1-4):
-    # - Step 1: Botify Project URL input and validation
-    # - Step 2: Crawl Analysis selection and download with template support
-    # - Step 3: Web Logs availability check and download
-    # - Step 4: Search Console data check and download
-    # This is an atomic unit that should be transplanted together.
-
-    # Current approach: hardcode the simple query inline where used.
-    # This is a perfect example of knowing when NOT to abstract.
     QUERY_TEMPLATES = {
         'Crawl Basic': {
             'name': 'Basic Crawl Data',
@@ -321,7 +312,7 @@ class ParameterBusterWorkflow:
         """Renders the initial landing page with the key input form or a message if Botify token is missing."""
         pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
         title = f'{self.DISPLAY_NAME or app_name.title()}'
-        token_exists = os.path.exists('botify_token.txt')
+        token_exists = os.path.exists(TOKEN_FILE)
         if not token_exists:
             return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Div(H3('Botify Connection Required', style='color: #e74c3c;'), P('To use the Parameter Buster workflow, you must first connect with Botify.', cls='mb-10px'), P('Please run the "Connect With Botify" workflow to set up your Botify API token.', style='margin-bottom: 20px;'), P('Once configured, you can return to this workflow.', style='font-style: italic; color: #666;'))), Div(id=f'{app_name}-container'))
         full_key, prefix, user_part = pip.generate_pipeline_key(self)
