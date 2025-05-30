@@ -110,7 +110,7 @@ class WorkflowGenesis:
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
             Step(id='step_01', done='new_workflow_params', show='1. Define New Workflow', refill=True),
-            Step(id='step_02', done='template_selection', show='2. Select Template & Strategy', refill=True),
+            Step(id='step_02', done='template_selection', show='2. Select Template & Generate Command', refill=True),
             Step(id='step_03', done='individual_commands', show='3. Individual Helper Commands', refill=True),
             Step(id='step_04', done='complete_sequence', show='4. Complete Command Sequence', refill=True),
             # --- STEPS_LIST_INSERTION_POINT --- 
@@ -159,7 +159,7 @@ class WorkflowGenesis:
             elif step_obj.id == 'step_02':
                 self.step_messages[step_obj.id] = {
                     'input': 'Choose your workflow template to generate the creation command.',
-                    'complete': 'Template selected. Create workflow command ready to run.'
+                    'complete': 'Template selected. View individual helper commands next.'
                 }
             elif step_obj.id == 'step_03':
                 self.step_messages[step_obj.id] = {
@@ -798,26 +798,17 @@ class WorkflowGenesis:
                     style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
-                # Hello World Example Section
+                # Template Benefits
                 Div(
-                    H6("🥋 Example: Hello World Kung Fu Workflow", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
-                    P("For a complete Hello World equivalent, select 'Blank Placeholder' template and use this 5-command sequence:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Pre(
-                        Code("""# 1. Create workflow from blank template
-# 2. Merge UI_CONSTANTS from hello workflow  
-# 3. Swap step_01 with hello step_01 (name collection)
-# 4. Add step_02 placeholder at bottom
-# 5. Swap step_02 with hello step_02 (greeting)""", style='font-size: 0.8rem; padding: 0.5rem; margin: 0;'),
-                        style='background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem;'
+                    H6("✨ Template Benefits:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+                    Ul(
+                        Li("📝 Blank: Single command creates minimal workflow ready for customization", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("👋 Hello: Single command creates complete interactive workflow with best practices", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("🚀 Trifecta: Single command creates complex multi-step API workflow", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                     ),
-                    P("This creates a perfect functional equivalent of the Hello Workflow with proper sequencing!", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    P("Each template generates a single copy-paste command to create your workflow immediately!", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
                     style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                ),
-                
-                # Next Step Preview
-                Div(
-                    P("💡 After creating your workflow, you'll learn how to add custom steps with flexible positioning!", cls='text-info', style=f'font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; text-align: center;'),
-                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
                 Button('Generate Create Command ▸', type='submit', cls='primary'),
@@ -886,6 +877,189 @@ class WorkflowGenesis:
         response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
         return response
 
+    async def step_03(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        template_selection = step_02_data.get('template_selection', {})
+        selected_template = template_selection.get('template', 'blank')
+        
+        filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'MyWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'my_workflow')
+        display_name = workflow_params.get('display_name', 'My Workflow')
+
+        if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            commands_widget = self.create_all_helper_commands_widget(
+                filename, class_name, internal_name, display_name, widget_id, selected_template
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=commands_widget),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
+        elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            commands_widget = self.create_all_helper_commands_widget(
+                filename, class_name, internal_name, display_name, widget_id, selected_template
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Individual Helper Commands",
+                    widget=commands_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+        else:
+            # Input Phase - Just show the commands immediately
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing individual helper commands')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            commands_widget = self.create_all_helper_commands_widget(
+                filename, class_name, internal_name, display_name, widget_id, selected_template
+            )
+            
+            # Auto-complete this step since it's just display
+            await pip.set_step_data(pipeline_id, step_id, "Individual commands displayed", current_steps_for_logic)
+            await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Individual Helper Commands",
+                    widget=commands_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+
+    async def step_04(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_04'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        
+        filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'MyWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'my_workflow')
+        display_name = workflow_params.get('display_name', 'My Workflow')
+
+        if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            sequence_widget = self.create_hello_world_sequence_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=sequence_widget),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
+        elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            sequence_widget = self.create_hello_world_sequence_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Complete Command Sequence",
+                    widget=sequence_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+        else:
+            # Input Phase - Just show the sequence immediately
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing complete command sequence')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            sequence_widget = self.create_hello_world_sequence_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
+            
+            # Auto-complete this step since it's just display
+            await pip.set_step_data(pipeline_id, step_id, "Complete sequence displayed", current_steps_for_logic)
+            await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Complete Command Sequence",
+                    widget=sequence_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+
     def get_template_info(self, template_name):
         """Get information about a template for display purposes."""
         templates = {
@@ -910,177 +1084,27 @@ class WorkflowGenesis:
         }
         return templates.get(template_name, templates['blank'])
 
-    async def step_03(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step_obj.done, '')
-        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
-        # Get previous step data for context
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
-        workflow_params = step_01_data.get('new_workflow_params', {})
-        template_selection = step_02_data.get('template_selection', {})
-        
-        filename = workflow_params.get('target_filename', 'workflow.py')
-        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
-        internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
 
-        if 'finalized' in finalize_sys_data and current_value:
-            # Finalized Phase
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
-            
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            commands_widget = self.create_all_helper_commands_widget(
-                filename, class_name, internal_name, display_name, widget_id
-            )
-            
-            response = HTMLResponse(to_xml(Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=commands_widget),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
-            
-        elif current_value and state.get('_revert_target') != step_id:
-            # Revert/Completed Phase
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
-            
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            commands_widget = self.create_all_helper_commands_widget(
-                filename, class_name, internal_name, display_name, widget_id
-            )
-            
-            response = HTMLResponse(to_xml(Div(
-                pip.display_revert_widget(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message="All Helper Commands Generated",
-                    widget=commands_widget,
-                    steps=current_steps_for_logic
-                ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
-        else:
-            # Input Phase
-            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing all helper commands')
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
-            template_name = template_selection.get('template', 'blank')
-            template_info = self.get_template_info(template_name)
-            
-            # Current Workflow Context
-            context_section = Div(
-                H5("Current Workflow Context:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                P(f"📁 File: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                P(f"🏗️ Template: {template_info['name']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                P(f"📋 Current Steps: {template_info['steps']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-            )
-            
-            form_content = Form(
-                context_section,
-                
-                Div(
-                    H6("📋 All Helper Commands Overview:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                    P("View all four Pipulate helper commands individually. Each has its own purpose:", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Ul(
-                        Li("🏗️ create_workflow.py - Create new workflow from template", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("🔧 manage_class_attributes.py - Merge UI constants and attributes", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("🔄 swap_workflow_step.py - Replace placeholder steps with developed logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("➕ splice_workflow_step.py - Add new placeholder steps", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                    ),
-                    P("Next step will show the complete 5-command sequence for creating a functional Hello World workflow.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
-                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                ),
-                
-                Button('Show All Helper Commands ▸', type='submit', cls='primary'),
-                hx_post=f'/{app_name}/{step_id}_submit',
-                hx_target=f'#{step_id}'
-            )
-            
-            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
 
-    async def step_03_submit(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        form_data = await request.form()
-        
-        # Get previous step data for context
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        workflow_params = step_01_data.get('new_workflow_params', {})
-        filename = workflow_params.get('target_filename', 'workflow.py')
-        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
-        internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
-        
-        # Store completion data
-        individual_commands = {
-            'completed': True,
-            'filename': filename,
-            'class_name': class_name,
-            'internal_name': internal_name,
-            'display_name': display_name
-        }
-        
-        # Store the step completion
-        await pip.set_step_data(pipeline_id, step_id, individual_commands, current_steps_for_logic)
-        
-        # Generate widget showing all helper commands
-        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        commands_widget = self.create_all_helper_commands_widget(
-            filename, class_name, internal_name, display_name, widget_id
-        )
-        
-        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{individual_commands}')
-        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
-        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-        
-        response = HTMLResponse(to_xml(Div(
-            pip.display_revert_widget(
-                step_id=step_id,
-                app_name=app_name,
-                message="All Helper Commands Generated",
-                widget=commands_widget,
-                steps=current_steps_for_logic
-            ),
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-            id=step_id
-        )))
-        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-        return response
-
-    def create_all_helper_commands_widget(self, filename, class_name, internal_name, display_name, widget_id):
+    def create_all_helper_commands_widget(self, filename, class_name, internal_name, display_name, widget_id, selected_template='blank'):
         """Create a widget showing all four individual helper commands."""
         
-        # Generate all helper commands
+        # Adjust the description based on template
+        if selected_template == 'trifecta':
+            template_desc = "🚀 This workflow starts with the full Botify Trifecta workflow (5 steps)."
+        elif selected_template == 'hello':
+            template_desc = "👋 This workflow starts with the Hello World template (2 steps)."
+        else:
+            template_desc = "🥋 This workflow will become a Hello World equivalent using helper scripts."
+        
         create_cmd = f"""python helpers/create_workflow.py \\
     plugins/{filename} \\
     {class_name} \\
     {internal_name} \\
     "{display_name}" \\
-    "🥋 This workflow will become a Hello World equivalent using helper scripts." \\
+    "{template_desc}" \\
     "kungfu_hello_world_training.md" \\
+    --template {selected_template} \\
     --force"""
 
         manage_cmd = f"""python helpers/manage_class_attributes.py \\
@@ -1205,8 +1229,16 @@ class WorkflowGenesis:
         
         return Div(container, init_script)
 
-    def create_hello_world_sequence_widget(self, filename, class_name, internal_name, display_name, widget_id):
+    def create_hello_world_sequence_widget(self, filename, class_name, internal_name, display_name, widget_id, selected_template='blank'):
         """Create a widget showing the complete 5-command Hello World equivalent sequence."""
+        
+        # Adjust the description based on template
+        if selected_template == 'trifecta':
+            template_desc = "🚀 This workflow starts with the full Botify Trifecta workflow (5 steps)."
+        elif selected_template == 'hello':
+            template_desc = "👋 This workflow starts with the Hello World template (2 steps)."
+        else:
+            template_desc = "🥋 This workflow will become a Hello World equivalent using helper scripts."
         
         # Generate the complete 5-command sequence
         sequence_cmd = f"""python helpers/create_workflow.py \\
@@ -1214,8 +1246,10 @@ class WorkflowGenesis:
     {class_name} \\
     {internal_name} \\
     "{display_name}" \\
-    "🥋 This workflow will become a Hello World equivalent using helper scripts." \\
+    "{template_desc}" \\
     "kungfu_hello_world_training.md" \\
+    --template {selected_template} \\
+    --force \\
 && \\
 python helpers/manage_class_attributes.py \\
     plugins/{filename} \\
@@ -1387,160 +1421,6 @@ python helpers/swap_workflow_step.py \\
         
         return Div(container, init_script)
 
-    async def step_04(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step_obj.done, '')
-        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
-        # Get previous step data for context
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        workflow_params = step_01_data.get('new_workflow_params', {})
-        
-        filename = workflow_params.get('target_filename', 'workflow.py')
-        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
-        internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
 
-        if 'finalized' in finalize_sys_data and current_value:
-            # Finalized Phase
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
-            
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            sequence_widget = self.create_hello_world_sequence_widget(
-                filename, class_name, internal_name, display_name, widget_id
-            )
-            
-            response = HTMLResponse(to_xml(Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=sequence_widget),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
-            
-        elif current_value and state.get('_revert_target') != step_id:
-            # Revert/Completed Phase
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
-            
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            sequence_widget = self.create_hello_world_sequence_widget(
-                filename, class_name, internal_name, display_name, widget_id
-            )
-            
-            response = HTMLResponse(to_xml(Div(
-                pip.display_revert_widget(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message="Complete Command Sequence Generated",
-                    widget=sequence_widget,
-                    steps=current_steps_for_logic
-                ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )))
-            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-            return response
-        else:
-            # Input Phase
-            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing complete command sequence')
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
-            # Current Workflow Context
-            context_section = Div(
-                H5("📋 Ready for Complete Sequence:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                P(f"📁 Target: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                P(f"🏗️ Class: {class_name}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                P(f"🎯 Result: Perfect Hello World equivalent with proper sequencing", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-            )
-            
-            form_content = Form(
-                context_section,
-                
-                Div(
-                    H6("🥋 Complete 5-Command Kung Fu Sequence:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
-                    P("This single command chain will create a complete functional Hello World equivalent:", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Ul(
-                        Li("✅ Creates blank workflow from template", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("✅ Merges UI constants for consistent styling", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("✅ Swaps step_01 with name collection logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("✅ Adds step_02 placeholder at bottom", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Li("✅ Swaps step_02 with greeting generation logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                    ),
-                    P("The result is a perfect functional equivalent of the Hello Workflow with proper command sequencing!", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'),
-                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                ),
-                
-                Button('Show Complete Command Sequence ▸', type='submit', cls='primary'),
-                hx_post=f'/{app_name}/{step_id}_submit',
-                hx_target=f'#{step_id}'
-            )
-            
-            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
-
-    async def step_04_submit(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        form_data = await request.form()
-        
-        # Get previous step data for context
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        workflow_params = step_01_data.get('new_workflow_params', {})
-        filename = workflow_params.get('target_filename', 'workflow.py')
-        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
-        internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
-        
-        # Store completion data
-        complete_sequence = {
-            'completed': True,
-            'filename': filename,
-            'class_name': class_name,
-            'internal_name': internal_name,
-            'display_name': display_name
-        }
-        
-        # Store the step completion
-        await pip.set_step_data(pipeline_id, step_id, complete_sequence, current_steps_for_logic)
-        
-        # Generate widget showing complete sequence
-        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        sequence_widget = self.create_hello_world_sequence_widget(
-            filename, class_name, internal_name, display_name, widget_id
-        )
-        
-        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{complete_sequence}')
-        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
-        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-        
-        response = HTMLResponse(to_xml(Div(
-            pip.display_revert_widget(
-                step_id=step_id,
-                app_name=app_name,
-                message="Complete Command Sequence Generated",
-                widget=sequence_widget,
-                steps=current_steps_for_logic
-            ),
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-            id=step_id
-        )))
-        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
-        return response
 
     # --- STEP_METHODS_INSERTION_POINT ---
