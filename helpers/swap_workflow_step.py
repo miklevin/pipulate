@@ -261,26 +261,40 @@ def replace_step_definition_in_target(content: str, target_step_id: str, new_ste
     return '\n'.join(new_lines), True
 
 
-def find_swappable_step_boundaries(content: str, step_id: str) -> Optional[Tuple[int, int]]:
-    """Find the line boundaries of a swappable step block"""
-    start_marker = f"# --- START_SWAPPABLE_STEP: {step_id} ---"
-    end_marker = f"# --- END_SWAPPABLE_STEP: {step_id} ---"
+def find_swappable_step_bounds(lines: List[str], target_step_id: str) -> Tuple[Optional[int], Optional[int]]:
+    """
+    Find the start and end line indices for a swappable step.
+    Looks for both SWAPPABLE_STEP and STEP_BUNDLE markers since steps that have been
+    swapped once will have STEP_BUNDLE markers.
+    """
+    start_patterns = [
+        f'# --- START_SWAPPABLE_STEP: {target_step_id} ---',
+        f'# --- START_STEP_BUNDLE: {target_step_id} ---'
+    ]
+    end_patterns = [
+        f'# --- END_SWAPPABLE_STEP: {target_step_id} ---',
+        f'# --- END_STEP_BUNDLE: {target_step_id} ---'
+    ]
     
-    lines = content.split('\n')
-    start_idx = None
-    end_idx = None
+    start_line = None
+    end_line = None
     
+    # Find start marker
     for i, line in enumerate(lines):
-        if line.strip() == start_marker:
-            start_idx = i
-        elif line.strip() == end_marker and start_idx is not None:
-            end_idx = i
+        line_stripped = line.strip()
+        if any(pattern in line_stripped for pattern in start_patterns):
+            start_line = i
             break
     
-    if start_idx is None or end_idx is None:
-        return None
+    # Find end marker
+    if start_line is not None:
+        for i in range(start_line + 1, len(lines)):
+            line_stripped = lines[i].strip()
+            if any(pattern in line_stripped for pattern in end_patterns):
+                end_line = i
+                break
     
-    return start_idx, end_idx
+    return start_line, end_line
 
 
 def identify_potential_dependencies(bundle_content: str) -> List[str]:
@@ -470,28 +484,23 @@ def main():
     # Read target file and find swappable step
     print(f"Reading target file: {target_path}")
     target_content = target_path.read_text()
-    
-    boundaries = find_swappable_step_boundaries(target_content, args.target_step_id)
-    if boundaries is None:
-        print(f"Error: Could not find swappable step '{args.target_step_id}' in target file")
-        print(f"Looking for markers:")
-        print(f"  # --- START_SWAPPABLE_STEP: {args.target_step_id} ---")
-        print(f"  # --- END_SWAPPABLE_STEP: {args.target_step_id} ---")
-        sys.exit(1)
-    
-    start_line, end_line = boundaries
-    print(f"✓ Found swappable step '{args.target_step_id}' (lines {start_line + 1}-{end_line + 1})")
-    
-    # Replace the swappable step block
     target_lines = target_content.split('\n')
     
-    # Replace entire block (including markers) with transformed bundle
-    new_lines = (
-        target_lines[:start_line] + 
-        transformed_bundle.split('\n') + 
-        target_lines[end_line + 1:]
-    )
-    
+    start_line, end_line = find_swappable_step_bounds(target_lines, args.target_step_id)
+    if start_line is None or end_line is None:
+        print(f"Error: Could not find swappable step '{args.target_step_id}' in target file")
+        print("Looking for markers:")
+        print(f"  # --- START_SWAPPABLE_STEP: {args.target_step_id} ---")
+        print(f"  # --- END_SWAPPABLE_STEP: {args.target_step_id} ---")
+        print("  OR")
+        print(f"  # --- START_STEP_BUNDLE: {args.target_step_id} ---")
+        print(f"  # --- END_STEP_BUNDLE: {args.target_step_id} ---")
+        return
+
+    print(f"✓ Found swappable step '{args.target_step_id}' (lines {start_line+1}-{end_line+1})")
+
+    # Replace the step methods block
+    new_lines = target_lines[:start_line+1] + transformed_bundle.split('\n') + target_lines[end_line:]
     new_content = '\n'.join(new_lines)
     
     # Replace Step definition if available
@@ -504,10 +513,11 @@ def main():
         if step_definition_replaced:
             print(f"✓ Found and replaced Step definition for '{args.target_step_id}'")
         else:
-            print(f"Warning: Could not find Step definition for '{args.target_step_id}' in target file")
-            print("The Step definition will need manual update.")
+            print(f"⚠️  Could not find Step definition for '{args.target_step_id}' - methods updated only")
+    else:
+        print(f"⚠️  No Step definition available for '{args.source_step_id}' in source")
     
-    # Write the modified content
+    # Write the updated content
     if not args.force:
         response = input(f"Replace step '{args.target_step_id}' in {target_path}? (y/N): ")
         if response.lower() != 'y':

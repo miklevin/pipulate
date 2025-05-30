@@ -209,60 +209,73 @@ class BlankPlaceholder:
 
     # --- START_SWAPPABLE_STEP: step_01 ---
     async def step_01(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps # Use self.steps
-        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
+        """Handles GET request for Step 1 Placeholder."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        step_id = 'step_01'
         step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]  # Use the resolved step object
-        # The next step ID calculation relies on 'finalize' being the last item in current_steps_for_logic
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
+        step = steps[step_index]
+        # Determine next_step_id dynamically based on runtime position in steps list
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step_obj.done, '')  # Use step_obj.done from resolved Step object
-        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        current_value = step_data.get(step.done, "") # 'step.done' will be like 'placeholder_data_01'
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
 
-        if 'finalized' in finalize_sys_data and current_value:
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
-            finalized_display_content = P(f"Completed with: {current_value}") 
-            return Div(pip.finalized_content(message=f"🔒 {step_obj.show}", content=finalized_display_content), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        elif current_value and state.get('_revert_target') != step_id:
-            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step_obj.show}: {current_value}', steps=current_steps_for_logic), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        else:
-            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing input form')
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            form_content = Form(
-                P('This is a placeholder step. Customize its input form elements as needed.'),
-                Input(type="hidden", name=step_obj.done, value="step_01_default_value"),  # Use step_obj.done 
-                Button('Next ▸', type='submit', cls='primary'), 
-                hx_post=f'/{app_name}/{step_id}_submit', 
-                hx_target=f'#{step_id}'
+        if "finalized" in finalize_data and current_value:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\\n{current_value}")
+            return Div(
+                Card(H3(f"🔒 {step.show}: Completed")),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
             )
-            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
+        elif current_value and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\\n{current_value}")
+            return Div(
+                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        else:
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue."),
+                    Form(
+                        # Example: Hidden input to submit something for the placeholder
+                        Input(type="hidden", name=step.done, value="Placeholder Value for Step 1 Placeholder"),
+                        Button("Next ▸", type="submit", cls="primary"),
+                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id), # Placeholder for next step, no trigger here
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_for_logic = self.steps
-        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
+        """Process the submission for Step 1 Placeholder."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
+        step_id = 'step_01'
         step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]  # Use the resolved step object
-        next_step_id = current_steps_for_logic[step_index + 1].id
-        
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
         form_data = await request.form()
-        value_to_save = form_data.get(step_obj.done, 'Step 01 Submitted Default')  # Use step_obj.done from resolved Step object
+        # For a placeholder, get value from the hidden input or use a default
+        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
+        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
         
-        await pip.set_step_data(pipeline_id, step_id, value_to_save, current_steps_for_logic)
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\\n{value_to_save}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
         
-        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{value_to_save}')
-        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
-        await self.message_queue.add(pip, f'{step_obj.show} complete.', verbatim=True)
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
         
         return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step_obj.show}: {value_to_save}', steps=current_steps_for_logic), 
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
+            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
     # --- END_SWAPPABLE_STEP: step_01 ---

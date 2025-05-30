@@ -229,9 +229,13 @@ Examples:
         print(f"WARNING: Internal APP_NAME ('{args.app_name_internal}') is the same as the public endpoint ('{public_endpoint}'). Consider making them different for clarity.")
 
     destination_path = PLUGINS_DIR / target_filename
-    if destination_path.exists() and not args.force:
-        print(f"ERROR: File {destination_path} already exists. Use --force.")
-        return
+    if destination_path.exists():
+        if args.force:
+            print(f"Removing existing file: {destination_path}")
+            destination_path.unlink()
+        else:
+            print(f"ERROR: File {destination_path} already exists. Use --force.")
+            return
 
     # Read and parse the template to identify original values
     print(f"Reading content from template: {TEMPLATE_FILE_PATH}")
