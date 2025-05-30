@@ -148,6 +148,7 @@ class HelloFlow:
     ENDPOINT_MESSAGE = '👋 Start a new Hello Workflow. Keys automatically are: PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 
+    # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     # UI Constants - Centralized button labels and styles following WET conventions
     # ============================================================================
     # This structure follows WET workflow conventions for consistent UX:
@@ -198,6 +199,7 @@ class HelloFlow:
             'INPUT_FORM': '📝'
         }
     }
+    # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """

@@ -33,8 +33,8 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES (Background for the story)
-README.md        <-- Main GitHub README sets the tone
-flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# README.md        <-- Main GitHub README sets the tone
+# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/

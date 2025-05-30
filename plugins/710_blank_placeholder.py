@@ -28,6 +28,10 @@ class BlankPlaceholder:
     ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'
     TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'
 
+    # --- START_CLASS_ATTRIBUTES_BUNDLE ---
+    # Additional class-level constants can be merged here by manage_class_attributes.py
+    # --- END_CLASS_ATTRIBUTES_BUNDLE ---
+
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
         self.app_name = self.APP_NAME 
@@ -203,6 +207,7 @@ class BlankPlaceholder:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.rebuild(app_name, current_steps_to_pass_helpers)
 
+    # --- START_SWAPPABLE_STEP: step_01 ---
     async def step_01(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         current_steps_for_logic = self.steps # Use self.steps
@@ -260,5 +265,6 @@ class BlankPlaceholder:
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), 
             id=step_id
         )
+    # --- END_SWAPPABLE_STEP: step_01 ---
 
     # --- STEP_METHODS_INSERTION_POINT ---
