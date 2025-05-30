@@ -1089,6 +1089,7 @@ class ParameterBusterNewWorkflow:
 
     def read_api_token(self):
         """Read the Botify API token from the token file."""
+        TOKEN_FILE = 'botify_token.txt'
         try:
             if not os.path.exists(TOKEN_FILE):
                 return None

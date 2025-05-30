@@ -35,7 +35,7 @@ import argparse
 import sys
 import os
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 import shutil
 from datetime import datetime
 
@@ -90,40 +90,104 @@ class AtomicTransplantationEngine:
         return start_marker, end_marker
     
     def extract_atomic_section(self, content: str, section_name: str) -> Tuple[str, bool]:
-        """
-        Extract atomic section content using split/join methodology.
+        """Extract an atomic section from file content.
         
         Returns:
-            Tuple of (extracted_content, success)
+            Tuple[str, bool]: (extracted_section_content, success)
         """
         start_marker, end_marker = self.get_section_markers(section_name)
         
-        # Split on start marker
-        start_parts = content.split(start_marker)
-        if len(start_parts) != 2:
-            # Try generic end marker as fallback
-            generic_end = "# --- END_WORKFLOW_SECTION ---"
-            end_parts = content.split(generic_end)
-            if len(start_parts) == 2 and len(end_parts) >= 2:
-                # Found start marker and generic end marker
-                section_content = start_marker + start_parts[1].split(generic_end)[0] + generic_end
-                return section_content, True
+        lines = content.split('\n')
+        section_lines = []
+        in_section = False
+        
+        for line in lines:
+            if line.strip() == start_marker:
+                in_section = True
+                section_lines.append(line)
+                continue
+            elif line.strip() == end_marker:
+                if in_section:
+                    section_lines.append(line)
+                    break
+                else:
+                    self.log(f"ERROR: Found end marker without corresponding start marker")
+                    return "", False
+            elif in_section:
+                section_lines.append(line)
+        
+        if not section_lines:
+            self.log(f"ERROR: No section found with name '{section_name}'")
             return "", False
         
-        # Split the second part on end marker
-        end_parts = start_parts[1].split(end_marker)
-        if len(end_parts) < 2:
-            # Try generic end marker as fallback
-            generic_end = "# --- END_WORKFLOW_SECTION ---"
-            end_parts = start_parts[1].split(generic_end)
-            if len(end_parts) >= 2:
-                section_content = start_marker + end_parts[0] + generic_end
-                return section_content, True
-            return "", False
+        if not in_section or lines[-1] != end_marker:
+            # Check if we ended properly
+            if section_lines and section_lines[-1].strip() != end_marker:
+                self.log(f"ERROR: Section '{section_name}' not properly closed")
+                return "", False
         
-        # Reconstruct the complete section
-        section_content = start_marker + end_parts[0] + end_marker
-        return section_content, True
+        extracted_content = '\n'.join(section_lines)
+        
+        # Light-touch dependency analysis
+        dependencies = self.analyze_section_dependencies(extracted_content)
+        if dependencies:
+            self.log(f"📋 DEPENDENCY ANALYSIS for section '{section_name}':")
+            for dep_type, items in dependencies.items():
+                if items:
+                    self.log(f"   {dep_type}: {', '.join(items)}")
+        
+        return extracted_content, True
+    
+    def analyze_section_dependencies(self, section_content: str) -> Dict[str, List[str]]:
+        """Light-touch analysis to detect potential dependencies in transplanted code.
+        
+        Returns:
+            Dict with dependency types as keys and lists of detected items as values
+        """
+        dependencies = {
+            "Constants/Variables": [],
+            "External Functions": [],
+            "Template References": [],
+            "File Paths": [],
+            "Potential Issues": []
+        }
+        
+        lines = section_content.split('\n')
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            # Detect undefined constants (common pattern: UPPERCASE_NAMES)
+            import re
+            
+            # Look for references to constants that aren't defined in the section
+            const_pattern = r'\b[A-Z][A-Z_]+[A-Z]\b'
+            constants = re.findall(const_pattern, stripped)
+            for const in constants:
+                if const not in ['API', 'URL', 'HTTP', 'GET', 'POST', 'JSON', 'CSV', 'HTML', 'ID']:  # Common abbreviations
+                    if f"{const} =" not in section_content:  # Not defined in section
+                        dependencies["Constants/Variables"].append(const)
+            
+            # Detect template references
+            if 'template' in stripped.lower() and ('QUERY_TEMPLATES' in stripped or 'TEMPLATE_CONFIG' in stripped):
+                dependencies["Template References"].append(stripped[:50] + "..." if len(stripped) > 50 else stripped)
+            
+            # Detect file path patterns
+            if any(pattern in stripped for pattern in ['.txt', '.csv', '.json', 'TOKEN_FILE', 'botify_token']):
+                dependencies["File Paths"].append(stripped[:50] + "..." if len(stripped) > 50 else stripped)
+            
+            # Detect function calls that might be external
+            func_pattern = r'self\.([a-z_]+)\('
+            functions = re.findall(func_pattern, stripped)
+            for func in functions:
+                if func not in ['log', 'get', 'set', 'add', 'read', 'write']:  # Common methods
+                    dependencies["External Functions"].append(func)
+        
+        # Deduplicate lists
+        for key in dependencies:
+            dependencies[key] = list(set(dependencies[key]))[:5]  # Limit to 5 items per category
+        
+        return dependencies
     
     def replace_atomic_section(self, target_content: str, new_section_content: str, section_name: str) -> Tuple[str, bool]:
         """
@@ -260,6 +324,9 @@ class AtomicTransplantationEngine:
             if backup_path:
                 self.log(f"   📋 Backup created: {backup_path}")
             
+            # Generate post-transplantation summary
+            self.generate_post_transplant_summary(section_content, section_name, target_file)
+            
             return True
             
         except Exception as e:
@@ -317,6 +384,82 @@ class AtomicTransplantationEngine:
         except Exception as e:
             self.log(f"💥 Validation failed: {str(e)}")
             return False
+
+    def generate_post_transplant_summary(self, section_content: str, section_name: str, target_file: str):
+        """Generate a comprehensive summary for follow-up LLMs about post-transplantation tasks.
+        
+        This method provides clear guidance about potential issues and required follow-up
+        actions that LLMs should check after an atomic transplantation.
+        """
+        self.log("")
+        self.log("=" * 80)
+        self.log("🤖 POST-TRANSPLANTATION GUIDANCE FOR FOLLOW-UP LLMs")
+        self.log("=" * 80)
+        
+        # Analyze dependencies again for comprehensive summary
+        dependencies = self.analyze_section_dependencies(section_content)
+        
+        # Check for common issues
+        common_issues = []
+        if 'TOKEN_FILE' in section_content and 'TOKEN_FILE =' not in section_content:
+            common_issues.append("TOKEN_FILE variable may need to be defined locally in methods")
+        
+        if 'QUERY_TEMPLATES' in section_content:
+            common_issues.append("QUERY_TEMPLATES class attribute may need to be added")
+            
+        if 'UI_CONSTANTS' in section_content:
+            common_issues.append("UI_CONSTANTS class attribute may need to be added")
+            
+        if 'TEMPLATE_CONFIG' in section_content:
+            common_issues.append("TEMPLATE_CONFIG class attribute may need to be added")
+        
+        self.log(f"📁 TARGET FILE: {target_file}")
+        self.log(f"🧬 SECTION TRANSPLANTED: {section_name}")
+        self.log("")
+        
+        if any(dependencies.values()) or common_issues:
+            self.log("⚠️  FOLLOW-UP TASKS FOR LLMs:")
+            self.log("")
+            
+            if common_issues:
+                self.log("🔧 LIKELY MISSING DEPENDENCIES:")
+                for issue in common_issues:
+                    self.log(f"   • {issue}")
+                self.log("")
+            
+            if dependencies["Constants/Variables"]:
+                self.log("📋 CONSTANTS TO VERIFY:")
+                for const in dependencies["Constants/Variables"]:
+                    self.log(f"   • {const} - Check if defined in target file")
+                self.log("")
+            
+            if dependencies["Template References"]:
+                self.log("🎯 TEMPLATE DEPENDENCIES:")
+                for ref in dependencies["Template References"]:
+                    self.log(f"   • {ref}")
+                self.log("")
+            
+            if dependencies["File Paths"]:
+                self.log("📄 FILE PATH REFERENCES:")
+                for path in dependencies["File Paths"]:
+                    self.log(f"   • {path}")
+                self.log("")
+                
+            self.log("🧪 RECOMMENDED CHECKS:")
+            self.log("   1. Test server startup - check for NameError or AttributeError")
+            self.log("   2. Verify all class attributes are defined (QUERY_TEMPLATES, etc.)")
+            self.log("   3. Check that file path constants are properly scoped")
+            self.log("   4. Test workflow functionality in browser")
+            self.log("   5. Look for any missing imports or utility functions")
+            
+        else:
+            self.log("✅ NO OBVIOUS DEPENDENCY ISSUES DETECTED")
+            self.log("   • The transplanted section appears self-contained")
+            self.log("   • Still recommended to test server startup and functionality")
+        
+        self.log("")
+        self.log("🔗 ATOMIC TRANSPLANTATION COMPLETE")
+        self.log("=" * 80)
 
 
 def main():
