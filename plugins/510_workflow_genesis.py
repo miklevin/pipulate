@@ -111,7 +111,8 @@ class WorkflowGenesis:
         self.steps = [
             Step(id='step_01', done='new_workflow_params', show='1. Define New Workflow', refill=True),
             Step(id='step_02', done='template_selection', show='2. Select Template & Strategy', refill=True),
-            Step(id='step_03', done='step_management', show='3. Add Placeholder Steps', refill=True),
+            Step(id='step_03', done='individual_commands', show='3. Individual Helper Commands', refill=True),
+            Step(id='step_04', done='complete_sequence', show='4. Complete Command Sequence', refill=True),
             # --- STEPS_LIST_INSERTION_POINT --- 
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
         ]
@@ -162,8 +163,13 @@ class WorkflowGenesis:
                 }
             elif step_obj.id == 'step_03':
                 self.step_messages[step_obj.id] = {
-                    'input': 'View comprehensive step management commands for flexible workflow building.',
-                    'complete': 'Step management commands ready. Use top/bottom positioning as needed.'
+                    'input': 'View all individual helper commands (create, manage, swap, splice).',
+                    'complete': 'Individual commands ready. View complete sequence next.'
+                }
+            elif step_obj.id == 'step_04':
+                self.step_messages[step_obj.id] = {
+                    'input': 'View the complete 5-command sequence as a single copy-able command chain.',
+                    'complete': 'Complete command sequence ready. Copy and run to create functional workflow.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -792,6 +798,22 @@ class WorkflowGenesis:
                     style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
+                # Hello World Example Section
+                Div(
+                    H6("🥋 Example: Hello World Kung Fu Workflow", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+                    P("For a complete Hello World equivalent, select 'Blank Placeholder' template and use this 5-command sequence:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Pre(
+                        Code("""# 1. Create workflow from blank template
+# 2. Merge UI_CONSTANTS from hello workflow  
+# 3. Swap step_01 with hello step_01 (name collection)
+# 4. Add step_02 placeholder at bottom
+# 5. Swap step_02 with hello step_02 (greeting)""", style='font-size: 0.8rem; padding: 0.5rem; margin: 0;'),
+                        style='background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem;'
+                    ),
+                    P("This creates a perfect functional equivalent of the Hello Workflow with proper sequencing!", style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                ),
+                
                 # Next Step Preview
                 Div(
                     P("💡 After creating your workflow, you'll learn how to add custom steps with flexible positioning!", cls='text-info', style=f'font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; text-align: center;'),
@@ -909,17 +931,21 @@ class WorkflowGenesis:
         template_selection = step_02_data.get('template_selection', {})
         
         filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
 
         if 'finalized' in finalize_sys_data and current_value:
             # Finalized Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
             
-            # Generate all splice commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            commands_widget = self.create_all_helper_commands_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
             
             response = HTMLResponse(to_xml(Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=splice_widget),
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=commands_widget),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )))
@@ -930,16 +956,17 @@ class WorkflowGenesis:
             # Revert/Completed Phase
             pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
             
-            # Generate all splice commands
             widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            commands_widget = self.create_all_helper_commands_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
             
             response = HTMLResponse(to_xml(Div(
                 pip.display_revert_widget(
                     step_id=step_id,
                     app_name=app_name,
-                    message="Step Management Commands Generated",
-                    widget=splice_widget,
+                    message="All Helper Commands Generated",
+                    widget=commands_widget,
                     steps=current_steps_for_logic
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -949,33 +976,43 @@ class WorkflowGenesis:
             return response
         else:
             # Input Phase
-            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing step management commands')
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing all helper commands')
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             template_name = template_selection.get('template', 'blank')
             template_info = self.get_template_info(template_name)
             
-            # Generate all splice commands immediately
-            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-            splice_widget = self.create_splice_commands_widget(filename, widget_id)
+            # Current Workflow Context
+            context_section = Div(
+                H5("Current Workflow Context:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                P(f"📁 File: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P(f"🏗️ Template: {template_info['name']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P(f"📋 Current Steps: {template_info['steps']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+            )
             
-            # Simple proceed form
             form_content = Form(
-                # Current Workflow Context
+                context_section,
+                
                 Div(
-                    H5("Current Workflow Context:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                    P(f"📁 File: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    P(f"🏗️ Template: {template_info['name']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    P(f"📋 Current Steps: {template_info['steps']}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                    H6("📋 All Helper Commands Overview:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                    P("View all four Pipulate helper commands individually. Each has its own purpose:", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Ul(
+                        Li("🏗️ create_workflow.py - Create new workflow from template", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("🔧 manage_class_attributes.py - Merge UI constants and attributes", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("🔄 swap_workflow_step.py - Replace placeholder steps with developed logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("➕ splice_workflow_step.py - Add new placeholder steps", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                    ),
+                    P("Next step will show the complete 5-command sequence for creating a functional Hello World workflow.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
                 
-                P("Now you'll see all the step management commands. Use top insertion for setup steps (authentication, configuration) and bottom insertion for processing steps (validation, output).", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                
-                Button('Show Step Management Commands ▸', type='submit', cls='primary'),
+                Button('Show All Helper Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
+            
             return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
@@ -987,26 +1024,35 @@ class WorkflowGenesis:
         next_step_id = current_steps_for_logic[step_index + 1].id
         
         pipeline_id = db.get('pipeline_id', 'unknown')
+        form_data = await request.form()
         
         # Get previous step data for context
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         workflow_params = step_01_data.get('new_workflow_params', {})
         filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
         
-        # Store simple completion data
-        step_management = {
+        # Store completion data
+        individual_commands = {
             'completed': True,
-            'filename': filename
+            'filename': filename,
+            'class_name': class_name,
+            'internal_name': internal_name,
+            'display_name': display_name
         }
         
         # Store the step completion
-        await pip.set_step_data(pipeline_id, step_id, step_management, current_steps_for_logic)
+        await pip.set_step_data(pipeline_id, step_id, individual_commands, current_steps_for_logic)
         
-        # Generate all splice commands
+        # Generate widget showing all helper commands
         widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
-        splice_widget = self.create_splice_commands_widget(filename, widget_id)
+        commands_widget = self.create_all_helper_commands_widget(
+            filename, class_name, internal_name, display_name, widget_id
+        )
         
-        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{step_management}')
+        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{individual_commands}')
         pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
@@ -1014,8 +1060,8 @@ class WorkflowGenesis:
             pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
-                message="Step Management Commands Generated",
-                widget=splice_widget,
+                message="All Helper Commands Generated",
+                widget=commands_widget,
                 steps=current_steps_for_logic
             ),
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -1023,6 +1069,214 @@ class WorkflowGenesis:
         )))
         response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
         return response
+
+    def create_all_helper_commands_widget(self, filename, class_name, internal_name, display_name, widget_id):
+        """Create a widget showing all four individual helper commands."""
+        
+        # Generate all helper commands
+        create_cmd = f"""python helpers/create_workflow.py \\
+    plugins/{filename} \\
+    {class_name} \\
+    {internal_name} \\
+    "{display_name}" \\
+    "🥋 This workflow will become a Hello World equivalent using helper scripts." \\
+    "kungfu_hello_world_training.md" \\
+    --force"""
+
+        manage_cmd = f"""python helpers/manage_class_attributes.py \\
+    plugins/{filename} \\
+    plugins/500_hello_workflow.py \\
+    --attributes-to-merge UI_CONSTANTS \\
+    --force"""
+
+        swap1_cmd = f"""python helpers/swap_workflow_step.py \\
+    plugins/{filename} \\
+    step_01 \\
+    plugins/500_hello_workflow.py \\
+    step_01 \\
+    --force"""
+
+        splice_cmd = f"""python helpers/splice_workflow_step.py \\
+    plugins/{filename} \\
+    --position bottom"""
+
+        swap2_cmd = f"""python helpers/swap_workflow_step.py \\
+    plugins/{filename} \\
+    step_02 \\
+    plugins/500_hello_workflow.py \\
+    step_02 \\
+    --force"""
+
+        container = Div(
+            H5('🛠️ All Helper Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+            P('Here are all four Pipulate helper commands individually. Each serves a specific purpose:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+            
+            # 1. Create Workflow
+            Div(
+                H6('1. 🏗️ Create Workflow:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
+                P('Creates a new workflow from the blank template:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                Textarea(create_cmd, id=f'{widget_id}_create', style='display: none;'),
+                Pre(
+                    Code(create_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # 2. Manage Class Attributes
+            Div(
+                H6('2. 🔧 Manage Class Attributes:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
+                P('Merges UI_CONSTANTS from hello workflow for consistent styling:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                Textarea(manage_cmd, id=f'{widget_id}_manage', style='display: none;'),
+                Pre(
+                    Code(manage_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # 3. Swap Step 1
+            Div(
+                H6('3. 🔄 Swap Step 1:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
+                P('Replaces placeholder step_01 with name collection logic from hello workflow:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                Textarea(swap1_cmd, id=f'{widget_id}_swap1', style='display: none;'),
+                Pre(
+                    Code(swap1_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # 4. Splice Step
+            Div(
+                H6('4. ➕ Splice New Step:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
+                P('Adds a new placeholder step_02 at the bottom (before finalize):', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                Textarea(splice_cmd, id=f'{widget_id}_splice', style='display: none;'),
+                Pre(
+                    Code(splice_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # 5. Swap Step 2
+            Div(
+                H6('5. 🔄 Swap Step 2:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUBHEADER_TEXT"]};'),
+                P('Replaces placeholder step_02 with greeting generation logic from hello workflow:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                Textarea(swap2_cmd, id=f'{widget_id}_swap2', style='display: none;'),
+                Pre(
+                    Code(swap2_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                    cls='line-numbers'
+                ),
+                style='margin-bottom: 1.5rem;'
+            ),
+            
+            # Summary
+            Div(
+                H6('✅ Result:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'),
+                P(f"Running all five commands in sequence creates a perfect functional equivalent of the Hello Workflow.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P("Next step will show these combined into a single copy-able command sequence.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; font-style: italic; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
+            ),
+            
+            id=widget_id
+        )
+        
+        init_script = Script(f"""
+            (function() {{
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
+                document.body.addEventListener('initializePrism', function(event) {{
+                    if (event.detail.targetId === '{widget_id}') {{
+                        console.log('Received initializePrism event for {widget_id}');
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                        }} else {{
+                            console.error('Prism library not found for {widget_id}');
+                        }}
+                    }}
+                }});
+            }})();
+        """, type='text/javascript')
+        
+        return Div(container, init_script)
+
+    def create_hello_world_sequence_widget(self, filename, class_name, internal_name, display_name, widget_id):
+        """Create a widget showing the complete 5-command Hello World equivalent sequence."""
+        
+        # Generate the complete 5-command sequence
+        sequence_cmd = f"""python helpers/create_workflow.py \\
+    plugins/{filename} \\
+    {class_name} \\
+    {internal_name} \\
+    "{display_name}" \\
+    "🥋 This workflow will become a Hello World equivalent using helper scripts." \\
+    "kungfu_hello_world_training.md" \\
+&& \\
+python helpers/manage_class_attributes.py \\
+    plugins/{filename} \\
+    plugins/500_hello_workflow.py \\
+    --attributes-to-merge UI_CONSTANTS \\
+    --force \\
+&& \\
+python helpers/swap_workflow_step.py \\
+    plugins/{filename} \\
+    step_01 \\
+    plugins/500_hello_workflow.py \\
+    step_01 \\
+    --force \\
+&& \\
+python helpers/splice_workflow_step.py \\
+    plugins/{filename} \\
+    --position bottom \\
+&& \\
+python helpers/swap_workflow_step.py \\
+    plugins/{filename} \\
+    step_02 \\
+    plugins/500_hello_workflow.py \\
+    step_02 \\
+    --force"""
+
+        container = Div(
+            H5('🥋 Complete Hello World Kung Fu Sequence:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+            P('This 5-command sequence creates a perfect functional equivalent of the Hello Workflow:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+            
+            # Command sequence with proper formatting
+            Textarea(sequence_cmd, id=f'{widget_id}_hello_sequence', style='display: none;'),
+            Pre(
+                Code(sequence_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
+                cls='line-numbers'
+            ),
+            
+            # Explanation of each step
+            Div(
+                H6('Step-by-Step Breakdown:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                Ol(
+                    Li(f"Create blank workflow template: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Merge UI_CONSTANTS from hello workflow for consistent styling", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Swap step_01 placeholder with name collection logic", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Add step_02 placeholder at bottom (before finalize)", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Li("Swap step_02 placeholder with greeting generation logic", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                ),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+            ),
+            
+            # Result explanation
+            Div(
+                H6('✅ Result:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'),
+                P(f"Perfect functional equivalent of 500_hello_workflow.py with {class_name} class and '{display_name}' display name.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P("The workflow will ask for a name, generate a greeting, and demonstrate the chain reaction pattern.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
+            ),
+            
+            id=widget_id
+        )
+        
+        return container
 
     def create_splice_commands_widget(self, filename, widget_id):
         """Create a comprehensive splice commands widget with individual copy-able commands."""
@@ -1111,5 +1365,161 @@ class WorkflowGenesis:
         """, type='text/javascript')
         
         return Div(container, init_script)
+
+    async def step_04(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_04'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        
+        filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+
+        if 'finalized' in finalize_sys_data and current_value:
+            # Finalized Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Finalized):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            sequence_widget = self.create_hello_world_sequence_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=sequence_widget),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+            
+        elif current_value and state.get('_revert_target') != step_id:
+            # Revert/Completed Phase
+            pip.append_to_history(f"[WIDGET CONTENT] {step_obj.show} (Completed):\n{current_value}")
+            
+            widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+            sequence_widget = self.create_hello_world_sequence_widget(
+                filename, class_name, internal_name, display_name, widget_id
+            )
+            
+            response = HTMLResponse(to_xml(Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message="Complete Command Sequence Generated",
+                    widget=sequence_widget,
+                    steps=current_steps_for_logic
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
+        else:
+            # Input Phase
+            pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Showing complete command sequence')
+            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
+            
+            # Current Workflow Context
+            context_section = Div(
+                H5("📋 Ready for Complete Sequence:", style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                P(f"📁 Target: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-family: monospace; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P(f"🏗️ Class: {class_name}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                P(f"🎯 Result: Perfect Hello World equivalent with proper sequencing", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+            )
+            
+            form_content = Form(
+                context_section,
+                
+                Div(
+                    H6("🥋 Complete 5-Command Kung Fu Sequence:", style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
+                    P("This single command chain will create a complete functional Hello World equivalent:", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                    Ul(
+                        Li("✅ Creates blank workflow from template", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("✅ Merges UI constants for consistent styling", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("✅ Swaps step_01 with name collection logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("✅ Adds step_02 placeholder at bottom", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        Li("✅ Swaps step_02 with greeting generation logic", style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                        style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                    ),
+                    P("The result is a perfect functional equivalent of the Hello Workflow with proper command sequencing!", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'),
+                    style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                ),
+                
+                Button('Show Complete Command Sequence ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
+            )
+            
+            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
+
+    async def step_04_submit(self, request):
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        current_steps_for_logic = self.steps
+        step_id = 'step_04'
+        step_index = self.steps_indices[step_id]
+        step_obj = current_steps_for_logic[step_index]
+        next_step_id = current_steps_for_logic[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        form_data = await request.form()
+        
+        # Get previous step data for context
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('new_workflow_params', {})
+        filename = workflow_params.get('target_filename', 'workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        
+        # Store completion data
+        complete_sequence = {
+            'completed': True,
+            'filename': filename,
+            'class_name': class_name,
+            'internal_name': internal_name,
+            'display_name': display_name
+        }
+        
+        # Store the step completion
+        await pip.set_step_data(pipeline_id, step_id, complete_sequence, current_steps_for_logic)
+        
+        # Generate widget showing complete sequence
+        widget_id = f"prism-widget-{pipeline_id.replace('-', '_')}-{step_id}"
+        sequence_widget = self.create_hello_world_sequence_widget(
+            filename, class_name, internal_name, display_name, widget_id
+        )
+        
+        pip.append_to_history(f'[WIDGET CONTENT] {step_obj.show}:\n{complete_sequence}')
+        pip.append_to_history(f'[WIDGET STATE] {step_obj.show}: Step completed')
+        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+        
+        response = HTMLResponse(to_xml(Div(
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message="Complete Command Sequence Generated",
+                widget=sequence_widget,
+                steps=current_steps_for_logic
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )))
+        response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+        return response
 
     # --- STEP_METHODS_INSERTION_POINT ---
