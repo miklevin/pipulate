@@ -288,6 +288,15 @@ Examples:
             content, doc_count = re.subn(docstring_pattern, new_docstring_replacement, content, count=1, flags=re.MULTILINE)
             if doc_count == 0:
                  print(f"WARNING: Docstring for '{ORIGINAL_CLASS_NAME_IDENTIFIER} Workflow' not found or not replaced.")
+            
+            # Replace file header comment
+            header_pattern = r'^# File: plugins/[^.]+\.py'
+            new_header = f'# File: plugins/{target_filename}'
+            content, header_count = re.subn(header_pattern, new_header, content, count=1, flags=re.MULTILINE)
+            if header_count == 0:
+                print(f"WARNING: File header comment not found or not replaced.")
+            else:
+                print(f"Updated file header comment to: {new_header}")
 
 
             if content != original_content:

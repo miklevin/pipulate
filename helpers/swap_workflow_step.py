@@ -6,6 +6,10 @@ This script replaces a placeholder step (created by splice_workflow_step.py) wit
 developed step logic from a source workflow file. It maintains the deterministic,
 marker-based approach of other Pipulate helper scripts.
 
+Enhanced to handle both:
+1. Step method bundles (GET/POST handlers)  
+2. Step definitions (Step namedtuple in self.steps list)
+
 Usage:
     python swap_workflow_step.py TARGET_FILE TARGET_STEP_ID SOURCE_FILE SOURCE_BUNDLE_ID [--force]
 
@@ -14,9 +18,11 @@ Example:
 
 The script:
 1. Extracts the source step bundle using START_STEP_BUNDLE/END_STEP_BUNDLE markers
-2. Renames all occurrences of source step ID to target step ID  
-3. Replaces the target placeholder using START_SWAPPABLE_STEP/END_SWAPPABLE_STEP markers
-4. Reports potential global dependencies that may need manual attention
+2. Extracts the source Step definition from self.steps list
+3. Renames all occurrences of source step ID to target step ID in both  
+4. Replaces the target placeholder using START_SWAPPABLE_STEP/END_SWAPPABLE_STEP markers
+5. Replaces the target Step definition in self.steps list
+6. Reports potential global dependencies that may need manual attention
 """
 
 import argparse
@@ -68,6 +74,192 @@ def extract_step_bundle(content: str, bundle_id: str) -> Optional[str]:
     return '\n'.join(bundle_lines)
 
 
+def extract_step_definition(content: str, step_id: str) -> Optional[str]:
+    """Extract Step definition for given step_id from self.steps list"""
+    
+    lines = content.split('\n')
+    
+    # Pattern 1: Direct assignment `self.steps = [...]`
+    steps_pattern = r'self\.steps\s*=\s*\['
+    steps_start_line = None
+    for i, line in enumerate(lines):
+        if re.search(steps_pattern, line):
+            steps_start_line = i
+            break
+    
+    # Pattern 2: Indirect assignment via variable
+    if steps_start_line is None:
+        # Look for `self.steps = variable_name`
+        indirect_pattern = r'^\s*self\.steps\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[;#]|$)'
+        variable_name = None
+        for line in lines:
+            match = re.search(indirect_pattern, line, re.MULTILINE)
+            if match:
+                variable_name = match.group(1)
+                break
+        
+        if variable_name:
+            # Find `variable_name = [...]`
+            var_pattern = rf'^\s*{re.escape(variable_name)}\s*=\s*\['
+            for i, line in enumerate(lines):
+                if re.search(var_pattern, line):
+                    steps_start_line = i
+                    break
+    
+    if steps_start_line is None:
+        return None
+    
+    # Find the Step definition with matching id starting from steps_start_line
+    # We need to handle multi-line Step definitions where Step( and id= are on different lines
+    in_step_def = False
+    step_start_line = None
+    step_lines = []
+    paren_count = 0
+    looking_for_step_id = False
+    
+    for i in range(steps_start_line, len(lines)):
+        line = lines[i]
+        
+        # Check if this line starts a Step definition
+        if re.search(r'Step\s*\(', line):
+            in_step_def = True
+            step_start_line = i
+            step_lines = [line]
+            paren_count = 0
+            looking_for_step_id = True
+            
+            # Count parentheses from this line
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # Check if the step_id is on the same line
+            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
+            if re.search(step_id_pattern, line):
+                looking_for_step_id = False  # Found it on same line
+        
+        elif in_step_def and looking_for_step_id:
+            step_lines.append(line)
+            
+            # Check if this line contains our step_id
+            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
+            if re.search(step_id_pattern, line):
+                looking_for_step_id = False  # Found our target step
+            
+            # Count parentheses
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # If we haven't found our step_id yet and the Step definition ended,
+            # this isn't our target step
+            if looking_for_step_id and paren_count == 0:
+                in_step_def = False
+                step_start_line = None
+                step_lines = []
+                looking_for_step_id = False
+        
+        elif in_step_def and not looking_for_step_id:
+            # We're in our target Step definition, collect lines until it ends
+            step_lines.append(line)
+            
+            # Count parentheses
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # If we've closed all parentheses for this Step, we're done
+            if paren_count == 0:
+                return '\n'.join(step_lines)
+    
+    return None
+
+
+def replace_step_definition_in_target(content: str, target_step_id: str, new_step_definition: str) -> Tuple[str, bool]:
+    """Replace Step definition in target content and return (new_content, success)"""
+    
+    lines = content.split('\n')
+    
+    # Find the Step definition with target_step_id using the same logic as extraction
+    in_step_def = False
+    step_start_line = None
+    step_end_line = None
+    paren_count = 0
+    looking_for_step_id = False
+    
+    for i, line in enumerate(lines):
+        # Check if this line starts a Step definition
+        if re.search(r'Step\s*\(', line):
+            in_step_def = True
+            step_start_line = i
+            paren_count = 0
+            looking_for_step_id = True
+            
+            # Count parentheses from this line
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # Check if the target_step_id is on the same line
+            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(target_step_id)}[\'\"]'
+            if re.search(step_id_pattern, line):
+                looking_for_step_id = False  # Found our target step
+        
+        elif in_step_def and looking_for_step_id:
+            # Check if this line contains our target_step_id
+            step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(target_step_id)}[\'\"]'
+            if re.search(step_id_pattern, line):
+                looking_for_step_id = False  # Found our target step
+            
+            # Count parentheses
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # If we haven't found our target_step_id yet and the Step definition ended,
+            # this isn't our target step
+            if looking_for_step_id and paren_count == 0:
+                in_step_def = False
+                step_start_line = None
+                looking_for_step_id = False
+        
+        elif in_step_def and not looking_for_step_id:
+            # We're in our target Step definition, count until it ends
+            # Count parentheses
+            for char in line:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+            
+            # If we've closed all parentheses for this Step, we found the end
+            if paren_count == 0:
+                step_end_line = i
+                break
+    
+    if step_start_line is None or step_end_line is None:
+        return content, False
+    
+    # Replace the target Step definition with the new one
+    new_lines = (
+        lines[:step_start_line] + 
+        new_step_definition.split('\n') + 
+        lines[step_end_line + 1:]
+    )
+    
+    return '\n'.join(new_lines), True
+
+
 def find_swappable_step_boundaries(content: str, step_id: str) -> Optional[Tuple[int, int]]:
     """Find the line boundaries of a swappable step block"""
     start_marker = f"# --- START_SWAPPABLE_STEP: {step_id} ---"
@@ -109,16 +301,97 @@ def identify_potential_dependencies(bundle_content: str) -> List[str]:
 
 
 def transform_bundle_content(bundle_content: str, source_step_id: str, target_step_id: str) -> str:
-    """Transform bundle content by renaming step IDs and maintaining markers"""
-    # Replace whole-word occurrences of the source step ID with target step ID
-    # This will rename method definitions and references
-    pattern = r'\b' + re.escape(source_step_id) + r'\b'
-    transformed = re.sub(pattern, target_step_id, bundle_content)
+    """Transform bundle content by renaming step IDs and maintaining proper method structure"""
+    
+    lines = bundle_content.split('\n')
+    transformed_lines = []
+    
+    for line in lines:
+        transformed_line = line
+        
+        # CRITICAL: Transform method definitions first (most specific patterns)
+        # 1. Transform async def step_XX_submit( patterns
+        if re.search(rf'async\s+def\s+{re.escape(source_step_id)}_submit\s*\(', line):
+            transformed_line = re.sub(rf'\b{re.escape(source_step_id)}_submit\b', f'{target_step_id}_submit', line)
+        
+        # 2. Transform async def step_XX( patterns  
+        elif re.search(rf'async\s+def\s+{re.escape(source_step_id)}\s*\(', line):
+            transformed_line = re.sub(rf'\b{re.escape(source_step_id)}\b', target_step_id, line)
+        
+        # 3. Transform step_id variable assignments
+        elif re.search(rf"step_id\s*=\s*['\"]?{re.escape(source_step_id)}['\"]?", line):
+            transformed_line = re.sub(rf"(['\"]?){re.escape(source_step_id)}(['\"]?)", rf"\1{target_step_id}\2", line)
+        
+        # 4. Transform URL/route references with _submit
+        elif f'/{source_step_id}_submit' in line:
+            transformed_line = line.replace(f'/{source_step_id}_submit', f'/{target_step_id}_submit')
+        
+        # 5. Transform URL/route references without _submit
+        elif f'/{source_step_id}' in line and '_submit' not in line:
+            transformed_line = line.replace(f'/{source_step_id}', f'/{target_step_id}')
+        
+        # 6. Transform step.id references
+        elif f'{source_step_id}' in line and 'step.id' in line:
+            transformed_line = re.sub(rf'\b{re.escape(source_step_id)}\b', target_step_id, line)
+        
+        # 7. Transform quoted step ID strings
+        elif f'"{source_step_id}"' in line or f"'{source_step_id}'" in line:
+            transformed_line = re.sub(rf"(['\"]){re.escape(source_step_id)}(['\"])", rf"\1{target_step_id}\2", line)
+        
+        # 8. Transform step data calls - be very careful with these
+        elif 'set_step_data' in line and f'"{source_step_id}"' in line:
+            transformed_line = re.sub(rf'"{re.escape(source_step_id)}"', f'"{target_step_id}"', line)
+        elif 'set_step_data' in line and f"'{source_step_id}'" in line:
+            transformed_line = re.sub(rf"'{re.escape(source_step_id)}'", f"'{target_step_id}'", line)
+        
+        # 9. Transform chain_reverter calls
+        elif 'chain_reverter' in line and f'"{source_step_id}"' in line:
+            transformed_line = re.sub(rf'"{re.escape(source_step_id)}"', f'"{target_step_id}"', line)
+        elif 'chain_reverter' in line and f"'{source_step_id}'" in line:
+            transformed_line = re.sub(rf"'{re.escape(source_step_id)}'", f"'{target_step_id}'", line)
+        
+        # 10. For any remaining lines with step references, be very conservative
+        # Only transform if it's clearly a step reference and not an array index
+        elif source_step_id in line:
+            # Skip lines that contain array indexing like self.steps[0] 
+            if not re.search(rf'self\.steps\[\s*\d+\s*\]', line):
+                # Only transform whole-word boundaries to avoid partial matches
+                if re.search(rf'\b{re.escape(source_step_id)}\b', line):
+                    transformed_line = re.sub(rf'\b{re.escape(source_step_id)}\b', target_step_id, line)
+        
+        transformed_lines.append(transformed_line)
+    
+    transformed_content = '\n'.join(transformed_lines)
     
     # Wrap with new step bundle markers (preserving the swapped content as a bundle)
-    wrapped = f"# --- START_STEP_BUNDLE: {target_step_id} ---\n{transformed}\n# --- END_STEP_BUNDLE: {target_step_id} ---"
+    wrapped = f"# --- START_STEP_BUNDLE: {target_step_id} ---\n{transformed_content}\n# --- END_STEP_BUNDLE: {target_step_id} ---"
     
     return wrapped
+
+
+def transform_step_definition(step_definition: str, source_step_id: str, target_step_id: str) -> str:
+    """Transform step definition by renaming step IDs and maintaining proper structure"""
+    
+    lines = step_definition.split('\n')
+    transformed_lines = []
+    
+    for line in lines:
+        transformed_line = line
+        
+        # Transform id='step_xx' or id="step_xx" assignments
+        if re.search(rf"id\s*=\s*['\"]", line):
+            pattern = rf"(id\s*=\s*['\"]){re.escape(source_step_id)}(['\"])"
+            transformed_line = re.sub(pattern, rf"\1{target_step_id}\2", line)
+        
+        # Also handle any other references to the step ID in the definition
+        # (like in comments or other string values)
+        elif source_step_id in line:
+            # Only transform whole-word references
+            transformed_line = re.sub(rf'\b{re.escape(source_step_id)}\b', target_step_id, line)
+        
+        transformed_lines.append(transformed_line)
+    
+    return '\n'.join(transformed_lines)
 
 
 def main():
@@ -170,6 +443,16 @@ def main():
     
     print(f"✓ Extracted step bundle '{args.source_bundle_id}' ({len(bundle_content.splitlines())} lines)")
     
+    # Extract source Step definition
+    source_step_definition = extract_step_definition(source_content, args.source_bundle_id)
+    if source_step_definition is None:
+        print(f"Warning: Could not find Step definition for '{args.source_bundle_id}' in source file")
+        print("The method bundle will be swapped, but Step definition will need manual update.")
+        step_definition_available = False
+    else:
+        print(f"✓ Extracted Step definition for '{args.source_bundle_id}'")
+        step_definition_available = True
+    
     # Identify potential dependencies
     dependencies = identify_potential_dependencies(bundle_content)
     if dependencies:
@@ -178,6 +461,10 @@ def main():
     
     # Transform bundle content
     transformed_bundle = transform_bundle_content(bundle_content, args.source_bundle_id, args.target_step_id)
+    
+    # Transform step definition if available
+    if step_definition_available:
+        transformed_step_definition = transform_step_definition(source_step_definition, args.source_bundle_id, args.target_step_id)
     
     # Read target file and find swappable step
     print(f"Reading target file: {target_path}")
@@ -206,6 +493,19 @@ def main():
     
     new_content = '\n'.join(new_lines)
     
+    # Replace Step definition if available
+    step_definition_replaced = False
+    if step_definition_available:
+        new_content, step_definition_replaced = replace_step_definition_in_target(
+            new_content, args.target_step_id, transformed_step_definition
+        )
+        
+        if step_definition_replaced:
+            print(f"✓ Found and replaced Step definition for '{args.target_step_id}'")
+        else:
+            print(f"Warning: Could not find Step definition for '{args.target_step_id}' in target file")
+            print("The Step definition will need manual update.")
+    
     # Write the modified content
     if not args.force:
         response = input(f"Replace step '{args.target_step_id}' in {target_path}? (y/N): ")
@@ -214,7 +514,13 @@ def main():
             sys.exit(0)
     
     target_path.write_text(new_content)
-    print(f"✅ Successfully swapped step '{args.target_step_id}' in {target_path}")
+    
+    # Success summary
+    success_parts = [f"methods"]
+    if step_definition_replaced:
+        success_parts.append("Step definition")
+    
+    print(f"✅ Successfully swapped {' and '.join(success_parts)} for step '{args.target_step_id}' in {target_path}")
     
     if dependencies:
         print("\n🔍 Dependency Check:")
@@ -222,6 +528,11 @@ def main():
         for dep in dependencies:
             print(f"   • {dep}")
         print("   Please ensure these are defined in your target workflow class.")
+    
+    if not step_definition_available or not step_definition_replaced:
+        print("\n⚠️  Manual Step Definition Update Needed:")
+        print(f"   Please verify that the Step definition for '{args.target_step_id}' in self.steps")
+        print("   matches the requirements of the swapped methods (done key, show name, etc.)")
 
 
 if __name__ == '__main__':

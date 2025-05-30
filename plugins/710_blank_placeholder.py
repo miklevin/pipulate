@@ -211,16 +211,16 @@ class BlankPlaceholder:
     async def step_01(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         current_steps_for_logic = self.steps # Use self.steps
-        step_id = 'step_01'
+        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
+        step_obj = current_steps_for_logic[step_index]  # Use the resolved step object
         # The next step ID calculation relies on 'finalize' being the last item in current_steps_for_logic
         next_step_id = current_steps_for_logic[step_index + 1].id
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step_obj.done, '')
+        current_value = step_data.get(step_obj.done, '')  # Use step_obj.done from resolved Step object
         finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
         if 'finalized' in finalize_sys_data and current_value:
@@ -235,7 +235,7 @@ class BlankPlaceholder:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             form_content = Form(
                 P('This is a placeholder step. Customize its input form elements as needed.'),
-                Input(type="hidden", name=step_obj.done, value="step_01_default_value"), 
+                Input(type="hidden", name=step_obj.done, value="step_01_default_value"),  # Use step_obj.done 
                 Button('Next ▸', type='submit', cls='primary'), 
                 hx_post=f'/{app_name}/{step_id}_submit', 
                 hx_target=f'#{step_id}'
@@ -245,14 +245,14 @@ class BlankPlaceholder:
     async def step_01_submit(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         current_steps_for_logic = self.steps
-        step_id = 'step_01'
+        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
-        step_obj = current_steps_for_logic[step_index]
+        step_obj = current_steps_for_logic[step_index]  # Use the resolved step object
         next_step_id = current_steps_for_logic[step_index + 1].id
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         form_data = await request.form()
-        value_to_save = form_data.get(step_obj.done, 'Step 01 Submitted Default') 
+        value_to_save = form_data.get(step_obj.done, 'Step 01 Submitted Default')  # Use step_obj.done from resolved Step object
         
         await pip.set_step_data(pipeline_id, step_id, value_to_save, current_steps_for_logic)
         

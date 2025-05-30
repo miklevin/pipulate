@@ -429,14 +429,14 @@ class HelloFlow:
         3. Input Phase: Shows input form for new/updated value
         """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_01'
+        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
-        step = steps[step_index]
+        step = steps[step_index]  # Use the resolved step object
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
+        user_val = step_data.get(step.done, '')  # Use step.done from resolved Step object
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
         # Phase 1: Finalize Phase - Show locked view
@@ -479,7 +479,7 @@ class HelloFlow:
                         pip.wrap_with_inline_button(
                             Input(
                                 type='text',
-                                name=step.done,
+                                name=step.done,  # CRITICAL: Use step.done from resolved Step object
                                 value=display_value,
                                 placeholder=f'Enter {step.show}',
                                 required=True,
@@ -488,8 +488,8 @@ class HelloFlow:
                             ),
                             button_label=self.UI_CONSTANTS['BUTTON_LABELS']['NEXT_STEP']
                         ),
-                        hx_post=f'/{app_name}/{step.id}_submit',
-                        hx_target=f'#{step.id}'
+                        hx_post=f'/{app_name}/{step_id}_submit',
+                        hx_target=f'#{step_id}'
                     )
                 ),
                 Div(id=next_step_id),  # Empty placeholder for next step
@@ -506,9 +506,14 @@ class HelloFlow:
         3. Updates the workflow state
         4. Returns a UI showing the completed step and triggering the next step
         """
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]  # Use the resolved step object
+        
         pipeline_id = self.db["pipeline_id"]
         form = await request.form()
-        user_val = form.get(self.steps[0].done, "")
+        user_val = form.get(step.done, "")  # CRITICAL CHANGE: Use step.done from the resolved Step object
 
         # Validate input with emoji error handling
         if not user_val:
@@ -517,31 +522,31 @@ class HelloFlow:
             return P(error_msg, style=self.pipulate.get_style('error'))
 
         # Update state
-        await self.pipulate.set_step_data(pipeline_id, "step_01", user_val, self.steps)
+        await self.pipulate.set_step_data(pipeline_id, step_id, user_val, self.steps)
 
         # Progressive feedback with emoji
         success_msg = f'{self.UI_CONSTANTS["EMOJIS"]["SUCCESS"]} Name saved: {user_val}'
         await self.message_queue.add(self.pipulate, success_msg, verbatim=True)
 
         # Update LLM context
-        self.pipulate.append_to_history(f"[WIDGET CONTENT] {self.steps[0].show}:\n{user_val}")
+        self.pipulate.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{user_val}")
 
         # Return completed view with next step trigger using chain_reverter
-        return self.pipulate.chain_reverter("step_01", 0, self.steps, self.app_name, user_val)
+        return self.pipulate.chain_reverter(step_id, step_index, self.steps, self.app_name, user_val)
     # --- END_STEP_BUNDLE: step_01 ---
 
     # --- START_STEP_BUNDLE: step_02 ---
     async def step_02(self, request):
         """ Handles GET request for Step 2: Displays input form or completed value. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        step_id = 'step_02'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
-        step = steps[step_index]
+        step = steps[step_index]  # Use the resolved step object
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
+        user_val = step_data.get(step.done, '')  # Use step.done from resolved Step object
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         
         # Phase 1: Finalize Phase - Show locked view
@@ -582,7 +587,7 @@ class HelloFlow:
                         pip.wrap_with_inline_button(
                             Input(
                                 type='text', 
-                                name=step.done, 
+                                name=step.done,  # CRITICAL: Use step.done from resolved Step object
                                 value=display_value, 
                                 placeholder=f'{step.show} (generated)', 
                                 required=True, 
@@ -591,27 +596,27 @@ class HelloFlow:
                             ), 
                             button_label=self.UI_CONSTANTS['BUTTON_LABELS']['NEXT_STEP']
                         ), 
-                        hx_post=f'/{app_name}/{step.id}_submit', 
-                        hx_target=f'#{step.id}'
+                        hx_post=f'/{app_name}/{step_id}_submit', 
+                        hx_target=f'#{step_id}'
                     )
                 ), 
                 Div(id=next_step_id), 
-                id=step.id
+                id=step_id
             )
 
     async def step_02_submit(self, request):
         """ Handles POST submission for Step 2: Validates, saves state, returns navigation. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_02'
+        step_id = 'step_02'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
-        step = steps[step_index]
+        step = steps[step_index]  # Use the resolved step object
         pipeline_id = db.get('pipeline_id', 'unknown')
         
         if step.done == 'finalized':
             return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
         
         form = await request.form()
-        user_val = form.get(step.done, '')
+        user_val = form.get(step.done, '')  # CRITICAL CHANGE: Use step.done from resolved Step object
         
         # Enhanced validation with emoji error handling
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)

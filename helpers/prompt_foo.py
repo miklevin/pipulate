@@ -40,7 +40,8 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- This is a template file intended to create new stubs just like 710_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/535_botify_trifecta.py  <-- This is a template file intended to create new stubs just like 710_blank_placeholder.py
+/home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 # /home/mike/repos/pipulate/plugins/040_parameter_buster.py  <-- This (and below in this block) are from the last thing I was thinking about with you
 # /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
 # /home/mike/repos/pipulate/plugins/999_test_trifecta.py
@@ -79,7 +80,8 @@ server.py        <-- Main server file for the project
 ## HELPER SCRIPTS (Meta plot devices)
 /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 710_blank_placeholder.py)
 /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 710_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py   <-- THE SCRIPT I'M ASKING YOU PLAN THE IMPLEMENTATION OF
+/home/mike/repos/pipulate/helpers/manage_class_attributes.py
+/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 ## SAMPLE WORKFLOWS (Frequently recurring challenges)

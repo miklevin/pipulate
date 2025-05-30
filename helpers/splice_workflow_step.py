@@ -249,7 +249,7 @@ async def {step_id_str}(self, request):
                 P("This is a new placeholder step. Customize its input form as needed. Click Proceed to continue."),
                 Form(
                     # Example: Hidden input to submit something for the placeholder
-                    Input(type="hidden", name="{step_done_key}", value="Placeholder Value for {step_show_name}"),
+                    Input(type="hidden", name=step.done, value="Placeholder Value for {step_show_name}"),
                     Button("Next ▸", type="submit", cls="primary"),
                     hx_post=f"/{{app_name}}/{{step_id}}_submit", hx_target=f"#{{step_id}}"
                 )
