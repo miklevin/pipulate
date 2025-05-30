@@ -1075,6 +1075,7 @@ class ParameterBusterNewWorkflow:
         Returns:
             (True, None) if found, (False, None) if not found, or (False, error_message) on error.
         """
+        TOKEN_FILE = 'botify_token.txt'
         try:
             if not os.path.exists(TOKEN_FILE):
                 return (False, f"Token file '{TOKEN_FILE}' not found.")
@@ -1535,6 +1536,7 @@ from typing import Optional, Dict, Any
 TOKEN_FILE = 'botify_token.txt'
 
 def load_api_token() -> str:
+    TOKEN_FILE = 'botify_token.txt'
     \"\"\"Load the Botify API token from the token file.\"\"\"
     try:
         if not os.path.exists(TOKEN_FILE):
