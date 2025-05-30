@@ -1,0 +1,191 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## description: Atomic transplantation marker system for deterministic code transplantation between workflows using simple .split() and .join() operations. globs: ["pipulate/plugins/*.py", "pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py"] alwaysApply: true
+
+# Atomic Transplantation Marker System
+
+## Overview
+
+The atomic transplantation system enables deterministic code transplantation between Pipulate workflows using full-line markers and simple string operations instead of complex regex or AST parsing.
+
+## Critical Insight: Why This System Exists
+
+**AI edit tools struggle with precision marker insertion** due to:
+- Exact indentation requirements
+- Precise line positioning needs  
+- Complex method boundary detection
+- File integrity during multiple edits
+
+The atomic transplantation system uses **deterministic, line-based operations** that work reliably every time.
+
+## Marker System Architecture
+
+### Standard Markers
+The system uses these markers to define transplantable atomic units:
+
+```python
+# --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
+# This section handles the complete Botify data collection workflow (steps 1-4):
+# - Step 1: Botify Project URL input and validation
+# - Step 2: Crawl Analysis selection and download
+# - Step 3: Web Logs availability check and download
+# - Step 4: Search Console data check and download
+# This is an atomic unit that should be transplanted together.
+
+# --- SECTION_STEP_DEFINITION ---
+steps = [
+    Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
+    Step(id='step_02', done='analysis_data', show='Crawl Analysis', refill=False),
+    Step(id='step_03', done='logs_check', show='Web Logs Check', refill=False),
+    Step(id='step_04', done='gsc_check', show='Search Console Check', refill=False),
+]
+# --- END_SECTION_STEP_DEFINITION ---
+
+# ... other class methods ...
+
+# --- SECTION_STEP_METHODS ---
+async def step_01(self, request):
+    # Step 1 implementation
+    pass
+
+async def step_01_submit(self, request):
+    # Step 1 submission handler
+    pass
+
+# ... more step methods ...
+
+async def step_04_submit(self, request):
+    # Final step submission handler
+    pass
+# --- END_SECTION_STEP_METHODS ---
+
+# ... helper methods outside the atomic unit ...
+
+# --- END_WORKFLOW_SECTION ---
+```
+
+### Marker Definitions
+- `START_WORKFLOW_SECTION`: Beginning of atomic unit with documentation
+- `SECTION_STEP_DEFINITION`: Step definitions list boundaries
+- `END_SECTION_STEP_DEFINITION`: End of step definitions
+- `SECTION_STEP_METHODS`: Step method implementations boundaries
+- `END_SECTION_STEP_METHODS`: End of step methods
+- `END_WORKFLOW_SECTION`: End of atomic unit
+
+## Transplantation Philosophy
+
+### Deterministic Operations
+Enable atomic code transplantation using simple string operations:
+
+```python
+# Extract atomic unit
+sections = content.split('# --- START_WORKFLOW_SECTION')
+atomic_unit = sections[1].split('# --- END_WORKFLOW_SECTION')[0]
+
+# Transplant to new workflow
+new_content = new_workflow_template.replace('# INSERTION_POINT', atomic_unit)
+```
+
+### Full-Line Markers
+- Use complete comment lines that are impossible to miss or misinterpret
+- Provide clear boundaries for atomic code sections
+- Include metadata about what each section contains
+- Work with simple string operations instead of complex regex/AST parsing
+
+## Implementation Tool
+
+### Atomic Transplantation Marker Tool
+**Location**: [atomic_transplantation_marker_tool.py](mdc:pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py)
+
+**Key Features**:
+- **Deterministic Success**: Line-based operations with regex pattern matching
+- **Automatic Indentation**: Detects and maintains proper code alignment
+- **Token Efficient**: Completes complex marking in single operations
+- **Validation**: Checks for existing markers to prevent duplicates
+
+**Usage Examples**:
+```bash
+# Complete Parameter Buster workflow markers
+python helpers/cleanup/atomic_transplantation_marker_tool.py complete-parameter-buster
+
+# Add markers to any workflow
+python helpers/cleanup/atomic_transplantation_marker_tool.py add-markers plugins/my_workflow.py
+
+# Custom marker insertion
+python helpers/cleanup/atomic_transplantation_marker_tool.py insert-before "async def step_01" "# --- MARKER ---" file.py
+```
+
+## Lessons Learned from Parameter Buster Implementation
+
+### Edit Tool Limitations
+1. **Precision Failures**: AI edit tool repeatedly failed to make precise insertions around method definitions
+2. **Context Sensitivity**: Struggled with exact indentation and positioning
+3. **Token Inefficiency**: Failed edit attempts consumed hundreds of tokens vs. ~100 for custom tool
+4. **Reliability Issues**: Multiple attempts required vs. 100% success rate with custom tool
+
+### Success Patterns
+1. **Line-Based Operations**: Regex pattern matching provides reliable results
+2. **Indentation Detection**: Automatic detection from reference lines ensures proper alignment
+3. **Validation First**: Check for existing markers prevents duplicates
+4. **Simple Operations**: Straightforward string manipulation over complex heuristics
+
+## When to Use This System
+
+### Precision Tasks
+- When exact positioning or formatting is critical
+- When AI edit tools are failing repeatedly
+- When token conservation is important
+- When deterministic results are required
+
+### Workflow Development
+- Marking workflows for future transplantation
+- Creating reusable workflow components
+- Standardizing workflow structure
+- Enabling rapid workflow iteration
+
+## Integration with Pipulate Development
+
+### Workflow Creation
+- Mark new workflows during development
+- Use markers to define reusable components
+- Enable easy transplantation between similar workflows
+- Maintain clear boundaries between atomic units
+
+### Maintenance Operations
+- Bulk operations across multiple workflows
+- Consistent structure enforcement
+- Automated refactoring support
+- Code organization and cleanup
+
+## Best Practices
+
+### Marker Placement
+1. **Full-Line Comments**: Always use complete comment lines
+2. **Consistent Indentation**: Match surrounding code indentation
+3. **Clear Documentation**: Include descriptive comments explaining the atomic unit
+4. **Logical Boundaries**: Mark complete, self-contained code sections
+
+### Tool Usage
+1. **Test First**: Run tools on version-controlled code
+2. **Validate Results**: Review changes before committing
+3. **Document Usage**: Note which tools were used for future reference
+4. **Extend Thoughtfully**: Add new markers when clear patterns emerge
+
+## Future Enhancements
+
+### System Evolution
+- Support for multiple workflow atomic units in one file
+- Validation of marker completeness and consistency
+- Integration with workflow creation templates
+- Marker removal/cleanup functionality
+
+### Tooling Improvements
+- Automated detection of transplantable units
+- Visual diff tools for transplantation preview
+- Integration with version control systems
+- Performance optimization for large files
+
+This system represents a **precision-over-intelligence** approach that prioritizes reliable, deterministic operations over "smart" behavior that might fail in edge cases.

@@ -254,11 +254,22 @@ class BotifyCsvDownloaderWorkflow:
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
         
+        # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
+        # This section handles the complete Botify data collection workflow (steps 1-4):
+        # - Step 1: Botify Project URL input and validation
+        # - Step 2: Crawl Analysis selection and download with template support
+        # - Step 3: Web Logs availability check and download
+        # - Step 4: Search Console data check and download
+        # This is an atomic unit that should be transplanted together.
+
+        # --- SECTION_STEP_DEFINITION ---
         steps = [
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), 
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False), 
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), 
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False), 
+        # --- END_SECTION_STEP_DEFINITION ---
+
             Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)
         ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
@@ -432,6 +443,7 @@ class BotifyCsvDownloaderWorkflow:
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
+    # --- SECTION_STEP_METHODS ---
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
 
@@ -3141,6 +3153,7 @@ await main()
         except Exception as e:
             logging.exception(f'Error in step_04_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+    # --- END_SECTION_STEP_METHODS ---
 
     def convert_jobs_to_query_payload(self, jobs_payload, username, project_name, page_size=100):
         """
@@ -4066,6 +4079,8 @@ await main()
                     logger.error(f"Error creating fallback download button for {step_id}: {e}")
         
         return buttons
+
+    # --- END_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
 
     # --- STEP_METHODS_INSERTION_POINT ---
 

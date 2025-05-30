@@ -66,7 +66,19 @@ class ParameterBusterNewWorkflow:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
+        
+        # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
+        # This section handles the complete Botify data collection workflow (steps 1-4):
+        # - Step 1: Botify Project URL input and validation
+        # - Step 2: Crawl Analysis selection and download
+        # - Step 3: Web Logs availability check and download
+        # - Step 4: Search Console data check and download
+        # This is an atomic unit that should be transplanted together.
+
+        # --- SECTION_STEP_DEFINITION ---
         steps = [Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), Step(id='step_02', done='analysis_selection', show='Download Crawl Analysis', refill=False), Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), Step(id='step_04', done='search_console_check', show='Download Search Console', refill=False), Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True), Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True), Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False)]
+        # --- END_SECTION_STEP_DEFINITION ---
+        
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST']), (f'/{app_name}/parameter_preview', self.parameter_preview, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -197,6 +209,7 @@ class ParameterBusterNewWorkflow:
         await self.message_queue.add(pip, f'Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
+    # --- SECTION_STEP_METHODS ---
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
 
@@ -1529,6 +1542,7 @@ class ParameterBusterNewWorkflow:
             logging.exception(f'Error in step_03_process: {e}')
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
+    # --- END_SECTION_STEP_METHODS ---
     async def analyze_parameters(self, username, project_name, analysis_slug):
         """Counts URL parameters from crawl, GSC, and web logs data.
 
@@ -2176,3 +2190,5 @@ class ParameterBusterNewWorkflow:
         if '_revert_target' in state:
             del state['_revert_target']
         pip.write_state(pipeline_id, state)
+
+# --- END_WORKFLOW_SECTION ---
