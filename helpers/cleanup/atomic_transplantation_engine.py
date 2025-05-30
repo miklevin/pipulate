@@ -96,19 +96,22 @@ class AtomicTransplantationEngine:
             Tuple[str, bool]: (extracted_section_content, success)
         """
         start_marker, end_marker = self.get_section_markers(section_name)
+        generic_end_marker = "# --- END_WORKFLOW_SECTION ---"
         
         lines = content.split('\n')
         section_lines = []
         in_section = False
+        section_closed = False
         
         for line in lines:
             if line.strip() == start_marker:
                 in_section = True
                 section_lines.append(line)
                 continue
-            elif line.strip() == end_marker:
+            elif line.strip() == end_marker or line.strip() == generic_end_marker:
                 if in_section:
                     section_lines.append(line)
+                    section_closed = True
                     break
                 else:
                     self.log(f"ERROR: Found end marker without corresponding start marker")
@@ -120,11 +123,9 @@ class AtomicTransplantationEngine:
             self.log(f"ERROR: No section found with name '{section_name}'")
             return "", False
         
-        if not in_section or lines[-1] != end_marker:
-            # Check if we ended properly
-            if section_lines and section_lines[-1].strip() != end_marker:
-                self.log(f"ERROR: Section '{section_name}' not properly closed")
-                return "", False
+        if in_section and not section_closed:
+            self.log(f"ERROR: Section '{section_name}' not properly closed")
+            return "", False
         
         extracted_content = '\n'.join(section_lines)
         
