@@ -1276,7 +1276,28 @@ python helpers/swap_workflow_step.py \\
             id=widget_id
         )
         
-        return container
+        init_script = Script(f"""
+            (function() {{
+                // Initialize Prism immediately when the script loads
+                if (typeof Prism !== 'undefined') {{
+                    Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                }}
+                
+                // Also listen for the HX-Trigger event as a backup
+                document.body.addEventListener('initializePrism', function(event) {{
+                    if (event.detail.targetId === '{widget_id}') {{
+                        console.log('Received initializePrism event for {widget_id}');
+                        if (typeof Prism !== 'undefined') {{
+                            Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                        }} else {{
+                            console.error('Prism library not found for {widget_id}');
+                        }}
+                    }}
+                }});
+            }})();
+        """, type='text/javascript')
+        
+        return Div(container, init_script)
 
     def create_splice_commands_widget(self, filename, widget_id):
         """Create a comprehensive splice commands widget with individual copy-able commands."""
