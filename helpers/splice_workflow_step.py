@@ -204,6 +204,9 @@ def generate_step_method_templates(step_id_str: str, step_done_key: str, step_sh
     Generates the Python code for a new step's GET and POST handlers.
     The next_step_id for the new step's submit handler will be determined dynamically
     based on its position in the self.steps list within the workflow's __init__.
+    
+    The generated methods are wrapped with SWAPPABLE_STEP markers to enable
+    the swap_workflow_step.py script to replace them with developed logic.
     """
     # Base indentation for methods within the class
     method_indent = "    " # Four spaces for class methods
@@ -285,7 +288,12 @@ async def {step_id_str}_submit(self, request):
     # Add the class-level indentation to the entire template
     indented_get = "\n".join(f"{method_indent}{line}" for line in get_method_template.strip().split("\n"))
     indented_submit = "\n".join(f"{method_indent}{line}" for line in submit_method_template.strip().split("\n"))
-    return f"\n{indented_get}\n\n{indented_submit}\n"
+    
+    # Wrap with swappable step markers to enable swap_workflow_step.py
+    swappable_start = f"{method_indent}# --- START_SWAPPABLE_STEP: {step_id_str} ---"
+    swappable_end = f"{method_indent}# --- END_SWAPPABLE_STEP: {step_id_str} ---"
+    
+    return f"\n{swappable_start}\n{indented_get}\n\n{indented_submit}\n{swappable_end}\n"
 
 def main():
     parser = argparse.ArgumentParser(

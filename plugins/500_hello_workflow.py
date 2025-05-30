@@ -416,6 +416,7 @@ class HelloFlow:
         await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["WARNING"]} Reverted to {step_id}. {message}', verbatim=True)
         return pip.rebuild(app_name, steps)
 
+    # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
         """
         Handles GET request for Step 1: Displays input form or completed value.
@@ -525,7 +526,9 @@ class HelloFlow:
 
         # Return completed view with next step trigger using chain_reverter
         return self.pipulate.chain_reverter("step_01", 0, self.steps, self.app_name, user_val)
+    # --- END_STEP_BUNDLE: step_01 ---
 
+    # --- START_STEP_BUNDLE: step_02 ---
     async def step_02(self, request):
         """ Handles GET request for Step 2: Displays input form or completed value. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -632,5 +635,6 @@ class HelloFlow:
             app_name=app_name,
             processed_val=processed_val
         )
+    # --- END_STEP_BUNDLE: step_02 ---
 
     # --- STEP_METHODS_INSERTION_POINT ---
