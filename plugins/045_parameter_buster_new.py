@@ -66,6 +66,7 @@ class ParameterBusterNewWorkflow:
             'button_label_suffix': 'Crawl Analysis',
             'query': {
                 'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'metrics': [],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
@@ -77,6 +78,7 @@ class ParameterBusterNewWorkflow:
             'button_label_suffix': 'Non-Compliant Analysis',
             'query': {
                 'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.compliant.is_compliant'],
+                'metrics': [{'function': 'count', 'args': ['{collection}.url']}],
                 'filters': {'field': '{collection}.compliant.is_compliant', 'predicate': 'eq', 'value': False}
             }
         },
@@ -2663,7 +2665,7 @@ await main()
                                             with zip_ref.open(csv_files[0]) as source:
                                                 with open(logs_filepath, 'wb') as target:
                                                     shutil.copyfileobj(source, target)
-                                        logging.info(f'Successfully extracted zip file to {logs_filepath}')
+                                            logging.info(f'Successfully extracted zip file to {logs_filepath}')
                                     except zipfile.BadZipFile:
                                         shutil.copy(compressed_path, logs_filepath)
                                         logging.info(f"File doesn't appear to be compressed, copying directly to {logs_filepath}")
