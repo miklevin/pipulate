@@ -416,6 +416,83 @@ Div(content, style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_
 ### Philosophy: Deterministic Template Processing
 The WET workflow system uses **full-line markers** and **split/join methodology** instead of complex regex patterns for reliable, deterministic template assembly. This approach ensures helper scripts work predictably across different workflow templates.
 
+### Atomic Transplantation Markers
+**Reference**: [15_atomic_transplantation_system.mdc](mdc:15_atomic_transplantation_system.mdc)
+
+The atomic transplantation system enables deterministic code transplantation between workflows using full-line markers and simple string operations. This system complements the template assembly patterns by providing a way to mark and transplant complete workflow sections.
+
+#### Standard Atomic Transplantation Markers
+For workflows that contain reusable atomic units (complete multi-step sections):
+
+```python
+# --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
+# This section handles the complete Botify data collection workflow (steps 1-4):
+# - Step 1: Botify Project URL input and validation
+# - Step 2: Crawl Analysis selection and download
+# - Step 3: Web Logs availability check and download
+# - Step 4: Search Console data check and download
+# This is an atomic unit that should be transplanted together.
+
+# --- SECTION_STEP_DEFINITION ---
+steps = [
+    Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
+    Step(id='step_02', done='analysis_data', show='Crawl Analysis', refill=False),
+    Step(id='step_03', done='logs_check', show='Web Logs Check', refill=False),
+    Step(id='step_04', done='gsc_check', show='Search Console Check', refill=False),
+]
+# --- END_SECTION_STEP_DEFINITION ---
+
+# ... other class methods ...
+
+# --- SECTION_STEP_METHODS ---
+async def step_01(self, request):
+    # Step 1 implementation
+    pass
+
+async def step_01_submit(self, request):
+    # Step 1 submission handler
+    pass
+
+# ... more step methods ...
+
+async def step_04_submit(self, request):
+    # Final step submission handler
+    pass
+# --- END_SECTION_STEP_METHODS ---
+
+# ... helper methods outside the atomic unit ...
+
+# --- END_WORKFLOW_SECTION ---
+```
+
+#### Atomic Transplantation Marker Definitions
+- `START_WORKFLOW_SECTION`: Beginning of atomic unit with descriptive documentation
+- `SECTION_STEP_DEFINITION`: Step definitions list boundaries
+- `END_SECTION_STEP_DEFINITION`: End of step definitions
+- `SECTION_STEP_METHODS`: Step method implementations boundaries
+- `END_SECTION_STEP_METHODS`: End of step methods
+- `END_WORKFLOW_SECTION`: End of atomic unit
+
+#### When to Use Atomic Transplantation Markers
+- **Complex Multi-Step Workflows**: When you have 3+ related steps that form a logical unit
+- **Reusable Workflow Components**: API integration patterns, data collection sequences
+- **Cross-Workflow Sharing**: When similar functionality needs to be replicated across workflows
+- **Maintenance Efficiency**: When bulk updates need to be applied to similar workflow sections
+
+#### Atomic Transplantation Tool Usage
+**Tool**: `pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py`
+
+```bash
+# Add complete atomic markers to a workflow
+python helpers/cleanup/atomic_transplantation_marker_tool.py add-markers plugins/my_workflow.py
+
+# Complete Parameter Buster workflow markers (example)
+python helpers/cleanup/atomic_transplantation_marker_tool.py complete-parameter-buster
+
+# Custom marker insertion
+python helpers/cleanup/atomic_transplantation_marker_tool.py insert-before "async def step_01" "# --- MARKER ---" file.py
+```
+
 ### Core Template Markers
 Every workflow template must include these markers for automated processing:
 
@@ -528,7 +605,13 @@ python splice_workflow_step.py 035_kungfu_workflow.py --position top
 
 ### Marker Placement Best Practices
 
-#### Steps List Marker
+The WET workflow system uses two complementary marker systems:
+1. **Template Assembly Markers**: For workflow creation and step insertion
+2. **Atomic Transplantation Markers**: For reusable workflow section transplantation
+
+#### Template Assembly Markers
+
+##### Steps List Marker
 - **Always** place immediately before the finalize step
 - **Never** place inside conditional logic or loops
 - **Maintain** consistent indentation with surrounding Step definitions
@@ -547,7 +630,7 @@ if some_condition:
     # --- STEPS_LIST_INSERTION_POINT ---
 ```
 
-#### Methods Marker
+##### Methods Marker
 - **Always** place at class level (not inside methods)
 - **Position** after all existing step methods
 - **Maintain** consistent indentation (4 spaces for class members)
@@ -569,23 +652,162 @@ class MyWorkflow:
         pass
 ```
 
+#### Atomic Transplantation Markers
+
+##### Workflow Section Markers
+- **Use descriptive section names** that clearly identify the atomic unit
+- **Include comprehensive documentation** explaining what the section does
+- **Mark complete, self-contained workflow sections** (typically 3+ related steps)
+
+```python
+# ✅ CORRECT - Complete atomic unit with clear boundaries
+# --- START_WORKFLOW_SECTION: botify_data_collection ---
+# This section handles the complete Botify data collection workflow:
+# - Step 1: Project URL input and validation
+# - Step 2: Analysis selection and download
+# - Step 3: Web logs check and download
+# This is an atomic unit that should be transplanted together.
+
+# --- SECTION_STEP_DEFINITION ---
+steps = [
+    Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
+    Step(id='step_02', done='analysis_data', show='Crawl Analysis', refill=False),
+    Step(id='step_03', done='logs_check', show='Web Logs Check', refill=False),
+]
+# --- END_SECTION_STEP_DEFINITION ---
+
+# --- SECTION_STEP_METHODS ---
+async def step_01(self, request):
+    # Implementation
+    pass
+
+async def step_01_submit(self, request):
+    # Implementation
+    pass
+
+async def step_02(self, request):
+    # Implementation
+    pass
+
+async def step_02_submit(self, request):
+    # Implementation
+    pass
+# --- END_SECTION_STEP_METHODS ---
+
+# --- END_WORKFLOW_SECTION ---
+
+# ❌ INCORRECT - Incomplete atomic unit
+# --- START_WORKFLOW_SECTION: incomplete_section ---
+async def step_01(self, request):
+    pass
+# Missing step definitions, missing end markers
+```
+
+##### Marker Hierarchy and Nesting
+- **Atomic transplantation markers** can contain **template assembly markers**
+- **Never nest** atomic transplantation sections within each other
+- **Maintain clear boundaries** between different atomic units
+
+```python
+# ✅ CORRECT - Atomic markers containing template markers
+# --- START_WORKFLOW_SECTION: api_integration ---
+# --- SECTION_STEP_DEFINITION ---
+steps = [
+    Step(id='step_01', done='api_setup', show='API Setup', refill=False),
+    # --- STEPS_LIST_INSERTION_POINT ---  # Template marker inside atomic section
+    Step(id='finalize', done='finalized', show='Finalize', refill=False)
+]
+# --- END_SECTION_STEP_DEFINITION ---
+
+# --- SECTION_STEP_METHODS ---
+async def step_01(self, request):
+    pass
+
+# --- STEP_METHODS_INSERTION_POINT ---  # Template marker inside atomic section
+# --- END_SECTION_STEP_METHODS ---
+# --- END_WORKFLOW_SECTION ---
+```
+
+#### Marker Selection Guidelines
+
+##### Use Template Assembly Markers When:
+- Creating new workflows from templates
+- Adding individual steps to existing workflows
+- Building simple, linear workflows
+- Working with single-purpose workflows
+
+##### Use Atomic Transplantation Markers When:
+- Creating reusable multi-step workflow components
+- Building complex workflows with distinct functional sections
+- Planning to share workflow patterns across multiple implementations
+- Working with API integration patterns that will be reused
+
+##### Use Both Systems When:
+- Building complex workflows that serve as templates for others
+- Creating comprehensive workflow libraries
+- Developing workflows with both reusable sections and extensible step lists
+- Building enterprise-grade workflow systems
+
 ### Template Evolution Strategy
 
 #### Making Any Workflow a Template
-1. **Add Required Markers**: Insert both insertion point markers
-2. **Add UI Constants**: Define centralized styling constants
-3. **Standardize Attributes**: Ensure all required class attributes are present
+1. **Add Required Markers**: Insert both template assembly insertion point markers
+2. **Add UI Constants**: Define centralized styling constants for consistent appearance
+3. **Standardize Attributes**: Ensure all required class attributes are present (APP_NAME, DISPLAY_NAME, etc.)
 4. **Document Patterns**: Add clear docstrings explaining the workflow's approach
 5. **Test Assembly**: Verify the workflow works with helper scripts
 6. **Register Template**: Add to TEMPLATE_MAP in create_workflow.py
 
+#### Making Workflows Atomic Transplantation Ready
+1. **Identify Reusable Sections**: Look for 3+ related steps that form logical units
+2. **Add Atomic Markers**: Use the atomic transplantation marker tool to mark sections
+3. **Document Atomic Units**: Include comprehensive comments explaining what each section does
+4. **Test Transplantation**: Verify sections can be extracted and transplanted successfully
+5. **Maintain Boundaries**: Ensure atomic units are self-contained and don't have external dependencies
+
 #### Template Inheritance Patterns
 Complex workflows can serve as templates for similar use cases:
 
-- **API Integration Templates**: Based on Botify Trifecta pattern
-- **File Processing Templates**: Based on upload/download workflows  
-- **Multi-Step Forms**: Based on data collection patterns
-- **Background Processing**: Based on long-running operation patterns
+- **API Integration Templates**: Based on Botify Trifecta pattern with atomic data collection sections
+- **File Processing Templates**: Based on upload/download workflows with reusable file handling sections
+- **Multi-Step Forms**: Based on data collection patterns with atomic form progression sections
+- **Background Processing**: Based on long-running operation patterns with atomic processing sections
+
+#### Hybrid Workflow Development
+Combine both marker systems for maximum flexibility:
+
+```python
+class HybridWorkflow:
+    # --- START_WORKFLOW_SECTION: core_data_collection ---
+    # Core data collection that can be transplanted to other workflows
+    
+    # --- SECTION_STEP_DEFINITION ---
+    steps = [
+        Step(id='step_01', done='data_source', show='Data Source', refill=True),
+        Step(id='step_02', done='data_fetch', show='Fetch Data', refill=False),
+        # --- STEPS_LIST_INSERTION_POINT ---  # Allow additional steps to be inserted
+        Step(id='finalize', done='finalized', show='Finalize', refill=False)
+    ]
+    # --- END_SECTION_STEP_DEFINITION ---
+    
+    # --- SECTION_STEP_METHODS ---
+    async def step_01(self, request):
+        # Core implementation
+        pass
+    
+    async def step_02(self, request):
+        # Core implementation  
+        pass
+    
+    # --- STEP_METHODS_INSERTION_POINT ---  # Allow additional methods to be inserted
+    # --- END_SECTION_STEP_METHODS ---
+    
+    # --- END_WORKFLOW_SECTION ---
+    
+    # Additional workflow-specific methods outside the atomic unit
+    async def custom_helper_method(self, request):
+        pass
+```
 
 ### Why This Approach Works
 
@@ -594,14 +816,29 @@ Complex workflows can serve as templates for similar use cases:
 - **Debuggable**: Easy to see exactly where insertions will occur
 - **Maintainable**: Simple string operations instead of complex pattern matching
 - **Reliable**: Works consistently across different code styles and formatting
+- **Tool-Friendly**: Both AI and custom tools can work with these markers effectively
 
 #### Split/Join Methodology Benefits
 - **Preserves Formatting**: Maintains original indentation and style
 - **Handles Edge Cases**: Works with various Python syntax patterns
 - **Easy to Debug**: Can inspect intermediate steps in processing
 - **Extensible**: Easy to add new processing steps without breaking existing logic
+- **Deterministic**: Same input always produces same output
 
-This template assembly system ensures that any WET workflow can become a reliable foundation for new workflows, maintaining the explicit, debuggable nature that makes WET patterns effective while providing powerful automation for common development tasks.
+#### Complementary System Benefits
+- **Template Assembly**: Enables rapid workflow creation and step addition
+- **Atomic Transplantation**: Enables reusable component sharing across workflows
+- **Combined Power**: Workflows can be both templates and sources of atomic components
+- **Maintenance Efficiency**: Bulk updates can be applied to similar patterns across multiple workflows
+
+#### Real-World Impact
+- **Token Conservation**: Reduces AI token usage on routine tasks
+- **Development Speed**: Faster workflow creation and modification
+- **Code Consistency**: Standardized patterns across all workflows
+- **Maintenance Reduction**: Changes to atomic units propagate across workflows
+- **Knowledge Sharing**: Successful patterns become reusable components
+
+This dual marker system ensures that WET workflows can serve multiple purposes: as templates for new workflow creation, as sources of reusable atomic components, and as maintainable, extensible systems that preserve the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
 
 ## Implementation Guidelines
 
