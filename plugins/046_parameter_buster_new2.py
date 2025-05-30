@@ -12,51 +12,30 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse, quote
-from typing import Optional
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Workshop']
-TOKEN_FILE = 'botify_token.txt'
-
+ROLES = ['Botify Employee']
+'\nMulti-Export Workflow\nA workflow for performing multiple CSV exports from Botify.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class BotifyCsvDownloaderWorkflow:
+class ParameterBusterWorkflow:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
+    Parameter Buster Workflow
 
-    A comprehensive workflow that downloads three types of Botify data (crawl analysis, web logs, 
-    and Search Console) and generates Jupyter-friendly Python code for API debugging. This workflow 
-    demonstrates:
+    A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls, 
+    web logs, and Search Console) to identify optimization opportunities. This workflow demonstrates:
 
     - Multi-step form collection with chain reaction progression
     - Data fetching from external APIs with proper retry and error handling
     - File caching and management for large datasets
     - Background processing with progress indicators
-
-    CRITICAL INSIGHT: Botify API Evolution Complexity
-    ================================================
-    
-    This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but 
-    BOTH versions coexist and are required for different data types:
-    
-    - Web Logs: Uses BQLv1 with special endpoint (app.botify.com/api/v1/logs/...)
-    - Crawl/GSC: Uses BQLv2 with standard endpoint (api.botify.com/v1/projects/.../query)
-    
-    The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
-    essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
-    
-    PAINFUL LESSONS LEARNED:
-    1. Web logs API uses different base URL (app.botify.com vs api.botify.com)
-    2. BQLv1 puts dates at payload level, BQLv2 puts them in periods array
-    3. Same job_type can have different payload structures (legacy vs modern)
-    4. Missing dates = broken URLs = 404 errors
-    5. PrismJS syntax highlighting requires explicit language classes and manual triggers
+    - Complex data analysis with pandas
 
     IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger 
     the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
@@ -71,30 +50,25 @@ class BotifyCsvDownloaderWorkflow:
     - Background tasks use Script tags with htmx.ajax for better UX during long operations
     - File paths are deterministic based on username/project/analysis to enable caching
     - All API errors are handled with specific error messages for better troubleshooting
-    - Python code generation optimized for Jupyter Notebook debugging workflow
-    - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
     """
-    APP_NAME = 'trifecta'
-    DISPLAY_NAME = 'Botify Trifecta'
-    ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
-    TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
+    APP_NAME = 'param_buster'
+    DISPLAY_NAME = 'Parameter Buster'
+    ENDPOINT_MESSAGE = 'Extract and analyze URL parameters from any web address. Perfect for understanding tracking codes and URL structure.'
+    TRAINING_PROMPT = 'This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms.'
 
-    # Query Templates - Extracted from build_exports for reusability
-    # 
-    # NOTE: Web Logs are intentionally NOT templated (KISS principle)
-    # ================================================================
-    # Web logs queries are simple, consistent, and rarely change:
-    # - Always same fields: ['url', 'crawls.google.count'] 
-    # - Always same filter: crawls.google.count > 0
-    # - Uses legacy BQLv1 structure (different from crawl/GSC)
-    # - Different API endpoint (app.botify.com vs api.botify.com)
-    # 
-    # Adding web logs to templates would require:
-    # - Separate BQLv1 template system
-    # - Handling different endpoint/payload structures  
-    # - More complexity for minimal benefit
-    # 
-    # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        """Initialize the workflow, define steps, and register routes."""
+        gsc_template = self.get_configured_template('gsc')
+        crawl_template = self.get_configured_template('crawl')
+        self.app = app
+        self.app_name = app_name
+        self.pipulate = pipulate
+        self.pipeline = pipeline
+        self.steps_indices = {}
+        self.db = db
+        pip = self.pipulate
+        self.message_queue = pip.message_queue
+                    # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
     # This section handles the complete Botify data collection workflow (steps 1-4):
     # - Step 1: Botify Project URL input and validation
     # - Step 2: Crawl Analysis selection and download with template support
@@ -4085,7 +4059,4 @@ await main()
         
         return buttons
 
-    # --- END_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
-
-    # --- STEP_METHODS_INSERTION_POINT ---
-
+    # --- END_WORKFLOW_SECTION ---
