@@ -147,7 +147,7 @@ class BotifyCsvDownloaderWorkflow:
                 'metrics': [],
                 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}
             },
-            'hardwired_depth': 0,  # Set to integer (e.g., 2) to override automatic depth optimization
+            'hardwired_depth': None,  # Set to integer (e.g., 2) to override automatic depth optimization
             'qualifier_config': {
                 'enabled': True,
                 'qualifier_bql_template': {
@@ -3081,7 +3081,7 @@ await main()
                                                 with zip_ref.open(csv_files[0]) as source:
                                                     with open(gsc_filepath, 'wb') as target:
                                                         shutil.copyfileobj(source, target)
-                                            logging.info(f'Successfully extracted zip file to {gsc_filepath}')
+                                                logging.info(f'Successfully extracted zip file to {gsc_filepath}')
                                         except zipfile.BadZipFile:
                                             shutil.copy(compressed_path, gsc_filepath)
                                             logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
@@ -3974,6 +3974,17 @@ await main()
                     # Check if this is a link graph file for Cosmograph visualization
                     is_link_graph = expected_filename.startswith('link_graph')
                     
+                    # Always create the download button first
+                    download_button = A(
+                        self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                        href=f"/download_file?file={quote(path_for_url)}",
+                        target="_blank",
+                        role="button",
+                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                    )
+                    buttons.append(download_button)
+                    
+                    # For link graph files, also add the Cosmograph visualization button
                     if is_link_graph:
                         # Create Cosmograph visualization link using the same pattern as botifython.py
                         # Important: URL-encode the entire data URL to prevent query parameter conflicts
@@ -3991,16 +4002,6 @@ await main()
                             cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(viz_button)
-                    else:
-                        # Create regular download button for non-link-graph files
-                        download_button = A(
-                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
-                            href=f"/download_file?file={quote(path_for_url)}",
-                            target="_blank",
-                            role="button",
-                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                        )
-                        buttons.append(download_button)
                 else:
                     logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
@@ -4024,6 +4025,17 @@ await main()
                         # Check if this is a link graph file for Cosmograph visualization
                         is_link_graph = file_path_obj.name.startswith('link_graph')
                         
+                        # Always create the download button first
+                        download_button = A(
+                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                            href=f"/download_file?file={quote(path_for_url)}",
+                            target="_blank",
+                            role="button",
+                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                        )
+                        buttons.append(download_button)
+                        
+                        # For link graph files, also add the Cosmograph visualization button
                         if is_link_graph:
                             # Create Cosmograph visualization link using the same pattern as botifython.py
                             file_url = f"/download_file?file={quote(path_for_url)}"
