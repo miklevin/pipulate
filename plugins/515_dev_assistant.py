@@ -327,7 +327,7 @@ class DevAssistant:
         if init_method_match:
             init_content = init_method_match.group(1)
             
-            # Check for finalize_submit registration pattern
+            # Check for explicit finalize_submit registration pattern
             if 'finalize_submit' in init_content:
                 if 'async def finalize_submit(' not in content:
                     route_registration_issues.append(
@@ -348,6 +348,38 @@ class DevAssistant:
                         f"```\n\n"
                         f"OR modify the route registration to not expect finalize_submit and handle POST in finalize() method instead."
                     )
+            
+            # Check for dynamic step registration that would create finalize_submit
+            # Pattern: for step in steps: ... getattr(self, f'{step_id}_submit')
+            if ('for step in steps:' in init_content or 'for step in self.steps:' in init_content) and 'getattr(self, f' in init_content and '_submit' in init_content:
+                # Check if 'finalize' appears in the steps definition and would trigger finalize_submit registration
+                if "Step(id='finalize'" in content or 'id="finalize"' in content:
+                    if 'async def finalize_submit(' not in content:
+                        route_registration_issues.append(
+                            f"❌ CRITICAL: Route registration expects 'finalize_submit' method but it doesn't exist"
+                        )
+                        analysis["coding_assistant_prompts"].append(
+                            f"Add missing finalize_submit method to {filename}:\n"
+                            f"The dynamic route registration loop creates a finalize_submit handler when 'finalize' is in steps, but the method doesn't exist.\n\n"
+                            f"SOLUTION 1 - Add the missing method:\n"
+                            f"```python\n"
+                            f"async def finalize_submit(self, request):\n"
+                            f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
+                            f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                            f"    \n"
+                            f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
+                            f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
+                            f"    return pip.rebuild(app_name, self.steps)\n"
+                            f"```\n\n"
+                            f"SOLUTION 2 - Exclude finalize from dynamic registration:\n"
+                            f"```python\n"
+                            f"for step in steps:\n"
+                            f"    step_id = step.id\n"
+                            f"    routes.append((f'/{{app_name}}/{{step_id}}', getattr(self, step_id)))\n"
+                            f"    if step_id != 'finalize':  # Only data steps have explicit _submit handlers\n"
+                            f"        routes.append((f'/{{app_name}}/{{step_id}}_submit', getattr(self, f'{{step_id}}_submit'), ['POST']))\n"
+                            f"```"
+                        )
             
             # Check for step handler registration mismatches
             step_submit_patterns = re.findall(r'(\w+)_submit', init_content)
@@ -402,6 +434,7 @@ class DevAssistant:
             analysis["patterns_found"].append("✅ STEPS_LIST_INSERTION_POINT marker found")
         else:
             analysis["template_suitability"]["missing_requirements"].append("STEPS_LIST_INSERTION_POINT marker")
+            analysis["issues"].append("❌ Missing STEPS_LIST_INSERTION_POINT marker (template compatibility)")
             analysis["coding_assistant_prompts"].append(
                 f"Add STEPS_LIST_INSERTION_POINT marker to {filename}:\n"
                 f"In the self.steps definition, add the marker before the finalize step:\n\n"
@@ -421,6 +454,7 @@ class DevAssistant:
             analysis["patterns_found"].append("✅ STEP_METHODS_INSERTION_POINT marker found")  
         else:
             analysis["template_suitability"]["missing_requirements"].append("STEP_METHODS_INSERTION_POINT marker")
+            analysis["issues"].append("❌ Missing STEP_METHODS_INSERTION_POINT marker (template compatibility)")
             analysis["coding_assistant_prompts"].append(
                 f"Add STEP_METHODS_INSERTION_POINT marker to {filename}:\n"
                 f"At the end of the class, after all existing step methods, add:\n\n"
@@ -447,6 +481,7 @@ class DevAssistant:
             else:
                 missing_attributes.append(attr)
                 analysis["template_suitability"]["missing_requirements"].append(f"{attr} class attribute")
+                analysis["issues"].append(f"❌ Missing {attr} class attribute (template compatibility)")
         
         if missing_attributes:
             analysis["coding_assistant_prompts"].append(
@@ -479,6 +514,7 @@ class DevAssistant:
             analysis["patterns_found"].append("✅ UI_CONSTANTS for styling found")
         else:
             analysis["template_suitability"]["missing_requirements"].append("UI_CONSTANTS for styling consistency")
+            analysis["issues"].append("❌ Missing UI_CONSTANTS (template compatibility)")
             analysis["coding_assistant_prompts"].append(
                 f"Add UI_CONSTANTS to {filename}:\n"
                 f"Add styling constants at the top of the class for consistent appearance:\n\n"
@@ -580,7 +616,7 @@ class DevAssistant:
         # Store step data
         await pip.set_step_data(pipeline_id, step_id, user_input, steps)
         
-        return pip.chain_reverter(step_id, step_index, steps, app_name, user_input)""")
+        return pip.chain_reverter(step_id, step_index, steps, app_name, user_input)\n""")
                 
                 analysis["coding_assistant_prompts"].append(
                     f"Add missing step handlers to {filename}:\n"
