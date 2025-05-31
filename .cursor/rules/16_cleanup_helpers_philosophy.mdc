@@ -3,116 +3,72 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Cleanup Helpers Philosophy: Precision Tools for Additive Development
+# Supporting Tools Philosophy - Precision Helpers
 
-## Overview
+## Current Status: **Mostly Superseded by Template-Based Creation**
 
-The Pipulate cleanup helpers represent a **precision-over-intelligence** approach to development tooling. **Evolution**: Originally focused on atomic transplantation, now optimized for **stub-based additive development** while maintaining precision tools for tasks where AI-assisted editing struggles.
+**Primary Workflow Creation**: See [05_workflow_creation_helpers.mdc](mdc:05_workflow_creation_helpers.mdc) for the main workflow creation system using the proven 4-tool helper suite.
 
-## Core Philosophy
+## Historical Context
 
-### Precision Over Intelligence
-These tools prioritize **deterministic, predictable operations** over "smart" behavior that might fail in edge cases. Simple, reliable operations that work every time are preferred over complex heuristics.
+The cleanup helpers represented a **precision-over-intelligence** approach to development tooling. Most functionality has been superseded by the template-based creation system, but some precision tools remain valuable for edge cases.
 
-### Token Efficiency & AI Complement
-- **Token Conservation**: Custom tools complete complex operations in single runs, preserving token budget for creative problem-solving
-- **AI Complement**: Handle tasks that AI tools struggle with while letting AI focus on creative work
-- **Deterministic Results**: 100% success rate vs. multiple retry attempts
+## Evolution: From Complex Helpers to Simple Templates
 
-## Development Pattern Evolution
+**Previous Focus**: Complex precision tools for structural modifications
+- Led to tool proliferation and maintenance overhead
+- Required understanding of many different helper utilities
+- Token-intensive for operations that should be simple
 
-### From Transplantation to Additive Development
+**Current Focus**: Template-based creation with focused helpers
+- Simple, reliable 4-tool system covers 95% of workflow creation needs
+- Deterministic success with established patterns  
+- Clear learning path through the workflow genesis system
 
-**Previous Focus**: Transplanting code between incompatible workflows
-- Led to dependency hell and circular fixes
-- Required complex marker systems for incompatible systems
-- Token-intensive with high failure rates
+## Remaining Precision Tool Territory
 
-**Current Focus**: Stub-based additive development
-- Start with working, compatible workflow foundations
-- Build up functionality additively
-- Use precision tools for specific structural tasks
+### When Specialized Tools Are Still Needed
+- **Bulk operations** across multiple files simultaneously
+- **Exact positioning** for complex marker insertion (edge cases)
+- **Style refactoring** across existing codebases
+- **Template development** when creating new workflow templates
 
-### When AI Tools Struggle (Precision Tool Territory)
+### Active Precision Tools
+- **[atomic_transplantation_marker_tool.py](mdc:pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py)**: Exact marker insertion for edge cases
+- **Style analysis tools**: For maintaining consistent UI patterns across existing workflows
+- **Formatting tools**: For standardizing existing workflow structures
 
-**Precise Positioning Tasks**:
-- Exact indentation requirements
-- Specific line positioning needs
-- Complex method boundary detection
-- File integrity during multiple edits
-- Bulk operations across multiple files
+## Integration with Template-Based Development
 
-**Example Token Waste Pattern**:
-- AI failed attempts: 300+ tokens per failed operation
-- Custom tool completion: ~50 tokens for complex operations
-- Success rate: 100% deterministic vs. multiple retries
+### Complementary Workflow (Rare Cases)
+1. **Start with Template Creation**: Use Rule 05 system for 95% of workflow creation
+2. **Precision Tools for Edge Cases**: Only when template system can't handle specific requirements
+3. **Style Consistency**: Use style tools for maintaining existing workflow appearance
+4. **Template Development**: Use precision tools when developing new templates
 
-## Tool Categories & Evolution
+### When NOT to Use Precision Tools
+- **New workflow creation**: Use template-based creation (Rule 05)
+- **Adding steps to workflows**: Use `splice_workflow_step.py` (Rule 05)
+- **Sharing logic between workflows**: Use `swap_workflow_step.py` (Rule 05)
+- **Standard structural changes**: Template creation system handles these
 
-### 🧬 Structural Development Tools
-**Purpose**: Support stub-based workflow development
+## Philosophy: Templates First, Precision When Necessary
 
-**Key Tools**:
-- [atomic_transplantation_marker_tool.py](mdc:pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py): Precision marker insertion
-- **Evolution**: From transplantation focus to template rollback support
+### Recommended Approach
+1. **Template-Based Creation**: Default to Rule 05 system
+2. **Additive Enhancement**: Build on working templates  
+3. **Precision Only for Edge Cases**: When template system insufficient
+4. **Maintain Simplicity**: Avoid tool proliferation
 
-### 🎨 Style and Consistency Tools
-**Purpose**: Maintain consistent styling across codebase
+### Success Pattern
+- **95% of workflow development**: Template-based creation (Rule 05)
+- **4% edge cases**: Precision tools for specific requirements
+- **1% template development**: Precision tools for creating new templates
 
-**Tools**:
-- [analyze_styles.py](mdc:pipulate/helpers/cleanup/analyze_styles.py): Pattern identification
-- [refactor_inline_style.py](mdc:pipulate/helpers/cleanup/refactor_inline_style.py): Style to class conversion
-- **Stable**: Continue supporting consistent UI patterns
+## Recommendation
 
-### 🔧 Code Structure Tools
-**Purpose**: Standardize and refactor code organization
+**For Normal Workflow Development**: Use the template-based creation system documented in [05_workflow_creation_helpers.mdc](mdc:05_workflow_creation_helpers.mdc).
 
-**Tools**:
-- [format_plugins.py](mdc:pipulate/helpers/cleanup/format_plugins.py): Plugin standardization
-- **Evolution**: Support stub-based development patterns
+**For Edge Cases Only**: Consider precision tools when template system can't handle specific positioning or bulk operation requirements.
 
-## Integration with Stub-Based Development
-
-### Complementary Workflow
-1. **Start with Working Stub**: Copy compatible workflow as foundation
-2. **Use Precision Tools**: Handle exact positioning and structural changes
-3. **AI-Assisted Enhancement**: Add creative functionality and logic
-4. **Precision Validation**: Ensure structural consistency
-
-### When to Use Cleanup Tools
-- **Structural Changes**: Template marker insertion, class organization
-- **Bulk Operations**: Changes across multiple workflow files
-- **Precision Tasks**: Exact formatting or positioning requirements
-- **Token Conservation**: When AI editing consumes excessive tokens
-- **Template Rollback**: When base template innovations need propagation
-
-## Success Metrics & Evolution
-
-### Measured Benefits
-- **Token Conservation**: 80%+ reduction in AI token usage for structural tasks
-- **Time Savings**: Faster completion of bulk operations
-- **Error Reduction**: Fewer mistakes in repetitive structural tasks
-- **Consistency**: Standardized patterns across workflow codebase
-
-### Directional Evolution
-- **Less Transplantation**: Reduced focus on moving code between incompatible systems
-- **More Enhancement**: Tools that support additive development on working stubs
-- **Template Support**: Tools that help innovations roll back from templates to stubs
-- **AI Partnership**: Better division of labor between precision tools and AI creativity
-
-## Best Practices
-
-### Tool Selection Guidelines
-1. **Structural/Precision Tasks**: Use cleanup tools
-2. **Creative/Logic Development**: Use AI assistance
-3. **Template Evolution**: Use precision tools for rollback operations
-4. **New Workflow Creation**: Start with compatible stub, enhance additively
-
-### Development Workflow
-1. **Identify Compatible Base**: Choose working workflow as foundation
-2. **Copy and Adapt**: Create working stub with updated metadata
-3. **Precision Structure**: Use tools for exact positioning and markers
-4. **AI Enhancement**: Add creative functionality and business logic
-5. **Validation**: Use precision tools to ensure consistency
-
-This evolution maintains the **precision-over-intelligence** benefits while supporting the more effective **stub-based additive development** approach. The tools continue to excel at tasks where deterministic results are critical, while AI handles creative problem-solving.
+The precision-over-intelligence philosophy remains valid, but is now primarily embodied in the simple, reliable template-based creation system rather than complex specialized tools.

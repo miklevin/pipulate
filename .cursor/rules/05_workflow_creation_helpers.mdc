@@ -1,5 +1,211 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Pipulate Workflow Creation Helper Tools System
+
+## Overview
+
+The Pipulate framework includes a sophisticated set of helper tools for creating, modifying, and composing workflows. These tools work together to enable rapid workflow development through template-based creation, marker-driven precision operations, and step logic sharing.
+
+## Core Helper Tools
+
+### 1. create_workflow.py - Template-Based Workflow Creation
+**Purpose**: Creates new workflows from established templates with intelligent template selection.
+
+**Key Features**:
+- **Template System**: Supports `blank`, `hello`, and `trifecta` templates with different complexity levels
+- **Dynamic Root Finding**: Works from any location by automatically finding Pipulate project root
+- **Class Metadata Replacement**: Updates APP_NAME, DISPLAY_NAME, ENDPOINT_MESSAGE, TRAINING_PROMPT
+- **Force Mode**: `--force` flag for overwriting existing workflows
+
+**Template Map**: [create_workflow.py](mdc:pipulate/helpers/create_workflow.py) lines 35-42
+```python
+TEMPLATE_MAP = {
+    "blank": "710_blank_placeholder.py",      # Minimal single-step template
+    "hello": "500_hello_workflow.py",         # 2-step hello world template  
+    "trifecta": "535_botify_trifecta.py",     # Complex multi-export template
+}
+```
+
+**Usage Patterns**:
+```bash
+# Create blank workflow for learning/customization
+python helpers/create_workflow.py 035_kungfu_workflow.py KungfuWorkflow kungfu "Kung Fu Download" "Welcome message" "Training prompt" --template blank
+
+# Create hello world template (2 steps ready to use)
+python helpers/create_workflow.py 036_hello_demo.py HelloDemo hello_demo "Hello Demo" "Welcome" "Training" --template hello
+
+# Create trifecta template (5 steps for complex data workflows)
+python helpers/create_workflow.py 037_botify_custom.py BotifyCustom botify_custom "Custom Botify" "Welcome" "Training" --template trifecta
+```
+
+### 2. manage_class_attributes.py - Attribute Merging System
+**Purpose**: Merges specific class attributes (like UI_CONSTANTS) between workflows while preserving class structure.
+
+**Key Features**:
+- **Selective Merging**: `--attributes-to-merge` parameter for precise control
+- **UI_CONSTANTS Preservation**: Maintains styling consistency across workflows
+- **Class Boundary Detection**: Intelligently identifies class attribute boundaries
+- **Safe Merging**: Validates attribute compatibility before merging
+
+**Common Use Case**: Sharing UI styling patterns
+```bash
+python helpers/manage_class_attributes.py source_workflow.py target_workflow.py --attributes-to-merge UI_CONSTANTS --force
+```
+
+**Integration Pattern**: Usually step 2 in 5-command sequences to merge styling from templates.
+
+### 3. splice_workflow_step.py - Step Addition System  
+**Purpose**: Adds new placeholder steps to existing workflows using marker-driven insertion.
+
+**Key Features**:
+- **Marker-Based Insertion**: Uses `--- STEPS_LIST_INSERTION_POINT ---` for precise placement
+- **Position Control**: `--position top|bottom` for step placement
+- **Template Generation**: Creates both step definition and method templates
+- **Maintains Chain Reaction**: Preserves HTMX progression patterns
+
+**Marker Requirements**: [splice_workflow_step.py](mdc:pipulate/helpers/splice_workflow_step.py) lines 200-220
+- Steps list must include `--- STEPS_LIST_INSERTION_POINT ---` before finalize step
+- Class must include `--- STEP_METHODS_INSERTION_POINT ---` at end of methods
+
+**Usage Patterns**:
+```bash
+# Add step at bottom (default, before finalize)
+python helpers/splice_workflow_step.py target_workflow.py
+
+# Add step at top (becomes new first step)  
+python helpers/splice_workflow_step.py target_workflow.py --position top
+```
+
+### 4. swap_workflow_step.py - Step Logic Replacement
+**Purpose**: Replaces step logic between workflows while preserving step structure and IDs.
+
+**Key Features**:
+- **Precise Step Targeting**: Specifies exact source and target step IDs
+- **Logic Preservation**: Maintains step progression and HTMX chain reactions  
+- **Method Pair Handling**: Swaps both GET and POST handlers (step_N and step_N_submit)
+- **Boundary Detection**: Intelligently identifies step method boundaries
+
+**Integration Pattern**: Final steps in 5-command sequences to replace placeholder logic with functional implementations.
+
+**Usage Pattern**:
+```bash
+python helpers/swap_workflow_step.py target_workflow.py target_step_id source_workflow.py source_step_id --force
+```
+
+## Command Sequence Patterns
+
+### The Proven 5-Command Pattern
+For transforming simple templates into complex functionality:
+
+```bash
+# 1. Create base workflow from template
+python helpers/create_workflow.py target.py ClassName app_name "Display Name" "Message" "Training" --template blank
+
+# 2. Merge UI constants for consistent styling  
+python helpers/manage_class_attributes.py source.py target.py --attributes-to-merge UI_CONSTANTS
+
+# 3. Replace first step with functional logic
+python helpers/swap_workflow_step.py target.py step_01 source.py step_01  
+
+# 4. Add placeholder for second step
+python helpers/splice_workflow_step.py target.py --position bottom
+
+# 5. Replace second step with functional logic  
+python helpers/swap_workflow_step.py target.py step_02 source.py step_02
+```
+
+### Template-Specific Strategies
+- **Blank Template**: Requires full 5-command sequence to build functionality
+- **Hello Template**: Single command creates 2-step working workflow  
+- **Trifecta Template**: Single command creates 5-step complex workflow
+
+## Marker System Integration
+
+### Template Assembly Markers
+Required in all workflows for helper script compatibility:
+
+```python
+# In self.steps definition:
+self.steps = [
+    Step(id='step_01', done='data', show='Step 1', refill=False),
+    # --- STEPS_LIST_INSERTION_POINT ---
+    Step(id='finalize', done='finalized', show='Finalize', refill=False)
+]
+
+# At end of class:
+async def existing_method(self, request):
+    pass
+
+# --- STEP_METHODS_INSERTION_POINT ---
+```
+
+### Atomic Transplantation Support
+For reusable workflow sections (see [15_atomic_transplantation_system.mdc](mdc:15_atomic_transplantation_system.mdc)):
+
+```python
+# --- START_WORKFLOW_SECTION: section_name ---
+# Documentation of atomic unit
+# --- SECTION_STEP_DEFINITION ---
+# Step definitions
+# --- END_SECTION_STEP_DEFINITION ---
+# --- SECTION_STEP_METHODS ---  
+# Step methods
+# --- END_SECTION_STEP_METHODS ---
+# --- END_WORKFLOW_SECTION ---
+```
+
+## Educational Workflow Genesis
+
+### Progressive Learning Path
+The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) workflow teaches the helper tools system:
+
+1. **Step 1**: Define new workflow parameters
+2. **Step 2**: Select template and generate creation command  
+3. **Step 3**: View individual helper commands (educational)
+4. **Step 4**: View complete command sequence (practical)
+
+### Template-Aware Behavior
+- **Simple Templates** (hello, trifecta): Show single creation command
+- **Blank Template**: Show full educational sequence with individual commands
+- **Learning Value**: Users understand both simple and complex creation patterns
+
+## Best Practices
+
+### Template Selection Guidelines
+- **Blank**: Learning, heavy customization, unique workflows
+- **Hello**: Simple 2-step workflows, demos, tutorials  
+- **Trifecta**: Complex data workflows, multi-export systems, enterprise patterns
+
+### Workflow Development Strategy
+1. **Start with compatible templates** for your use case
+2. **Use helper tools for structural changes** (adding/swapping steps)
+3. **Preserve markers** for future modifications
+4. **Test frequently** during multi-command sequences
+
+### Marker Maintenance
+- **Always include both template assembly markers** in new workflows
+- **Consider atomic transplantation markers** for reusable sections
+- **Test helper script compatibility** before committing changes
+- **Document marker purposes** for future developers
+
+## Integration with Other Systems
+
+### UI and Styling
+- **UI_CONSTANTS merging** ensures consistent appearance across workflows
+- **Template innovations** can be shared through attribute merging
+- **PicoCSS integration** maintained through proper template structure
+
+### Chain Reaction Pattern  
+- **Step insertion preserves** HTMX progression triggers
+- **Logic swapping maintains** proper chain reaction flow
+- **Template compatibility** ensures working progression patterns
+
+### State Management
+- **Pipeline IDs preserved** through step modifications
+- **State structure maintained** during logic swapping
+- **Data flow continuity** ensured by template compatibility
+
+This helper tools system enables rapid workflow development while maintaining the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.

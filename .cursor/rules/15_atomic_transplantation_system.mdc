@@ -3,108 +3,59 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Atomic Transplantation & Stub Development System
+# Atomic Transplantation System - Historical & Supporting Markers
 
-## Overview
+## Current Status: **Superseded by Template-Based Creation**
 
-The atomic transplantation system provides **precision marker tools** for deterministic code operations. **Key Lesson Learned**: Transplanting between incompatible workflows creates dependency hell. The better approach is **starting with compatible working stubs and building up additively**.
+**Primary Workflow Creation**: See [05_workflow_creation_helpers.mdc](mdc:05_workflow_creation_helpers.mdc) for the current, proven workflow creation system using template-based helpers.
 
-## Core Insight: Compatible vs. Incompatible Transplantation
+## Historical Context
 
-**Transplantation works when workflows are compatible:**
-- Similar data sources and API patterns
-- Compatible class attribute structures  
-- Shared dependency requirements
+The atomic transplantation system was an early approach for sharing workflow components. **Key Lesson Learned**: Transplanting between incompatible workflows creates dependency hell. The **template-based creation system** (Rule 05) provides a better approach.
 
-**Transplantation fails when workflows are incompatible:**
-- Different purposes (e.g., Botify data collection → parameter analysis)
-- Incompatible dependency structures
-- Different API integration patterns
+## Why Template-Based Creation Won
 
-## Preferred Development Pattern: Stub-Based Additive Development
+**Problems with Transplantation**:
+- Dependency conflicts between incompatible workflows
+- Complex marker systems for incompatible systems  
+- High failure rates and token waste
+- Maintenance overhead for marker tracking
 
-### Start with Working Foundation
-Instead of transplanting into incompatible targets:
+**Template-Based Creation Benefits** (Rule 05):
+- ✅ Start with proven, working templates
+- ✅ Simple, reliable helper tools 
+- ✅ Deterministic success with established patterns
+- ✅ No compatibility issues - templates are designed to work
 
-1. **Copy a working, compatible workflow as the base**
-   ```bash
-   cp plugins/535_botify_trifecta.py plugins/047_new_workflow.py
-   ```
+## Remaining Value: Marker System for Edge Cases
 
-2. **Update metadata while preserving infrastructure:**
-   - Change `APP_NAME`, `DISPLAY_NAME`, `ENDPOINT_MESSAGE`
-   - Keep working `QUERY_TEMPLATES`, `TEMPLATE_CONFIG`, `UI_CONSTANTS`
-   - Preserve all dependency infrastructure
+### When Atomic Markers Are Still Useful
+- **Precision marker insertion** when AI tools fail on exact positioning
+- **Bulk operations** across multiple files where template creation isn't applicable
+- **Template structure standardization** for new template development
 
-3. **Build up additively:**
-   - Keep working steps (e.g., steps 1-4 for data collection)
-   - Add new functionality as additional steps
-   - Each addition builds on proven working state
-
-### Benefits of Stub-Based Development
-- ✅ Start with proven, working infrastructure
-- ✅ All dependencies intact from day one
-- ✅ No compatibility issues
-- ✅ Additive development reduces risk
-- ✅ Template innovations can roll back into stubs
-
-## Marker System for Future Template Rollback
-
-The marker system supports **template innovation rollback** - when base templates improve, those innovations should propagate to workflows built from those stubs.
-
-### Standard Markers for Template Rollback
+### Standard Markers (Limited Use)
 ```python
-# --- TEMPLATE_ROLLBACK_SECTION: botify_data_collection ---
-# This section originated from botify_trifecta.py template
-# Steps 1-4: Standard Botify data collection pattern
-# Future template improvements should be considered for rollback
-
-# Step definitions and methods that came from template
-# ... 
-
-# --- END_TEMPLATE_ROLLBACK_SECTION ---
+# --- START_WORKFLOW_SECTION: section_name ---
+# Documentation of atomic unit (rarely used now)
+# --- SECTION_STEP_DEFINITION ---
+# Step definitions  
+# --- END_SECTION_STEP_DEFINITION ---
+# --- SECTION_STEP_METHODS ---
+# Step methods
+# --- END_SECTION_STEP_METHODS ---
+# --- END_WORKFLOW_SECTION ---
 ```
 
-## When to Use Atomic Transplantation Tools
+## Precision Tool Location
+**Tool**: [atomic_transplantation_marker_tool.py](mdc:pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py)
 
-### Precision Tasks (Still Valuable)
-- **Exact marker insertion** when AI edit tools fail
-- **Bulk operations** across multiple files  
-- **Deterministic refactoring** of repetitive patterns
-- **Template structure standardization**
+**Current Usage**: Minimal - only for edge cases where template creation helpers can't handle specific positioning needs.
 
-### Usage Guidelines
-1. **Test compatibility first** - ensure source and target are compatible
-2. **Use for precision tasks** where AI tools struggle
-3. **Prefer stub-based development** for new workflow creation
-4. **Reserve transplantation** for truly compatible systems
+## Recommendation
 
-## Implementation Tool
+**For New Workflow Development**: Use the template-based creation system documented in [05_workflow_creation_helpers.mdc](mdc:05_workflow_creation_helpers.mdc).
 
-**Location**: [atomic_transplantation_marker_tool.py](mdc:pipulate/helpers/cleanup/atomic_transplantation_marker_tool.py)
+**For Existing Workflows**: Migrate to template-compatible structures when possible to leverage the proven helper tools system.
 
-**Key Features**:
-- Deterministic line-based operations
-- Automatic indentation detection  
-- Validation to prevent duplicates
-- Multiple operation modes
-
-**Evolving Usage**:
-- **Current**: Precision marker insertion for template structure
-- **Future**: Support for template rollback operations
-- **Direction**: Less transplantation, more stub enhancement
-
-## Philosophy Evolution
-
-**WET Workflows Remain Best Practice:**
-- Explicit, debuggable code over abstract inheritance
-- Template-based stubs over complex base classes
-- Additive development over destructive transplantation
-
-**Future Direction:**
-- Template innovations roll back to stub-based workflows
-- Marker system supports template evolution tracking
-- Precision tools complement additive development patterns
-- Maintain explicit WET patterns while supporting systematic improvements
-
-This approach preserves the **precision-over-intelligence** benefits while avoiding the compatibility issues that arise from forcing incompatible systems together.
+This historical approach is preserved for reference and edge cases, but the template-based creation system is the primary, recommended approach for workflow development.
