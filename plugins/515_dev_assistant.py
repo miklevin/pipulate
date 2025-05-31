@@ -30,14 +30,15 @@ class DevAssistant:
     - Check plugin structure and naming conventions
     - Analyze workflow state and step progression
     - Provide pattern-specific recommendations
+    - Check template suitability and marker compatibility
     
     This assistant implements the 25 critical patterns from the Ultimate Pipulate Guide
     and provides real-time validation and debugging assistance for Pipulate development.
     """
     APP_NAME = 'dev_assistant' 
     DISPLAY_NAME = 'Development Assistant' 
-    ENDPOINT_MESSAGE = """Interactive debugging and development guidance for Pipulate workflows. Validate patterns, debug issues, and get expert recommendations based on the Ultimate Pipulate Implementation Guide."""
-    TRAINING_PROMPT = """You are the Pipulate Development Assistant. Help developers with: 1. Pattern validation against the 25 critical patterns from the Ultimate Guide. 2. Debugging workflow issues (auto-key generation, three-phase logic, chain reactions). 3. Plugin structure analysis and recommendations. 4. State management troubleshooting. 5. Best practice guidance for workflow development. Always reference specific patterns from the Ultimate Guide and provide actionable debugging steps."""
+    ENDPOINT_MESSAGE = """Interactive debugging and development guidance for Pipulate workflows. Validate patterns, debug issues, check template suitability, and get expert recommendations based on the Ultimate Pipulate Implementation Guide and workflow creation helper system."""
+    TRAINING_PROMPT = """You are the Pipulate Development Assistant. Help developers with: 1. Pattern validation against the 25 critical patterns from the Ultimate Guide. 2. Debugging workflow issues (auto-key generation, three-phase logic, chain reactions). 3. Plugin structure analysis and recommendations. 4. State management troubleshooting. 5. Template suitability and marker compatibility for helper tools. 6. Best practice guidance for workflow development. Always reference specific patterns from the Ultimate Guide and provide actionable debugging steps."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
@@ -200,7 +201,7 @@ class DevAssistant:
         return pip.rebuild(app_name, self.steps)
 
     def analyze_plugin_file(self, file_path):
-        """Analyze a plugin file for common patterns and issues."""
+        """Analyze a plugin file for common patterns, issues, and template suitability."""
         if not file_path.exists():
             return {"error": f"File not found: {file_path}"}
         
@@ -209,36 +210,139 @@ class DevAssistant:
             "file_path": str(file_path),
             "patterns_found": [],
             "issues": [],
-            "recommendations": []
+            "recommendations": [],
+            "template_suitability": {
+                "as_template_source": False,
+                "as_splice_target": False, 
+                "as_swap_source": True,  # Default true, most workflows can be swap sources
+                "as_swap_target": False,
+                "missing_requirements": []
+            }
         }
         
-        # Check for auto-key generation pattern
+        # Check for auto-key generation pattern (Priority 1)
         if 'HX-Refresh' in content and 'not user_input' in content:
             analysis["patterns_found"].append("✅ Auto-key generation pattern detected")
         else:
             analysis["issues"].append("❌ Missing auto-key generation pattern (Priority 1)")
             analysis["recommendations"].append("Add HX-Refresh response for empty input in init() method")
         
-        # Check for three-phase pattern
+        # Check for three-phase pattern (Priority 2)
         if 'finalized' in content and '_revert_target' in content:
             analysis["patterns_found"].append("✅ Three-phase step pattern detected")
         else:
             analysis["issues"].append("❌ Missing three-phase step pattern (Priority 2)")
             analysis["recommendations"].append("Implement finalize/revert/input phases in step handlers")
         
-        # Check for chain reaction pattern
+        # Check for chain reaction pattern (Priority 6)
         if 'hx_trigger=\'load\'' in content or 'hx_trigger="load"' in content:
             analysis["patterns_found"].append("✅ Chain reaction pattern detected")
         else:
             analysis["issues"].append("❌ Missing chain reaction pattern (Priority 6)")
             analysis["recommendations"].append("Add hx_trigger='load' to completed step views")
         
-        # Check for request parameter
+        # Check for request parameter (Priority 7)
         if 'async def' in content and 'request' in content:
             analysis["patterns_found"].append("✅ Request parameter pattern detected")
         else:
             analysis["issues"].append("❌ Missing request parameters (Priority 7)")
             analysis["recommendations"].append("All route handlers must accept request parameter")
+
+        # Template Assembly Marker Analysis
+        steps_insertion_marker = "--- STEPS_LIST_INSERTION_POINT ---"
+        methods_insertion_marker = "--- STEP_METHODS_INSERTION_POINT ---"
+        
+        has_steps_marker = steps_insertion_marker in content
+        has_methods_marker = methods_insertion_marker in content
+        
+        if has_steps_marker:
+            analysis["patterns_found"].append("✅ STEPS_LIST_INSERTION_POINT marker found")
+        else:
+            analysis["template_suitability"]["missing_requirements"].append("STEPS_LIST_INSERTION_POINT marker")
+            
+        if has_methods_marker:
+            analysis["patterns_found"].append("✅ STEP_METHODS_INSERTION_POINT marker found")  
+        else:
+            analysis["template_suitability"]["missing_requirements"].append("STEP_METHODS_INSERTION_POINT marker")
+
+        # Standard class attributes check
+        required_attributes = ["APP_NAME", "DISPLAY_NAME", "ENDPOINT_MESSAGE", "TRAINING_PROMPT"]
+        missing_attributes = []
+        
+        for attr in required_attributes:
+            if f'{attr} =' in content:
+                analysis["patterns_found"].append(f"✅ {attr} attribute found")
+            else:
+                missing_attributes.append(attr)
+                analysis["template_suitability"]["missing_requirements"].append(f"{attr} class attribute")
+        
+        # UI Constants check
+        if 'UI_CONSTANTS' in content:
+            analysis["patterns_found"].append("✅ UI_CONSTANTS for styling found")
+        else:
+            analysis["template_suitability"]["missing_requirements"].append("UI_CONSTANTS for styling consistency")
+
+        # Step method naming convention check
+        step_methods = re.findall(r'async def (step_\d+)(?:_submit)?\(', content)
+        if step_methods:
+            analysis["patterns_found"].append(f"✅ Step methods found: {len(set(step_methods))} unique steps")
+            # Check for proper step pairs (GET and POST handlers)
+            step_numbers = set(re.findall(r'step_(\d+)', ' '.join(step_methods)))
+            for num in step_numbers:
+                has_get = f'step_{num}(' in content
+                has_post = f'step_{num}_submit(' in content
+                if has_get and has_post:
+                    analysis["patterns_found"].append(f"✅ Step {num} has both GET and POST handlers")
+                else:
+                    analysis["issues"].append(f"❌ Step {num} missing {'GET' if not has_get else 'POST'} handler")
+        
+        # Finalize step check
+        if 'finalize(' in content:
+            analysis["patterns_found"].append("✅ Finalize step handler found")
+        else:
+            analysis["issues"].append("❌ Missing finalize step handler")
+            analysis["recommendations"].append("Add finalize step handler for workflow completion")
+
+        # Template Suitability Assessment
+        suitability = analysis["template_suitability"]
+        
+        # Template Source Requirements: markers + attributes + UI_CONSTANTS
+        if has_steps_marker and has_methods_marker and len(missing_attributes) == 0:
+            suitability["as_template_source"] = True
+            analysis["patterns_found"].append("🎯 SUITABLE AS TEMPLATE SOURCE")
+        else:
+            analysis["recommendations"].append("To use as template source: Add missing markers and class attributes")
+            
+        # Splice Target Requirements: both markers required
+        if has_steps_marker and has_methods_marker:
+            suitability["as_splice_target"] = True 
+            analysis["patterns_found"].append("🔧 SUITABLE AS SPLICE TARGET")
+        else:
+            analysis["recommendations"].append("To use as splice target: Add both insertion point markers")
+            
+        # Swap Target Requirements: must have step methods to replace
+        if step_methods:
+            suitability["as_swap_target"] = True
+            analysis["patterns_found"].append("🔄 SUITABLE AS SWAP TARGET") 
+        else:
+            suitability["as_swap_target"] = False
+            analysis["recommendations"].append("To use as swap target: Add step methods with proper naming")
+
+        # Atomic Transplantation Markers (Optional)
+        atomic_markers = [
+            "START_WORKFLOW_SECTION:",
+            "SECTION_STEP_DEFINITION",
+            "END_SECTION_STEP_DEFINITION", 
+            "SECTION_STEP_METHODS",
+            "END_SECTION_STEP_METHODS",
+            "END_WORKFLOW_SECTION"
+        ]
+        
+        found_atomic_markers = [marker for marker in atomic_markers if marker in content]
+        if found_atomic_markers:
+            analysis["patterns_found"].append(f"✅ Atomic transplantation markers: {len(found_atomic_markers)}/6")
+            if len(found_atomic_markers) == 6:
+                analysis["patterns_found"].append("🧬 SUITABLE FOR ATOMIC TRANSPLANTATION")
         
         return analysis
 
@@ -365,9 +469,34 @@ class DevAssistant:
                     id=step_id
                 )
             
-            # Display pattern validation results
+            # Display comprehensive pattern validation results
             patterns_found = analysis_results.get('patterns_found', [])
             issues = analysis_results.get('issues', [])
+            template_suitability = analysis_results.get('template_suitability', {})
+            
+            # Create suitability status display
+            suitability_items = []
+            if template_suitability.get('as_template_source'):
+                suitability_items.append(Li("🎯 Template Source: ✅ Ready", style='color: green;'))
+            else:
+                suitability_items.append(Li("🎯 Template Source: ❌ Missing requirements", style='color: red;'))
+                
+            if template_suitability.get('as_splice_target'):
+                suitability_items.append(Li("🔧 Splice Target: ✅ Ready", style='color: green;'))
+            else:
+                suitability_items.append(Li("🔧 Splice Target: ❌ Missing markers", style='color: red;'))
+                
+            if template_suitability.get('as_swap_target'):
+                suitability_items.append(Li("🔄 Swap Target: ✅ Ready", style='color: green;'))
+            else:
+                suitability_items.append(Li("🔄 Swap Target: ❌ No step methods", style='color: red;'))
+                
+            if template_suitability.get('as_swap_source'):
+                suitability_items.append(Li("📤 Swap Source: ✅ Ready", style='color: green;'))
+            else:
+                suitability_items.append(Li("📤 Swap Source: ❌ No step methods", style='color: red;'))
+            
+            missing_reqs = template_suitability.get('missing_requirements', [])
             
             return Div(
                 Card(
@@ -376,6 +505,10 @@ class DevAssistant:
                     Ul(*[Li(pattern) for pattern in patterns_found]) if patterns_found else P('No patterns detected.'),
                     H4('❌ Issues Found:'),
                     Ul(*[Li(issue, style='color: red;') for issue in issues]) if issues else P('No issues found!', style='color: green;'),
+                    H4('🎯 Template & Helper Tool Compatibility:'),
+                    Ul(*suitability_items),
+                    H4('📋 Missing Requirements:') if missing_reqs else None,
+                    Ul(*[Li(req, style='color: orange;') for req in missing_reqs]) if missing_reqs else None,
                     Form(
                         Button('Continue to Debug Assistance ▸', type='submit'),
                         hx_post=f'/{app_name}/{step_id}_submit',
