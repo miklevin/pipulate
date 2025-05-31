@@ -1,0 +1,63 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## description: The evolutionary vision for Pipulate's future development: content curation systems, sub-plugin architecture, and the philosophy of next-level creativity in private spaces. globs: ["*"] alwaysApply: false
+
+# Pipulate Evolutionary Vision: Beyond Linear Workflows
+
+## 1. The Vision: From Notebooks to Digital Workshop
+## description: The evolutionary vision for Pipulate's future development: content curation systems, sub-plugin architecture, and the philosophy of next-level creativity in private spaces. globs: ["*"] alwaysApply: false
+
+# 17. Evolutionary Vision
+
+Pipulate's trajectory moves beyond simple notebook-to-workflow porting toward a comprehensive **digital workshop** for content curation, exploration, and creative expression. This evolution respects the core local-first, observable philosophy while expanding into new interaction paradigms.
+
+## 1. The Vision: From Notebooks to Digital Workshop
+
+### Core Evolutionary Principles
+
+* **Linear Workflows as Foundation**: The step-by-step, WET workflow pattern remains the backbone - reliable, debuggable, and immediately understandable
+* **Sub-Plugin Architecture**: Individual workflow steps can "pop out" into full-screen interactive experiences, then return seamlessly to the linear flow
+* **Content as First-Class Citizens**: Images, media, and derived content become part of an interconnected system of perceptual indexing and curation
+* **Privacy-Enabling Next-Level Freedom**: Local-first architecture enables the "vibrating edge" of creative exploration without external judgment or surveillance
+
+### The "Sliding Tile Game" Metaphor
+
+The ultimate vision involves content (particularly visual) being processed into:
+- **Perfectly cropped square images** of normalized resolution
+- **Progressive distillation** through search, sort, and sieve operations  
+- **Interactive presentation layers** that can be embedded within linear workflows
+- **Storytelling units** that maintain lineage while enabling remix and iteration
+
+## 2. Technical Architecture Evolution
+
+### Sub-Plugin Plugin Pattern
+
+```python
+# Conceptual pattern - NOT for immediate implementation
+class WorkflowStep:
+    def can_expand_to_app(self) -> bool:
+        """Indicates this step supports full-screen app mode"""
+        return hasattr(self, 'expanded_app_handler')
+    
+    def render_step_normal(self) -> HTML:
+        """Standard linear workflow rendering"""
+        pass
+    
+    def render_step_expanded(self) -> HTML:
+        """Full-screen interactive app rendering"""
+        pass
+```
+
+**Key Characteristics**:
+- **Seamless Transitions**: Moving between linear and expanded modes preserves all state
+- **Return Value Integration**: Expanded apps produce outputs that become inputs for the next linear step
+- **Composability**: Different apps (slideshow, photo sorter, data visualizer) can be "plugged in" to compatible steps
+
+### Content Curation System Architecture
+
+The image management system represents a new class of Pipulate component:
+
+#### Archive Management Layer

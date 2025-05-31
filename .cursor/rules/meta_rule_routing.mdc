@@ -13,6 +13,8 @@ This meta-rule helps route queries to the most relevant detailed guidelines from
 * For questions about core philosophy or high-level architecture:
   * [00_philosophy.mdc](mdc:00_philosophy.mdc)
   * [01_architecture_overview.mdc](mdc:01_architecture_overview.mdc)
+* For questions about future vision, evolutionary roadmap, or advanced architectural concepts:
+  * [17_evolutionary_vision.mdc](mdc:17_evolutionary_vision.mdc) - Future architectural patterns and content curation systems
 
 ## Environment & Setup
 * For questions about environment, Nix, or installation:

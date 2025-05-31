@@ -547,8 +547,16 @@ class Pipulate:
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
     
-    Note: The centralized coordination pattern here could potentially support
-    sophisticated interaction monitoring and behavioral pattern analysis.
+    As Pipulate evolves toward its "Digital Workshop" vision, this coordinator
+    will support:
+    - Sub-plugin architecture (steps expanding to full-screen apps)
+    - Content curation systems (archive surfing, variant creation)
+    - Progressive distillation workflows (search, sort, sieve, story)
+    - Local-first creative exploration with privacy preservation
+    
+    The centralized coordination pattern enables sophisticated interaction
+    monitoring and behavioral pattern analysis while maintaining the
+    "vibrating edge" of creative freedom that powers genuine innovation.
     """
     PRESERVE_REFILL = True
     ERROR_STYLE = 'color: red;'
@@ -597,8 +605,14 @@ class Pipulate:
         in the exact order they are added, without requiring explicit delays between
         messages. It's used to fix the message streaming order issues.
         
-        Note: The workflow state tracking capabilities here could potentially support
-        sophisticated user interaction analysis and adaptive response systems.
+        As part of the Digital Workshop evolution, this queue will support:
+        - Interaction pattern recognition for adaptive workflows
+        - State transition tracking for sub-plugin applications
+        - Creative session analysis for distillation workflows
+        - Privacy-preserving behavioral insights for local optimization
+        
+        The workflow state tracking enables sophisticated user interaction
+        analysis while keeping all data local for maximum creative freedom.
         """
 
         def __init__(self):
@@ -2424,7 +2438,18 @@ additional_menu_items = []
 
 @app.on_event('startup')
 async def startup_event():
-    """Initialize the application on startup."""
+    """Initialize the application on startup.
+    
+    This startup process prepares the Digital Workshop foundation:
+    - Synchronizes role-based access controls
+    - Initializes the pipeline and profile management systems
+    - Sets up the local-first data architecture
+    - Prepares the environment for creative exploration workflows
+    
+    The startup sequence ensures all components are ready to support
+    the full spectrum of content curation, archive surfing, and
+    progressive distillation workflows that define the Pipulate vision.
+    """
     logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.")
     await synchronize_roles_to_db()  # synchronize_roles_to_db will have its own lifecycle logging
     logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:")
