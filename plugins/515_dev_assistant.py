@@ -757,6 +757,9 @@ class DevAssistant:
             
             missing_reqs = template_suitability.get('missing_requirements', [])
             
+            # Define widget ID for Prism targeting
+            widget_id = f"dev-assistant-{pipeline_id.replace('-', '_')}-{step_id}"
+            
             # Build coding assistant section
             coding_section = []
             if coding_prompts:
@@ -769,24 +772,27 @@ class DevAssistant:
                         Div(
                             P(f'Copy these detailed instructions for a coding assistant to fix {filename}:', 
                               style='margin-bottom: 1rem; font-weight: bold; color: #2c3e50;'),
-                            *[
-                                Div(
-                                    H5(f'Fix #{i+1}:', style='color: #007bff; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
-                                    Pre(
-                                        Code(prompt, cls='language-markdown'),
-                                        cls='line-numbers'
-                                    ),
-                                    style='margin-bottom: 1rem;'
-                                )
-                                for i, prompt in enumerate(coding_prompts)
-                            ],
+                            Div(
+                                *[
+                                    Div(
+                                        H5(f'Fix #{i+1}:', style='color: #007bff; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
+                                        Pre(
+                                            Code(prompt, cls='language-markdown'),
+                                            cls='line-numbers'
+                                        ),
+                                        style='margin-bottom: 1rem;'
+                                    )
+                                    for i, prompt in enumerate(coding_prompts)
+                                ],
+                                id=widget_id  # Add the widget ID here for Prism targeting
+                            ),
                             style='padding: 1rem;'
                         ),
                         style='margin: 1rem 0;'
                     )
                 ])
             
-            return Div(
+            response_content = Div(
                 Card(
                     H3(f'{step.show}'),
                     H4('✅ Patterns Found:'),
@@ -804,9 +810,35 @@ class DevAssistant:
                         hx_target=f'#{step_id}'
                     )
                 ),
+                # Add Prism initialization script (following 850_prism.py pattern)
+                Script(f"""
+                (function() {{
+                    // Initialize Prism immediately when the script loads
+                    if (typeof Prism !== 'undefined') {{
+                        Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                    }}
+                    
+                    // Also listen for the HX-Trigger event as a backup
+                    document.body.addEventListener('initializePrism', function(event) {{
+                        if (event.detail.targetId === '{widget_id}') {{
+                            console.log('Received initializePrism event for {widget_id}');
+                            if (typeof Prism !== 'undefined') {{
+                                Prism.highlightAllUnder(document.getElementById('{widget_id}'));
+                            }} else {{
+                                console.error('Prism library not found for {widget_id}');
+                            }}
+                        }}
+                    }});
+                }})();
+                """, type='text/javascript'),
                 Div(id=next_step_id),
                 id=step_id
             )
+            
+            # Return HTMLResponse with HX-Trigger for Prism initialization (following 850_prism.py pattern)
+            response = HTMLResponse(to_xml(response_content))
+            response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
+            return response
 
     async def step_02_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
