@@ -318,6 +318,79 @@ class DevAssistant:
                 f"The request object provides access to form data, query params, and headers."
             )
 
+        # Route Registration Analysis - Check for missing handlers that are being registered
+        # ================================================================================
+        route_registration_issues = []
+        
+        # Extract the route registration pattern from __init__ method
+        init_method_match = re.search(r'def __init__\(.*?\n(.*?)(?=\n    def|\n    async def|\nclass|\Z)', content, re.DOTALL)
+        if init_method_match:
+            init_content = init_method_match.group(1)
+            
+            # Check for finalize_submit registration pattern
+            if 'finalize_submit' in init_content:
+                if 'async def finalize_submit(' not in content:
+                    route_registration_issues.append(
+                        f"❌ CRITICAL: Route registration expects 'finalize_submit' method but it doesn't exist"
+                    )
+                    analysis["coding_assistant_prompts"].append(
+                        f"Add missing finalize_submit method to {filename}:\n"
+                        f"The route registration in __init__ is trying to register a finalize_submit handler but it doesn't exist.\n\n"
+                        f"Add this method to the class:\n\n"
+                        f"```python\n"
+                        f"async def finalize_submit(self, request):\n"
+                        f"    pip, db, app_name = self.pipulate, self.db, self.APP_NAME\n"
+                        f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                        f"    \n"
+                        f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
+                        f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
+                        f"    return pip.rebuild(app_name, self.steps)\n"
+                        f"```\n\n"
+                        f"OR modify the route registration to not expect finalize_submit and handle POST in finalize() method instead."
+                    )
+            
+            # Check for step handler registration mismatches
+            step_submit_patterns = re.findall(r'(\w+)_submit', init_content)
+            for step_submit in step_submit_patterns:
+                if f'async def {step_submit}_submit(' not in content:
+                    route_registration_issues.append(
+                        f"❌ Route registration expects '{step_submit}_submit' method but it doesn't exist"
+                    )
+                    analysis["coding_assistant_prompts"].append(
+                        f"Add missing {step_submit}_submit method to {filename}:\n"
+                        f"The route registration expects this handler but it doesn't exist.\n\n"
+                        f"Add this method to the class:\n\n"
+                        f"```python\n"
+                        f"async def {step_submit}_submit(self, request):\n"
+                        f"    pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)\n"
+                        f"    step_id = '{step_submit}'\n"
+                        f"    step_index = self.steps_indices[step_id]\n"
+                        f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                        f"    \n"
+                        f"    form = await request.form()\n"
+                        f"    # Process form data here\n"
+                        f"    user_input = form.get('field_name', '').strip()\n"
+                        f"    \n"
+                        f"    # Store step data\n"
+                        f"    await pip.set_step_data(pipeline_id, step_id, user_input, steps)\n"
+                        f"    \n"
+                        f"    return pip.chain_reverter(step_id, step_index, steps, app_name, user_input)\n"
+                        f"```"
+                    )
+            
+            # Check for getattr patterns that might fail
+            getattr_patterns = re.findall(r'getattr\(self, [\'"]([^\'"]+)[\'"]', init_content)
+            for method_name in getattr_patterns:
+                if f'async def {method_name}(' not in content and f'def {method_name}(' not in content:
+                    route_registration_issues.append(
+                        f"❌ getattr() expects '{method_name}' method but it doesn't exist"
+                    )
+        
+        # Add route registration issues to the main issues list
+        if route_registration_issues:
+            analysis["issues"].extend(route_registration_issues)
+            analysis["recommendations"].append("Fix route registration mismatches - add missing handler methods")
+
         # Template Assembly Marker Analysis
         steps_insertion_marker = "--- STEPS_LIST_INSERTION_POINT ---"
         methods_insertion_marker = "--- STEP_METHODS_INSERTION_POINT ---"
