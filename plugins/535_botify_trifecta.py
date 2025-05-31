@@ -12,7 +12,7 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse, quote
+from urllib.parse import parse_qs, urlparse
 from typing import Optional
 
 import httpx
@@ -22,8 +22,6 @@ from loguru import logger
 
 ROLES = ['Workshop']
 TOKEN_FILE = 'botify_token.txt'
-
-
 
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -96,16 +94,8 @@ class BotifyCsvDownloaderWorkflow:
     # - Handling different endpoint/payload structures  
     # - More complexity for minimal benefit
     # 
-    # This section handles the complete Botify data collection workflow (steps 1-4):
-    # - Step 1: Botify Project URL input and validation
-    # - Step 2: Crawl Analysis selection and download with template support
-    # - Step 3: Web Logs availability check and download
-    # - Step 4: Search Console data check and download
-    # This is an atomic unit that should be transplanted together.
-
     # Current approach: hardcode the simple query inline where used.
     # This is a perfect example of knowing when NOT to abstract.
-    # --- START_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
     QUERY_TEMPLATES = {
         'Crawl Basic': {
             'name': 'Basic Crawl Data',
@@ -148,7 +138,7 @@ class BotifyCsvDownloaderWorkflow:
         },
         'Link Graph Edges': {
             'name': 'Link Graph Edges',
-            'description': 'Exports internal link graph (source -> target). Automatically finds optimal depth for ~1M edges. Cosmograph-compatible format.',
+            'description': 'Exports internal link graph (source URL -> target URL). Automatically finds optimal depth for ~1M edges.',
             'export_type': 'link_graph_edges',
             'user_message': 'This will download the site\'s internal link graph (source-target pairs). An optimal depth will be found first.',
             'button_label_suffix': 'Link Graph',
@@ -157,7 +147,6 @@ class BotifyCsvDownloaderWorkflow:
                 'metrics': [],
                 'filters': {'field': '{collection}.depth', 'predicate': 'lte', 'value': '{OPTIMAL_DEPTH}'}
             },
-            'hardwired_depth': None,  # Set to integer (e.g., 2) to override automatic depth optimization
             'qualifier_config': {
                 'enabled': True,
                 'qualifier_bql_template': {
@@ -210,8 +199,7 @@ class BotifyCsvDownloaderWorkflow:
         'BUTTON_LABELS': {
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
             'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Download CSV',
-            'VISUALIZE_GRAPH': '🌐 Visualize Graph'
+            'DOWNLOAD_CSV': '⬇️ Download CSV'
         },
         'BUTTON_STYLES': {
             'STANDARD': 'secondary outline',
@@ -264,21 +252,11 @@ class BotifyCsvDownloaderWorkflow:
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
         
-        # This section handles the complete Botify data collection workflow (steps 1-4):
-        # - Step 1: Botify Project URL input and validation
-        # - Step 2: Crawl Analysis selection and download with template support
-        # - Step 3: Web Logs availability check and download
-        # - Step 4: Search Console data check and download
-        # This is an atomic unit that should be transplanted together.
-
-        # --- SECTION_STEP_DEFINITION ---
         steps = [
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True), 
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False), 
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False), 
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False), 
-        # --- END_SECTION_STEP_DEFINITION ---
-
             Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)
         ]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
@@ -292,7 +270,6 @@ class BotifyCsvDownloaderWorkflow:
         routes.append((f'/{app_name}/step_03_process', self.step_03_process, ['POST']))
         routes.append((f'/{app_name}/step_05_process', self.step_05_process, ['POST']))
         routes.append((f'/{app_name}/toggle', self.common_toggle, ['GET']))
-        routes.append((f'/{app_name}/check_cache_status', self.check_cache_status, ['GET']))
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
@@ -452,7 +429,6 @@ class BotifyCsvDownloaderWorkflow:
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
         return pip.rebuild(app_name, steps)
 
-    # --- SECTION_STEP_METHODS ---
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.
 
@@ -613,7 +589,7 @@ class BotifyCsvDownloaderWorkflow:
                     option_text = slug
                 dropdown_options.append(Option(option_text, value=slug, selected=slug == selected_value))
             
-            # Check cache status for the initially selected analysis to set correct initial button text
+            # Check if files are cached for the selected analysis to determine button text
             selected_analysis = selected_value if selected_value else (slugs[0] if slugs else '')
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
@@ -624,7 +600,7 @@ class BotifyCsvDownloaderWorkflow:
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
             
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True, hx_get=f'/{app_name}/check_cache_status', hx_trigger='change', hx_target='#step-02-button', hx_include=f'[name="username"],[name="project_name"]'), Input(type='hidden', name='username', value=username), Input(type='hidden', name='project_name', value=project_name), Div(Button(button_text, type='submit', cls='mt-10px primary'), id='step-02-button'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(button_text, type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
@@ -785,19 +761,52 @@ class BotifyCsvDownloaderWorkflow:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             # Check if web logs are cached for the CURRENT analysis
-            analysis_step_id = 'step_02'
-            analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-            analysis_data_str = analysis_step_data.get('analysis_selection', '')
-            
+            # Use the same logic as step_02 to get the current analysis
             is_cached = False
-            if analysis_data_str:
-                try:
-                    analysis_data = json.loads(analysis_data_str)
-                    analysis_slug = analysis_data.get('analysis_slug', '')
-                    if analysis_slug:
-                        is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'weblog')
-                except (json.JSONDecodeError, Exception):
-                    is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
+                
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Debug: Print what we actually have
+                    print(f"DEBUG step_03: analysis_step_data = {analysis_step_data}")
+                    print(f"DEBUG step_03: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
+                    
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    print(f"DEBUG step_03: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+                    
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+                
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    weblog_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
+                    is_cached = os.path.exists(weblog_path)
+            except Exception:
+                is_cached = False
             
             # Set button text based on cache status
             button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
@@ -919,19 +928,47 @@ class BotifyCsvDownloaderWorkflow:
             gsc_template = self.get_configured_template('gsc')
             
             # Check if GSC data is cached for the CURRENT analysis
-            analysis_step_id = 'step_02'
-            analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
-            analysis_data_str = analysis_step_data.get('analysis_selection', '')
-            
+            # Use the same logic as step_02 to get the current analysis
             is_cached = False
-            if analysis_data_str:
-                try:
-                    analysis_data = json.loads(analysis_data_str)
-                    analysis_slug = analysis_data.get('analysis_slug', '')
-                    if analysis_slug:
-                        is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'gsc')
-                except (json.JSONDecodeError, Exception):
-                    is_cached = False
+            try:
+                # Get the current analysis from step_02 data - try multiple possible keys
+                analysis_step_id = 'step_02'
+                analysis_step_data = pip.get_step_data(pipeline_id, analysis_step_id, {})
+                current_analysis_slug = ''
+                
+                # Try to get analysis_slug from the stored data
+                if analysis_step_data:
+                    # Try the 'analysis_selection' key first
+                    analysis_data_str = analysis_step_data.get('analysis_selection', '')
+                    if analysis_data_str:
+                        try:
+                            analysis_data = json.loads(analysis_data_str)
+                            current_analysis_slug = analysis_data.get('analysis_slug', '')
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+                    
+                    # If that didn't work, try looking for analysis_slug directly
+                    if not current_analysis_slug and isinstance(analysis_step_data, dict):
+                        for key, value in analysis_step_data.items():
+                            if isinstance(value, str) and value.startswith('20'):
+                                # Looks like an analysis slug (starts with year)
+                                current_analysis_slug = value
+                                break
+                            elif isinstance(value, str):
+                                try:
+                                    data = json.loads(value)
+                                    if isinstance(data, dict) and 'analysis_slug' in data:
+                                        current_analysis_slug = data['analysis_slug']
+                                        break
+                                except (json.JSONDecodeError, AttributeError):
+                                    continue
+                
+                # Only check for cached files if we found an analysis slug
+                if current_analysis_slug:
+                    gsc_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
+                    is_cached = os.path.exists(gsc_path)
+            except Exception:
+                is_cached = False
             
             button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
             
@@ -1316,19 +1353,6 @@ class BotifyCsvDownloaderWorkflow:
         import json
         
         pip = self.pipulate
-        
-        # Check for hardwired depth override in Link Graph Edges template
-        crawl_template_name = self.get_configured_template('crawl')
-        if crawl_template_name == 'Link Graph Edges':
-            template = self.QUERY_TEMPLATES[crawl_template_name]
-            hardwired_depth = template.get('hardwired_depth')
-            if hardwired_depth is not None:
-                await self.message_queue.add(pip, f"🎯 Using hardwired depth: {hardwired_depth} (automatic optimization bypassed).", verbatim=True)
-                return {
-                    'parameter_value': hardwired_depth,
-                    'metric_at_parameter': 0  # We don't know the actual count, but it's not needed
-                }
-        
         iter_param_name = qualifier_config['iterative_parameter_name']
         bql_template_str = json.dumps(qualifier_config['qualifier_bql_template'])
         collection_name = f"crawl.{analysis_slug}"
@@ -1454,16 +1478,6 @@ class BotifyCsvDownloaderWorkflow:
         if data_type not in filenames:
             raise ValueError(f'Unknown data type: {data_type}')
         filename = filenames[data_type]
-        
-        # Special handling for link_graph_edges with hardwired depth
-        if data_type == 'link_graph_edges':
-            crawl_template_name = self.get_configured_template('crawl')
-            if crawl_template_name == 'Link Graph Edges':
-                template = self.QUERY_TEMPLATES[crawl_template_name]
-                hardwired_depth = template.get('hardwired_depth')
-                if hardwired_depth is not None:
-                    filename = f'link_graph-depth-{hardwired_depth}.csv'
-        
         return f'{base_dir}/{filename}'
 
     async def check_file_exists(self, filepath):
@@ -1481,6 +1495,9 @@ class BotifyCsvDownloaderWorkflow:
         if stats.st_size == 0:
             return (False, {})
         file_info = {'path': filepath, 'size': f'{stats.st_size / 1024:.1f} KB', 'created': time.ctime(stats.st_ctime)}
+        return (True, file_info)
+
+    async def ensure_directory_exists(self, filepath):
         directory = os.path.dirname(filepath)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -1489,12 +1506,10 @@ class BotifyCsvDownloaderWorkflow:
         """Check if a file exists for the given parameters and return appropriate button text."""
         try:
             filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
-            exists, file_info = await self.check_file_exists(filepath)
-            return exists
+            file_info = await self.check_file_exists(filepath)
+            return file_info['exists']
         except Exception:
             return False
-
-    # --- END_SECTION_STEP_METHODS ---
 
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None, template_info: Optional[dict] = None, username: Optional[str] = None, project_name: Optional[str] = None) -> tuple[str, str]:
         """Generate both cURL and Python representations of API calls for debugging.
@@ -1573,7 +1588,7 @@ class BotifyCsvDownloaderWorkflow:
         # Build enhanced header with template information
         header_lines = [
             "# =============================================================================",
-            f"# 🐍 Botify API Call Example",
+            f"# Botify API Call Example",
             f"# Generated by: {self.DISPLAY_NAME} Workflow",
             f"# Step: {step_name}",
             f"# API Endpoint: {method.upper()} {url}"
@@ -2488,9 +2503,8 @@ await main()
                                 
                                 if export_type == 'link_graph_edges':
                                     # Link graph exports have 2 columns: source URL, target URL
-                                    # Use Cosmograph-compatible column names for graph visualization
                                     if len(df.columns) == 2:
-                                        df.columns = ['source', 'target']
+                                        df.columns = ['Source URL', 'Target URL']
                                     else:
                                         # Fallback for unexpected column count
                                         df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
@@ -3101,7 +3115,7 @@ await main()
                                                 with zip_ref.open(csv_files[0]) as source:
                                                     with open(gsc_filepath, 'wb') as target:
                                                         shutil.copyfileobj(source, target)
-                                                logging.info(f'Successfully extracted zip file to {gsc_filepath}')
+                                            logging.info(f'Successfully extracted zip file to {gsc_filepath}')
                                         except zipfile.BadZipFile:
                                             shutil.copy(compressed_path, gsc_filepath)
                                             logging.info(f"File doesn't appear to be compressed, copying directly to {gsc_filepath}")
@@ -3357,7 +3371,7 @@ await main()
         # Generate enhanced Python code header with template information
         header_lines = [
             "# =============================================================================",
-            f"# 🐍 Botify Query API Call (BQLv2 - for debugging the export query)",
+            f"# Botify Query API Call (BQLv2 - for debugging the export query)",
             f"# Generated by: {self.DISPLAY_NAME} Workflow",
             f"# Step: {self._get_step_name_from_payload(jobs_payload)}",
             f"# Organization: {username}",
@@ -3554,7 +3568,7 @@ await main()
         # Generate enhanced Python code header for web logs
         header_lines = [
             "# =============================================================================",
-            f"# 🐍 Botify Web Logs API Call (BQLv1 - /logs endpoint)",
+            f"# Botify Web Logs API Call (BQLv1 - /logs endpoint)",
             f"# Generated by: {self.DISPLAY_NAME} Workflow",
             f"# Step: {self._get_step_name_from_payload(jobs_payload)}",
             f"# Organization: {username}",
@@ -3885,38 +3899,9 @@ await main()
         except Exception as e:
             return f"Diagnosis failed: {str(e)}"
 
-    async def check_cache_status(self, request):
-        """HTMX endpoint to check cache status and return button element."""
-        try:
-            # Get parameters from query string
-            analysis_slug = request.query_params.get('analysis_slug', '')
-            username = request.query_params.get('username', '')
-            project_name = request.query_params.get('project_name', '')
-            
-            if not all([analysis_slug, username, project_name]):
-                return Button('Download Link Graph ▸', type='submit', cls='mt-10px primary')
-            
-            # Get active template details
-            active_crawl_template_key = self.get_configured_template('crawl')
-            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
-            export_type = active_template_details.get('export_type', 'crawl_attributes')
-            button_suffix = active_template_details.get('button_label_suffix', 'Link Graph')
-            
-            # Check if files are cached
-            is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
-            
-            # Return the actual button element with updated text
-            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
-            return Button(button_text, type='submit', cls='mt-10px primary')
-            
-        except Exception as e:
-            # Fallback to default button on any error
-            return Button('Download Link Graph ▸', type='submit', cls='mt-10px primary')
-
     def _create_action_buttons(self, step_data, step_id):
         """Create View Folder and Download CSV buttons for a step."""
         from urllib.parse import quote
-        from datetime import datetime
         
         # Extract analysis-specific folder information
         username = step_data.get('username', '')
@@ -3947,8 +3932,7 @@ await main()
         
         buttons = [folder_button]
         
-        # Check for file existence regardless of download_complete flag
-        # This ensures manually created files (like link_graph-depth-0.csv) are detected
+        # Create download button if file exists
         download_complete = step_data.get('download_complete', False)
         
         # Determine the expected filename based on step and export type
@@ -3959,28 +3943,19 @@ await main()
             active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
             export_type = active_template_details.get('export_type', 'crawl_attributes')
             
-            # Use the same logic as get_deterministic_filepath for consistent filename handling
-            if export_type == 'link_graph_edges':
-                # Check for hardwired depth to determine filename
-                if active_crawl_template_key == 'Link Graph Edges':
-                    hardwired_depth = active_template_details.get('hardwired_depth')
-                    if hardwired_depth is not None:
-                        expected_filename = f'link_graph-depth-{hardwired_depth}.csv'
-                    else:
-                        expected_filename = 'link_graph.csv'
-                else:
-                    expected_filename = 'link_graph.csv'
-            elif export_type == 'crawl_attributes':
-                expected_filename = 'crawl.csv'
-            else:
-                expected_filename = 'crawl.csv'  # fallback
+            # Use the same mapping as get_deterministic_filepath
+            filename_mapping = {
+                'crawl_attributes': 'crawl.csv',
+                'link_graph_edges': 'link_graph.csv'
+            }
+            expected_filename = filename_mapping.get(export_type, 'crawl.csv')
         elif step_id == 'step_03':
             expected_filename = 'weblog.csv'
         elif step_id == 'step_04':
             expected_filename = 'gsc.csv'
         
-        # Check if file exists (regardless of download_complete flag)
-        if expected_filename and username and project_name and analysis_slug:
+        # Check if download was successful and try to find the file
+        if download_complete and expected_filename and username and project_name and analysis_slug:
             try:
                 # Construct the expected file path
                 expected_file_path = Path.cwd() / 'downloads' / self.APP_NAME / username / project_name / analysis_slug / expected_filename
@@ -3990,11 +3965,6 @@ await main()
                     downloads_base = Path.cwd() / 'downloads'
                     path_for_url = expected_file_path.relative_to(downloads_base)
                     path_for_url = str(path_for_url).replace('\\', '/')
-                    
-                    # Check if this is a link graph file for Cosmograph visualization
-                    is_link_graph = expected_filename.startswith('link_graph')
-                    
-                    # Always create the download button first
                     download_button = A(
                         self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                         href=f"/download_file?file={quote(path_for_url)}",
@@ -4003,31 +3973,12 @@ await main()
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                     )
                     buttons.append(download_button)
-                    
-                    # For link graph files, also add the Cosmograph visualization button
-                    if is_link_graph:
-                        # Create Cosmograph visualization link using the same pattern as botifython.py
-                        # Important: URL-encode the entire data URL to prevent query parameter conflicts
-                        file_url = f"/download_file?file={quote(path_for_url)}"
-                        timestamp = int(datetime.now().timestamp())
-                        data_url = f"http://localhost:5001{file_url}&t={timestamp}"
-                        encoded_data_url = quote(data_url, safe='')
-                        viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
-                        
-                        viz_button = A(
-                            self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
-                            href=viz_url,
-                            target="_blank",
-                            role="button",
-                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                        )
-                        buttons.append(viz_button)
                 else:
                     logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
                 logger.error(f"Error creating download button for {step_id}: {e}")
         
-        # Fallback: check the old way for backward compatibility (only if download_complete is True)
+        # Fallback: check the old way for backward compatibility
         elif download_complete:
             file_path = None
             download_info = step_data.get('download_info', {})
@@ -4041,11 +3992,6 @@ await main()
                         downloads_base = Path.cwd() / 'downloads'
                         path_for_url = file_path_obj.relative_to(downloads_base)
                         path_for_url = str(path_for_url).replace('\\', '/')
-                        
-                        # Check if this is a link graph file for Cosmograph visualization
-                        is_link_graph = file_path_obj.name.startswith('link_graph')
-                        
-                        # Always create the download button first
                         download_button = A(
                             self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                             href=f"/download_file?file={quote(path_for_url)}",
@@ -4054,40 +4000,10 @@ await main()
                             cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(download_button)
-                        
-                        # For link graph files, also add the Cosmograph visualization button
-                        if is_link_graph:
-                            # Create Cosmograph visualization link using the same pattern as botifython.py
-                            file_url = f"/download_file?file={quote(path_for_url)}"
-                            timestamp = int(datetime.now().timestamp())
-                            data_url = f"http://localhost:5001{file_url}&t={timestamp}"
-                            encoded_data_url = quote(data_url, safe='')
-                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
-                            
-                            viz_button = A(
-                                self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
-                                href=viz_url,
-                                target="_blank",
-                                role="button",
-                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                            )
-                            buttons.append(viz_button)
-                        else:
-                            # Create regular download button for non-link-graph files
-                            download_button = A(
-                                self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
-                                href=f"/download_file?file={quote(path_for_url)}",
-                                target="_blank",
-                                role="button",
-                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
-                            )
-                            buttons.append(download_button)
                 except Exception as e:
                     logger.error(f"Error creating fallback download button for {step_id}: {e}")
         
         return buttons
-
-    # --- END_WORKFLOW_SECTION: steps_01_04_botify_data_collection ---
 
     # --- STEP_METHODS_INSERTION_POINT ---
 
