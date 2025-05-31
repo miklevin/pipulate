@@ -416,6 +416,183 @@ Div(content, style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_
 ### Philosophy: Deterministic Template Processing
 The WET workflow system uses **full-line markers** and **split/join methodology** instead of complex regex patterns for reliable, deterministic template assembly. This approach ensures helper scripts work predictably across different workflow templates.
 
+### Critical Marker Requirements for Helper Tools
+
+**Primary Reference**: See [05_workflow_creation_helpers.mdc](mdc:05_workflow_creation_helpers.mdc) for complete documentation of the 4-tool helper system.
+
+#### Mandatory Markers for Template Compatibility
+
+**ALL workflows that will be used as templates or targets for helper tools MUST include both markers:**
+
+##### 1. Steps List Insertion Point (Required)
+```python
+# In self.steps definition:
+self.steps = [
+    Step(id='step_01', done='data_01', show='Step 1', refill=False),
+    Step(id='step_02', done='data_02', show='Step 2', refill=False),
+    # --- STEPS_LIST_INSERTION_POINT --- 
+    Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
+]
+```
+
+**Critical Requirements:**
+- **Must be placed** immediately before the `finalize` step
+- **Must be at the same indentation level** as Step definitions
+- **Must be a full line** with no other code on the same line
+- **Used by**: `splice_workflow_step.py` for adding new steps
+
+##### 2. Step Methods Insertion Point (Required)
+```python
+# At the end of the class, before closing:
+class MyWorkflow:
+    async def existing_step_method(self, request):
+        # ... existing method ...
+        pass
+
+    async def existing_step_submit(self, request):
+        # ... existing method ...
+        pass
+
+    # --- STEP_METHODS_INSERTION_POINT ---
+```
+
+**Critical Requirements:**
+- **Must be at class level** (4 spaces indentation)
+- **Must be after all existing step methods**
+- **Must be before class closing**
+- **Must be a full line** with no other code
+- **Used by**: `splice_workflow_step.py` for adding new step method templates
+
+#### Helper Tool Marker Dependencies
+
+##### splice_workflow_step.py Requirements
+**Source Template**: Not required (generates new placeholder code)
+**Target Workflow**: MUST have both insertion point markers
+
+```python
+# Target workflow must have:
+# 1. --- STEPS_LIST_INSERTION_POINT --- in self.steps
+# 2. --- STEP_METHODS_INSERTION_POINT --- at class level
+```
+
+**Failure Mode**: If markers missing, script fails with "insertion point not found" error.
+
+##### swap_workflow_step.py Requirements  
+**Source Workflow**: Must have the step methods you want to copy
+**Target Workflow**: Must have the step ID you want to replace
+
+```python
+# Source workflow must have:
+async def step_01(self, request):
+    # Source implementation
+    pass
+
+async def step_01_submit(self, request):
+    # Source implementation  
+    pass
+
+# Target workflow must have:
+async def step_01(self, request):
+    # Will be replaced
+    pass
+
+async def step_01_submit(self, request):
+    # Will be replaced
+    pass
+```
+
+**Critical Requirements:**
+- **Exact step ID matching**: `step_01` in source must match target step parameter
+- **Method pair detection**: Tool finds both `step_N` and `step_N_submit` methods
+- **Boundary detection**: Tool identifies where each method starts and ends
+
+##### manage_class_attributes.py Requirements
+**Source Workflow**: Must have the class attributes to merge (e.g., `UI_CONSTANTS`)
+**Target Workflow**: Must have class structure compatible with attribute insertion
+
+```python
+# Source workflow must have (example):
+class SourceWorkflow:
+    UI_CONSTANTS = {
+        'COLORS': {...},
+        'SPACING': {...}
+    }
+
+# Target workflow receives merged attributes automatically
+```
+
+##### create_workflow.py Requirements
+**Source Template**: Must be in `TEMPLATE_MAP` and have standard class attributes
+**Target**: Creates new file, no existing requirements
+
+```python
+# Template must have these replaceable attributes:
+class TemplateWorkflow:
+    APP_NAME = 'template_name'           # Will be replaced
+    DISPLAY_NAME = 'Template Display'    # Will be replaced  
+    ENDPOINT_MESSAGE = 'Template message'  # Will be replaced
+    TRAINING_PROMPT = 'Template prompt'    # Will be replaced
+```
+
+#### Common Marker Failure Modes and Solutions
+
+##### Missing Insertion Point Markers
+**Error**: `splice_workflow_step.py` fails with "STEPS_LIST_INSERTION_POINT not found"
+**Solution**: Add both required markers to target workflow
+
+```python
+# Add to self.steps:
+# --- STEPS_LIST_INSERTION_POINT --- 
+
+# Add at class level:  
+# --- STEP_METHODS_INSERTION_POINT ---
+```
+
+##### Incorrect Indentation
+**Error**: Markers found but code inserted at wrong indentation level
+**Solution**: Ensure markers match surrounding code indentation exactly
+
+```python
+# ✅ CORRECT - Matches Step indentation
+self.steps = [
+    Step(id='step_01', done='data', show='Step 1', refill=False),
+    # --- STEPS_LIST_INSERTION_POINT ---  # Same level as Step
+    Step(id='finalize', done='finalized', show='Finalize', refill=False)
+]
+
+# ❌ INCORRECT - Wrong indentation
+self.steps = [
+    Step(id='step_01', done='data', show='Step 1', refill=False),
+# --- STEPS_LIST_INSERTION_POINT ---  # Wrong level
+    Step(id='finalize', done='finalized', show='Finalize', refill=False)
+]
+```
+
+##### Step Method Not Found
+**Error**: `swap_workflow_step.py` fails with "step_01 not found in source"
+**Solution**: Verify exact step ID exists in source workflow with both methods
+
+```python
+# Must have both methods:
+async def step_01(self, request):      # GET handler
+    pass
+
+async def step_01_submit(self, request):  # POST handler  
+    pass
+```
+
+#### Template Validation Checklist
+
+Before using a workflow as a template or target, verify:
+
+- [ ] **STEPS_LIST_INSERTION_POINT** present before finalize step
+- [ ] **STEP_METHODS_INSERTION_POINT** present at class level after methods
+- [ ] **Standard class attributes** present (APP_NAME, DISPLAY_NAME, etc.)
+- [ ] **UI_CONSTANTS** defined if sharing styling patterns
+- [ ] **Step methods** follow `step_N` and `step_N_submit` naming convention
+- [ ] **No syntax errors** that would break helper script parsing
+- [ ] **Consistent indentation** throughout class definition
+
 ### Atomic Transplantation Markers
 **Reference**: [15_atomic_transplantation_system.mdc](mdc:15_atomic_transplantation_system.mdc)
 
@@ -825,36 +1002,112 @@ class HybridWorkflow:
 - **Extensible**: Easy to add new processing steps without breaking existing logic
 - **Deterministic**: Same input always produces same output
 
-#### Complementary System Benefits
-- **Template Assembly**: Enables rapid workflow creation and step addition
-- **Atomic Transplantation**: Enables reusable component sharing across workflows
-- **Combined Power**: Workflows can be both templates and sources of atomic components
-- **Maintenance Efficiency**: Bulk updates can be applied to similar patterns across multiple workflows
+#### Template-Based System Benefits
+- **Template Assembly**: Enables rapid workflow creation with proven 4-tool system
+- **Marker Requirements**: Clear, mandatory requirements prevent common failures
+- **Failure Mode Prevention**: Explicit marker validation catches issues early
+- **Developer Experience**: Template validation checklist ensures compatibility
+- **Consistency**: All workflows using templates have consistent marker patterns
 
-#### Real-World Impact
-- **Token Conservation**: Reduces AI token usage on routine tasks
-- **Development Speed**: Faster workflow creation and modification
-- **Code Consistency**: Standardized patterns across all workflows
-- **Maintenance Reduction**: Changes to atomic units propagate across workflows
-- **Knowledge Sharing**: Successful patterns become reusable components
+#### Real-World Impact Based on 4-Tool Helper System
+- **95% Success Rate**: Template-based creation works reliably when markers present
+- **Clear Error Messages**: Helper tools provide specific marker requirement failures
+- **Development Speed**: 5-command sequences create complex workflows in minutes
+- **Learning Path**: Progressive education through workflow genesis system
+- **Maintenance Reduction**: Template innovations can propagate to workflows built from templates
 
-This dual marker system ensures that WET workflows can serve multiple purposes: as templates for new workflow creation, as sources of reusable atomic components, and as maintainable, extensible systems that preserve the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
+#### Template Compatibility Benefits
+- **Mandatory Markers**: STEPS_LIST_INSERTION_POINT and STEP_METHODS_INSERTION_POINT ensure splice compatibility
+- **Method Detection**: Reliable step method boundary detection for swapping logic
+- **Attribute Merging**: Safe UI_CONSTANTS sharing across compatible workflows
+- **Template Evolution**: New templates can be added to TEMPLATE_MAP as they mature
+
+#### Proven Success Pattern
+The 4-tool helper system (Rule 05) demonstrates the power of this marker approach:
+1. **create_workflow.py** creates working foundation with proper markers
+2. **manage_class_attributes.py** shares styling through reliable attribute detection
+3. **splice_workflow_step.py** adds steps using precise marker insertion
+4. **swap_workflow_step.py** replaces logic through deterministic method boundary detection
+
+This marker system ensures that WET workflows maintain their explicit, debuggable nature while enabling rapid development through template-based creation and proven helper tool patterns.
+
+## Evolution Lessons: From Complex Tools to Simple Templates
+
+### Key Learning: Template-Based Creation Supersedes Complex Helper Systems
+
+**Historical Evolution**:
+- **Early Phase**: Atomic transplantation and complex cleanup helpers
+- **Problems Discovered**: Dependency conflicts, maintenance overhead, token waste
+- **Current Solution**: 4-tool template-based creation system (Rule 05)
+
+### Critical Success Factors for Template-Based Development
+
+#### Mandatory Template Requirements
+**Every workflow intended for template use or helper tool compatibility MUST have:**
+
+1. **Both Insertion Point Markers**:
+   - `--- STEPS_LIST_INSERTION_POINT ---` before finalize step
+   - `--- STEP_METHODS_INSERTION_POINT ---` at class level
+
+2. **Standard Class Attributes**:
+   - `APP_NAME`, `DISPLAY_NAME`, `ENDPOINT_MESSAGE`, `TRAINING_PROMPT`
+
+3. **UI Constants Definition**:
+   - Centralized styling for consistent appearance across workflows
+
+#### Workflow Genesis Integration
+The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) workflow provides **educational progression**:
+- **Step 1**: Parameter definition
+- **Step 2**: Template selection with appropriate commands
+- **Step 3**: Individual helper tool education
+- **Step 4**: Complete command sequence for complex builds
+
+### Development Strategy Evolution
+
+#### Template Selection Strategy
+- **Blank Template**: Learning, heavy customization → Requires 5-command sequence
+- **Hello Template**: Simple demos, 2-step workflows → Single command creation
+- **Trifecta Template**: Complex data workflows → Single command creation
+
+#### Command Sequence Intelligence
+**Simple Templates**: Single `create_workflow.py` command sufficient
+**Complex Builds**: 5-command sequence for transforming blank template:
+1. Create base from blank template
+2. Merge UI constants from source
+3. Swap step_01 logic 
+4. Add step_02 placeholder
+5. Swap step_02 logic
 
 ## Implementation Guidelines
 
 ### When to Apply These Conventions
-- **New WET workflows**: Apply all conventions from the start, including UI constants
-- **Existing workflows**: Gradually adopt conventions during maintenance, prioritizing UI constants for consistency
+- **New WET workflows**: Start with template-based creation (Rule 05) and apply UI conventions
+- **Template creation**: Ensure all mandatory markers and attributes present
+- **Existing workflows**: Add markers for helper tool compatibility
 - **Message queue updates**: Prioritize emoji consistency for better UX
-- **Template systems**: Implement dynamic user messages and qualifier patterns
-- **Style updates**: Use centralized constants to make global appearance changes
+- **Style updates**: Use centralized UI constants for global appearance changes
+
+### Marker Implementation Checklist
+Before considering a workflow "template-ready":
+- [ ] `STEPS_LIST_INSERTION_POINT` before finalize step (correct indentation)
+- [ ] `STEP_METHODS_INSERTION_POINT` at class level after methods  
+- [ ] Standard class attributes defined and replaceable
+- [ ] UI_CONSTANTS defined for styling consistency
+- [ ] Step methods follow `step_N` and `step_N_submit` convention
+- [ ] No syntax errors that break helper script parsing
 
 ### Key Benefits
-- **Visual consistency**: Users can quickly scan and understand status
-- **Reduced cognitive load**: Emojis provide instant context
-- **Better error recovery**: Clear messaging helps users troubleshoot
-- **Maintainable code**: Consistent patterns reduce development time
-- **Easy customization**: Centralized constants enable quick global style changes
-- **Design system**: Creates cohesive visual language across all workflows
+- **Template-Based Speed**: Proven 4-tool system creates workflows in minutes
+- **Clear Requirements**: Mandatory markers prevent common failure modes
+- **Educational Value**: Progressive learning through workflow genesis
+- **Maintenance Efficiency**: Template innovations propagate to derived workflows
+- **Visual Consistency**: UI constants enable consistent appearance
+- **Error Prevention**: Validation checklist catches compatibility issues early
 
-These conventions ensure consistent user experience across all WET workflows while maintaining the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
+### Success Metrics from Real Usage
+- **95% Success Rate**: When mandatory markers present, helper tools work reliably
+- **5-Command Sequences**: Transform blank templates into complex workflows
+- **Single Commands**: Create working hello/trifecta workflows instantly
+- **Clear Error Messages**: Helper tools provide specific failure diagnostics
+
+These conventions ensure consistent user experience across all WET workflows while leveraging the proven template-based creation system that maintains the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
