@@ -1027,6 +1027,12 @@ class WorkflowGenesis:
                     # Always reset the flag, even if subprocess fails
                     logger.info("[WORKFLOW_GENESIS] Critical subprocess operation finished. Resuming Watchdog restarts.")
                     clear_critical_operation_flag()
+                    
+                    # Trigger restart now that the critical operation is complete
+                    if execution_success:
+                        logger.info("[WORKFLOW_GENESIS] Triggering server restart after successful workflow creation.")
+                        from server import restart_server
+                        restart_server()
                 
         except subprocess.TimeoutExpired:
             execution_output = f"❌ Command timed out after 60 seconds:\n{combined_cmd}"
