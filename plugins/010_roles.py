@@ -284,6 +284,12 @@ class CrudUI(PluginIdentityManager):
         return await self.landing()
 
 
+def get_role_css_class(role_name):
+    """Convert role name to CSS class name that matches the menu styling."""
+    # Convert to CSS class format (lowercase, spaces to hyphens)
+    css_role = role_name.lower().replace(' ', '-')
+    return f"menu-role-{css_role}"
+
 def render_item(item, app_instance):
     """Renders a single item as an LI element with plugin visibility information."""
     item_id = f'{app_instance.name}-{item.id}'
@@ -312,6 +318,11 @@ def render_item(item, app_instance):
     # Create plugin visibility information
     plugin_info = create_plugin_visibility_table(item.text)
 
+    # Get role-based CSS class for consistent coloring with menu
+    role_css_class = get_role_css_class(item.text)
+    base_classes = 'done' if item.done or is_core else ''
+    combined_classes = f"{base_classes} {role_css_class}".strip()
+
     return Li(
         # Main role item with checkbox and name
         Div(
@@ -322,8 +333,8 @@ def render_item(item, app_instance):
         # Plugin visibility information below
         plugin_info,
         id=item_id,
-        cls='done' if item.done or is_core else '',  # Always marked as done for Core
-        style="list-style-type: none; margin-bottom: 0.5rem; padding: 0.25rem; border-radius: 0.25rem; background-color: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color);",
+        cls=combined_classes,
+        style="list-style-type: none; margin-bottom: 0.5rem; padding: 0.25rem; border-radius: 0.25rem; background-color: var(--pico-card-background-color);",
         data_id=item.id,
         data_priority=item.priority,
         data_plugin_item="true",
@@ -409,6 +420,21 @@ def create_plugin_visibility_table(role_name):
     
     shown_count = len(shown_plugins)
     
+    # Get role-based border color to match menu styling
+    role_css_class = get_role_css_class(role_name)
+    
+    # Define border colors that match our role coloring
+    border_colors = {
+        'menu-role-core': 'var(--pico-primary)',
+        'menu-role-botify-employee': '#3b82f6',
+        'menu-role-tutorial': '#22c55e', 
+        'menu-role-developer': '#f97316',
+        'menu-role-components': '#a855f7',
+        'menu-role-workshop': '#eab308'
+    }
+    
+    border_color = border_colors.get(role_css_class, 'var(--pico-color-azure-500)')
+    
     # Create the plugin list
     def format_all_plugins(plugins):
         return ", ".join([f"{name}" for prefix, name in plugins])
@@ -423,7 +449,7 @@ def create_plugin_visibility_table(role_name):
         ),
         Div(
             Small(format_all_plugins(shown_plugins), style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.3;"),
-            style="padding: 0.5rem; background-color: var(--pico-card-background-color); border-radius: 0.25rem; margin-top: 0.25rem; border-left: 2px solid var(--pico-color-azure-500);"
+            style=f"padding: 0.5rem; background-color: var(--pico-card-background-color); border-radius: 0.25rem; margin-top: 0.25rem; border-left: 3px solid {border_color};"
         ),
         style="margin: 0;"
     )
