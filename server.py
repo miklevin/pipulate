@@ -490,7 +490,7 @@ def read_training(prompt_or_filename):
 
 def hot_prompt_injection(prompt_or_filename):
     prompt = read_training(prompt_or_filename)
-    append_to_conversation(prompt, role='system', quiet=True)
+    append_to_conversation(prompt, role='system')
     return prompt
 
 
@@ -502,7 +502,7 @@ global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
 
 
-def append_to_conversation(message=None, role='user', quiet=False):
+def append_to_conversation(message=None, role='user'):
     """Append a message to the global conversation history.
     
     This function manages the conversation history by:
@@ -513,21 +513,12 @@ def append_to_conversation(message=None, role='user', quiet=False):
     Args:
         message (str, optional): The message content to append. If None, returns current history.
         role (str, optional): The role of the message sender. Defaults to 'user'.
-        quiet (bool, optional): If True, suppresses debug logging. Defaults to False.
     
     Returns:
         list: The complete conversation history after appending.
     """
-    logger.debug('Entering append_to_conversation function')
-    
-    # Log message preview if not quiet
-    if quiet is False:
-        preview = message[:50] + '...' if isinstance(message, str) else str(message)
-        logger.debug(f'Appending to conversation. Role: {role}, Message: {preview}')
-    
     # Only process if we have a message
     if message is None:
-        logger.debug('Exiting Append to Conversation')
         return list(global_conversation_history)
         
     # Ensure system message exists at start of history
@@ -537,17 +528,11 @@ def append_to_conversation(message=None, role='user', quiet=False):
     )
     
     if needs_system_message:
-        if quiet is False:
-            logger.debug('Adding system message to conversation history')
         global_conversation_history.appendleft(conversation[0])
     
     # Add the new message
     global_conversation_history.append({'role': role, 'content': message})
     
-    if quiet is False:
-        logger.debug(f'Message appended. New conversation history length: {len(global_conversation_history)}')
-    
-    logger.debug('Exiting Append to Conversation')
     return list(global_conversation_history)
 
 
@@ -613,7 +598,7 @@ class Pipulate:
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_history(self, message: str, role: str = 'system', quiet: bool = True) -> None:
+    def append_to_history(self, message: str, role: str = 'system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
 
         This is the preferred way for workflows to update the LLM's context about:
@@ -626,9 +611,8 @@ class Pipulate:
         Args:
             message: The message to add to history
             role: The role of the message sender ("system", "user", "assistant")
-            quiet: Whether to suppress logging (defaults to True)
         """
-        append_to_conversation(message, role=role, quiet=quiet)
+        append_to_conversation(message, role=role)
 
     class OrderedMessageQueue:
         """A lightweight queue to ensure messages are delivered in order.
@@ -1151,7 +1135,7 @@ class Pipulate:
         safe_state = state_desc.replace('<', '\\<').replace('>', '\\>')
         safe_message = message.replace('<', '\\<').replace('>', '\\>')
         logger.debug(f'State: {safe_state}, Message: {safe_message}')
-        append_to_conversation(message, role='system', quiet=True)
+        append_to_conversation(message, role='system')
         return message
 
     @pipeline_operation
@@ -2961,7 +2945,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
     """
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
-    append_to_conversation(llm_context, role='system', quiet=True)
+    append_to_conversation(llm_context, role='system')
     
     # Create navigation buttons
     prev_button = Button(
