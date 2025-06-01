@@ -286,8 +286,13 @@ class DocumentationPlugin:
             line = lines[i]
             stripped = line.strip()
             
+            # Horizontal rules (must come before headers to avoid conflicts)
+            if re.match(r'^-{3,}$', stripped) or re.match(r'^\*{3,}$', stripped) or re.match(r'^_{3,}$', stripped):
+                processed_lines.append('<hr style="border: none; height: 2px; background: linear-gradient(to right, #e9ecef, #0066cc, #e9ecef); margin: 30px 0; border-radius: 1px;">')
+                i += 1
+            
             # Headers
-            if stripped.startswith('# '):
+            elif stripped.startswith('# '):
                 header_text = stripped[2:].strip()
                 header_id = self._slugify(header_text)
                 processed_header = self._process_inline_markdown(header_text)
