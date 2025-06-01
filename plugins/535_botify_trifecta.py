@@ -199,7 +199,8 @@ class BotifyCsvDownloaderWorkflow:
         'BUTTON_LABELS': {
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
             'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Download CSV'
+            'DOWNLOAD_CSV': '⬇️ Download CSV',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph'
         },
         'BUTTON_STYLES': {
             'STANDARD': 'secondary outline',
@@ -772,12 +773,12 @@ class BotifyCsvDownloaderWorkflow:
                 # Try to get analysis_slug from the stored data
                 if analysis_step_data:
                     # Debug: Print what we actually have
-                    print(f"DEBUG step_03: analysis_step_data = {analysis_step_data}")
-                    print(f"DEBUG step_03: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
+                    # print(f"DEBUG step_03: analysis_step_data = {analysis_step_data}")
+                    # print(f"DEBUG step_03: analysis_step_data keys = {list(analysis_step_data.keys()) if isinstance(analysis_step_data, dict) else 'not a dict'}")
                     
                     # Try the 'analysis_selection' key first
                     analysis_data_str = analysis_step_data.get('analysis_selection', '')
-                    print(f"DEBUG step_03: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
+                    # print(f"DEBUG step_03: analysis_data_str = {analysis_data_str[:100] if analysis_data_str else 'empty'}")
                     if analysis_data_str:
                         try:
                             analysis_data = json.loads(analysis_data_str)
@@ -3965,6 +3966,11 @@ await main()
                     downloads_base = Path.cwd() / 'downloads'
                     path_for_url = expected_file_path.relative_to(downloads_base)
                     path_for_url = str(path_for_url).replace('\\', '/')
+                    
+                    # Check if this is a link graph file for Cosmograph visualization
+                    is_link_graph = expected_filename.startswith('link_graph')
+                    
+                    # Always create the download button first
                     download_button = A(
                         self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                         href=f"/download_file?file={quote(path_for_url)}",
@@ -3973,6 +3979,26 @@ await main()
                         cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                     )
                     buttons.append(download_button)
+                    
+                    # For link graph files, also add the Cosmograph visualization button
+                    if is_link_graph:
+                        from datetime import datetime
+                        # Create Cosmograph visualization link using the same pattern as botifython.py
+                        # Important: URL-encode the entire data URL to prevent query parameter conflicts
+                        file_url = f"/download_file?file={quote(path_for_url)}"
+                        timestamp = int(datetime.now().timestamp())
+                        data_url = f"http://localhost:5001{file_url}&t={timestamp}"
+                        encoded_data_url = quote(data_url, safe='')
+                        viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                        
+                        viz_button = A(
+                            self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                            href=viz_url,
+                            target="_blank",
+                            role="button",
+                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                        )
+                        buttons.append(viz_button)
                 else:
                     logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
@@ -3992,6 +4018,11 @@ await main()
                         downloads_base = Path.cwd() / 'downloads'
                         path_for_url = file_path_obj.relative_to(downloads_base)
                         path_for_url = str(path_for_url).replace('\\', '/')
+                        
+                        # Check if this is a link graph file for Cosmograph visualization
+                        is_link_graph = file_path_obj.name.startswith('link_graph')
+                        
+                        # Always create the download button first
                         download_button = A(
                             self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
                             href=f"/download_file?file={quote(path_for_url)}",
@@ -4000,6 +4031,25 @@ await main()
                             cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(download_button)
+                        
+                        # For link graph files, also add the Cosmograph visualization button
+                        if is_link_graph:
+                            from datetime import datetime
+                            # Create Cosmograph visualization link using the same pattern as botifython.py
+                            file_url = f"/download_file?file={quote(path_for_url)}"
+                            timestamp = int(datetime.now().timestamp())
+                            data_url = f"http://localhost:5001{file_url}&t={timestamp}"
+                            encoded_data_url = quote(data_url, safe='')
+                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                            
+                            viz_button = A(
+                                self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                                href=viz_url,
+                                target="_blank",
+                                role="button",
+                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                            )
+                            buttons.append(viz_button)
                 except Exception as e:
                     logger.error(f"Error creating fallback download button for {step_id}: {e}")
         
