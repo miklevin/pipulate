@@ -100,8 +100,8 @@ class WorkflowGenesis:
         pip = self.pipulate
         return {
             'finalize': { 
-                'ready': 'All steps complete. Ready to finalize workflow.', 
-                'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'
+                    'ready': 'All steps complete. Ready to finalize workflow.', 
+                    'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'
             },
             'step_01': {
                 'input': 'Define the basic parameters for your new workflow.',
@@ -109,13 +109,13 @@ class WorkflowGenesis:
             },
             'step_02': {
                 'input': 'Choose your workflow creation approach and template.',
-                'complete': 'Template approach selected. View your command sequence next.'
+                'complete': 'Template approach selected and commands generated. Execute them next.'
             },
             'step_03': {
-                'input': 'Your complete command sequence is ready to copy and execute.',
-                'complete': 'Command sequence generated. Copy and run to create your workflow.'
+                'input': 'Execute the generated command sequence to create your workflow.',
+                'complete': 'Command sequence executed. Your workflow has been created.'
             }
-        }
+                }
 
     async def landing(self, request):
         pip, pipeline_table = self.pipulate, self.pipeline
@@ -342,7 +342,7 @@ class WorkflowGenesis:
             
             id=widget_id
         )
-    
+        
     def create_hello_world_recreation_experience(self, workflow_params, widget_id):
         """Create experience for hello world recreation - understanding complete helper tool sequence"""
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
@@ -449,7 +449,7 @@ class WorkflowGenesis:
             
             id=widget_id
         )
-    
+        
     def create_trifecta_workflow_experience(self, workflow_params, widget_id):
         """Create experience for trifecta workflow - complex template conditioning"""
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
@@ -577,8 +577,8 @@ class WorkflowGenesis:
                 Label("Endpoint Message", **{'for': 'endpoint_message'}),
                 Textarea(
                     "Welcome to the Kung Fu Download workflow. This demonstrates step-by-step data processing with customizable parameters.",
-                    id="endpoint_message", 
-                    name="endpoint_message", 
+                    id="endpoint_message",
+                    name="endpoint_message",
                     placeholder="Brief description shown on the workflow landing page...",
                     required=True,
                     rows=3,
@@ -588,8 +588,8 @@ class WorkflowGenesis:
                 Label("Training Prompt", **{'for': 'training_prompt'}),
                 Textarea(
                     "You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it's a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS",
-                    id="training_prompt", 
-                    name="training_prompt", 
+                    id="training_prompt",
+                    name="training_prompt",
                     placeholder="Instructions for the AI assistant when helping users with this workflow...",
                     required=True,
                     rows=4,
@@ -679,14 +679,14 @@ class WorkflowGenesis:
             
             form_content = Form(
                 Label("Template Approach", **{'for': 'template'}),
-                Select(
+                    Select(
                     Option("Blank Placeholder - Learn step management basics", value="blank", selected=True),
                     Option("Hello World Recreation - Understand helper tool sequence", value="hello"),
                     Option("Trifecta Workflow - Build complex data collection workflow", value="trifecta"),
-                    name="template",
-                    id="template",
-                    required=True
-                ),
+                        name="template",
+                        id="template",
+                        required=True
+                    ),
                 
                 Button('Generate Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -713,41 +713,9 @@ class WorkflowGenesis:
         await pip.set_step_data(pipeline_id, step_id, template_choice, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
-        template_info = self.get_template_info(template_choice['template'])
-        
-        return Div(
-            pip.display_revert_widget(
-                step_id=step_id,
-                app_name=app_name,
-                message="Template Approach Selected",
-                widget=P(f"Template: {template_info['name']}", cls='text-success'),
-                steps=self.steps
-            ),
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-            id=step_id
-        )
-
-    async def step_03(self, request):
-        """Step 3: Generate command sequence based on template choice"""
-        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        step_obj = self.steps[step_index]
-        next_step_id = self.steps[step_index + 1].id
-        
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step_obj.done, '')
-        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
-
-        # Get previous step data
+        # Get previous step data for command generation
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
-        
-        # Access using the step.done keys
         workflow_params = step_01_data.get('workflow_params', {})
-        template_choice = step_02_data.get('template_choice', {})
         selected_template = template_choice.get('template', 'blank')
         
         widget_id = f"template-experience-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -762,9 +730,94 @@ class WorkflowGenesis:
         else:
             experience_widget = self.create_blank_placeholder_experience(workflow_params, widget_id)
 
+        # Copy functionality script for code blocks
+        copy_script = Script("""
+            // Add copy buttons to code blocks
+            document.addEventListener('DOMContentLoaded', function() {
+                const codeBlocks = document.querySelectorAll('pre code.copy-code');
+                codeBlocks.forEach(function(codeBlock) {
+                    const pre = codeBlock.parentElement;
+                    if (pre.querySelector('.copy-btn')) return; // Already has button
+                    
+                    const button = document.createElement('button');
+                    button.className = 'copy-btn';
+                    button.innerHTML = '📋';
+                    button.title = 'Copy to clipboard';
+                    button.style.cssText = `
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: rgba(0,0,0,0.6);
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 4px 8px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        z-index: 10;
+                    `;
+                    
+                    button.addEventListener('click', function() {
+                        const text = codeBlock.textContent;
+                        navigator.clipboard.writeText(text).then(function() {
+                            button.innerHTML = '✅';
+                            button.style.background = 'rgba(40,167,69,0.8)';
+                            setTimeout(function() {
+                                button.innerHTML = '📋';
+                                button.style.background = 'rgba(0,0,0,0.6)';
+                            }, 2000);
+                        }).catch(function() {
+                            // Fallback for older browsers
+                            const textarea = document.createElement('textarea');
+                            textarea.value = text;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            button.innerHTML = '✅';
+                            setTimeout(function() {
+                                button.innerHTML = '📋';
+                            }, 2000);
+                        });
+                    });
+                    
+                    pre.appendChild(button);
+                });
+            });
+        """)
+
+        template_info = self.get_template_info(template_choice['template'])
+        
+        return Div(
+            copy_script,
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"Template: {template_info['name']} - Commands Generated",
+                widget=experience_widget,
+                steps=self.steps
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
+
+    async def step_03(self, request):
+        """Step 3: Execute command sequence (placeholder for subprocess execution)"""
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step_obj = self.steps[step_index]
+        next_step_id = self.steps[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step_obj.done, '')
+        finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
+
         if 'finalized' in finalize_sys_data and current_value:
             return Div(
-                pip.finalized_content(message=f"🔒 {step_obj.show}", content=experience_widget),
+                pip.finalized_content(message=f"🔒 {step_obj.show}", content=P("Command execution complete.", cls='text-success')),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -774,8 +827,8 @@ class WorkflowGenesis:
                 pip.display_revert_widget(
                     step_id=step_id,
                     app_name=app_name,
-                    message="Command Sequence Generated",
-                    widget=experience_widget,
+                    message="Command Execution Complete",
+                    widget=P("Workflow creation commands executed successfully.", cls='text-success'),
                     steps=self.steps
                 ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
@@ -784,77 +837,39 @@ class WorkflowGenesis:
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
-            # Auto-complete this step since it's just display
-            await pip.set_step_data(pipeline_id, step_id, {step_obj.done: f"Generated {selected_template} template experience"}, self.steps)
-            await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-            
-            # Copy functionality script for code blocks
-            copy_script = Script("""
-                // Add copy buttons to code blocks
-                document.addEventListener('DOMContentLoaded', function() {
-                    const codeBlocks = document.querySelectorAll('pre code.copy-code');
-                    codeBlocks.forEach(function(codeBlock) {
-                        const pre = codeBlock.parentElement;
-                        if (pre.querySelector('.copy-btn')) return; // Already has button
-                        
-                        const button = document.createElement('button');
-                        button.className = 'copy-btn';
-                        button.innerHTML = '📋';
-                        button.title = 'Copy to clipboard';
-                        button.style.cssText = `
-                            position: absolute;
-                            top: 8px;
-                            right: 8px;
-                            background: rgba(0,0,0,0.6);
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            padding: 4px 8px;
-                            cursor: pointer;
-                            font-size: 12px;
-                            z-index: 10;
-                        `;
-                        
-                        button.addEventListener('click', function() {
-                            const text = codeBlock.textContent;
-                            navigator.clipboard.writeText(text).then(function() {
-                                button.innerHTML = '✅';
-                                button.style.background = 'rgba(40,167,69,0.8)';
-                                setTimeout(function() {
-                                    button.innerHTML = '📋';
-                                    button.style.background = 'rgba(0,0,0,0.6)';
-                                }, 2000);
-                            }).catch(function() {
-                                // Fallback for older browsers
-                                const textarea = document.createElement('textarea');
-                                textarea.value = text;
-                                document.body.appendChild(textarea);
-                                textarea.select();
-                                document.execCommand('copy');
-                                document.body.removeChild(textarea);
-                                button.innerHTML = '✅';
-                                setTimeout(function() {
-                                    button.innerHTML = '📋';
-                                }, 2000);
-                            });
-                        });
-                        
-                        pre.appendChild(button);
-                    });
-                });
-            """)
-            
-            return Div(
-                copy_script,
-                pip.display_revert_widget(
-                    step_id=step_id,
-                    app_name=app_name,
-                    message="Command Sequence Generated",
-                    widget=experience_widget,
-                    steps=self.steps
-                ),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
+            form_content = Form(
+                P("This step will execute the generated command sequence to create your workflow.", cls='text-secondary'),
+                P("Note: This functionality is coming soon. For now, copy and run the commands manually from Step 2.", cls='text-info'),
+                Button('Execute Commands ▸', type='submit', cls='primary', disabled=True),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
             )
+            return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
+
+    async def step_03_submit(self, request):
+        """Handle step 3 submission (placeholder for subprocess execution)"""
+        pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
+        step_id = 'step_03'
+        step_index = self.steps_indices[step_id]
+        step_obj = self.steps[step_index]
+        next_step_id = self.steps[step_index + 1].id
+        
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # For now, just mark as complete - future implementation will execute subprocess here
+        await pip.set_step_data(pipeline_id, step_id, "Command execution placeholder", self.steps)
+        await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+        
+        return Div(
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message="Command Execution Complete",
+                widget=P("Workflow creation commands executed successfully.", cls='text-success'),
+                steps=self.steps
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
 
     # --- STEP_METHODS_INSERTION_POINT ---
