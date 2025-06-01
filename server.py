@@ -1161,9 +1161,10 @@ class Pipulate:
                 user_part: The user-specific part of the key
         """
         context = self.get_plugin_context(plugin_instance)
-        plugin_name = context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
+        # Prioritize APP_NAME for keys (stable identifier) over DISPLAY_NAME (can have emojis)
+        app_name = getattr(plugin_instance, 'APP_NAME', None)
+        plugin_name = app_name or context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
         profile_name = context['profile_name'] or 'default'
-        app_name = getattr(plugin_instance, 'app_name', None)
         profile_part = profile_name.replace(' ', '_')
         plugin_part = plugin_name.replace(' ', '_')
         prefix = f'{profile_part}-{plugin_part}-'

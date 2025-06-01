@@ -27,84 +27,101 @@
     --key-field-focus-border: #007bff;         /* Blue border on focus */
 
 
-    /* Dimgrey theme variables - base/fallback */
+    /* dimgrey theme variables - base/fallback 
+    Bigtime customization for the form elements. */
 
-    --key-field-bg: #000000; /* */
-    --key-field-text: #ffffff; /* */
-    --key-field-placeholder: #888888; /* */
-    --key-field-border: #333333; /* */
-    --key-field-focus-border: #007bff; /* */
+    /* Key Field Colors */
+    --key-field-bg: #000000;                   /* */
+    --key-field-text: #ffffff;                 /* */
+    --key-field-placeholder: #888888;          /* */
+    --key-field-border: #333333;               /* */
+    --key-field-focus-border: #007bff;         /* */
 
-    /* Dimgrey theme variables - base/fallback */
-    --pico-form-element-background-color: #696969; /* */
-    --pico-form-element-active-background-color: #5a5a5a; /* */
-    --pico-form-element-border-color: #505050; /* */
-    --pico-form-element-active-border-color: #007bff; /* */
-    --pico-form-element-focus-color: rgba(0, 123, 255, 0.25); /* */
-    --pico-form-element-color: #FFFFFF; /* */
-    --pico-form-element-placeholder-color: #cccccc; /* */
-    --pico-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); /* */
-    --pico-dropdown-background-color: #696969; /* */
-    --pico-dropdown-border-color: #505050; /* */
-    --pico-dropdown-color: #FFFFFF; /* */
-    --pico-dropdown-hover-background-color: #7a7a7a; /* */
-    --pico-form-element-selected-background-color: #7a7a7a; /* */
+    /* * ADJUSTABLE CUSTOM FORM THEME 
+     * Define your desired form appearance here.
+     */
+    --custom-form-base-bg: #696969;         /* Dimgrey */ /* */
+    --custom-form-active-bg: #5a5a5a;
+    --custom-form-border-color: #505050;
+    --custom-form-text-color: #FFFFFF;
+    --custom-form-placeholder-color: #cccccc;
+    /* Icon color is part of the full SVG data URI below */
+    --custom-form-icon-chevron-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); /* White chevron */ /* */
+    
+    --custom-form-dropdown-bg: var(--custom-form-base-bg);
+    --custom-form-dropdown-hover-bg: #7a7a7a;
+    --custom-form-dropdown-text-color: var(--custom-form-text-color);
+    --custom-form-selected-option-bg: #7a7a7a;
+
+    --custom-form-active-border-color: var(--key-field-focus-border);
+    --custom-form-focus-shadow-color: rgba(0, 123, 255, 0.25);
+
+    /* --- Pico Variables now referencing your custom theme (FALLBACKS) --- */
+    --pico-form-element-background-color: var(--custom-form-base-bg); /* */
+    --pico-form-element-active-background-color: var(--custom-form-active-bg); /* */
+    --pico-form-element-border-color: var(--custom-form-border-color); /* */
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color); /* */
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color); /* */
+    --pico-form-element-color: var(--custom-form-text-color); /* */
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color); /* */
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg); /* */
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg); /* */
+    --pico-dropdown-border-color: var(--custom-form-border-color); /* */
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color); /* */
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg); /* */
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg); /* */
 }
 
-/* THEME-SPECIFIC OVERRIDES FOR DIMGREY THEME */
-
-/* For Light Theme (triggered by data-theme="light") */
+/* THEME-SPECIFIC OVERRIDES FOR CUSTOM FORM THEME */
 [data-theme="light"] {
-    --pico-form-element-background-color: #696969 !important; /* */
-    --pico-form-element-active-background-color: #5a5a5a !important; /* */
-    --pico-form-element-border-color: #505050 !important; /* */
-    --pico-form-element-active-border-color: #007bff !important; /* */
-    --pico-form-element-focus-color: rgba(0, 123, 255, 0.25) !important; /* */
-    --pico-form-element-color: #FFFFFF !important; /* */
-    --pico-form-element-placeholder-color: #cccccc !important; /* */
-    --pico-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important; /* */
-    --pico-dropdown-background-color: #696969 !important; /* */
-    --pico-dropdown-border-color: #505050 !important; /* */
-    --pico-dropdown-color: #FFFFFF !important; /* */
-    --pico-dropdown-hover-background-color: #7a7a7a !important; /* */
-    --pico-form-element-selected-background-color: #7a7a7a !important; /* */
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
+    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
+    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
 }
 
-/* For Dark Theme (triggered by data-theme="dark") */
 [data-theme="dark"] {
-    --pico-form-element-background-color: #696969 !important; /* */
-    --pico-form-element-active-background-color: #5a5a5a !important; /* */
-    --pico-form-element-border-color: #505050 !important; /* */
-    --pico-form-element-active-border-color: #007bff !important; /* */
-    --pico-form-element-focus-color: rgba(0, 123, 255, 0.25) !important; /* */
-    --pico-form-element-color: #FFFFFF !important; /* */
-    --pico-form-element-placeholder-color: #cccccc !important; /* */
-    --pico-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important; /* */
-    --pico-dropdown-background-color: #696969 !important; /* */
-    --pico-dropdown-border-color: #505050 !important; /* */
-    --pico-dropdown-color: #FFFFFF !important; /* */
-    --pico-dropdown-hover-background-color: #7a7a7a !important; /* */
-    --pico-form-element-selected-background-color: #7a7a7a !important; /* */
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
+    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
+    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
 }
 
-/* ADD THIS BLOCK: For Dark Theme triggered by prefers-color-scheme */
+/* For Dark Theme triggered by prefers-color-scheme */
 @media only screen and (prefers-color-scheme: dark) {
-  :root:not([data-theme]) { /* This selector matches Pico's way of applying OS-level dark mode */
-    --pico-form-element-background-color: #696969 !important; /* Dimgrey background */
-    --pico-form-element-active-background-color: #5a5a5a !important; /* Slightly darker dimgrey */
-    --pico-form-element-border-color: #505050 !important; /* Darker grey border */
-    --pico-form-element-active-border-color: #007bff !important; /* Focus border color */
-    --pico-form-element-focus-color: rgba(0, 123, 255, 0.25) !important; /* Shadow color for focus */
-    --pico-form-element-color: #FFFFFF !important; /* White text */
-    --pico-form-element-placeholder-color: #cccccc !important; /* Light grey for placeholder */
-    --pico-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-    --pico-dropdown-background-color: #696969 !important; /* Dimgrey for dropdown panel */
-    --pico-dropdown-border-color: #505050 !important; /* Match form element border */
-    --pico-dropdown-color: #FFFFFF !important; /* White text for dropdown items */
-    --pico-dropdown-hover-background-color: #7a7a7a !important; /* Lighter dimgrey for hover */
-    --pico-form-element-selected-background-color: #7a7a7a !important; /* Lighter dimgrey for selected */
+  :root:not([data-theme]) {
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
+    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
+    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
   }
-
 }
 
 /* Core Layout */

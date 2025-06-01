@@ -144,7 +144,7 @@ class HelloFlow:
     4. UI Components: Using helper methods for consistent UI
     """
     APP_NAME = 'hello'
-    DISPLAY_NAME = 'Hello Workflow'
+    DISPLAY_NAME = 'Hello Workflow🐇🕳️'
     ENDPOINT_MESSAGE = '👋 Start a new Hello Workflow. Keys automatically are: PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 
@@ -470,7 +470,7 @@ class HelloFlow:
             form_msg = f'{self.UI_CONSTANTS["EMOJIS"]["INPUT_FORM"]} Showing name input form. No name has been entered yet.'
             await self.message_queue.add(pip, form_msg, verbatim=True)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = f"{self.UI_CONSTANTS['EMOJIS']['WORKFLOW']} Workflows are like Python Notebooks with no code. Let's collect some data..."
+            explanation = f"{self.UI_CONSTANTS['EMOJIS']['WORKFLOW']} Workflows are Notebooks without having to look at the code. Let's collect some data..."
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
@@ -578,7 +578,7 @@ class HelloFlow:
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = f"{self.UI_CONSTANTS['EMOJIS']['WORKFLOW']} That's it! Workflows just compel you from one step to the Next ▸"
+            explanation = f"{self.UI_CONSTANTS['EMOJIS']['WORKFLOW']} That's it! Workflows just collect data — walking you from one Step to the Next Step ▸"
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
