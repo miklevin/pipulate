@@ -173,7 +173,52 @@ async def step_XX_submit(self, request: Request) -> HTML:
    - Lock all steps
    - Show completion message
 
-## 6. Breaking the Chain (Intentional & Cautionary)
+## 6. Workflow Initialization: The `rebuild()` Method
+
+**CRITICAL ANTI-PATTERN IDENTIFIED AND ELIMINATED:**
+
+In the past, workflows used verbose manual placeholder creation in `init()` and `handle_revert()` methods:
+
+```python
+# ❌ VERBOSE ANTI-PATTERN (eliminated system-wide in commit 3656dba7cb9e032d)
+async def init(self, request):
+    # Manual placeholder creation
+    placeholders = []
+    for i, step in enumerate(steps):
+        trigger = 'load' if i == 0 else None
+        placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger=trigger))
+    return Div(*placeholders, id=f'{app_name}-container')
+
+# ❌ EVEN WORSE: Single-step hardcoded patterns
+async def init(self, request):
+    return Div(Div(id='step_01', hx_get=f'/{app_name}/step_01', hx_trigger='load'), id=f'{app_name}-container')
+```
+
+**✅ CORRECT PATTERN: Use `pip.rebuild()` method:**
+
+```python
+# ✅ CLEAN, CONSISTENT PATTERN
+async def init(self, request):
+    return pip.rebuild(app_name, steps)
+
+async def handle_revert(self, request):
+    return pip.rebuild(app_name, steps)
+```
+
+**The `rebuild()` method:**
+- Creates a fresh container with all step placeholders
+- Handles the first step loading trigger automatically  
+- Provides consistent initialization across all workflows
+- Eliminates code duplication and maintenance burden
+- Is used in `finalize`, `unfinalize`, and `handle_revert` methods
+
+**When this pattern was cleaned up system-wide:**
+- **20+ plugin files** were updated to use `rebuild()`
+- **Zero functional changes** - all workflows continued working perfectly
+- **Massive code reduction** - eliminated hundreds of lines of boilerplate
+- **Improved maintainability** - single method to maintain instead of scattered patterns
+
+## 7. Breaking the Chain (Intentional & Cautionary)
 
 The chain should only be broken intentionally:
 
