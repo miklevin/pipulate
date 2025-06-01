@@ -503,18 +503,50 @@ conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}
 
 
 def append_to_conversation(message=None, role='user', quiet=False):
+    """Append a message to the global conversation history.
+    
+    This function manages the conversation history by:
+    1. Ensuring a system message exists at the start of history
+    2. Appending new messages with specified roles
+    3. Maintaining conversation length limits via deque maxlen
+    
+    Args:
+        message (str, optional): The message content to append. If None, returns current history.
+        role (str, optional): The role of the message sender. Defaults to 'user'.
+        quiet (bool, optional): If True, suppresses debug logging. Defaults to False.
+    
+    Returns:
+        list: The complete conversation history after appending.
+    """
     logger.debug('Entering append_to_conversation function')
-    if not quiet:
+    
+    # Log message preview if not quiet
+    if quiet is False:
         preview = message[:50] + '...' if isinstance(message, str) else str(message)
         logger.debug(f'Appending to conversation. Role: {role}, Message: {preview}')
-    if message is not None:
-        if not global_conversation_history or global_conversation_history[0]['role'] != 'system':
-            if not quiet:
-                logger.debug('Adding system message to conversation history')
-            global_conversation_history.appendleft(conversation[0])
-        global_conversation_history.append({'role': role, 'content': message})
-        if not quiet:
-            logger.debug(f'Message appended. New conversation history length: {len(global_conversation_history)}')
+    
+    # Only process if we have a message
+    if message is None:
+        logger.debug('Exiting Append to Conversation')
+        return list(global_conversation_history)
+        
+    # Ensure system message exists at start of history
+    needs_system_message = (
+        len(global_conversation_history) == 0 or 
+        global_conversation_history[0]['role'] != 'system'
+    )
+    
+    if needs_system_message:
+        if quiet is False:
+            logger.debug('Adding system message to conversation history')
+        global_conversation_history.appendleft(conversation[0])
+    
+    # Add the new message
+    global_conversation_history.append({'role': role, 'content': message})
+    
+    if quiet is False:
+        logger.debug(f'Message appended. New conversation history length: {len(global_conversation_history)}')
+    
     logger.debug('Exiting Append to Conversation')
     return list(global_conversation_history)
 
@@ -2917,15 +2949,55 @@ MAX_INTRO_PAGES = 4
 
 
 async def render_intro_page_with_navigation(page_num_str: str):
-    """
-    Renders the content for the given intro page number, including Next/Previous buttons.
+    """Renders the content for the given intro page number, including Next/Previous buttons.
+    
     This function returns the content that will be swapped into the #grid-left-content div.
+    
+    Args:
+        page_num_str: String representation of the page number to render
+        
+    Returns:
+        Div: Container with page content and navigation buttons
     """
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system', quiet=True)
-    nav_buttons = [Button('◂\xa0Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == 1), Button('Next\xa0▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == MAX_INTRO_PAGES)]
-    return Div(page_content_area, Div(*nav_buttons, style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'), id='grid-left-content')
+    
+    # Create navigation buttons
+    prev_button = Button(
+        '◂ Previous',
+        hx_post='/navigate_intro',
+        hx_vals={'direction': 'prev', 'current_page': page_num_str},
+        hx_target='#grid-left-content',
+        hx_swap='innerHTML',
+        cls='primary outline' if page_num == 1 else 'primary',
+        style='width: 160px; min-width: 160px;',
+        disabled=page_num == 1
+    )
+    
+    next_button = Button(
+        'Next ▸',
+        hx_post='/navigate_intro',
+        hx_vals={'direction': 'next', 'current_page': page_num_str},
+        hx_target='#grid-left-content',
+        hx_swap='innerHTML',
+        cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary',
+        style='width: 160px; min-width: 160px;',
+        disabled=page_num == MAX_INTRO_PAGES
+    )
+    
+    # Create navigation container
+    nav_container = Div(
+        prev_button,
+        next_button,
+        style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'
+    )
+    
+    return Div(
+        page_content_area,
+        nav_container,
+        id='grid-left-content'
+    )
 
 
 def get_workflow_instance(workflow_name):
