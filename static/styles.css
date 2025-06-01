@@ -785,3 +785,22 @@ hr {
 .menu-role-workshop[style*="background-color: var(--pico-primary-focus)"] {
     background-color: var(--pico-primary-focus) !important;
 }
+
+/* ============================================================================
+   FLYOUT PANEL - Positioned notification/action panels
+   ============================================================================ */
+
+.flyout-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px;
+    z-index: 999;
+}
+
+.flyout-panel.hidden {
+    display: none;
+}

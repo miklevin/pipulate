@@ -3929,18 +3929,7 @@ async def poke_flyout(request):
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     """Hide the poke flyout panel by returning an empty hidden div."""
-    flyout_style = (
-        'display: none; '
-        'position: fixed; '
-        'bottom: 80px; '
-        'right: 20px; '
-        'background: var(--pico-card-background-color); '
-        'border: 1px solid var(--pico-muted-border-color); '
-        'border-radius: var(--pico-border-radius); '
-        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
-        'z-index: 999;'
-    )
-    return Div(id='flyout-panel', style=flyout_style)
+    return Div(id='flyout-panel', cls='flyout-panel hidden')
 
 
 @rt('/sse')
