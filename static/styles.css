@@ -608,8 +608,8 @@ hr {
 
 /* Menu Item Role-Based Colors */
 .menu-role-core {
-    background-color: var(--pico-primary-background) !important;
-    border-left: 3px solid var(--pico-primary) !important;
+    background-color: rgba(107, 114, 128, 0.1) !important;
+    border-left: 3px solid #6b7280 !important;
 }
 
 .menu-role-botify-employee {
