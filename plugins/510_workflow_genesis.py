@@ -355,8 +355,6 @@ class WorkflowGenesis:
         hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
         hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
 
-
-
         # Ensure consistent plugins/ prefix for all commands (matching working example)
         plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
 
