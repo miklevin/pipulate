@@ -51,6 +51,25 @@ class GracefulRestartException(SystemExit):
     """Custom exception to signal a restart requested by Watchdog."""
     pass
 
+def is_critical_operation_in_progress():
+    """Check if a critical operation is in progress via file flag."""
+    import os
+    return os.path.exists('.critical_operation_lock')
+
+def set_critical_operation_flag():
+    """Set the critical operation flag via file."""
+    import os
+    with open('.critical_operation_lock', 'w') as f:
+        f.write('critical operation in progress')
+
+def clear_critical_operation_flag():
+    """Clear the critical operation flag."""
+    import os
+    try:
+        os.remove('.critical_operation_lock')
+    except FileNotFoundError:
+        pass
+
 # Note: The comprehensive logging architecture here suggests this system could support
 # detailed behavioral analysis and interaction pattern recognition over time.
 
@@ -4126,6 +4145,11 @@ def check_syntax(filename):
 
 
 def restart_server():
+    # Check for critical operations before restarting (both methods for safety)
+    if shared_app_state["critical_operation_in_progress"] or is_critical_operation_in_progress():
+        log.warning("Restart requested but critical operation in progress. Deferring restart.")
+        return
+        
     if not check_syntax(Path(__file__)):
         log.warning('Syntax error detected', 'Fix the error and save the file again')
         return
@@ -4162,8 +4186,9 @@ class ServerRestartHandler(FileSystemEventHandler):
         
         path = Path(event.src_path)
         if path.suffix == '.py':
-            if shared_app_state["critical_operation_in_progress"]:
-                log.info(f"Watchdog: Critical operation in progress. Deferring restart for {path}")
+            # Check for critical operations before restarting (both methods for safety)
+            if shared_app_state["critical_operation_in_progress"] or is_critical_operation_in_progress():
+                log.warning(f"Watchdog: Critical operation in progress. Deferring restart for {path}")
                 return
             
             print(f'{path} has been modified. Checking syntax and restarting...')
@@ -4209,3 +4234,4 @@ def run_server_with_watchdog():
 
 if __name__ == '__main__':
     run_server_with_watchdog()
+

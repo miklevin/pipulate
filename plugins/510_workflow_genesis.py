@@ -973,11 +973,11 @@ class WorkflowGenesis:
         execution_success = False
         
         try:
-            # Import shared state from server
-            from server import shared_app_state
+            # Import functions from server for critical operation management
+            from server import is_critical_operation_in_progress, set_critical_operation_flag, clear_critical_operation_flag
             
             # Check if another critical operation is in progress
-            if shared_app_state["critical_operation_in_progress"]:
+            if is_critical_operation_in_progress():
                 await self.message_queue.add(pip, "⚠️ Another critical operation is in progress. Please wait and try again.", verbatim=True)
                 execution_output = "❌ Another critical operation was already in progress."
                 execution_success = False
@@ -986,7 +986,7 @@ class WorkflowGenesis:
                 
                 # Set flag to prevent watchdog restarts during subprocess execution
                 logger.info("[WORKFLOW_GENESIS] Starting critical subprocess operation. Pausing Watchdog restarts.")
-                shared_app_state["critical_operation_in_progress"] = True
+                set_critical_operation_flag()
                 
                 try:
                     # Change to project root directory for command execution
@@ -1026,18 +1026,18 @@ class WorkflowGenesis:
                 finally:
                     # Always reset the flag, even if subprocess fails
                     logger.info("[WORKFLOW_GENESIS] Critical subprocess operation finished. Resuming Watchdog restarts.")
-                    shared_app_state["critical_operation_in_progress"] = False
+                    clear_critical_operation_flag()
                 
         except subprocess.TimeoutExpired:
             execution_output = f"❌ Command timed out after 60 seconds:\n{combined_cmd}"
             await self.message_queue.add(pip, "❌ Command execution timed out", verbatim=True)
             # Reset flag on timeout
-            shared_app_state["critical_operation_in_progress"] = False
+            clear_critical_operation_flag()
         except Exception as e:
             execution_output = f"❌ Error executing command:\n{str(e)}\n\nCommand was:\n{combined_cmd}"
             await self.message_queue.add(pip, f"❌ Error executing command: {str(e)}", verbatim=True)
             # Reset flag on error
-            shared_app_state["critical_operation_in_progress"] = False
+            clear_critical_operation_flag()
         
         # Create filesystem button to open plugins directory
         plugins_dir = os.path.join(os.getcwd(), 'plugins')
