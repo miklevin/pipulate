@@ -95,6 +95,48 @@ python helpers/splice_workflow_step.py target_workflow.py --position top
 python helpers/swap_workflow_step.py target_workflow.py target_step_id source_workflow.py source_step_id --force
 ```
 
+## Race Condition Protection System
+
+### Critical Operations Management
+The workflow creation system includes sophisticated race condition protection to prevent watchdog restarts from interrupting multi-command sequences.
+
+**Implementation**: [server.py](mdc:pipulate/server.py) lines 51-72 and [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) lines 976-1010
+
+**Key Components**:
+- **File-based Flag System**: Uses `.critical_operation_lock` file for cross-process communication
+- **Dual Protection**: Both in-memory `shared_app_state` and file flag checked
+- **Watchdog Integration**: `ServerRestartHandler` defers restarts during critical operations
+- **Automatic Restart**: Triggers server restart after successful workflow creation
+
+**Protection Flow**:
+```python
+# Before subprocess execution
+set_critical_operation_flag()  # Creates .critical_operation_lock
+
+# Watchdog detects file changes but defers restart
+log.warning("Watchdog: Critical operation in progress. Deferring restart")
+
+# After subprocess completion
+clear_critical_operation_flag()  # Removes .critical_operation_lock
+if execution_success:
+    restart_server()  # Triggers immediate restart
+```
+
+**Log Pattern During Protected Operations**:
+```
+[WORKFLOW_GENESIS] Starting critical subprocess operation. Pausing Watchdog restarts.
+[⚠️ WARNING] Watchdog: Critical operation in progress. Deferring restart for plugins/...
+[⚠️ WARNING] Watchdog: Critical operation in progress. Deferring restart for plugins/...
+[WORKFLOW_GENESIS] Critical subprocess operation finished. Resuming Watchdog restarts.
+[WORKFLOW_GENESIS] Triggering server restart after successful workflow creation.
+```
+
+**Benefits**:
+- ✅ **No Race Conditions**: All file modifications complete before any restart
+- ✅ **Immediate Restart**: No waiting for random file changes to trigger watchdog
+- ✅ **Bulletproof Execution**: 5-command sequences execute without interruption
+- ✅ **Clean Recovery**: Flag always cleared, system never gets stuck
+
 ## Command Sequence Patterns
 
 ### The Proven 5-Command Pattern
@@ -116,6 +158,8 @@ python helpers/splice_workflow_step.py target.py --position bottom
 # 5. Replace second step with functional logic  
 python helpers/swap_workflow_step.py target.py step_02 source.py step_02
 ```
+
+**Race Condition Protection**: The entire sequence executes atomically with automatic server restart on completion.
 
 ### Template-Specific Strategies
 - **Blank Template**: Requires full 5-command sequence to build functionality
@@ -143,7 +187,7 @@ async def existing_method(self, request):
 ```
 
 ### Atomic Transplantation Support
-For reusable workflow sections (see [15_atomic_transplantation_system.mdc](mdc:15_atomic_transplantation_system.mdc)):
+For reusable workflow sections (see [16_atomic_transplantation_system.mdc](mdc:16_atomic_transplantation_system.mdc)):
 
 ```python
 # --- START_WORKFLOW_SECTION: section_name ---
@@ -164,13 +208,34 @@ The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) work
 
 1. **Step 1**: Define new workflow parameters
 2. **Step 2**: Select template and generate creation command  
-3. **Step 3**: View individual helper commands (educational)
-4. **Step 4**: View complete command sequence (practical)
+3. **Step 3**: Execute protected command sequence with automatic restart
 
 ### Template-Aware Behavior
 - **Simple Templates** (hello, trifecta): Show single creation command
 - **Blank Template**: Show full educational sequence with individual commands
 - **Learning Value**: Users understand both simple and complex creation patterns
+
+### Protected Execution
+The workflow genesis implements race condition protection for reliable workflow creation:
+
+```python
+# Critical operation protection in step_03_submit
+try:
+    if is_critical_operation_in_progress():
+        # Block concurrent operations
+        return error_response
+    
+    set_critical_operation_flag()  # Prevent watchdog restarts
+    
+    # Execute 5-command sequence
+    result = subprocess.run(combined_cmd, ...)
+    
+    if result.returncode == 0:
+        restart_server()  # Trigger restart on success
+        
+finally:
+    clear_critical_operation_flag()  # Always cleanup
+```
 
 ## Best Practices
 
@@ -183,7 +248,8 @@ The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) work
 1. **Start with compatible templates** for your use case
 2. **Use helper tools for structural changes** (adding/swapping steps)
 3. **Preserve markers** for future modifications
-4. **Test frequently** during multi-command sequences
+4. **Trust the race condition protection** for multi-command sequences
+5. **Test frequently** during development
 
 ### Marker Maintenance
 - **Always include both template assembly markers** in new workflows
@@ -207,5 +273,22 @@ The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) work
 - **Pipeline IDs preserved** through step modifications
 - **State structure maintained** during logic swapping
 - **Data flow continuity** ensured by template compatibility
+
+### Server Management
+- **Watchdog Integration**: Automatic file change detection with smart deferral
+- **Critical Operation Protection**: Prevents interruption of multi-command sequences
+- **Automatic Restart**: Ensures new workflows are immediately available
+
+## Troubleshooting
+
+### Common Issues
+- **Missing Markers**: Helper scripts fail with "insertion point not found" errors
+- **Race Conditions**: Resolved by the protection system - no manual intervention needed
+- **Import Errors**: Check console output after server restart for syntax issues
+
+### Debug Information
+- **File-based Flags**: Check for `.critical_operation_lock` file if operations seem stuck
+- **Watchdog Logs**: Look for "Deferring restart" messages during protected operations
+- **Restart Triggers**: "Triggering server restart" indicates successful completion
 
 This helper tools system enables rapid workflow development while maintaining the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
