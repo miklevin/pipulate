@@ -73,8 +73,8 @@ server.py        <-- Main server file for the project
 
 ## STATIC RESOURCES (Plot devices)
 # /home/mike/repos/pipulate/static/styles.css
-# /home/mike/repos/pipulate/static/chat-interface.js
-# /home/mike/repos/pipulate/static/chat-scripts.js
+# /home/mike/repos/pipulate/static/websocket-global-config.js
+# /home/mike/repos/pipulate/static/sortable-parameterized-init.js
 # /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## HELPER SCRIPTS (Meta plot devices)

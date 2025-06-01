@@ -1,3 +1,12 @@
+/**
+ * GLOBAL CONFIG PATTERN: Reads window.PIPULATE_CONFIG set by Python
+ * 
+ * This file automatically reads configuration from global variables.
+ * No initialization call needed - Python sets config before loading.
+ * 
+ * Pattern: Static JS file that reads Python-generated global configuration
+ */
+
 // Define test alert function globally
 window.testAlert = function(message) {
     alert('Test Alert: ' + message);
@@ -118,4 +127,4 @@ window.sendSidebarMessage = function(event) {
             console.error('WebSocket not connected');
         }
     }
-}
+} 

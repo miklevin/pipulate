@@ -1569,7 +1569,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     # Python generates dynamic initialization call with server-side parameters
     python_generated_init_script = f"""
     document.addEventListener('DOMContentLoaded', (event) => {{
-        // HYBRID PATTERN: Call static file's function with Python-generated config
+        // HYBRID PATTERN: Call sortable-parameterized-init.js function with Python-generated config
         if (window.initializeChatScripts) {{
             window.initializeChatScripts({{
                 sortableSelector: '{sortable_selector}',
@@ -1580,8 +1580,8 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     """
     
     return (
-        Script(src='/static/chat-scripts.js'),     # Static file with parameterized functions
-        Script(python_generated_init_script),     # Python-generated initialization
+        Script(src='/static/sortable-parameterized-init.js'),     # Static file with parameterized functions
+        Script(python_generated_init_script),                     # Python-generated initialization
         Link(rel='stylesheet', href='/static/styles.css')
     )
 
@@ -3092,7 +3092,7 @@ def create_chat_interface(autofocus=False):
                 onsubmit='sendSidebarMessage(event)'
             ),
             Script(init_script),
-            Script(src='/static/chat-interface.js')
+            Script(src='/static/websocket-global-config.js')
         ),
         id='chat-interface',
         style='overflow: hidden;'

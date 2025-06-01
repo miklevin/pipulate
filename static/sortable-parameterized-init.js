@@ -1,3 +1,16 @@
+/**
+ * HYBRID JAVASCRIPT PATTERN: Static File + Python Parameterization
+ * 
+ * This file is loaded statically but designed for Python configuration.
+ * Python calls window.initializeChatScripts(config) with dynamic parameters.
+ * 
+ * Usage:
+ * 1. Static: <script src="/static/sortable-parameterized-init.js"></script>
+ * 2. Dynamic: <script>initializeChatScripts({sortableSelector: '.sortable'})</script>
+ * 
+ * Benefits: Static caching + Python configuration without templates
+ */
+
 // Global initialization function that accepts parameters
 window.initializeChatScripts = function(config) {
     const sortableSelector = config.sortableSelector || '.sortable';
@@ -178,4 +191,4 @@ function linkifyText(text) {
     return text.replace(urlRegex, function(url) {
         return '<a href="' + url + '" target="_blank">' + url + '</a>';
     });
-}
+} 
