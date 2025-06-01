@@ -278,12 +278,14 @@ class WorkflowGenesis:
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
+        training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
-        # Single create command
+        # Single create command - uses blank template specifically
         create_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
                     f"{self.format_bash_command(display_name)} " + \
-                    f"{self.format_bash_command('Welcome to workflow creation')} " + \
-                    f"{self.format_bash_command('Help users create workflows step by step')} --template blank --force"
+                    f"{self.format_bash_command(endpoint_message)} " + \
+                    f"{self.format_bash_command(training_prompt)} --template blank --force"
 
         # Step positioning demo commands
         splice_bottom_cmd = f"python helpers/splice_workflow_step.py {filename} --position bottom"
@@ -301,20 +303,20 @@ class WorkflowGenesis:
                 H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Creates single-step placeholder workflow ready for customization", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(create_cmd, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(create_cmd, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("2. Add Step at Bottom", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Adds new step before finalize (default positioning)", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(splice_bottom_cmd, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(splice_bottom_cmd, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("3. Add Step at Top", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Adds new step as first data step", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(splice_top_cmd, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+                Pre(Code(splice_top_cmd, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
             
             # All-in-one section
@@ -322,8 +324,8 @@ class WorkflowGenesis:
             P("Copy and paste this single command to create the workflow and see positioning options:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(f"{create_cmd} && echo 'Base workflow created. Now try:' && echo '{splice_bottom_cmd}' && echo '{splice_top_cmd}'", 
-                     cls='language-bash'), 
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+                     cls='language-bash copy-code'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
         )
@@ -334,12 +336,14 @@ class WorkflowGenesis:
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
+        training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
-        # The corrected 5-command sequence
+        # The corrected 5-command sequence - starts with blank template as specified
         cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(display_name)} " + \
-               f"{self.format_bash_command('Welcome to workflow creation')} " + \
-               f"{self.format_bash_command('Help users create workflows step by step')} --template blank --force"
+               f"{self.format_bash_command(endpoint_message)} " + \
+               f"{self.format_bash_command(training_prompt)} --template blank --force"
         
         cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
         
@@ -361,40 +365,40 @@ class WorkflowGenesis:
                 H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Creates base workflow from blank template", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd1, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd1, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("2. Merge UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Copies styling constants from Hello workflow", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd2, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd2, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("3. Swap Step 1 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Replaces placeholder with name collection logic", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd3, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd3, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("4. Add Second Step", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Adds new placeholder step before finalize", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd4, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd4, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("5. Swap Step 2 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Replaces placeholder with greeting generation logic", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd5, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+                Pre(Code(cmd5, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
             
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
             P("Copy and paste this single command to execute the complete sequence:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(f"{cmd1} && {cmd2} && {cmd3} && {cmd4} && {cmd5}", cls='language-bash'), 
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+            Pre(Code(f"{cmd1} && {cmd2} && {cmd3} && {cmd4} && {cmd5}", cls='language-bash copy-code'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
         )
@@ -405,12 +409,14 @@ class WorkflowGenesis:
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        endpoint_message = workflow_params.get('endpoint_message', 'Advanced data collection workflow')
+        training_prompt = workflow_params.get('training_prompt', 'Help users create complex data workflows')
 
-        # Trifecta workflow commands
+        # Trifecta workflow commands - uses trifecta template
         cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(display_name)} " + \
-               f"{self.format_bash_command('Advanced data collection workflow')} " + \
-               f"{self.format_bash_command('Help users create complex data workflows')} --template trifecta --force"
+               f"{self.format_bash_command(endpoint_message)} " + \
+               f"{self.format_bash_command(training_prompt)} --template trifecta --force"
         
         cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
         
@@ -428,28 +434,28 @@ class WorkflowGenesis:
                 H6("1. Create Trifecta Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Creates complex 5-step workflow from Botify Trifecta template", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd1, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd1, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("2. Condition Class Attributes", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Prepares workflow for Parameter Buster-style method bundles", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd2, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                Pre(Code(cmd2, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
                 H6("3. Customize First Step", style="color: #007bff; margin-bottom: 0.25rem;"),
                 P("Replace with custom parameter collection logic", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd3, cls='language-bash'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+                Pre(Code(cmd3, cls='language-bash copy-code'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
             
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
             P("Copy and paste this single command to create and condition the trifecta workflow:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(f"{cmd1} && {cmd2} && {cmd3}", cls='language-bash'), 
-                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+            Pre(Code(f"{cmd1} && {cmd2} && {cmd3}", cls='language-bash copy-code'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
         )
@@ -491,7 +497,7 @@ class WorkflowGenesis:
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
-            # Simplified form with default kung fu parameters
+            # Comprehensive form with all workflow parameters including ENDPOINT_MESSAGE and TRAINING_PROMPT
             form_content = Form(
                 Label("Target Filename", **{'for': 'target_filename'}),
                 Input(type="text", id="target_filename", name="target_filename", value="035_kungfu_workflow.py", required=True),
@@ -504,6 +510,28 @@ class WorkflowGenesis:
                 
                 Label("Display Name", **{'for': 'display_name'}),
                 Input(type="text", id="display_name", name="display_name", value="Kung Fu Download", required=True),
+                
+                Label("Endpoint Message", **{'for': 'endpoint_message'}),
+                Textarea(
+                    "Welcome to the Kung Fu Download workflow. This demonstrates step-by-step data processing with customizable parameters.",
+                    id="endpoint_message", 
+                    name="endpoint_message", 
+                    placeholder="Brief description shown on the workflow landing page...",
+                    required=True,
+                    rows=3,
+                    style="resize: vertical;"
+                ),
+                
+                Label("Training Prompt", **{'for': 'training_prompt'}),
+                Textarea(
+                    "You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it's a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS",
+                    id="training_prompt", 
+                    name="training_prompt", 
+                    placeholder="Instructions for the AI assistant when helping users with this workflow...",
+                    required=True,
+                    rows=4,
+                    style="resize: vertical;"
+                ),
                 
                 Button('Continue ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -526,7 +554,9 @@ class WorkflowGenesis:
             'target_filename': form_data.get('target_filename', '').strip(),
             'class_name': form_data.get('class_name', '').strip(),
             'internal_app_name': form_data.get('internal_app_name', '').strip(),
-            'display_name': form_data.get('display_name', '').strip()
+            'display_name': form_data.get('display_name', '').strip(),
+            'endpoint_message': form_data.get('endpoint_message', ''),
+            'training_prompt': form_data.get('training_prompt', '')
         }
         
         # Store with the correct key that matches step.done
@@ -694,7 +724,64 @@ class WorkflowGenesis:
             await pip.set_step_data(pipeline_id, step_id, {step_obj.done: f"Generated {selected_template} template experience"}, self.steps)
             await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
             
+            # Copy functionality script for code blocks
+            copy_script = Script("""
+                // Add copy buttons to code blocks
+                document.addEventListener('DOMContentLoaded', function() {
+                    const codeBlocks = document.querySelectorAll('pre code.copy-code');
+                    codeBlocks.forEach(function(codeBlock) {
+                        const pre = codeBlock.parentElement;
+                        if (pre.querySelector('.copy-btn')) return; // Already has button
+                        
+                        const button = document.createElement('button');
+                        button.className = 'copy-btn';
+                        button.innerHTML = '📋';
+                        button.title = 'Copy to clipboard';
+                        button.style.cssText = `
+                            position: absolute;
+                            top: 8px;
+                            right: 8px;
+                            background: rgba(0,0,0,0.6);
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            padding: 4px 8px;
+                            cursor: pointer;
+                            font-size: 12px;
+                            z-index: 10;
+                        `;
+                        
+                        button.addEventListener('click', function() {
+                            const text = codeBlock.textContent;
+                            navigator.clipboard.writeText(text).then(function() {
+                                button.innerHTML = '✅';
+                                button.style.background = 'rgba(40,167,69,0.8)';
+                                setTimeout(function() {
+                                    button.innerHTML = '📋';
+                                    button.style.background = 'rgba(0,0,0,0.6)';
+                                }, 2000);
+                            }).catch(function() {
+                                // Fallback for older browsers
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                button.innerHTML = '✅';
+                                setTimeout(function() {
+                                    button.innerHTML = '📋';
+                                }, 2000);
+                            });
+                        });
+                        
+                        pre.appendChild(button);
+                    });
+                });
+            """)
+            
             return Div(
+                copy_script,
                 pip.display_revert_widget(
                     step_id=step_id,
                     app_name=app_name,
