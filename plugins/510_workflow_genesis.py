@@ -896,7 +896,7 @@ class WorkflowGenesis:
             return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
-        """Handle step 3 submission (dummy execution placeholder)"""
+        """Handle step 3 submission - actually execute the command sequence"""
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
@@ -905,11 +905,15 @@ class WorkflowGenesis:
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        # Get workflow parameters to show what was created
+        # Get workflow parameters and template data
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
         workflow_params = step_01_data.get('workflow_params', {})
+        template_choice = step_02_data.get('template_choice', {})
+        
         target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        selected_template = template_choice.get('template', 'blank')
         
         # Ensure plugins/ prefix for path display
         if not target_filename.startswith('plugins/'):
@@ -917,6 +921,98 @@ class WorkflowGenesis:
         else:
             display_filename = target_filename
             
+        # Get the combined command based on template choice
+        plugins_filename = f"plugins/{target_filename}" if not target_filename.startswith('plugins/') else target_filename
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        endpoint_message = workflow_params.get('endpoint_message', 'Welcome message')
+        training_prompt = workflow_params.get('training_prompt', 'Training prompt')
+        
+        # Generate the appropriate combined command based on template
+        if selected_template == 'hello':
+            # Hello World Recreation sequence
+            hello_display_name = "Kung Fu Hello World"
+            hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
+            hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
+            
+            combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
+                          f"{self.format_bash_command(hello_display_name)} " + \
+                          f"{self.format_bash_command(hello_endpoint_message)} " + \
+                          f"{self.format_bash_command(hello_training_prompt)} --template blank --force && " + \
+                          f"python helpers/manage_class_attributes.py {plugins_filename} " + \
+                          f"plugins/500_hello_workflow.py " + \
+                          f"--attributes-to-merge UI_CONSTANTS --force && " + \
+                          f"python helpers/swap_workflow_step.py {plugins_filename} step_01 " + \
+                          f"plugins/500_hello_workflow.py step_01 --force && " + \
+                          f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom && " + \
+                          f"python helpers/swap_workflow_step.py {plugins_filename} step_02 " + \
+                          f"plugins/500_hello_workflow.py step_02 --force"
+        elif selected_template == 'trifecta':
+            # Trifecta workflow commands
+            combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
+                          f"{self.format_bash_command(display_name)} " + \
+                          f"{self.format_bash_command(endpoint_message)} " + \
+                          f"{self.format_bash_command(training_prompt)} --template trifecta --force && " + \
+                          f"python helpers/manage_class_attributes.py {plugins_filename} " + \
+                          f"plugins/040_parameter_buster.py " + \
+                          f"--attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && " + \
+                          f"python helpers/swap_workflow_step.py {plugins_filename} step_01 " + \
+                          f"plugins/040_parameter_buster.py step_01 --force"
+        else:
+            # Blank template - single command
+            combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
+                          f"{self.format_bash_command(display_name)} " + \
+                          f"{self.format_bash_command(endpoint_message)} " + \
+                          f"{self.format_bash_command(training_prompt)} --template blank --force"
+        
+        # Execute the command sequence
+        import subprocess
+        import os
+        
+        execution_output = ""
+        execution_success = False
+        
+        try:
+            await self.message_queue.add(pip, "🔄 Executing workflow creation commands...", verbatim=True)
+            
+            # Change to project root directory for command execution
+            original_cwd = os.getcwd()
+            
+            # Execute the combined command with shell=True since we have && chains
+            result = subprocess.run(
+                combined_cmd,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=60,  # 60 second timeout
+                cwd=original_cwd
+            )
+            
+            execution_output = f"Command executed:\n{combined_cmd}\n\n"
+            execution_output += f"Exit code: {result.returncode}\n\n"
+            
+            if result.stdout:
+                execution_output += f"Output:\n{result.stdout}\n\n"
+            
+            if result.stderr:
+                execution_output += f"Errors/Warnings:\n{result.stderr}\n\n"
+            
+            if result.returncode == 0:
+                execution_success = True
+                execution_output += "✅ Workflow creation completed successfully!"
+                await self.message_queue.add(pip, f"✅ Created {display_filename} successfully!", verbatim=True)
+                await self.message_queue.add(pip, "🔄 Server restart triggered by watchdog...", verbatim=True)
+            else:
+                execution_output += f"❌ Command failed with exit code {result.returncode}"
+                await self.message_queue.add(pip, f"❌ Command execution failed with exit code {result.returncode}", verbatim=True)
+                
+        except subprocess.TimeoutExpired:
+            execution_output = f"❌ Command timed out after 60 seconds:\n{combined_cmd}"
+            await self.message_queue.add(pip, "❌ Command execution timed out", verbatim=True)
+        except Exception as e:
+            execution_output = f"❌ Error executing command:\n{str(e)}\n\nCommand was:\n{combined_cmd}"
+            await self.message_queue.add(pip, f"❌ Error executing command: {str(e)}", verbatim=True)
+        
         # Create filesystem button to open plugins directory
         plugins_dir = os.path.join(os.getcwd(), 'plugins')
         
@@ -931,50 +1027,82 @@ class WorkflowGenesis:
             style="margin-right: 10px;"
         )
         
-        # Dummy execution - simulate the command execution process
-        execution_summary = f"Workflow Created Successfully!\n\n"
-        execution_summary += f"📄 File: {display_filename}\n"
+        # Store detailed execution results
+        execution_summary = f"Workflow Creation Execution Report\n\n"
+        execution_summary += f"📄 Target File: {display_filename}\n"
         execution_summary += f"🎯 Workflow Name: {display_name}\n"
-        execution_summary += f"🔄 Server restart triggered\n"
-        execution_summary += f"📂 Location: {plugins_dir}\n\n"
-        execution_summary += f"Next Steps:\n"
-        execution_summary += f"• Wait for server restart (~5-10 seconds)\n"
-        execution_summary += f"• Look for '{display_name}' in APP menu\n"
-        execution_summary += f"• Check console for any import warnings if not found"
+        execution_summary += f"📂 Location: {plugins_dir}\n"
+        execution_summary += f"✅ Success: {'Yes' if execution_success else 'No'}\n\n"
+        execution_summary += execution_output
         
         await pip.set_step_data(pipeline_id, step_id, execution_summary, self.steps)
-        await self.message_queue.add(pip, "🔄 Simulating command execution...", verbatim=True)
-        await self.message_queue.add(pip, f"✅ Created {display_filename} successfully!", verbatim=True)
-        await self.message_queue.add(pip, f"🎯 Look for '{display_name}' in APP menu after restart", verbatim=True)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
-        success_widget = Div(
-            P(f"✅ Workflow file created: {display_filename}", cls='text-success', style="margin-bottom: 1rem;"),
+        if execution_success:
+            # Parse current pipeline key to show next key guidance
+            parsed_key = pip.parse_pipeline_key(pipeline_id)
+            current_number = int(parsed_key.get('run_part', '01'))
+            next_number = current_number + 1
+            next_key = f"{parsed_key['profile_part']}-{parsed_key['plugin_part']}-{next_number:02d}"
+            previous_key = f"{parsed_key['profile_part']}-{parsed_key['plugin_part']}-{current_number:02d}"
             
-            Div(
-                H5("📁 File Location:", style="color: #28a745; margin-bottom: 0.5rem;"),
-                P(f"Created in: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                open_plugins_folder_ui,
-                style="background-color: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;"
-            ),
-            
-            Div(
-                H5("🎯 Next Steps:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
-                Ul(
-                    Li("Wait for server restart (automatic, ~5-10 seconds)"),
-                    Li(f"Look for '{display_name}' in the APP menu"),
-                    Li("Check console window for any import warnings if workflow doesn't appear"),
-                    style="color: #6c757d; margin-bottom: 0;"
+            success_widget = Div(
+                P(f"✅ Workflow file created: {display_filename}", cls='text-success', style="margin-bottom: 1rem;"),
+                
+                Div(
+                    H5("📁 File Location:", style="color: #28a745; margin-bottom: 0.5rem;"),
+                    P(f"Created in: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                    open_plugins_folder_ui,
+                    style="background-color: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;"
                 ),
-                style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8;"
+                
+                Div(
+                    H5("🔄 After Server Restart:", style="color: #ffc107; margin-bottom: 0.5rem;"),
+                    Ul(
+                        Li("This page will auto-refresh (watchdog file change detection)"),
+                        Li(f"The KEY field will show: {next_key}"),
+                        Li(f"To return here, change it to: {previous_key} and hit Enter"),
+                        Li(f"Look for '{display_name}' in the APP menu"),
+                        style="color: #6c757d; margin-bottom: 0;"
+                    ),
+                    style="background-color: rgba(255, 193, 7, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1rem;"
+                ),
+                
+                Div(
+                    H5("🎯 Next Steps:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
+                    Ul(
+                        Li("Wait for server restart (automatic, ~5-10 seconds)"),
+                        Li("Check console window for any import warnings if workflow doesn't appear"),
+                        Li("Your new workflow is ready to use!"),
+                        style="color: #6c757d; margin-bottom: 0;"
+                    ),
+                    style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8;"
+                )
             )
-        )
+        else:
+            # Failure widget with execution details
+            success_widget = Div(
+                P(f"❌ Workflow creation failed", cls='text-danger', style="margin-bottom: 1rem;"),
+                
+                Div(
+                    H5("🔍 Execution Details:", style="color: #dc3545; margin-bottom: 0.5rem;"),
+                    Pre(execution_output, style="background-color: #2d3748; color: #e2e8f0; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem;"),
+                    style="background-color: rgba(220, 53, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #dc3545; margin-bottom: 1rem;"
+                ),
+                
+                Div(
+                    H5("📁 Project Location:", style="color: #6c757d; margin-bottom: 0.5rem;"),
+                    P(f"Check: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                    open_plugins_folder_ui,
+                    style="background-color: rgba(108, 117, 125, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #6c757d;"
+                )
+            )
         
         return Div(
             pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
-                message="🚀 Workflow Creation Complete!",
+                message="🚀 Workflow Creation Executed!" if execution_success else "❌ Workflow Creation Failed",
                 widget=success_widget,
                 steps=self.steps
             ),
