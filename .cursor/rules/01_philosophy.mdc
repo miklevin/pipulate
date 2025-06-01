@@ -1,4 +1,7 @@
 ---
+description: 
+globs: 
+alwaysApply: false
 ---
 
 ## description: Core philosophy of the Pipulate framework, emphasizing local-first, simplicity, and developer empowerment. globs: ["*"] alwaysApply: true
@@ -12,7 +15,8 @@
   * **Simplicity & Observability ("Know EVERYTHING\!")**: Avoids complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via SQLite (MiniDataAPI) and JSON blobs for workflows (DictLikeDB). This transparency makes debugging intuitive.
   * **Reproducibility**: Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
   * **WET Workflows, DRY CRUD**:
-      * Workflows are intentionally "Write Everything Twice/Explicit" (WET). This makes them easy port from notebooks, debug, and customize. Clarity over premature abstraction.
+      * Workflows are intentionally "Write Everything Twice/Explicit" (WET). This makes them easy to port from notebooks, debug, and customize. Clarity over premature abstraction.
+      * The `run_all_cells()` pattern directly mirrors Jupyter's "Run All Cells" command, making the notebook-to-workflow mental model immediate and intuitive.
       * Standard Create, Read, Update, Delete (CRUD) operations leverage a reusable `BaseCrud` class for efficiency ("Don't Repeat Yourself" - DRY).
   * **Future-Proofing**: Relies on durable technologies: standard HTTP/HTML (via HTMX), Python, Nix, and local AI (Ollama).
 
@@ -28,7 +32,7 @@
 
   * **Server Authority**: The server is the source of truth for data and UI. FastHTML for explicit server-side rendering, HTMX for controlled interactivity.
   * **State Management**: SQLite via MiniDataAPI (structured data) and DictLikeDB (key-value & workflow JSON blobs).
-  * **UI Philosophy**: HTML over JavaScript. HTMX over SPA frameworks. Explicit chain reactions for workflow progression.
+  * **UI Philosophy**: HTML over JavaScript. HTMX over SPA frameworks. Explicit chain reactions for workflow progression using the `run_all_cells()` pattern that mirrors Jupyter notebooks.
 
 ## 4. Evolution Principles
 
