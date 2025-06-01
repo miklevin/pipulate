@@ -839,15 +839,15 @@ class WorkflowGenesis:
             
             form_content = Form(
                 P("This step will execute the generated command sequence to create your workflow.", cls='text-secondary'),
-                P("Note: This functionality is coming soon. For now, copy and run the commands manually from Step 2.", cls='text-info'),
-                Button('Execute Commands ▸', type='submit', cls='primary', disabled=True),
+                P("Note: This is currently a placeholder that simulates command execution.", cls='text-info'),
+                Button('Execute Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
             return Div(Card(H3(f'{step_obj.show}'), form_content), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
-        """Handle step 3 submission (placeholder for subprocess execution)"""
+        """Handle step 3 submission (dummy execution placeholder)"""
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         step_id = 'step_03'
         step_index = self.steps_indices[step_id]
@@ -856,8 +856,10 @@ class WorkflowGenesis:
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         
-        # For now, just mark as complete - future implementation will execute subprocess here
-        await pip.set_step_data(pipeline_id, step_id, "Command execution placeholder", self.steps)
+        # Dummy execution - simulate the command execution process
+        await pip.set_step_data(pipeline_id, step_id, "Dummy command execution completed", self.steps)
+        await self.message_queue.add(pip, "🔄 Simulating command execution...", verbatim=True)
+        await self.message_queue.add(pip, "✅ Command sequence executed successfully (placeholder).", verbatim=True)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         return Div(
