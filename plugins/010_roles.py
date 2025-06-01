@@ -22,6 +22,34 @@ ROLE_ORDER = {
     'Workshop': 5,
 }
 
+# Plugin visibility mapping based on numeric prefixes
+ROLE_PLUGIN_MAPPING = {
+    'Core': {
+        'show': [(0, 99)],  # Show plugins 000-099 (essential system)
+        'description': 'Essential system plugins only'
+    },
+    'Botify Employee': {
+        'show': [(0, 99), (500, 599)],  # Core + Botify workflows
+        'description': 'Core system + Botify workflows'
+    },
+    'Tutorial': {
+        'show': [(0, 99), (500, 599), (700, 799)],  # Core + Botify + Tutorial components
+        'description': 'Core + Botify + Tutorial components'
+    },
+    'Developer': {
+        'show': [(0, 99), (500, 599), (700, 799)],  # Same as Tutorial for now
+        'description': 'Core + Botify + Development tools'
+    },
+    'Components': {
+        'show': [(0, 999)],  # Show everything
+        'description': 'All available plugins and components'
+    },
+    'Workshop': {
+        'show': [(0, 999)],  # Show everything
+        'description': 'Complete workshop access'
+    }
+}
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
@@ -274,7 +302,7 @@ class CrudUI(PluginIdentityManager):
 
 
 def render_item(item, app_instance):
-    """Renders a single item as an LI element."""
+    """Renders a single item as an LI element with plugin visibility information."""
     item_id = f'{app_instance.name}-{item.id}'
     logger.debug(f"Rendering {app_instance.plugin.name} ID {item.id} with text '{item.text}'")
 
@@ -295,18 +323,128 @@ def render_item(item, app_instance):
     text_display = Span(
         item.text,
         id=f"{app_instance.name}-text-display-{item.id}",
-        style="margin-left: 5px;"
+        style="margin-left: 5px; font-weight: 500;"
     )
 
+    # Create plugin visibility information
+    plugin_info = create_plugin_visibility_table(item.text)
+
     return Li(
-        checkbox,
-        text_display,
+        # Main role item with checkbox and name
+        Div(
+            checkbox,
+            text_display,
+            style="display: flex; align-items: center; margin-bottom: 0.25rem;"
+        ),
+        # Plugin visibility information below
+        plugin_info,
         id=item_id,
         cls='done' if item.done or is_core else '',  # Always marked as done for Core
-        style="list-style-type: none; display: flex; align-items: center; margin-bottom: 5px;",
+        style="list-style-type: none; margin-bottom: 0.5rem; padding: 0.25rem; border-radius: 0.25rem; background-color: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color);",
         data_id=item.id,
         data_priority=item.priority,
         data_plugin_item="true",
         data_list_target=app_instance.plugin.LIST_ID,
         data_endpoint_prefix=app_instance.plugin.ENDPOINT_PREFIX
+    )
+
+def get_plugin_list():
+    """Get list of all available plugins with their prefixes."""
+    plugins_dir = os.path.join(os.path.dirname(__file__))
+    plugins = []
+    
+    if os.path.isdir(plugins_dir):
+        for filename in os.listdir(plugins_dir):
+            if filename.endswith('.py') and not filename.startswith('__'):
+                # Skip experimental plugins
+                if filename.lower().startswith('xx_') or '(' in filename:
+                    continue
+                    
+                # Extract numeric prefix
+                match = re.match(r'^(\d+)_(.+)\.py$', filename)
+                if match:
+                    prefix = int(match.group(1))
+                    name = match.group(2).replace('_', ' ').title()
+                    plugins.append((prefix, name))
+                    
+    return sorted(plugins)
+
+def get_affected_plugins(role_name):
+    """Get plugins that would be shown/hidden for a given role."""
+    if role_name not in ROLE_PLUGIN_MAPPING:
+        return [], [], "Unknown role"
+    
+    role_config = ROLE_PLUGIN_MAPPING[role_name]
+    show_ranges = role_config['show']
+    description = role_config['description']
+    
+    all_plugins = get_plugin_list()
+    shown_plugins = []
+    hidden_plugins = []
+    
+    for prefix, name in all_plugins:
+        is_shown = False
+        for start, end in show_ranges:
+            if start <= prefix <= end:
+                is_shown = True
+                break
+        
+        if is_shown:
+            shown_plugins.append((prefix, name))
+        else:
+            hidden_plugins.append((prefix, name))
+    
+    return shown_plugins, hidden_plugins, description
+
+def create_plugin_visibility_table(role_name):
+    """Create a compact summary showing plugin visibility for a role."""
+    shown_plugins, hidden_plugins, description = get_affected_plugins(role_name)
+    
+    if not shown_plugins and not hidden_plugins:
+        return Small(f"📋 {description}", style="color: var(--pico-muted-color); font-style: italic; font-size: 0.8rem;")
+    
+    # Create a compact summary
+    total_plugins = len(shown_plugins) + len(hidden_plugins)
+    shown_count = len(shown_plugins)
+    hidden_count = len(hidden_plugins)
+    
+    # Compact plugin list (show first few, then count)
+    def format_plugin_list(plugins, max_show=4):
+        if not plugins:
+            return "None"
+        
+        if len(plugins) <= max_show:
+            return ", ".join([f"{name}" for prefix, name in plugins])
+        else:
+            shown_names = [f"{name}" for prefix, name in plugins[:max_show]]
+            remaining = len(plugins) - max_show
+            return f"{', '.join(shown_names)}, +{remaining} more"
+    
+    return Details(
+        Summary(
+            Small(
+                f"📊 {shown_count}/{total_plugins} plugins • {description}",
+                style="color: var(--pico-muted-color); font-size: 0.75rem; cursor: pointer;"
+            ),
+            style="margin: 0; padding: 0; list-style: none;"
+        ),
+        Div(
+            # Shown plugins
+            Div(
+                Small(f"✅ Shown ({shown_count}):", style="font-weight: 500; color: var(--pico-color-green-600); font-size: 0.8rem;"),
+                Br(),
+                Small(format_plugin_list(shown_plugins, 6), style="margin-left: 0.5rem; color: var(--pico-muted-color); font-size: 0.75rem;"),
+                style="margin-bottom: 0.5rem;" if hidden_plugins else ""
+            ) if shown_plugins else None,
+            
+            # Hidden plugins  
+            Div(
+                Small(f"❌ Hidden ({hidden_count}):", style="font-weight: 500; color: var(--pico-color-red-600); font-size: 0.8rem;"),
+                Br(),
+                Small(format_plugin_list(hidden_plugins, 6), style="margin-left: 0.5rem; color: var(--pico-muted-color); font-size: 0.75rem;")
+            ) if hidden_plugins else None,
+            
+            style="padding: 0.5rem; background-color: var(--pico-card-background-color); border-radius: 0.25rem; margin-top: 0.25rem; border-left: 2px solid var(--pico-color-azure-500);"
+        ),
+        style="margin: 0;"
     )
