@@ -212,9 +212,12 @@ class BotifyConnect:
         except Exception as e:
             await self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
 
-        # Get placeholders for all steps
-        placeholders = pip.run_all_cells(app_name, steps)
-        return Div(*placeholders, id=f"{app_name}-container")
+        # Initialize first step with load trigger
+        first_step_id = steps[0].id
+        return Div(
+            Div(id=first_step_id, hx_get=f'/{app_name}/{first_step_id}', hx_trigger='load'),
+            id=f"{app_name}-container"
+        )
 
     # Required methods for the workflow system, even if we don't have steps
 
@@ -382,10 +385,6 @@ class BotifyConnect:
 
         # Return the rebuilt UI
         return pip.rebuild(app_name, steps)
-
-    def run_all_cells(self, steps, app_name):
-        """Generate placeholders for all steps through Pipulate helper."""
-        return self.pipulate.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         pip, db, steps = self.pipulate, self.db, self.steps

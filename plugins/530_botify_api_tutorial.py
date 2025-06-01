@@ -241,7 +241,12 @@ class BotifyExport:
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
-        placeholders = pip.run_all_cells(app_name, steps)
+        
+        # Create step placeholders with direct load triggers
+        placeholders = []
+        for step in steps:
+            placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger='load', hx_swap='outerHTML'))
+            
         return Div(updated_datalist, *placeholders, id=f'{app_name}-container')
 
     async def step_01(self, request):

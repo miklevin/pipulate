@@ -1056,10 +1056,11 @@ class Pipulate:
             traceback.print_exc()
             raise
 
-    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, target_id: str = None, revert_label: str = None, remove_padding: bool = False):
-        """
-        Create a UI control for reverting to a previous workflow step.
-        The button label will now use the visual sequence number of the step.
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, 
+                            target_id: str = None, revert_label: str = None, remove_padding: bool = False):
+        """Create a UI control for reverting to a previous workflow step.
+        
+        The button label uses the visual sequence number of the step.
 
         Args:
             step_id: The ID of the step to revert to
@@ -1073,142 +1074,268 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality
         """
+        # Check if we should skip rendering due to finalization
         pipeline_id = db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
-
+        
         if pipeline_id and finalize_step:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
 
+        # Find the target step
         step = next((s for s in steps if s.id == step_id), None)
         if not step:
             logger.error(f"Step with id '{step_id}' not found in steps list for display_revert_header.")
             return Div(f"Error: Step {step_id} not found.")
 
-        # --- Calculate Visual Step Number ---
-        # Filter out the 'finalize' step to get only data collection steps for numbering
+        # Calculate the visual step number (excluding finalize step)
         data_collection_steps = [s for s in steps if s.id != 'finalize']
-        visual_step_number = "N/A"  # Fallback
+        visual_step_number = "N/A"  # Default if not found
 
         try:
-            # Find the 0-based index in the list of data_collection_steps
-            visual_index_0_based = data_collection_steps.index(step)
-            visual_step_number = str(visual_index_0_based + 1)  # Convert to 1-based for display
+            step_index = data_collection_steps.index(step)
+            visual_step_number = str(step_index + 1)  # Convert to 1-based numbering
         except ValueError:
-            # This step_id was not found among data_collection_steps
-            logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps for visual numbering. Revert button might show 'Step N/A'.")
+            logger.warning(
+                f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps. "
+                "Revert button will show 'Step N/A'."
+            )
 
+        # Set up the form components
         refill = getattr(step, 'refill', False)
-        if not target_id:
-            target_id = f'{app_name}-container'
+        target_id = target_id or f'{app_name}-container'
 
-        # Create form with revert button using visual step number
+        # Build the form with revert button
         form = Form(
-            # Hidden input to store step ID
             Input(
                 type='hidden',
                 name='step_id', 
                 value=step_id
             ),
-            
-            # Revert button with visual step number
             Button(
                 self.step_button(visual_step_number, refill, revert_label),
                 type='submit',
                 cls='button-revert'
             ),
-            
-            # HTMX attributes for dynamic updates
             hx_post=f'/{app_name}/revert',
             hx_target=f'#{target_id}',
             hx_swap='outerHTML'
         )
 
+        # Return just the form if no message provided
         if not message:
             return form
 
-        article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
+        # Build the card with message and form
+        article_style = (
+            'display: flex; '
+            'align-items: center; '
+            'justify-content: space-between; '
+            'background-color: var(--pico-card-background-color);'
+        )
+        
         if remove_padding:
             article_style += ' padding: 0;'
 
-        return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
+        return Card(
+            Div(message, style='flex: 1;'),
+            Div(form, style='flex: 0;'),
+            style=article_style
+        )
 
-    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str = None, widget=None, target_id: str = None, revert_label: str = None, widget_style=None):
-        """
-        Create a standardized container for widgets, visualizations, or any dynamic content.
-
-        This is the core pattern for displaying rich content below workflow steps while
-        maintaining consistent styling and proper DOM targeting for dynamic updates.
-
-        The container provides:
-        1. Consistent padding/spacing with the revert controls
-        2. Unique DOM addressing for targeted updates
-        3. Support for both function-based widgets and AnyWidget components
-        4. Standard styling that can be overridden when needed
-
+    def display_revert_widget(
+        self,
+        step_id: str,
+        app_name: str,
+        steps: list,
+        message: str = None,
+        widget = None,
+        target_id: str = None,
+        revert_label: str = None,
+        widget_style = None
+    ):
+        """Create a standardized container for widgets and visualizations.
+        
+        Core pattern for displaying rich content below workflow steps with consistent
+        styling and DOM targeting for dynamic updates.
+        
+        Features:
+        - Consistent padding/spacing with revert controls
+        - Unique DOM addressing for targeted updates
+        - Support for function-based widgets and AnyWidget components
+        - Standard styling with override capability
+        
         Args:
-            step_id: The ID of the step this widget belongs to
-            app_name: The workflow app name
+            step_id: ID of the step this widget belongs to
+            app_name: Workflow app name
             steps: List of Step namedtuples defining the workflow
-            message: Optional message to display in the revert control
-            widget: The widget/visualization to display (function result or AnyWidget)
-            target_id: Optional target for HTMX updates
-            revert_label: Optional custom label for the revert button
-            widget_style: Optional custom style for the widget container
-
+            message: Optional message for revert control
+            widget: Widget/visualization to display
+            target_id: Optional HTMX update target
+            revert_label: Optional custom revert button label
+            widget_style: Optional custom widget container style
+            
         Returns:
-            Div: A FastHTML container with revert control and widget content
+            Div: FastHTML container with revert control and widget content
         """
-        revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
+        # Get revert header row
+        revert_row = self.display_revert_header(
+            step_id=step_id,
+            app_name=app_name,
+            steps=steps,
+            message=message,
+            target_id=target_id,
+            revert_label=revert_label,
+            remove_padding=True
+        )
+        
+        # Return early if no widget or revert row
         if widget is None or revert_row is None:
             return revert_row
+            
+        # Apply widget style
         applied_style = widget_style or self.CONTENT_STYLE
-        return Div(revert_row, Div(widget, style=applied_style, id=f'{step_id}-widget-{hash(str(widget))}'), id=f'{step_id}-content', style='background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); margin-bottom: 2vh; padding: 1rem;')
+        
+        # Build container with revert row and widget
+        return Div(
+            revert_row,
+            Div(
+                widget,
+                style=applied_style,
+                id=f'{step_id}-widget-{hash(str(widget))}'
+            ),
+            id=f'{step_id}-content',
+            style=(
+                'background-color: var(--pico-card-background-color); '
+                'border-radius: var(--pico-border-radius); '
+                'margin-bottom: 2vh; '
+                'padding: 1rem;'
+            )
+        )
 
     def tree_display(self, content):
-        """
-        Create a styled display for file paths that can show either a tree or box format.
-
-        This is an example of a standard widget function that can be passed to widget_container.
-        It demonstrates the pattern for creating reusable, styled components that maintain
-        consistent spacing and styling when displayed in the workflow.
-
+        """Create a styled display for file paths in tree or box format.
+        
+        Example widget function demonstrating reusable, styled components
+        with consistent spacing in workflow displays.
+        
         Args:
-            content: The content to display (either tree-formatted or plain path)
-
+            content: Content to display (tree-formatted or plain path)
+            
         Returns:
-            Pre: A Pre component with appropriate styling
+            Pre: Styled Pre component
         """
+        # Check if content is tree-formatted
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
+        
+        # Return appropriate styled Pre component
         if is_tree:
-            return Pre(content, style='font-family: monospace; white-space: pre; margin: 0; padding: 0.5rem; border-radius: 4px; background-color: var(--pico-card-sectionning-background-color);')
+            return Pre(
+                content,
+                style=(
+                    'font-family: monospace; '
+                    'white-space: pre; '
+                    'margin: 0; '
+                    'padding: 0.5rem; '
+                    'border-radius: 4px; '
+                    'background-color: var(--pico-card-sectionning-background-color);'
+                )
+            )
         else:
-            return Pre(content, style='font-family: system-ui; white-space: pre-wrap; margin: 0; padding: 0.5rem 1rem; border-radius: 4px; background-color: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb;')
+            return Pre(
+                content,
+                style=(
+                    'font-family: system-ui; '
+                    'white-space: pre-wrap; '
+                    'margin: 0; '
+                    'padding: 0.5rem 1rem; '
+                    'border-radius: 4px; '
+                    'background-color: #e3f2fd; '
+                    'color: #1976d2; '
+                    'border: 1px solid #bbdefb;'
+                )
+            )
 
-    def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
-        """
-        Create a finalized step display with optional additional content.
-
-        This is the companion to display_revert_widget_advanced for finalized workflows,
+    def finalized_content(
+        self,
+        message: str,
+        content = None,
+        heading_tag = H4,
+        content_style = None
+    ):
+        """Create a finalized step display with optional content.
+        
+        Companion to display_revert_widget_advanced for finalized workflows,
         providing consistent styling for both states.
-
+        
         Args:
-            message: Message to display (typically including a 🔒 lock icon)
-            content: FastHTML component to display below the message
-            heading_tag: The tag to use for the message (default: H4)
-            content_style: Optional custom style for the content container
-
+            message: Message to display (typically with 🔒 lock icon)
+            content: FastHTML component to display below message
+            heading_tag: Tag to use for message (default: H4)
+            content_style: Optional custom content container style
+            
         Returns:
-            Card: A FastHTML Card component for the finalized state
+            Card: FastHTML Card component for finalized state
         """
+        # Return simple card if no content
         if content is None:
             return Card(message)
+            
+        # Apply content style
         applied_style = content_style or self.FINALIZED_CONTENT_STYLE
-        return Card(heading_tag(message), Div(content, style=applied_style), style='background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); margin-bottom: 2vh; padding: 1rem;')
+        
+        # Build finalized card with message and content
+        return Card(
+            heading_tag(message),
+            Div(content, style=applied_style),
+            style=(
+                'background-color: var(--pico-card-background-color); '
+                'border-radius: var(--pico-border-radius); '
+                'margin-bottom: 2vh; '
+                'padding: 1rem;'
+            )
+        )
 
-    def wrap_with_inline_button(self, input_element: Input, button_label: str = 'Next ▸', button_class: str = 'primary') -> Div:
-        return Div(input_element, Button(button_label, type='submit', cls=button_class, style='display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'), style='display: flex; align-items: center; gap: 0.5rem;')
+    def wrap_with_inline_button(
+        self,
+        input_element: Input,
+        button_label: str = 'Next ▸',
+        button_class: str = 'primary'
+    ) -> Div:
+        """Wrap an input element with an inline button in a flex container.
+        
+        Args:
+            input_element: The input element to wrap
+            button_label: Text to display on the button (default: 'Next ▸')
+            button_class: CSS class for the button (default: 'primary')
+            
+        Returns:
+            Div: A flex container with the input and button
+        """
+        button_style = (
+            'display: inline-block;'
+            'cursor: pointer;'
+            'width: auto !important;'
+            'white-space: nowrap;'
+        )
+        
+        container_style = (
+            'display: flex;'
+            'align-items: center;'
+            'gap: 0.5rem;'
+        )
+        
+        return Div(
+            input_element,
+            Button(
+                button_label,
+                type='submit',
+                cls=button_class,
+                style=button_style
+            ),
+            style=container_style
+        )
 
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
         state = self.read_state(pkey)
@@ -1343,36 +1470,6 @@ class Pipulate:
         else:
             return Datalist(*[Option(value=opt) for opt in options], id=datalist_id, _hx_swap_oob='true')
 
-    def run_all_cells(self, app_name, steps):
-        """
-        Create a series of HTMX divs that will trigger a chain reaction of loading all steps.
-
-        This method sets up the initial placeholders with event-based triggering, where:
-
-        1. The first step loads immediately on trigger="load"
-        2. Subsequent steps are configured to wait for 'stepComplete-{previous_step_id}' events
-
-        IMPORTANT IMPLEMENTATION NOTE: 
-        While this method establishes event-based triggers, the standard workflow pattern in 
-        this codebase (see 80_splice_workflow.py) explicitly overrides this with 
-        direct 'hx_trigger="load"' attributes in completed step views. This explicit 
-        triggering pattern is preferred for reliability over event bubbling in complex workflows.
-
-        This dual approach (event-based setup + explicit triggers in steps) ensures the chain
-        reaction works consistently across browsers and in complex DOM structures.
-
-        Args:
-            app_name: The name of the workflow app
-            steps: List of Step namedtuples defining the workflow
-
-        Returns:
-            list: List of Div elements configured with HTMX attributes for sequential loading
-        """
-        cells = []
-        for i, step in enumerate(steps):
-            trigger = 'load' if i == 0 else f'stepComplete-{steps[i - 1].id} from:{steps[i - 1].id}'
-            cells.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger=trigger, hx_swap='outerHTML'))
-        return cells
 
     def rebuild(self, app_name, steps):
         """
@@ -1393,7 +1490,13 @@ class Pipulate:
         Returns:
             Div: Container with all steps ready to be displayed
         """
-        placeholders = self.run_all_cells(app_name, steps)
+        # Create placeholders for each step, with first step loading immediately
+        placeholders = []
+        for i, step in enumerate(steps):
+            # First step loads immediately, others wait for explicit triggers
+            trigger = 'load' if i == 0 else None
+            placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger=trigger))
+        
         return Div(*placeholders, id=f'{app_name}-container')
 
     def validate_step_input(self, value, step_show, custom_validator=None):
