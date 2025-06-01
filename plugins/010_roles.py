@@ -259,6 +259,14 @@ class CrudUI(PluginIdentityManager):
         return Div(
             Card(
                 H2(f"{self.DISPLAY_NAME} List"),
+                P(
+                    "👆 Check the roles that match your needs to control which plugins appear in the ",
+                    Strong("APP"), 
+                    " dropdown menu. ",
+                    Strong("Core"), 
+                    " plugins always show, while other roles add specific plugin categories. You can select multiple roles to combine their plugin sets.",
+                    style="margin-bottom: 1rem; padding: 0.75rem; background-color: var(--pico-muted-background-color); border-radius: 0.25rem; border-left: 3px solid var(--pico-color-azure-500); color: var(--pico-muted-color); font-size: 0.9rem;"
+                ),
                 Ul(
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID,
