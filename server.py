@@ -3797,19 +3797,6 @@ def create_poke_button():
         'z-index: 1000;'
     )
 
-    # Define flyout panel styles
-    flyout_style = (
-        'display: none; '
-        'position: fixed; '
-        'bottom: 80px; '
-        'right: 20px; '
-        'background: var(--pico-card-background-color); '
-        'border: 1px solid var(--pico-muted-border-color); '
-        'border-radius: var(--pico-border-radius); '
-        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
-        'z-index: 999;'
-    )
-
     # Create button and flyout panel
     poke_button = Button(
         '🤖',
@@ -3823,7 +3810,7 @@ def create_poke_button():
 
     flyout_panel = Div(
         id='flyout-panel',
-        style=flyout_style
+        cls='flyout-panel hidden'
     )
 
     return Div(poke_button, flyout_panel)
@@ -3837,22 +3824,7 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    # Define flyout panel styles
-    flyout_style = (
-        'display: block; '
-        'position: fixed; '
-        'bottom: 80px; '
-        'right: 20px; '
-        'background: var(--pico-card-background-color); '
-        'border: 1px solid var(--pico-muted-border-color); '
-        'border-radius: var(--pico-border-radius); '
-        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
-        'z-index: 999; '
-        'padding: 1rem;'
-    )
 
-    # Define list item style
-    list_item_style = 'list-style-type: none; margin-bottom: 0.5rem;'
 
     # Create action buttons
     poke_button = Button(
@@ -3899,20 +3871,20 @@ async def poke_flyout(request):
 
     # Create list items
     list_items = [
-        Li(poke_button, style=list_item_style),
-        Li(lock_button, style=list_item_style),
-        Li(roles_button, style=list_item_style)
+        Li(poke_button, cls='flyout-list-item'),
+        Li(lock_button, cls='flyout-list-item'),
+        Li(roles_button, cls='flyout-list-item')
     ]
 
     if is_workflow:
-        list_items.append(Li(delete_workflows_button, style=list_item_style))
+        list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
-        list_items.append(Li(reset_db_button, style=list_item_style))
+        list_items.append(Li(reset_db_button, cls='flyout-list-item'))
 
     # Create the flyout panel
     return Div(
         id='flyout-panel',
-        style=flyout_style,
+        cls='flyout-panel visible',
         hx_get='/poke-flyout-hide',
         hx_trigger='mouseleave delay:100ms',
         hx_target='this',
@@ -3921,7 +3893,7 @@ async def poke_flyout(request):
         Div(
             H3('Poke Actions'),
             Ul(*list_items),
-            style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'
+            cls='flyout-content'
         )
     )
 

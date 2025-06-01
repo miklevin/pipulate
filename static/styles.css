@@ -804,3 +804,19 @@ hr {
 .flyout-panel.hidden {
     display: none;
 }
+
+.flyout-panel.visible {
+    display: block;
+    padding: 1rem;
+}
+
+.flyout-content {
+    background: var(--pico-card-background-color);
+    padding: 0.5rem;
+    border-radius: var(--pico-border-radius);
+}
+
+.flyout-list-item {
+    list-style-type: none;
+    margin-bottom: 0.5rem;
+}
