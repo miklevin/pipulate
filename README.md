@@ -352,7 +352,7 @@ home (Root Component)
     ├── logs/
     │   └── server.log        # Server logs (useful for debugging / AI context)
     ├── static/               # JS, CSS, images
-    ├── plugins/              # Workflow plugins (e.g., hello_flow.py)
+    ├── plugins/              # Workflow plugins
     ├── training/             # Markdown files for AI context/prompts
     ├── flake.nix             # Nix flake definition for reproducibility
     ├── LICENSE
@@ -529,18 +529,18 @@ The repository includes not only polished plugins but also experimental scripts 
 
 #### Workflow for Creating New Plugins
 
-1.  **Copy:** Copy a template (e.g., `starter_flow.py`) to `my_flow (Copy).py`.
+1.  **Copy:** Copy a template to `my_flow (Copy).py`.
 2.  **Modify:** Develop your workflow. It won't auto-register yet.
 3.  **Test:** Rename to `xx_my_flow.py`. The server should auto-reload. Test thoroughly.
-4.  **Deploy:** Rename to `##_my_flow.py` (e.g., `30_my_flow.py`) to assign menu order and activate.
+4.  **Deploy:** Rename to `##_my_flow.py` to assign menu order and activate.
 
 #### Git History Considerations
 
 Use `git mv` for simple renames (like `xx_` to numbered prefix) to preserve history. Document more complex renames in commit messages.
 
 ```bash
-git mv workflows/xx_my_flow.py workflows/30_my_flow.py
-git commit -m "Feat: Promote workflow xx_my_flow.py to 30_my_flow.py"
+git mv workflows/xx_my_flow.py workflows/##_my_flow.py
+git commit -m "Feat: Promote workflow xx_my_flow.py to ##_my_flow.py"
 ```
 
 -----
