@@ -126,7 +126,7 @@ class BrowserAutomation:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow."""
@@ -207,7 +207,7 @@ class BrowserAutomation:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def step_01(self, request):
         """Handles GET request for Open URL step."""

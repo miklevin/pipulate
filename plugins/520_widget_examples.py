@@ -155,7 +155,7 @@ class WidgetExamples:
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         """ Handle GET/POST requests to finalize (lock) the workflow. """
@@ -175,7 +175,7 @@ class WidgetExamples:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         """ Handle POST request to unlock the workflow. """
@@ -183,7 +183,7 @@ class WidgetExamples:
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step, often using the previous step's transformed output. """
@@ -205,7 +205,7 @@ class WidgetExamples:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def step_01(self, request):
         """ 

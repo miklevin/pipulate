@@ -213,7 +213,7 @@ class BotifyConnect:
             await self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
 
         # Initialize workflow steps
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     # Required methods for the workflow system, even if we don't have steps
 
@@ -292,8 +292,8 @@ class BotifyConnect:
                     state["updated"] = datetime.now().isoformat()
                     pip.write_state(pipeline_id, state)
 
-                # Just rebuild the workflow, which will now show the unfinalized state
-                return pip.rebuild(app_name, steps)
+                # Just run_all_cells the workflow, which will now show the unfinalized state
+                return pip.run_all_cells(app_name, steps)
 
             # Token is valid, proceed with finalization
             state = pip.read_state(pipeline_id)
@@ -319,7 +319,7 @@ class BotifyConnect:
                 await self.safe_stream(f"Error saving token file: {type(e).__name__}.", verbatim=True)
 
             # Return the updated UI
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def validate_botify_token(self, token):
         """
@@ -380,7 +380,7 @@ class BotifyConnect:
         await self.safe_stream("Connection unfinalized. You can now update your Botify API token.", verbatim=True)
 
         # Return the rebuilt UI
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         pip, db, steps = self.pipulate, self.db, self.steps
@@ -403,13 +403,13 @@ class BotifyConnect:
         step_id = form.get("step_id")
         pipeline_id = db.get("pipeline_id", "unknown")
         if not step_id:
-            return P("Error: No step specified", style=self.pipulate.get_style("error"))
-        await self.pipulate.clear_steps_from(pipeline_id, step_id, steps)
-        state = self.pipulate.read_state(pipeline_id)
+            return P("Error: No step specified", style=pip.get_style("error"))
+        await pip.clear_steps_from(pipeline_id, step_id, steps)
+        state = pip.read_state(pipeline_id)
         state["_revert_target"] = step_id
-        self.pipulate.write_state(pipeline_id, state)
+        pip.write_state(pipeline_id, state)
         await self.safe_stream("Reverting to update your Botify API token.", verbatim=True)
-        return self.pipulate.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def safe_stream(self, message, verbatim=False, role="user", spaces_before=None, spaces_after=1):
         """

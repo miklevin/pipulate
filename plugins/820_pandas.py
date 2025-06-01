@@ -84,7 +84,7 @@ class PandasTableWidget:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -103,14 +103,14 @@ class PandasTableWidget:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         if step_id == 'step_01':
@@ -130,7 +130,7 @@ class PandasTableWidget:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     def create_pandas_table(self, data_str):
         """

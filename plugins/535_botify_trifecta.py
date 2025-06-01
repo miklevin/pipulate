@@ -363,7 +363,7 @@ class BotifyCsvDownloaderWorkflow:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow.
@@ -388,7 +388,7 @@ class BotifyCsvDownloaderWorkflow:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         """Handles POST request to unlock the workflow."""
@@ -396,7 +396,7 @@ class BotifyCsvDownloaderWorkflow:
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         """Gets a suggested input value for a step, often using the previous step's transformed output."""
@@ -427,7 +427,7 @@ class BotifyCsvDownloaderWorkflow:
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
         await self.message_queue.add(pip, f'↩️ Reverted to {step_id}. All subsequent data has been cleared.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def step_01(self, request):
         """Handles GET request for Botify URL input widget.

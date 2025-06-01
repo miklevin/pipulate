@@ -338,7 +338,7 @@ class HelloFlow:
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         """ Handles GET request to show Finalize button and POST request to lock the workflow. """
@@ -378,7 +378,7 @@ class HelloFlow:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         """ Handles POST request to unlock the workflow. """
@@ -386,7 +386,7 @@ class HelloFlow:
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["UNLOCKED"]} Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step, often using the previous step's transformed output. """
@@ -417,7 +417,7 @@ class HelloFlow:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["WARNING"]} Reverted to {step_id}. {message}', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):

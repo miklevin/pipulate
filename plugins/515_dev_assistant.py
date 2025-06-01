@@ -138,7 +138,7 @@ class DevAssistant:
 
         await self.message_queue.add(pip, f'Development Assistant Session: {pipeline_id}', verbatim=True, spaces_before=0)
         
-        return pip.rebuild(internal_app_name, self.steps)
+        return pip.run_all_cells(internal_app_name, self.steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
@@ -147,7 +147,7 @@ class DevAssistant:
         if request.method == 'POST':
             await pip.set_step_data(pipeline_id, 'finalize', {'finalized': True}, self.steps)
             await self.message_queue.add(pip, 'Development analysis session finalized.', verbatim=True)
-            return pip.rebuild(app_name, self.steps)
+            return pip.run_all_cells(app_name, self.steps)
         
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
@@ -178,7 +178,7 @@ class DevAssistant:
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Development analysis session unlocked for editing.', verbatim=True)
-        return pip.rebuild(app_name, self.steps)
+        return pip.run_all_cells(app_name, self.steps)
 
     async def handle_revert(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
@@ -197,7 +197,7 @@ class DevAssistant:
         
         await self.message_queue.add(pip, f'Reverted to {step_id} for re-analysis.', verbatim=True)
         
-        return pip.rebuild(app_name, self.steps)
+        return pip.run_all_cells(app_name, self.steps)
 
     def analyze_plugin_file(self, file_path):
         """Analyze a plugin file for common patterns, issues, and template suitability."""
@@ -343,7 +343,7 @@ class DevAssistant:
                         f"    \n"
                         f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
                         f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
-                        f"    return pip.rebuild(app_name, self.steps)\n"
+                        f"    return pip.run_all_cells(app_name, self.steps)\n"
                         f"```\n\n"
                         f"OR modify the route registration to not expect finalize_submit and handle POST in finalize() method instead."
                     )
@@ -368,7 +368,7 @@ class DevAssistant:
                             f"    \n"
                             f"    await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
                             f"    await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
-                            f"    return pip.rebuild(app_name, self.steps)\n"
+                            f"    return pip.run_all_cells(app_name, self.steps)\n"
                             f"```\n\n"
                             f"SOLUTION 2 - Exclude finalize from dynamic registration:\n"
                             f"```python\n"
@@ -640,7 +640,7 @@ class DevAssistant:
                 f"    if request.method == 'POST':\n"
                 f"        await pip.set_step_data(pipeline_id, 'finalize', {{'finalized': True}}, self.steps)\n"
                 f"        await self.message_queue.add(pip, 'Workflow finalized.', verbatim=True)\n"
-                f"        return pip.rebuild(app_name, self.steps)\n"
+                f"        return pip.run_all_cells(app_name, self.steps)\n"
                 f"    \n"
                 f"    finalize_data = pip.get_step_data(pipeline_id, 'finalize', {{}})\n"
                 f"    if 'finalized' in finalize_data:\n"

@@ -1471,7 +1471,7 @@ class Pipulate:
             return Datalist(*[Option(value=opt) for opt in options], id=datalist_id, _hx_swap_oob='true')
 
 
-    def rebuild(self, app_name, steps):
+    def run_all_cells(self, app_name, steps):
         """
         Rebuild the entire workflow UI from scratch.
 
@@ -1654,7 +1654,7 @@ class Pipulate:
             step_messages = plugin_instance.step_messages
         message = await self.get_state_message(pipeline_id, steps, step_messages)
         await self.stream(message, verbatim=True)
-        return self.rebuild(app_name, steps)
+        return self.run_all_cells(app_name, steps)
 
     async def finalize_workflow(self, pipeline_id, state_update=None):
         """

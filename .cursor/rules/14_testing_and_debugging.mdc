@@ -57,7 +57,7 @@ alwaysApply: false
 
 ## 7. `pipulate` Helper Methods
 
-  * Many core functionalities (state updates, UI component generation) are in the `Pipulate` class in `server.py`. Understanding these methods (e.g., `set_step_data`, `display_revert_header`, `rebuild`) is key to debugging workflow logic.
+  * Many core functionalities (state updates, UI component generation) are in the `Pipulate` class in `server.py`. Understanding these methods (e.g., `set_step_data`, `display_revert_header`, `run_all_cells`) is key to debugging workflow logic.
 
 ## 8. Unit Testing (Future Consideration)
 

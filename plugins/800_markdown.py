@@ -83,7 +83,7 @@ class MarkdownWidget:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def finalize(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -102,14 +102,14 @@ class MarkdownWidget:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         if step_id == 'step_01':
@@ -129,7 +129,7 @@ class MarkdownWidget:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     def create_marked_widget(self, markdown_content, widget_id):
         widget = Div(Div(markdown_content, id=f'{widget_id}_source', cls='hidden'), Div(id=f'{widget_id}_rendered', cls='bg-light border markdown-body p-3 rounded-default'), Script(f"\n                document.addEventListener('htmx:afterOnLoad', function() {{\n                    function renderMarkdown() {{\n                        const source = document.getElementById('{widget_id}_source');\n                        const target = document.getElementById('{widget_id}_rendered');\n                        if (source && target) {{\n                            const html = marked.parse(source.textContent);\n                            target.innerHTML = html;\n                            if (typeof Prism !== 'undefined') {{\n                                Prism.highlightAllUnder(target);\n                            }}\n                        }}\n                    }}\n                    if (typeof marked !== 'undefined') {{\n                        renderMarkdown();\n                    }} else {{\n                        console.error('marked.js is not loaded');\n                    }}\n                }});\n                document.addEventListener('initMarked', function(event) {{\n                    if (event.detail.widgetId === '{widget_id}') {{\n                        setTimeout(function() {{\n                            const source = document.getElementById('{widget_id}_source');\n                            const target = document.getElementById('{widget_id}_rendered');\n                            if (source && target && typeof marked !== 'undefined') {{\n                                const html = marked.parse(source.textContent);\n                                target.innerHTML = html;\n                                if (typeof Prism !== 'undefined') {{\n                                    Prism.highlightAllUnder(target);\n                                }}\n                            }}\n                        }}, 100); // Delay to ensure DOM is ready\n                    }}\n                }});\n            "), cls='marked-widget')

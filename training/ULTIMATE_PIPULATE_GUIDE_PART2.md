@@ -104,7 +104,7 @@ async def handle_revert(self, request):
     pip.write_state(pipeline_id, state)
     
     # Rebuild entire workflow UI
-    return pip.rebuild(app_name, self.steps)
+    return pip.run_all_cells(app_name, self.steps)
 ```
 
 ### **Revert Flow:**

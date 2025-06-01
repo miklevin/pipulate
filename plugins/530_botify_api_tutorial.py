@@ -242,8 +242,8 @@ class BotifyExport:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
         
-        # Create step placeholders using rebuild method
-        return Div(updated_datalist, *pip.rebuild(app_name, steps).children, id=f'{app_name}-container')
+        # Create step placeholders using run_all_cells method
+        return Div(updated_datalist, *pip.run_all_cells(app_name, steps).children, id=f'{app_name}-container')
 
     async def step_01(self, request):
         """Handle project URL input"""
@@ -1329,7 +1329,7 @@ class BotifyExport:
         else:
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, 'Workflow successfully finalized! Your data has been saved and locked.', verbatim=True)
-            return pip.rebuild(app_name, steps)
+            return pip.run_all_cells(app_name, steps)
 
     async def unfinalize(self, request):
         """
@@ -1360,14 +1360,14 @@ class BotifyExport:
             pip.write_state(pipeline_id, state)
         await pip.unfinalize_workflow(pipeline_id)
         await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def handle_revert(self, request):
         """
         Handle reverting to a previous step in the workflow.
 
         This method clears state data from the specified step forward,
-        marks the step as the revert target in the state, and rebuilds
+        marks the step as the revert target in the state, and run_all_cells
         the workflow UI. It allows users to go back and modify their
         inputs at any point in the workflow process.
 
@@ -1392,7 +1392,7 @@ class BotifyExport:
         pip.write_state(pipeline_id, state)
         message = await pip.get_state_message(pipeline_id, steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.rebuild(app_name, steps)
+        return pip.run_all_cells(app_name, steps)
 
     async def get_suggestion(self, step_id, state):
         """

@@ -455,7 +455,7 @@ Examples:
             f.write(content)
         
         print(f"\nSuccessfully spliced new step '{new_step_id_str}' into {target_file_path}")
-        print("The workflow's __init__ method will automatically rebuild routing and step messages.")
+        print("The workflow's __init__ method will automatically recreate routing and step messages.")
         print("Pipulate should auto-restart. Test the modified workflow.")
         print(f"Remember to customize the new methods for {new_step_id_str} and its input form.")
 
