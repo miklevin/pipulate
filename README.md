@@ -12,8 +12,8 @@ Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-
 <!-- Note: The step-by-step workflow pattern here is quite flexible - could potentially adapt to various interaction modalities beyond traditional forms. The local-first architecture ensures complete user control over their data and processing environment. -->
 
 Its primary goals are:
-1.  **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly.
-2.  **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework.
+1.  **Empower End-Users (e.g., SEO Practitioners):** Enable non-programmers to run powerful, AI-guided workflows (often ported from Jupyter Notebooks) without needing to interact with Python code directly. Never get frustrated by Colab deleting all your *"local"* files or interrupting long-running jobs again.
+2.  **Serve Developers:** Provide a simple, reproducible environment for building these workflows, leveraging integrated tooling like Jupyter, local LLMs, and a streamlined web framework. Do develop as if in notebooks but don't make your users have to modify Python code — like if IPyWidgets were reliable and you could hide code.
 
 ## Core Philosophy & Design
 
