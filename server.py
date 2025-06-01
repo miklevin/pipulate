@@ -1879,7 +1879,39 @@ class BaseCrud:
         return f'/{self.name}/{action}/{item_id}'
 
     def render_item(self, item):
-        return Li(A('🗑', href='#', hx_swap='outerHTML', hx_delete=f'/task/delete/{item.id}', hx_target=f'#todo-{item.id}', _class='delete-icon', style='cursor: pointer; display: inline;'), Input(type='checkbox', checked='1' if item.done else '0', hx_post=f'/task/toggle/{item.id}', hx_swap='outerHTML', hx_target=f'#todo-{item.id}'), A(item.name, href='#', _class='todo-title', style='text-decoration: none; color: inherit;'), data_id=item.id, data_priority=item.priority, id=f'todo-{item.id}', cls='list-style-none')
+        return Li(
+            # Delete button
+            A('🗑', 
+              href='#',
+              hx_swap='outerHTML',
+              hx_delete=f'/task/delete/{item.id}',
+              hx_target=f'#todo-{item.id}',
+              _class='delete-icon',
+              style='cursor: pointer; display: inline;'
+            ),
+            
+            # Toggle checkbox
+            Input(
+                type='checkbox',
+                checked='1' if item.done else '0',
+                hx_post=f'/task/toggle/{item.id}',
+                hx_swap='outerHTML',
+                hx_target=f'#todo-{item.id}'
+            ),
+            
+            # Item name link
+            A(item.name,
+              href='#',
+              _class='todo-title',
+              style='text-decoration: none; color: inherit;'
+            ),
+            
+            # Item metadata
+            data_id=item.id,
+            data_priority=item.priority,
+            id=f'todo-{item.id}',
+            cls='list-style-none'
+        )
 
     async def delete_item(self, request, item_id: int):
         try:
@@ -2037,7 +2069,13 @@ class BaseCrud:
             changes_str = '; '.join(changes_log_list)
             item_name_display = getattr(updated_item, self.item_name_field, 'Item')
             if changes_log_list:
-                action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {(self.pipulate_instance.fmt(changes_str) if hasattr(self.pipulate_instance, 'fmt') else changes_str)}"
+                # Format changes string if pipulate_instance has fmt method, otherwise use raw changes
+                formatted_changes = (
+                    self.pipulate_instance.fmt(changes_str) 
+                    if hasattr(self.pipulate_instance, 'fmt') 
+                    else changes_str
+                )
+                action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {formatted_changes}"
                 self.send_message(action_details, verbatim=True)
                 logger.debug(f'Updated {self.name} item {item_id}. Changes: {changes_str}')
             else:
@@ -2141,7 +2179,12 @@ class Chat:
                 if message.get('type') == 'htmx':
                     htmx_response = message
                     content = to_xml(htmx_response['content'])
-                    formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">\n                        {content}\n                    </div>"""
+                    formatted_response = (
+                        f'<div id="todo-{htmx_response.get("id")}" '
+                        f'hx-swap-oob="beforeend:#todo-list">\n'
+                        f'    {content}\n'
+                        f'</div>'
+                    )
                     for ws in self.active_websockets:
                         await ws.send_text(formatted_response)
                     return
@@ -2164,7 +2207,43 @@ class Chat:
             traceback.print_exc()
 
     def create_progress_card(self):
-        return Card(Header('Chat Playground'), Form(Div(TextArea(id='chat-input', placeholder='Type your message here...', rows='3'), Button('Send', type='submit'), id='chat-form'), onsubmit='sendMessage(event)'), Div(id='chat-messages'), Script("\n                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`);\n                \n                ws.onmessage = function(event) {\n                    const messages = document.getElementById('chat-messages');\n                    messages.innerHTML += event.data + '<br>';\n                    messages.scrollTop = messages.scrollHeight;\n                };\n                \n                function sendMessage(event) {\n                    event.preventDefault();\n                    const input = document.getElementById('chat-input');\n                    const message = input.value;\n                    if (message.trim()) {\n                        ws.send(message);\n                        input.value = '';\n                    }\n                }\n            "))
+        return Card(
+            Header('Chat Playground'),
+            Form(
+                Div(
+                    TextArea(
+                        id='chat-input',
+                        placeholder='Type your message here...',
+                        rows='3'
+                    ),
+                    Button('Send', type='submit'),
+                    id='chat-form'
+                ),
+                onsubmit='sendMessage(event)'
+            ),
+            Div(id='chat-messages'),
+            Script("""
+                const ws = new WebSocket(
+                    `${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`
+                );
+                
+                ws.onmessage = function(event) {
+                    const messages = document.getElementById('chat-messages');
+                    messages.innerHTML += event.data + '<br>';
+                    messages.scrollTop = messages.scrollHeight;
+                };
+                
+                function sendMessage(event) {
+                    event.preventDefault();
+                    const input = document.getElementById('chat-input');
+                    const message = input.value;
+                    if (message.trim()) {
+                        ws.send(message);
+                        input.value = '';
+                    }
+                }
+            """)
+        )
 
     async def handle_websocket(self, websocket: WebSocket):
         try:
@@ -2194,7 +2273,13 @@ if not os.path.exists('plugins'):
 
 
 def build_endpoint_messages(endpoint):
-    endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.', 'profile': "This is where you add, edit, and delete profiles (aka clients). The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."}
+    endpoint_messages = {
+        '': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. '
+            f'Select an app from the menu to get started.',
+        'profile': 'This is where you add, edit, and delete profiles (aka clients). '
+                  'The Nickname field is the only name shown on the menu so it is '
+                  'safe to use in front of clients. They only see each other\'s Nicknames.'
+    }
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
             if hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
@@ -2645,7 +2730,16 @@ for module_name, class_name, workflow_class in discovered_classes:
                 else:
                     init_sig = inspect.signature(workflow_class.__init__)
                     args_to_pass = {}
-                    param_mapping = {'app': app, 'pipulate': pipulate, 'pipulate_instance': pipulate, 'pipeline': pipeline, 'pipeline_table': pipeline, 'db': db, 'db_dictlike': db, 'db_key_value_store': db}
+                    param_mapping = {
+                        'app': app,
+                        'pipulate': pipulate,
+                        'pipulate_instance': pipulate,
+                        'pipeline': pipeline,
+                        'pipeline_table': pipeline,
+                        'db': db,
+                        'db_dictlike': db,
+                        'db_key_value_store': db
+                    }
                     for param_name in init_sig.parameters:
                         if param_name == 'self':
                             continue
@@ -2829,7 +2923,15 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id='intro-page-1-content'
         )
-        llm_context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
+        llm_context = (
+            f"The user is viewing the Introduction page which shows:\n\n"
+            f"{page_data['title']}\n\n"
+            f"{page_data['intro']}\n"
+            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n"
+            f"{page_data['getting_started']}\n"
+            f"{page_data['nav_help']}\n"
+            f"{page_data['llm_help']}"
+        )
 
     elif page_num == 2:
         content = Card(
@@ -2840,7 +2942,13 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id='intro-page-2-content'
         )
-        llm_context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+        llm_context = (
+            f"The user is viewing the Experimenting page which shows:\n\n"
+            f"{page_data['experimenting_title']}\n"
+            f"{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n"
+            f"{page_data['interface_title']}\n"
+            f"{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+        )
 
     elif page_num == 3:
         content = Card(
@@ -2854,7 +2962,11 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id='intro-page-3-content'
         )
-        llm_context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+        llm_context = (
+            f"The user is viewing the Tips page which shows:\n\n"
+            f"{page_data['title']}\n"
+            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+        )
 
     elif page_num == 4:
         content = Card(
@@ -2866,7 +2978,14 @@ def get_intro_page_content(page_num_str: str):
             style=card_style,
             id='intro-page-4-content'
         )
-        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+        llm_context = (
+            f"The user is viewing the Local LLM Assistant page which shows:\n\n"
+            f"{page_data['title']}\n\n"
+            f"Features:\n"
+            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\n"
+            f"Usage Tips:\n"
+            f"{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+        )
 
     return (content, llm_context)
 
@@ -3073,7 +3192,23 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), style='display: flex; align-items: center; padding: 0.5rem 1rem;'))
+    menu_items.append(
+        Li(
+            Label(
+                Input(
+                    type='checkbox',
+                    name='profile_lock_switch',
+                    role='switch',
+                    checked=profile_locked,
+                    hx_post='/toggle_profile_lock',
+                    hx_target='body',
+                    hx_swap='outerHTML'
+                ),
+                'Lock Profile'
+            ),
+            style='display: flex; align-items: center; padding: 0.5rem 1rem;'
+        )
+    )
     menu_items.append(Li(Hr(style='margin: 0;'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -3082,7 +3217,16 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
+            menu_items.append(
+                Li(
+                    A(
+                        f'Edit {plugin_display_name}',
+                        href=f'/{profiles_plugin_inst.name}',
+                        cls='dropdown-item menu-item-header'
+                    ),
+                    cls='block'
+                )
+            )
     active_profiles_list = []
     if profiles:
         if profile_locked:
@@ -3100,12 +3244,34 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
-        radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
+        radio_input = Input(
+            type='radio',
+            name='profile_radio_select',
+            value=str(profile_item.id),
+            checked=is_selected,
+            hx_post='/select_profile',
+            hx_vals=json.dumps({'profile_id': str(profile_item.id)}),
+            hx_target='body',
+            hx_swap='outerHTML'
+        )
         profile_label = Label(radio_input, profile_item.name)
         hover_style = "this.style.backgroundColor='var(--pico-primary-hover-background)';"
         default_bg = 'var(--pico-primary-focus)' if is_selected else 'transparent'
         mouseout_style = f"this.style.backgroundColor='{default_bg}';"
-        menu_items.append(Li(profile_label, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover=hover_style, onmouseout=mouseout_style))
+        menu_items.append(
+            Li(
+                profile_label,
+                style=(
+                    f'text-align: left; '
+                    f'{pipulate.MENU_ITEM_PADDING} '
+                    f'{item_style} '
+                    f'display: flex; '
+                    f'border-radius: var(--pico-border-radius);'
+                ),
+                onmouseover=hover_style,
+                onmouseout=mouseout_style
+            )
+        )
     summary_profile_name_to_display = selected_profile_name
     if not summary_profile_name_to_display and selected_profile_id:
         try:
@@ -3115,7 +3281,20 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('PROFILE', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='profile-id'), Ul(*menu_items, style='padding-left: 0; min-width: max-content;', cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
+    return Details(
+        Summary(
+            'PROFILE',
+            style='white-space: nowrap; display: inline-block; min-width: max-content;',
+            id='profile-id'
+        ),
+        Ul(
+            *menu_items,
+            style='padding-left: 0; min-width: max-content;',
+            cls='dropdown-menu'
+        ),
+        cls='dropdown',
+        id='profile-dropdown-menu'
+    )
 
 
 def normalize_menu_path(path):
@@ -3125,7 +3304,17 @@ def normalize_menu_path(path):
 
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    return 'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 16px; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
+    return (
+        'white-space: nowrap; '
+        'display: inline-block; '
+        'min-width: max-content; '
+        'background-color: var(--pico-background-color); '
+        'border: 1px solid var(--pico-muted-border-color); '
+        'border-radius: 16px; '
+        'padding: 0.5rem 1rem; '
+        'cursor: pointer; '
+        'transition: background-color 0.2s;'
+    )
 
 
 def create_app_menu(menux):
@@ -4225,7 +4414,28 @@ async def switch_environment(request):
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
         asyncio.create_task(delayed_restart(2))
-        return HTMLResponse(f"""<div \n                aria-busy='true' \n                style="\n                    display: flex; \n                    align-items: center; \n                    {pipulate.MENU_ITEM_PADDING}\n                    border-radius: var(--pico-border-radius);\n                    min-height: 2.5rem;\n                "\n            >Switching</div>\n            <style>\n                body {{\n                    pointer-events: none;\n                    user-select: none;\n                }}\n            </style>""")
+        return HTMLResponse(
+            f"""
+            <div 
+                aria-busy='true'
+                style="
+                    display: flex;
+                    align-items: center;
+                    {pipulate.MENU_ITEM_PADDING}
+                    border-radius: var(--pico-border-radius);
+                    min-height: 2.5rem;
+                "
+            >
+                Switching
+            </div>
+            <style>
+                body {
+                    pointer-events: none;
+                    user-select: none;
+                }
+            </style>
+            """
+        )
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
@@ -4342,7 +4552,54 @@ def run_server_with_watchdog():
     try:
         log.startup('Server starting on http://localhost:5001')
         log_level = 'debug' if DEBUG_MODE else 'warning'
-        uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config={'version': 1, 'disable_existing_loggers': False, 'formatters': {'default': {'()': 'uvicorn.logging.DefaultFormatter', 'fmt': '%(levelprefix)s %(asctime)s | %(message)s', 'use_colors': True}}, 'handlers': {'default': {'formatter': 'default', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stderr'}}, 'loggers': {'uvicorn': {'handlers': ['default'], 'level': log_level.upper()}, 'uvicorn.error': {'level': log_level.upper()}, 'uvicorn.access': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}, 'uvicorn.asgi': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}}})
+        # Configure logging format and settings
+        log_config = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'default': {
+                    '()': 'uvicorn.logging.DefaultFormatter',
+                    'fmt': '%(levelprefix)s %(asctime)s | %(message)s',
+                    'use_colors': True
+                }
+            },
+            'handlers': {
+                'default': {
+                    'formatter': 'default',
+                    'class': 'logging.StreamHandler',
+                    'stream': 'ext://sys.stderr'
+                }
+            },
+            'loggers': {
+                'uvicorn': {
+                    'handlers': ['default'],
+                    'level': log_level.upper()
+                },
+                'uvicorn.error': {
+                    'level': log_level.upper()
+                },
+                'uvicorn.access': {
+                    'handlers': ['default'],
+                    'level': log_level.upper(),
+                    'propagate': False
+                },
+                'uvicorn.asgi': {
+                    'handlers': ['default'],
+                    'level': log_level.upper(),
+                    'propagate': False
+                }
+            }
+        }
+
+        # Start the server with configured logging
+        uvicorn.run(
+            app,
+            host='0.0.0.0',
+            port=5001,
+            log_level=log_level,
+            access_log=DEBUG_MODE,
+            log_config=log_config
+        )
     except KeyboardInterrupt:
         log.event('server', 'Server shutdown requested by user')
         observer.stop()
