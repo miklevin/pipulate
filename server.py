@@ -1549,8 +1549,41 @@ def get_current_profile_id():
 
 
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
-    init_script = f"\n    document.addEventListener('DOMContentLoaded', (event) => {{\n        // Initialize with parameters\n        if (window.initializeChatScripts) {{\n            window.initializeChatScripts({{\n                sortableSelector: '{sortable_selector}',\n                ghostClass: '{ghost_class}'\n            }});\n        }}\n    }});\n    "
-    return (Script(src='/static/chat-scripts.js'), Script(init_script), Link(rel='stylesheet', href='/static/styles.css'))
+    """
+    HYBRID JAVASCRIPT PATTERN: Creates static includes + Python-parameterized initialization
+    
+    This function demonstrates the hybrid pattern used throughout Pipulate:
+    1. Static JavaScript files for caching and simple development
+    2. Python-generated initialization scripts for dynamic configuration
+    3. Global inclusion (not conditional) for consistent availability
+    
+    Returns:
+        tuple: (static_js_script, dynamic_init_script, stylesheet)
+        
+    Pattern Benefits:
+        - Static files can be cached by browser
+        - Python can configure JavaScript behavior dynamically  
+        - No template complexity or build steps required
+        - Classic JavaScript development experience
+    """
+    # Python generates dynamic initialization call with server-side parameters
+    python_generated_init_script = f"""
+    document.addEventListener('DOMContentLoaded', (event) => {{
+        // HYBRID PATTERN: Call static file's function with Python-generated config
+        if (window.initializeChatScripts) {{
+            window.initializeChatScripts({{
+                sortableSelector: '{sortable_selector}',
+                ghostClass: '{ghost_class}'
+            }});
+        }}
+    }});
+    """
+    
+    return (
+        Script(src='/static/chat-scripts.js'),     # Static file with parameterized functions
+        Script(python_generated_init_script),     # Python-generated initialization
+        Link(rel='stylesheet', href='/static/styles.css')
+    )
 
 
 class BaseCrud:
@@ -1804,7 +1837,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/marked.min.js'),
         Script(src='/static/prism.js'),
         Script(src='/static/widget-scripts.js'),
-        create_chat_scripts('.sortable'),
+        create_chat_scripts('.sortable'),  # HYBRID PATTERN: Static JS + Python parameterization
         Script(type='module')
     ),
     store={
