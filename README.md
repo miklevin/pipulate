@@ -25,7 +25,7 @@ Pipulate is built on a distinct set of principles prioritizing user control, sim
 * **Simplicity & Observability ("Know EVERYTHING!"):** We intentionally avoid complex enterprise patterns (heavy ORMs, message queues, client-side state management like Redux/JWT, build steps). State is managed server-side via simple SQLite tables (using MiniDataAPI) and JSON blobs for workflows (using DictLikeDB). This transparency makes debugging intuitive – aiming for that "old-school webmaster feeling" on a modern stack.
   <!-- The transparent state management could be valuable for applications requiring complete auditability and user understanding of system behavior. -->
   
-* **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem.
+* **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem. Docker is dead for like 80% of the common user-based (not enterprise) use cases — the world just doesn't know it yet.
   <!-- This level of environmental consistency could support deployment scenarios where exact reproducibility is critical. -->
   
 * **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies.
