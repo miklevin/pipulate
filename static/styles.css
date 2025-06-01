@@ -1,3 +1,25 @@
+/* ============================================================================
+   PIPULATE STYLES.CSS - Master Stylesheet Organization
+   ============================================================================
+   
+   📁 FILE STRUCTURE:
+   1. 🎨 FORM FIELD COLOR SYSTEM (Key Fields + Dim Gray Global Theme)
+   2. 📐 LAYOUT VARIABLES (Spacing, grid, navigation)  
+   3. 🏗️  CORE LAYOUT (Main structure, navigation, grid)
+   4. 🎨 ROLE-BASED COLORS (Menu item colors by plugin role)
+   5. 🔧 UTILITY CLASSES (Text, spacing, etc.)
+   
+   ⭐ KEY COLORS TO KNOW:
+   • Key Fields (search/password): BLACK (#000000) - "Key hole" styling
+   • Global Forms: DIM GRAY (#696969) - All standard form inputs
+   • Role Colors: 6 distinct colors for plugin role organization
+   
+   🎯 FUTURE GOALS:
+   • Separate navigation menu forms from workflow input forms
+   • Currently both use the same dim gray styling
+   
+   ============================================================================ */
+
 /* Layout Variables - CRITICAL: Adjust --nav-group-actual-height */
 :root {
     /* Base viewport spacing units */
@@ -27,100 +49,148 @@
     --key-field-focus-border: #007bff;         /* Blue border on focus */
 
 
-    /* dimgrey theme variables - base/fallback 
-    Bigtime customization for the form elements. */
+    /* ========================================================================
+       FORM FIELD COLOR SYSTEM - Master Configuration
+       ========================================================================
+       
+       This section controls ALL form field appearances across Pipulate.
+       Currently applies to BOTH navigation and workflow forms - future plans
+       will differentiate between navigation menus vs. workflow input fields.
+       
+       FUTURE GOAL: Separate navigation menus from workflow form styling
+       ======================================================================== */
 
-    /* Key Field Colors */
-    --key-field-bg: #000000;                   /* */
-    --key-field-text: #ffffff;                 /* */
-    --key-field-placeholder: #888888;          /* */
-    --key-field-border: #333333;               /* */
-    --key-field-focus-border: #007bff;         /* */
+    /* ========================================================================
+       KEY FIELDS - Special "Key Hole" Appearance
+       ========================================================================
+       Key fields (search/password inputs) get distinctive black styling for
+       visual consistency. Used for pipeline IDs, API tokens, etc.
+       ======================================================================== */
+    --key-field-bg: #000000;                   /* Pure black background */
+    --key-field-text: #ffffff;                 /* White text for contrast */
+    --key-field-placeholder: #888888;          /* Gray placeholder text */
+    --key-field-border: #333333;               /* Dark gray border */
+    --key-field-focus-border: #007bff;         /* Blue border on focus */
 
-    /* * ADJUSTABLE CUSTOM FORM THEME 
-     * Define your desired form appearance here.
-     */
-    --custom-form-base-bg: #696969;         /* Dimgrey */ /* */
-    --custom-form-active-bg: #5a5a5a;
-    --custom-form-border-color: #505050;
-    --custom-form-text-color: #FFFFFF;
-    --custom-form-placeholder-color: #cccccc;
-    /* Icon color is part of the full SVG data URI below */
-    --custom-form-icon-chevron-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); /* White chevron */ /* */
+    /* ========================================================================
+       GLOBAL FORM THEME - DIM GRAY SYSTEM ⭐ MAIN FORM COLORS ⭐
+       ========================================================================
+       
+       🎨 PRIMARY FORM COLOR: #696969 (DIM GRAY)
+       
+       This is the master color scheme for ALL standard form elements:
+       - Text inputs, textareas, selects, buttons
+       - Currently applies to navigation AND workflow forms
+       - Easy to modify - change --custom-form-base-bg to change everything
+       
+       TO CHANGE FORM COLORS: Modify the hex values below
+       ======================================================================== */
     
+    /* 🎨 MASTER FORM COLORS - Change these to restyle all forms */
+    --custom-form-base-bg: #696969;            /* 🎨 DIM GRAY - Main form background color */
+    --custom-form-active-bg: #5a5a5a;          /* Darker gray when hovering/active */
+    --custom-form-border-color: #505050;       /* Form field borders */
+    --custom-form-text-color: #FFFFFF;         /* White text on gray background */
+    --custom-form-placeholder-color: #cccccc;  /* Light gray placeholder text */
+    
+    /* Dropdown specific colors */
     --custom-form-dropdown-bg: var(--custom-form-base-bg);
-    --custom-form-dropdown-hover-bg: #7a7a7a;
+    --custom-form-dropdown-hover-bg: #7a7a7a;  /* Lighter gray on hover */
     --custom-form-dropdown-text-color: var(--custom-form-text-color);
     --custom-form-selected-option-bg: #7a7a7a;
+    
+    /* Focus and interaction states */
+    --custom-form-active-border-color: var(--key-field-focus-border);  /* Blue focus border */
+    --custom-form-focus-shadow-color: rgba(0, 123, 255, 0.25);         /* Blue focus shadow */
+    
+    /* Dropdown chevron icon (white chevron for dark background) */
+    --custom-form-icon-chevron-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
-    --custom-form-active-border-color: var(--key-field-focus-border);
-    --custom-form-focus-shadow-color: rgba(0, 123, 255, 0.25);
-
-    /* --- Pico Variables now referencing your custom theme (FALLBACKS) --- */
-    --pico-form-element-background-color: var(--custom-form-base-bg); /* */
-    --pico-form-element-active-background-color: var(--custom-form-active-bg); /* */
-    --pico-form-element-border-color: var(--custom-form-border-color); /* */
-    --pico-form-element-active-border-color: var(--custom-form-active-border-color); /* */
-    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color); /* */
-    --pico-form-element-color: var(--custom-form-text-color); /* */
-    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color); /* */
-    --pico-icon-chevron: var(--custom-form-icon-chevron-svg); /* */
-    --pico-dropdown-background-color: var(--custom-form-dropdown-bg); /* */
-    --pico-dropdown-border-color: var(--custom-form-border-color); /* */
-    --pico-dropdown-color: var(--custom-form-dropdown-text-color); /* */
-    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg); /* */
-    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg); /* */
+    /* ========================================================================
+       PICO CSS INTEGRATION - Applying Custom Colors to PicoCSS
+       ========================================================================
+       
+       These variables override PicoCSS defaults with our custom dim gray theme.
+       PicoCSS will automatically use these colors for all standard form elements.
+       
+       🔗 LINKS: These variables connect our custom colors to PicoCSS system
+       ======================================================================== */
+    --pico-form-element-background-color: var(--custom-form-base-bg);           /* Main form bg */
+    --pico-form-element-active-background-color: var(--custom-form-active-bg);  /* Hover/active bg */
+    --pico-form-element-border-color: var(--custom-form-border-color);          /* Form borders */
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color); /* Focus border */
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color);     /* Focus shadow */
+    --pico-form-element-color: var(--custom-form-text-color);                   /* Text color */
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color); /* Placeholder text */
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg);                   /* Dropdown arrow */
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg);           /* Dropdown bg */
+    --pico-dropdown-border-color: var(--custom-form-border-color);              /* Dropdown border */
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color);              /* Dropdown text */
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg); /* Dropdown hover */
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg); /* Selected option */
 }
 
-/* THEME-SPECIFIC OVERRIDES FOR CUSTOM FORM THEME */
+/* ============================================================================
+   THEME ENFORCEMENT - Force Dim Gray Forms in All Themes
+   ============================================================================
+   
+   These sections ensure our custom dim gray form theme overrides PicoCSS 
+   defaults in ALL theme modes (light, dark, auto). The !important declarations
+   are necessary to override PicoCSS's own theme-specific styles.
+   
+   🎯 GOAL: Consistent dim gray forms regardless of light/dark theme
+   ============================================================================ */
+
+/* Force dim gray forms in LIGHT theme */
 [data-theme="light"] {
-    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
-    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
-    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
-    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
-    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
-    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
-    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
-    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
-    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
-    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
-    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important;
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important;
+    --pico-form-element-border-color: var(--custom-form-border-color) !important;
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important;
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important;
+    --pico-form-element-color: var(--custom-form-text-color) !important;
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important;
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important;
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important;
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important;
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important;
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important;
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important;
 }
 
+/* Force dim gray forms in DARK theme */
 [data-theme="dark"] {
-    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
-    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
-    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
-    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
-    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
-    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
-    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
-    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
-    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
-    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
-    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important;
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important;
+    --pico-form-element-border-color: var(--custom-form-border-color) !important;
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important;
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important;
+    --pico-form-element-color: var(--custom-form-text-color) !important;
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important;
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important;
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important;
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important;
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important;
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important;
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important;
 }
 
-/* For Dark Theme triggered by prefers-color-scheme */
+/* Force dim gray forms in AUTO theme (when browser prefers dark) */
 @media only screen and (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --pico-form-element-background-color: var(--custom-form-base-bg) !important; /* */
-    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important; /* */
-    --pico-form-element-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important; /* */
-    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important; /* */
-    --pico-form-element-color: var(--custom-form-text-color) !important; /* */
-    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important; /* */
-    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important; /* */
-    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important; /* */
-    --pico-dropdown-border-color: var(--custom-form-border-color) !important; /* */
-    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important; /* */
-    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important; /* */
-    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important; /* */
+    --pico-form-element-background-color: var(--custom-form-base-bg) !important;
+    --pico-form-element-active-background-color: var(--custom-form-active-bg) !important;
+    --pico-form-element-border-color: var(--custom-form-border-color) !important;
+    --pico-form-element-active-border-color: var(--custom-form-active-border-color) !important;
+    --pico-form-element-focus-color: var(--custom-form-focus-shadow-color) !important;
+    --pico-form-element-color: var(--custom-form-text-color) !important;
+    --pico-form-element-placeholder-color: var(--custom-form-placeholder-color) !important;
+    --pico-icon-chevron: var(--custom-form-icon-chevron-svg) !important;
+    --pico-dropdown-background-color: var(--custom-form-dropdown-bg) !important;
+    --pico-dropdown-border-color: var(--custom-form-border-color) !important;
+    --pico-dropdown-color: var(--custom-form-dropdown-text-color) !important;
+    --pico-dropdown-hover-background-color: var(--custom-form-dropdown-hover-bg) !important;
+    --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg) !important;
   }
 }
 
