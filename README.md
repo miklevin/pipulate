@@ -7,7 +7,7 @@
 
 ## What is Pipulate?
 
-Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL). E.g. Pipulate runs expertly prepared linear workflows that you really don't want to share — directly from your machine. Train your local AI without training the world.
+Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL). In other words Pipulate runs expertly prepared linear workflows that you don't want to share and it does this directly from your machine. In other other words, train your local AI without training the world. What happens on localhost stays on localhost.
 
 <!-- Note: The step-by-step workflow pattern here is quite flexible - could potentially adapt to various interaction modalities beyond traditional forms. The local-first architecture ensures complete user control over their data and processing environment. -->
 
