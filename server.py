@@ -2553,49 +2553,159 @@ def get_profile_name():
 
 
 async def home(request):
+    """Handle the main home route request.
+    
+    Args:
+        request: The incoming request object
+        
+    Returns:
+        tuple: (Title, Main) containing the page title and main content
+    """
+    # Get and normalize the request path
     path = request.url.path.strip('/')
     logger.debug(f'Received request for path: {path}')
+    
+    # Get menu selection and update database
     menux = normalize_menu_path(path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
     db['last_visited_url'] = request.url.path
+    
+    # Get current profile and create response
     current_profile_id = get_current_profile_id()
-    menux = db.get('last_app_choice', 'App')
+    menux = db.get('last_app_choice', 'App')  # Fallback to 'App' if not found
     response = await create_outer_container(current_profile_id, menux, request)
-    logger.debug('Returning response for main GET request.')
+    
+    # Create page title
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
+    
+    logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
 
 
 def create_nav_group():
+    """Create the navigation group containing the main nav menu and refresh listeners.
+    
+    Returns:
+        Group: A container with the navigation menu and HTMX refresh listeners.
+    """
+    # Get profiles plugin instance
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for nav group creation")
-        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-error'), id='nav-group')
+        return Group(
+            Div(
+                H1('Error: Profiles plugin not found', cls='text-invalid'),
+                cls='nav-error'
+            ),
+            id='nav-group'
+        )
+
+    # Create main navigation menu
     nav = create_nav_menu()
-    refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
-    app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
-    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group')
+
+    # Create HTMX refresh listeners for dynamic menu updates
+    refresh_listener = Div(
+        id='profile-menu-refresh-listener',
+        hx_get='/refresh-profile-menu',
+        hx_trigger='refreshProfileMenu from:body',
+        hx_target='#profile-dropdown-menu',
+        hx_swap='outerHTML',
+        cls='hidden'
+    )
+
+    app_menu_refresh_listener = Div(
+        id='app-menu-refresh-listener',
+        hx_get='/refresh-app-menu',
+        hx_trigger='refreshAppMenu from:body',
+        hx_target='#app-dropdown-menu',
+        hx_swap='outerHTML',
+        cls='hidden'
+    )
+
+    # Return grouped components
+    return Group(
+        nav,
+        refresh_listener,
+        app_menu_refresh_listener,
+        id='nav-group'
+    )
 
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
+    # Get current environment and set up display
     current_env = get_current_environment()
+    display_env = 'DEV' if current_env == 'Development' else 'Prod'
+    
+    # Configure styles
     env_summary_style = 'white-space: nowrap; display: inline-block; min-width: max-content;'
     if current_env == 'Development':
         env_summary_style += ' color: #f77; font-weight: bold;'
-        display_env = 'DEV'
-    else:
-        display_env = 'Prod'
-    menu_items = []
+    
     menu_item_style = 'text-align: left; {pipulate.MENU_ITEM_PADDING} display: flex; border-radius: var(--pico-border-radius);'
     radio_style = 'min-width: 1rem; margin-right: 0.5rem;'
+    
+    # Create menu items
+    menu_items = []
+    
+    # Development environment option
     is_dev = current_env == 'Development'
-    menu_items.append(Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', style=radio_style), 'DEV', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';", id='dev-env-item')))
+    dev_item = Li(
+        Label(
+            Input(
+                type='radio',
+                name='env_radio_select',
+                value='Development',
+                checked=is_dev,
+                hx_post='/switch_environment',
+                hx_vals='{"environment": "Development"}',
+                hx_target='#dev-env-item',
+                hx_swap='outerHTML',
+                style=radio_style
+            ),
+            'DEV',
+            style=menu_item_style,
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';",
+            id='dev-env-item'
+        )
+    )
+    menu_items.append(dev_item)
+    
+    # Production environment option
     is_prod = current_env == 'Production'
-    menu_items.append(Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', style=radio_style), 'Prod', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';", id='prod-env-item')))
-    return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style='padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'), cls='dropdown', id='env-dropdown-menu')
+    prod_item = Li(
+        Label(
+            Input(
+                type='radio',
+                name='env_radio_select',
+                value='Production',
+                checked=is_prod,
+                hx_post='/switch_environment',
+                hx_vals='{"environment": "Production"}',
+                hx_target='#prod-env-item',
+                hx_swap='outerHTML',
+                style=radio_style
+            ),
+            'Prod',
+            style=menu_item_style,
+            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';",
+            id='prod-env-item'
+        )
+    )
+    menu_items.append(prod_item)
+    
+    # Create dropdown menu
+    dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
+    return Details(
+        Summary(display_env, style=env_summary_style, id='env-id'),
+        Ul(*menu_items, cls='dropdown-menu', style=dropdown_style),
+        cls='dropdown',
+        id='env-dropdown-menu'
+    )
 
 
 def create_nav_menu():
