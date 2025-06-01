@@ -7,7 +7,7 @@
 
 ## What is Pipulate?
 
-Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL).
+Pipulate is a **local-first, single-tenant desktop app framework** featuring AI-assisted, step-by-step workflows. Designed to feel like an Electron app, it uniquely runs a full, reproducible Linux environment within a project folder using Nix, ensuring consistency across macOS, Linux, and Windows (via WSL). E.g. Pipulate runs expertly prepared linear workflows that you really don't want to share — directly from your machine. Train your local AI without training the world.
 
 <!-- Note: The step-by-step workflow pattern here is quite flexible - could potentially adapt to various interaction modalities beyond traditional forms. The local-first architecture ensures complete user control over their data and processing environment. -->
 
@@ -39,7 +39,7 @@ Pipulate is built on a distinct set of principles prioritizing user control, sim
 Pipulate integrates a carefully selected set of tools aligned with its philosophy:
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI.
-* **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates (over the wire HTML-fragments targeting elements of the DOM directly instead of JSON intermediaries).
+* **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates — over the wire HTML-fragments targeting elements of the DOM directly instead of JSON intermediaries.
 * **MiniDataAPI:** A lightweight layer for interacting with SQLite and other databases. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs — effectively future-proofing your SQL. 
 * **Ollama:** Facilitates running LLMs locally, enabling in-app chat, workflow guidance, and future automation capabilities while ensuring privacy and avoiding API costs. Your local AI (Chip O'Theseus) learns & grows with you, hopping from hardware to hardware as you upgrade — like a genie in a hermitcrab shell.
 * **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support.
