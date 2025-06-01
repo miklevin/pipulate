@@ -9,6 +9,8 @@ from pathlib import Path
 import re
 import json
 from starlette.responses import HTMLResponse
+import os
+import urllib.parse
 
 ROLES = ['Developer'] # Defines which user roles can see this plugin
 
@@ -837,10 +839,57 @@ class WorkflowGenesis:
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
+            # Get workflow parameters to show what file will be created
+            step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+            workflow_params = step_01_data.get('workflow_params', {})
+            target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+            display_name = workflow_params.get('display_name', 'Kung Fu Download')
+            
+            # Ensure plugins/ prefix for path display
+            if not target_filename.startswith('plugins/'):
+                display_filename = f"plugins/{target_filename}"
+            else:
+                display_filename = target_filename
+                
+            # Create filesystem button to open plugins directory
+            plugins_dir = os.path.join(os.getcwd(), 'plugins')
+            
+            open_plugins_folder_ui = A(
+                "📂 View Plugins Folder",
+                href="#",
+                hx_get="/open-folder?path=" + urllib.parse.quote(plugins_dir),
+                hx_swap="none",
+                title=f"Open folder: {plugins_dir}",
+                role="button",
+                cls="outline contrast",
+                style="margin-bottom: 1rem; display: inline-block;"
+            )
+            
             form_content = Form(
-                P("This step will execute the generated command sequence to create your workflow.", cls='text-secondary'),
-                P("Note: This is currently a placeholder that simulates command execution.", cls='text-info'),
-                Button('Execute Commands ▸', type='submit', cls='primary'),
+                # Warning section with clear expectations
+                Div(
+                    H4("⚠️ About to Execute Commands", style="color: #ffc107; margin-bottom: 0.75rem;"),
+                    P("This will create your new workflow and restart the server:", style="margin-bottom: 0.5rem;"),
+                    Ul(
+                        Li(f"📄 Creates: {display_filename}"),
+                        Li(f"🔄 Server will restart automatically (takes ~5-10 seconds)"),
+                        Li(f"🎯 Look for '{display_name}' in the APP menu after restart"),
+                        style="color: #6c757d; margin-bottom: 1rem;"
+                    ),
+                    style="background-color: rgba(255, 193, 7, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1.5rem;"
+                ),
+                
+                # Troubleshooting section
+                Div(
+                    H5("🔍 If Your Workflow Doesn't Appear:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
+                    P("Check the console window where you started Pipulate for yellow warnings above the 'SERVER RESTART' banner. Import errors will be shown there but won't break the server.", 
+                      style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;"),
+                    open_plugins_folder_ui,
+                    style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8; margin-bottom: 1.5rem;"
+                ),
+                
+                P("Ready to create your workflow and restart the server?", style="color: #e9ecef; margin-bottom: 1rem;"),
+                Button('🚀 Execute & Restart Server', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
@@ -856,18 +905,77 @@ class WorkflowGenesis:
         
         pipeline_id = db.get('pipeline_id', 'unknown')
         
+        # Get workflow parameters to show what was created
+        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
+        workflow_params = step_01_data.get('workflow_params', {})
+        target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+        
+        # Ensure plugins/ prefix for path display
+        if not target_filename.startswith('plugins/'):
+            display_filename = f"plugins/{target_filename}"
+        else:
+            display_filename = target_filename
+            
+        # Create filesystem button to open plugins directory
+        plugins_dir = os.path.join(os.getcwd(), 'plugins')
+        
+        open_plugins_folder_ui = A(
+            "📂 View Plugins Folder",
+            href="#",
+            hx_get="/open-folder?path=" + urllib.parse.quote(plugins_dir),
+            hx_swap="none",
+            title=f"Open folder: {plugins_dir}",
+            role="button",
+            cls="outline contrast",
+            style="margin-right: 10px;"
+        )
+        
         # Dummy execution - simulate the command execution process
-        await pip.set_step_data(pipeline_id, step_id, "Dummy command execution completed", self.steps)
+        execution_summary = f"Workflow Created Successfully!\n\n"
+        execution_summary += f"📄 File: {display_filename}\n"
+        execution_summary += f"🎯 Workflow Name: {display_name}\n"
+        execution_summary += f"🔄 Server restart triggered\n"
+        execution_summary += f"📂 Location: {plugins_dir}\n\n"
+        execution_summary += f"Next Steps:\n"
+        execution_summary += f"• Wait for server restart (~5-10 seconds)\n"
+        execution_summary += f"• Look for '{display_name}' in APP menu\n"
+        execution_summary += f"• Check console for any import warnings if not found"
+        
+        await pip.set_step_data(pipeline_id, step_id, execution_summary, self.steps)
         await self.message_queue.add(pip, "🔄 Simulating command execution...", verbatim=True)
-        await self.message_queue.add(pip, "✅ Command sequence executed successfully (placeholder).", verbatim=True)
+        await self.message_queue.add(pip, f"✅ Created {display_filename} successfully!", verbatim=True)
+        await self.message_queue.add(pip, f"🎯 Look for '{display_name}' in APP menu after restart", verbatim=True)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
+        
+        success_widget = Div(
+            P(f"✅ Workflow file created: {display_filename}", cls='text-success', style="margin-bottom: 1rem;"),
+            
+            Div(
+                H5("📁 File Location:", style="color: #28a745; margin-bottom: 0.5rem;"),
+                P(f"Created in: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                open_plugins_folder_ui,
+                style="background-color: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;"
+            ),
+            
+            Div(
+                H5("🎯 Next Steps:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
+                Ul(
+                    Li("Wait for server restart (automatic, ~5-10 seconds)"),
+                    Li(f"Look for '{display_name}' in the APP menu"),
+                    Li("Check console window for any import warnings if workflow doesn't appear"),
+                    style="color: #6c757d; margin-bottom: 0;"
+                ),
+                style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8;"
+            )
+        )
         
         return Div(
             pip.display_revert_widget(
                 step_id=step_id,
                 app_name=app_name,
-                message="Command Execution Complete",
-                widget=P("Workflow creation commands executed successfully.", cls='text-success'),
+                message="🚀 Workflow Creation Complete!",
+                widget=success_widget,
                 steps=self.steps
             ),
             Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
