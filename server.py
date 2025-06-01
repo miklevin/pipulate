@@ -3120,24 +3120,38 @@ def generate_menu_style():
 
 
 def create_app_menu(menux):
-    """Create the App dropdown menu with dynamic plugin filtering based on roles."""
+    """Create the App dropdown menu with hierarchical role-based sorting."""
     logger.debug(f"Creating App menu. Currently selected app (menux): '{menux}'")
     
-    # Get active roles from roles plugin
+    # Get active roles from roles plugin  
     active_role_names = get_active_roles()
     
     # Initialize menu items with Home option
     menu_items = create_home_menu_item(menux)
     
-    # Add plugins to menu based on roles
-    for plugin_key in ordered_plugins:
-        menu_item = create_plugin_menu_item(
-            plugin_key=plugin_key,
-            menux=menux,
-            active_role_names=active_role_names
-        )
-        if menu_item:
-            menu_items.append(menu_item)
+    # Get roles with their priorities for hierarchical sorting
+    role_priorities = get_role_priorities()
+    
+    # Group plugins by their primary role
+    plugins_by_role = group_plugins_by_role(active_role_names)
+    
+    # Add plugins to menu grouped by role priority, sorted within each role by filename prefix
+    for role_name, role_priority in sorted(role_priorities.items(), key=lambda x: x[1]):
+        if role_name in active_role_names:
+            role_plugins = plugins_by_role.get(role_name, [])
+            
+            # Sort plugins within this role by their filename numeric prefix
+            role_plugins.sort(key=lambda x: get_plugin_numeric_prefix(x))
+            
+            # Add each plugin in this role to the menu
+            for plugin_key in role_plugins:
+                menu_item = create_plugin_menu_item(
+                    plugin_key=plugin_key,
+                    menux=menux,
+                    active_role_names=active_role_names
+                )
+                if menu_item:
+                    menu_items.append(menu_item)
     
     return create_menu_container(menu_items)
 
@@ -3157,6 +3171,67 @@ def get_active_roles():
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
     
     return active_role_names
+
+def get_role_priorities():
+    """Get role priorities from the roles plugin for hierarchical sorting."""
+    role_priorities = {}
+    roles_plugin = plugin_instances.get('roles')
+    
+    if roles_plugin and hasattr(roles_plugin, 'table'):
+        try:
+            current_profile_id = get_current_profile_id()
+            role_records = list(roles_plugin.table(where='profile_id = ?', where_args=(current_profile_id,)))
+            role_priorities = {record.text: record.priority for record in role_records}
+            logger.debug(f'Role priorities for profile {current_profile_id}: {role_priorities}')
+        except Exception as e:
+            logger.error(f'Error fetching role priorities: {e}')
+    else:
+        logger.warning("Could not fetch role priorities: 'roles' plugin or its table not found.")
+    
+    return role_priorities
+
+def group_plugins_by_role(active_role_names):
+    """Group plugins by their primary role for hierarchical menu organization."""
+    plugins_by_role = {}
+    
+    for plugin_key in ordered_plugins:
+        instance = plugin_instances.get(plugin_key)
+        if not instance:
+            continue
+            
+        # Skip profiles and roles plugins
+        if plugin_key in ['profiles', 'roles']:
+            continue
+            
+        # Check if plugin should be included based on roles
+        if not should_include_plugin(instance, active_role_names):
+            continue
+        
+        # Get primary role for this plugin
+        primary_role = get_plugin_primary_role(instance)
+        if primary_role:
+            # Convert CSS class back to role name
+            role_name = primary_role.replace('-', ' ').title()
+            if role_name not in plugins_by_role:
+                plugins_by_role[role_name] = []
+            plugins_by_role[role_name].append(plugin_key)
+        
+    logger.debug(f'Plugins grouped by role: {plugins_by_role}')
+    return plugins_by_role
+
+def get_plugin_numeric_prefix(plugin_key):
+    """Extract numeric prefix from plugin filename for sorting within role groups."""
+    # Look up the original filename from discovered modules
+    if plugin_key in discovered_modules:
+        original_filename = getattr(discovered_modules[plugin_key], '_original_filename', plugin_key)
+        
+        # Extract numeric prefix from filename
+        match = re.match(r'^(\d+)_', original_filename)
+        if match:
+            return int(match.group(1))
+    
+    # Fallback: no numeric prefix found, sort at end
+    return 9999
 
 def create_home_menu_item(menux):
     """Create menu items list starting with Home option."""
