@@ -212,12 +212,8 @@ class BotifyConnect:
         except Exception as e:
             await self.safe_stream(f"⚠️ Error validating token: {type(e).__name__}. Please check your token before finalizing.", verbatim=True)
 
-        # Initialize first step with load trigger
-        first_step_id = steps[0].id
-        return Div(
-            Div(id=first_step_id, hx_get=f'/{app_name}/{first_step_id}', hx_trigger='load'),
-            id=f"{app_name}-container"
-        )
+        # Initialize workflow steps
+        return pip.rebuild(app_name, steps)
 
     # Required methods for the workflow system, even if we don't have steps
 

@@ -242,12 +242,8 @@ class BotifyExport:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
         
-        # Create step placeholders with direct load triggers
-        placeholders = []
-        for step in steps:
-            placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger='load', hx_swap='outerHTML'))
-            
-        return Div(updated_datalist, *placeholders, id=f'{app_name}-container')
+        # Create step placeholders using rebuild method
+        return Div(updated_datalist, *pip.rebuild(app_name, steps).children, id=f'{app_name}-container')
 
     async def step_01(self, request):
         """Handle project URL input"""
