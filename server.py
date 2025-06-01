@@ -472,14 +472,7 @@ def append_to_conversation(message=None, role='user'):
 
 
 def title_name(word: str) -> str:
-    """Format a string into a title case form.
-
-    Args:
-        word: The string to format
-
-    Returns:
-        str: The formatted string in title case
-    """
+    """Format a string into a title case form."""
     if not word:
         return ''
     formatted = word.replace('.', ' ').replace('-', ' ')
@@ -501,33 +494,6 @@ def endpoint_name(endpoint: str) -> str:
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
-
-
-def step_name(step: str, preserve: bool = False) -> str:
-    _, number = step.split('_')
-    return f"Step {number.lstrip('0')}"
-
-
-def step_button(visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
-    """
-    Formats the revert button text.
-    Uses visual_step_number for "Step X" numbering if revert_label is not provided.
-    
-    Args:
-        visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
-        preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
-        revert_label: Custom label to use instead of "Step X" format
-    """
-    logger.debug(f'[format_step_button] Entry - visual_step_number={visual_step_number}, preserve={preserve}, revert_label={revert_label}')
-    symbol = '⟲' if preserve else '↶'
-    
-    if revert_label:
-        button_text = f'{symbol}\xa0{revert_label}'
-    else:
-        button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
-        
-    logger.debug(f'[format_step_button] Generated button text: {button_text}')
-    return button_text
 
 
 def pipeline_operation(func):
@@ -738,6 +704,25 @@ class Pipulate:
     def get_message_queue(self):
         """Return the message queue instance for ordered message delivery."""
         return self.message_queue
+
+    def step_button(self, visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
+        """
+        Formats the revert button text.
+        Uses visual_step_number for "Step X" numbering if revert_label is not provided.
+        
+        Args:
+            visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
+            preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
+            revert_label: Custom label to use instead of "Step X" format
+        """
+        symbol = '⟲' if preserve else '↶'
+        
+        if revert_label:
+            button_text = f'{symbol}\xa0{revert_label}'
+        else:
+            button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
+            
+        return button_text
 
     def get_style(self, style_type):
         return getattr(self, f"{style_type.upper()}_STYLE", None)
@@ -1015,7 +1000,7 @@ class Pipulate:
         # Use the calculated visual_step_number instead of step_id
         form = Form(
             Input(type='hidden', name='step_id', value=step_id), 
-            Button(step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), 
+            Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), 
             hx_post=f'/{app_name}/revert', 
             hx_target=f'#{target_id}', 
             hx_swap='outerHTML'
