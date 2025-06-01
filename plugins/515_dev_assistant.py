@@ -138,8 +138,7 @@ class DevAssistant:
 
         await self.message_queue.add(pip, f'Development Assistant Session: {pipeline_id}', verbatim=True, spaces_before=0)
         
-        first_step_id = self.steps[0].id
-        return Div(Div(id=first_step_id, hx_get=f'/{internal_app_name}/{first_step_id}', hx_trigger='load'), id=f'{internal_app_name}-container')
+        return pip.rebuild(internal_app_name, self.steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME

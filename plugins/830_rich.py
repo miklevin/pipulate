@@ -83,7 +83,7 @@ class RichTableWidget:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return Div(Div(id='step_01', hx_get=f'/{app_name}/step_01', hx_trigger='load'), id=f'{app_name}-container')
+        return pip.rebuild(app_name, steps)
 
     async def finalize(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)

@@ -88,7 +88,7 @@ class SwitchWorkflow:
             return error
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        return Div(Div(id='step_01', hx_get=f'/{app_name}/step_01', hx_trigger='load'), id=f'{app_name}-container')
+        return pip.rebuild(app_name, steps)
 
     async def finalize(self, request):
         """Handles GET request to show Finalize button and POST request to lock the workflow."""
@@ -134,7 +134,7 @@ class SwitchWorkflow:
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
         pip.write_state(pipeline_id, state)
-        return Div(Div(id=step_id, hx_get=f'/{app_name}/{step_id}', hx_trigger='load'), id=f'{app_name}-container')
+        return pip.rebuild(app_name, steps)
 
     async def step_01(self, request):
         """Handles GET request for switch configuration step."""
