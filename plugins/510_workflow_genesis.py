@@ -242,19 +242,12 @@ class WorkflowGenesis:
     # Utility methods (simplified and extracted)
     def format_bash_command(self, text):
         """Format text for bash command usage"""
-        print(f"🔍 DIAGNOSTIC H - format_bash_command:")
-        print(f"   input text: {repr(text[:100] + '...' if len(text) > 100 else text)}")
-        
         if not text:
-            print(f"   result: empty string -> '\"\"'")
             return '""'
         text = text.replace('!', '\\!')
         text = text.replace('"', '\\"')
         if ' ' in text or '"' in text or "'" in text:
-            result = f'"{text}"'
-            print(f"   result: quoted -> {repr(result[:100] + '...' if len(result) > 100 else result)}")
-            return result
-        print(f"   result: unquoted -> {repr(text)}")
+            return f'"{text}"'
         return text
 
     def get_template_info(self, template_name):
@@ -281,37 +274,29 @@ class WorkflowGenesis:
     # Template-specific experience methods (to be implemented)
     def create_blank_placeholder_experience(self, workflow_params, widget_id):
         """Create experience for blank placeholder template - learning step management basics"""
-        print(f"🔍 DIAGNOSTIC F - create_blank_placeholder_experience:")
-        print(f"   workflow_params received: {repr(workflow_params)}")
-        
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
         training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
-        
-        print(f"🔍 DIAGNOSTIC G - create_blank_placeholder_experience extracted values:")
-        print(f"   filename: {repr(filename)}")
-        print(f"   class_name: {repr(class_name)}")
-        print(f"   internal_name: {repr(internal_name)}")
-        print(f"   display_name: {repr(display_name)}")
-        print(f"   endpoint_message: {repr(endpoint_message[:100] + '...' if len(endpoint_message) > 100 else endpoint_message)}")
-        print(f"   training_prompt: {repr(training_prompt[:100] + '...' if len(training_prompt) > 100 else training_prompt)}")
+
+        # Ensure consistent plugins/ prefix for all commands
+        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
 
         # Single create command - uses blank template specifically
-        create_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+        create_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
                     f"  {self.format_bash_command(display_name)} \\\n" + \
                     f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                     f"  {self.format_bash_command(training_prompt)} \\\n" + \
                     f"  --template blank --force"
 
         # Step positioning demo commands
-        splice_bottom_cmd = f"python helpers/splice_workflow_step.py {filename} --position bottom"
-        splice_top_cmd = f"python helpers/splice_workflow_step.py {filename} --position top"
+        splice_bottom_cmd = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
+        splice_top_cmd = f"python helpers/splice_workflow_step.py {plugins_filename} --position top"
 
         # Combined command with backslash line breaks for readability
-        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+        combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
                       f"  {self.format_bash_command(display_name)} \\\n" + \
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
@@ -363,82 +348,103 @@ class WorkflowGenesis:
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        display_name = workflow_params.get('display_name', 'Kung Fu Download')
-        # Use the actual form values without additional fallbacks since step_01_submit already handled this
-        endpoint_message = workflow_params.get('endpoint_message', 'Welcome to workflow creation')
-        training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
+        
+        # HELLO WORLD RECREATION: Override with specific Hello World values
+        # This tells the story of recreating Hello World using helper tools
+        hello_display_name = "Kung Fu Hello World"
+        hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
+        hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
 
-        # The corrected 5-command sequence - starts with blank template as specified
-        cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
-               f"{self.format_bash_command(display_name)} " + \
-               f"{self.format_bash_command(endpoint_message)} " + \
-               f"{self.format_bash_command(training_prompt)} --template blank --force"
-        
-        cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
-        
-        cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/500_hello_workflow.py step_01 --force"
-        
-        cmd4 = f"python helpers/splice_workflow_step.py {filename} --position bottom"
-        
-        cmd5 = f"python helpers/swap_workflow_step.py {filename} step_02 plugins/500_hello_workflow.py step_02 --force"
 
-        # Combined command with backslash line breaks for readability
-        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
-                      f"  {self.format_bash_command(display_name)} \\\n" + \
-                      f"  {self.format_bash_command(endpoint_message)} \\\n" + \
-                      f"  {self.format_bash_command(training_prompt)} \\\n" + \
+
+        # Ensure consistent plugins/ prefix for all commands (matching working example)
+        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
+
+        # The corrected 5-command sequence - starts with blank template, becomes Hello World
+        cmd1 = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
+               f"{self.format_bash_command(hello_display_name)} " + \
+               f"{self.format_bash_command(hello_endpoint_message)} " + \
+               f"{self.format_bash_command(hello_training_prompt)} --template blank --force"
+        
+        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
+        
+        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/500_hello_workflow.py step_01 --force"
+        
+        cmd4 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
+        
+        cmd5 = f"python helpers/swap_workflow_step.py {plugins_filename} step_02 plugins/500_hello_workflow.py step_02 --force"
+
+        # Combined command with proper && chaining for complete automation
+        combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
+                      f"  {self.format_bash_command(hello_display_name)} \\\n" + \
+                      f"  {self.format_bash_command(hello_endpoint_message)} \\\n" + \
+                      f"  {self.format_bash_command(hello_training_prompt)} \\\n" + \
                       f"  --template blank --force && \\\n" + \
-                      f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py \\\n" + \
+                      f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
+                      f"  plugins/500_hello_workflow.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS --force && \\\n" + \
-                      f"python helpers/swap_workflow_step.py {filename} step_01 \\\n" + \
+                      f"python helpers/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
                       f"  plugins/500_hello_workflow.py step_01 --force && \\\n" + \
-                      f"python helpers/splice_workflow_step.py {filename} --position bottom && \\\n" + \
-                      f"python helpers/swap_workflow_step.py {filename} step_02 \\\n" + \
+                      f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom && \\\n" + \
+                      f"python helpers/swap_workflow_step.py {plugins_filename} step_02 \\\n" + \
                       f"  plugins/500_hello_workflow.py step_02 --force"
 
         return Div(
             H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
-            P("Demonstrates the complete helper tool sequence. Key insight: step_01 must be swapped BEFORE step_02 is added.", 
+            P("Recreates Hello World workflow using the complete helper tool sequence. This demonstrates the FULL STORY of workflow construction.", 
               style="color: #6c757d; margin-bottom: 1.5rem;"),
+            
+            # Story explanation
+            Div(
+                H5("📖 The Story:", style="color: #ffc107; margin-bottom: 0.75rem;"),
+                Ul(
+                    Li("Start with blank template (not Hello World template!)"),
+                    Li("Condition the workflow with UI_CONSTANTS it will need"),
+                    Li("Swap step_01 placeholder with real name collection logic"),
+                    Li("Add step_02 placeholder (CRITICAL: step_01 must exist first!)"),
+                    Li("Swap step_02 placeholder with greeting generation logic"),
+                    style="color: #6c757d; margin-bottom: 1.5rem;"
+                ),
+            ),
             
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
             
             Div(
-                H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Creates base workflow from blank template", 
+                H6("1. Create Base Workflow (Blank Template)", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Creates blank workflow - we'll transform it into Hello World step by step", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd1, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
-                H6("2. Merge UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Copies styling constants from Hello workflow", 
+                H6("2. Condition with UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Prepares workflow with styling constants it will need later", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd2, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
-                H6("3. Swap Step 1 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Replaces placeholder with name collection logic", 
+                H6("3. Replace Step 1 with Name Collection", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Swaps placeholder step_01 with Hello World's name input logic", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd3, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
-                H6("4. Add Second Step", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Adds new placeholder step before finalize", 
+                H6("4. Add Step 2 Placeholder", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Creates new blank step_02 - CRITICAL that step_01 exists first!", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd4, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
-                H6("5. Swap Step 2 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Replaces placeholder with greeting generation logic", 
+                H6("5. Replace Step 2 with Greeting Generation", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Swaps placeholder step_02 with Hello World's greeting logic", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd5, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
             
             # All-in-one section
-            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to execute the complete sequence:", 
+            H5("Complete Recreation Sequence:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            P("Copy and paste this single command to recreate Hello World workflow from scratch:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'), 
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
@@ -456,26 +462,29 @@ class WorkflowGenesis:
         endpoint_message = workflow_params.get('endpoint_message', 'Advanced data collection workflow')
         training_prompt = workflow_params.get('training_prompt', 'Help users create complex data workflows')
 
+        # Ensure consistent plugins/ prefix for all commands
+        plugins_filename = f"plugins/{filename}" if not filename.startswith('plugins/') else filename
+
         # Trifecta workflow commands - uses trifecta template
-        cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
+        cmd1 = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                f"{self.format_bash_command(display_name)} " + \
                f"{self.format_bash_command(endpoint_message)} " + \
                f"{self.format_bash_command(training_prompt)} --template trifecta --force"
         
-        cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
+        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
         
-        cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/040_parameter_buster.py step_01 --force"
+        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/040_parameter_buster.py step_01 --force"
 
         # Combined command with backslash line breaks for readability
-        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+        combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
                       f"  {self.format_bash_command(display_name)} \\\n" + \
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
                       f"  --template trifecta --force && \\\n" + \
-                      f"python helpers/manage_class_attributes.py {filename} \\\n" + \
+                      f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
                       f"  plugins/040_parameter_buster.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && \\\n" + \
-                      f"python helpers/swap_workflow_step.py {filename} step_01 \\\n" + \
+                      f"python helpers/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
                       f"  plugins/040_parameter_buster.py step_01 --force"
 
         return Div(
@@ -616,27 +625,8 @@ class WorkflowGenesis:
             'training_prompt': form_data.get('training_prompt', '').strip() or 'You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it\'s a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS'
         }
         
-        # DIAGNOSTIC A: Form data capture verification
-        print(f"🔍 DIAGNOSTIC A - step_01_submit form capture:")
-        print(f"   pipeline_id: {repr(pipeline_id)}")
-        print(f"   step_id: {repr(step_id)}")
-        print(f"   step_obj.done: {repr(step_obj.done)}")
-        for key, value in params.items():
-            print(f"   {key}: {repr(value[:100] + '...' if len(value) > 100 else value)}")
-        
-        # DIAGNOSTIC B: Data storage verification - FIXED double nesting
-        # set_step_data already wraps with {step.done: value}, so pass params directly
-        print(f"🔍 DIAGNOSTIC B - step_01_submit storage structure:")
-        print(f"   Passing params directly to set_step_data: {repr(params)}")
-        print(f"   set_step_data will store as: {{'{step_obj.done}': params}}")
-        
-        # FIX: Pass params directly - set_step_data handles the {step.done: value} wrapping
+        # Store form data using set_step_data which handles the {step.done: value} wrapping
         await pip.set_step_data(pipeline_id, step_id, params, self.steps)
-        
-        # DIAGNOSTIC C: Immediate readback verification
-        stored_data = pip.get_step_data(pipeline_id, step_id, {})
-        print(f"🔍 DIAGNOSTIC C - step_01_submit readback verification:")
-        print(f"   Read back: {repr(stored_data)}")
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         return Div(
@@ -721,8 +711,8 @@ class WorkflowGenesis:
             'template': form_data.get('template', 'blank')
         }
         
-        # Store with the correct key that matches step.done
-        await pip.set_step_data(pipeline_id, step_id, {step_obj.done: template_choice}, self.steps)
+        # Store template choice using set_step_data which handles the {step.done: value} wrapping
+        await pip.set_step_data(pipeline_id, step_id, template_choice, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         template_info = self.get_template_info(template_choice['template'])
@@ -753,24 +743,14 @@ class WorkflowGenesis:
         current_value = step_data.get(step_obj.done, '')
         finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
-        # DIAGNOSTIC D: Step 3 data retrieval verification  
+        # Get previous step data
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
-        
-        print(f"🔍 DIAGNOSTIC D - step_03 data retrieval:")
-        print(f"   pipeline_id: {repr(pipeline_id)}")
-        print(f"   step_01_data: {repr(step_01_data)}")
-        print(f"   step_02_data: {repr(step_02_data)}")
         
         # Access using the step.done keys
         workflow_params = step_01_data.get('workflow_params', {})
         template_choice = step_02_data.get('template_choice', {})
         selected_template = template_choice.get('template', 'blank')
-        
-        print(f"🔍 DIAGNOSTIC E - step_03 extracted data:")
-        print(f"   workflow_params: {repr(workflow_params)}")
-        print(f"   template_choice: {repr(template_choice)}")
-        print(f"   selected_template: {repr(selected_template)}")
         
         widget_id = f"template-experience-{pipeline_id.replace('-', '_')}-{step_id}"
         

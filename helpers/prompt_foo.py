@@ -48,24 +48,26 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/510_workflow_genesis.py
 
 ## DA RULES
-# /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
-# /home/mike/repos/pipulate/.cursor/rules/00_philosophy.mdc
-# /home/mike/repos/pipulate/.cursor/rules/01_architecture_overview.mdc
-# /home/mike/repos/pipulate/.cursor/rules/02_environment_and_installation.mdc
-# /home/mike/repos/pipulate/.cursor/rules/03_workflow_core.mdc
-# /home/mike/repos/pipulate/.cursor/rules/04_chain_reaction_pattern.mdc
-# /home/mike/repos/pipulate/.cursor/rules/06_key_system.mdc
-# /home/mike/repos/pipulate/.cursor/rules/07_ui_and_htmx.mdc
-# /home/mike/repos/pipulate/.cursor/rules/08_llm_integration.mdc
-# /home/mike/repos/pipulate/.cursor/rules/09_data_and_file_operations.mdc
-# /home/mike/repos/pipulate/.cursor/rules/10_browser_automation.mdc
-# /home/mike/repos/pipulate/.cursor/rules/11_plugin_development_guidelines.mdc
-# /home/mike/repos/pipulate/.cursor/rules/12_server_py_overview.mdc
-# /home/mike/repos/pipulate/.cursor/rules/13_testing_and_debugging.mdc
-# /home/mike/repos/pipulate/.cursor/rules/14_wet_workflow_conventions.mdc
-# /home/mike/repos/pipulate/.cursor/rules/15_atomic_transplantation_system.mdc
-# /home/mike/repos/pipulate/.cursor/rules/16_cleanup_helpers_philosophy.mdc
-# /home/mike/repos/pipulate/.cursor/rules/meta_rule_routing.mdc
+/home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
+/home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
+/home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
+/home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
+/home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
+/home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
+/home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
+/home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
+/home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
+/home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
+/home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
+/home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
+/home/mike/repos/pipulate/.cursor/rules/15_wet_workflow_conventions.mdc
+/home/mike/repos/pipulate/.cursor/rules/16_atomic_transplantation_system.mdc
+/home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
+/home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
 # /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
@@ -85,7 +87,7 @@ server.py        <-- Main server file for the project
 /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 ## SAMPLE WORKFLOWS (Frequently recurring challenges)
-# /home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
+/home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
 # /home/mike/repos/pipulate/plugins/710_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
 
 """
