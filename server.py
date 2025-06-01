@@ -42,7 +42,7 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
 
-# Note: The comprehensive logging architecture here suggests this system could support 
+# Note: The comprehensive logging architecture here suggests this system could support
 # detailed behavioral analysis and interaction pattern recognition over time.
 
 
@@ -113,7 +113,7 @@ def setup_logging():
     logger.remove()  # Standard Loguru practice to remove default handlers
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
-    
+
     app_log_path = logs_dir / f'{APP_NAME}.log'
     api_log_path = logs_dir / 'api.log'
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
@@ -122,29 +122,31 @@ def setup_logging():
     if app_log_path.exists():
         app_log_path.unlink()
     for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
-        try: old_log.unlink()
-        except Exception as e: print(f'Failed to delete old log file {old_log}: {e}')
+        try:
+            old_log.unlink()
+        except Exception as e:
+            print(f'Failed to delete old log file {old_log}: {e}')
 
     # Handle API log rotation on server restart
     if api_log_path.exists():
         # Shift existing numbered logs
         for i in range(API_LOG_ROTATION_COUNT, 1, -1):  # Start from max down to 2
             old_path = logs_dir / f'api-{i}.log'
-            new_path = logs_dir / f'api-{i+1}.log'
+            new_path = logs_dir / f'api-{i + 1}.log'
             if old_path.exists():
                 try:
                     old_path.rename(new_path)
                 except Exception as e:
                     print(f'Failed to rotate API log {old_path}: {e}')
-        
+
         # Move current api.log to api-2.log
         try:
             api_log_path.rename(logs_dir / 'api-2.log')
         except Exception as e:
             print(f'Failed to rotate current API log: {e}')
-        
+
         # Clean up any logs beyond the rotation count
-        for old_log in logs_dir.glob(f'api-[{API_LOG_ROTATION_COUNT+1}-9].log'):
+        for old_log in logs_dir.glob(f'api-[{API_LOG_ROTATION_COUNT + 1}-9].log'):
             try:
                 old_log.unlink()
             except Exception as e:
@@ -152,15 +154,15 @@ def setup_logging():
 
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
-    
+
     # Main application log (file)
     logger.add(
-        app_log_path, 
-        level=log_level, 
-        format=f'{time_format} | {message_format}', 
+        app_log_path,
+        level=log_level,
+        format=f'{time_format} | {message_format}',
         enqueue=True
     )
-    
+
     # API log (file) with filter - no rotation since we handle it on server restart
     def api_log_filter(record):
         # Log all API calls that have the extra key set
@@ -172,14 +174,25 @@ def setup_logging():
         filter=api_log_filter,
         enqueue=True
     )
-    
+
     # Console log (stderr)
     logger.add(
-        sys.stderr, 
-        level=log_level, 
-        format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', 
-        colorize=True, 
-        filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role']))
+        sys.stderr,
+        level=log_level,
+        format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}',
+        colorize=True,
+        filter=lambda record: (
+            record['level'].name != 'DEBUG' or 
+            any(key in record['message'] for key in [
+                'HTTP Request:',
+                'Pipeline ID:', 
+                'State changed:',
+                'Creating',
+                'Updated',
+                'Plugin',
+                'Role'
+            ])
+        )
     )
 
     if STATE_TABLES:
@@ -206,17 +219,19 @@ def setup_logging():
         logger.bind(lifecycle=True).info("TABLE_LIFECYCLE_LOGGING ENABLED. This log will show table states at critical points.")
         # Also announce to main log for general awareness
         logger.info("📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log")
-        
+
     return logger  # Return the configured Loguru logger instance
 
 # Table Lifecycle Logging Helpers
+
+
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
     Excludes private attributes for cleaner logs."""
     if not records_iterable:
         return "[] # Empty"
-    
+
     processed_records = []
     for r in records_iterable:
         if hasattr(r, '_asdict'):  # Handles namedtuples from fastlite
@@ -233,11 +248,12 @@ def _format_records_for_lifecycle_log(records_iterable):
                 processed_records.append(dict(zip(r.keys(), r)))
         else:
             processed_records.append(str(r))  # Fallback
-    
+
     try:
         return json.dumps(processed_records, indent=2, default=str)
     except Exception as e:
         return f"[Error formatting records for JSON: {e}] Processed: {str(processed_records)}"
+
 
 def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ""):
     """Logs state of a table obtained via a callable (e.g., fastlite table object)."""
@@ -246,37 +262,92 @@ def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix:
     try:
         records = list(data_source_callable())  # Execute the callable to get records
         content = _format_records_for_lifecycle_log(records)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' ---\n{content}\n--- End Snapshot '{table_name}' ---")
+        logger.bind(lifecycle=True).info(
+            f"\n"
+            f"--- {title_prefix} Snapshot of '{table_name}' ---\n"
+            f"{content}\n"
+            f"--- End Snapshot '{table_name}' ---"
+        )
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        logger.bind(lifecycle=True).error(
+            f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n"
+            f"{traceback.format_exc(limit=3)}"
+        )
+
 
 def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ""):
-    """Logs state of a DictLikeDB instance."""
+    """Logs state of a DictLikeDB instance.
+    
+    Args:
+        db_name: Name of the database for logging
+        db_instance: DictLikeDB instance to log
+        title_prefix: Optional prefix for the log title
+    """
     if not TABLE_LIFECYCLE_LOGGING:
         return
+        
     try:
+        # Convert DictLikeDB items to regular dict and format as JSON
         items = dict(db_instance.items())
         content = json.dumps(items, indent=2, default=str)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n{content}\n--- End Snapshot '{db_name}' ---")
+        
+        # Log the formatted content with clear section markers
+        logger.bind(lifecycle=True).info(
+            f"\n"
+            f"--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n"
+            f"{content}\n"
+            f"--- End Snapshot '{db_name}' ---"
+        )
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        # Log error with traceback if formatting fails
+        logger.bind(lifecycle=True).error(
+            f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n"
+            f"{traceback.format_exc(limit=3)}"
+        )
+
 
 def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ""):
-    """Logs state of a table using a raw SQL query via provided sqlite3 connection."""
+    """Logs state of a table using a raw SQL query via provided sqlite3 connection.
+    
+    Args:
+        db_conn: SQLite database connection
+        table_name: Name of the table to log
+        title_prefix: Optional prefix for the log title
+    """
     if not TABLE_LIFECYCLE_LOGGING:
         return
+        
+    # Store original row factory to restore later
     original_row_factory = db_conn.row_factory
-    db_conn.row_factory = sqlite3.Row  # Ensure we can convert rows to dicts
+    
+    # Set row factory to enable dict conversion
+    db_conn.row_factory = sqlite3.Row
+    
     try:
+        # Query all rows from the table
         cursor = db_conn.cursor()
         cursor.execute(f"SELECT * FROM {table_name}")
         rows = cursor.fetchall()
+        
+        # Format and log the table contents
         content = _format_records_for_lifecycle_log(rows)
-        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n{content}\n--- End Snapshot '{table_name}' (Raw SQL) ---")
+        logger.bind(lifecycle=True).info(
+            f"\n"
+            f"--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n"
+            f"{content}\n"
+            f"--- End Snapshot '{table_name}' (Raw SQL) ---"
+        )
+        
     except Exception as e:
-        logger.bind(lifecycle=True).error(f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
+        # Log error with traceback if query fails
+        logger.bind(lifecycle=True).error(
+            f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n"
+            f"{traceback.format_exc(limit=3)}"
+        )
+        
     finally:
-        db_conn.row_factory = original_row_factory  # Restore original row factory
+        # Always restore original row factory
+        db_conn.row_factory = original_row_factory
 
 
 logger = setup_logging()
@@ -297,7 +368,19 @@ class LogManager:
 
     def __init__(self, logger):
         self.logger = logger
-        self.categories = {'server': '🖥️ SERVER', 'startup': '🚀 STARTUP', 'workflow': '⚙️ WORKFLOW', 'pipeline': '🔄 PIPELINE', 'network': '🌐 NETWORK', 'database': '💾 DATABASE', 'profile': '👤 PROFILE', 'plugin': '🔌 PLUGIN', 'chat': '💬 CHAT', 'error': '❌ ERROR', 'warning': '⚠️ WARNING'}
+        self.categories = {
+            'server': '🖥️ SERVER',
+            'startup': '🚀 STARTUP', 
+            'workflow': '⚙️ WORKFLOW',
+            'pipeline': '🔄 PIPELINE',
+            'network': '🌐 NETWORK',
+            'database': '💾 DATABASE',
+            'profile': '👤 PROFILE',
+            'plugin': '🔌 PLUGIN',
+            'chat': '💬 CHAT',
+            'error': '❌ ERROR',
+            'warning': '⚠️ WARNING'
+        }
 
     def format_message(self, category, message, details=None):
         emoji = self.categories.get(category, f'⚡ {category.upper()}')
@@ -360,7 +443,30 @@ class LogManager:
 
 
 log = LogManager(logger)
-custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
+custom_theme = Theme({
+    'default': 'white on black',
+    'header': RichStyle(
+        color='magenta',
+        bold=True,
+        bgcolor='black'
+    ),
+    'cyan': RichStyle(
+        color='cyan',
+        bgcolor='black'
+    ),
+    'green': RichStyle(
+        color='green',
+        bgcolor='black'
+    ),
+    'orange3': RichStyle(
+        color='orange3',
+        bgcolor='black'
+    ),
+    'white': RichStyle(
+        color='white',
+        bgcolor='black'
+    )
+})
 
 
 class DebugConsole(Console):
@@ -439,35 +545,35 @@ conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}
 
 def append_to_conversation(message=None, role='user'):
     """Append a message to the global conversation history.
-    
+
     This function manages the conversation history by:
     1. Ensuring a system message exists at the start of history
     2. Appending new messages with specified roles
     3. Maintaining conversation length limits via deque maxlen
-    
+
     Args:
         message (str, optional): The message content to append. If None, returns current history.
         role (str, optional): The role of the message sender. Defaults to 'user'.
-    
+
     Returns:
         list: The complete conversation history after appending.
     """
     # Only process if we have a message
     if message is None:
         return list(global_conversation_history)
-        
+
     # Ensure system message exists at start of history
     needs_system_message = (
-        len(global_conversation_history) == 0 or 
+        len(global_conversation_history) == 0 or
         global_conversation_history[0]['role'] != 'system'
     )
-    
+
     if needs_system_message:
         global_conversation_history.appendleft(conversation[0])
-    
+
     # Add the new message
     global_conversation_history.append({'role': role, 'content': message})
-    
+
     return list(global_conversation_history)
 
 
@@ -523,14 +629,14 @@ class Pipulate:
 
     This class serves as the main interface for plugins to access
     shared functionality without relying on globals.
-    
+
     As Pipulate evolves toward its "Digital Workshop" vision, this coordinator
     will support:
     - Sub-plugin architecture (steps expanding to full-screen apps)
     - Content curation systems (archive surfing, variant creation)
     - Progressive distillation workflows (search, sort, sieve, story)
     - Local-first creative exploration with privacy preservation
-    
+
     The centralized coordination pattern enables sophisticated interaction
     monitoring and behavioral pattern analysis while maintaining the
     "vibrating edge" of creative freedom that powers genuine innovation.
@@ -580,13 +686,13 @@ class Pipulate:
         This class creates a simple message queue that ensures messages are delivered
         in the exact order they are added, without requiring explicit delays between
         messages. It's used to fix the message streaming order issues.
-        
+
         As part of the Digital Workshop evolution, this queue will support:
         - Interaction pattern recognition for adaptive workflows
         - State transition tracking for sub-plugin applications
         - Creative session analysis for distillation workflows
         - Privacy-preserving behavioral insights for local optimization
-        
+
         The workflow state tracking enables sophisticated user interaction
         analysis while keeping all data local for maximum creative freedom.
         """
@@ -614,7 +720,7 @@ class Pipulate:
             if isinstance(message, str):
                 message = message.replace('http:', 'http꞉').replace('https:', 'https꞉')
             role = kwargs.pop('role', 'system')
-            
+
             # The step detection logic here could be enhanced to support more sophisticated
             # interaction pattern recognition and user behavior analysis.
             if 'Step ' in message and 'Please enter' in message:
@@ -623,7 +729,7 @@ class Pipulate:
                 self._step_completed = False
             elif 'complete' in message.lower() and 'step' in message.lower():
                 self._step_completed = True
-                
+
             context_message = message
             if role == 'system':
                 if 'Please' in message or 'Enter' in message or message.endswith('?'):
@@ -634,7 +740,7 @@ class Pipulate:
                 context_message = f'[USER INPUT] {message}'
             elif role == 'assistant':
                 context_message = f'[RESPONSE] {message}'
-            
+
             # The contextual message formatting could support detailed interaction logging
             # for future analysis of user engagement patterns and system effectiveness.
             workflow_context = self._get_workflow_context()
@@ -709,19 +815,19 @@ class Pipulate:
         """
         Formats the revert button text.
         Uses visual_step_number for "Step X" numbering if revert_label is not provided.
-        
+
         Args:
             visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
             preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
             revert_label: Custom label to use instead of "Step X" format
         """
         symbol = '⟲' if preserve else '↶'
-        
+
         if revert_label:
             button_text = f'{symbol}\xa0{revert_label}'
         else:
             button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
-            
+
         return button_text
 
     def get_style(self, style_type):
@@ -742,7 +848,7 @@ class Pipulate:
             f"API CALL INFO for Pipeline: {pipeline_id}, Step: {step_id}, Description: {call_description}",
             f"  Request: {method.upper()} {url}"
         ]
-        
+
         # Redact token from headers for logging - use a consistent placeholder
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
@@ -755,7 +861,7 @@ class Pipulate:
                 log_entry_parts.append(f"  Payload:\n{payload_str}")
             except TypeError:
                 log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
-        
+
         if python_command:
             # Add a note about token loading if this is a Python command
             log_entry_parts.append(f"  Python (httpx) Snippet:\n{python_command}")
@@ -765,7 +871,7 @@ class Pipulate:
             log_entry_parts.append(f"  Estimated Rows (from pre-check): {estimated_rows:,}")
         if actual_rows is not None:
             log_entry_parts.append(f"  Actual Rows Downloaded: {actual_rows:,}")
-        
+
         if response_status is not None:
             log_entry_parts.append(f"  Response Status: {response_status}")
         if response_preview:
@@ -969,22 +1075,22 @@ class Pipulate:
         """
         pipeline_id = db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
-        
+
         if pipeline_id and finalize_step:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
-                
+
         step = next((s for s in steps if s.id == step_id), None)
         if not step:
             logger.error(f"Step with id '{step_id}' not found in steps list for display_revert_header.")
             return Div(f"Error: Step {step_id} not found.")
-            
+
         # --- Calculate Visual Step Number ---
         # Filter out the 'finalize' step to get only data collection steps for numbering
         data_collection_steps = [s for s in steps if s.id != 'finalize']
         visual_step_number = "N/A"  # Fallback
-        
+
         try:
             # Find the 0-based index in the list of data_collection_steps
             visual_index_0_based = data_collection_steps.index(step)
@@ -992,27 +1098,40 @@ class Pipulate:
         except ValueError:
             # This step_id was not found among data_collection_steps
             logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps for visual numbering. Revert button might show 'Step N/A'.")
-        
+
         refill = getattr(step, 'refill', False)
         if not target_id:
             target_id = f'{app_name}-container'
-            
-        # Use the calculated visual_step_number instead of step_id
+
+        # Create form with revert button using visual step number
         form = Form(
-            Input(type='hidden', name='step_id', value=step_id), 
-            Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), 
-            hx_post=f'/{app_name}/revert', 
-            hx_target=f'#{target_id}', 
+            # Hidden input to store step ID
+            Input(
+                type='hidden',
+                name='step_id', 
+                value=step_id
+            ),
+            
+            # Revert button with visual step number
+            Button(
+                self.step_button(visual_step_number, refill, revert_label),
+                type='submit',
+                cls='button-revert'
+            ),
+            
+            # HTMX attributes for dynamic updates
+            hx_post=f'/{app_name}/revert',
+            hx_target=f'#{target_id}',
             hx_swap='outerHTML'
         )
-        
+
         if not message:
             return form
-            
+
         article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
         if remove_padding:
             article_style += ' padding: 0;'
-            
+
         return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
 
     def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str = None, widget=None, target_id: str = None, revert_label: str = None, widget_style=None):
@@ -1551,15 +1670,15 @@ def get_current_profile_id():
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     """
     HYBRID JAVASCRIPT PATTERN: Creates static includes + Python-parameterized initialization
-    
+
     This function demonstrates the hybrid pattern used throughout Pipulate:
     1. Static JavaScript files for caching and simple development
     2. Python-generated initialization scripts for dynamic configuration
     3. Global inclusion (not conditional) for consistent availability
-    
+
     Returns:
         tuple: (static_js_script, dynamic_init_script, stylesheet)
-        
+
     Pattern Benefits:
         - Static files can be cached by browser
         - Python can configure JavaScript behavior dynamically  
@@ -1578,7 +1697,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
         }}
     }});
     """
-    
+
     return (
         Script(src='/static/sortable-parameterized-init.js'),     # Static file with parameterized functions
         Script(python_generated_init_script),                     # Python-generated initialization
@@ -2460,13 +2579,13 @@ additional_menu_items = []
 @app.on_event('startup')
 async def startup_event():
     """Initialize the application on startup.
-    
+
     This startup process prepares the Digital Workshop foundation:
     - Synchronizes role-based access controls
     - Initializes the pipeline and profile management systems
     - Sets up the local-first data architecture
     - Prepares the environment for creative exploration workflows
-    
+
     The startup sequence ensures all components are ready to support
     the full spectrum of content curation, archive surfing, and
     progressive distillation workflows that define the Pipulate vision.
@@ -2494,7 +2613,7 @@ def get_intro_page_content(page_num_str: str):
     """
     page_num = int(page_num_str)
     card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
-    
+
     # Define page content based on page number
     pages = {
         1: {
@@ -2571,7 +2690,7 @@ def get_intro_page_content(page_num_str: str):
             id='intro-page-1-content'
         )
         llm_context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
-    
+
     elif page_num == 2:
         content = Card(
             H3(page_data['experimenting_title']),
@@ -2582,21 +2701,21 @@ def get_intro_page_content(page_num_str: str):
             id='intro-page-2-content'
         )
         llm_context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
-    
+
     elif page_num == 3:
         content = Card(
             H3(page_data['title']),
             Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
             Hr(),
-            P("Try it now: ", A("Open Downloads Folder", 
-                href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
-                hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
-                hx_swap="none")),
+            P("Try it now: ", A("Open Downloads Folder",
+                                href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
+                                hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
+                                hx_swap="none")),
             style=card_style,
             id='intro-page-3-content'
         )
         llm_context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
-    
+
     elif page_num == 4:
         content = Card(
             H3(page_data['title']),
@@ -2627,39 +2746,39 @@ def get_profile_name():
 
 async def home(request):
     """Handle the main home route request.
-    
+
     Args:
         request: The incoming request object
-        
+
     Returns:
         tuple: (Title, Main) containing the page title and main content
     """
     # Get and normalize the request path
     path = request.url.path.strip('/')
     logger.debug(f'Received request for path: {path}')
-    
+
     # Get menu selection and update database
     menux = normalize_menu_path(path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
     db['last_visited_url'] = request.url.path
-    
+
     # Get current profile and create response
     current_profile_id = get_current_profile_id()
     menux = db.get('last_app_choice', 'App')  # Fallback to 'App' if not found
     response = await create_outer_container(current_profile_id, menux, request)
-    
+
     # Create page title
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-    
+
     logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
 
 
 def create_nav_group():
     """Create the navigation group containing the main nav menu and refresh listeners.
-    
+
     Returns:
         Group: A container with the navigation menu and HTMX refresh listeners.
     """
@@ -2711,18 +2830,18 @@ def create_env_menu():
     # Get current environment and set up display
     current_env = get_current_environment()
     display_env = 'DEV' if current_env == 'Development' else 'Prod'
-    
+
     # Configure styles
     env_summary_style = 'white-space: nowrap; display: inline-block; min-width: max-content;'
     if current_env == 'Development':
         env_summary_style += ' color: #f77; font-weight: bold;'
-    
+
     menu_item_style = 'text-align: left; {pipulate.MENU_ITEM_PADDING} display: flex; border-radius: var(--pico-border-radius);'
     radio_style = 'min-width: 1rem; margin-right: 0.5rem;'
-    
+
     # Create menu items
     menu_items = []
-    
+
     # Development environment option
     is_dev = current_env == 'Development'
     dev_item = Li(
@@ -2746,7 +2865,7 @@ def create_env_menu():
         )
     )
     menu_items.append(dev_item)
-    
+
     # Production environment option
     is_prod = current_env == 'Production'
     prod_item = Li(
@@ -2770,7 +2889,7 @@ def create_env_menu():
         )
     )
     menu_items.append(prod_item)
-    
+
     # Create dropdown menu
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
     return Details(
@@ -2870,60 +2989,141 @@ def generate_menu_style():
 
 
 def create_app_menu(menux):
-    """Create the App dropdown menu."""
+    """Create the App dropdown menu with dynamic plugin filtering based on roles."""
     logger.debug(f"Creating App menu. Currently selected app (menux): '{menux}'")
-    global ordered_plugins
-    global plugin_instances
+    
+    # Get active roles from roles plugin
+    active_role_names = get_active_roles()
+    
+    # Initialize menu items with Home option
+    menu_items = create_home_menu_item(menux)
+    
+    # Add plugins to menu based on roles
+    for plugin_key in ordered_plugins:
+        menu_item = create_plugin_menu_item(
+            plugin_key=plugin_key,
+            menux=menux,
+            active_role_names=active_role_names
+        )
+        if menu_item:
+            menu_items.append(menu_item)
+    
+    return create_menu_container(menu_items)
+
+def get_active_roles():
+    """Get set of active role names from roles plugin."""
     active_role_names = set()
     roles_plugin = plugin_instances.get('roles')
+    
     if roles_plugin and hasattr(roles_plugin, 'table'):
         try:
             active_role_records = list(roles_plugin.table(where='done = ?', where_args=(True,)))
             active_role_names = {record.text for record in active_role_records}
-            logger.debug(f'Globally active roles (done=True in any profile): {active_role_names}')
+            logger.debug(f'Globally active roles: {active_role_names}')
         except Exception as e:
             logger.error(f'Error fetching globally active roles: {e}')
     else:
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
+    
+    return active_role_names
+
+def create_home_menu_item(menux):
+    """Create menu items list starting with Home option."""
     menu_items = []
-
-    # Add Home/Introduction as the first item
+    
+    # Add Home/Introduction
     is_home_selected = menux == ''
-    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
-    home_label = Label(home_radio, HOME_MENU_ITEM, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_home_selected else '')
+    home_radio = Input(
+        type='radio',
+        name='app_radio_select',
+        value='',
+        checked=is_home_selected,
+        hx_post='/redirect/',
+        hx_target='body',
+        hx_swap='outerHTML'
+    )
+    home_label = Label(
+        home_radio,
+        HOME_MENU_ITEM,
+        cls='dropdown-item',
+        style='background-color: var(--pico-primary-focus);' if is_home_selected else ''
+    )
     menu_items.append(Li(home_label))
-
-    # Add a separator after Home
+    
+    # Add separator
     menu_items.append(Li(Hr(), cls='dropdown-separator'))
+    
+    return menu_items
 
-    profiles_plugin_key = 'profiles'
-    for plugin_key in ordered_plugins:
-        instance = plugin_instances.get(plugin_key)
-        if not instance:
-            logger.warning(f"Instance for plugin_key '{plugin_key}' not found in plugin_instances. Skipping.")
-            continue
-        if plugin_key == profiles_plugin_key or plugin_key == 'roles':  # Skip both profiles and roles
-            continue
-        if plugin_key == 'separator':
-            menu_items.append(Li(Hr(), cls='dropdown-separator'))
-            logger.debug(f'Added separator to App menu.')
-            continue
-        plugin_module_path = instance.__module__
-        plugin_module = sys.modules.get(plugin_module_path)
-        plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
-        is_core_plugin = 'Core' in plugin_defined_roles
-        has_matching_active_role = any((p_role in active_role_names for p_role in plugin_defined_roles))
-        if not (is_core_plugin or has_matching_active_role):
-            logger.debug(f"Filtering out plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
-            continue
-        logger.debug(f"Including plugin '{plugin_key}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Globally Active Roles: {active_role_names}, Match: {has_matching_active_role}")
-        display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
-        is_selected = menux == plugin_key
-        redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
-        radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
-        menu_items.append(Li(Label(radio_input, display_name, cls='dropdown-item', style='background-color: var(--pico-primary-focus);' if is_selected else '')))
+def create_plugin_menu_item(plugin_key, menux, active_role_names):
+    """Create menu item for a plugin if it should be included based on roles."""
+    instance = plugin_instances.get(plugin_key)
+    if not instance:
+        logger.warning(f"Instance for plugin_key '{plugin_key}' not found. Skipping.")
+        return None
+        
+    # Skip profiles and roles plugins
+    if plugin_key in ['profiles', 'roles']:
+        return None
+        
+    # Handle separator
+    if plugin_key == 'separator':
+        logger.debug('Added separator to App menu.')
+        return Li(Hr(), cls='dropdown-separator')
+    
+    # Check if plugin should be included based on roles
+    if not should_include_plugin(instance, active_role_names):
+        return None
+    
+    # Create menu item for plugin
+    display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
+    is_selected = menux == plugin_key
+    redirect_url = f"/redirect/{plugin_key if plugin_key else ''}"
+    
+    radio_input = Input(
+        type='radio',
+        name='app_radio_select',
+        value=plugin_key,
+        checked=is_selected,
+        hx_post=redirect_url,
+        hx_target='body',
+        hx_swap='outerHTML'
+    )
+    
+    return Li(Label(
+        radio_input,
+        display_name,
+        cls='dropdown-item',
+        style='background-color: var(--pico-primary-focus);' if is_selected else ''
+    ))
 
-    return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
+def should_include_plugin(instance, active_role_names):
+    """Determine if plugin should be included based on its roles."""
+    plugin_module_path = instance.__module__
+    plugin_module = sys.modules.get(plugin_module_path)
+    plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
+    
+    is_core_plugin = 'Core' in plugin_defined_roles
+    has_matching_active_role = any(p_role in active_role_names for p_role in plugin_defined_roles)
+    
+    should_include = is_core_plugin or has_matching_active_role
+    
+    logger.debug(
+        f"Plugin '{instance.__class__.__name__}' (Roles: {plugin_defined_roles}). "
+        f"Core: {is_core_plugin}, Active Roles: {active_role_names}, "
+        f"Match: {has_matching_active_role}, Include: {should_include}"
+    )
+    
+    return should_include
+
+def create_menu_container(menu_items):
+    """Create the final menu container with all items."""
+    return Details(
+        Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'),
+        Ul(*menu_items, cls='dropdown-menu'),
+        cls='dropdown',
+        id='app-dropdown-menu'
+    )
 
 
 async def create_outer_container(current_profile_id, menux, request):
@@ -2938,19 +3138,19 @@ MAX_INTRO_PAGES = 4
 
 async def render_intro_page_with_navigation(page_num_str: str):
     """Renders the content for the given intro page number, including Next/Previous buttons.
-    
+
     This function returns the content that will be swapped into the #grid-left-content div.
-    
+
     Args:
         page_num_str: String representation of the page number to render
-        
+
     Returns:
         Div: Container with page content and navigation buttons
     """
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system')
-    
+
     # Create navigation buttons
     prev_button = Button(
         '◂ Previous',
@@ -2962,7 +3162,7 @@ async def render_intro_page_with_navigation(page_num_str: str):
         style='width: 160px; min-width: 160px;',
         disabled=page_num == 1
     )
-    
+
     next_button = Button(
         'Next ▸',
         hx_post='/navigate_intro',
@@ -2973,14 +3173,14 @@ async def render_intro_page_with_navigation(page_num_str: str):
         style='width: 160px; min-width: 160px;',
         disabled=page_num == MAX_INTRO_PAGES
     )
-    
+
     # Create navigation container
     nav_container = Div(
         prev_button,
         next_button,
         style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'
     )
-    
+
     return Div(
         page_content_area,
         nav_container,
@@ -3023,17 +3223,26 @@ async def create_grid_left(menux, request, render_items=None):
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
     if content_to_render is None:
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px;')
-    
+
     # Add scroll to top link at the bottom with visibility check
     scroll_to_top = Div(
-        A('↑ Scroll To Top', 
-          href='javascript:void(0)', 
-          onclick='console.log("Scroll clicked"); const container = document.querySelector(".main-grid > div:first-child"); console.log("Container:", container); console.log("Scroll position:", container.scrollTop); container.scrollTo({top: 0, behavior: "smooth"}); console.log("Scroll command executed");',
+        A('↑ Scroll To Top',
+          href='javascript:void(0)',
+          onclick='''
+            const container = document.querySelector(".main-grid > div:first-child");
+            container.scrollTo({top: 0, behavior: "smooth"});
+          ''',
           style='text-decoration: none;'),
-        style='text-align: center; margin-top: 20px; padding: 10px; border-top: 1px solid var(--pico-muted-border-color); display: none;',
+        style='''
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid var(--pico-muted-border-color);
+            display: none;
+        ''',
         id='scroll-to-top-link'
     )
-    
+
     # Add script to check scroll height and show/hide the link
     scroll_check_script = Script("""
         function checkScrollHeight() {
@@ -3052,28 +3261,28 @@ async def create_grid_left(menux, request, render_items=None):
             observer.observe(container, { childList: true, subtree: true });
         }
     """)
-    
+
     return Div(content_to_render, scroll_to_top, scroll_check_script, id='grid-left-content')
 
 
 def create_chat_interface(autofocus=False):
     """Creates the chat interface component with message list and input form.
-    
+
     Args:
         autofocus (bool): Whether to autofocus the chat input field
-        
+
     Returns:
         Div: The chat interface container with all components
     """
     # Set message list height to 70% of viewport height minus 200px
     msg_list_height = 'height: calc(70vh - 200px);'
-    
+
     # Get any temporary message from database and clear it
     temp_message = None
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    
+
     # Create initialization script with temp message config
     init_script = f'''
     // Set global variables for the external script
@@ -3081,7 +3290,7 @@ def create_chat_interface(autofocus=False):
         tempMessage: {json.dumps(temp_message)}
     }};
     '''
-    
+
     # Build and return the chat interface components
     return Div(
         Card(
@@ -3101,12 +3310,12 @@ def create_chat_interface(autofocus=False):
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """Creates a chat input group with text input and send button.
-    
+
     Args:
         disabled (bool): Whether the input and button should be disabled
         value (str): Initial value for the text input
         autofocus (bool): Whether to autofocus the text input
-        
+
     Returns:
         Group: Container with input and send button
     """
@@ -3357,7 +3566,7 @@ async def open_folder_endpoint(request):
             subprocess.run(["xdg-open", decoded_path], check=True)
         else:
             return HTMLResponse(f"Unsupported operating system: {current_os}", status_code=400)
-        
+
         return HTMLResponse("Folder opened successfully")
     except subprocess.CalledProcessError as e:
         return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
@@ -3487,7 +3696,7 @@ async def clear_db(request):
             cursor_delete = conn_delete.cursor()
             cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
-            
+
             logger.warning(f'Found plugin tables for deletion: {", ".join(plugin_table_names_to_delete)}')
             cleared_count = 0
             for table_name in plugin_table_names_to_delete:
@@ -3496,10 +3705,10 @@ async def clear_db(request):
                     row_count_before_delete = cursor_delete.fetchone()[0]
                     cursor_delete.execute(f'DELETE FROM {table_name}')
                     conn_delete.commit()  # Commit after each delete for plugin tables
-                    
+
                     cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')  # Verify
                     row_count_after_delete = cursor_delete.fetchone()[0]
-                    
+
                     logger.warning(f"Plugin table '{table_name}' cleared: Deleted {row_count_before_delete - row_count_after_delete} records (had {row_count_before_delete})")
                     if TABLE_LIFECYCLE_LOGGING:
                         logger.bind(lifecycle=True).info(f"CLEAR_DB: Wiped plugin table '{table_name}'. Rows before: {row_count_before_delete}, Rows after: {row_count_after_delete}")
@@ -3525,7 +3734,7 @@ async def clear_db(request):
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info("CLEAR_DB: After populate_initial_data.")
         log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB POST-POPULATE")
-    
+
     await synchronize_roles_to_db()
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info("CLEAR_DB: After synchronize_roles_to_db.")
@@ -3587,7 +3796,7 @@ async def download_file_endpoint(request):
             'Access-Control-Max-Age': '86400'  # Cache preflight for 24 hours
         }
         return HTMLResponse('', headers=headers)
-    
+
     file_path = request.query_params.get("file")
     if DEBUG_MODE:
         logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
@@ -3627,7 +3836,7 @@ async def download_file_endpoint(request):
         if not full_file_path.is_file():
             logger.error(f"[📥 DOWNLOAD] Path is not a file: {full_file_path}")
             return HTMLResponse("Path is not a file", status_code=400)
-        
+
         # Determine content type based on file extension
         content_type = "application/octet-stream"  # Default
         if full_file_path.suffix.lower() == '.csv':
@@ -3644,9 +3853,9 @@ async def download_file_endpoint(request):
             content_type = 'image/png'
         elif full_file_path.suffix.lower() == '.gif':
             content_type = 'image/gif'
-        
+
         logger.info(f"[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}")
-        
+
         # Create the response with the file data
         headers = {
             'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
@@ -3656,16 +3865,15 @@ async def download_file_endpoint(request):
             'Access-Control-Allow-Headers': '*'
         }
         logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
-        
+
         return FileResponse(full_file_path, headers=headers)
-        
+
     except Exception as e:
         logger.error(f"[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}")
         logger.error(f"[📥 DOWNLOAD] Exception type: {type(e)}")
         import traceback
         logger.error(f"[📥 DOWNLOAD] Traceback: {traceback.format_exc()}")
         return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
-
 
 
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
@@ -3871,4 +4079,3 @@ def run_server_with_watchdog():
 
 if __name__ == '__main__':
     run_server_with_watchdog()
-
