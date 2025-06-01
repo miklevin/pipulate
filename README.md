@@ -1,4 +1,4 @@
-# Pipulate: Free & Open Source Local-First SEO *with & for* LLMs
+# Pipulate: Free & Open Source AI SEO Software on Local Nix FastHTML HTMX
 
 ![Pipulate Free & Open Source SEO with & for LLMs](/static/pipulate.svg)
 
