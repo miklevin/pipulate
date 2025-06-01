@@ -11,7 +11,9 @@ alwaysApply: false
 
 ## 1. Overview
 
-Pipulate workflows emulate a "Run All Cells" experience, similar to Jupyter Notebooks. This is achieved by an HTMX-driven "chain reaction." When a step completes, its response HTML includes a trigger for the next step to load automatically.
+Pipulate workflows emulate a "Run All Cells" experience, exactly like Jupyter Notebooks. This is achieved by an HTMX-driven "chain reaction." When a step completes, its response HTML includes a trigger for the next step to load automatically.
+
+**The `run_all_cells()` method name is pedagogically brilliant** - it creates an immediate mental model that anyone familiar with notebooks understands instantly. This naming choice makes the entire system more intuitive for both users and AI assistants.
 
 **This pattern is critical and must be preserved exactly as implemented.** Modifying or removing `hx_trigger="load"` will break workflow progression.
 
@@ -205,12 +207,15 @@ async def handle_revert(self, request):
     return pip.run_all_cells(app_name, steps)
 ```
 
-**The `run_all_cells()` method:**
-- Creates a fresh container with all step placeholders
-- Handles the first step loading trigger automatically  
-- Provides consistent initialization across all workflows
-- Eliminates code duplication and maintenance burden
-- Is used in `finalize`, `unfinalize`, and `handle_revert` methods
+**The `run_all_cells()` method - Pedagogical Brilliance:**
+- **Perfect Mental Model**: Name immediately evokes Jupyter's "Run All Cells" command
+- **LLM Comprehension**: AI assistants instantly understand the notebook analogy and chain reaction concept
+- **Creates a fresh container** with all step placeholders
+- **Handles the first step loading trigger** automatically  
+- **Provides consistent initialization** across all workflows
+- **Eliminates code duplication** and maintenance burden
+- **Used in `finalize`, `unfinalize`, and `handle_revert`** methods
+- **Self-documenting**: The name itself explains what it does - no additional explanation needed
 
 **When this pattern was cleaned up system-wide:**
 - **20+ plugin files** were updated to use `run_all_cells()`
