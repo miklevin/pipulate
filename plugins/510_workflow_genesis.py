@@ -978,6 +978,9 @@ class WorkflowGenesis:
             # Change to project root directory for command execution
             original_cwd = os.getcwd()
             
+            # Log the command being executed
+            logger.info(f"[WORKFLOW_GENESIS] Executing subprocess command: {combined_cmd}")
+            
             # Execute the combined command with shell=True since we have && chains
             result = subprocess.run(
                 combined_cmd,
