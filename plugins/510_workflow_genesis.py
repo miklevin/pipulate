@@ -282,10 +282,11 @@ class WorkflowGenesis:
         training_prompt = workflow_params.get('training_prompt', 'Help users create workflows step by step')
 
         # Single create command - uses blank template specifically
-        create_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
-                    f"{self.format_bash_command(display_name)} " + \
-                    f"{self.format_bash_command(endpoint_message)} " + \
-                    f"{self.format_bash_command(training_prompt)} --template blank --force"
+        create_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+                    f"  {self.format_bash_command(display_name)} \\\n" + \
+                    f"  {self.format_bash_command(endpoint_message)} \\\n" + \
+                    f"  {self.format_bash_command(training_prompt)} \\\n" + \
+                    f"  --template blank --force"
 
         # Step positioning demo commands
         splice_bottom_cmd = f"python helpers/splice_workflow_step.py {filename} --position bottom"
