@@ -2539,101 +2539,6 @@ def get_intro_page_content(page_num_str: str):
     return (content, llm_context)
 
 
-@rt('/download_file', methods=['GET', 'OPTIONS'])
-async def download_file_endpoint(request):
-    """
-    Downloads a file from the server.
-    Expects 'file' as a query parameter, which should be relative to the downloads directory.
-    """
-    # Handle CORS preflight requests
-    if request.method == 'OPTIONS':
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': '*',
-            'Access-Control-Max-Age': '86400'  # Cache preflight for 24 hours
-        }
-        return HTMLResponse('', headers=headers)
-    
-    file_path = request.query_params.get("file")
-    if DEBUG_MODE:
-        logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
-        logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
-    if not file_path:
-        logger.error("[📥 DOWNLOAD] No file path provided")
-        return HTMLResponse("File path is required", status_code=400)
-    try:
-        PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parent
-        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
-        if DEBUG_MODE:
-            logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
-            logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
-        full_file_path = PLUGIN_DOWNLOADS_BASE_DIR / file_path
-        if DEBUG_MODE:
-            logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
-            logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
-            if full_file_path.exists():
-                logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
-                logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
-                logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
-        try:
-            resolved_path = full_file_path.resolve()
-            relative_path = resolved_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
-            if DEBUG_MODE:
-                logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
-                logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
-        except (ValueError, RuntimeError) as e:
-            logger.error(f"[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}")
-            logger.error(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
-            logger.error(f"[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
-            return HTMLResponse("Invalid file path - must be within downloads directory", status_code=400)
-        if not full_file_path.exists():
-            logger.error(f"[📥 DOWNLOAD] File not found: {full_file_path}")
-            logger.error(f"[📥 DOWNLOAD] Directory contents: {list(PLUGIN_DOWNLOADS_BASE_DIR.glob('**/*'))}")
-            return HTMLResponse("File not found", status_code=404)
-        if not full_file_path.is_file():
-            logger.error(f"[📥 DOWNLOAD] Path is not a file: {full_file_path}")
-            return HTMLResponse("Path is not a file", status_code=400)
-        
-        # Determine content type based on file extension
-        content_type = "application/octet-stream"  # Default
-        if full_file_path.suffix.lower() == '.csv':
-            content_type = 'text/csv'
-        elif full_file_path.suffix.lower() == '.txt':
-            content_type = 'text/plain'
-        elif full_file_path.suffix.lower() == '.json':
-            content_type = 'application/json'
-        elif full_file_path.suffix.lower() == '.pdf':
-            content_type = 'application/pdf'
-        elif full_file_path.suffix.lower() in ['.jpg', '.jpeg']:
-            content_type = 'image/jpeg'
-        elif full_file_path.suffix.lower() == '.png':
-            content_type = 'image/png'
-        elif full_file_path.suffix.lower() == '.gif':
-            content_type = 'image/gif'
-        
-        logger.info(f"[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}")
-        
-        # Create the response with the file data
-        headers = {
-            'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
-            'Content-Type': content_type,
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': '*',
-            'Access-Control-Allow-Headers': '*'
-        }
-        logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
-        
-        return FileResponse(full_file_path, headers=headers)
-        
-    except Exception as e:
-        logger.error(f"[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}")
-        logger.error(f"[📥 DOWNLOAD] Exception type: {type(e)}")
-        import traceback
-        logger.error(f"[📥 DOWNLOAD] Traceback: {traceback.format_exc()}")
-        return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
-
-
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f'Retrieving profile name for ID: {profile_id}')
@@ -2838,13 +2743,6 @@ def create_app_menu(menux):
     return Details(Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 
-@rt('/toggle_profile_lock', methods=['POST'])
-async def toggle_profile_lock(request):
-    current = db.get('profile_locked', '0')
-    db['profile_locked'] = '1' if current == '0' else '0'
-    return HTMLResponse('', headers={'HX-Refresh': 'true'})
-
-
 async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -2865,27 +2763,6 @@ async def render_intro_page_with_navigation(page_num_str: str):
     append_to_conversation(llm_context, role='system', quiet=True)
     nav_buttons = [Button('◂\xa0Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == 1), Button('Next\xa0▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='width: 160px; min-width: 160px;', disabled=page_num == MAX_INTRO_PAGES)]
     return Div(page_content_area, Div(*nav_buttons, style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'), id='grid-left-content')
-
-
-@rt('/navigate_intro', methods=['POST'])
-async def navigate_intro_page_endpoint(request):
-    form = await request.form()
-    direction = form.get('direction')
-    current_page_str = form.get('current_page', '1')
-    try:
-        current_page_num = int(current_page_str)
-    except ValueError:
-        logger.warning(f'Invalid current_page value received: {current_page_str}. Defaulting to 1.')
-        current_page_num = 1
-    next_page_num = current_page_num
-    if direction == 'next':
-        next_page_num = min(current_page_num + 1, MAX_INTRO_PAGES)
-    elif direction == 'prev':
-        next_page_num = max(current_page_num - 1, 1)
-    db['intro_page_num'] = str(next_page_num)
-    logger.debug(f'Navigating intro. From: {current_page_num}, To: {next_page_num}, Direction: {direction}')
-    new_content = await render_intro_page_with_navigation(str(next_page_num))
-    return HTMLResponse(to_xml(new_content))
 
 
 def get_workflow_instance(workflow_name):
@@ -3060,6 +2937,35 @@ async def open_folder_endpoint(request):
         return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
     except Exception as e:
         return HTMLResponse(f"An unexpected error occurred: {str(e)}", status_code=500)
+
+
+@rt('/toggle_profile_lock', methods=['POST'])
+async def toggle_profile_lock(request):
+    current = db.get('profile_locked', '0')
+    db['profile_locked'] = '1' if current == '0' else '0'
+    return HTMLResponse('', headers={'HX-Refresh': 'true'})
+
+
+@rt('/navigate_intro', methods=['POST'])
+async def navigate_intro_page_endpoint(request):
+    form = await request.form()
+    direction = form.get('direction')
+    current_page_str = form.get('current_page', '1')
+    try:
+        current_page_num = int(current_page_str)
+    except ValueError:
+        logger.warning(f'Invalid current_page value received: {current_page_str}. Defaulting to 1.')
+        current_page_num = 1
+    next_page_num = current_page_num
+    if direction == 'next':
+        next_page_num = min(current_page_num + 1, MAX_INTRO_PAGES)
+    elif direction == 'prev':
+        next_page_num = max(current_page_num - 1, 1)
+    db['intro_page_num'] = str(next_page_num)
+    logger.debug(f'Navigating intro. From: {current_page_num}, To: {next_page_num}, Direction: {direction}')
+    new_content = await render_intro_page_with_navigation(str(next_page_num))
+    return HTMLResponse(to_xml(new_content))
+
 
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
@@ -3238,6 +3144,102 @@ async def select_profile(request):
     redirect_url = db.get('last_visited_url', '/')
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
+
+
+@rt('/download_file', methods=['GET', 'OPTIONS'])
+async def download_file_endpoint(request):
+    """
+    Downloads a file from the server.
+    Expects 'file' as a query parameter, which should be relative to the downloads directory.
+    """
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Max-Age': '86400'  # Cache preflight for 24 hours
+        }
+        return HTMLResponse('', headers=headers)
+    
+    file_path = request.query_params.get("file")
+    if DEBUG_MODE:
+        logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
+        logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
+    if not file_path:
+        logger.error("[📥 DOWNLOAD] No file path provided")
+        return HTMLResponse("File path is required", status_code=400)
+    try:
+        PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parent
+        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
+        if DEBUG_MODE:
+            logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
+            logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
+        full_file_path = PLUGIN_DOWNLOADS_BASE_DIR / file_path
+        if DEBUG_MODE:
+            logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
+            logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
+            if full_file_path.exists():
+                logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
+                logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
+                logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
+        try:
+            resolved_path = full_file_path.resolve()
+            relative_path = resolved_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
+            if DEBUG_MODE:
+                logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
+                logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
+        except (ValueError, RuntimeError) as e:
+            logger.error(f"[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}")
+            logger.error(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
+            logger.error(f"[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
+            return HTMLResponse("Invalid file path - must be within downloads directory", status_code=400)
+        if not full_file_path.exists():
+            logger.error(f"[📥 DOWNLOAD] File not found: {full_file_path}")
+            logger.error(f"[📥 DOWNLOAD] Directory contents: {list(PLUGIN_DOWNLOADS_BASE_DIR.glob('**/*'))}")
+            return HTMLResponse("File not found", status_code=404)
+        if not full_file_path.is_file():
+            logger.error(f"[📥 DOWNLOAD] Path is not a file: {full_file_path}")
+            return HTMLResponse("Path is not a file", status_code=400)
+        
+        # Determine content type based on file extension
+        content_type = "application/octet-stream"  # Default
+        if full_file_path.suffix.lower() == '.csv':
+            content_type = 'text/csv'
+        elif full_file_path.suffix.lower() == '.txt':
+            content_type = 'text/plain'
+        elif full_file_path.suffix.lower() == '.json':
+            content_type = 'application/json'
+        elif full_file_path.suffix.lower() == '.pdf':
+            content_type = 'application/pdf'
+        elif full_file_path.suffix.lower() in ['.jpg', '.jpeg']:
+            content_type = 'image/jpeg'
+        elif full_file_path.suffix.lower() == '.png':
+            content_type = 'image/png'
+        elif full_file_path.suffix.lower() == '.gif':
+            content_type = 'image/gif'
+        
+        logger.info(f"[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}")
+        
+        # Create the response with the file data
+        headers = {
+            'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
+            'Content-Type': content_type,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': '*',
+            'Access-Control-Allow-Headers': '*'
+        }
+        logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
+        
+        return FileResponse(full_file_path, headers=headers)
+        
+    except Exception as e:
+        logger.error(f"[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}")
+        logger.error(f"[📥 DOWNLOAD] Exception type: {type(e)}")
+        import traceback
+        logger.error(f"[📥 DOWNLOAD] Traceback: {traceback.format_exc()}")
+        return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
+
 
 
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
