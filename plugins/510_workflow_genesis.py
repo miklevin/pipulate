@@ -61,8 +61,8 @@ class WorkflowGenesis:
         
         self.steps = [
             Step(id='step_01', done='workflow_params', show='1. Define Workflow Parameters', refill=True),
-            Step(id='step_02', done='template_choice', show='2. Choose Template Approach', refill=True),
-            Step(id='step_03', done='command_sequence', show='3. Generated Command Sequence', refill=True),
+            Step(id='step_02', done='template_choice', show='2. Choose Template Approach', refill=False),
+            Step(id='step_03', done='command_sequence', show='3. Generated Command Sequence', refill=False),
             Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
@@ -184,11 +184,29 @@ class WorkflowGenesis:
 
         if request.method == 'GET':
             if finalize_step_obj.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                return Card(
+                    H3('Workflow Creation Complete'),
+                    P('Your workflow commands have been generated and are ready to use.', cls='text-secondary'),
+                    Form(
+                        Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), 
+                        hx_post=f'/{app_name}/unfinalize', 
+                        hx_target=f'#{app_name}-container'
+                    ), 
+                    id=finalize_step_obj.id
+                )
             else:
                 all_data_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in self.steps if step.id != 'finalize')
                 if all_data_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                    return Card(
+                        H3('Ready to Finalize'),
+                        P('All command sequences have been generated. Finalize to complete the workflow creation process.', cls='text-secondary'),
+                        Form(
+                            Button('Finalize 🔒', type='submit', cls='primary'), 
+                            hx_post=f'/{app_name}/finalize', 
+                            hx_target=f'#{app_name}-container'
+                        ), 
+                        id=finalize_step_obj.id
+                    )
                 else: 
                     return Div(id=finalize_step_obj.id) 
         elif request.method == 'POST':
@@ -200,27 +218,26 @@ class WorkflowGenesis:
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
-        await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
+        await self.message_queue.add(pip, 'Workflow creation unfinalized. You can now modify any step.', verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
     async def handle_revert(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
-        current_steps_to_pass_helpers = self.steps
         form = await request.form()
         step_id_to_revert_to = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
 
         if not step_id_to_revert_to:
-            return P('Error: No step specified for revert.', style=pip.get_style('error'))
+            return P('Error: No step specified for revert.', style='color: #dc3545;')
 
-        await pip.clear_steps_from(pipeline_id, step_id_to_revert_to, current_steps_to_pass_helpers)
+        await pip.clear_steps_from(pipeline_id, step_id_to_revert_to, self.steps)
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id_to_revert_to
         pip.write_state(pipeline_id, state)
         
-        message = await pip.get_state_message(pipeline_id, current_steps_to_pass_helpers, self.step_messages)
+        message = await pip.get_state_message(pipeline_id, self.steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
-        return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
+        return pip.run_all_cells(app_name, self.steps)
 
     # Utility methods (simplified and extracted)
     def format_bash_command(self, text):
@@ -256,19 +273,186 @@ class WorkflowGenesis:
 
     # Template-specific experience methods (to be implemented)
     def create_blank_placeholder_experience(self, workflow_params, widget_id):
-        """Create experience for blank placeholder template"""
-        # TODO: Implement blank placeholder experience
-        return Div("Blank placeholder experience - to be implemented", id=widget_id)
+        """Create experience for blank placeholder template - learning step management basics"""
+        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+
+        # Single create command
+        create_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
+                    f"{self.format_bash_command(display_name)} " + \
+                    f"{self.format_bash_command('Welcome to workflow creation')} " + \
+                    f"{self.format_bash_command('Help users create workflows step by step')} --template blank --force"
+
+        # Step positioning demo commands
+        splice_bottom_cmd = f"python helpers/splice_workflow_step.py {filename} --position bottom"
+        splice_top_cmd = f"python helpers/splice_workflow_step.py {filename} --position top"
+
+        return Div(
+            H4("Blank Placeholder Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            P("Creates a single-step workflow and demonstrates step positioning. Like Jupyter's Cell Above/Below concept.", 
+              style="color: #6c757d; margin-bottom: 1.5rem;"),
+            
+            # Individual commands section
+            H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
+            
+            Div(
+                H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Creates single-step placeholder workflow ready for customization", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(create_cmd, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("2. Add Step at Bottom", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Adds new step before finalize (default positioning)", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(splice_bottom_cmd, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("3. Add Step at Top", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Adds new step as first data step", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(splice_top_cmd, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+            ),
+            
+            # All-in-one section
+            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            P("Copy and paste this single command to create the workflow and see positioning options:", 
+              style="color: #6c757d; margin-bottom: 0.5rem;"),
+            Pre(Code(f"{create_cmd} && echo 'Base workflow created. Now try:' && echo '{splice_bottom_cmd}' && echo '{splice_top_cmd}'", 
+                     cls='language-bash'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+            
+            id=widget_id
+        )
     
     def create_hello_world_recreation_experience(self, workflow_params, widget_id):
-        """Create experience for hello world recreation"""
-        # TODO: Implement hello world recreation experience  
-        return Div("Hello world recreation experience - to be implemented", id=widget_id)
+        """Create experience for hello world recreation - understanding complete helper tool sequence"""
+        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+
+        # The corrected 5-command sequence
+        cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
+               f"{self.format_bash_command(display_name)} " + \
+               f"{self.format_bash_command('Welcome to workflow creation')} " + \
+               f"{self.format_bash_command('Help users create workflows step by step')} --template blank --force"
+        
+        cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
+        
+        cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/500_hello_workflow.py step_01 --force"
+        
+        cmd4 = f"python helpers/splice_workflow_step.py {filename} --position bottom"
+        
+        cmd5 = f"python helpers/swap_workflow_step.py {filename} step_02 plugins/500_hello_workflow.py step_02 --force"
+
+        return Div(
+            H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            P("Demonstrates the complete helper tool sequence. Key insight: step_01 must be swapped BEFORE step_02 is added.", 
+              style="color: #6c757d; margin-bottom: 1.5rem;"),
+            
+            # Individual commands section
+            H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
+            
+            Div(
+                H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Creates base workflow from blank template", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd1, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("2. Merge UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Copies styling constants from Hello workflow", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd2, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("3. Swap Step 1 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Replaces placeholder with name collection logic", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd3, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("4. Add Second Step", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Adds new placeholder step before finalize", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd4, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("5. Swap Step 2 Logic", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Replaces placeholder with greeting generation logic", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd5, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+            ),
+            
+            # All-in-one section
+            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            P("Copy and paste this single command to execute the complete sequence:", 
+              style="color: #6c757d; margin-bottom: 0.5rem;"),
+            Pre(Code(f"{cmd1} && {cmd2} && {cmd3} && {cmd4} && {cmd5}", cls='language-bash'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+            
+            id=widget_id
+        )
     
     def create_trifecta_workflow_experience(self, workflow_params, widget_id):
-        """Create experience for trifecta workflow"""
-        # TODO: Implement trifecta workflow experience
-        return Div("Trifecta workflow experience - to be implemented", id=widget_id)
+        """Create experience for trifecta workflow - complex template conditioning"""
+        filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
+        class_name = workflow_params.get('class_name', 'KungfuWorkflow')
+        internal_name = workflow_params.get('internal_app_name', 'kungfu')
+        display_name = workflow_params.get('display_name', 'Kung Fu Download')
+
+        # Trifecta workflow commands
+        cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} " + \
+               f"{self.format_bash_command(display_name)} " + \
+               f"{self.format_bash_command('Advanced data collection workflow')} " + \
+               f"{self.format_bash_command('Help users create complex data workflows')} --template trifecta --force"
+        
+        cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
+        
+        cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/040_parameter_buster.py step_01 --force"
+
+        return Div(
+            H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
+            P("Starts with sophisticated template and conditions it for complex customization. Enables Parameter Buster-style workflows.", 
+              style="color: #6c757d; margin-bottom: 1.5rem;"),
+            
+            # Individual commands section
+            H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
+            
+            Div(
+                H6("1. Create Trifecta Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Creates complex 5-step workflow from Botify Trifecta template", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd1, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("2. Condition Class Attributes", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Prepares workflow for Parameter Buster-style method bundles", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd2, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto;"),
+                
+                H6("3. Customize First Step", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Replace with custom parameter collection logic", 
+                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
+                Pre(Code(cmd3, cls='language-bash'), 
+                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto;")
+            ),
+            
+            # All-in-one section
+            H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
+            P("Copy and paste this single command to create and condition the trifecta workflow:", 
+              style="color: #6c757d; margin-bottom: 0.5rem;"),
+            Pre(Code(f"{cmd1} && {cmd2} && {cmd3}", cls='language-bash'), 
+                style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto;"),
+            
+            id=widget_id
+        )
 
     # Step implementation methods (simplified structure)
     async def step_01(self, request):
@@ -345,7 +529,8 @@ class WorkflowGenesis:
             'display_name': form_data.get('display_name', '').strip()
         }
         
-        await pip.set_step_data(pipeline_id, step_id, params, self.steps)
+        # Store with the correct key that matches step.done
+        await pip.set_step_data(pipeline_id, step_id, {step_obj.done: params}, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         return Div(
@@ -430,7 +615,8 @@ class WorkflowGenesis:
             'template': form_data.get('template', 'blank')
         }
         
-        await pip.set_step_data(pipeline_id, step_id, template_choice, self.steps)
+        # Store with the correct key that matches step.done
+        await pip.set_step_data(pipeline_id, step_id, {step_obj.done: template_choice}, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
         
         template_info = self.get_template_info(template_choice['template'])
@@ -461,10 +647,11 @@ class WorkflowGenesis:
         current_value = step_data.get(step_obj.done, '')
         finalize_sys_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
-        # Get previous step data
+        # Get previous step data - fix the data key access
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
         
+        # Access using the step.done keys
         workflow_params = step_01_data.get('workflow_params', {})
         template_choice = step_02_data.get('template_choice', {})
         selected_template = template_choice.get('template', 'blank')
@@ -504,7 +691,7 @@ class WorkflowGenesis:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
             
             # Auto-complete this step since it's just display
-            await pip.set_step_data(pipeline_id, step_id, f"Generated {selected_template} template experience", self.steps)
+            await pip.set_step_data(pipeline_id, step_id, {step_obj.done: f"Generated {selected_template} template experience"}, self.steps)
             await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
             
             return Div(
