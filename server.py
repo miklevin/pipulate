@@ -3173,10 +3173,14 @@ def create_home_menu_item(menux):
         hx_target='body',
         hx_swap='outerHTML'
     )
+    
+    # Home gets "Core" role styling since it's essential
+    home_css_classes = "dropdown-item menu-role-core"
+    
     home_label = Label(
         home_radio,
         HOME_MENU_ITEM,
-        cls='dropdown-item',
+        cls=home_css_classes,
         style='background-color: var(--pico-primary-focus);' if is_home_selected else ''
     )
     menu_items.append(Li(home_label))
@@ -3185,6 +3189,33 @@ def create_home_menu_item(menux):
     menu_items.append(Li(Hr(), cls='dropdown-separator'))
     
     return menu_items
+
+def get_plugin_primary_role(instance):
+    """Get the primary role for a plugin for UI styling purposes.
+    
+    Uses a simple 80/20 approach: if plugin has multiple roles, 
+    we take the first one as primary. This creates a clean win/loss
+    scenario for coloring without complex blending logic.
+    
+    Returns lowercase role name with spaces replaced by hyphens for CSS classes.
+    """
+    plugin_module_path = instance.__module__
+    plugin_module = sys.modules.get(plugin_module_path)
+    plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
+    
+    # If no roles defined, default to None (no special coloring)
+    if not plugin_defined_roles:
+        return None
+    
+    # Take first role as primary (80/20 simple approach)
+    primary_role = plugin_defined_roles[0]
+    
+    # Convert to CSS class format (lowercase, spaces to hyphens)
+    css_role = primary_role.lower().replace(' ', '-')
+    
+    logger.debug(f"Plugin '{instance.__class__.__name__}' primary role: '{primary_role}' -> CSS class: 'menu-role-{css_role}'")
+    
+    return css_role
 
 def create_plugin_menu_item(plugin_key, menux, active_role_names):
     """Create menu item for a plugin if it should be included based on roles."""
@@ -3211,6 +3242,13 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     is_selected = menux == plugin_key
     redirect_url = f"/redirect/{plugin_key if plugin_key else ''}"
     
+    # Get primary role for styling
+    primary_role = get_plugin_primary_role(instance)
+    role_class = f"menu-role-{primary_role}" if primary_role else ""
+    
+    # Combine dropdown-item class with role-based class
+    css_classes = f"dropdown-item {role_class}".strip()
+    
     radio_input = Input(
         type='radio',
         name='app_radio_select',
@@ -3224,7 +3262,7 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     return Li(Label(
         radio_input,
         display_name,
-        cls='dropdown-item',
+        cls=css_classes,
         style='background-color: var(--pico-primary-focus);' if is_selected else ''
     ))
 

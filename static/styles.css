@@ -605,3 +605,65 @@ hr {
     border: none;
     border-top: 1px solid var(--pico-muted-border-color);
 }
+
+/* Menu Item Role-Based Colors */
+.menu-role-core {
+    background-color: var(--pico-primary-background) !important;
+    border-left: 3px solid var(--pico-primary) !important;
+}
+
+.menu-role-botify-employee {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left: 3px solid #3b82f6 !important;
+}
+
+.menu-role-tutorial {
+    background-color: rgba(34, 197, 94, 0.1) !important;
+    border-left: 3px solid #22c55e !important;
+}
+
+.menu-role-developer {
+    background-color: rgba(249, 115, 22, 0.1) !important;
+    border-left: 3px solid #f97316 !important;
+}
+
+.menu-role-components {
+    background-color: rgba(168, 85, 247, 0.1) !important;
+    border-left: 3px solid #a855f7 !important;
+}
+
+.menu-role-workshop {
+    background-color: rgba(234, 179, 8, 0.1) !important;
+    border-left: 3px solid #eab308 !important;
+}
+
+/* Light theme - more visible backgrounds */
+[data-theme="light"] .menu-role-botify-employee {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+[data-theme="light"] .menu-role-tutorial {
+    background-color: rgba(34, 197, 94, 0.05) !important;
+}
+
+[data-theme="light"] .menu-role-developer {
+    background-color: rgba(249, 115, 22, 0.05) !important;
+}
+
+[data-theme="light"] .menu-role-components {
+    background-color: rgba(168, 85, 247, 0.05) !important;
+}
+
+[data-theme="light"] .menu-role-workshop {
+    background-color: rgba(234, 179, 8, 0.05) !important;
+}
+
+/* Selected state maintains selection color but keeps role border */
+.menu-role-core[style*="background-color: var(--pico-primary-focus)"],
+.menu-role-botify-employee[style*="background-color: var(--pico-primary-focus)"],
+.menu-role-tutorial[style*="background-color: var(--pico-primary-focus)"],
+.menu-role-developer[style*="background-color: var(--pico-primary-focus)"],
+.menu-role-components[style*="background-color: var(--pico-primary-focus)"],
+.menu-role-workshop[style*="background-color: var(--pico-primary-focus)"] {
+    background-color: var(--pico-primary-focus) !important;
+}
