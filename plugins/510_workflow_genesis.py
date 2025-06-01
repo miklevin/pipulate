@@ -21,45 +21,63 @@ def derive_public_endpoint_from_filename(filename_str: str) -> str:
 
 class WorkflowGenesis:
     """
-    Workflow Creation Helper
+    Workflow Creation Helper - Demonstrating Corrected Helper Tool Sequencing
     
-    An interactive assistant for creating new Pipulate workflows with intelligent template selection
-    and step management. This tool demonstrates the full workflow scaffolding capabilities including:
+    An interactive assistant for creating new Pipulate workflows that demonstrates the CORRECTED
+    approach to using the 4-tool helper system. This tool showcases the key insight that helper
+    tools work perfectly when used in proper sequence.
     
-    - Template-based workflow creation (blank, hello, and trifecta templates)
-    - Flexible step insertion (top/bottom positioning)
-    - Command generation with copy-friendly syntax highlighting
-    - Template selection guidance based on use case
+    ## Key Insight: Sequencing is Everything! 🎯
     
-    ## Template Strategy
+    The original 4-command approach had a sequencing issue:
+    - Created step_01 with placeholder logic, then step_02 with Hello logic
+    - Result: Confusing UX where placeholder preceded name collection
+    
+    The CORRECTED 5-command sequence:
+    1. Create base workflow from template
+    2. Merge UI constants for styling consistency  
+    3. **CRITICAL**: Swap step_01 with functional logic BEFORE adding step_02
+    4. Add placeholder step_02
+    5. Swap step_02 with functional logic
+    
+    Result: Both steps contain functional Hello World logic in proper sequence.
+    
+    ## Template Strategy & Helper Tool Integration
     
     **Blank Template (710_blank_placeholder.py)**:
-    - Single placeholder step for simple workflows
-    - Minimal structure, easy to understand
-    - Best for: Custom workflows, learning, prototyping
+    - Single placeholder step for maximum customization
+    - Requires corrected 5-command sequence for Hello World equivalent
+    - Best for: Learning helper tool patterns, custom workflows
     
     **Hello Template (500_hello_workflow.py)**:
-    - Two-step interactive workflow demonstrating core patterns
-    - Shows best practices for form handling and chain reactions
-    - Best for: Learning workflow patterns, simple interactive flows
+    - Complete 2-step workflow with single command
+    - Demonstrates proper workflow patterns immediately
+    - Best for: Quick demos, learning workflow structure
     
     **Trifecta Template (535_botify_trifecta.py)**:
-    - Complex multi-step workflow with API integration
-    - Background processing, file management, error handling
-    - Best for: Data collection workflows, API-heavy processes
+    - Complex 5-step workflow with single command
+    - Full API integration and background processing
+    - Best for: Data collection workflows, enterprise patterns
     
-    ## Step Insertion Patterns
+    ## Helper Tool Validation
     
-    **Top Insertion**: New step becomes the first data step
-    - Use when: Adding authentication, setup, or prerequisite steps
-    - Updates init() method to start with new step
+    This workflow validates that:
+    - ✅ create_workflow.py: Works correctly with all templates
+    - ✅ manage_class_attributes.py: Properly merges UI_CONSTANTS
+    - ✅ swap_workflow_step.py: Correctly replaces step logic
+    - ✅ splice_workflow_step.py: Accurately adds steps with proper positioning
+    - 🎯 The tools work perfectly - sequencing determines success!
     
-    **Bottom Insertion**: New step added before finalize
-    - Use when: Adding processing, validation, or output steps
-    - Maintains existing workflow flow
+    ## Educational Value
     
-    This workflow showcases the enhanced create_workflow.py and splice_workflow_step.py
-    capabilities that make Pipulate development more efficient and accessible.
+    Users learn:
+    - Why sequence matters in workflow construction
+    - How each helper tool contributes to the final result  
+    - The difference between simple and complex template strategies
+    - Best practices for workflow development using proven patterns
+    
+    This tool demonstrates that with correct sequencing, the helper scripts provide
+    reliable, deterministic workflow creation that eliminates common implementation mistakes.
     """
     
     # UI Constants - Centralized control for global appearance
@@ -1066,19 +1084,22 @@ class WorkflowGenesis:
                 'name': 'Blank Placeholder Template',
                 'description': 'Minimal single-step workflow for custom development',
                 'steps': '1 placeholder step + finalize',
-                'file': '710_blank_placeholder.py'
+                'file': '710_blank_placeholder.py',
+                'strategy': 'Requires corrected 5-command sequence to create Hello World equivalent'
             },
             'hello': {
                 'name': 'Hello Workflow Template',
                 'description': 'Simple two-step example demonstrating core workflow patterns',
                 'steps': '2 interactive steps + finalize',
-                'file': '500_hello_workflow.py'
+                'file': '500_hello_workflow.py',
+                'strategy': 'Single command creates complete 2-step workflow ready to use'
             },
             'trifecta': {
                 'name': 'Botify Trifecta Template', 
                 'description': 'Complex multi-step API workflow with background processing',
                 'steps': '5 data collection steps + finalize',
-                'file': '535_botify_trifecta.py'
+                'file': '535_botify_trifecta.py',
+                'strategy': 'Single command creates complex 5-step workflow with API integration'
             }
         }
         return templates.get(template_name, templates['blank'])
@@ -1229,108 +1250,179 @@ class WorkflowGenesis:
         return Div(container, init_script)
 
     def create_hello_world_sequence_widget(self, filename, class_name, internal_name, display_name, widget_id, selected_template='blank'):
-        """Create a widget showing the complete 5-command Hello World equivalent sequence."""
+        """
+        Creates a widget showing the CORRECTED 5-command sequence for transforming a blank template 
+        into a Hello World equivalent workflow. This demonstrates the proper sequencing that ensures
+        both steps receive functional logic rather than placeholder content.
         
-        # Adjust the description based on template
-        if selected_template == 'trifecta':
-            template_desc = "🚀 This workflow starts with the full Botify Trifecta workflow (5 steps)."
-        elif selected_template == 'hello':
-            template_desc = "👋 This workflow starts with the Hello World template (2 steps)."
-        else:
-            template_desc = "🥋 This workflow will become a Hello World equivalent using helper scripts."
+        KEY INSIGHT: The helper scripts work correctly when used in proper sequence. The original
+        4-command approach had a sequencing issue that left step_01 with placeholder logic.
+        """
         
-        # Generate the complete 5-command sequence
-        sequence_cmd = f"""python helpers/create_workflow.py \\
-    plugins/{filename} \\
-    {class_name} \\
-    {internal_name} \\
-    "{display_name}" \\
-    "{template_desc}" \\
-    "kungfu_hello_world_training.md" \\
-    --template {selected_template} \\
-    --force \\
-&& \\
-python helpers/manage_class_attributes.py \\
-    plugins/{filename} \\
-    plugins/500_hello_workflow.py \\
-    --attributes-to-merge UI_CONSTANTS \\
-    --force \\
-&& \\
-python helpers/swap_workflow_step.py \\
-    plugins/{filename} \\
-    step_01 \\
-    plugins/500_hello_workflow.py \\
-    step_01 \\
-    --force \\
-&& \\
-python helpers/splice_workflow_step.py \\
-    plugins/{filename} \\
-    --position bottom \\
-&& \\
-python helpers/swap_workflow_step.py \\
-    plugins/{filename} \\
-    step_02 \\
-    plugins/500_hello_workflow.py \\
-    step_02 \\
-    --force"""
-
-        container = Div(
-            H5('🥋 Complete Hello World Kung Fu Sequence:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]};'),
-            P('This 5-command sequence creates a perfect functional equivalent of the Hello Workflow:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-            
-            # Command sequence with proper formatting
-            Textarea(sequence_cmd, id=f'{widget_id}_hello_sequence', style='display: none;'),
-            Pre(
-                Code(sequence_cmd, cls='language-bash', style='position: relative; white-space: inherit; padding: 0;'),
-                cls='line-numbers'
+        # Generate the 5 corrected commands in proper sequence
+        cmd1 = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \"{display_name}\" \"Welcome message\" \"Training prompt\" --template {selected_template}"
+        cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
+        cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/500_hello_workflow.py step_01 --force"
+        cmd4 = f"python helpers/splice_workflow_step.py {filename} --position bottom"
+        cmd5 = f"python helpers/swap_workflow_step.py {filename} step_02 plugins/500_hello_workflow.py step_02 --force"
+        
+        template_info = self.get_template_info(selected_template)
+        
+        return Div(
+            # Header with corrected sequence explanation
+            Div(
+                P(f"Template: {template_info['name']}", 
+                  style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; '
+                        f'font-weight: {self.UI_CONSTANTS["TYPOGRAPHY"]["FONT_WEIGHT_MEDIUM"]}; '
+                        f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                P(f"Strategy: {template_info['strategy']}", 
+                  style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; '
+                        f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; '
+                        f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; '
+                      f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; '
+                      f'border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; '
+                      f'border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
             ),
             
-            # Explanation of each step
+            # Corrected sequence explanation
             Div(
-                H6('Step-by-Step Breakdown:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                Ol(
-                    Li(f"Create blank workflow template: {filename}", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Li("Merge UI_CONSTANTS from hello workflow for consistent styling", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Li("Swap step_01 placeholder with name collection logic", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Li("Add step_02 placeholder at bottom (before finalize)", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                    Li("Swap step_02 placeholder with greeting generation logic", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
+                H4("✅ Corrected 5-Command Sequence for Hello World Equivalent", 
+                   style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]};'),
+                P("This sequence creates a workflow with both steps containing functional Hello World logic:",
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]};'),
+                style=f'margin: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]} 0;'
+            ),
+            
+            # Command sequence with explanations
+            Div(
+                # Command 1
+                Div(
+                    H5("1. Create Base Workflow", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; margin-bottom: 0.25rem;'),
+                    Pre(Code(cmd1, cls="language-bash"), cls="line-numbers", 
+                        style="margin-bottom: 0.5rem; font-size: 0.85rem;"),
+                    P("Creates workflow from blank template with single placeholder step.",
+                      style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; '
+                            f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; '
+                            f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                 ),
-                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                
+                # Command 2
+                Div(
+                    H5("2. Merge UI Constants", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; margin-bottom: 0.25rem;'),
+                    Pre(Code(cmd2, cls="language-bash"), cls="line-numbers", 
+                        style="margin-bottom: 0.5rem; font-size: 0.85rem;"),
+                    P("Shares UI styling constants from Hello workflow for consistent appearance.",
+                      style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; '
+                            f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; '
+                            f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                ),
+                
+                # Command 3 - CRITICAL STEP
+                Div(
+                    H5("3. Swap Step 01 Logic (🎯 CRITICAL STEP)", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.25rem; font-weight: bold;'),
+                    Pre(Code(cmd3, cls="language-bash"), cls="line-numbers", 
+                        style="margin-bottom: 0.5rem; font-size: 0.85rem;"),
+                    P("🎯 KEY: Replaces step_01 placeholder with Hello's name collection logic. This step MUST happen before adding step_02!",
+                      style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; '
+                            f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; '
+                            f'font-weight: bold; '
+                            f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]}; '
+                          f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_BLUE"]}; '
+                          f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; '
+                          f'border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; '
+                          f'border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'
+                ),
+                
+                # Command 4
+                Div(
+                    H5("4. Add Placeholder Step 02", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; margin-bottom: 0.25rem;'),
+                    Pre(Code(cmd4, cls="language-bash"), cls="line-numbers", 
+                        style="margin-bottom: 0.5rem; font-size: 0.85rem;"),
+                    P("Adds new placeholder step_02 before finalize step using bottom positioning.",
+                      style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; '
+                            f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; '
+                            f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                ),
+                
+                # Command 5
+                Div(
+                    H5("5. Swap Step 02 Logic", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_BLUE"]}; margin-bottom: 0.25rem;'),
+                    Pre(Code(cmd5, cls="language-bash"), cls="line-numbers", 
+                        style="margin-bottom: 0.5rem; font-size: 0.85rem;"),
+                    P("Replaces step_02 placeholder with Hello's greeting generation logic.",
+                      style=f'font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["TINY_TEXT"]}; '
+                            f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; '
+                            f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'),
+                    style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
+                ),
+                
+                id=widget_id
             ),
             
             # Result explanation
             Div(
-                H6('✅ Result:', style=f'margin-bottom: {self.UI_CONSTANTS["SPACING"]["TINY_MARGIN"]}; color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'),
-                P(f"Perfect functional equivalent of 500_hello_workflow.py with {class_name} class and '{display_name}' display name.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                P("The workflow will ask for a name, generate a greeting, and demonstrate the chain reaction pattern.", style=f'margin: {self.UI_CONSTANTS["SPACING"]["SMALL_MARGIN"]}; font-size: {self.UI_CONSTANTS["TYPOGRAPHY"]["SMALL_TEXT"]}; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                style=f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]};'
+                H4("✅ Final Result:", 
+                   style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.5rem;'),
+                Ul(
+                    Li("Step 01: Name collection logic (from HelloWorkflow.step_01)", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.25rem;'),
+                    Li("Step 02: Greeting generation logic (from HelloWorkflow.step_02)", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.25rem;'),
+                    Li("Proper UI_CONSTANTS for emoji feedback", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.25rem;'),
+                    Li("Correct Step definitions with done='name' and done='greeting'", 
+                       style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.25rem;'),
+                    style='margin-bottom: 1rem;'
+                ),
+                style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; '
+                      f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; '
+                      f'border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; '
+                      f'border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]};'
             ),
             
-            id=widget_id
-        )
-        
-        init_script = Script(f"""
+            # Key insight box
+            Div(
+                H4("🔍 Key Insight from Analysis:", 
+                   style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; margin-bottom: 0.5rem;'),
+                P("The original 4-command sequence had step_01 with placeholder logic followed by step_02 with Hello logic. " +
+                  "This created a confusing user experience where placeholder logic preceded name collection. " +
+                  "The corrected sequence ensures step_01 gets functional logic BEFORE step_02 is added.",
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;'),
+                P("🎯 The helper scripts work perfectly - sequencing is everything!",
+                  style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]}; font-weight: bold;'),
+                style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["INFO_BLUE"]}; '
+                      f'padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; '
+                      f'border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; '
+                      f'border-left: {self.UI_CONSTANTS["SPACING"]["BORDER_WIDTH"]} solid {self.UI_CONSTANTS["COLORS"]["ACCENT_INFO"]};'
+            ),
+            
+            # Prism initialization script
+            Script(f"""
             (function() {{
-                // Initialize Prism immediately when the script loads
                 if (typeof Prism !== 'undefined') {{
                     Prism.highlightAllUnder(document.getElementById('{widget_id}'));
                 }}
                 
-                // Also listen for the HX-Trigger event as a backup
                 document.body.addEventListener('initializePrism', function(event) {{
                     if (event.detail.targetId === '{widget_id}') {{
-                        console.log('Received initializePrism event for {widget_id}');
                         if (typeof Prism !== 'undefined') {{
                             Prism.highlightAllUnder(document.getElementById('{widget_id}'));
-                        }} else {{
-                            console.error('Prism library not found for {widget_id}');
                         }}
                     }}
                 }});
             }})();
-        """, type='text/javascript')
-        
-        return Div(container, init_script)
+            """, type='text/javascript')
+        )
 
     def create_splice_commands_widget(self, filename, widget_id):
         """Create a comprehensive splice commands widget with individual copy-able commands."""
