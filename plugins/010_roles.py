@@ -1,5 +1,6 @@
 # Rename file to create a generic list plugin (e.g. tasks.py, competitors.py)
 
+import importlib.util
 import inspect
 import os
 import re
@@ -22,33 +23,7 @@ ROLE_ORDER = {
     'Workshop': 5,
 }
 
-# Plugin visibility mapping based on numeric prefixes
-ROLE_PLUGIN_MAPPING = {
-    'Core': {
-        'show': [(0, 99)],  # Show plugins 000-099 (essential system)
-        'description': 'Essential system plugins only'
-    },
-    'Botify Employee': {
-        'show': [(0, 99), (500, 599)],  # Core + Botify workflows
-        'description': 'Core system + Botify workflows'
-    },
-    'Tutorial': {
-        'show': [(0, 99), (500, 599), (700, 799)],  # Core + Botify + Tutorial components
-        'description': 'Core + Botify + Tutorial components'
-    },
-    'Developer': {
-        'show': [(0, 99), (500, 599), (700, 799)],  # Same as Tutorial for now
-        'description': 'Core + Botify + Development tools'
-    },
-    'Components': {
-        'show': [(0, 999)],  # Show everything
-        'description': 'All available plugins and components'
-    },
-    'Workshop': {
-        'show': [(0, 999)],  # Show everything
-        'description': 'Complete workshop access'
-    }
-}
+# Plugin visibility is now determined by actual ROLES declarations in plugin files
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -370,31 +345,52 @@ def get_plugin_list():
     return sorted(plugins)
 
 def get_affected_plugins(role_name):
-    """Get plugins that would be shown/hidden for a given role."""
-    if role_name not in ROLE_PLUGIN_MAPPING:
-        return [], [], "Unknown role"
+    """Get plugins that would be shown for a given role based on actual ROLES declarations."""
+    # Import here to avoid circular imports
+    import sys
+    import os
     
-    role_config = ROLE_PLUGIN_MAPPING[role_name]
-    show_ranges = role_config['show']
-    description = role_config['description']
-    
-    all_plugins = get_plugin_list()
     shown_plugins = []
-    hidden_plugins = []
     
-    for prefix, name in all_plugins:
-        is_shown = False
-        for start, end in show_ranges:
-            if start <= prefix <= end:
-                is_shown = True
-                break
-        
-        if is_shown:
-            shown_plugins.append((prefix, name))
-        else:
-            hidden_plugins.append((prefix, name))
+    # Get the plugins directory
+    plugins_dir = os.path.join(os.path.dirname(__file__))
     
-    return shown_plugins, hidden_plugins, description
+    if os.path.isdir(plugins_dir):
+        for filename in os.listdir(plugins_dir):
+            if filename.endswith('.py') and not filename.startswith('__'):
+                # Skip experimental plugins
+                if filename.lower().startswith('xx_') or '(' in filename:
+                    continue
+                
+                # Extract numeric prefix and name
+                match = re.match(r'^(\d+)_(.+)\.py$', filename)
+                if match:
+                    prefix = int(match.group(1))
+                    name = match.group(2).replace('_', ' ').title()
+                    
+                    # Get the module's ROLES
+                    try:
+                        module_name = f"plugins.{filename[:-3]}"
+                        if module_name in sys.modules:
+                            module = sys.modules[module_name]
+                            plugin_roles = getattr(module, 'ROLES', [])
+                        else:
+                            # Try to import the module
+                            spec = importlib.util.spec_from_file_location(module_name, os.path.join(plugins_dir, filename))
+                            module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(module)
+                            plugin_roles = getattr(module, 'ROLES', [])
+                        
+                        # Check if this plugin should be shown for this role
+                        # Core plugins always show, or if the role matches
+                        if 'Core' in plugin_roles or role_name in plugin_roles:
+                            shown_plugins.append((prefix, name))
+                            
+                    except Exception as e:
+                        logger.warning(f"Could not check ROLES for {filename}: {e}")
+                        continue
+    
+    return sorted(shown_plugins), [], f"Plugins available with {role_name} role"
 
 def create_plugin_visibility_table(role_name):
     """Create a simple summary showing which plugins this role provides access to."""
