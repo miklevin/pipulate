@@ -423,17 +423,40 @@ def create_plugin_visibility_table(role_name):
     # Get role-based border color to match menu styling
     role_css_class = get_role_css_class(role_name)
     
-    # Define border colors that match our role coloring
-    border_colors = {
-        'menu-role-core': 'var(--pico-primary)',
-        'menu-role-botify-employee': '#3b82f6',
-        'menu-role-tutorial': '#22c55e', 
-        'menu-role-developer': '#f97316',
-        'menu-role-components': '#a855f7',
-        'menu-role-workshop': '#eab308'
+    # Define colors that match our role coloring (both border and background)
+    role_colors = {
+        'menu-role-core': {
+            'border': '#6b7280',
+            'background': 'rgba(107, 114, 128, 0.1)'
+        },
+        'menu-role-botify-employee': {
+            'border': '#3b82f6',
+            'background': 'rgba(59, 130, 246, 0.1)'
+        },
+        'menu-role-tutorial': {
+            'border': '#22c55e',
+            'background': 'rgba(34, 197, 94, 0.1)'
+        },
+        'menu-role-developer': {
+            'border': '#f97316',
+            'background': 'rgba(249, 115, 22, 0.1)'
+        },
+        'menu-role-components': {
+            'border': '#a855f7',
+            'background': 'rgba(168, 85, 247, 0.1)'
+        },
+        'menu-role-workshop': {
+            'border': '#eab308',
+            'background': 'rgba(234, 179, 8, 0.1)'
+        }
     }
     
-    border_color = border_colors.get(role_css_class, 'var(--pico-color-azure-500)')
+    colors = role_colors.get(role_css_class, {
+        'border': 'var(--pico-color-azure-500)',
+        'background': 'var(--pico-card-background-color)'
+    })
+    border_color = colors['border']
+    background_color = colors['background']
     
     # Create the plugin list
     def format_all_plugins(plugins):
@@ -449,7 +472,7 @@ def create_plugin_visibility_table(role_name):
         ),
         Div(
             Small(format_all_plugins(shown_plugins), style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.3;"),
-            style=f"padding: 0.5rem; background-color: var(--pico-card-background-color); border-radius: 0.25rem; margin-top: 0.25rem; border-left: 3px solid {border_color};"
+            style=f"padding: 0.5rem; background-color: {background_color}; border-radius: 0.25rem; margin-top: 0.25rem; border-left: 3px solid {border_color};"
         ),
         style="margin: 0;"
     )
