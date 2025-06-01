@@ -453,6 +453,12 @@ class DocumentationPlugin:
         text = html.escape(text)
         
         # Alert boxes (process before bold/italic to avoid conflicts)
+        # Handle patterns with trailing sirens: 🚨 **text** 🚨
+        text = re.sub(r'🚨 \*\*(.*?)\*\* 🚨', r'<div class="alert alert-critical"><strong>🚨 \1 🚨</strong></div>', text)
+        text = re.sub(r'✅ \*\*(.*?)\*\* ✅', r'<div class="alert alert-success"><strong>✅ \1 ✅</strong></div>', text)
+        text = re.sub(r'❌ \*\*(.*?)\*\* ❌', r'<div class="alert alert-error"><strong>❌ \1 ❌</strong></div>', text)
+        
+        # Handle patterns without trailing emoji: 🚨 **text**
         text = re.sub(r'🚨 \*\*(.*?)\*\*', r'<div class="alert alert-critical"><strong>🚨 \1</strong></div>', text)
         text = re.sub(r'✅ \*\*(.*?)\*\*', r'<div class="alert alert-success"><strong>✅ \1</strong></div>', text)
         text = re.sub(r'❌ \*\*(.*?)\*\*', r'<div class="alert alert-error"><strong>❌ \1</strong></div>', text)
