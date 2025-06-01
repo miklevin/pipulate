@@ -42,6 +42,15 @@ STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
 
+# Shared state for critical operations that should prevent server restarts
+shared_app_state = {
+    "critical_operation_in_progress": False,
+}
+
+class GracefulRestartException(SystemExit):
+    """Custom exception to signal a restart requested by Watchdog."""
+    pass
+
 # Note: The comprehensive logging architecture here suggests this system could support
 # detailed behavioral analysis and interaction pattern recognition over time.
 
@@ -4136,9 +4145,27 @@ def restart_server():
 
 class ServerRestartHandler(FileSystemEventHandler):
 
+    def _should_ignore_event(self, event):
+        """Check if event should be ignored to prevent unnecessary restarts."""
+        if event.is_directory:
+            return True
+        
+        # Ignore patterns (cache, dotfiles, temp files)
+        ignore_patterns = ["/.", "__pycache__", ".pyc", ".swp", ".tmp", ".DS_Store"]
+        if any(pattern in event.src_path for pattern in ignore_patterns):
+            return True
+        return False
+
     def on_modified(self, event):
+        if self._should_ignore_event(event):
+            return
+        
         path = Path(event.src_path)
         if path.suffix == '.py':
+            if shared_app_state["critical_operation_in_progress"]:
+                log.info(f"Watchdog: Critical operation in progress. Deferring restart for {path}")
+                return
+            
             print(f'{path} has been modified. Checking syntax and restarting...')
             restart_server()
 

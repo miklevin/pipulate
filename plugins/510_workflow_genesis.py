@@ -973,48 +973,71 @@ class WorkflowGenesis:
         execution_success = False
         
         try:
-            await self.message_queue.add(pip, "🔄 Executing workflow creation commands...", verbatim=True)
+            # Import shared state from server
+            from server import shared_app_state
             
-            # Change to project root directory for command execution
-            original_cwd = os.getcwd()
-            
-            # Log the command being executed
-            logger.info(f"[WORKFLOW_GENESIS] Executing subprocess command: {combined_cmd}")
-            
-            # Execute the combined command with shell=True since we have && chains
-            result = subprocess.run(
-                combined_cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=60,  # 60 second timeout
-                cwd=original_cwd
-            )
-            
-            execution_output = f"Command executed:\n{combined_cmd}\n\n"
-            execution_output += f"Exit code: {result.returncode}\n\n"
-            
-            if result.stdout:
-                execution_output += f"Output:\n{result.stdout}\n\n"
-            
-            if result.stderr:
-                execution_output += f"Errors/Warnings:\n{result.stderr}\n\n"
-            
-            if result.returncode == 0:
-                execution_success = True
-                execution_output += "✅ Workflow creation completed successfully!"
-                await self.message_queue.add(pip, f"✅ Created {display_filename} successfully!", verbatim=True)
-                await self.message_queue.add(pip, "🔄 Server restart triggered by watchdog...", verbatim=True)
+            # Check if another critical operation is in progress
+            if shared_app_state["critical_operation_in_progress"]:
+                await self.message_queue.add(pip, "⚠️ Another critical operation is in progress. Please wait and try again.", verbatim=True)
+                execution_output = "❌ Another critical operation was already in progress."
+                execution_success = False
             else:
-                execution_output += f"❌ Command failed with exit code {result.returncode}"
-                await self.message_queue.add(pip, f"❌ Command execution failed with exit code {result.returncode}", verbatim=True)
+                await self.message_queue.add(pip, "🔄 Executing workflow creation commands...", verbatim=True)
+                
+                # Set flag to prevent watchdog restarts during subprocess execution
+                logger.info("[WORKFLOW_GENESIS] Starting critical subprocess operation. Pausing Watchdog restarts.")
+                shared_app_state["critical_operation_in_progress"] = True
+                
+                try:
+                    # Change to project root directory for command execution
+                    original_cwd = os.getcwd()
+                    
+                    # Log the command being executed
+                    logger.info(f"[WORKFLOW_GENESIS] Executing subprocess command: {combined_cmd}")
+                    
+                    # Execute the combined command with shell=True since we have && chains
+                    result = subprocess.run(
+                        combined_cmd,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=60,  # 60 second timeout
+                        cwd=original_cwd
+                    )
+                    # Process results only if subprocess actually ran
+                    execution_output = f"Command executed:\n{combined_cmd}\n\n"
+                    execution_output += f"Exit code: {result.returncode}\n\n"
+                    
+                    if result.stdout:
+                        execution_output += f"Output:\n{result.stdout}\n\n"
+                    
+                    if result.stderr:
+                        execution_output += f"Errors/Warnings:\n{result.stderr}\n\n"
+                    
+                    if result.returncode == 0:
+                        execution_success = True
+                        execution_output += "✅ Workflow creation completed successfully!"
+                        await self.message_queue.add(pip, f"✅ Created {display_filename} successfully!", verbatim=True)
+                        await self.message_queue.add(pip, "🔄 Server restart will be triggered after command completion...", verbatim=True)
+                    else:
+                        execution_output += f"❌ Command failed with exit code {result.returncode}"
+                        await self.message_queue.add(pip, f"❌ Command execution failed with exit code {result.returncode}", verbatim=True)
+                        
+                finally:
+                    # Always reset the flag, even if subprocess fails
+                    logger.info("[WORKFLOW_GENESIS] Critical subprocess operation finished. Resuming Watchdog restarts.")
+                    shared_app_state["critical_operation_in_progress"] = False
                 
         except subprocess.TimeoutExpired:
             execution_output = f"❌ Command timed out after 60 seconds:\n{combined_cmd}"
             await self.message_queue.add(pip, "❌ Command execution timed out", verbatim=True)
+            # Reset flag on timeout
+            shared_app_state["critical_operation_in_progress"] = False
         except Exception as e:
             execution_output = f"❌ Error executing command:\n{str(e)}\n\nCommand was:\n{combined_cmd}"
             await self.message_queue.add(pip, f"❌ Error executing command: {str(e)}", verbatim=True)
+            # Reset flag on error
+            shared_app_state["critical_operation_in_progress"] = False
         
         # Create filesystem button to open plugins directory
         plugins_dir = os.path.join(os.getcwd(), 'plugins')
