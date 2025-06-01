@@ -46,7 +46,7 @@ class WorkflowGenesis:
     }
     
     APP_NAME = 'workflow_genesis' 
-    DISPLAY_NAME = 'Workflow Creation Assistant' 
+    DISPLAY_NAME = 'Workflow Genesis ⚡' 
     ENDPOINT_MESSAGE = """Create Pipulate workflows using three distinct approaches: blank placeholder for learning, hello world recreation for understanding helper tools, or trifecta workflow for complex scenarios."""
     TRAINING_PROMPT = """You are assisting with workflow creation in Pipulate. Help users choose between three approaches: 1) Blank placeholder for beginners learning step management, 2) Hello world recreation for understanding helper tool sequences, 3) Trifecta workflow for complex data collection scenarios. Guide them through command generation and explain the purpose of each approach."""
 
