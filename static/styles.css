@@ -556,19 +556,22 @@ article > div:first-child {
 }
 
 /* Key Field Styling - Global "Key Hole" Appearance */
-/* All search inputs are key fields and get distinctive black background */
-input[type="search"] {
+/* All search inputs and password inputs are key fields and get distinctive black background */
+input[type="search"],
+input[type="password"] {
     background-color: var(--key-field-bg) !important;
     color: var(--key-field-text) !important;
     border-color: var(--key-field-border) !important;
 }
 
-input[type="search"]::placeholder {
+input[type="search"]::placeholder,
+input[type="password"]::placeholder {
     color: var(--key-field-placeholder) !important;
     opacity: 1 !important;
 }
 
-input[type="search"]:focus {
+input[type="search"]:focus,
+input[type="password"]:focus {
     background-color: var(--key-field-bg) !important;
     color: var(--key-field-text) !important;
     border-color: var(--key-field-focus-border) !important;
@@ -577,23 +580,32 @@ input[type="search"]:focus {
 
 /* Ensure key fields work in both light and dark themes */
 [data-theme="light"] input[type="search"],
+[data-theme="light"] input[type="password"],
 [data-theme="dark"] input[type="search"],
-:root:not([data-theme]) input[type="search"] {
+[data-theme="dark"] input[type="password"],
+:root:not([data-theme]) input[type="search"],
+:root:not([data-theme]) input[type="password"] {
     background-color: var(--key-field-bg) !important;
     color: var(--key-field-text) !important;
     border-color: var(--key-field-border) !important;
 }
 
 [data-theme="light"] input[type="search"]::placeholder,
+[data-theme="light"] input[type="password"]::placeholder,
 [data-theme="dark"] input[type="search"]::placeholder,
-:root:not([data-theme]) input[type="search"]::placeholder {
+[data-theme="dark"] input[type="password"]::placeholder,
+:root:not([data-theme]) input[type="search"]::placeholder,
+:root:not([data-theme]) input[type="password"]::placeholder {
     color: var(--key-field-placeholder) !important;
     opacity: 1 !important;
 }
 
 [data-theme="light"] input[type="search"]:focus,
+[data-theme="light"] input[type="password"]:focus,
 [data-theme="dark"] input[type="search"]:focus,
-:root:not([data-theme]) input[type="search"]:focus {
+[data-theme="dark"] input[type="password"]:focus,
+:root:not([data-theme]) input[type="search"]:focus,
+:root:not([data-theme]) input[type="password"]:focus {
     background-color: var(--key-field-bg) !important;
     color: var(--key-field-text) !important;
     border-color: var(--key-field-focus-border) !important;
