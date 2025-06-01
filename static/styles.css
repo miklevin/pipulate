@@ -27,7 +27,7 @@
     --key-field-focus-border: #007bff;         /* Blue border on focus */
 
 
-
+    /* Dimgrey theme variables - base/fallback */
 
     --key-field-bg: #000000; /* */
     --key-field-text: #ffffff; /* */
@@ -104,12 +104,6 @@
     --pico-dropdown-hover-background-color: #7a7a7a !important; /* Lighter dimgrey for hover */
     --pico-form-element-selected-background-color: #7a7a7a !important; /* Lighter dimgrey for selected */
   }
-
-
-
- 
-
-
 
 }
 

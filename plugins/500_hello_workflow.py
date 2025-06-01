@@ -164,7 +164,7 @@ class HelloFlow:
     UI_CONSTANTS = {
         'BUTTON_LABELS': {
             'ENTER_KEY': '🔑 Enter Key',
-            'NEXT_STEP': '▶️ Next Step',
+            'NEXT_STEP': 'Next Step ▸',
             'FINALIZE': '🔒 Finalize',
             'UNLOCK': '🔓 Unlock'
         },
@@ -177,6 +177,7 @@ class HelloFlow:
             # Process Status Indicators
             # Note: These status indicators could be extended to support more nuanced
             # feedback systems and user guidance mechanisms.
+            'KEY': '🔑',
             'DISCOVERY': '🔍',
             'SUCCESS': '🎯', 
             'WARNING': '⚠️',
@@ -319,7 +320,7 @@ class HelloFlow:
         
         # Progressive feedback with emoji conventions
         await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["WORKFLOW"]} Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
-        await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
+        await self.message_queue.add(pip, f"{self.UI_CONSTANTS["EMOJIS"]["KEY"]} Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
         
         if all_steps_complete:
             if is_finalized:
