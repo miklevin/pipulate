@@ -382,14 +382,36 @@ When a user hits Enter on an empty key field, this specific sequence occurs:
 4. **Auto-Key Population**: The `landing()` method calls `pip.generate_pipeline_key(self)` to populate the input field
 5. **User Interaction**: User hits Enter again to start the workflow
 
-### 2. The Chain Reaction Pattern
+### 2. The Chain Reaction Pattern: The `run_all_cells()` Breakthrough
 
-Pipulate uses HTMX-driven step progression:
+Pipulate uses HTMX-driven step progression powered by the brilliantly named `run_all_cells()` method:
 
-1. **Initial Trigger**: After `init`, first step loads with `hx_trigger="load"`
-2. **Step Handlers**: Each step has GET (display) and POST (submit) handlers
-3. **Automatic Progression**: Completed steps trigger next step with `hx_trigger="load"`
-4. **State Persistence**: Each step stores data in pipeline state
+1. **Initial Trigger**: After `init`, the `run_all_cells()` method initializes the workflow just like Jupyter's "Run All Cells"
+2. **Perfect Mental Model**: The method name creates immediate understanding - workflows execute top-to-bottom like notebook cells
+3. **Step Handlers**: Each step has GET (display) and POST (submit) handlers
+4. **Automatic Progression**: Completed steps trigger next step with `hx_trigger="load"`
+5. **State Persistence**: Each step stores data in pipeline state
+6. **Pedagogical Brilliance**: The naming makes the system instantly intuitive for developers and AI assistants
+
+**Example: The `run_all_cells()` Pattern in Action**
+
+```python
+# ✅ CORRECT: Use the run_all_cells() method for workflow initialization
+async def init(self, request):
+    """Initialize workflow using the run_all_cells pattern"""
+    return pip.run_all_cells(app_name, steps)
+
+# ❌ ANTI-PATTERN: Manual placeholder creation
+async def init(self, request):
+    """Manual approach - harder to understand and maintain"""
+    first_step_id = steps[0].id
+    return Div(
+        Div(id=first_step_id, hx_get=f'/{app_name}/{first_step_id}', hx_trigger='load'),
+        id=f"{app_name}-container"
+    )
+```
+
+The `run_all_cells()` method encapsulates the workflow initialization pattern and creates an immediate mental connection to Jupyter notebooks.
 
 ### 3. APP_NAME vs. Filename Distinction
 
