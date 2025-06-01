@@ -39,7 +39,7 @@ Pipulate is built on a distinct set of principles prioritizing user control, sim
 Pipulate integrates a carefully selected set of tools aligned with its philosophy:
 
 * **FastHTML:** A Python web framework prioritizing simplicity. It generates HTML directly from Python objects (no template language like Jinja2) and minimizes JavaScript by design, working closely with HTMX. It's distinct from API-focused frameworks like FastAPI.
-* **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates.
+* **HTMX:** Enables dynamic, interactive UIs directly in HTML via attributes, minimizing the need for custom JavaScript. Pipulate uses it for server-rendered HTML updates (over the wire HTML-fragments targeting elements of the DOM directly instead of JSON intermediaries).
 * **MiniDataAPI:** A lightweight layer for interacting with SQLite. Uses Python dictionaries for schema definition, promoting type safety without the complexity of traditional ORMs.
 * **Ollama:** Facilitates running LLMs locally, enabling in-app chat, workflow guidance, and future automation capabilities while ensuring privacy and avoiding API costs.
 * **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support.
@@ -231,8 +231,8 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
 * WebSockets and Server-Sent Events (SSE) provide real-time updates (e.g., for chat, live development reloading).
 
 ```
-                    HTMX+Python enables a world-class
-                   Python front-end Web Development environment.
+                        HTMX+Python enables a world-class
+                  Python front-end Web Development environment.
                              ┌─────────────────────┐
                              │    Navigation Bar   │  - No template language (like Jinja2)
                              ├─────────┬───────────┤  - HTML elements are Python functions
@@ -246,8 +246,9 @@ The UI is constructed primarily with server-rendered HTML fragments delivered vi
 
 Designed for porting notebook-style processes, workflows are sequences of steps where the state is managed explicitly at each stage and stored persistently (typically as a JSON blob in the `pipeline` table).
 * **Resumable & Interrupt-Safe:** Because each step's completion is recorded, workflows can be stopped and resumed.
-* **Explicit State Flow:** Data typically passes from one step's output (`done` field) to the next via the `transform` function, simplifying debugging.
+* **Explicit State Flow:** Data typically passes from one step's output (`done` field) to the next via the `transform` function, simplifying debugging. Patterned on Unix pipes.
 * **Good Training Data:** The structured input/output of each step creates valuable data for potentially fine-tuning models.
+* **Proprietary Friendly:** Excellent for proprietary domain-experts and fields (competing academic, finances) who *resist* letting their data flow onto the Web for general AI training.
 
 ```
   ┌─────────┐        ┌─────────┐        ┌─────────┐   - Fully customizable steps
