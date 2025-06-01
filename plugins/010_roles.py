@@ -397,53 +397,28 @@ def get_affected_plugins(role_name):
     return shown_plugins, hidden_plugins, description
 
 def create_plugin_visibility_table(role_name):
-    """Create a compact summary showing plugin visibility for a role."""
+    """Create a simple summary showing which plugins this role provides access to."""
     shown_plugins, hidden_plugins, description = get_affected_plugins(role_name)
     
-    if not shown_plugins and not hidden_plugins:
-        return Small(f"📋 {description}", style="color: var(--pico-muted-color); font-style: italic; font-size: 0.8rem;")
+    if not shown_plugins:
+        return Small(f"📋 No plugins available", style="color: var(--pico-muted-color); font-style: italic; font-size: 0.8rem;")
     
-    # Create a compact summary
-    total_plugins = len(shown_plugins) + len(hidden_plugins)
     shown_count = len(shown_plugins)
-    hidden_count = len(hidden_plugins)
     
-    # Compact plugin list (show first few, then count)
-    def format_plugin_list(plugins, max_show=4):
-        if not plugins:
-            return "None"
-        
-        if len(plugins) <= max_show:
-            return ", ".join([f"{name}" for prefix, name in plugins])
-        else:
-            shown_names = [f"{name}" for prefix, name in plugins[:max_show]]
-            remaining = len(plugins) - max_show
-            return f"{', '.join(shown_names)}, +{remaining} more"
+    # Create the plugin list
+    def format_all_plugins(plugins):
+        return ", ".join([f"{name}" for prefix, name in plugins])
     
     return Details(
         Summary(
             Small(
-                f"📊 {shown_count}/{total_plugins} plugins • {description}",
+                f"📋 {shown_count} plugins available",
                 style="color: var(--pico-muted-color); font-size: 0.75rem; cursor: pointer;"
             ),
             style="margin: 0; padding: 0; list-style: none;"
         ),
         Div(
-            # Shown plugins
-            Div(
-                Small(f"✅ Shown ({shown_count}):", style="font-weight: 500; color: var(--pico-color-green-600); font-size: 0.8rem;"),
-                Br(),
-                Small(format_plugin_list(shown_plugins, 6), style="margin-left: 0.5rem; color: var(--pico-muted-color); font-size: 0.75rem;"),
-                style="margin-bottom: 0.5rem;" if hidden_plugins else ""
-            ) if shown_plugins else None,
-            
-            # Hidden plugins  
-            Div(
-                Small(f"❌ Hidden ({hidden_count}):", style="font-weight: 500; color: var(--pico-color-red-600); font-size: 0.8rem;"),
-                Br(),
-                Small(format_plugin_list(hidden_plugins, 6), style="margin-left: 0.5rem; color: var(--pico-muted-color); font-size: 0.75rem;")
-            ) if hidden_plugins else None,
-            
+            Small(format_all_plugins(shown_plugins), style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.3;"),
             style="padding: 0.5rem; background-color: var(--pico-card-background-color); border-radius: 0.25rem; margin-top: 0.25rem; border-left: 2px solid var(--pico-color-azure-500);"
         ),
         style="margin: 0;"
