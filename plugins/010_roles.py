@@ -271,11 +271,7 @@ class CrudUI(PluginIdentityManager):
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID,
                     cls='sortable',
-                    style="padding-left: 0;",
-                    hx_trigger="sortEnd",
-                    hx_get="/refresh-app-menu",
-                    hx_target="#app-dropdown-menu",
-                    hx_swap="outerHTML"
+                    style="padding-left: 0;"
                 )
             ),
             id=self.CONTAINER_ID,

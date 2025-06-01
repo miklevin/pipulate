@@ -1957,7 +1957,16 @@ class BaseCrud:
             self.send_message(prompt, verbatim=True)
             logger.debug(f'{self.name.capitalize()} order updated successfully')
             response = HTMLResponse('')
-            response.headers['HX-Trigger'] = json.dumps({'refreshProfileMenu': {}})
+            
+            # Add appropriate triggers based on the plugin type
+            triggers = {}
+            if self.name == 'profiles':
+                triggers['refreshProfileMenu'] = {}
+            elif self.name == 'roles':
+                triggers['refreshAppMenu'] = {}
+            
+            if triggers:
+                response.headers['HX-Trigger'] = json.dumps(triggers)
             return response
         except json.JSONDecodeError as e:
             error_msg = f'Invalid data format: {str(e)}'
