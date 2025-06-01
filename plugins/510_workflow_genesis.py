@@ -291,6 +291,16 @@ class WorkflowGenesis:
         splice_bottom_cmd = f"python helpers/splice_workflow_step.py {filename} --position bottom"
         splice_top_cmd = f"python helpers/splice_workflow_step.py {filename} --position top"
 
+        # Combined command with backslash line breaks for readability
+        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+                      f"  {self.format_bash_command(display_name)} \\\n" + \
+                      f"  {self.format_bash_command(endpoint_message)} \\\n" + \
+                      f"  {self.format_bash_command(training_prompt)} \\\n" + \
+                      f"  --template blank --force && \\\n" + \
+                      f"echo 'Base workflow created. Now try:' && \\\n" + \
+                      f"echo '{splice_bottom_cmd}' && \\\n" + \
+                      f"echo '{splice_top_cmd}'"
+
         return Div(
             H4("Blank Placeholder Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
             P("Creates a single-step workflow and demonstrates step positioning. Like Jupyter's Cell Above/Below concept.", 
@@ -323,8 +333,7 @@ class WorkflowGenesis:
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
             P("Copy and paste this single command to create the workflow and see positioning options:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(f"{create_cmd} && echo 'Base workflow created. Now try:' && echo '{splice_bottom_cmd}' && echo '{splice_top_cmd}'", 
-                     cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
@@ -352,6 +361,20 @@ class WorkflowGenesis:
         cmd4 = f"python helpers/splice_workflow_step.py {filename} --position bottom"
         
         cmd5 = f"python helpers/swap_workflow_step.py {filename} step_02 plugins/500_hello_workflow.py step_02 --force"
+
+        # Combined command with backslash line breaks for readability
+        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+                      f"  {self.format_bash_command(display_name)} \\\n" + \
+                      f"  {self.format_bash_command(endpoint_message)} \\\n" + \
+                      f"  {self.format_bash_command(training_prompt)} \\\n" + \
+                      f"  --template blank --force && \\\n" + \
+                      f"python helpers/manage_class_attributes.py {filename} plugins/500_hello_workflow.py \\\n" + \
+                      f"  --attributes-to-merge UI_CONSTANTS --force && \\\n" + \
+                      f"python helpers/swap_workflow_step.py {filename} step_01 \\\n" + \
+                      f"  plugins/500_hello_workflow.py step_01 --force && \\\n" + \
+                      f"python helpers/splice_workflow_step.py {filename} --position bottom && \\\n" + \
+                      f"python helpers/swap_workflow_step.py {filename} step_02 \\\n" + \
+                      f"  plugins/500_hello_workflow.py step_02 --force"
 
         return Div(
             H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
@@ -397,7 +420,7 @@ class WorkflowGenesis:
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
             P("Copy and paste this single command to execute the complete sequence:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(f"{cmd1} && {cmd2} && {cmd3} && {cmd4} && {cmd5}", cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
@@ -421,6 +444,18 @@ class WorkflowGenesis:
         cmd2 = f"python helpers/manage_class_attributes.py {filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
         
         cmd3 = f"python helpers/swap_workflow_step.py {filename} step_01 plugins/040_parameter_buster.py step_01 --force"
+
+        # Combined command with backslash line breaks for readability
+        combined_cmd = f"python helpers/create_workflow.py {filename} {class_name} {internal_name} \\\n" + \
+                      f"  {self.format_bash_command(display_name)} \\\n" + \
+                      f"  {self.format_bash_command(endpoint_message)} \\\n" + \
+                      f"  {self.format_bash_command(training_prompt)} \\\n" + \
+                      f"  --template trifecta --force && \\\n" + \
+                      f"python helpers/manage_class_attributes.py {filename} \\\n" + \
+                      f"  plugins/040_parameter_buster.py \\\n" + \
+                      f"  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && \\\n" + \
+                      f"python helpers/swap_workflow_step.py {filename} step_01 \\\n" + \
+                      f"  plugins/040_parameter_buster.py step_01 --force"
 
         return Div(
             H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
@@ -454,7 +489,7 @@ class WorkflowGenesis:
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
             P("Copy and paste this single command to create and condition the trifecta workflow:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(f"{cmd1} && {cmd2} && {cmd3}", cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
             
             id=widget_id
