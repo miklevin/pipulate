@@ -364,7 +364,7 @@ def get_plugin_list():
     return sorted(plugins)
 
 def get_affected_plugins(role_name):
-    """Get plugins that would be shown for a given role based on actual ROLES declarations."""
+    """Get plugins that would be shown for a given role using the same primary role logic as the APP menu."""
     # Import here to avoid circular imports
     import sys
     import os
@@ -400,9 +400,16 @@ def get_affected_plugins(role_name):
                             spec.loader.exec_module(module)
                             plugin_roles = getattr(module, 'ROLES', [])
                         
-                        # Check if this plugin should be shown for this role
-                        # Core plugins always show, or if the role matches
-                        if 'Core' in plugin_roles or role_name in plugin_roles:
+                        # Use the same primary role logic as the APP menu
+                        # Get the PRIMARY role (first role in the list)
+                        if plugin_roles:
+                            primary_role = plugin_roles[0]  # First role is primary (80/20 win/loss rule)
+                            
+                            # Only count this plugin if its PRIMARY role matches the requested role
+                            if primary_role == role_name:
+                                shown_plugins.append((prefix, name))
+                        elif role_name == 'Core':
+                            # Plugins with no ROLES declaration default to Core
                             shown_plugins.append((prefix, name))
                             
                     except Exception as e:
