@@ -2634,198 +2634,6 @@ async def download_file_endpoint(request):
         return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
 
 
-@rt('/open-folder', methods=['GET'])
-async def open_folder_endpoint(request):
-    """
-    Opens a folder in the host OS's file explorer.
-    Expects a 'path' query parameter with the absolute path to open.
-    """
-    path_param = request.query_params.get("path")
-    if not path_param:
-        return HTMLResponse("Path parameter is missing", status_code=400)
-
-    decoded_path = urllib.parse.unquote(path_param)
-
-    # Basic security check - ensure it's an absolute path and within allowed directories
-    if not os.path.isabs(decoded_path) or ".." in decoded_path:
-        return HTMLResponse("Invalid or potentially insecure path", status_code=400)
-
-    # Ensure the path exists and is a directory
-    if not os.path.exists(decoded_path) or not os.path.isdir(decoded_path):
-        return HTMLResponse("Path does not exist or is not a directory", status_code=400)
-
-    try:
-        current_os = platform.system()
-        if current_os == "Windows":
-            subprocess.run(["explorer", decoded_path], check=True)
-        elif current_os == "Darwin":  # macOS
-            subprocess.run(["open", decoded_path], check=True)
-        elif current_os == "Linux":
-            subprocess.run(["xdg-open", decoded_path], check=True)
-        else:
-            return HTMLResponse(f"Unsupported operating system: {current_os}", status_code=400)
-        
-        return HTMLResponse("Folder opened successfully")
-    except subprocess.CalledProcessError as e:
-        return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
-    except Exception as e:
-        return HTMLResponse(f"An unexpected error occurred: {str(e)}", status_code=500)
-
-@rt('/refresh-app-menu')
-async def refresh_app_menu_endpoint(request):
-    """Refresh the App menu dropdown via HTMX endpoint."""
-    logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
-    menux = db.get('last_app_choice', '')
-    app_menu_details_component = create_app_menu(menux)
-    return HTMLResponse(to_xml(app_menu_details_component))
-
-
-@rt('/clear-pipeline', methods=['POST'])
-async def clear_pipeline(request):
-    menux = db.get('last_app_choice', 'App')
-    workflow_display_name = 'Pipeline'
-    if menux and menux in plugin_instances:
-        instance = plugin_instances.get(menux)
-        if instance and hasattr(instance, 'DISPLAY_NAME'):
-            workflow_display_name = instance.DISPLAY_NAME
-        else:
-            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
-    last_app_choice = db.get('last_app_choice')
-    last_visited_url = db.get('last_visited_url')
-    keys = list(db.keys())
-    for key in keys:
-        del db[key]
-    logger.debug(f'{workflow_display_name} DictLikeDB cleared')
-    if last_app_choice:
-        db['last_app_choice'] = last_app_choice
-    if last_visited_url:
-        db['last_visited_url'] = last_visited_url
-    if hasattr(pipulate.table, 'xtra'):
-        pipulate.table.xtra()
-    records = list(pipulate.table())
-    logger.debug(f'Found {len(records)} records to delete')
-    for record in records:
-        pipulate.table.delete(record.pkey)
-    logger.debug(f'{workflow_display_name} table cleared')
-    db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
-    logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
-    response = Div(pipulate.update_datalist('pipeline-ids', clear=True), P(f'{workflow_display_name} cleared.'), cls='clear-message')
-    html_response = HTMLResponse(str(response))
-    html_response.headers['HX-Refresh'] = 'true'
-    return html_response
-
-
-@rt('/clear-db', methods=['POST'])
-async def clear_db(request):
-    """Reset the entire database to its initial state."""
-    # Log initial state if lifecycle logging is enabled
-    if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: Starting database reset...")
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB INITIAL")
-        log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="CLEAR_DB INITIAL")
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB INITIAL")
-
-    # Preserve some values we want to restore
-    last_app_choice = db.get('last_app_choice')
-    last_visited_url = db.get('last_visited_url')
-    temp_message = db.get('temp_message')
-
-    # Pre-wipe logging for plugin tables using raw SQL
-    if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: Table states BEFORE plugin table wipe:")
-        try:
-            conn_temp = sqlite3.connect(DB_FILENAME)
-            conn_temp.row_factory = sqlite3.Row
-            cursor_temp = conn_temp.cursor()
-            cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
-            plugin_table_names_tuples = cursor_temp.fetchall()
-            for table_name_tuple in plugin_table_names_tuples:
-                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix="CLEAR_DB PRE-WIPE")
-            conn_temp.close()
-        except Exception as e_plugin_log_pre:
-            logger.bind(lifecycle=True).error(f"CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}")
-
-    # Clear core tables
-    try:
-        with sqlite3.connect(DB_FILENAME) as conn:
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM store')
-            cursor.execute('DELETE FROM pipeline')
-            cursor.execute('DELETE FROM profile')
-            cursor.execute('DELETE FROM sqlite_sequence')
-            conn.commit()
-    except Exception as e:
-        logger.error(f'Error clearing core tables: {e}')
-        return HTMLResponse(f'Error clearing database: {e}', status_code=500)
-
-    # Clear plugin tables with explicit transaction handling
-    logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {DB_FILENAME}')
-    try:
-        with sqlite3.connect(DB_FILENAME) as conn_delete:
-            cursor_delete = conn_delete.cursor()
-            cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
-            plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
-            
-            logger.warning(f'Found plugin tables for deletion: {", ".join(plugin_table_names_to_delete)}')
-            cleared_count = 0
-            for table_name in plugin_table_names_to_delete:
-                try:
-                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')
-                    row_count_before_delete = cursor_delete.fetchone()[0]
-                    cursor_delete.execute(f'DELETE FROM {table_name}')
-                    conn_delete.commit()  # Commit after each delete for plugin tables
-                    
-                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')  # Verify
-                    row_count_after_delete = cursor_delete.fetchone()[0]
-                    
-                    logger.warning(f"Plugin table '{table_name}' cleared: Deleted {row_count_before_delete - row_count_after_delete} records (had {row_count_before_delete})")
-                    if TABLE_LIFECYCLE_LOGGING:
-                        logger.bind(lifecycle=True).info(f"CLEAR_DB: Wiped plugin table '{table_name}'. Rows before: {row_count_before_delete}, Rows after: {row_count_after_delete}")
-
-                    cleared_count += 1
-                    # Attempt to reset sequence, ignore common error if table doesn't use it
-                    try:
-                        cursor_delete.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
-                        conn_delete.commit()
-                    except sqlite3.OperationalError as e_seq:
-                        if "no such table: sqlite_sequence" not in str(e_seq).lower():
-                            logger.error(f'Error resetting sequence for table {table_name}: {e_seq}')
-                except Exception as e_table_clear:
-                    logger.error(f'Error clearing table {table_name}: {e_table_clear}')
-            logger.warning(f'Plugin tables cleanup complete: Cleared {cleared_count} tables')
-    except Exception as e_db_access:
-        logger.error(f'Error accessing SQLite database for plugin table deletion: {e_db_access}')
-        if TABLE_LIFECYCLE_LOGGING:
-            logger.bind(lifecycle=True).error(f"CLEAR_DB: Critical error during plugin table deletion: {e_db_access}")
-
-    # Re-initialize data
-    populate_initial_data()
-    if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: After populate_initial_data.")
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB POST-POPULATE")
-    
-    await synchronize_roles_to_db()
-    if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: After synchronize_roles_to_db.")
-
-    # Restore preserved values
-    if last_app_choice:
-        db['last_app_choice'] = last_app_choice
-    if last_visited_url:
-        db['last_visited_url'] = last_visited_url
-    if temp_message:
-        db['temp_message'] = temp_message
-
-    # Log final state
-    if TABLE_LIFECYCLE_LOGGING:
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB FINAL (post key restoration)")
-        logger.bind(lifecycle=True).info("CLEAR_DB: Operation fully complete.")
-
-    html_response = HTMLResponse('<div>Database reset complete</div>')
-    html_response.headers['HX-Refresh'] = 'true'
-    return html_response
-
-
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f'Retrieving profile name for ID: {profile_id}')
@@ -3214,6 +3022,198 @@ async def poke_chatbot():
     poke_message = f'The user poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked.'
     asyncio.create_task(pipulate.stream(poke_message))
     return 'Poke received. Countdown to local LLM MODEL...'
+
+
+@rt('/open-folder', methods=['GET'])
+async def open_folder_endpoint(request):
+    """
+    Opens a folder in the host OS's file explorer.
+    Expects a 'path' query parameter with the absolute path to open.
+    """
+    path_param = request.query_params.get("path")
+    if not path_param:
+        return HTMLResponse("Path parameter is missing", status_code=400)
+
+    decoded_path = urllib.parse.unquote(path_param)
+
+    # Basic security check - ensure it's an absolute path and within allowed directories
+    if not os.path.isabs(decoded_path) or ".." in decoded_path:
+        return HTMLResponse("Invalid or potentially insecure path", status_code=400)
+
+    # Ensure the path exists and is a directory
+    if not os.path.exists(decoded_path) or not os.path.isdir(decoded_path):
+        return HTMLResponse("Path does not exist or is not a directory", status_code=400)
+
+    try:
+        current_os = platform.system()
+        if current_os == "Windows":
+            subprocess.run(["explorer", decoded_path], check=True)
+        elif current_os == "Darwin":  # macOS
+            subprocess.run(["open", decoded_path], check=True)
+        elif current_os == "Linux":
+            subprocess.run(["xdg-open", decoded_path], check=True)
+        else:
+            return HTMLResponse(f"Unsupported operating system: {current_os}", status_code=400)
+        
+        return HTMLResponse("Folder opened successfully")
+    except subprocess.CalledProcessError as e:
+        return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
+    except Exception as e:
+        return HTMLResponse(f"An unexpected error occurred: {str(e)}", status_code=500)
+
+@rt('/refresh-app-menu')
+async def refresh_app_menu_endpoint(request):
+    """Refresh the App menu dropdown via HTMX endpoint."""
+    logger.debug('Refreshing App menu dropdown via HTMX endpoint /refresh-app-menu')
+    menux = db.get('last_app_choice', '')
+    app_menu_details_component = create_app_menu(menux)
+    return HTMLResponse(to_xml(app_menu_details_component))
+
+
+@rt('/clear-pipeline', methods=['POST'])
+async def clear_pipeline(request):
+    menux = db.get('last_app_choice', 'App')
+    workflow_display_name = 'Pipeline'
+    if menux and menux in plugin_instances:
+        instance = plugin_instances.get(menux)
+        if instance and hasattr(instance, 'DISPLAY_NAME'):
+            workflow_display_name = instance.DISPLAY_NAME
+        else:
+            workflow_display_name = friendly_names.get(menux, menux.replace('_', ' ').title())
+    last_app_choice = db.get('last_app_choice')
+    last_visited_url = db.get('last_visited_url')
+    keys = list(db.keys())
+    for key in keys:
+        del db[key]
+    logger.debug(f'{workflow_display_name} DictLikeDB cleared')
+    if last_app_choice:
+        db['last_app_choice'] = last_app_choice
+    if last_visited_url:
+        db['last_visited_url'] = last_visited_url
+    if hasattr(pipulate.table, 'xtra'):
+        pipulate.table.xtra()
+    records = list(pipulate.table())
+    logger.debug(f'Found {len(records)} records to delete')
+    for record in records:
+        pipulate.table.delete(record.pkey)
+    logger.debug(f'{workflow_display_name} table cleared')
+    db['temp_message'] = f'{workflow_display_name} cleared. Next ID will be 01.'
+    logger.debug(f'{workflow_display_name} DictLikeDB cleared for debugging')
+    response = Div(pipulate.update_datalist('pipeline-ids', clear=True), P(f'{workflow_display_name} cleared.'), cls='clear-message')
+    html_response = HTMLResponse(str(response))
+    html_response.headers['HX-Refresh'] = 'true'
+    return html_response
+
+
+@rt('/clear-db', methods=['POST'])
+async def clear_db(request):
+    """Reset the entire database to its initial state."""
+    # Log initial state if lifecycle logging is enabled
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: Starting database reset...")
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB INITIAL")
+        log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="CLEAR_DB INITIAL")
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB INITIAL")
+
+    # Preserve some values we want to restore
+    last_app_choice = db.get('last_app_choice')
+    last_visited_url = db.get('last_visited_url')
+    temp_message = db.get('temp_message')
+
+    # Pre-wipe logging for plugin tables using raw SQL
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: Table states BEFORE plugin table wipe:")
+        try:
+            conn_temp = sqlite3.connect(DB_FILENAME)
+            conn_temp.row_factory = sqlite3.Row
+            cursor_temp = conn_temp.cursor()
+            cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+            plugin_table_names_tuples = cursor_temp.fetchall()
+            for table_name_tuple in plugin_table_names_tuples:
+                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix="CLEAR_DB PRE-WIPE")
+            conn_temp.close()
+        except Exception as e_plugin_log_pre:
+            logger.bind(lifecycle=True).error(f"CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}")
+
+    # Clear core tables
+    try:
+        with sqlite3.connect(DB_FILENAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM store')
+            cursor.execute('DELETE FROM pipeline')
+            cursor.execute('DELETE FROM profile')
+            cursor.execute('DELETE FROM sqlite_sequence')
+            conn.commit()
+    except Exception as e:
+        logger.error(f'Error clearing core tables: {e}')
+        return HTMLResponse(f'Error clearing database: {e}', status_code=500)
+
+    # Clear plugin tables with explicit transaction handling
+    logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {DB_FILENAME}')
+    try:
+        with sqlite3.connect(DB_FILENAME) as conn_delete:
+            cursor_delete = conn_delete.cursor()
+            cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
+            plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
+            
+            logger.warning(f'Found plugin tables for deletion: {", ".join(plugin_table_names_to_delete)}')
+            cleared_count = 0
+            for table_name in plugin_table_names_to_delete:
+                try:
+                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')
+                    row_count_before_delete = cursor_delete.fetchone()[0]
+                    cursor_delete.execute(f'DELETE FROM {table_name}')
+                    conn_delete.commit()  # Commit after each delete for plugin tables
+                    
+                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')  # Verify
+                    row_count_after_delete = cursor_delete.fetchone()[0]
+                    
+                    logger.warning(f"Plugin table '{table_name}' cleared: Deleted {row_count_before_delete - row_count_after_delete} records (had {row_count_before_delete})")
+                    if TABLE_LIFECYCLE_LOGGING:
+                        logger.bind(lifecycle=True).info(f"CLEAR_DB: Wiped plugin table '{table_name}'. Rows before: {row_count_before_delete}, Rows after: {row_count_after_delete}")
+
+                    cleared_count += 1
+                    # Attempt to reset sequence, ignore common error if table doesn't use it
+                    try:
+                        cursor_delete.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
+                        conn_delete.commit()
+                    except sqlite3.OperationalError as e_seq:
+                        if "no such table: sqlite_sequence" not in str(e_seq).lower():
+                            logger.error(f'Error resetting sequence for table {table_name}: {e_seq}')
+                except Exception as e_table_clear:
+                    logger.error(f'Error clearing table {table_name}: {e_table_clear}')
+            logger.warning(f'Plugin tables cleanup complete: Cleared {cleared_count} tables')
+    except Exception as e_db_access:
+        logger.error(f'Error accessing SQLite database for plugin table deletion: {e_db_access}')
+        if TABLE_LIFECYCLE_LOGGING:
+            logger.bind(lifecycle=True).error(f"CLEAR_DB: Critical error during plugin table deletion: {e_db_access}")
+
+    # Re-initialize data
+    populate_initial_data()
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: After populate_initial_data.")
+        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB POST-POPULATE")
+    
+    await synchronize_roles_to_db()
+    if TABLE_LIFECYCLE_LOGGING:
+        logger.bind(lifecycle=True).info("CLEAR_DB: After synchronize_roles_to_db.")
+
+    # Restore preserved values
+    if last_app_choice:
+        db['last_app_choice'] = last_app_choice
+    if last_visited_url:
+        db['last_visited_url'] = last_visited_url
+    if temp_message:
+        db['temp_message'] = temp_message
+
+    # Log final state
+    if TABLE_LIFECYCLE_LOGGING:
+        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB FINAL (post key restoration)")
+        logger.bind(lifecycle=True).info("CLEAR_DB: Operation fully complete.")
+
+    html_response = HTMLResponse('<div>Database reset complete</div>')
+    html_response.headers['HX-Refresh'] = 'true'
+    return html_response
 
 
 @rt('/select_profile', methods=['POST'])
