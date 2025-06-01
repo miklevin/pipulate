@@ -255,7 +255,7 @@ Designed for porting notebook-style processes, workflows are sequences of steps 
   │ Step 01 │─piped─►│ Step 02 │─piped─►│ Step 03 │   - Interruption-safe & resumable
   └─────────┘        └─────────┘        └─────────┘   - Easily ported from Notebooks
        │                  │                  │        - One DB record per workflow run
-       ▼                  ▼                  ▼
+       ▼                  ▼                  ▼        - Everything stays on your machine
     State Saved        State Saved        Finalized?
 ```
 
