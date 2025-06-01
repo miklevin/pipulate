@@ -372,65 +372,6 @@ class DebugConsole(Console):
 console = DebugConsole(theme=custom_theme)
 
 
-def title_name(word: str) -> str:
-    """Format a string into a title case form.
-
-    Args:
-        word: The string to format
-
-    Returns:
-        str: The formatted string in title case
-    """
-    if not word:
-        return ''
-    formatted = word.replace('.', ' ').replace('-', ' ')
-    words = []
-    for part in formatted.split('_'):
-        words.extend(part.split())
-    processed_words = []
-    for word in words:
-        if word.isdigit():
-            processed_words.append(word.lstrip('0') or '0')
-        else:
-            processed_words.append(word.capitalize())
-    return ' '.join(processed_words)
-
-
-def endpoint_name(endpoint: str) -> str:
-    if not endpoint:
-        return HOME_MENU_ITEM
-    if endpoint in friendly_names:
-        return friendly_names[endpoint]
-    return title_name(endpoint)
-
-
-def step_name(step: str, preserve: bool = False) -> str:
-    _, number = step.split('_')
-    return f"Step {number.lstrip('0')}"
-
-
-def step_button(visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
-    """
-    Formats the revert button text.
-    Uses visual_step_number for "Step X" numbering if revert_label is not provided.
-    
-    Args:
-        visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
-        preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
-        revert_label: Custom label to use instead of "Step X" format
-    """
-    logger.debug(f'[format_step_button] Entry - visual_step_number={visual_step_number}, preserve={preserve}, revert_label={revert_label}')
-    symbol = '⟲' if preserve else '↶'
-    
-    if revert_label:
-        button_text = f'{symbol}\xa0{revert_label}'
-    else:
-        button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
-        
-    logger.debug(f'[format_step_button] Generated button text: {button_text}')
-    return button_text
-
-
 class SSEBroadcaster:
     _instance = None
     _initialized = False
@@ -488,12 +429,6 @@ def read_training(prompt_or_filename):
     return prompt_or_filename
 
 
-def hot_prompt_injection(prompt_or_filename):
-    prompt = read_training(prompt_or_filename)
-    append_to_conversation(prompt, role='system')
-    return prompt
-
-
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
 else:
@@ -534,6 +469,65 @@ def append_to_conversation(message=None, role='user'):
     global_conversation_history.append({'role': role, 'content': message})
     
     return list(global_conversation_history)
+
+
+def title_name(word: str) -> str:
+    """Format a string into a title case form.
+
+    Args:
+        word: The string to format
+
+    Returns:
+        str: The formatted string in title case
+    """
+    if not word:
+        return ''
+    formatted = word.replace('.', ' ').replace('-', ' ')
+    words = []
+    for part in formatted.split('_'):
+        words.extend(part.split())
+    processed_words = []
+    for word in words:
+        if word.isdigit():
+            processed_words.append(word.lstrip('0') or '0')
+        else:
+            processed_words.append(word.capitalize())
+    return ' '.join(processed_words)
+
+
+def endpoint_name(endpoint: str) -> str:
+    if not endpoint:
+        return HOME_MENU_ITEM
+    if endpoint in friendly_names:
+        return friendly_names[endpoint]
+    return title_name(endpoint)
+
+
+def step_name(step: str, preserve: bool = False) -> str:
+    _, number = step.split('_')
+    return f"Step {number.lstrip('0')}"
+
+
+def step_button(visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
+    """
+    Formats the revert button text.
+    Uses visual_step_number for "Step X" numbering if revert_label is not provided.
+    
+    Args:
+        visual_step_number: The visual step number (e.g., "1", "2", "3") based on position in workflow
+        preserve: Whether to use the preserve symbol (⟲) instead of revert symbol (↶)
+        revert_label: Custom label to use instead of "Step X" format
+    """
+    logger.debug(f'[format_step_button] Entry - visual_step_number={visual_step_number}, preserve={preserve}, revert_label={revert_label}')
+    symbol = '⟲' if preserve else '↶'
+    
+    if revert_label:
+        button_text = f'{symbol}\xa0{revert_label}'
+    else:
+        button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
+        
+    logger.debug(f'[format_step_button] Generated button text: {button_text}')
+    return button_text
 
 
 def pipeline_operation(func):
@@ -3308,7 +3302,8 @@ def redirect_handler(request):
     logger.debug(f'Redirecting to: /{path}')
     message = build_endpoint_messages(path)
     if message:
-        hot_prompt_injection(message)
+        prompt = read_training(message)
+        append_to_conversation(prompt, role='system')
         db['temp_message'] = message
     build_endpoint_training(path)
     return Redirect(f'/{path}')
