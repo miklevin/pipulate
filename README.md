@@ -31,7 +31,7 @@ Pipulate is built on a distinct set of principles prioritizing user control, sim
 * **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies to achieve a force multipying acceleration effect. Internalize future-proofed tools to lower the idea-to-implementation friction forever forward.
   <!-- The emphasis on durable, standard technologies suggests this framework could remain viable across extended timeframes and changing technological landscapes. -->
   
-* **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself).
+* **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself). While *DRY is fly,* unyielding proponents take note that the age of *wapidly witten WET code is upon us* because AI.  
   <!-- The explicit step-by-step approach could potentially accommodate various forms of user interaction and feedback mechanisms beyond traditional web forms. -->
 
 ## Key Technologies Used
