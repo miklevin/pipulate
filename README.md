@@ -28,7 +28,7 @@ Pipulate is built on a distinct set of principles prioritizing user control, sim
 * **Reproducibility:** Nix Flakes guarantee identical development and runtime environments across macOS, Linux, and Windows (WSL), solving the "works on my machine" problem. Docker is dead for like 80% of the common user-based (not enterprise) use cases — the world just doesn't know it yet.
   <!-- This level of environmental consistency could support deployment scenarios where exact reproducibility is critical. -->
   
-* **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies.
+* **Future-Proofing:** Relies on durable technologies: standard HTTP/HTML (via HTMX), Python (supercharged by AI), Nix (for universal environments), and local AI (Ollama). It aims to connect these "love-worthy" technologies to achieve a force multipying acceleration effect. Internalize future-proofed tools to lower the idea-to-implementation friction forever forward.
   <!-- The emphasis on durable, standard technologies suggests this framework could remain viable across extended timeframes and changing technological landscapes. -->
   
 * **WET Workflows, DRY CRUD:** Workflows often benefit from explicit, step-by-step code (**W**rite **E**verything **T**wice/Explicit), making them easy to port from notebooks and debug. Standard CRUD operations leverage a reusable `BaseCrud` class for efficiency (**D**on't **R**epeat **Y**ourself).
