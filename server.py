@@ -2468,6 +2468,77 @@ MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
 
+def get_intro_page_content(page_num_str: str):
+    """
+    Returns the content for the given intro page number.
+    Each page's content is wrapped in a PicoCSS Card for consistent styling.
+    The content is defined once and used for both UI display and LLM context.
+    """
+    page_num = int(page_num_str)
+    card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
+    if page_num == 1:
+        title = f'Welcome to {APP_NAME}'
+        intro = f"Layout:"
+        features = [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')]
+        getting_started = 'Getting Started'
+        nav_help = f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.'
+        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'
+        content = Card(H2(title), H4(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
+        llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
+        return (content, llm_context)
+    elif page_num == 2:
+        experimenting_title = 'Positive First Experience'
+        experimenting_steps = ['Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.']
+        interface_title = 'Understanding the Interface'
+        interface_items = [('PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APPS', 'Try Parameter Buster on your Client. It\'s a big potential win.')]
+        content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')
+        llm_context = f"The user is viewing the Experimenting page which shows:\n\n{experimenting_title}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(experimenting_steps)))}\n\n{interface_title}\n{chr(10).join((f'• {name}: {desc}' for name, desc in interface_items))}"
+        return (content, llm_context)
+    elif page_num == 3:
+        title = 'Tips for Effective Use'
+        tips = [('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'), ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'), ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'), ('BROWSE', 'Go look where things are saved.')]
+        content = Card(
+            H3(title), 
+            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]),
+            Hr(),
+            P("Try it now: ", A("Open Downloads Folder", href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_swap="none")),
+            style=card_style, 
+            id='intro-page-3-content'
+        )
+        llm_context = f"The user is viewing the Tips page which shows:\n\n{title}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(tips)))}"
+        return (content, llm_context)
+    elif page_num == 4:
+        title = 'Local LLM Assistant'
+        llm_features = [
+            ('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
+            ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
+            ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
+            ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
+            ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
+        ]
+        usage_tips = [
+            'Try asking "What can I do with this workflow?" when starting a new one.',
+            'Ask for help with specific steps if you get stuck.',
+            'Request explanations of workflow outputs or data.',
+            'Get suggestions for next steps or alternative approaches.'
+        ]
+        content = Card(
+            H3(title),
+            P(f"Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:"),
+            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in llm_features]),
+            H4("How to Use the LLM"),
+            Ul(*[Li(tip) for tip in usage_tips]),
+            style=card_style,
+            id='intro-page-4-content'
+        )
+        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{title}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(llm_features)))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in usage_tips))}"
+        return (content, llm_context)
+    error_msg = f'Content for instruction page {page_num_str} not found.'
+    content = Card(P(error_msg), style=card_style, id=f'intro-page-{page_num_str}-content')
+    llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
+    return (content, llm_context)
+
+
 @rt('/download_file', methods=['GET', 'OPTIONS'])
 async def download_file_endpoint(request):
     """
@@ -2974,77 +3045,6 @@ async def create_outer_container(current_profile_id, menux, request):
     nav_group = create_nav_group()
     return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
 MAX_INTRO_PAGES = 4
-
-
-def get_intro_page_content(page_num_str: str):
-    """
-    Returns the content for the given intro page number.
-    Each page's content is wrapped in a PicoCSS Card for consistent styling.
-    The content is defined once and used for both UI display and LLM context.
-    """
-    page_num = int(page_num_str)
-    card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
-    if page_num == 1:
-        title = f'Welcome to {APP_NAME}'
-        intro = f"Layout:"
-        features = [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')]
-        getting_started = 'Getting Started'
-        nav_help = f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.'
-        llm_help = f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'
-        content = Card(H2(title), H4(intro), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in features]), H4(getting_started), P(nav_help), P(llm_help), style=card_style, id='intro-page-1-content')
-        llm_context = f"The user is viewing the Introduction page which shows:\n\n{title}\n\n{intro}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(features)))}\n\n{getting_started}\n{nav_help}\n{llm_help}"
-        return (content, llm_context)
-    elif page_num == 2:
-        experimenting_title = 'Positive First Experience'
-        experimenting_steps = ['Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.']
-        interface_title = 'Understanding the Interface'
-        interface_items = [('PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete.'), ('APPS', 'Try Parameter Buster on your Client. It\'s a big potential win.')]
-        content = Card(H3(experimenting_title), Ol(*[Li(step) for step in experimenting_steps]), H3(interface_title), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in interface_items]), style=card_style, id='intro-page-2-content')
-        llm_context = f"The user is viewing the Experimenting page which shows:\n\n{experimenting_title}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(experimenting_steps)))}\n\n{interface_title}\n{chr(10).join((f'• {name}: {desc}' for name, desc in interface_items))}"
-        return (content, llm_context)
-    elif page_num == 3:
-        title = 'Tips for Effective Use'
-        tips = [('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'), ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'), ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'), ('BROWSE', 'Go look where things are saved.')]
-        content = Card(
-            H3(title), 
-            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in tips]),
-            Hr(),
-            P("Try it now: ", A("Open Downloads Folder", href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())), hx_swap="none")),
-            style=card_style, 
-            id='intro-page-3-content'
-        )
-        llm_context = f"The user is viewing the Tips page which shows:\n\n{title}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(tips)))}"
-        return (content, llm_context)
-    elif page_num == 4:
-        title = 'Local LLM Assistant'
-        llm_features = [
-            ('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
-            ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
-            ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
-            ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
-            ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
-        ]
-        usage_tips = [
-            'Try asking "What can I do with this workflow?" when starting a new one.',
-            'Ask for help with specific steps if you get stuck.',
-            'Request explanations of workflow outputs or data.',
-            'Get suggestions for next steps or alternative approaches.'
-        ]
-        content = Card(
-            H3(title),
-            P(f"Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:"),
-            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in llm_features]),
-            H4("How to Use the LLM"),
-            Ul(*[Li(tip) for tip in usage_tips]),
-            style=card_style,
-            id='intro-page-4-content'
-        )
-        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{title}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(llm_features)))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in usage_tips))}"
-        return (content, llm_context)
-    error_msg = f'Content for instruction page {page_num_str} not found.'
-    content = Card(P(error_msg), style=card_style, id=f'intro-page-{page_num_str}-content')
-    llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
-    return (content, llm_context)
 
 
 async def render_intro_page_with_navigation(page_num_str: str):
