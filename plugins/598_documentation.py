@@ -377,7 +377,7 @@ class DocumentationPlugin:
                 i += 1
             
             # Code block placeholders (preserve as-is)
-            elif placeholder_pattern.format(0).split('_')[0] in stripped:
+            elif re.match(r'^CODEBLOCK_PLACEHOLDER_\d+$', stripped):
                 processed_lines.append(line)
                 i += 1
             
@@ -395,7 +395,7 @@ class DocumentationPlugin:
             stripped = line.strip()
             
             # If it's an HTML element or empty line, keep as-is
-            if not stripped or stripped.startswith('<') or placeholder_pattern.format(0).split('_')[0] in stripped:
+            if not stripped or stripped.startswith('<') or re.match(r'^CODEBLOCK_PLACEHOLDER_\d+$', stripped):
                 final_lines.append(line)
                 i += 1
             else:
@@ -408,7 +408,7 @@ class DocumentationPlugin:
                     # Stop if we hit an empty line, HTML element, or placeholder
                     if (not current_stripped or 
                         current_stripped.startswith('<') or 
-                        placeholder_pattern.format(0).split('_')[0] in current_stripped):
+                        re.match(r'^CODEBLOCK_PLACEHOLDER_\d+$', current_stripped)):
                         break
                     
                     # Handle hard line breaks (two spaces at end of line)
@@ -429,7 +429,9 @@ class DocumentationPlugin:
         for i, code_block in enumerate(code_blocks):
             placeholder = placeholder_pattern.format(i)
             processed_block = self.process_code_block(code_block)
-            result = result.replace(placeholder, processed_block)
+            # Use a more precise replacement to avoid partial matches
+            if placeholder in result:
+                result = result.replace(placeholder, processed_block, 1)  # Replace only first occurrence
         
         return result
     
