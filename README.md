@@ -48,7 +48,7 @@ Pipulate integrates a carefully selected set of tools aligned with its philosoph
 
 * **Nix Flakes:** Manages dependencies and creates reproducible environments, ensuring consistency across developers and operating systems, with optional CUDA support. E.g. Is this a Linux-thing you're reading about here? A Windows thing? A Mac thing? The answer is: YES!!! All of the above — and if you've got cool acceleration hardware, it will even take advantage and utilize that too. Best of all worlds.
 
-* **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows).
+* **SQLite & Jupyter Notebooks:** Foundational tools for data persistence and the workflow development process (porting from notebooks to Pipulate workflows). SQLite is built into Python and really all things — the *get-out-of-tech-liability free card* you didn't know you had. And a full JupyterLab instance is installed side-by-side with Pipulate sharing the same Python `.venv` virtual environment (on Nix!!!), so... well... uhm, there are no words. If you know you know.
 
 ## Target Audience
 
