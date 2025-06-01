@@ -371,6 +371,42 @@ class DocumentationPlugin:
                     list_html = '<ol>' + ''.join(f'<li>{item}</li>' for item in list_items) + '</ol>'
                     processed_lines.append(list_html)
             
+            # Tables (pipe-delimited)
+            elif '|' in stripped and len(stripped.split('|')) >= 3:
+                # Look ahead to see if this is a table
+                table_lines = []
+                table_start = i
+                
+                # Collect potential table lines
+                while i < len(lines):
+                    current_line = lines[i].strip()
+                    if not current_line:
+                        break
+                    if '|' in current_line and len(current_line.split('|')) >= 3:
+                        table_lines.append(current_line)
+                        i += 1
+                    else:
+                        break
+                
+                # Check if we have a valid table (at least header + separator + data)
+                if len(table_lines) >= 2:
+                    # Check if second line is a separator (contains dashes and pipes)
+                    second_line = table_lines[1]
+                    if re.match(r'^\s*\|[\s\-\|:]+\|\s*$', second_line):
+                        # Process as table
+                        table_html = self._process_table(table_lines)
+                        processed_lines.append(table_html)
+                    else:
+                        # Not a table, backtrack and process as regular lines
+                        i = table_start
+                        processed_lines.append(line)
+                        i += 1
+                else:
+                    # Not enough lines for a table, backtrack
+                    i = table_start
+                    processed_lines.append(line)
+                    i += 1
+            
             # Empty lines (potential paragraph breaks)
             elif not stripped:
                 processed_lines.append('')
@@ -486,6 +522,53 @@ class DocumentationPlugin:
         text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
         
         return text
+
+    def _process_table(self, table_lines):
+        """Process markdown table lines into HTML table"""
+        if len(table_lines) < 2:
+            return ''
+        
+        # Parse header row
+        header_row = table_lines[0].strip()
+        header_cells = [cell.strip() for cell in header_row.split('|') if cell.strip()]
+        
+        # Skip separator row (table_lines[1])
+        
+        # Parse data rows
+        data_rows = []
+        for line in table_lines[2:]:
+            if line.strip():
+                cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+                # Pad cells to match header length
+                while len(cells) < len(header_cells):
+                    cells.append('')
+                data_rows.append(cells[:len(header_cells)])  # Trim excess cells
+        
+        # Build HTML table
+        html_parts = ['<table>']
+        
+        # Header
+        html_parts.append('<thead>')
+        html_parts.append('<tr>')
+        for cell in header_cells:
+            processed_cell = self._process_inline_markdown(cell)
+            html_parts.append(f'<th>{processed_cell}</th>')
+        html_parts.append('</tr>')
+        html_parts.append('</thead>')
+        
+        # Body
+        if data_rows:
+            html_parts.append('<tbody>')
+            for row in data_rows:
+                html_parts.append('<tr>')
+                for cell in row:
+                    processed_cell = self._process_inline_markdown(cell)
+                    html_parts.append(f'<td>{processed_cell}</td>')
+                html_parts.append('</tr>')
+            html_parts.append('</tbody>')
+        
+        html_parts.append('</table>')
+        return ''.join(html_parts)
 
     def process_code_block(self, code_block):
         """Process a single code block and convert to HTML with proper escaping"""
