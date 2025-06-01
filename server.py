@@ -1533,14 +1533,6 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         yield error_msg
 
 
-def get_button_style(button_type='default'):
-    """Return button style string based on type."""
-    if button_type == 'warning':
-        return 'background-color: var(--pico-primary-background); color: #f66;'
-    elif button_type == 'primary':
-        return 'background-color: var(--pico-primary-background); color: #4CAF50;'
-
-
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
     profile_id = db.get('last_profile_id')
