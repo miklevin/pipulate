@@ -2834,21 +2834,125 @@ async def create_grid_left(menux, request, render_items=None):
 
 
 def create_chat_interface(autofocus=False):
+    """Creates the chat interface component with message list and input form.
+    
+    Args:
+        autofocus (bool): Whether to autofocus the chat input field
+        
+    Returns:
+        Div: The chat interface container with all components
+    """
+    # Set message list height to 70% of viewport height minus 200px
     msg_list_height = 'height: calc(70vh - 200px);'
+    
+    # Get any temporary message from database and clear it
     temp_message = None
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/chat-interface.js')), id='chat-interface', style='overflow: hidden;')
+    
+    # Create initialization script with temp message config
+    init_script = f'''
+    // Set global variables for the external script
+    window.PIPULATE_CONFIG = {{
+        tempMessage: {json.dumps(temp_message)}
+    }};
+    '''
+    
+    # Build and return the chat interface components
+    return Div(
+        Card(
+            H2(f'{APP_NAME} Chatbot'),
+            Div(id='msg-list', cls='overflow-auto', style=msg_list_height),
+            Form(
+                mk_chat_input_group(value='', autofocus=autofocus),
+                onsubmit='sendSidebarMessage(event)'
+            ),
+            Script(init_script),
+            Script(src='/static/chat-interface.js')
+        ),
+        id='chat-interface',
+        style='overflow: hidden;'
+    )
 
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
-    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw;')
+    """Creates a chat input group with text input and send button.
+    
+    Args:
+        disabled (bool): Whether the input and button should be disabled
+        value (str): Initial value for the text input
+        autofocus (bool): Whether to autofocus the text input
+        
+    Returns:
+        Group: Container with input and send button
+    """
+    return Group(
+        Input(
+            id='msg',
+            name='msg',
+            placeholder='Chat...',
+            value=value,
+            disabled=disabled,
+            autofocus='autofocus' if autofocus else None
+        ),
+        Button(
+            'Send',
+            type='submit',
+            id='send-btn',
+            disabled=disabled
+        ),
+        id='input-group',
+        style='padding-right: 1vw;'
+    )
 
 
 def create_poke_button():
-    return Div(Button('🤖', cls='contrast outline', style='position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;', hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML'), Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;'))
+    # Define button styles
+    button_style = (
+        'position: fixed; '
+        'bottom: 20px; '
+        'right: 20px; '
+        'width: 50px; '
+        'height: 50px; '
+        'border-radius: 50%; '
+        'font-size: 24px; '
+        'display: flex; '
+        'align-items: center; '
+        'justify-content: center; '
+        'z-index: 1000;'
+    )
+
+    # Define flyout panel styles
+    flyout_style = (
+        'display: none; '
+        'position: fixed; '
+        'bottom: 80px; '
+        'right: 20px; '
+        'background: var(--pico-card-background-color); '
+        'border: 1px solid var(--pico-muted-border-color); '
+        'border-radius: var(--pico-border-radius); '
+        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
+        'z-index: 999;'
+    )
+
+    # Create button and flyout panel
+    poke_button = Button(
+        '🤖',
+        cls='contrast outline',
+        style=button_style,
+        hx_get='/poke-flyout',
+        hx_target='#flyout-panel',
+        hx_trigger='mouseenter',
+        hx_swap='outerHTML'
+    )
+
+    flyout_panel = Div(
+        id='flyout-panel',
+        style=flyout_style
+    )
+
+    return Div(poke_button, flyout_panel)
 
 
 @rt('/poke-flyout', methods=['GET'])
@@ -2859,12 +2963,110 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-    return Div(id='flyout-panel', style='display: block; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999; padding: 1rem;', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(Li(Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('👥 Manage Roles', hx_post='/redirect/roles', hx_target='body', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;'), Li(Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_workflow else None, Li(Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline'), style='list-style-type: none; margin-bottom: 0.5rem;') if is_dev_mode else None), style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'))
+    # Define flyout panel styles
+    flyout_style = (
+        'display: block; '
+        'position: fixed; '
+        'bottom: 80px; '
+        'right: 20px; '
+        'background: var(--pico-card-background-color); '
+        'border: 1px solid var(--pico-muted-border-color); '
+        'border-radius: var(--pico-border-radius); '
+        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
+        'z-index: 999; '
+        'padding: 1rem;'
+    )
+
+    # Define list item style
+    list_item_style = 'list-style-type: none; margin-bottom: 0.5rem;'
+
+    # Create action buttons
+    poke_button = Button(
+        f'🤖 Poke {MODEL}',
+        hx_post='/poke',
+        hx_target='#msg-list',
+        hx_swap='beforeend',
+        cls='secondary outline'
+    )
+
+    lock_button = Button(
+        lock_button_text,
+        hx_post='/toggle_profile_lock',
+        hx_target='body',
+        hx_swap='outerHTML',
+        cls='secondary outline'
+    )
+
+    roles_button = Button(
+        '👥 Manage Roles',
+        hx_post='/redirect/roles',
+        hx_target='body',
+        hx_swap='outerHTML',
+        cls='secondary outline'
+    )
+
+    delete_workflows_button = Button(
+        '🗑️ Delete Workflows',
+        hx_post='/clear-pipeline',
+        hx_target='body',
+        hx_confirm='Are you sure you want to delete workflows?',
+        hx_swap='outerHTML',
+        cls='secondary outline'
+    ) if is_workflow else None
+
+    reset_db_button = Button(
+        '🔄 Reset Entire Database',
+        hx_post='/clear-db',
+        hx_target='body',
+        hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?',
+        hx_swap='outerHTML',
+        cls='secondary outline'
+    ) if is_dev_mode else None
+
+    # Create list items
+    list_items = [
+        Li(poke_button, style=list_item_style),
+        Li(lock_button, style=list_item_style),
+        Li(roles_button, style=list_item_style)
+    ]
+
+    if is_workflow:
+        list_items.append(Li(delete_workflows_button, style=list_item_style))
+    if is_dev_mode:
+        list_items.append(Li(reset_db_button, style=list_item_style))
+
+    # Create the flyout panel
+    return Div(
+        id='flyout-panel',
+        style=flyout_style,
+        hx_get='/poke-flyout-hide',
+        hx_trigger='mouseleave delay:100ms',
+        hx_target='this',
+        hx_swap='outerHTML'
+    )(
+        Div(
+            H3('Poke Actions'),
+            Ul(*list_items),
+            style='background: var(--pico-card-background-color); padding: 0.5rem; border-radius: var(--pico-border-radius);'
+        )
+    )
 
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
-    return Div(id='flyout-panel', style='display: none; position: fixed; bottom: 80px; right: 20px; background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; z-index: 999;')
+    """Hide the poke flyout panel by returning an empty hidden div."""
+    flyout_style = (
+        'display: none; '
+        'position: fixed; '
+        'bottom: 80px; '
+        'right: 20px; '
+        'background: var(--pico-card-background-color); '
+        'border: 1px solid var(--pico-muted-border-color); '
+        'border-radius: var(--pico-border-radius); '
+        'box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; '
+        'z-index: 999;'
+    )
+    return Div(id='flyout-panel', style=flyout_style)
 
 
 @rt('/sse')
