@@ -290,22 +290,26 @@ class DocumentationPlugin:
             if stripped.startswith('# '):
                 header_text = stripped[2:].strip()
                 header_id = self._slugify(header_text)
-                processed_lines.append(f'<h1 id="{header_id}">{html.escape(header_text)}</h1>')
+                processed_header = self._process_inline_markdown(header_text)
+                processed_lines.append(f'<h1 id="{header_id}">{processed_header}</h1>')
                 i += 1
             elif stripped.startswith('## '):
                 header_text = stripped[3:].strip()
                 header_id = self._slugify(header_text)
-                processed_lines.append(f'<h2 id="{header_id}">{html.escape(header_text)}</h2>')
+                processed_header = self._process_inline_markdown(header_text)
+                processed_lines.append(f'<h2 id="{header_id}">{processed_header}</h2>')
                 i += 1
             elif stripped.startswith('### '):
                 header_text = stripped[4:].strip()
                 header_id = self._slugify(header_text)
-                processed_lines.append(f'<h3 id="{header_id}">{html.escape(header_text)}</h3>')
+                processed_header = self._process_inline_markdown(header_text)
+                processed_lines.append(f'<h3 id="{header_id}">{processed_header}</h3>')
                 i += 1
             elif stripped.startswith('#### '):
                 header_text = stripped[5:].strip()
                 header_id = self._slugify(header_text)
-                processed_lines.append(f'<h4 id="{header_id}">{html.escape(header_text)}</h4>')
+                processed_header = self._process_inline_markdown(header_text)
+                processed_lines.append(f'<h4 id="{header_id}">{processed_header}</h4>')
                 i += 1
             
             # Blockquotes
