@@ -70,7 +70,7 @@ A complete 3-part guide covering all 25 critical patterns for Pipulate mastery:
 - **Part 2**: Advanced patterns and technical integrations (Priorities 11-20)  
 - **Part 3**: Expert mastery and production deployment (Priorities 21-25)
 
-### 🔧 Development Assistant Plugin (515_dev_assistant)
+### 🔧 Development Assistant Plugin ("Dev Assistant" on the menu)
 Interactive debugging and development guidance tool that:
 - **Validates workflow patterns** against the Ultimate Guide
 - **Debugs common issues** with auto-key generation, chain reactions, and three-phase logic
@@ -80,10 +80,10 @@ Interactive debugging and development guidance tool that:
 ### 🛠️ Enhanced Helper Scripts
 - **create_workflow.py**: Generate new workflows from templates (blank or complex)
 - **splice_workflow_step.py**: Add steps to existing workflows with precise positioning
-- **Workflow Genesis Plugin (510_workflow_genesis)**: Interactive workflow creation assistant
+- **Workflow Genesis Plugin ("Workflow Creation Helper" on the menu)**: Interactive workflow creation assistant
 
 ### 🎯 Key Features for Developers
-- **Pattern validation** against the 25 critical Pipulate patterns
+- **Pattern validation** against all the critical Pipulate patterns
 - **Real-time debugging assistance** with actionable recommendations
 - **Template-based workflow creation** with intelligent guidance
 - **Comprehensive documentation** covering all development scenarios
