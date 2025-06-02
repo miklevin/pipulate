@@ -359,7 +359,14 @@ class DevAssistant:
             if ('for step in steps:' in init_content or 'for step in self.steps:' in init_content) and 'getattr(self, f' in init_content and '_submit' in init_content:
                 # Check if 'finalize' appears in the steps definition and would trigger finalize_submit registration
                 if "Step(id='finalize'" in content or 'id="finalize"' in content:
-                    if 'async def finalize_submit(' not in content:
+                    # Check if finalize_submit would be expected but doesn't exist
+                    # BUT: Modern workflows often handle POST in finalize() method instead of finalize_submit()
+                    # So only flag this as an issue if there's no evidence of proper finalize() POST handling
+                    has_finalize_submit = 'async def finalize_submit(' in content
+                    has_finalize_method = 'async def finalize(' in content
+                    finalize_handles_post = has_finalize_method and ('request.method' in content and 'POST' in content)
+                    
+                    if not has_finalize_submit and not finalize_handles_post:
                         route_registration_issues.append(
                             f"❌ CRITICAL: Route registration expects 'finalize_submit' method but it doesn't exist"
                         )
@@ -383,6 +390,20 @@ class DevAssistant:
                             f"    routes.append((f'/{{app_name}}/{{step_id}}', getattr(self, step_id)))\n"
                             f"    if step_id != 'finalize':  # Only data steps have explicit _submit handlers\n"
                             f"        routes.append((f'/{{app_name}}/{{step_id}}_submit', getattr(self, f'{{step_id}}_submit'), ['POST']))\n"
+                            f"```\n\n"
+                            f"SOLUTION 3 - Handle POST in finalize() method (RECOMMENDED):\n"
+                            f"```python\n"
+                            f"async def finalize(self, request):\n"
+                            f"    pip, db, app_name = self.pipulate, self.db, self.app_name\n"
+                            f"    pipeline_id = db.get('pipeline_id', 'unknown')\n"
+                            f"    \n"
+                            f"    if request.method == 'GET':\n"
+                            f"        # Handle GET request (show finalize form)\n"
+                            f"        return Card(H3('Ready to finalize?'), ...)\n"
+                            f"    else:  # POST\n"
+                            f"        # Handle finalization\n"
+                            f"        await pip.finalize_workflow(pipeline_id)\n"
+                            f"        return pip.run_all_cells(app_name, self.steps)\n"
                             f"```"
                         )
             
