@@ -613,13 +613,66 @@ class DocumentationPlugin:
         # Get categorized documents
         featured_docs, training_docs, rules_docs = self.get_categorized_docs()
         
-        # Create tree view HTML
-        tree_html = self.create_tree_view(featured_docs, training_docs, rules_docs)
+        # Check for category filter
+        category = request.query_params.get('category', 'all')
         
+        # Filter documents based on category
+        if category == 'featured':
+            title = "🌟 Featured Guides"
+            filtered_featured = featured_docs
+            filtered_training = []
+            filtered_rules = []
+            welcome_text = "Comprehensive guides and tutorials for getting started with Pipulate."
+        elif category == 'training':
+            title = "📖 Training Files"
+            filtered_featured = []
+            filtered_training = training_docs
+            filtered_rules = []
+            welcome_text = "Training materials and learning resources for mastering Pipulate workflows."
+        elif category == 'rules':
+            title = "⚙️ Framework Rules"
+            filtered_featured = []
+            filtered_training = []
+            filtered_rules = rules_docs
+            welcome_text = "Framework rules and coding standards for Pipulate development."
+        else:
+            title = "📚 All Documentation"
+            filtered_featured = featured_docs
+            filtered_training = training_docs
+            filtered_rules = rules_docs
+            welcome_text = "Complete documentation library for Pipulate. Start with Featured Guides for comprehensive learning."
+        
+        # Create tree view HTML with filtered content
+        tree_html = self.create_tree_view(filtered_featured, filtered_training, filtered_rules)
+        
+        # Create breadcrumb navigation for filtered views
+        breadcrumb = ""
+        if category != 'all':
+            breadcrumb = f'<p style="margin-bottom: 1rem; font-size: 0.9em;"><a href="/docs" style="color: #0066cc; text-decoration: underline;">📚 All Documentation</a> → <strong>{title}</strong></p>'
+        
+        # Create stats content - either filtered or all with links
+        if category == 'all':
+            stats_content = f"""
+                <a href="/docs" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📊 {len(self.DOCS)} documents discovered</a>
+                <a href="/docs?category=featured" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">🌟 {len(featured_docs)} featured guides</a>
+                <a href="/docs?category=training" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📖 {len(training_docs)} training files</a>
+                <a href="/docs?category=rules" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">⚙️ {len(rules_docs)} framework rules</a>
+            """
+        else:
+            # Show count for current category only
+            if category == 'featured':
+                count_text = f"🌟 {len(featured_docs)} featured guides"
+            elif category == 'training':
+                count_text = f"📖 {len(training_docs)} training files"
+            elif category == 'rules':
+                count_text = f"⚙️ {len(rules_docs)} framework rules"
+            
+            stats_content = f'<div style="font-weight: bold; font-size: 1.1em;">{count_text}</div>'
+
         page_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>Pipulate Documentation Browser</title>
+    <title>{title} - Pipulate Documentation</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
@@ -745,20 +798,17 @@ class DocumentationPlugin:
 <body>
     <div class="container">
         <div class="sidebar">
-            <h3>📚 Documentation</h3>
+            <h3>{title}</h3>
             <div class="stats">
-                📊 {len(self.DOCS)} documents discovered<br>
-                🌟 {len(featured_docs)} featured guides<br>
-                📖 {len(training_docs)} training files<br>
-                ⚙️ {len(rules_docs)} framework rules
+                {stats_content}
             </div>
             {tree_html}
         </div>
         <div class="content">
+            {breadcrumb}
             <div class="welcome">
-                <h2>Welcome to Pipulate Documentation</h2>
-                <p>Select a document from the sidebar to view its content.</p>
-                <p>Start with the <strong>Featured Guides</strong> for comprehensive learning.</p>
+                <h2>{title}</h2>
+                <p>{welcome_text}</p>
                 <p><em>Documentation is automatically discovered from training/ and .cursor/rules/ directories.</em></p>
             </div>
         </div>
@@ -1402,10 +1452,26 @@ class DocumentationPlugin:
             
             # Quick stats summary with clickable links to browse sections
             Div(
-                P(A(f"📊 {len(self.DOCS)} documents discovered", href="/docs", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
-                P(A(f"🌟 {len(featured_docs)} featured guides", href="/docs#featured", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
-                P(A(f"📖 {len(training_docs)} training files", href="/docs#training", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
-                P(A(f"⚙️ {len(rules_docs)} framework rules", href="/docs#rules", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
+                P(A(f"📊 {len(self.DOCS)} documents discovered", href="/docs", 
+                    style="color: var(--pico-primary); text-decoration: underline;",
+                    onmouseover="this.style.color='var(--pico-primary-hover)'; this.style.textDecoration='underline';",
+                    onmouseout="this.style.color='var(--pico-primary)'; this.style.textDecoration='underline';"), 
+                  style="margin: 0.25rem 0;"),
+                P(A(f"🌟 {len(featured_docs)} featured guides", href="/docs?category=featured", 
+                    style="color: var(--pico-primary); text-decoration: underline;",
+                    onmouseover="this.style.color='var(--pico-primary-hover)'; this.style.textDecoration='underline';",
+                    onmouseout="this.style.color='var(--pico-primary)'; this.style.textDecoration='underline';"), 
+                  style="margin: 0.25rem 0;"),
+                P(A(f"📖 {len(training_docs)} training files", href="/docs?category=training", 
+                    style="color: var(--pico-primary); text-decoration: underline;",
+                    onmouseover="this.style.color='var(--pico-primary-hover)'; this.style.textDecoration='underline';",
+                    onmouseout="this.style.color='var(--pico-primary)'; this.style.textDecoration='underline';"), 
+                  style="margin: 0.25rem 0;"),
+                P(A(f"⚙️ {len(rules_docs)} framework rules", href="/docs?category=rules", 
+                    style="color: var(--pico-primary); text-decoration: underline;",
+                    onmouseover="this.style.color='var(--pico-primary-hover)'; this.style.textDecoration='underline';",
+                    onmouseout="this.style.color='var(--pico-primary)'; this.style.textDecoration='underline';"), 
+                  style="margin: 0.25rem 0;"),
                 style="background-color: var(--pico-card-sectionning-background-color); padding: 1rem; margin: 1rem 0; border-radius: var(--pico-border-radius); font-weight: 500;"
             ),
             
