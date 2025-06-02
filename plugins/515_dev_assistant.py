@@ -37,7 +37,7 @@ class DevAssistant:
     and provides real-time validation and debugging assistance for Pipulate development.
     """
     APP_NAME = 'dev_assistant' 
-    DISPLAY_NAME = 'Development Assistant' 
+    DISPLAY_NAME = 'Development Assistant 🩺' 
     ENDPOINT_MESSAGE = """Interactive debugging and development guidance for Pipulate workflows. Validate patterns, debug issues, check template suitability, and get expert recommendations based on the Ultimate Pipulate Implementation Guide and workflow creation helper system."""
     TRAINING_PROMPT = """You are the Pipulate Development Assistant. Help developers with: 1. Pattern validation against the 25 critical patterns from the Ultimate Guide. 2. Debugging workflow issues (auto-key generation, three-phase logic, chain reactions). 3. Plugin structure analysis and recommendations. 4. State management troubleshooting. 5. Template suitability and marker compatibility for helper tools. 6. Best practice guidance for workflow development. Always reference specific patterns from the Ultimate Guide and provide actionable debugging steps."""
 

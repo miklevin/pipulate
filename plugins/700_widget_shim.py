@@ -5,8 +5,56 @@ from datetime import datetime
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Developer'] # Defines which user roles can see this plugin
-'\nPipulate Workflow Template\nA minimal starter template for creating step-based Pipulate workflows.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Core Widget Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Common Widget Patterns", "Widget State Management"\n   - Critical for understanding the immutable chain reaction pattern\n\n2. Implementation Guidelines:\n   - See: implementation/implementation-workflow.mdc\n   - Focus on: "Widget Implementation Steps", "Widget Testing Checklist"\n   - Essential for maintaining workflow integrity\n\n3. Common Pitfalls:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Common Widget Pitfalls", "Recovery Process"\n   - Critical for avoiding state management issues\n\n4. Widget Design Philosophy:\n   - See: philosophy/philosophy-core.mdc\n   - Key concepts: "State Management", "UI Construction"\n   - Important for maintaining consistent patterns\n\n5. Recovery Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Recovery Process", "Prevention Guidelines"\n   - Essential for handling workflow breaks\n\nCONVERSION POINTS:\n----------------\nWhen converting this template to a new widget:\n1. CUSTOMIZE_STEP_DEFINITION: Change \'done\' field to specific data field name\n2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements\n3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget\n4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display\n\nCRITICAL ELEMENTS TO PRESERVE:\n----------------------------\n- Chain reaction with next_step_id\n- Finalization state handling pattern\n- Revert control mechanism\n- Overall Div structure and ID patterns\n- LLM context updates for widget content\n'
+ROLES = ['Developer']  # Defines which user roles can see this plugin
+
+"""
+Pipulate Workflow Template
+A minimal starter template for creating step-based Pipulate workflows.
+
+RULE NAVIGATION GUIDE:
+--------------------
+1. Core Widget Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Key sections: "Common Widget Patterns", "Widget State Management"
+   - Critical for understanding the immutable chain reaction pattern
+
+2. Implementation Guidelines:
+   - See: implementation/implementation-workflow.mdc
+   - Focus on: "Widget Implementation Steps", "Widget Testing Checklist"
+   - Essential for maintaining workflow integrity
+
+3. Common Pitfalls:
+   - See: patterns/workflow-patterns.mdc
+   - Review: "Common Widget Pitfalls", "Recovery Process"
+   - Critical for avoiding state management issues
+
+4. Widget Design Philosophy:
+   - See: philosophy/philosophy-core.mdc
+   - Key concepts: "State Management", "UI Construction"
+   - Important for maintaining consistent patterns
+
+5. Recovery Patterns:
+   - See: patterns/workflow-patterns.mdc
+   - Focus on: "Recovery Process", "Prevention Guidelines"
+   - Essential for handling workflow breaks
+
+CONVERSION POINTS:
+----------------
+When converting this template to a new widget:
+1. CUSTOMIZE_STEP_DEFINITION: Change 'done' field to specific data field name
+2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements
+3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget
+4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display
+
+CRITICAL ELEMENTS TO PRESERVE:
+----------------------------
+- Chain reaction with next_step_id
+- Finalization state handling pattern
+- Revert control mechanism
+- Overall Div structure and ID patterns
+- LLM context updates for widget content
+"""
+
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
@@ -17,7 +65,7 @@ class WidgetDesigner:
     A focused environment for designing and testing new widgets in isolation.
     """
     APP_NAME = 'design_widget'
-    DISPLAY_NAME = 'Widget Shim'
+    DISPLAY_NAME = 'Widget Shim 🫙'
     ENDPOINT_MESSAGE = 'Welcome to the Widget Shim! This is a focused environment for designing and testing new widgets in isolation. Use this space to prototype and refine your widget designs without distractions.'
     TRAINING_PROMPT = 'This is a specialized workflow for designing and testing widgets in isolation. It provides a clean environment to focus on widget development without the complexity of a full workflow implementation.'
 

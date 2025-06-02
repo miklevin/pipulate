@@ -52,7 +52,7 @@ class ParameterBusterWorkflow:
     - All API errors are handled with specific error messages for better troubleshooting
     """
     APP_NAME = 'param_buster'
-    DISPLAY_NAME = 'Parameter Buster'
+    DISPLAY_NAME = 'Parameter Buster 🔨'
     ENDPOINT_MESSAGE = 'Extract and analyze URL parameters from any web address. Perfect for understanding tracking codes and URL structure.'
     TRAINING_PROMPT = 'This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms.'
 

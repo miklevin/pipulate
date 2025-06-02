@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentationPlugin:
     NAME = "documentation"
-    DISPLAY_NAME = "Documentation"
+    DISPLAY_NAME = "Documentation 📚"
     ENDPOINT_MESSAGE = "📚 Documentation Browser: When you view any document, its content is automatically added to my conversation history so you can ask me specific questions about it. Browse guides, training files, and framework rules - I'll have the full context to help you understand the content."
 
     def __init__(self, app, pipulate, pipeline, db):

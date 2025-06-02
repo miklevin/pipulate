@@ -24,7 +24,7 @@ account_url = "https://app.botify.com/account"
 
 class BotifyConnect:
     APP_NAME = "botify"
-    DISPLAY_NAME = "Connect With Botify"
+    DISPLAY_NAME = "Connect With Botify 🤝"
     ENDPOINT_MESSAGE = (
         "Enter your Botify API token to connect with Botify. "
         f"You can find your API token at {account_url}"
