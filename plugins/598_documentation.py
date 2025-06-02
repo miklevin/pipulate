@@ -155,10 +155,11 @@ class DocumentationPlugin:
         try:
             content = file_path.read_text(encoding='utf-8')
             extracted_title, description = self.extract_metadata_from_content(content, 'Project README')
-            title = extracted_title if extracted_title else 'Project README'
+            # Make it clear this is the README with emoji
+            title = f"📄 README - {extracted_title}" if extracted_title else '📄 README - Project Documentation'
         except Exception as e:
             logger.warning(f"Could not read {file_path}: {e}")
-            title = 'Project README'
+            title = '📄 README - Project Documentation'
             description = "Main project documentation and overview"
         
         key = 'readme'
