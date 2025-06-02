@@ -173,8 +173,8 @@ class IntroductionPlugin:
         if self.pipulate:
             await self.pipulate.stream(llm_context, verbatim=True)
         
-        # Return to the main introduction landing with updated page
-        return RedirectResponse(url='/introduction', status_code=303)
+        # Return the updated content directly (same as landing method)
+        return await self.landing()
 
     async def landing(self, render_items=None):
         """Always appears in create_grid_left."""
@@ -220,22 +220,31 @@ class IntroductionPlugin:
             style="margin-bottom: 1rem;"
         )
 
-        # Create navigation arrows
-        prev_page = current_page - 1 if current_page > 1 else None
-        next_page = current_page + 1 if current_page < 4 else None
+        # Create navigation arrows (matching original server.py style)
+        prev_button = Button(
+            '◂ Previous', 
+            hx_post=f'/introduction/page/{current_page - 1}' if current_page > 1 else '#',
+            hx_target='#grid-left-content',
+            hx_swap='innerHTML',
+            cls='primary outline' if current_page == 1 else 'primary',
+            style='min-width: 160px; width: 160px;',
+            disabled=current_page == 1
+        )
+        
+        next_button = Button(
+            'Next ▸', 
+            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 4 else '#',
+            hx_target='#grid-left-content',
+            hx_swap='innerHTML',
+            cls='primary outline' if current_page == 4 else 'primary',
+            style='min-width: 160px; width: 160px;',
+            disabled=current_page == 4
+        )
         
         nav_arrows = Div(
-            A("← Previous", 
-              href=f'/introduction/page/{prev_page}' if prev_page else '#',
-              cls="secondary outline" if prev_page else "secondary outline disabled",
-              style="margin-right: 1rem;" + ("pointer-events: none; opacity: 0.5;" if not prev_page else "")
-            ) if True else Span(),
-            A("Next →", 
-              href=f'/introduction/page/{next_page}' if next_page else '#',
-              cls="primary" if next_page else "secondary outline disabled",
-              style=("pointer-events: none; opacity: 0.5;" if not next_page else "")
-            ) if True else Span(),
-            style="display: flex; justify-content: space-between; margin-top: 1rem;"
+            prev_button,
+            next_button,
+            style='display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;'
         )
 
         # Create the current page content
