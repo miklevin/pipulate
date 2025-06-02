@@ -96,10 +96,8 @@ class DevAssistant:
         self.message_queue = pip.get_message_queue()
         
         self.steps = [
-            Step(id='step_01', done='plugin_analysis', show='1. Plugin Analysis', refill=False),
-            Step(id='step_02', done='pattern_validation', show='2. Pattern Validation', refill=False),
-            Step(id='step_03', done='debug_assistance', show='3. Debug Assistance', refill=False),
-            Step(id='step_04', done='recommendations', show='4. Recommendations', refill=False),
+            Step(id='step_01', done='plugin_analysis', show='1. Plugin Selection', refill=False),
+            Step(id='step_02', done='comprehensive_analysis', show='2. Analysis & Recommendations', refill=False),
             Step(id='finalize', done='finalized', show='Finalize Analysis', refill=False) 
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
@@ -1060,13 +1058,13 @@ class DevAssistant:
         
         if 'finalized' in finalize_data:
             return Div(
-                Card(H3(f'🔒 {step.show}: Validation Complete')),
+                Card(H3(f'🔒 {step.show}: Analysis Complete')),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
         elif user_val and state.get('_revert_target') != step_id:
             return Div(
-                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Patterns Validated'),
+                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Complete'),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
@@ -1076,145 +1074,85 @@ class DevAssistant:
                 return Div(
                     Card(
                         H3(f'{step.show}'),
-                        P('Please complete Plugin Analysis first.', style='color: orange;')
+                        P('Please complete Plugin Selection first.', style='color: orange;')
                     ),
                     Div(id=next_step_id),
                     id=step_id
                 )
             
-            # Display organized analysis results with clear purpose-driven sections
-            patterns_found = analysis_results.get('patterns_found', [])
+            # Get analysis data
             issues = analysis_results.get('issues', [])
             template_suitability = analysis_results.get('template_suitability', {})
             coding_prompts = analysis_results.get('coding_assistant_prompts', [])
             transplant_analysis = analysis_results.get('transplantation_analysis', {})
             filename = analysis_results.get('filename', 'unknown')
             
-            missing_reqs = template_suitability.get('missing_requirements', [])
+            # Focus on what needs fixing - issues first!
+            functional_issues = [issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
+            template_issues = [issue for issue in issues if any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
             
-            # NEW: Build transplantation analysis section
-            transplant_section = []
+            # Quick status for capability overview
+            has_functional_issues = bool(functional_issues)
+            template_source_ready = template_suitability.get('as_template_source', False)
             transplant_commands = transplant_analysis.get('transplant_commands', [])
-            compatibility_warnings = transplant_analysis.get('compatibility_warnings', [])
-            
-            if transplant_commands:
-                # Create command tables grouped by compatibility
-                good_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Good']
-                needs_work_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
-                
-                transplant_section.extend([
-                    H5('🔀 Transplantation Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_ORANGE"]}; margin-bottom: 0.75rem;'),
-                    P(f'Found {len(transplant_commands)} step method(s) suitable for transplantation:', 
-                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;')
-                ])
-                
-                if good_commands:
-                    transplant_section.extend([
-                        H5('✅ Ready-to-Transplant Steps:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
-                        P('These steps can be swapped immediately:', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;')
-                    ])
-                    
-                    good_command_items = []
-                    for cmd in good_commands:
-                        good_command_items.extend([
-                            Li(
-                                                            Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
-                            Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px;'),
-                                style='margin-bottom: 0.5rem; font-family: monospace; font-size: 0.9rem;'
-                            )
-                        ])
-                    
-                    transplant_section.append(
-                        Div(
-                            Ul(*good_command_items),
-                            style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["SUCCESS_OVERLAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                        )
-                    )
-                
-                if needs_work_commands:
-                    transplant_section.extend([
-                        H5('⚠️ Needs Preparation:', style=f'color: {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]}; margin-bottom: 0.75rem;'),
-                        P('These steps need work before transplantation:', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;')
-                    ])
-                    
-                    needs_work_items = []
-                    for cmd in needs_work_commands:
-                        notes_text = " • ".join(cmd['notes']) if cmd['notes'] else "Needs evaluation"
-                        needs_work_items.extend([
-                            Li(
-                                Div(
-                                                                    Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]};'),
-                                Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px;'),
-                                    style='margin-bottom: 0.25rem;'
-                                ),
-                                Div(
-                                    f"Issues: {notes_text}",
-                                    style=f'font-size: 0.85rem; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-left: 1rem;'
-                                ),
-                                style='margin-bottom: 0.75rem;'
-                            )
-                        ])
-                    
-                    transplant_section.append(
-                        Div(
-                            Ul(*needs_work_items),
-                            style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["WARNING_OVERLAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                        )
-                    )
-                
-                if compatibility_warnings:
-                    transplant_section.extend([
-                                            H5('🚨 Compatibility Warnings:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]}; margin-bottom: 0.75rem;'),
-                    Ul(*[Li(warning, style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]};') for warning in compatibility_warnings]),
-                        Div(style='margin-bottom: 1rem;')
-                    ])
-                
-                transplant_section.extend([
-                    Details(
-                        Summary(
-                                                    H5('💡 How to Use These Commands:', style=f'display: inline; margin: 0; color: {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]};'),
-                        style=f'cursor: pointer; padding: 0.75rem; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
-                        ),
-                        Div(
-                            Ol(
-                                Li('Replace TARGET_FILE.py with your actual target workflow filename'),
-                                Li('Ensure both source and target files have proper step markers'),
-                                Li('Run the command from your Pipulate project root'),
-                                Li('The --force flag overwrites existing step methods'),
-                                Li('Test your workflow after transplantation to verify functionality')
-                            ),
-                            P('Example usage:', style='font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem;'),
-                            Code(
-                                f'python helpers/swap_workflow_step.py plugins/035_my_workflow.py step_01 plugins/{filename} step_01 --force',
-                                style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 0.75rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; display: block; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
-                            ),
-                            style='padding: 1rem;'
-                        ),
-                        style='margin: 1rem 0;'
-                    )
-                ])
-            else:
-                transplant_section.extend([
-                    H5('🔀 Transplantation Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_ORANGE"]}; margin-bottom: 0.75rem;'),
-                    P('No transplantable step methods found in this plugin.', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'),
-                    P('This plugin may be a template or infrastructure component rather than a source for step methods.', 
-                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-style: italic;')
-                ])
+            ready_transplants = [cmd for cmd in transplant_commands if cmd.get('compatibility') == 'Good']
             
             # Define widget ID for Prism targeting
             widget_id = f"dev-assistant-{pipeline_id.replace('-', '_')}-{step_id}"
             
-            # Build coding assistant section
-            coding_section = []
-            if coding_prompts:
-                coding_section.extend([
-                    Details(
+            response_content = Div(
+                Card(
+                    H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+                    
+                    # WHAT NEEDS FIXING (Primary Focus)
+                    (Div(
+                        H4("🚨 ISSUES TO FIX", style=f"color: {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; padding-bottom: 0.5rem;"),
+                        Div(
+                            H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
+                            Ul(*[Li(issue) for issue in functional_issues], 
+                               style="color: red; margin-bottom: 1rem;")
+                        ) if functional_issues else None,
+                        Div(
+                            H5("📋 Template Issues:", style="color: orange; margin-bottom: 0.5rem;"),
+                            Ul(*[Li(issue) for issue in template_issues], 
+                               style="color: orange; margin-bottom: 1rem;")
+                        ) if template_issues else None,
+                        (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;") 
+                         if not functional_issues and not template_issues else None),
+                        style="margin-bottom: 2rem;"
+                    ) if functional_issues or template_issues else Div(
+                        H4("✅ NO ISSUES FOUND", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
+                        P("This plugin appears to be correctly implemented!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;"),
+                        style="margin-bottom: 2rem;"
+                    )),
+                    
+                    # CAPABILITIES (Secondary Info)
+                    Div(
+                        Details(
+                            Summary(
+                                H4('📊 Capabilities Summary', style='display: inline; margin: 0;'),
+                                style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
+                            ),
+                            Div(
+                                Div(f"🔧 Functional Plugin: {'✅ Good' if not has_functional_issues else '❌ Has Issues'}", 
+                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if not has_functional_issues else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if not has_functional_issues else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
+                                Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}", 
+                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_ready else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_ready else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
+                                Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}", 
+                                    style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
+                                style='padding: 1rem;'
+                            )
+                        )
+                    ),
+                    
+                    # CODING FIXES (If issues exist)
+                    (Details(
                         Summary(
-                            H4('🤖 Coding Assistant Fix Instructions', style='display: inline; margin: 0;'),
+                            H4('🤖 Coding Assistant Instructions', style='display: inline; margin: 0;'),
                             style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
-                            P(f'Copy these detailed instructions for a coding assistant to fix {filename}:', 
+                            P(f'Copy these detailed instructions to fix {filename}:', 
                               style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
                             Div(
                                 *[
@@ -1228,130 +1166,42 @@ class DevAssistant:
                                     )
                                     for i, prompt in enumerate(coding_prompts)
                                 ],
-                                id=widget_id  # Add the widget ID here for Prism targeting
+                                id=widget_id
                             ),
                             style='padding: 1rem;'
                         ),
                         style='margin: 1rem 0;'
-                    )
-                ])
-            
-            # PURPOSE-DRIVEN ANALYSIS SECTIONS
-            
-            # 1. FUNCTIONAL PLUGIN STATUS
-            functional_status = "✅ Functional" if patterns_found and not issues else "⚠️ Has Issues" if issues else "❓ Unknown"
-            functional_color = "green" if "✅" in functional_status else "orange" if "⚠️" in functional_status else "gray"
-            
-            # 2. TEMPLATE SOURCE STATUS  
-            template_source_ready = template_suitability.get('as_template_source', False)
-            template_source_status = "✅ Ready" if template_source_ready else "❌ Needs Work"
-            template_source_color = "green" if template_source_ready else "red"
-            
-            # 3. SWAP RECIPIENT STATUS
-            swap_recipient_ready = template_suitability.get('as_swap_target', False)
-            swap_recipient_status = "✅ Ready" if swap_recipient_ready else "❌ Needs Work"
-            swap_recipient_color = "green" if swap_recipient_ready else "red"
-            
-            # 4. SWAP SOURCE STATUS
-            ready_transplant_commands = [cmd for cmd in transplant_analysis.get('transplant_commands', []) if cmd.get('compatibility') == 'Good']
-            swap_source_ready = bool(ready_transplant_commands)
-            swap_source_status = "✅ Ready" if swap_source_ready else "❌ Needs Work"
-            swap_source_color = "green" if swap_source_ready else "red"
-            
-            response_content = Div(
-                Card(
-                    H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+                    ) if coding_prompts else None),
                     
-                    # STATUS SUMMARY with consistent headlines
-                    Div(
-                        H4("📊 CAPABILITY SUMMARY", style=f"color: {self.UI_CONSTANTS['COLORS']['INFO_BLUE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['INFO_BLUE']}; padding-bottom: 0.5rem;"),
-                        Div(
-                            Div(f"🔧 Functional Plugin: {functional_status}", 
-                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if functional_color == 'green' else self.UI_CONSTANTS['COLORS']['WARNING_TEXT'] if functional_color == 'orange' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if functional_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['WARNING_BG'] if functional_color == 'orange' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                            Div(f"📋 Template Source: {template_source_status}", 
-                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                            Div(f"📥 Swap Recipient: {swap_recipient_status}", 
-                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if swap_recipient_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if swap_recipient_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                            Div(f"📤 Swap Source: {swap_source_status}", 
-                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if swap_source_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if swap_source_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
-                            style=f"background-color: {self.UI_CONSTANTS['BACKGROUNDS']['LIGHT_GRAY']}; padding: {self.UI_CONSTANTS['SPACING']['SECTION_PADDING']}; border-radius: 5px; margin-bottom: 1.5rem;"
-                        )
-                    ),
-                    
-                    # 1. FUNCTIONAL PLUGIN DETAILS
-                    Div(
-                        H4("🔧 FUNCTIONAL PLUGIN ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
-                        
-                        # Core Patterns Found
-                        (Div(
-                            H5("✅ Core Patterns:", style="color: green; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(pattern) for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
-                               style="color: green; margin-bottom: 1rem;")
-                        ) if patterns_found else None),
-                        
-                        # Functional Issues
-                        (Div(
-                            H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(issue) for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
-                               style="color: red; margin-bottom: 1rem;")
-                        ) if any(issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])) else None),
-                        
-                        style="margin-bottom: 2rem;"
-                    ),
-                    
-                    # 2. TEMPLATE SOURCE DETAILS
-                    Div(
-                        H4("📋 TEMPLATE SOURCE ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['ACCENT_PURPLE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ACCENT_PURPLE']}; padding-bottom: 0.5rem;"),
-                        P(f"Status: {template_source_status}", style=f"color: {template_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
-                        P("Template sources provide the foundation for creating new workflows (like blank_placeholder.py or parameter_buster.py)", 
-                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
-                        
-                        # Template Requirements
-                        (Div(
-                            H5("Missing for Template Source:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(req) for req in missing_reqs], style="color: orange;")
-                        ) if missing_reqs else Div("✅ All template source requirements met", style="color: green; font-weight: bold;")),
-                        
-                        style="margin-bottom: 2rem;"
-                    ),
-                    
-                    # 3. SWAP RECIPIENT DETAILS
-                    Div(
-                        H4("📥 SWAP RECIPIENT ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['INFO_TEAL']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['INFO_TEAL']}; padding-bottom: 0.5rem;"),
-                        P(f"Status: {swap_recipient_status}", style=f"color: {swap_recipient_color}; font-weight: bold; margin-bottom: 0.75rem;"),
-                        P("Swap recipients can accept step methods from other workflows using swap_workflow_step.py", 
-                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
-                        
-                        # Recipient Requirements
-                        Div(
-                            P("✅ Has step methods that can be replaced" if swap_recipient_ready 
-                              else "❌ No step methods found or missing swappable markers", 
-                              style=f"color: {swap_recipient_color}; font-weight: bold;")
+                    # TRANSPLANTATION COMMANDS (If available)
+                    (Details(
+                        Summary(
+                            H4('🔀 Step Transplantation', style='display: inline; margin: 0;'),
+                            style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
-                        
-                        style="margin-bottom: 2rem;"
-                    ),
-                    
-                    # 4. SWAP SOURCE DETAILS
-                    Div(
-                        H4("📤 SWAP SOURCE ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['ACCENT_ORANGE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ACCENT_ORANGE']}; padding-bottom: 0.5rem;"),
-                        P(f"Status: {swap_source_status}", style=f"color: {swap_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
-                        P("Swap sources provide step methods that can be transplanted into other workflows", 
-                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
-                        *transplant_section,
-                        style="margin-bottom: 2rem;"
-                    ),
-                    
-                    # CODING ASSISTANCE SECTION
-                    *coding_section,
+                        Div(
+                            (Div(
+                                H5('✅ Ready Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
+                                *[
+                                    Div(
+                                        Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
+                                        Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9rem;'),
+                                        style='margin-bottom: 0.5rem; display: block;'
+                                    )
+                                    for cmd in ready_transplants
+                                ]
+                            ) if ready_transplants else P('No ready-to-transplant steps found.', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};')),
+                            style='padding: 1rem;'
+                        )
+                    ) if transplant_commands else None),
                     
                     Form(
-                        Button('Continue to Debug Assistance ▸', type='submit'),
+                        Button('Complete Analysis ▸', type='submit'),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     )
                 ),
-                # Add Prism initialization script (following 850_prism.py pattern)
+                # Add Prism initialization script
                 Script(f"""
                 (function() {{
                     // Initialize Prism immediately when the script loads
@@ -1376,7 +1226,7 @@ class DevAssistant:
                 id=step_id
             )
             
-            # Return HTMLResponse with HX-Trigger for Prism initialization (following 850_prism.py pattern)
+            # Return HTMLResponse with HX-Trigger for Prism initialization
             response = HTMLResponse(to_xml(response_content))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
             return response
@@ -1388,234 +1238,8 @@ class DevAssistant:
         pipeline_id = db.get('pipeline_id', 'unknown')
         
         await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
-        await self.message_queue.add(pip, 'Pattern validation completed.', verbatim=True)
+        await self.message_queue.add(pip, 'Development analysis completed.', verbatim=True)
         
-        return pip.chain_reverter(step_id, step_index, steps, app_name, 'Patterns Validated')
+        return pip.chain_reverter(step_id, step_index, steps, app_name, 'Analysis Complete')
 
-    async def step_03(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
-        # Get analysis from step 1
-        step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-        analysis_results = step_01_data.get('analysis_results', {})
-        
-        if 'finalized' in finalize_data:
-            return Div(
-                Card(H3(f'🔒 {step.show}: Debug Complete')),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        elif user_val and state.get('_revert_target') != step_id:
-            return Div(
-                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Debug Guidance Provided'),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        else:
-            # Check if step 1 has been completed by looking for plugin_analysis
-            if not step_01_data.get('plugin_analysis'):
-                return Div(
-                    Card(
-                        H3(f'{step.show}'),
-                        P('Please complete Plugin Analysis first.', style='color: orange;')
-                    ),
-                    Div(id=next_step_id),
-                    id=step_id
-                )
-            
-            recommendations = analysis_results.get('recommendations', [])
-            coding_prompts = analysis_results.get('coding_assistant_prompts', [])
-            filename = analysis_results.get('filename', 'unknown')
-            
-            debug_checklist = [
-                "✅ Auto-key generation: Empty input returns HX-Refresh?",
-                "✅ Three-phase logic: Correct order (finalized → revert → input)?",
-                "✅ Chain reaction: All completed phases have hx_trigger='load'?",
-                "✅ Request parameters: All handlers accept request?",
-                "✅ State management: Using pip.get_step_data/set_step_data?",
-                "✅ Step definition: Finalize step included in steps list?",
-                "✅ Route registration: All routes properly registered in __init__?",
-                "✅ File naming: Plugin file follows naming convention?",
-                "✅ Template markers: Both insertion point markers present?",
-                "✅ Class attributes: APP_NAME, DISPLAY_NAME, etc. defined?",
-                "✅ UI Constants: Styling constants defined for consistency?"
-            ]
-            
-            # Build implementation guidance section
-            implementation_section = []
-            if coding_prompts:
-                implementation_section.extend([
-                    H4('🛠️ Implementation Guidance:'),
-                    P(f'For {filename}, detailed fix instructions are available in Step 2 (Pattern Validation).', 
-                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-style: italic;'),
-                                          P('Each issue has been analyzed with specific code snippets and placement instructions for a coding assistant.',
-                        style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'),
-                    Details(
-                        Summary('💡 Quick Implementation Tips', style=f'cursor: pointer; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
-                        Ul(
-                            Li('🔄 Use pip.chain_reverter() in submit handlers for automatic chain reactions'),
-                            Li('🎯 Add both template markers for helper tool compatibility'),
-                            Li('📝 Follow three-phase pattern: finalized → revert → input'),
-                            Li('🔑 Always include request parameter in route handlers'),
-                            Li('🎨 Define UI_CONSTANTS for consistent styling'),
-                            Li('📋 Include all required class attributes for template use')
-                        ),
-                        style='margin: 1rem 0;'
-                    )
-                ])
-            
-            return Div(
-                Card(
-                    H3(f'{step.show}'),
-                    H4('🔧 Debugging Checklist:'),
-                    Ul(*[Li(item) for item in debug_checklist]),
-                    *implementation_section,
-                    H4('💡 General Recommendations:'),
-                    Ul(*[Li(rec, style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};') for rec in recommendations]) if recommendations else P('No general recommendations.'),
-                    Form(
-                        Button('Continue to Final Recommendations ▸', type='submit'),
-                        hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
-
-    async def step_03_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_03'
-        step_index = self.steps_indices[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        
-        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
-        await self.message_queue.add(pip, 'Debug assistance provided.', verbatim=True)
-        
-        return pip.chain_reverter(step_id, step_index, steps, app_name, 'Debug Guidance Provided')
-
-    async def step_04(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        state = pip.read_state(pipeline_id)
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
-        if 'finalized' in finalize_data:
-            return Div(
-                Card(H3(f'🔒 {step.show}: Recommendations Complete')),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        elif user_val and state.get('_revert_target') != step_id:
-            return Div(
-                pip.display_revert_header(step_id, app_name, steps, f'{step.show}: Expert Guidance Provided'),
-                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
-                id=step_id
-            )
-        else:
-            # Get analysis from step 1 for consistency
-            step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
-            analysis_results = step_01_data.get('analysis_results', {})
-            coding_prompts = analysis_results.get('coding_assistant_prompts', [])
-            filename = analysis_results.get('filename', 'unknown')
-            
-            # Check if step 1 has been completed by looking for plugin_analysis
-            if not step_01_data.get('plugin_analysis'):
-                return Div(
-                    Card(
-                        H3(f'{step.show}'),
-                        P('Please complete Plugin Analysis first.', style='color: orange;')
-                    ),
-                    Div(id=next_step_id),
-                    id=step_id
-                )
-            
-            expert_recommendations = [
-                "📚 Study the Ultimate Pipulate Guide patterns (all 25 priorities)",
-                "🔧 Use the Workflow Genesis plugin for new workflow creation",
-                "🧪 Test auto-key generation by hitting Enter on empty input",
-                "🔄 Verify chain reactions work by completing steps in sequence",
-                "📝 Follow the three-phase pattern in all step handlers",
-                "🎯 Use pip.chain_reverter() helper in POST handlers",
-                "🔍 Enable debug mode in server.py for detailed logging",
-                "📖 Reference the helper scripts for workflow scaffolding"
-            ]
-            
-            # Add implementation strategy section
-            implementation_strategy = []
-            if coding_prompts:
-                implementation_strategy.extend([
-                    H4('🤖 Implementation Strategy:'),
-                    Div(
-                        P(f'✨ This analysis has generated {len(coding_prompts)} detailed fix instruction(s) for {filename}',
-                          style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; font-weight: bold; margin-bottom: 0.5rem;'),
-                        P('These instructions in Step 2 are specifically designed for coding assistants and include:',
-                          style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]}; margin-bottom: 0.5rem;'),
-                        Ul(
-                            Li('📂 Exact filenames and placement locations', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                            Li('💻 Complete code snippets ready to copy', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                            Li('🎯 Specific implementation requirements', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                            Li('🔧 Step-by-step modification instructions', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
-                            Li('⚠️ Critical placement and indentation notes', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};')
-                        ),
-                        P('💡 Copy the instructions from Step 2 and provide them to your coding assistant for precise implementation.',
-                          style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]}; font-style: italic; margin-top: 1rem;'),
-                        style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin: 1rem 0;'
-                    )
-                ])
-            
-            return Div(
-                Card(
-                    H3(f'{step.show}'),
-                    *implementation_strategy,
-                    H4('🎯 Expert Development Recommendations:'),
-                    Ul(*[Li(rec) for rec in expert_recommendations]),
-                    H4('📚 Key Resources:'),
-                    Ul(
-                        Li(A('Ultimate Pipulate Guide Part 1', href='/docs/guide1', target='_blank')),
-                        Li(A('Ultimate Pipulate Guide Part 2', href='/docs/guide2', target='_blank')),
-                        Li(A('Ultimate Pipulate Guide Part 3', href='/docs/guide3', target='_blank')),
-                        Li('Workflow Genesis Plugin (510_workflow_genesis)'),
-                        Li('Helper Scripts (create_workflow.py, splice_workflow_step.py)')
-                    ),
-                    H4('🚀 Next Steps:'),
-                    Ol(
-                        Li('Use the coding assistant prompts from Step 2 to fix identified issues'),
-                        Li('Test the workflow after implementing fixes'),
-                        Li('Re-run this analysis to verify improvements'),
-                        Li('Consider using fixed workflow as template source for future workflows')
-                    ),
-                    Form(
-                        Button('Complete Analysis ▸', type='submit'),
-                        hx_post=f'/{app_name}/{step_id}_submit',
-                        hx_target=f'#{step_id}'
-                    )
-                ),
-                Div(id=next_step_id),
-                id=step_id
-            )
-
-    async def step_04_submit(self, request):
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_04'
-        step_index = self.steps_indices[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-        
-        await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
-        await self.message_queue.add(pip, 'Expert recommendations provided. Development analysis complete.', verbatim=True)
-        
-        return pip.chain_reverter(step_id, step_index, steps, app_name, 'Expert Guidance Provided') 
+ 

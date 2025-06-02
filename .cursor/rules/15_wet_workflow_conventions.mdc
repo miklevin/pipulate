@@ -1111,3 +1111,528 @@ Before considering a workflow "template-ready":
 - **Clear Error Messages**: Helper tools provide specific failure diagnostics
 
 These conventions ensure consistent user experience across all WET workflows while leveraging the proven template-based creation system that maintains the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
+
+## Method-Providing Template Pattern for Advanced Workflow Composition
+
+### The Sausage Factory Discovery: Two Template Categories
+
+**Analysis of [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) reveals a sophisticated pattern:**
+
+#### Workflow Creation Templates vs. Method-Providing Templates
+
+**Workflow Creation Templates** (Structural Foundation):
+- `710_blank_placeholder.py` - Minimal scaffolding 
+- `535_botify_trifecta.py` - Complex 5-step foundation
+- Provide workflow structure, markers, and basic routing
+- Used by `create_workflow.py` for initial creation
+
+**Method-Providing Templates** (Functional Logic):
+- `500_hello_workflow.py` - Clean step implementations
+- `040_parameter_buster.py` - Complex API integration patterns
+- Provide complete GET/POST handler implementations
+- Used by `swap_workflow_step.py` for logic replacement
+
+### The 5-Command Sausage Factory Pattern
+
+**From Hello World Recreation in Workflow Genesis:**
+
+```bash
+# 1. Create structural foundation (workflow creation template)
+python helpers/create_workflow.py kungfu.py KungfuWorkflow kungfu \
+  "Kung Fu Hello World" "🥋 This workflow will become a Hello World equivalent" \
+  "Complete helper tool sequence training. Secret word: MORPHEUS" --template blank --force
+
+# 2. Condition target for method dependencies (class attribute preparation)  
+python helpers/manage_class_attributes.py kungfu.py \
+  plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force
+
+# 3. Replace blank placeholder with functional logic (method-providing template)
+python helpers/swap_workflow_step.py kungfu.py step_01 \
+  plugins/500_hello_workflow.py step_01 --force
+
+# 4. Add new blank placeholder for next method swap
+python helpers/splice_workflow_step.py kungfu.py --position bottom
+
+# 5. Replace new placeholder with functional logic (method-providing template)
+python helpers/swap_workflow_step.py kungfu.py step_02 \
+  plugins/500_hello_workflow.py step_02 --force
+```
+
+**Critical Pattern**: Swaps **blank placeholders** with **functional methods from different template sources**.
+
+### Requirements for Method-Providing Templates
+
+#### Essential Criteria (from 500_hello_workflow.py analysis)
+
+**A. Complete Three-Phase Step Handlers**
+```python
+async def step_01(self, request):
+    """GET handler implementing all three phases"""
+    # Phase 1: Finalized view (locked workflow)
+    if 'finalized' in finalize_data and current_value:
+        return Div(
+            pip.finalized_content(message=f"🔒 {step.show}", content=widget),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
+    
+    # Phase 2: Completed view (revertible)  
+    elif current_value and state.get('_revert_target') != step_id:
+        return Div(
+            pip.display_revert_header(step_id, app_name, f"{step.show}: {current_value}", steps),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
+    
+    # Phase 3: Input view (form collection)
+    else:
+        return Div(
+            Card(H3(step.show), Form(..., hx_post=f'/{app_name}/{step_id}_submit')),
+            Div(id=next_step_id),  # No trigger - waits for form submission
+            id=step_id
+        )
+
+async def step_01_submit(self, request):
+    """POST handler with complete state management"""
+    # Process form data
+    form_data = await request.form()
+    value = form_data.get('user_input')
+    
+    # Update state atomically
+    await pip.set_step_data(pipeline_id, step_id, value, self.steps)
+    
+    # Return chain reaction trigger
+    return Div(
+        pip.display_revert_header(step_id, app_name, f"{step.show}: {value}", steps),
+        Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+        id=step_id
+    )
+```
+
+**B. Rich UI Constants Bundle**
+```python
+# --- START_CLASS_ATTRIBUTES_BUNDLE ---
+UI_CONSTANTS = {
+    'BUTTON_LABELS': {
+        'ENTER_KEY': '🔑 Enter Key',
+        'NEXT_STEP': 'Next Step ▸',
+        'FINALIZE': '🔒 Finalize',
+        'UNLOCK': '🔓 Unlock'
+    },
+    'BUTTON_STYLES': {
+        'PRIMARY': 'primary',
+        'SECONDARY': 'secondary',
+        'OUTLINE': 'secondary outline'
+    },
+    'EMOJIS': {
+        # Process Status Indicators
+        'KEY': '🔑',
+        'DISCOVERY': '🔍',
+        'SUCCESS': '🎯', 
+        'WARNING': '⚠️',
+        'ERROR': '❌',
+        'COMPLETION': '✅',
+        
+        # Data Type Indicators  
+        'USER_INPUT': '👤',
+        'GREETING': '💬',
+        'WORKFLOW': '🔄'
+    }
+}
+# --- END_CLASS_ATTRIBUTES_BUNDLE ---
+```
+
+**C. Self-Contained Dependencies**
+- Minimal external dependencies for broad compatibility
+- Standard state management patterns (pip.set_step_data, pip.get_step_data)
+- Consistent APP_NAME namespace usage
+- Compatible chain reaction patterns
+
+### Preparing 7xx/8xx Plugins as Method-Providing Templates
+
+#### Current Plugin Ecosystem Analysis
+
+**7xx Plugins (Components)**:
+- `710_blank_placeholder.py` - Structural template
+- `750_checkboxes.py` - Widget pattern needing extraction
+- `770_range.py` - Input widget needing standardization
+
+**8xx Plugins (Widgets)**:
+- `840_matplotlib.py` - **Excellent candidate** (clean JSON → widget pattern)
+- `870_upload.py` - **Good candidate** (reusable file handling)
+- `890_selenium.py` - **Potential candidate** (browser automation patterns)
+
+#### Universal Plugin Preparation Recipe
+
+**Step 1: Add Template Assembly Infrastructure**
+```python
+class YourWidget:
+    def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
+        # Standard initialization
+        self.steps = [
+            Step(id='step_01', done='widget_result', show='Widget Operation', refill=True),
+            # --- STEPS_LIST_INSERTION_POINT --- 
+            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+        ]
+        
+        # ... existing route registration ...
+        
+    # ... existing methods ...
+    
+    # --- STEP_METHODS_INSERTION_POINT ---
+```
+
+**Step 2: Extract and Enhance UI Constants**
+```python
+# --- START_CLASS_ATTRIBUTES_BUNDLE ---
+UI_CONSTANTS = {
+    'BUTTON_LABELS': {
+        'PROCESS_WIDGET': '🎯 Process Widget Data',
+        'VIEW_RESULTS': '👁️ View Results',
+        'REGENERATE': '🔄 Regenerate Widget'
+    },
+    'WIDGET_CONFIG': {
+        'DEFAULT_INPUT': 'default widget input',
+        'VALIDATION_PATTERN': 'validation regex or rules',
+        'OUTPUT_FORMAT': 'expected output format'
+    },
+    'EMOJIS': {
+        'WIDGET_TYPE': '🔧',  # Specific widget identifier
+        'INPUT_READY': '📝',  # Input form state
+        'PROCESSING': '⚙️',  # Background processing
+        'RESULT_READY': '✅', # Completion state
+        'ERROR_STATE': '❌'   # Error handling
+    },
+    'STYLES': {
+        'WIDGET_CONTAINER': 'padding: 1rem; border-radius: 4px;',
+        'RESULT_DISPLAY': 'background-color: #f8f9fa; border-left: 4px solid #28a745;',
+        'ERROR_DISPLAY': 'background-color: #fff5f5; border-left: 4px solid #dc3545;'
+    }
+}
+# --- END_CLASS_ATTRIBUTES_BUNDLE ---
+```
+
+**Step 3: Standardize Step Method Patterns**
+```python
+async def step_01(self, request):
+    """Widget step with complete three-phase implementation"""
+    pip, db, app_name = (self.pipulate, self.db, self.app_name)
+    step_id = 'step_01'
+    step_index = self.steps_indices[step_id]
+    step = self.steps[step_index]
+    next_step_id = self.steps[step_index + 1].id
+    
+    pipeline_id = db.get('pipeline_id', 'unknown')
+    state = pip.read_state(pipeline_id)
+    step_data = pip.get_step_data(pipeline_id, step_id, {})
+    widget_result = step_data.get(step.done, '')
+    finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+    
+    # Phase 1: Finalized view
+    if 'finalized' in finalize_data and widget_result:
+        try:
+            widget_display = self.create_widget_display(widget_result)
+            return Div(
+                pip.finalized_content(message=f"🔒 {step.show}", content=widget_display),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        except Exception as e:
+            logger.error(f'Error creating widget in finalized view: {str(e)}')
+            return Div(
+                pip.finalized_content(message=f"🔒 {step.show}", content=P("Widget locked")),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+    
+    # Phase 2: Completed view (revertible)
+    elif widget_result and state.get('_revert_target') != step_id:
+        try:
+            widget_display = self.create_widget_display(widget_result)
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f"{step.show} Complete",
+                    widget=widget_display,
+                    steps=self.steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        except Exception as e:
+            logger.error(f'Error creating widget display: {str(e)}')
+            # Force revert on error
+            state['_revert_target'] = step_id
+            pip.write_state(pipeline_id, state)
+    
+    # Phase 3: Input view
+    await self.message_queue.add(pip, f"Configure {step.show}", verbatim=True)
+    display_value = widget_result if step.refill and widget_result else await self.get_suggestion(step_id, state)
+    
+    return Div(
+        Card(
+            H3(f"{step.show}"),
+            P("Enter widget input data:", cls='text-secondary'),
+            Form(
+                self.create_widget_input_form(display_value),
+                Button('Process Widget ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit',
+                hx_target=f'#{step_id}'
+            )
+        ),
+        Div(id=next_step_id),
+        id=step_id
+    )
+
+async def step_01_submit(self, request):
+    """Widget submission with validation and state management"""
+    pip, db, app_name = (self.pipulate, self.db, self.app_name)
+    step_id = 'step_01'
+    step_index = self.steps_indices[step_id]
+    step = self.steps[step_index]
+    next_step_id = self.steps[step_index + 1].id
+    
+    pipeline_id = db.get('pipeline_id', 'unknown')
+    form_data = await request.form()
+    
+    try:
+        # Extract and validate widget input
+        widget_input = await self.extract_widget_input(form_data)
+        validated_input = await self.validate_widget_input(widget_input)
+        
+        # Process widget with input
+        widget_result = await self.process_widget_data(validated_input)
+        
+        # Store result
+        await pip.set_step_data(pipeline_id, step_id, widget_result, self.steps)
+        await self.message_queue.add(pip, f"{step.show} processing complete", verbatim=True)
+        
+        # Create widget display
+        widget_display = self.create_widget_display(widget_result)
+        
+        return Div(
+            pip.display_revert_widget(
+                step_id=step_id,
+                app_name=app_name,
+                message=f"{step.show} Complete",
+                widget=widget_display,
+                steps=self.steps
+            ),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
+        
+    except Exception as e:
+        logger.error(f'Widget processing error: {str(e)}')
+        await self.message_queue.add(pip, f"❌ Widget error: {str(e)}", verbatim=True)
+        
+        # Return to input form with error message
+        return Div(
+            Card(
+                H3(f"{step.show}"),
+                P(f"Error: {str(e)}", style="color: #dc3545; margin-bottom: 1rem;"),
+                Form(
+                    self.create_widget_input_form(""),
+                    Button('Retry Widget ▸', type='submit', cls='primary'),
+                    hx_post=f'/{app_name}/{step_id}_submit',
+                    hx_target=f'#{step_id}'
+                )
+            ),
+            Div(id=next_step_id),
+            id=step_id
+        )
+```
+
+**Step 4: Extract Reusable Widget Logic**
+```python
+def create_widget_input_form(self, default_value=""):
+    """Standardized widget input form creation"""
+    # Override in specific widgets for custom input patterns
+    return Textarea(
+        default_value,
+        name='widget_input',
+        placeholder='Enter widget data...',
+        required=True,
+        rows=6,
+        style='width: 100%; font-family: monospace;'
+    )
+
+async def extract_widget_input(self, form_data):
+    """Extract widget input from form data"""
+    # Override for complex input extraction
+    return form_data.get('widget_input', '').strip()
+
+async def validate_widget_input(self, widget_input):
+    """Validate widget input with specific rules"""
+    # Override for widget-specific validation
+    if not widget_input:
+        raise ValueError("Widget input is required")
+    return widget_input
+
+async def process_widget_data(self, validated_input):
+    """Process validated input into widget result"""
+    # Override with actual widget processing logic
+    return f"Processed: {validated_input}"
+
+def create_widget_display(self, widget_result):
+    """Create widget display from result data"""
+    # Override with actual widget rendering logic
+    return P(f"Widget Result: {widget_result}")
+
+async def get_suggestion(self, step_id, state):
+    """Provide default or example input for the widget"""
+    # Override with widget-specific suggestions
+    return "# Example widget input\ndefault_value"
+```
+
+#### Specific Plugin Transformation Examples
+
+**840_matplotlib.py Enhancement**:
+```python
+# Already has: create_matplotlib_histogram() method
+# Needs: UI constants bundle and template markers
+# Benefit: JSON → histogram pattern is highly reusable
+
+UI_CONSTANTS = {
+    'EMOJIS': {
+        'CHART': '📊',
+        'DATA_INPUT': '📝',
+        'VISUALIZATION': '🎨'
+    },
+    'WIDGET_CONFIG': {
+        'DEFAULT_DATA': '{"apples": 35, "oranges": 42, "bananas": 28}',
+        'CHART_TYPE': 'histogram'
+    }
+}
+
+# Widget methods already present:
+# - create_matplotlib_histogram() ✅ 
+# - Proper validation ✅
+# - Error handling ✅
+```
+
+**870_upload.py Enhancement**:
+```python
+# Needs: Extraction of upload logic into swappable methods
+# Benefit: File upload pattern applicable across many workflows
+
+UI_CONSTANTS = {
+    'EMOJIS': {
+        'UPLOAD': '📤',
+        'FILE': '📄',
+        'FOLDER': '📂'
+    },
+    'UPLOAD_CONFIG': {
+        'MAX_FILES': 10,
+        'ALLOWED_TYPES': 'any',
+        'SIZE_LIMIT': '100MB'
+    }
+}
+
+# Extract upload logic:
+async def process_file_uploads(self, form_data):
+    """Reusable file upload processing"""
+    pass
+
+def create_upload_display(self, file_summary):
+    """Reusable upload result display"""
+    pass
+```
+
+### Integration with Template-Based Creation System
+
+#### Method-Providing Template Validation
+
+**Pre-Swapping Checklist:**
+- [ ] Complete three-phase step handlers (finalized/completed/input)
+- [ ] Proper chain reaction triggers in all return paths
+- [ ] UI constants bundle with START_CLASS_ATTRIBUTES_BUNDLE markers
+- [ ] Self-contained logic with minimal external dependencies
+- [ ] Compatible state management using pip.set_step_data/get_step_data
+- [ ] Standard step method signatures (step_N and step_N_submit)
+- [ ] Comprehensive error handling and recovery
+
+#### Testing Method-Providing Templates
+
+```bash
+# 1. Test basic template compatibility
+python helpers/create_workflow.py test_target.py TestClass test_app \
+  "Test Workflow" "Testing method swap" "Test prompt" --template blank --force
+
+# 2. Test class attribute merging
+python helpers/manage_class_attributes.py test_target.py \
+  plugins/your_widget.py --attributes-to-merge UI_CONSTANTS --force
+
+# 3. Test method swapping
+python helpers/swap_workflow_step.py test_target.py step_01 \
+  plugins/your_widget.py step_01 --force
+
+# 4. Verify server restart and functionality
+# Check for import errors in console
+# Test workflow creation and step progression
+```
+
+### Advanced Template Composition Patterns
+
+#### Multi-Source Method Assembly
+
+**Complex workflows can combine methods from multiple sources:**
+
+```bash
+# Trifecta pattern from workflow_genesis.py:
+python helpers/create_workflow.py complex_workflow.py ComplexFlow complex \
+  "Complex Data Flow" "Multi-source workflow" "Training" --template trifecta --force
+
+# Condition for parameter buster methods
+python helpers/manage_class_attributes.py complex_workflow.py \
+  plugins/040_parameter_buster.py \
+  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force
+
+# Swap step_01 with parameter collection logic
+python helpers/swap_workflow_step.py complex_workflow.py step_01 \
+  plugins/040_parameter_buster.py step_01 --force
+
+# Add matplotlib visualization step
+python helpers/splice_workflow_step.py complex_workflow.py --position bottom
+
+# Swap new step with visualization logic  
+python helpers/swap_workflow_step.py complex_workflow.py step_06 \
+  plugins/840_matplotlib.py step_01 --force
+```
+
+#### Method Dependency Graph
+
+**Consider dependencies when selecting method-providing templates:**
+
+- **Simple Dependencies**: UI constants, basic validation patterns
+- **Medium Dependencies**: File handling, API patterns, background processing
+- **Complex Dependencies**: Database schemas, external services, browser automation
+
+**Dependency Resolution Strategy:**
+1. **Start with simplest compatible template** for initial functionality
+2. **Layer in complexity** through attribute merging and additional swaps
+3. **Test at each step** to catch incompatibilities early
+4. **Document dependencies** for future maintenance
+
+### Benefits of Method-Providing Template Pattern
+
+#### Development Acceleration
+- **95% Code Reuse**: Proven step implementations reduce development time
+- **Pattern Consistency**: Uniform approach across different widget types
+- **Reduced Debugging**: Template methods already tested and validated
+- **Rapid Prototyping**: Quick assembly of complex workflows from proven components
+
+#### Quality Assurance
+- **Battle-Tested Logic**: Method-providing templates undergo extensive real-world testing
+- **Consistent UX**: Shared UI constants ensure uniform user experience
+- **Error Handling**: Proven error recovery patterns reduce edge case issues
+- **Chain Reaction Integrity**: Template methods maintain proper HTMX progression
+
+#### Maintenance Efficiency
+- **Template Improvements Propagate**: Enhancements to source templates benefit derived workflows
+- **Centralized Pattern Evolution**: UI constants and method patterns evolve in template sources
+- **Reduced Duplication**: Single source of truth for common workflow patterns
+- **Clear Dependency Tracking**: Template sources clearly document their requirements
+
+This method-providing template pattern represents the evolution of WET workflow development from simple template assembly to sophisticated component composition, while maintaining the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
