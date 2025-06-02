@@ -94,7 +94,7 @@ def get_current_environment():
 APP_NAME = get_app_name()
 TONE = 'neutral'
 MODEL = 'gemma3'
-MAX_LLM_RESPONSE_WORDS = 60
+MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = 'Introduction'
 DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
@@ -3209,11 +3209,24 @@ async def send_startup_environment_message():
         env_display = 'DEV' if current_env == 'Development' else 'Prod'
         
         if current_env == 'Development':
-            message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
+            env_message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
         else:
-            message = f"🚀 Server started in {env_display} mode. Ready for production use."
+            env_message = f"🚀 Server started in {env_display} mode. Ready for production use."
             
-        await pipulate.stream(message, verbatim=True)
+        await pipulate.stream(env_message, verbatim=True)
+        
+        # Also send endpoint message and training for current location
+        current_endpoint = db.get('last_app_choice', '')
+        
+        # Add training prompt to conversation history
+        build_endpoint_training(current_endpoint)
+        
+        # Send endpoint message if available
+        endpoint_message = build_endpoint_messages(current_endpoint)
+        if endpoint_message:
+            await asyncio.sleep(1)  # Brief pause between messages
+            await pipulate.stream(endpoint_message, verbatim=True)
+            
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
 
