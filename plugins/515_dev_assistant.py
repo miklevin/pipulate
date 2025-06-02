@@ -3,6 +3,7 @@ import asyncio
 from collections import namedtuple
 from datetime import datetime
 from fasthtml.common import * # type: ignore
+from fasthtml.common import to_xml
 from loguru import logger
 import inspect
 from pathlib import Path
@@ -1057,9 +1058,9 @@ class DevAssistant:
                 needs_work_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
                 
                 transplant_section.extend([
-                    H4('🔀 Transplantation Analysis:', style='color: #2c3e50; margin-top: 2rem; margin-bottom: 1rem;'),
+                    H5('🔀 Transplantation Commands:', style='color: #fd7e14; margin-bottom: 0.75rem;'),
                     P(f'Found {len(transplant_commands)} step method(s) suitable for transplantation:', 
-                      style='color: #495057; margin-bottom: 1rem;')
+                      style='color: #6c757d; margin-bottom: 1rem;')
                 ])
                 
                 if good_commands:
@@ -1149,7 +1150,7 @@ class DevAssistant:
                 ])
             else:
                 transplant_section.extend([
-                    H4('🔀 Transplantation Analysis:', style='color: #2c3e50; margin-top: 2rem; margin-bottom: 1rem;'),
+                    H5('🔀 Transplantation Commands:', style='color: #fd7e14; margin-bottom: 0.75rem;'),
                     P('No transplantable step methods found in this plugin.', style='color: #6c757d; margin-bottom: 1rem;'),
                     P('This plugin may be a template or infrastructure component rather than a source for step methods.', 
                       style='color: #6c757d; font-style: italic;')
@@ -1219,12 +1220,17 @@ class DevAssistant:
                     # STATUS SUMMARY with consistent headlines
                     Div(
                         H4("📊 CAPABILITY SUMMARY", style="color: #007bff; margin-bottom: 1rem; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem;"),
-                        Div([
-                            Div(f"🔧 Functional Plugin: {functional_status}", style=f"color: {functional_color}; font-weight: bold; margin-bottom: 0.5rem;"),
-                            Div(f"📋 Template Source: {template_source_status}", style=f"color: {template_source_color}; font-weight: bold; margin-bottom: 0.5rem;"),
-                            Div(f"📥 Swap Recipient: {swap_recipient_status}", style=f"color: {swap_recipient_color}; font-weight: bold; margin-bottom: 0.5rem;"),
-                            Div(f"📤 Swap Source: {swap_source_status}", style=f"color: {swap_source_color}; font-weight: bold;")
-                        ], style="background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem;")
+                        Div(
+                            Div(f"🔧 Functional Plugin: {functional_status}", 
+                                style=f"color: {'#155724' if functional_color == 'green' else '#856404' if functional_color == 'orange' else '#721c24'}; background-color: {'#d4edda' if functional_color == 'green' else '#fff3cd' if functional_color == 'orange' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📋 Template Source: {template_source_status}", 
+                                style=f"color: {'#155724' if template_source_color == 'green' else '#721c24'}; background-color: {'#d4edda' if template_source_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📥 Swap Recipient: {swap_recipient_status}", 
+                                style=f"color: {'#155724' if swap_recipient_color == 'green' else '#721c24'}; background-color: {'#d4edda' if swap_recipient_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📤 Swap Source: {swap_source_status}", 
+                                style=f"color: {'#155724' if swap_source_color == 'green' else '#721c24'}; background-color: {'#d4edda' if swap_source_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold;"),
+                            style="background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem;"
+                        )
                     ),
                     
                     # 1. FUNCTIONAL PLUGIN DETAILS
