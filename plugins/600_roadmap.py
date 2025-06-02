@@ -74,8 +74,7 @@ class RoadmapPlugin:
                 diagram_message = f"```mermaid\n{self.ROADMAP_DIAGRAM}\n```"
                 self.pipulate.append_to_history(  # Remove await since it's not async
                     "[WIDGET CONTENT] Project Roadmap\n" + diagram_message,
-                    role="system",
-                    quiet=True  # Add quiet flag to ensure it's silent
+                    role="system"
                 )
 
                 self._has_streamed = True  # Set flag to prevent repeated streaming
