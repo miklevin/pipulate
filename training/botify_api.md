@@ -9,11 +9,9 @@ The first 2 scripts in this series (immediately below) set you up. They may look
 - Cell 2 makes sure you have your `botify_token.txt` for API-access.
 - Cell 3 makes sure you have an example `config.json` to use in the examples.
 
-When you run the scripts in cells 2 & 3, they will appear to *"lock up"* the notebook. It's not locked up. There is a field showing waiting for input from you. Type (or paste) what it's asking for into the input field and *Hit Enter*. It will proceed.
-
-If you get confused, hit `Esc` + `0` + `0` + `Enter` and that will *restart the kernel.*
-
-Yes, that's **Esc, Zero, Zero, Enter** — *it's a Notebook thing.*
+> When you run the scripts in cells 2 & 3, they will appear to *"lock up"*. It's not. Input fields are waiting for you. Type/paste into the field and *Hit Enter*.  
+> If you get confused, hit `Esc` + `0` + `0` + `Enter` and that will *restart the kernel.*  
+> Yes, that's **Esc, Zero, Zero, Enter** — *it's a Notebook thing.*  
 
 Good luck!
 
