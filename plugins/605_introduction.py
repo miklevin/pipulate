@@ -5,9 +5,14 @@ This plugin serves the 4-page introduction sequence that was originally
 the homepage content before switching to the Roles app.
 """
 
+import logging
 from fasthtml.common import *
 from pathlib import Path
 import urllib.parse
+
+ROLES = ['Tutorial']
+
+logger = logging.getLogger(__name__)
 
 class IntroductionPlugin:
     NAME = "introduction"
@@ -15,21 +20,18 @@ class IntroductionPlugin:
     ENDPOINT_MESSAGE = "📖 Introduction Guide: Learn about Pipulate's layout, features, and how to get started effectively. This comprehensive guide covers profiles, workflows, and the local LLM assistant."
 
     def __init__(self, app, pipulate, pipeline, db):
+        logger.debug(f"IntroductionPlugin initialized with NAME: {self.NAME}")
         self.app = app
         self.pipulate = pipulate
         self.pipeline = pipeline  
         self.db = db
+        self._has_streamed = False  # Flag to track if we've already streamed
         
-        # Register routes
-        app.route('/introduction', methods=['GET'])(self.serve_introduction)
-        app.route('/introduction/page/{page_num}', methods=['GET'])(self.serve_page)
+        # Register routes for page navigation
+        app.route('/introduction/page/{page_num}', methods=['GET', 'POST'])(self.serve_page)
 
-    def get_intro_page_content_html(self, page_num_str: str, app_name: str, model: str):
-        """Returns HTML content for intro pages as raw HTML strings.
-        Content is defined once and used for both UI display and LLM context.
-        """
-        page_num = int(page_num_str)
-        
+    def get_intro_page_data(self, page_num: int, app_name: str, model: str):
+        """Returns page data for intro pages."""
         pages = {
             1: {
                 'title': f'Welcome to {app_name}',
@@ -83,233 +85,165 @@ class IntroductionPlugin:
                 ]
             }
         }
+        return pages.get(page_num)
+
+    def create_page_content(self, page_num: int, app_name: str, model: str):
+        """Create FastHTML content for a specific page."""
+        page_data = self.get_intro_page_data(page_num, app_name, model)
         
-        page_data = pages.get(page_num)
         if not page_data:
-            error_msg = f'Content for instruction page {page_num_str} not found.'
-            content_html = f'<article style="min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;"><p>{error_msg}</p></article>'
-            llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
-            return (content_html, llm_context)
-        
-        card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start; padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem;'
+            return Card(
+                H3("Page Not Found"),
+                P(f"Introduction page {page_num} not found."),
+                style="min-height: 300px;"
+            )
+
+        card_style = "min-height: 400px; margin-bottom: 2rem;"
         
         if page_num == 1:
-            features_html = ''.join([f'<li><strong>{name}:</strong> {desc}</li>' for name, desc in page_data['features']])
-            content_html = f'''
-            <article style="{card_style}">
-                <h2>{page_data['title']}</h2>
-                <h4>{page_data['intro']}</h4>
-                <ol>{features_html}</ol>
-                <h4>{page_data['getting_started']}</h4>
-                <p>{page_data['nav_help']}</p>
-                <p>{page_data['llm_help']}</p>
-            </article>
-            '''
-            llm_context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
+            return Card(
+                H2(page_data['title']),
+                H4(page_data['intro']),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]),
+                H4(page_data['getting_started']),
+                P(page_data['nav_help']),
+                P(page_data['llm_help']),
+                style=card_style
+            )
             
         elif page_num == 2:
-            steps_html = ''.join([f'<li>{step}</li>' for step in page_data['experimenting_steps']])
-            items_html = ''.join([f'<li><strong>{name}:</strong> {desc}</li>' for name, desc in page_data['interface_items']])
-            content_html = f'''
-            <article style="{card_style}">
-                <h3>{page_data['experimenting_title']}</h3>
-                <ol>{steps_html}</ol>
-                <h3>{page_data['interface_title']}</h3>
-                <ul>{items_html}</ul>
-            </article>
-            '''
-            llm_context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+            return Card(
+                H3(page_data['experimenting_title']),
+                Ol(*[Li(step) for step in page_data['experimenting_steps']]),
+                H3(page_data['interface_title']),
+                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
+                style=card_style
+            )
             
         elif page_num == 3:
-            tips_html = ''.join([f'<li><strong>{name}:</strong> {desc}</li>' for name, desc in page_data['tips']])
-            downloads_path = urllib.parse.quote(str(Path('downloads').absolute()))
-            content_html = f'''
-            <article style="{card_style}">
-                <h3>{page_data['title']}</h3>
-                <ol>{tips_html}</ol>
-                <hr>
-                <p>Try it now: <a href="/open-folder?path={downloads_path}">Open Downloads Folder</a></p>
-            </article>
-            '''
-            llm_context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+            return Card(
+                H3(page_data['title']),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
+                Hr(),
+                P('Try it now: ', A('Open Downloads Folder', 
+                                   href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), 
+                                   hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), 
+                                   hx_swap='none')),
+                style=card_style
+            )
             
         elif page_num == 4:
-            features_html = ''.join([f'<li><strong>{name}:</strong> {desc}</li>' for name, desc in page_data['llm_features']])
-            tips_html = ''.join([f'<li>{tip}</li>' for tip in page_data['usage_tips']])
-            content_html = f'''
-            <article style="{card_style}">
-                <h3>{page_data['title']}</h3>
-                <p>Your local LLM ({model}) provides intelligent assistance throughout your workflow:</p>
-                <ol>{features_html}</ol>
-                <h4>How to Use the LLM</h4>
-                <ul>{tips_html}</ul>
-            </article>
-            '''
-            llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
-        
-        return (content_html, llm_context)
+            return Card(
+                H3(page_data['title']),
+                P(f'Your local LLM ({model}) provides intelligent assistance throughout your workflow:'),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]),
+                H4('How to Use the LLM'),
+                Ul(*[Li(tip) for tip in page_data['usage_tips']]),
+                style=card_style
+            )
 
-    async def serve_introduction(self, request):
-        """Serve the main introduction page with navigation."""
+    def create_llm_context(self, page_num: int, app_name: str, model: str):
+        """Create LLM context for a specific page."""
+        page_data = self.get_intro_page_data(page_num, app_name, model)
+        
+        if not page_data:
+            return f'The user is viewing an unknown introduction page ({page_num}).'
+
+        if page_num == 1:
+            return f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
+        elif page_num == 2:
+            return f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+        elif page_num == 3:
+            return f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+        elif page_num == 4:
+            return f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+
+    async def serve_page(self, request):
+        """Handle page navigation within the main app framework."""
+        page_num = int(request.path_params.get('page_num', '1'))
+        
         # Get app name and model from server settings
         from server import APP_NAME, MODEL
         
-        # Default to page 1
-        content_html, llm_context = self.get_intro_page_content_html("1", APP_NAME, MODEL)
+        # Store current page in database
+        self.db['intro_current_page'] = str(page_num)
         
-        # Add LLM context
-        await self.pipulate.stream(llm_context, verbatim=True)
-        
-        page_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Introduction Guide - {APP_NAME}</title>
-    <link rel="stylesheet" href="/static/pico.css">
-    <link rel="stylesheet" href="/static/styles.css">
-    <style>
-        .container {{ max-width: 800px; margin: 0 auto; padding: 2rem; }}
-        .nav-link {{ margin-right: 1rem; text-decoration: none; }}
-        .nav-link:hover {{ text-decoration: underline; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>📖 Introduction Guide</h1>
-            <p>Learn about {APP_NAME}'s layout, features, and how to get started effectively.</p>
-        </header>
-        
-        <nav style="margin-bottom: 2rem;">
-            <a href="/introduction/page/1" class="nav-link">Page 1: Welcome</a>
-            <a href="/introduction/page/2" class="nav-link">Page 2: Getting Started</a>
-            <a href="/introduction/page/3" class="nav-link">Page 3: Tips</a>
-            <a href="/introduction/page/4" class="nav-link">Page 4: LLM Assistant</a>
-        </nav>
-        
-        <main>
-            {content_html}
-        </main>
-        
-        <footer style="margin-top: 3rem; text-align: center;">
-            <p><a href="/">← Back to Main App</a></p>
-        </footer>
-    </div>
-</body>
-</html>"""
-        
-        return HTMLResponse(page_html)
-
-    async def serve_page(self, request):
-        """Serve a specific intro page."""
-        page_num = request.path_params.get('page_num', '1')
-        
-        # Get app name and model from server settings  
-        from server import APP_NAME, MODEL
-        
-        try:
-            content_html, llm_context = self.get_intro_page_content_html(page_num, APP_NAME, MODEL)
-            
-            # Add LLM context
+        # Create LLM context and send to chat
+        llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
+        if self.pipulate:
             await self.pipulate.stream(llm_context, verbatim=True)
-            
-            # Create navigation
-            current_page = int(page_num)
-            prev_page = current_page - 1 if current_page > 1 else None
-            next_page = current_page + 1 if current_page < 4 else None
-            
-            prev_button = f'<a href="/introduction/page/{prev_page}" class="secondary">← Previous</a>' if prev_page else '<span></span>'
-            next_button = f'<a href="/introduction/page/{next_page}" class="primary">Next →</a>' if next_page else '<span></span>'
-            
-            nav_buttons = f'''
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
-                {prev_button}
-                {next_button}
-            </div>
-            '''
-            
-            page_navigation = ''
-            for i in range(1, 5):
-                weight_style = 'font-weight: bold;' if current_page == i else ''
-                page_navigation += f'<a href="/introduction/page/{i}" style="{weight_style}">Page {i}</a>'
-                if i < 4:
-                    page_navigation += ' | '
-            
-            page_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Introduction Guide - Page {page_num} - {APP_NAME}</title>
-    <link rel="stylesheet" href="/static/pico.css">
-    <link rel="stylesheet" href="/static/styles.css">
-    <style>
-        .container {{ max-width: 800px; margin: 0 auto; padding: 2rem; }}
-        .secondary, .primary {{ 
-            padding: 0.5rem 1rem; 
-            text-decoration: none; 
-            border-radius: 0.25rem; 
-            display: inline-block;
-        }}
-        .secondary {{ 
-            background-color: var(--pico-secondary-background); 
-            color: var(--pico-secondary-color); 
-        }}
-        .primary {{ 
-            background-color: var(--pico-primary-background); 
-            color: var(--pico-primary-color); 
-        }}
-        .secondary:hover, .primary:hover {{ opacity: 0.8; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>📖 Introduction Guide - Page {page_num}</h1>
-            <nav style="margin-bottom: 1rem;">
-                {page_navigation}
-            </nav>
-        </header>
         
-        {nav_buttons}
-        
-        <main>
-            {content_html}
-        </main>
-        
-        {nav_buttons}
-        
-        <footer style="margin-top: 3rem; text-align: center;">
-            <p><a href="/introduction">← Back to Introduction Overview</a> | <a href="/">← Back to Main App</a></p>
-        </footer>
-    </div>
-</body>
-</html>"""
-            
-            return HTMLResponse(page_html)
-            
-        except Exception as e:
-            error_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Introduction Guide - Error</title>
-    <link rel="stylesheet" href="/static/pico.css">
-</head>
-<body>
-    <div class="container">
-        <article>
-            <h1>Error Loading Page</h1>
-            <p>Error loading page {page_num}: {str(e)}</p>
-            <p><a href="/introduction">← Back to Introduction Overview</a></p>
-        </article>
-    </div>
-</body>
-</html>"""
-            return HTMLResponse(error_html, status_code=404)
+        # Return to the main introduction landing with updated page
+        return RedirectResponse(url='/introduction', status_code=303)
 
     async def landing(self, render_items=None):
-        """Landing page that redirects to the main introduction page."""
-        return HTMLResponse('', status_code=302, headers={'Location': '/introduction'}) 
+        """Always appears in create_grid_left."""
+        # Get app name and model from server settings
+        from server import APP_NAME, MODEL
+        
+        # Get current page from database, default to 1
+        current_page = int(self.db.get('intro_current_page', '1'))
+        
+        # Send the intro message to conversation history, but only once per session
+        if self.pipulate is not None and not self._has_streamed:
+            try:
+                # First, send the verbatim redirect message
+                await self.pipulate.stream(
+                    self.ENDPOINT_MESSAGE,
+                    verbatim=True,
+                    role="system",
+                    spaces_before=1,
+                    spaces_after=1
+                )
+
+                # Then append the current page info to history
+                llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
+                self.pipulate.append_to_history(
+                    f"[WIDGET CONTENT] Introduction Guide - Page {current_page}\n{llm_context}",
+                    role="system"
+                )
+
+                self._has_streamed = True  # Set flag to prevent repeated streaming
+                logger.debug("Introduction content appended to conversation history")
+            except Exception as e:
+                logger.error(f"Error in introduction plugin: {str(e)}")
+
+        # Create page navigation
+        nav_buttons = Div(
+            *[
+                A(f"Page {i}", 
+                  href=f'/introduction/page/{i}',
+                  cls="secondary outline" if i != current_page else "primary",
+                  style="margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block;"
+                ) for i in range(1, 5)
+            ],
+            style="margin-bottom: 1rem;"
+        )
+
+        # Create navigation arrows
+        prev_page = current_page - 1 if current_page > 1 else None
+        next_page = current_page + 1 if current_page < 4 else None
+        
+        nav_arrows = Div(
+            A("← Previous", 
+              href=f'/introduction/page/{prev_page}' if prev_page else '#',
+              cls="secondary outline" if prev_page else "secondary outline disabled",
+              style="margin-right: 1rem;" + ("pointer-events: none; opacity: 0.5;" if not prev_page else "")
+            ) if True else Span(),
+            A("Next →", 
+              href=f'/introduction/page/{next_page}' if next_page else '#',
+              cls="primary" if next_page else "secondary outline disabled",
+              style=("pointer-events: none; opacity: 0.5;" if not next_page else "")
+            ) if True else Span(),
+            style="display: flex; justify-content: space-between; margin-top: 1rem;"
+        )
+
+        # Create the current page content
+        page_content = self.create_page_content(current_page, APP_NAME, MODEL)
+
+        return Div(
+            H2(f"📖 Introduction Guide - Page {current_page}"),
+            nav_buttons,
+            page_content,
+            nav_arrows
+        ) 
