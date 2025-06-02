@@ -83,7 +83,7 @@ class CrudCustomizer(BaseCrud):
 
 class CrudUI(PluginIdentityManager):
     # Override this to customize the emoji for this specific plugin
-    EMOJI = '☑️'
+    EMOJI = '️✔️'
 
     @property
     def ENDPOINT_MESSAGE(self):

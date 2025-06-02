@@ -385,9 +385,9 @@ def get_affected_plugins(role_name):
                 match = re.match(r'^(\d+)_(.+)\.py$', filename)
                 if match:
                     prefix = int(match.group(1))
-                    name = match.group(2).replace('_', ' ').title()
+                    base_name = match.group(2).replace('_', ' ').title()
                     
-                    # Get the module's ROLES
+                    # Get the module's ROLES and DISPLAY_NAME
                     try:
                         module_name = f"plugins.{filename[:-3]}"
                         if module_name in sys.modules:
@@ -400,6 +400,30 @@ def get_affected_plugins(role_name):
                             spec.loader.exec_module(module)
                             plugin_roles = getattr(module, 'ROLES', [])
                         
+                        # Try to get the actual DISPLAY_NAME from the plugin
+                        display_name = base_name  # fallback
+                        try:
+                            # Look for plugin classes that might have DISPLAY_NAME
+                            for name, obj in inspect.getmembers(module):
+                                if inspect.isclass(obj) and hasattr(obj, 'DISPLAY_NAME'):
+                                    if callable(obj.DISPLAY_NAME):
+                                        # It's a property, need to instantiate or use base logic
+                                        if hasattr(obj, 'EMOJI'):
+                                            emoji = getattr(obj, 'EMOJI', '')
+                                            if emoji:
+                                                display_name = f"{base_name} {emoji}"
+                                            else:
+                                                display_name = base_name
+                                        else:
+                                            display_name = base_name
+                                    else:
+                                        # It's a direct attribute
+                                        display_name = obj.DISPLAY_NAME
+                                    break
+                        except Exception as e:
+                            logger.debug(f"Could not get display name for {filename}: {e}")
+                            display_name = base_name
+                        
                         # Use the same primary role logic as the APP menu
                         # Get the PRIMARY role (first role in the list)
                         if plugin_roles:
@@ -407,10 +431,10 @@ def get_affected_plugins(role_name):
                             
                             # Only count this plugin if its PRIMARY role matches the requested role
                             if primary_role == role_name:
-                                shown_plugins.append((prefix, name))
+                                shown_plugins.append((prefix, display_name))
                         elif role_name == 'Core':
                             # Plugins with no ROLES declaration default to Core
-                            shown_plugins.append((prefix, name))
+                            shown_plugins.append((prefix, display_name))
                             
                     except Exception as e:
                         logger.warning(f"Could not check ROLES for {filename}: {e}")
@@ -465,9 +489,17 @@ def create_plugin_visibility_table(role_name):
     border_color = colors['border']
     background_color = colors['background']
     
-    # Create the plugin list
-    def format_all_plugins(plugins):
-        return ", ".join([f"{name}" for prefix, name in plugins])
+    # Create the plugin list vertically
+    def format_all_plugins_vertical(plugins):
+        plugin_items = []
+        for prefix, name in plugins:
+            plugin_items.append(
+                Div(
+                    Small(name, style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.4;"),
+                    style="margin-bottom: 0.25rem;"
+                )
+            )
+        return plugin_items
     
     return Details(
         Summary(
@@ -478,7 +510,7 @@ def create_plugin_visibility_table(role_name):
             style="margin: 0; padding: 0; list-style: none;"
         ),
         Div(
-            Small(format_all_plugins(shown_plugins), style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.3;"),
+            *format_all_plugins_vertical(shown_plugins),
             style=f"padding: 0.5rem; background-color: {background_color}; border-radius: 0.25rem; margin-top: 0.25rem; border-left: 3px solid {border_color};"
         ),
         style="margin: 0;"
