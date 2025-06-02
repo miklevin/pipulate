@@ -98,6 +98,7 @@ MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = 'Introduction'
 DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
+INTRO_LLM_PROMPT_DELAY = 3  # Seconds to wait before sending intro prompts for surprise effect
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -3232,7 +3233,7 @@ async def send_startup_environment_message():
 
 async def delayed_intro_prompt(prompt):
     """Send an intro prompt with delay for surprise effect and to let startup messages appear first."""
-    await asyncio.sleep(6)  # Wait longer than startup message (3s) for proper ordering and surprise
+    await asyncio.sleep(INTRO_LLM_PROMPT_DELAY)  # Wait longer than startup message (3s) for proper ordering and surprise
     try:
         await pipulate.stream(prompt, verbatim=False)
     except Exception as e:
