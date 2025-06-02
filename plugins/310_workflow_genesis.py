@@ -471,9 +471,7 @@ class WorkflowGenesis:
                f"{self.format_bash_command(endpoint_message)} " + \
                f"{self.format_bash_command(training_prompt)} --template trifecta --force"
         
-        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/110_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
-        
-        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/110_parameter_buster.py step_01 --force"
+        cmd2 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         # Combined command with backslash line breaks for readability
         combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
@@ -481,15 +479,11 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(endpoint_message)} \\\n" + \
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
                       f"  --template trifecta --force && \\\n" + \
-                      f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
-                      f"  plugins/110_parameter_buster.py \\\n" + \
-                      f"  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && \\\n" + \
-                      f"python helpers/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
-                      f"  plugins/110_parameter_buster.py step_01 --force"
+                      f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         return Div(
             H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
-            P("Starts with sophisticated template and conditions it for complex customization. Enables Parameter Buster-style workflows.", 
+            P("Starts with the sophisticated Botify Trifecta template and adds a blank placeholder for your custom step.", 
               style="color: #6c757d; margin-bottom: 1.5rem;"),
             
             # Individual commands section
@@ -502,22 +496,16 @@ class WorkflowGenesis:
                 Pre(Code(cmd1, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
                 
-                H6("2. Condition Class Attributes", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Prepares workflow for Parameter Buster-style method bundles", 
+                H6("2. Add Blank Placeholder Step", style="color: #007bff; margin-bottom: 0.25rem;"),
+                P("Adds a new blank placeholder step at the end of the workflow for customization", 
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                 Pre(Code(cmd2, cls='language-bash copy-code'), 
-                    style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
-                H6("3. Customize First Step", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Replace with custom parameter collection logic", 
-                  style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd3, cls='language-bash copy-code'), 
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
             
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to create and condition the trifecta workflow:", 
+            P("Copy and paste this single command to create the trifecta workflow with an additional placeholder step:", 
               style="color: #6c757d; margin-bottom: 0.5rem;"),
             Pre(Code(combined_cmd, cls='language-bash copy-code'), 
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
@@ -948,16 +936,12 @@ class WorkflowGenesis:
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_02 " + \
                           f"plugins/040_hello_workflow.py step_02 --force"
         elif selected_template == 'trifecta':
-            # Trifecta workflow commands
+            # Trifecta workflow commands - corrected to just use trifecta template + splice blank step
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
                           f"{self.format_bash_command(training_prompt)} --template trifecta --force && " + \
-                          f"python helpers/manage_class_attributes.py {plugins_filename} " + \
-                          f"plugins/110_parameter_buster.py " + \
-                          f"--attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && " + \
-                          f"python helpers/swap_workflow_step.py {plugins_filename} step_01 " + \
-                          f"plugins/110_parameter_buster.py step_01 --force"
+                          f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         else:
             # Blank template - single command
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
