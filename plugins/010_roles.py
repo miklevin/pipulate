@@ -358,6 +358,7 @@ def render_item(item, app_instance):
         hx_post=toggle_url if not is_core else None,  # No toggle for Core
         hx_swap="outerHTML",
         hx_target=f"#{item_id}",
+        onclick="event.stopPropagation();" if not is_core else None,  # Prevent expand/contract when clicking checkbox
     )
 
     text_display = Span(
@@ -374,6 +375,9 @@ def render_item(item, app_instance):
     base_classes = 'done' if item.done or is_core else ''
     combined_classes = f"{base_classes} {role_css_class}".strip()
 
+    # Generate unique IDs for this item's details element
+    details_id = f"details-{item_id}"
+    
     return Li(
         # Main role item with checkbox and name
         Div(
@@ -385,7 +389,16 @@ def render_item(item, app_instance):
         plugin_info,
         id=item_id,
         cls=combined_classes,
-        style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color);",
+        style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color); cursor: pointer;",
+        onclick=f"""
+            event.stopPropagation();
+            if (event.target.type !== 'checkbox') {{
+                const details = this.querySelector('details');
+                if (details) {{
+                    details.open = !details.open;
+                }}
+            }}
+        """,
         data_id=item.id,
         data_priority=item.priority,
         data_plugin_item="true",
