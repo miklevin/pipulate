@@ -57,7 +57,7 @@ class PluginIdentityManager:
     def DISPLAY_NAME(self):
         name = title_name(self.name)
         if self.EMOJI:
-            return f"{self.EMOJI} APP"
+            return f"{self.EMOJI} {name}"
         return name
 
     @property
