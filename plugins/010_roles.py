@@ -52,7 +52,8 @@ class PluginIdentityManager:
 
     @property
     def DISPLAY_NAME(self):
-        return self.name.title()
+        return "APP"
+        # return self.name.title()
 
     @property
     def DB_TABLE_NAME(self):

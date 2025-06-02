@@ -96,7 +96,7 @@ TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
-HOME_MENU_ITEM = 'Introduction 👋'
+HOME_MENU_ITEM = 'Customize APP List 🏠️'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 INTRO_LLM_PROMPT_DELAY = 4  # Seconds to wait before sending intro prompts for surprise effect
 ENV_FILE = Path('data/environment.txt')
@@ -2657,6 +2657,10 @@ async def create_grid_left(menux, request, render_items=None):
             else:
                 logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
                 content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
+        elif menux == 'intro':
+            # Handle the intro endpoint (moved from homepage)
+            current_intro_page_num_str = db.get('intro_page_num', '1')
+            content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
         else:
             workflow_instance = get_workflow_instance(menux)
             if workflow_instance:
@@ -2664,8 +2668,14 @@ async def create_grid_left(menux, request, render_items=None):
                     logger.debug(f'Selected plugin {menux} has roles: {workflow_instance.ROLES}')
                 content_to_render = await workflow_instance.landing(request)
     else:
-        current_intro_page_num_str = db.get('intro_page_num', '1')
-        content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
+        # New homepage: serve the Roles plugin
+        roles_instance = plugin_instances.get('roles')
+        if roles_instance:
+            content_to_render = await roles_instance.landing(request)
+        else:
+            logger.error("Roles plugin not found for homepage. Falling back to intro.")
+            current_intro_page_num_str = db.get('intro_page_num', '1')
+            content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
     if content_to_render is None:
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px')
     scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none'), style=(
