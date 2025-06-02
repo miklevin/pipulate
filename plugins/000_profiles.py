@@ -13,7 +13,7 @@ from fasthtml.common import (H2, H3, H4, A, Button, Card, Container, Details,
 from server import (DB_FILENAME, BaseCrud)
 from server import db as server_db
 from server import (get_current_profile_id, get_profile_name, logger,
-                    plugin_instances, rt)
+                    plugin_instances, rt, title_name)
 
 ROLES = ['Core']
 
@@ -22,8 +22,18 @@ PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
 
 
 class ProfilesPluginIdentity:
+    # Override this in subclasses to customize the emoji
+    EMOJI = '👤'
+    
     APP_NAME = 'profiles'
-    DISPLAY_NAME = 'Profiles'
+    
+    @property
+    def DISPLAY_NAME(self):
+        name = title_name('profiles')
+        if self.EMOJI:
+            return f"{self.EMOJI} {name}"
+        return name
+    
     ENDPOINT_MESSAGE = 'Manage user profiles (clients, customers, etc.). Each profile is a separate workspace.'
 
 

@@ -9,7 +9,7 @@ import sys
 import fastlite
 from fasthtml.common import *
 from loguru import logger
-from server import DB_FILENAME, BaseCrud
+from server import DB_FILENAME, BaseCrud, title_name
 
 ROLES = []
 
@@ -29,6 +29,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 
 class PluginIdentityManager:
+    # Override this in subclasses to customize the emoji
+    EMOJI = ''
+    
     def __init__(self, filename=None):
         # Get filename if not provided
         if not filename:
@@ -52,8 +55,10 @@ class PluginIdentityManager:
 
     @property
     def DISPLAY_NAME(self):
-        return "APP"
-        # return self.name.title()
+        name = title_name(self.name)
+        if self.EMOJI:
+            return f"{self.EMOJI} APP"
+        return name
 
     @property
     def DB_TABLE_NAME(self):
@@ -125,6 +130,9 @@ class CrudCustomizer(BaseCrud):
 
 
 class CrudUI(PluginIdentityManager):
+    # Override this to customize the emoji for this specific plugin
+    EMOJI = '👥'
+    
     # UI Configuration Constants
     UI_CONSTANTS = {
         'TYPOGRAPHY': {
@@ -312,7 +320,7 @@ class CrudUI(PluginIdentityManager):
             Card(
                 H2(f"{self.DISPLAY_NAME} List"),
                 P(
-                    "👆 Check the roles that match your needs to control which plugins appear in the ",
+                    "👆 Check the sets of APPs (roles) that match your needs to control which plugins appear in the ",
                     Strong("APP"), 
                     " dropdown menu. ",
                     Strong("Core"), 
