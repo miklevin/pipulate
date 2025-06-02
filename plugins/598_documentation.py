@@ -60,6 +60,13 @@ class DocumentationPlugin:
                 if key and info:
                     docs[key] = info
         
+        # Special case: Add README.md from project root
+        readme_path = Path('README.md')
+        if readme_path.exists():
+            key, info = self.process_readme_file(readme_path)
+            if key and info:
+                docs[key] = info
+        
         logger.info(f"Discovered {len(docs)} documentation files")
         return docs
 
@@ -137,6 +144,31 @@ class DocumentationPlugin:
             'description': description,
             'category': 'rules',
             'priority': self.get_rules_priority(filename),
+            'filename': filename
+        }
+
+    def process_readme_file(self, file_path):
+        """Process the README.md file and extract metadata"""
+        filename = 'README'
+        
+        # Try to extract title and description from file content
+        try:
+            content = file_path.read_text(encoding='utf-8')
+            extracted_title, description = self.extract_metadata_from_content(content, 'Project README')
+            title = extracted_title if extracted_title else 'Project README'
+        except Exception as e:
+            logger.warning(f"Could not read {file_path}: {e}")
+            title = 'Project README'
+            description = "Main project documentation and overview"
+        
+        key = 'readme'
+        
+        return key, {
+            'title': title,
+            'file': str(file_path),
+            'description': description,
+            'category': 'featured',  # Make it featured so it appears prominently
+            'priority': 0,  # Give it highest priority (lowest number = highest priority)
             'filename': filename
         }
 
