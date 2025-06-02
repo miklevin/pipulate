@@ -1400,9 +1400,13 @@ class DocumentationPlugin:
                 style="display: inline-block; padding: 10px 20px; background: var(--pico-primary); color: white; text-decoration: none; border-radius: 6px; font-weight: 500;"
             ),
             
-            P(
-                f"Automatically discovered {len(self.DOCS)} documents: {len(featured_docs)} featured guides, {len(training_docs)} training files, and {len(rules_docs)} framework rules.",
-                style="margin-top: 1rem; font-size: 0.9em; color: var(--pico-muted-color);"
+            # Quick stats summary like on the /docs page
+            Div(
+                P(f"📊 {len(self.DOCS)} documents discovered", style="margin: 0.25rem 0;"),
+                P(f"🌟 {len(featured_docs)} featured guides", style="margin: 0.25rem 0;"),
+                P(f"📖 {len(training_docs)} training files", style="margin: 0.25rem 0;"),
+                P(f"⚙️ {len(rules_docs)} framework rules", style="margin: 0.25rem 0;"),
+                style="background-color: var(--pico-card-sectionning-background-color); padding: 1rem; margin: 1rem 0; border-radius: var(--pico-border-radius); font-weight: 500;"
             ),
             
             id=unique_id
