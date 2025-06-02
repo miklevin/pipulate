@@ -450,6 +450,8 @@ def get_affected_plugins(role_name):
                 if match:
                     prefix = int(match.group(1))
                     base_name = match.group(2).replace('_', ' ').title()
+                    plugin_endpoint_name = match.group(2)  # Keep original with underscores for endpoint
+                    plugin_endpoint = f"/{plugin_endpoint_name}"
                     
                     # Get the module's ROLES and DISPLAY_NAME
                     try:
@@ -495,10 +497,10 @@ def get_affected_plugins(role_name):
                             
                             # Only count this plugin if its PRIMARY role matches the requested role
                             if primary_role == role_name:
-                                shown_plugins.append((prefix, display_name))
+                                shown_plugins.append((prefix, display_name, plugin_endpoint))
                         elif role_name == 'Core':
                             # Plugins with no ROLES declaration default to Core
-                            shown_plugins.append((prefix, display_name))
+                            shown_plugins.append((prefix, display_name, plugin_endpoint))
                             
                     except Exception as e:
                         logger.warning(f"Could not check ROLES for {filename}: {e}")
@@ -526,13 +528,20 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     border_color = colors['border']
     background_color = colors['background']
     
-    # Create the plugin list vertically
+    # Create the plugin list vertically with clickable links
     def format_all_plugins_vertical(plugins):
         plugin_items = []
-        for prefix, name in plugins:
+        for prefix, display_name, endpoint in plugins:
             plugin_items.append(
                 Div(
-                    Small(name, style=f"color: var(--pico-muted-color); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']}; line-height: {ui_constants['TYPOGRAPHY']['LINE_HEIGHT_COMPACT']};"),
+                    A(
+                        display_name, 
+                        href=endpoint,
+                        style=f"color: var(--pico-color-azure-600); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']}; line-height: {ui_constants['TYPOGRAPHY']['LINE_HEIGHT_COMPACT']}; text-decoration: none;",
+                        onclick="event.stopPropagation();",  # Prevent triggering parent expand/contract
+                        onmouseover="this.style.textDecoration='underline';",
+                        onmouseout="this.style.textDecoration='none';"
+                    ),
                     style=f"margin-bottom: {ui_constants['SPACING']['PLUGIN_ITEM_MARGIN']};"
                 )
             )
