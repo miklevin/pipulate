@@ -331,7 +331,10 @@ class CrudUI(PluginIdentityManager):
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID,
                     cls='sortable',
-                    style="padding-left: 0;"
+                    style="padding-left: 0;",
+                    hx_post=f"{self.ENDPOINT_PREFIX}_sort",
+                    hx_swap="none",
+                    data_plugin_name=self.name
                 )
             ),
             id=self.CONTAINER_ID,
@@ -399,13 +402,24 @@ def render_item(item, app_instance):
         id=item_id,
         cls=combined_classes,
         style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color); cursor: pointer;",
+        onmousedown="this._mouseDownPos = {x: event.clientX, y: event.clientY};",
         onclick=f"""
-            event.stopPropagation();
-            if (event.target.type !== 'checkbox') {{
-                const details = this.querySelector('details');
-                if (details) {{
-                    details.open = !details.open;
+            // Only handle click if it wasn't a drag operation
+            if (this._mouseDownPos) {{
+                const dragThreshold = 5; // pixels
+                const dragDistance = Math.sqrt(
+                    Math.pow(event.clientX - this._mouseDownPos.x, 2) + 
+                    Math.pow(event.clientY - this._mouseDownPos.y, 2)
+                );
+                
+                // Only process as click if user didn't drag beyond threshold
+                if (dragDistance < dragThreshold && event.target.type !== 'checkbox' && !event.target.closest('a')) {{
+                    const details = this.querySelector('details');
+                    if (details) {{
+                        details.open = !details.open;
+                    }}
                 }}
+                this._mouseDownPos = null;
             }}
         """,
         data_id=item.id,

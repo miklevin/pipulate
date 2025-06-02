@@ -35,17 +35,25 @@ function setupSortable(sortableSelector, ghostClass) {
                     priority: index
                 }));
                 
-                let path = window.location.pathname;
-                let basePath = path;
+                // Try to get plugin name from the sortable element's data attribute first
+                let pluginName = sortableEl.dataset.pluginName;
                 
-                if (path.endsWith('/')) {
-                    basePath = path.slice(0, -1);
+                // Fallback to URL parsing if no data attribute
+                if (!pluginName) {
+                    let path = window.location.pathname;
+                    let basePath = path;
+                    
+                    if (path.endsWith('/')) {
+                        basePath = path.slice(0, -1);
+                    }
+                    
+                    pluginName = basePath.split('/').pop();
                 }
                 
-                let pluginName = basePath.split('/').pop();
+                // Use the hx-post attribute if available, otherwise construct URL
+                let sortUrl = sortableEl.getAttribute('hx-post') || ('/' + pluginName + '_sort');
                 
-                // Use _sort instead of /sort
-                htmx.ajax('POST', '/' + pluginName + '_sort', {
+                htmx.ajax('POST', sortUrl, {
                     target: sortableEl,
                     swap: 'none',
                     values: { items: JSON.stringify(items) }
