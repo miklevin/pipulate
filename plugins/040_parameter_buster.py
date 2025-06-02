@@ -832,7 +832,7 @@ class ParameterBusterWorkflow:
                                 selected_params.append(param)
             selected_params_js_array = json.dumps(selected_params)
             js_code = f"""// Function to remove query parameters from a URL\nfunction removeQueryParams(url, paramsToRemove) {{\n    let urlParts = url.split('?');\n    if (urlParts.length >= 2) {{\n        let queryParams = urlParts[1].split('&');\n        let updatedParams = [];\n        for (let i = 0; i < queryParams.length; i++) {{\n            let paramParts = queryParams[i].split('=');\n            if (!paramsToRemove.includes(paramParts[0])) {{\n                updatedParams.push(queryParams[i]);\n            }}\n        }}\n        if (updatedParams.length > 0) {{\n            return urlParts[0] + '?' + updatedParams.join('&');\n        }} else {{\n            return urlParts[0];\n        }}\n    }} else {{\n        return url;\n    }}\n}}\n  \n// Remove wasteful parameters from all links\nfunction removeWastefulParams() {{\n    const DOM = runtime.getDOM();\n    const removeParameters = {selected_params_js_array};\n    DOM.getAllElements("[href]").forEach(function(el) {{\n        let targetURL = el.getAttribute("href");\t\n        let newTargetURL = removeQueryParams(targetURL, removeParameters);\n        if (targetURL != newTargetURL) {{\n            // console.log("FROM:" + targetURL + " TO:" + newTargetURL);\n            el.setAttribute("href", newTargetURL);\n            el.setAttribute("data-bty-pw-id", "REPLACE_ME!!!");\n        }}\n    }});\n}}\n\n// Execute the function\nremoveWastefulParams();\n"""
-            pip.append_to_history(f'[OPTIMIZATION CODE] Generated PageWorkers optimization for {len(selected_params)} parameters:\n{js_code}', quiet=True)
+            pip.append_to_history(f'[OPTIMIZATION CODE] Generated PageWorkers optimization for {len(selected_params)} parameters:\n{js_code}')
             threshold_data = {'gsc_threshold': gsc_threshold, 'min_frequency': min_frequency, 'selected_params': selected_params, 'js_code': js_code}
             user_val = json.dumps(threshold_data)
             await pip.set_step_data(pipeline_id, step_id, user_val, steps)
@@ -1700,13 +1700,13 @@ class ParameterBusterWorkflow:
         data_dir = Path(data_directory_path)
         cache_file_path = data_dir / cache_filename
         if not cache_file_path.is_file():
-            self.pipulate.append_to_history(f'[CACHE] No parameter counter cache found at {cache_file_path}', quiet=True)
+            self.pipulate.append_to_history(f'[CACHE] No parameter counter cache found at {cache_file_path}')
             return None
         try:
             with open(cache_file_path, 'rb') as f:
                 counters_data = pickle.load(f)
             if isinstance(counters_data, dict) and 'raw_counters' in counters_data and isinstance(counters_data['raw_counters'], dict) and ('metadata' in counters_data) and isinstance(counters_data['metadata'], dict) and (counters_data['metadata'].get('cache_version', 0) >= 2.0):
-                self.pipulate.append_to_history(f"[CACHE] Loaded parameter counters from cache: {len(counters_data['raw_counters'])} sources", quiet=True)
+                self.pipulate.append_to_history(f"[CACHE] Loaded parameter counters from cache: {len(counters_data['raw_counters'])} sources")
                 return counters_data
             else:
                 logging.error(f'Invalid or outdated cache file format in {cache_file_path}.')
@@ -1782,7 +1782,7 @@ class ParameterBusterWorkflow:
 
         import matplotlib.pyplot as plt
         import numpy as np
-        self.pipulate.append_to_history('[VISUALIZATION] Creating parameter distribution visualization', quiet=True)
+        self.pipulate.append_to_history('[VISUALIZATION] Creating parameter distribution visualization')
         debug_info = []
 
         def add_debug(msg):
@@ -1977,7 +1977,7 @@ class ParameterBusterWorkflow:
         form = await request.form()
         gsc_threshold = int(form.get('gsc_threshold', '0'))
         min_frequency = int(form.get('min_frequency', '100000'))
-        pip.append_to_history(f'[PARAMETER PREVIEW] Previewing parameters with GSC threshold={gsc_threshold} and min_frequency={min_frequency}', quiet=True)
+        pip.append_to_history(f'[PARAMETER PREVIEW] Previewing parameters with GSC threshold={gsc_threshold} and min_frequency={min_frequency}')
         prev_step_data = pip.get_step_data(pipeline_id, 'step_05', {})
         prev_data_str = prev_step_data.get('placeholder', '')
         matching_params = []
