@@ -219,6 +219,12 @@ class DevAssistant:
                 "as_swap_source": True,  # Default true, most workflows can be swap sources
                 "as_swap_target": False,
                 "missing_requirements": []
+            },
+            "transplantation_analysis": {  # NEW: Detailed transplantation analysis
+                "swappable_steps": [],
+                "step_dependencies": {},
+                "transplant_commands": [],
+                "compatibility_warnings": []
             }
         }
         
@@ -543,6 +549,166 @@ class DevAssistant:
                 f"```"
             )
 
+        # NEW: COMPREHENSIVE TRANSPLANTATION ANALYSIS
+        # ===========================================
+        transplant_analysis = analysis["transplantation_analysis"]
+        
+        # Find all swappable step methods with proper markers
+        swappable_steps = []
+        step_dependencies = {}
+        
+        # Look for both SWAPPABLE_STEP and STEP_BUNDLE markers
+        swappable_patterns = [
+            r'# --- START_SWAPPABLE_STEP: (step_\d+) ---',
+            r'# --- START_STEP_BUNDLE: (step_\d+) ---'
+        ]
+        
+        for pattern in swappable_patterns:
+            matches = re.findall(pattern, content)
+            for step_id in matches:
+                if step_id not in swappable_steps:
+                    swappable_steps.append(step_id)
+        
+        # Find step methods even without markers (potential for transplantation after adding markers)
+        step_method_pattern = r'async def (step_\d+)(?:_submit)?\('
+        step_methods = re.findall(step_method_pattern, content)
+        potential_steps = list(set(step_methods))  # Remove duplicates
+        
+        # Analyze each step for dependencies and transplantability
+        for step_id in potential_steps:
+            # Extract the step method content to analyze dependencies
+            step_start_pattern = rf'async def {step_id}\('
+            step_submit_pattern = rf'async def {step_id}_submit\('
+            
+            # Find the step method bounds
+            step_content = ""
+            lines = content.split('\n')
+            
+            in_step_method = False
+            step_method_indent = None
+            
+            for i, line in enumerate(lines):
+                if re.search(step_start_pattern, line):
+                    in_step_method = True
+                    step_method_indent = len(line) - len(line.lstrip())
+                    step_content += line + '\n'
+                elif in_step_method:
+                    current_indent = len(line) - len(line.lstrip()) if line.strip() else 999
+                    # Continue if we're still inside the method (proper indentation or empty line)
+                    if line.strip() == '' or current_indent > step_method_indent:
+                        step_content += line + '\n'
+                    else:
+                        # We've reached the next method
+                        break
+            
+            # Also get the submit method if it exists
+            if f'async def {step_id}_submit(' in content:
+                in_submit_method = False
+                submit_method_indent = None
+                
+                for i, line in enumerate(lines):
+                    if re.search(step_submit_pattern, line):
+                        in_submit_method = True
+                        submit_method_indent = len(line) - len(line.lstrip())
+                        step_content += line + '\n'
+                    elif in_submit_method:
+                        current_indent = len(line) - len(line.lstrip()) if line.strip() else 999
+                        if line.strip() == '' or current_indent > submit_method_indent:
+                            step_content += line + '\n'
+                        else:
+                            break
+            
+            # Analyze dependencies in the step content
+            dependencies = []
+            
+            # Check for self.UPPER_CASE class constants
+            class_constants = re.findall(r'self\.([A-Z][A-Z_]+)', step_content)
+            dependencies.extend([f"self.{const}" for const in set(class_constants)])
+            
+            # Check for specialized methods or attributes
+            specialized_methods = re.findall(r'self\.([a-z_]+[a-z0-9_]*)\(', step_content)
+            specialized_attrs = re.findall(r'self\.([a-z_]+[a-z0-9_]*)', step_content)
+            
+            # Filter out common workflow methods that should be available everywhere
+            common_methods = {
+                'pipulate', 'db', 'steps', 'app_name', 'message_queue', 'steps_indices',
+                'get_step_data', 'set_step_data', 'read_state', 'write_state'
+            }
+            
+            specialized = set(specialized_methods + specialized_attrs) - common_methods
+            dependencies.extend([f"self.{method}" for method in specialized])
+            
+            # Check for external imports or specialized functionality
+            external_deps = []
+            if 'matplotlib' in step_content.lower():
+                external_deps.append('matplotlib library')
+            if 'base64' in step_content.lower():
+                external_deps.append('base64 encoding')
+            if 'json' in step_content.lower():
+                external_deps.append('JSON processing')
+            if 'upload' in step_content.lower() or 'file' in step_content.lower():
+                external_deps.append('file handling')
+            if 'checkbox' in step_content.lower() or 'fieldset' in step_content.lower():
+                external_deps.append('checkbox UI components')
+            
+            dependencies.extend(external_deps)
+            
+            step_dependencies[step_id] = {
+                'class_dependencies': [dep for dep in dependencies if dep.startswith('self.')],
+                'external_dependencies': [dep for dep in dependencies if not dep.startswith('self.')],
+                'has_swappable_markers': step_id in swappable_steps,
+                'self_contained': len([dep for dep in dependencies if dep.startswith('self.') and not any(common in dep for common in ['pipulate', 'db', 'steps', 'app_name'])]) == 0
+            }
+        
+        # Generate transplant commands for each viable step
+        transplant_commands = []
+        compatibility_warnings = []
+        
+        source_filename = filename
+        
+        for step_id in potential_steps:
+            step_info = step_dependencies.get(step_id, {})
+            
+            # Generate command for swapping this step to a target workflow
+            command = f"python helpers/swap_workflow_step.py TARGET_FILE.py {step_id} plugins/{source_filename} {step_id} --force"
+            
+            compatibility_notes = []
+            if not step_info.get('has_swappable_markers', False):
+                compatibility_notes.append("⚠️ Needs swappable step markers added first")
+            if not step_info.get('self_contained', True):
+                compatibility_notes.append("⚠️ Has class dependencies that may not exist in target")
+            if step_info.get('external_dependencies'):
+                deps = ', '.join(step_info['external_dependencies'])
+                compatibility_notes.append(f"⚠️ Requires: {deps}")
+            
+            transplant_commands.append({
+                'step_id': step_id,
+                'command': command,
+                'compatibility': 'Good' if len(compatibility_notes) == 0 else 'Needs Work',
+                'notes': compatibility_notes,
+                'dependencies': step_info
+            })
+        
+        # Store results
+        transplant_analysis['swappable_steps'] = swappable_steps
+        transplant_analysis['step_dependencies'] = step_dependencies
+        transplant_analysis['transplant_commands'] = transplant_commands
+        
+        # Generate compatibility warnings
+        if len(swappable_steps) == 0 and len(potential_steps) > 0:
+            transplant_analysis['compatibility_warnings'].append(
+                "No swappable step markers found. Add START_SWAPPABLE_STEP/END_SWAPPABLE_STEP markers to enable transplantation."
+            )
+        
+        high_dependency_steps = [
+            step_id for step_id, info in step_dependencies.items() 
+            if len(info.get('class_dependencies', [])) > 3
+        ]
+        if high_dependency_steps:
+            transplant_analysis['compatibility_warnings'].append(
+                f"Steps with many dependencies may not transplant cleanly: {', '.join(high_dependency_steps)}"
+            )
+
         # Step method naming convention check
         step_methods = re.findall(r'async def (step_\d+)(?:_submit)?\(', content)
         if step_methods:
@@ -693,6 +859,21 @@ class DevAssistant:
             suitability["as_swap_target"] = False
             analysis["recommendations"].append("To use as swap target: Add step methods with proper naming")
 
+        # Enhanced Swap Source Assessment
+        if transplant_commands:
+            good_transplants = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Good']
+            needs_work_transplants = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
+            
+            if good_transplants:
+                analysis["patterns_found"].append(f"🔀 EXCELLENT SWAP SOURCE: {len(good_transplants)} ready-to-transplant step(s)")
+            elif needs_work_transplants:
+                analysis["patterns_found"].append(f"🔀 POTENTIAL SWAP SOURCE: {len(needs_work_transplants)} step(s) need preparation")
+                suitability["as_swap_source"] = False  # Override default
+                suitability["missing_requirements"].append("Swappable step markers and/or dependency resolution")
+            else:
+                suitability["as_swap_source"] = False
+                analysis["issues"].append("❌ No viable steps for swapping found")
+
         # Atomic Transplantation Markers (Optional)
         atomic_markers = [
             "START_WORKFLOW_SECTION:",
@@ -839,6 +1020,7 @@ class DevAssistant:
             issues = analysis_results.get('issues', [])
             template_suitability = analysis_results.get('template_suitability', {})
             coding_prompts = analysis_results.get('coding_assistant_prompts', [])
+            transplant_analysis = analysis_results.get('transplantation_analysis', {})  # NEW
             filename = analysis_results.get('filename', 'unknown')
             
             # Create suitability status display
@@ -864,6 +1046,115 @@ class DevAssistant:
                 suitability_items.append(Li("📤 Swap Source: ❌ No step methods", style='color: red;'))
             
             missing_reqs = template_suitability.get('missing_requirements', [])
+            
+            # NEW: Build transplantation analysis section
+            transplant_section = []
+            transplant_commands = transplant_analysis.get('transplant_commands', [])
+            compatibility_warnings = transplant_analysis.get('compatibility_warnings', [])
+            
+            if transplant_commands:
+                # Create command tables grouped by compatibility
+                good_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Good']
+                needs_work_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
+                
+                transplant_section.extend([
+                    H4('🔀 Transplantation Analysis:', style='color: #2c3e50; margin-top: 2rem; margin-bottom: 1rem;'),
+                    P(f'Found {len(transplant_commands)} step method(s) suitable for transplantation:', 
+                      style='color: #495057; margin-bottom: 1rem;')
+                ])
+                
+                if good_commands:
+                    transplant_section.extend([
+                        H5('✅ Ready-to-Transplant Steps:', style='color: #28a745; margin-bottom: 0.75rem;'),
+                        P('These steps can be swapped immediately:', style='color: #6c757d; margin-bottom: 0.5rem;')
+                    ])
+                    
+                    good_command_items = []
+                    for cmd in good_commands:
+                        good_command_items.extend([
+                            Li(
+                                Strong(f"{cmd['step_id']}: ", style='color: #007bff;'),
+                                Code(cmd['command'], style='background-color: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px;'),
+                                style='margin-bottom: 0.5rem; font-family: monospace; font-size: 0.9rem;'
+                            )
+                        ])
+                    
+                    transplant_section.append(
+                        Div(
+                            Ul(*good_command_items),
+                            style='background-color: rgba(40, 167, 69, 0.05); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;'
+                        )
+                    )
+                
+                if needs_work_commands:
+                    transplant_section.extend([
+                        H5('⚠️ Needs Preparation:', style='color: #ffc107; margin-bottom: 0.75rem;'),
+                        P('These steps need work before transplantation:', style='color: #6c757d; margin-bottom: 0.5rem;')
+                    ])
+                    
+                    needs_work_items = []
+                    for cmd in needs_work_commands:
+                        notes_text = " • ".join(cmd['notes']) if cmd['notes'] else "Needs evaluation"
+                        needs_work_items.extend([
+                            Li(
+                                Div(
+                                    Strong(f"{cmd['step_id']}: ", style='color: #ffc107;'),
+                                    Code(cmd['command'], style='background-color: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px;'),
+                                    style='margin-bottom: 0.25rem;'
+                                ),
+                                Div(
+                                    f"Issues: {notes_text}",
+                                    style='font-size: 0.85rem; color: #6c757d; margin-left: 1rem;'
+                                ),
+                                style='margin-bottom: 0.75rem;'
+                            )
+                        ])
+                    
+                    transplant_section.append(
+                        Div(
+                            Ul(*needs_work_items),
+                            style='background-color: rgba(255, 193, 7, 0.05); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1rem;'
+                        )
+                    )
+                
+                if compatibility_warnings:
+                    transplant_section.extend([
+                        H5('🚨 Compatibility Warnings:', style='color: #dc3545; margin-bottom: 0.75rem;'),
+                        Ul(*[Li(warning, style='color: #dc3545;') for warning in compatibility_warnings]),
+                        Div(style='margin-bottom: 1rem;')
+                    ])
+                
+                transplant_section.extend([
+                    Details(
+                        Summary(
+                            H5('💡 How to Use These Commands:', style='display: inline; margin: 0; color: #17a2b8;'),
+                            style='cursor: pointer; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px; margin: 1rem 0;'
+                        ),
+                        Div(
+                            Ol(
+                                Li('Replace TARGET_FILE.py with your actual target workflow filename'),
+                                Li('Ensure both source and target files have proper step markers'),
+                                Li('Run the command from your Pipulate project root'),
+                                Li('The --force flag overwrites existing step methods'),
+                                Li('Test your workflow after transplantation to verify functionality')
+                            ),
+                            P('Example usage:', style='font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem;'),
+                            Code(
+                                f'python helpers/swap_workflow_step.py plugins/035_my_workflow.py step_01 plugins/{filename} step_01 --force',
+                                style='background-color: #2d3748; color: #e2e8f0; padding: 0.75rem; border-radius: 4px; display: block; margin-bottom: 1rem;'
+                            ),
+                            style='padding: 1rem;'
+                        ),
+                        style='margin: 1rem 0;'
+                    )
+                ])
+            else:
+                transplant_section.extend([
+                    H4('🔀 Transplantation Analysis:', style='color: #2c3e50; margin-top: 2rem; margin-bottom: 1rem;'),
+                    P('No transplantable step methods found in this plugin.', style='color: #6c757d; margin-bottom: 1rem;'),
+                    P('This plugin may be a template or infrastructure component rather than a source for step methods.', 
+                      style='color: #6c757d; font-style: italic;')
+                ])
             
             # Define widget ID for Prism targeting
             widget_id = f"dev-assistant-{pipeline_id.replace('-', '_')}-{step_id}"
@@ -911,6 +1202,7 @@ class DevAssistant:
                     Ul(*suitability_items),
                     H4('📋 Missing Requirements:') if missing_reqs else None,
                     Ul(*[Li(req, style='color: orange;') for req in missing_reqs]) if missing_reqs else None,
+                    *transplant_section,  # NEW: Add transplantation analysis
                     *coding_section,
                     Form(
                         Button('Continue to Debug Assistance ▸', type='submit'),

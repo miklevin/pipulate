@@ -95,6 +95,220 @@ python helpers/splice_workflow_step.py target_workflow.py --position top
 python helpers/swap_workflow_step.py target_workflow.py target_step_id source_workflow.py source_step_id --force
 ```
 
+## The Method-Providing Template Pattern
+
+### Two Types of Templates
+
+**Workflow Creation Templates** (like `710_blank_placeholder.py`):
+- Provide structural foundation for new workflows
+- Include required markers and basic scaffolding
+- Used by `create_workflow.py` as starting points
+
+**Method-Providing Templates** (like `500_hello_workflow.py`):
+- Provide functional step implementations for swapping
+- Contains complete GET/POST handler pairs
+- Used by `swap_workflow_step.py` as method sources
+
+### The 5-Command Sausage Factory Pattern
+
+**Critical Pattern from [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py)**:
+The Hello World Recreation demonstrates the complete method-providing template usage:
+
+```bash
+# 1. Create blank foundation (workflow creation template)
+python helpers/create_workflow.py target.py ClassName app_name "Display Name" "Message" "Training" --template blank
+
+# 2. Condition target for method dependencies (class attribute preparation)
+python helpers/manage_class_attributes.py target.py plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force
+
+# 3. Replace placeholder with functional logic (method-providing template)
+python helpers/swap_workflow_step.py target.py step_01 plugins/500_hello_workflow.py step_01 --force
+
+# 4. Add new placeholder for next functional method
+python helpers/splice_workflow_step.py target.py --position bottom
+
+# 5. Replace new placeholder with functional logic (method-providing template)
+python helpers/swap_workflow_step.py target.py step_02 plugins/500_hello_workflow.py step_02 --force
+```
+
+**Key Insight**: This pattern swaps **blank placeholders** with **functional methods from different template sources**.
+
+### Requirements for Method-Providing Templates
+
+**Critical Criteria for workflows like [500_hello_workflow.py](mdc:pipulate/plugins/500_hello_workflow.py)**:
+
+#### A. Complete Step Method Implementation
+```python
+async def step_01(self, request):
+    """GET handler with proper three-phase pattern"""
+    # 1. Finalized phase (locked view)
+    # 2. Completed phase (revert view)  
+    # 3. Input phase (form view)
+    # Must return proper chain reaction trigger
+
+async def step_01_submit(self, request):
+    """POST handler with complete processing"""
+    # - Process form data
+    # - Update state via pip.set_step_data()
+    # - Return chain reaction trigger
+```
+
+#### B. UI Constants Bundle
+```python
+# --- START_CLASS_ATTRIBUTES_BUNDLE ---
+UI_CONSTANTS = {
+    'BUTTON_LABELS': {
+        'ENTER_KEY': '🔑 Enter Key',
+        'NEXT_STEP': 'Next Step ▸'
+    },
+    'EMOJIS': {
+        'KEY': '🔑',
+        'USER_INPUT': '👤',
+        'GREETING': '💬'
+    }
+}
+# --- END_CLASS_ATTRIBUTES_BUNDLE ---
+```
+
+#### C. Self-Contained Logic
+- No complex external dependencies
+- Compatible state management patterns
+- Standard step data structures
+- Consistent APP_NAME namespace usage
+
+### Why 500_hello_workflow.py Works Perfectly
+
+**Success Factors**:
+- **Atomic Step Logic**: Each step is complete and self-contained
+- **Rich UI Constants**: Provides styling that can be merged into targets
+- **Template Compatibility**: Uses same patterns as blank placeholder
+- **Educational Value**: Simple enough to understand, complex enough to demonstrate
+
+## Preparing 7xx/8xx Plugins as Method-Providing Templates
+
+### Current Plugin Analysis
+
+**7xx Plugins** (Components): `710_blank_placeholder.py`, `750_checkboxes.py`, `770_range.py`
+**8xx Plugins** (Widgets): `840_matplotlib.py`, `870_upload.py`, `890_selenium.py`
+
+These are **widget-focused** and need preparation for method-providing template usage.
+
+### Universal Preparation Recipe
+
+#### Step 1: Add Template Assembly Markers
+```python
+class YourWidget:
+    def __init__(self, ...):
+        self.steps = [
+            Step(id='step_01', done='widget_data', show='Widget Step', refill=True),
+            # --- STEPS_LIST_INSERTION_POINT --- 
+            Step(id='finalize', done='finalized', show='Finalize', refill=False)
+        ]
+        
+    # ... existing methods ...
+    
+    # --- STEP_METHODS_INSERTION_POINT ---
+```
+
+#### Step 2: Enhance UI Constants Bundle
+```python
+# --- START_CLASS_ATTRIBUTES_BUNDLE ---
+UI_CONSTANTS = {
+    'BUTTON_LABELS': {
+        'WIDGET_ACTION': '🎯 Your Widget Action',
+        'PROCESS_DATA': '🔄 Process Data',
+        'VIEW_RESULTS': '👁️ View Results'
+    },
+    'WIDGET_CONFIG': {
+        'DEFAULT_VALUE': 'your default',
+        'VALIDATION_RULES': {...}
+    },
+    'EMOJIS': {
+        'WIDGET_TYPE': '🔧',  # Specific to your widget
+        'DATA_READY': '✅',
+        'PROCESSING': '⚙️'
+    }
+}
+# --- END_CLASS_ATTRIBUTES_BUNDLE ---
+```
+
+#### Step 3: Standardize Step Method Signatures
+```python
+async def step_01(self, request):
+    """GET handler with proper three-phase pattern"""
+    pip, db, app_name = (self.pipulate, self.db, self.app_name)
+    step_id = 'step_01'
+    step_index = self.steps_indices[step_id]
+    step = self.steps[step_index]
+    next_step_id = self.steps[step_index + 1].id
+    
+    # Implement finalized/completed/input phases
+    # Return proper chain reaction trigger
+
+async def step_01_submit(self, request):
+    """POST handler with proper state management"""
+    pip, db, app_name = (self.pipulate, self.db, self.app_name)
+    
+    # Process form data
+    # Update state with pip.set_step_data()
+    # Return chain reaction trigger with next step
+```
+
+#### Step 4: Extract Widget Creation Logic
+```python
+def create_widget_display(self, data):
+    """Extracted widget creation logic for reusability"""
+    # Make widget creation swappable between workflows
+    pass
+
+async def validate_widget_input(self, form_data):
+    """Standardized validation pattern"""
+    # Common validation approach for consistency
+    pass
+```
+
+#### Step 5: Test Swappability
+```bash
+# Test if your widget can be used as method source:
+python helpers/swap_workflow_step.py target_workflow.py step_01 \
+  plugins/8XX_your_widget.py step_01 --force
+```
+
+### Specific Plugin Recommendations
+
+**840_matplotlib.py** → **Excellent Candidate**:
+- Already has `create_matplotlib_histogram()` method
+- Clean JSON input → widget output pattern  
+- Just needs UI constants and template markers
+
+**870_upload.py** → **Good Candidate**:
+- File upload pattern is highly reusable
+- Needs extraction of upload logic into swappable methods
+- Already follows proper chain reaction pattern
+
+**750_checkboxes.py** → **Requires Work**:
+- Complex option-loading system needs simplification
+- Widget logic should be extracted from step logic
+- Good candidate after refactoring
+
+### Template Dependency Management
+
+**For Complex Method-Providing Templates like [040_parameter_buster.py](mdc:pipulate/plugins/040_parameter_buster.py)**:
+
+#### Class Attributes to Merge
+```python
+# In trifecta pattern from workflow_genesis.py:
+python helpers/manage_class_attributes.py target.py \
+  plugins/040_parameter_buster.py \
+  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force
+```
+
+#### Method Dependencies
+- Helper methods for API calls
+- Data validation functions  
+- File management utilities
+- Background processing patterns
+
 ## Race Condition Protection System
 
 ### Critical Operations Management
@@ -147,7 +361,7 @@ For transforming simple templates into complex functionality:
 python helpers/create_workflow.py target.py ClassName app_name "Display Name" "Message" "Training" --template blank
 
 # 2. Merge UI constants for consistent styling  
-python helpers/manage_class_attributes.py source.py target.py --attributes-to-merge UI_CONSTANTS
+python helpers/manage_class_attributes.py target.py source.py --attributes-to-merge UI_CONSTANTS
 
 # 3. Replace first step with functional logic
 python helpers/swap_workflow_step.py target.py step_01 source.py step_01  
@@ -244,6 +458,12 @@ finally:
 - **Hello**: Simple 2-step workflows, demos, tutorials  
 - **Trifecta**: Complex data workflows, multi-export systems, enterprise patterns
 
+### Method-Providing Template Development
+- **Dependency-Light**: Minimize external dependencies for broad compatibility
+- **Pattern-Compatible**: Use standard step handler patterns and state management
+- **Self-Contained**: Each step should work independently
+- **Well-Documented**: Clear UI constants and method signatures
+
 ### Workflow Development Strategy
 1. **Start with compatible templates** for your use case
 2. **Use helper tools for structural changes** (adding/swapping steps)
@@ -285,10 +505,12 @@ finally:
 - **Missing Markers**: Helper scripts fail with "insertion point not found" errors
 - **Race Conditions**: Resolved by the protection system - no manual intervention needed
 - **Import Errors**: Check console output after server restart for syntax issues
+- **Method Compatibility**: Ensure source and target workflows use compatible patterns
 
 ### Debug Information
 - **File-based Flags**: Check for `.critical_operation_lock` file if operations seem stuck
 - **Watchdog Logs**: Look for "Deferring restart" messages during protected operations
 - **Restart Triggers**: "Triggering server restart" indicates successful completion
+- **Method Swapping**: Verify step IDs exist in both source and target workflows
 
 This helper tools system enables rapid workflow development while maintaining the explicit, debuggable nature that makes WET patterns effective for complex data processing pipelines.
