@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class DocumentationPlugin:
     NAME = "documentation"
     DISPLAY_NAME = "Documentation"
-    ENDPOINT_MESSAGE = "Displaying Pipulate documentation..."
+    ENDPOINT_MESSAGE = "📚 Documentation Browser: When you view any document, its content is automatically added to my conversation history so you can ask me specific questions about it. Browse guides, training files, and framework rules - I'll have the full context to help you understand the content."
 
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"DocumentationPlugin initialized with NAME: {self.NAME}")
@@ -862,6 +862,28 @@ class DocumentationPlugin:
         
         try:
             content = file_path.read_text(encoding='utf-8')
+            
+            # Add to conversation history if not already viewed
+            doc_viewed_key = f'doc_viewed_{doc_key}'
+            if doc_viewed_key not in self.db:
+                # Add markdown content to conversation history
+                from server import append_to_conversation
+                context_message = f"The user is now viewing the documentation page '{doc_info['title']}'. Here is the content:\n\n{content}"
+                append_to_conversation(context_message, role='system')
+                
+                # Notify user that the document is now available for questions
+                if self.pipulate and hasattr(self.pipulate, 'message_queue'):
+                    import asyncio
+                    asyncio.create_task(self.pipulate.message_queue.add(
+                        self.pipulate, 
+                        f"📖 Document '{doc_info['title']}' has been loaded into my memory. I'm ready to answer questions about its content!",
+                        verbatim=True,
+                        role='system'
+                    ))
+                
+                # Mark as viewed to prevent spam
+                self.db[doc_viewed_key] = 'viewed'
+            
             html_content = self.markdown_to_html(content)
             
             # Create navigation breadcrumb
@@ -1368,10 +1390,7 @@ class DocumentationPlugin:
 
         return Div(
             H2("📚 Documentation Browser"),
-            P("Essential guides and comprehensive documentation for Pipulate development."),
-            
-            # Featured guides (if any)
-            *([H3("🌟 Featured Guides"), Ul(*featured_links, style="list-style: none; padding: 0; margin-bottom: 2rem;")] if featured_docs else []),
+            P(Strong("🧠 Smart Documentation Training:"), " When you view any document below, its content is automatically added to the LLM's conversation history. This means you can then ask the chatbot specific questions about that document's content, and it will have the full context to provide detailed answers."),
             
             # Browse all button
             A(
@@ -1884,6 +1903,37 @@ class DocumentationPlugin:
                 return HTMLResponse("Page not found", status_code=404)
             
             page_content = pages[page_num - 1]
+            
+            # Add to conversation history if not already viewed
+            api_page_viewed_key = f'botify_api_page_viewed_{page_num}'
+            if api_page_viewed_key not in self.db:
+                # Add markdown content to conversation history
+                from server import append_to_conversation
+                context_message = f"The user is now viewing page {page_num} of the Botify API documentation. Here is the content:\n\n{page_content}"
+                append_to_conversation(context_message, role='system')
+                
+                # Get page title for better user notification
+                lines = page_content.split('\n')
+                page_title = f"Page {page_num}"
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith('# ') and not line.startswith('```'):
+                        page_title = line[2:].strip()
+                        break
+                
+                # Notify user that the document is now available for questions
+                if self.pipulate and hasattr(self.pipulate, 'message_queue'):
+                    import asyncio
+                    asyncio.create_task(self.pipulate.message_queue.add(
+                        self.pipulate, 
+                        f"📖 Botify API Documentation '{page_title}' has been loaded into my memory. I'm ready to answer questions about its content!",
+                        verbatim=True,
+                        role='system'
+                    ))
+                
+                # Mark as viewed to prevent spam
+                self.db[api_page_viewed_key] = 'viewed'
+            
             html_content = self.markdown_to_html(page_content)
             
             # Get page title
