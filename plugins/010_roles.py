@@ -495,8 +495,8 @@ def create_plugin_visibility_table(role_name):
         for prefix, name in plugins:
             plugin_items.append(
                 Div(
-                    Small(name, style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.4;"),
-                    style="margin-bottom: 0.25rem;"
+                    Small(name, style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.2;"),
+                    style="margin-bottom: 0.1rem;"
                 )
             )
         return plugin_items
