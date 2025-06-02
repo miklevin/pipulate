@@ -132,12 +132,8 @@
    This creates the desired contrast without utility class pollution.
    ============================================================================ */
 
-/* Scope dim gray styling to workflow areas only */
-.main-grid,
+/* Scope dim gray styling to workflow areas only (left grid content) */
 #grid-left-content,
-.main-grid input:not([type=checkbox], [type=radio]),
-.main-grid select,
-.main-grid textarea,
 #grid-left-content input:not([type=checkbox], [type=radio]),
 #grid-left-content select,
 #grid-left-content textarea {
@@ -156,10 +152,30 @@
     --pico-form-element-selected-background-color: var(--custom-form-selected-option-bg);
 }
 
+/* Chat interface explicitly uses PicoCSS defaults */
+#chat-interface,
+#chat-interface input,
+#chat-interface select,
+#chat-interface textarea,
+#msg {
+    /* Explicitly reset any inherited custom form styling */
+    --pico-form-element-background-color: initial;
+    --pico-form-element-active-background-color: initial;
+    --pico-form-element-border-color: initial;
+    --pico-form-element-active-border-color: initial;
+    --pico-form-element-focus-color: initial;
+    --pico-form-element-color: initial;
+    --pico-form-element-placeholder-color: initial;
+    --pico-icon-chevron: initial;
+    --pico-dropdown-background-color: initial;
+    --pico-dropdown-border-color: initial;
+    --pico-dropdown-color: initial;
+    --pico-dropdown-hover-background-color: initial;
+    --pico-form-element-selected-background-color: initial;
+}
+
 /* Ensure scoped styling works across all themes */
-[data-theme="light"] .main-grid,
 [data-theme="light"] #grid-left-content,
-[data-theme="dark"] .main-grid,
 [data-theme="dark"] #grid-left-content {
     --pico-form-element-background-color: var(--custom-form-base-bg);
     --pico-form-element-active-background-color: var(--custom-form-active-bg);
@@ -177,7 +193,6 @@
 }
 
 @media only screen and (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .main-grid,
   :root:not([data-theme]) #grid-left-content {
     --pico-form-element-background-color: var(--custom-form-base-bg);
     --pico-form-element-active-background-color: var(--custom-form-active-bg);
