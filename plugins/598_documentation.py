@@ -698,6 +698,7 @@ class DocumentationPlugin:
                 <a href="https://pipulate.com/documentation/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📚 Official Documentation</a>
                 <a href="https://pipulate.com/development/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">👨‍💻 1-Pager Development Guide</a>
                 <a href="https://pipulate.com/guide/" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">📖 Paginated Guide</a>
+                <a href="https://github.com/miklevin/pipulate" target="_blank" style="color: #0066cc; text-decoration: underline; display: block; margin: 2px 0;">🐙 GitHub Repository</a>
             """
         else:
             # Show count for current category only
@@ -1586,6 +1587,12 @@ class DocumentationPlugin:
                   style="margin: 0.25rem 0;"),
                 P(A(Span("📖", cls="emoji", style="margin-right: 0.25rem;"), "Paginated Guide", 
                     href="https://pipulate.com/guide/", target="_blank",
+                    style="color: var(--pico-primary); text-decoration: none;",
+                    onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
+                    onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"), 
+                  style="margin: 0.25rem 0;"),
+                P(A(Span("🐙", cls="emoji", style="margin-right: 0.25rem;"), "GitHub Repository", 
+                    href="https://github.com/miklevin/pipulate", target="_blank",
                     style="color: var(--pico-primary); text-decoration: none;",
                     onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
                     onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"), 
