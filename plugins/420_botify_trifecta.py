@@ -213,6 +213,13 @@ class BotifyCsvDownloaderWorkflow:
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
 
+    # Optional Features Configuration
+    # ===============================
+    # Controls optional UI features that can be enabled/disabled
+    FEATURES_CONFIG = {
+        'enable_skip_buttons': True,  # Set to False to disable skip buttons on steps 3 & 4
+    }
+
     # UI Constants - Centralized button labels and styles
     # ===================================================
     # Standardized labels and styles for consistent UI across the workflow
@@ -221,11 +228,13 @@ class BotifyCsvDownloaderWorkflow:
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
             'VIEW_FOLDER': '📂 View Folder',
             'DOWNLOAD_CSV': '⬇️ Download CSV',
-            'VISUALIZE_GRAPH': '🌐 Visualize Graph'
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
+            'SKIP_STEP': '⏭️ Skip'
         },
         'BUTTON_STYLES': {
             'STANDARD': 'secondary outline',
-            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;'
+            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
+            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;'
         }
     }
 
@@ -834,7 +843,20 @@ class BotifyCsvDownloaderWorkflow:
             # Set button text based on cache status
             button_text = 'Use Cached Web Logs ▸' if is_cached else 'Download Web Logs ▸'
             
-            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(button_text, type='submit', cls='primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(button_text, type='submit', name='action', value='download', cls='primary', 
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+            
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'], 
+                           type='submit', name='action', value='skip', cls='secondary outline')
+                )
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """Process the check for Botify web logs and download if available."""
@@ -844,6 +866,43 @@ class BotifyCsvDownloaderWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+        
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Web Logs download...", verbatim=True)
+            
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'has_logs': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip web logs download',
+                'download_complete': False,
+                'file_path': None,
+                'raw_python_code': '',
+                'query_python_code': '',
+                'jobs_payload': {}
+            }
+            
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Web Logs step skipped. Proceeding to next step.", verbatim=True)
+            
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f'{step.show}: Skipped', 
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')), 
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        
+        # Handle normal download action
         prev_step_id = 'step_01'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
@@ -995,7 +1054,20 @@ class BotifyCsvDownloaderWorkflow:
             
             button_text = f'Use Cached Search Console: {gsc_template} ▸' if is_cached else f'Download Search Console: {gsc_template} ▸'
             
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Button(button_text, type='submit', cls='primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Create button row with conditional skip button
+            button_row_items = [
+                Button(button_text, type='submit', name='action', value='download', cls='primary', 
+                       **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            ]
+            
+            # Add skip button if enabled in config
+            if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
+                button_row_items.append(
+                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'], 
+                           type='submit', name='action', value='skip', cls='secondary outline')
+                )
+            
+            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
@@ -1005,6 +1077,43 @@ class BotifyCsvDownloaderWorkflow:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+        
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+        
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Search Console download...", verbatim=True)
+            
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'has_search_console': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip Search Console download',
+                'download_complete': False,
+                'file_path': None,
+                'raw_python_code': '',
+                'query_python_code': '',
+                'jobs_payload': {}
+            }
+            
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Search Console step skipped. Proceeding to next step.", verbatim=True)
+            
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f'{step.show}: Skipped', 
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')), 
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        
+        # Handle normal download action
         prev_step_id = 'step_01'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
         prev_data_str = prev_step_data.get('botify_project', '')
