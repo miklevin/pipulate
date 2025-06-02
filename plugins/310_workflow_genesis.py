@@ -366,13 +366,13 @@ class WorkflowGenesis:
                f"{self.format_bash_command(hello_endpoint_message)} " + \
                f"{self.format_bash_command(hello_training_prompt)} --template blank --force"
         
-        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/500_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
+        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/040_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
         
-        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/500_hello_workflow.py step_01 --force"
+        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/040_hello_workflow.py step_01 --force"
         
         cmd4 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
         
-        cmd5 = f"python helpers/swap_workflow_step.py {plugins_filename} step_02 plugins/500_hello_workflow.py step_02 --force"
+        cmd5 = f"python helpers/swap_workflow_step.py {plugins_filename} step_02 plugins/040_hello_workflow.py step_02 --force"
 
         # Combined command with proper && chaining for complete automation
         combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
@@ -381,13 +381,13 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(hello_training_prompt)} \\\n" + \
                       f"  --template blank --force && \\\n" + \
                       f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
-                      f"  plugins/500_hello_workflow.py \\\n" + \
+                      f"  plugins/040_hello_workflow.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS --force && \\\n" + \
                       f"python helpers/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
-                      f"  plugins/500_hello_workflow.py step_01 --force && \\\n" + \
+                      f"  plugins/040_hello_workflow.py step_01 --force && \\\n" + \
                       f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom && \\\n" + \
                       f"python helpers/swap_workflow_step.py {plugins_filename} step_02 \\\n" + \
-                      f"  plugins/500_hello_workflow.py step_02 --force"
+                      f"  plugins/040_hello_workflow.py step_02 --force"
 
         return Div(
             H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
@@ -471,9 +471,9 @@ class WorkflowGenesis:
                f"{self.format_bash_command(endpoint_message)} " + \
                f"{self.format_bash_command(training_prompt)} --template trifecta --force"
         
-        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/040_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
+        cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/110_parameter_buster.py --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force"
         
-        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/040_parameter_buster.py step_01 --force"
+        cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/110_parameter_buster.py step_01 --force"
 
         # Combined command with backslash line breaks for readability
         combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} \\\n" + \
@@ -482,10 +482,10 @@ class WorkflowGenesis:
                       f"  {self.format_bash_command(training_prompt)} \\\n" + \
                       f"  --template trifecta --force && \\\n" + \
                       f"python helpers/manage_class_attributes.py {plugins_filename} \\\n" + \
-                      f"  plugins/040_parameter_buster.py \\\n" + \
+                      f"  plugins/110_parameter_buster.py \\\n" + \
                       f"  --attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && \\\n" + \
                       f"python helpers/swap_workflow_step.py {plugins_filename} step_01 \\\n" + \
-                      f"  plugins/040_parameter_buster.py step_01 --force"
+                      f"  plugins/110_parameter_buster.py step_01 --force"
 
         return Div(
             H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
@@ -940,13 +940,13 @@ class WorkflowGenesis:
                           f"{self.format_bash_command(hello_endpoint_message)} " + \
                           f"{self.format_bash_command(hello_training_prompt)} --template blank --force && " + \
                           f"python helpers/manage_class_attributes.py {plugins_filename} " + \
-                          f"plugins/500_hello_workflow.py " + \
+                          f"plugins/040_hello_workflow.py " + \
                           f"--attributes-to-merge UI_CONSTANTS --force && " + \
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_01 " + \
-                          f"plugins/500_hello_workflow.py step_01 --force && " + \
+                          f"plugins/040_hello_workflow.py step_01 --force && " + \
                           f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom && " + \
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_02 " + \
-                          f"plugins/500_hello_workflow.py step_02 --force"
+                          f"plugins/040_hello_workflow.py step_02 --force"
         elif selected_template == 'trifecta':
             # Trifecta workflow commands
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
@@ -954,10 +954,10 @@ class WorkflowGenesis:
                           f"{self.format_bash_command(endpoint_message)} " + \
                           f"{self.format_bash_command(training_prompt)} --template trifecta --force && " + \
                           f"python helpers/manage_class_attributes.py {plugins_filename} " + \
-                          f"plugins/040_parameter_buster.py " + \
+                          f"plugins/110_parameter_buster.py " + \
                           f"--attributes-to-merge UI_CONSTANTS,DATA_SOURCES --force && " + \
                           f"python helpers/swap_workflow_step.py {plugins_filename} step_01 " + \
-                          f"plugins/040_parameter_buster.py step_01 --force"
+                          f"plugins/110_parameter_buster.py step_01 --force"
         else:
             # Blank template - single command
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \

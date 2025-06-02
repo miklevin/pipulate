@@ -12,7 +12,8 @@ import httpx
 from fasthtml.common import *
 from loguru import logger
 
-ROLES = ['Workshop']
+# ROLES = ['Workshop']
+ROLES = []
 """
 =============================================================================
 Botify API Tutorial Workflow
