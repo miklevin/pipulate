@@ -6,7 +6,7 @@ from pathlib import Path
 from fastcore.xml import *
 from fasthtml.common import *
 
-ROLES = ['Tutorial']
+ROLES = ['Core']
 
 logger = logging.getLogger(__name__)
 
@@ -777,7 +777,7 @@ class DocumentationPlugin:
         
         # Featured section
         if featured_docs:
-            html_parts.append('<div class="tree-category">')
+            html_parts.append('<div class="tree-category" id="featured">')
             html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
             html_parts.append('<ul class="tree">')
             for key, info in featured_docs:
@@ -794,7 +794,7 @@ class DocumentationPlugin:
         
         # Training section
         if training_docs:
-            html_parts.append('<div class="tree-category">')
+            html_parts.append('<div class="tree-category" id="training">')
             html_parts.append('<span class="tree-label">📖 Training Guides</span>')
             html_parts.append('<ul class="tree">')
             for key, info in training_docs:
@@ -811,7 +811,7 @@ class DocumentationPlugin:
         
         # Rules section
         if rules_docs:
-            html_parts.append('<div class="tree-category">')
+            html_parts.append('<div class="tree-category" id="rules">')
             html_parts.append('<span class="tree-label">⚙️ Framework Rules</span>')
             html_parts.append('<ul class="tree">')
             for key, info in rules_docs:
@@ -1400,12 +1400,12 @@ class DocumentationPlugin:
                 style="display: inline-block; padding: 10px 20px; background: var(--pico-primary); color: white; text-decoration: none; border-radius: 6px; font-weight: 500;"
             ),
             
-            # Quick stats summary like on the /docs page
+            # Quick stats summary with clickable links to browse sections
             Div(
-                P(f"📊 {len(self.DOCS)} documents discovered", style="margin: 0.25rem 0;"),
-                P(f"🌟 {len(featured_docs)} featured guides", style="margin: 0.25rem 0;"),
-                P(f"📖 {len(training_docs)} training files", style="margin: 0.25rem 0;"),
-                P(f"⚙️ {len(rules_docs)} framework rules", style="margin: 0.25rem 0;"),
+                P(A(f"📊 {len(self.DOCS)} documents discovered", href="/docs", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
+                P(A(f"🌟 {len(featured_docs)} featured guides", href="/docs#featured", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
+                P(A(f"📖 {len(training_docs)} training files", href="/docs#training", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
+                P(A(f"⚙️ {len(rules_docs)} framework rules", href="/docs#rules", style="text-decoration: none; color: inherit;"), style="margin: 0.25rem 0;"),
                 style="background-color: var(--pico-card-sectionning-background-color); padding: 1rem; margin: 1rem 0; border-radius: var(--pico-border-radius); font-weight: 500;"
             ),
             
