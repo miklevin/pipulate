@@ -2241,6 +2241,12 @@ async def startup_event():
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
     
+    # Clear intro prompt tracking for fresh session
+    for i in range(1, 5):  # Clear intro_prompted_1 through intro_prompted_4
+        intro_key = f'intro_prompted_{i}'
+        if intro_key in db:
+            del db[intro_key]
+    
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
 ordered_plugins = []
@@ -2596,6 +2602,21 @@ async def render_intro_page_with_navigation(page_num_str: str):
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system')
+    
+    # Only prompt the LLM once per intro page to avoid spam
+    intro_prompted_key = f'intro_prompted_{page_num}'
+    if intro_prompted_key not in db:
+        intro_prompts = {
+            1: f"{limiter}, welcome the user to {APP_NAME} and suggest they try DEV mode for practice.",
+            2: f"{limiter}, encourage experimentation and mention that database resets are safe in DEV mode.", 
+            3: f"{limiter}, reassure them that workflows are disposable but files stay saved.",
+            4: f"{limiter}, briefly introduce yourself as their local LLM assistant."
+        }
+        
+        if page_num in intro_prompts:
+            db[intro_prompted_key] = 'done'
+            # Send brief prompt to LLM with delay for surprise effect and to let startup messages appear first
+            asyncio.create_task(delayed_intro_prompt(intro_prompts[page_num]))
     prev_button = Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style=(
         'min-width: 160px; ',
         'width: 160px'
@@ -3195,6 +3216,14 @@ async def send_startup_environment_message():
         await pipulate.stream(message, verbatim=True)
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
+
+async def delayed_intro_prompt(prompt):
+    """Send an intro prompt with delay for surprise effect and to let startup messages appear first."""
+    await asyncio.sleep(6)  # Wait longer than startup message (3s) for proper ordering and surprise
+    try:
+        await pipulate.stream(prompt, verbatim=False)
+    except Exception as e:
+        logger.error(f'Error sending delayed intro prompt: {e}')
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for item in ALL_ROUTES:
     path = f'/{item}' if item else '/'
