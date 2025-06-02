@@ -124,6 +124,57 @@ class CrudCustomizer(BaseCrud):
 
 
 class CrudUI(PluginIdentityManager):
+    # UI Configuration Constants
+    UI_CONSTANTS = {
+        'TYPOGRAPHY': {
+            'SMALL_TEXT': '0.75rem',
+            'TINY_TEXT': '0.8rem', 
+            'DESCRIPTION_TEXT': '0.9rem',
+            'LINE_HEIGHT_COMPACT': '1.2',
+            'LINE_HEIGHT_NORMAL': '1.3',
+        },
+        'SPACING': {
+            'PLUGIN_ITEM_MARGIN': '0.1rem',
+            'SECTION_MARGIN': '0.25rem',
+            'CARD_MARGIN': '0.5rem',
+            'CONTAINER_PADDING': '0.5rem',
+            'DESCRIPTION_PADDING': '0.75rem',
+            'LARGE_MARGIN': '1rem',
+            'BORDER_RADIUS': '0.25rem',
+            'BORDER_WIDTH': '3px',
+        },
+        'ROLE_COLORS': {
+            'menu-role-core': {
+                'border': '#6b7280',
+                'background': 'rgba(107, 114, 128, 0.1)'
+            },
+            'menu-role-botify-employee': {
+                'border': '#3b82f6',
+                'background': 'rgba(59, 130, 246, 0.1)'
+            },
+            'menu-role-tutorial': {
+                'border': '#22c55e',
+                'background': 'rgba(34, 197, 94, 0.1)'
+            },
+            'menu-role-developer': {
+                'border': '#f97316',
+                'background': 'rgba(249, 115, 22, 0.1)'
+            },
+            'menu-role-components': {
+                'border': '#a855f7',
+                'background': 'rgba(168, 85, 247, 0.1)'
+            },
+            'menu-role-workshop': {
+                'border': '#eab308',
+                'background': 'rgba(234, 179, 8, 0.1)'
+            }
+        },
+        'FALLBACK_COLORS': {
+            'border': 'var(--pico-color-azure-500)',
+            'background': 'var(--pico-card-background-color)'
+        }
+    }
+
     @property
     def ENDPOINT_MESSAGE(self):
         return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows."
@@ -265,7 +316,7 @@ class CrudUI(PluginIdentityManager):
                     " dropdown menu. ",
                     Strong("Core"), 
                     " plugins always show, while other roles add specific plugin categories. You can select multiple roles to combine their plugin sets.",
-                    style="margin-bottom: 1rem; padding: 0.75rem; background-color: var(--pico-muted-background-color); border-radius: 0.25rem; border-left: 3px solid var(--pico-color-azure-500); color: var(--pico-muted-color); font-size: 0.9rem;"
+                    style=f"margin-bottom: {self.UI_CONSTANTS['SPACING']['LARGE_MARGIN']}; padding: {self.UI_CONSTANTS['SPACING']['DESCRIPTION_PADDING']}; background-color: var(--pico-muted-background-color); border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; border-left: {self.UI_CONSTANTS['SPACING']['BORDER_WIDTH']} solid var(--pico-color-azure-500); color: var(--pico-muted-color); font-size: {self.UI_CONSTANTS['TYPOGRAPHY']['DESCRIPTION_TEXT']};"
                 ),
                 Ul(
                     *[self.app_instance.render_item(item) for item in items],
@@ -316,7 +367,7 @@ def render_item(item, app_instance):
     )
 
     # Create plugin visibility information
-    plugin_info = create_plugin_visibility_table(item.text)
+    plugin_info = create_plugin_visibility_table(item.text, app_instance.plugin.UI_CONSTANTS)
 
     # Get role-based CSS class for consistent coloring with menu
     role_css_class = get_role_css_class(item.text)
@@ -328,13 +379,13 @@ def render_item(item, app_instance):
         Div(
             checkbox,
             text_display,
-            style="display: flex; align-items: center; margin-bottom: 0.25rem;"
+            style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']};"
         ),
         # Plugin visibility information below
         plugin_info,
         id=item_id,
         cls=combined_classes,
-        style="list-style-type: none; margin-bottom: 0.5rem; padding: 0.25rem; border-radius: 0.25rem; background-color: var(--pico-card-background-color);",
+        style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color);",
         data_id=item.id,
         data_priority=item.priority,
         data_plugin_item="true",
@@ -442,50 +493,23 @@ def get_affected_plugins(role_name):
     
     return sorted(shown_plugins), [], f"Plugins available with {role_name} role"
 
-def create_plugin_visibility_table(role_name):
+def create_plugin_visibility_table(role_name, ui_constants=None):
     """Create a simple summary showing which plugins this role provides access to."""
+    # Use default constants if none provided (for backward compatibility)
+    if ui_constants is None:
+        ui_constants = CrudUI.UI_CONSTANTS
+    
     shown_plugins, hidden_plugins, description = get_affected_plugins(role_name)
     
     if not shown_plugins:
-        return Small(f"📋 No plugins available", style="color: var(--pico-muted-color); font-style: italic; font-size: 0.8rem;")
+        return Small(f"📋 No plugins available", style=f"color: var(--pico-muted-color); font-style: italic; font-size: {ui_constants['TYPOGRAPHY']['TINY_TEXT']};")
     
     shown_count = len(shown_plugins)
     
     # Get role-based border color to match menu styling
     role_css_class = get_role_css_class(role_name)
     
-    # Define colors that match our role coloring (both border and background)
-    role_colors = {
-        'menu-role-core': {
-            'border': '#6b7280',
-            'background': 'rgba(107, 114, 128, 0.1)'
-        },
-        'menu-role-botify-employee': {
-            'border': '#3b82f6',
-            'background': 'rgba(59, 130, 246, 0.1)'
-        },
-        'menu-role-tutorial': {
-            'border': '#22c55e',
-            'background': 'rgba(34, 197, 94, 0.1)'
-        },
-        'menu-role-developer': {
-            'border': '#f97316',
-            'background': 'rgba(249, 115, 22, 0.1)'
-        },
-        'menu-role-components': {
-            'border': '#a855f7',
-            'background': 'rgba(168, 85, 247, 0.1)'
-        },
-        'menu-role-workshop': {
-            'border': '#eab308',
-            'background': 'rgba(234, 179, 8, 0.1)'
-        }
-    }
-    
-    colors = role_colors.get(role_css_class, {
-        'border': 'var(--pico-color-azure-500)',
-        'background': 'var(--pico-card-background-color)'
-    })
+    colors = ui_constants['ROLE_COLORS'].get(role_css_class, ui_constants['FALLBACK_COLORS'])
     border_color = colors['border']
     background_color = colors['background']
     
@@ -495,8 +519,8 @@ def create_plugin_visibility_table(role_name):
         for prefix, name in plugins:
             plugin_items.append(
                 Div(
-                    Small(name, style="color: var(--pico-muted-color); font-size: 0.75rem; line-height: 1.2;"),
-                    style="margin-bottom: 0.1rem;"
+                    Small(name, style=f"color: var(--pico-muted-color); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']}; line-height: {ui_constants['TYPOGRAPHY']['LINE_HEIGHT_COMPACT']};"),
+                    style=f"margin-bottom: {ui_constants['SPACING']['PLUGIN_ITEM_MARGIN']};"
                 )
             )
         return plugin_items
@@ -505,13 +529,13 @@ def create_plugin_visibility_table(role_name):
         Summary(
             Small(
                 f"📋 {shown_count} plugins available",
-                style="color: var(--pico-muted-color); font-size: 0.75rem; cursor: pointer;"
+                style=f"color: var(--pico-muted-color); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']}; cursor: pointer;"
             ),
             style="margin: 0; padding: 0; list-style: none;"
         ),
         Div(
             *format_all_plugins_vertical(shown_plugins),
-            style=f"padding: 0.5rem; background-color: {background_color}; border-radius: 0.25rem; margin-top: 0.25rem; border-left: 3px solid {border_color};"
+            style=f"padding: {ui_constants['SPACING']['CONTAINER_PADDING']}; background-color: {background_color}; border-radius: {ui_constants['SPACING']['BORDER_RADIUS']}; margin-top: {ui_constants['SPACING']['SECTION_MARGIN']}; border-left: {ui_constants['SPACING']['BORDER_WIDTH']} solid {border_color};"
         ),
         style="margin: 0;"
     )
