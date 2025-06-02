@@ -186,7 +186,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows."
+        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
@@ -320,11 +320,11 @@ class CrudUI(PluginIdentityManager):
             Card(
                 H2(f"{self.DISPLAY_NAME} List"),
                 P(
-                    "👆 Check the sets of APPs (roles) that match your needs to control which plugins appear in the ",
+                    "👇️ Check the sets-of-APPs (Roles) that match your needs to control which plugins appear in the ",
                     Strong("APP"), 
                     " dropdown menu. ",
                     Strong("Core"), 
-                    " plugins always show, while other roles add specific plugin categories. You can select multiple roles to combine their plugin sets.",
+                    " plugins always show, while other roles add specific plugin categories. You can select multiple roles to combine their plugin sets, and drag-to-reorder the APP menu.",
                     style=f"margin-bottom: {self.UI_CONSTANTS['SPACING']['LARGE_MARGIN']}; padding: {self.UI_CONSTANTS['SPACING']['DESCRIPTION_PADDING']}; background-color: var(--pico-muted-background-color); border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; border-left: {self.UI_CONSTANTS['SPACING']['BORDER_WIDTH']} solid var(--pico-color-azure-500); color: var(--pico-muted-color); font-size: {self.UI_CONSTANTS['TYPOGRAPHY']['DESCRIPTION_TEXT']};"
                 ),
                 Ul(
