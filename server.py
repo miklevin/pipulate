@@ -2514,7 +2514,6 @@ def create_home_menu_item(menux):
     home_css_classes = 'dropdown-item menu-role-core'
     home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus)' if is_home_selected else '')
     menu_items.append(Li(home_label))
-    menu_items.append(Li(Hr(), cls='dropdown-separator'))
     return menu_items
 
 def get_plugin_primary_role(instance):
@@ -2544,9 +2543,7 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
         return None
     if plugin_key in ['profiles', 'roles']:
         return None
-    if plugin_key == 'separator':
-        logger.debug('Added separator to App menu.')
-        return Li(Hr(), cls='dropdown-separator')
+
     if not should_include_plugin(instance, active_role_names):
         return None
     display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))

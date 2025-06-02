@@ -313,20 +313,7 @@ details.dropdown summary + ul li .dropdown-item input[type="radio"]:checked + * 
     background-color: var(--pico-primary-focus);
 }
 
-details.dropdown summary + ul li .dropdown-separator {
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-top: 1px solid var(--pico-primary);
-    opacity: 0.3;
-}
 
-details.dropdown summary + ul li .dropdown-separator hr {
-    margin: 0.5rem 0;
-    border: none;
-    border-top: 1px solid var(--pico-primary);
-    opacity: 0.3;
-}
 
 /* Remove the duplicate and restrictive width rules */
 details.dropdown summary + ul {
@@ -611,11 +598,7 @@ article > div:first-child {
 [data-theme="dark"] .token.number { color: #f78c6c !important; }
 [data-theme="dark"] .token.comment { color: #545454 !important; }
 
-.dropdown-separator hr {
-    margin: 0.5rem 0;
-    border: 0;
-    border-top: 1px solid var(--pico-muted-border-color);
-}
+
 
 .menu-item-header {
     font-weight: bold;
