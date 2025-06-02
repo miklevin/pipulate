@@ -73,6 +73,27 @@ class BotifyCsvDownloaderWorkflow:
     - All API errors are handled with specific error messages for better troubleshooting
     - Python code generation optimized for Jupyter Notebook debugging workflow
     - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
+
+    ## Workflow Modularity & Flexibility
+    ===================================
+    
+    While this is called the "Botify Trifecta" and downloads from three main data sources, 
+    the workflow is highly modular:
+
+    **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
+    - Establishes the analysis slug that Steps 3 & 4 depend on
+    - Provides the core site structure data that most analyses need
+    
+    **OPTIONAL STEPS**: Steps 3 (Web Logs) and 4 (Search Console) are completely optional:
+    - Can be commented out or deleted without breaking the workflow
+    - The chain reaction pattern will automatically flow through uninterrupted
+    - Step 5 (finalize) will still work correctly with just crawl data
+    
+    **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a 
+    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
+    
+    This modularity makes the workflow perfect as a template for various Botify data 
+    collection needs - from simple crawl analysis to comprehensive multi-source exports.
     """
     APP_NAME = 'trifecta'
     DISPLAY_NAME = 'Botify Trifecta'
