@@ -41,6 +41,51 @@ class DevAssistant:
     ENDPOINT_MESSAGE = """Interactive debugging and development guidance for Pipulate workflows. Validate patterns, debug issues, check template suitability, and get expert recommendations based on the Ultimate Pipulate Implementation Guide and workflow creation helper system."""
     TRAINING_PROMPT = """You are the Pipulate Development Assistant. Help developers with: 1. Pattern validation against the 25 critical patterns from the Ultimate Guide. 2. Debugging workflow issues (auto-key generation, three-phase logic, chain reactions). 3. Plugin structure analysis and recommendations. 4. State management troubleshooting. 5. Template suitability and marker compatibility for helper tools. 6. Best practice guidance for workflow development. Always reference specific patterns from the Ultimate Guide and provide actionable debugging steps."""
 
+    # UI Constants - Centralized color theme for consistent appearance
+    UI_CONSTANTS = {
+        'COLORS': {
+            # Primary text colors
+            'HEADER_TEXT': '#2c3e50',           # Dark blue-gray for headers  
+            'BODY_TEXT': '#CCCCCC',             # Muted gray for body text
+            'SECONDARY_TEXT': '#495057',        # Slightly darker gray for secondary text
+            
+            # Semantic colors
+            'SUCCESS_GREEN': '#28a745',         # Green for success indicators
+            'ERROR_RED': '#dc3545',             # Red for errors and warnings
+            'WARNING_YELLOW': '#ffc107',        # Yellow for warnings that need attention
+            'INFO_BLUE': '#007bff',             # Blue for informational elements
+            'INFO_TEAL': '#17a2b8',             # Teal for secondary info
+            'ACCENT_ORANGE': '#fd7e14',         # Orange for special highlights
+            'ACCENT_PURPLE': '#6f42c1',         # Purple for template analysis
+            
+            # Status colors (for success/error badges)
+            'SUCCESS_TEXT': '#155724',          # Dark green text for success badges
+            'WARNING_TEXT': '#856404',          # Dark yellow text for warning badges  
+            'ERROR_TEXT': '#721c24',            # Dark red text for error badges
+            
+            # Code display colors
+            'CODE_BG_DARK': '#2d3748',          # Dark background for code blocks
+            'CODE_TEXT_LIGHT': '#e2e8f0',       # Light text for dark code blocks
+        },
+        'BACKGROUNDS': {
+            'LIGHT_GRAY': '#f8f9fa',           # General light gray background
+            'SUCCESS_BG': '#d4edda',           # Light green background for success
+            'WARNING_BG': '#fff3cd',           # Light yellow background for warnings
+            'ERROR_BG': '#f8d7da',             # Light red background for errors
+            
+            # Transparent overlays for sections
+            'SUCCESS_OVERLAY': 'rgba(40, 167, 69, 0.05)',    # Very light green overlay
+            'WARNING_OVERLAY': 'rgba(255, 193, 7, 0.05)',    # Very light yellow overlay
+        },
+        'SPACING': {
+            'BORDER_RADIUS': '4px',            # Standard border radius
+            'SECTION_PADDING': '1rem',         # Standard section padding
+            'SMALL_PADDING': '0.5rem',         # Small padding for badges
+            'MARGIN_BOTTOM': '1rem',           # Standard bottom margin
+            'SMALL_MARGIN': '0.5rem',          # Small margins
+        }
+    }
+
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
         self.app_name = self.APP_NAME 
@@ -1058,23 +1103,23 @@ class DevAssistant:
                 needs_work_commands = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
                 
                 transplant_section.extend([
-                    H5('🔀 Transplantation Commands:', style='color: #fd7e14; margin-bottom: 0.75rem;'),
+                    H5('🔀 Transplantation Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_ORANGE"]}; margin-bottom: 0.75rem;'),
                     P(f'Found {len(transplant_commands)} step method(s) suitable for transplantation:', 
-                      style='color: #6c757d; margin-bottom: 1rem;')
+                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;')
                 ])
                 
                 if good_commands:
                     transplant_section.extend([
-                        H5('✅ Ready-to-Transplant Steps:', style='color: #28a745; margin-bottom: 0.75rem;'),
-                        P('These steps can be swapped immediately:', style='color: #6c757d; margin-bottom: 0.5rem;')
+                        H5('✅ Ready-to-Transplant Steps:', style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: 0.75rem;'),
+                        P('These steps can be swapped immediately:', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;')
                     ])
                     
                     good_command_items = []
                     for cmd in good_commands:
                         good_command_items.extend([
                             Li(
-                                Strong(f"{cmd['step_id']}: ", style='color: #007bff;'),
-                                Code(cmd['command'], style='background-color: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px;'),
+                                                            Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]};'),
+                            Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px;'),
                                 style='margin-bottom: 0.5rem; font-family: monospace; font-size: 0.9rem;'
                             )
                         ])
@@ -1082,14 +1127,14 @@ class DevAssistant:
                     transplant_section.append(
                         Div(
                             Ul(*good_command_items),
-                            style='background-color: rgba(40, 167, 69, 0.05); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;'
+                            style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["SUCCESS_OVERLAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                         )
                     )
                 
                 if needs_work_commands:
                     transplant_section.extend([
-                        H5('⚠️ Needs Preparation:', style='color: #ffc107; margin-bottom: 0.75rem;'),
-                        P('These steps need work before transplantation:', style='color: #6c757d; margin-bottom: 0.5rem;')
+                        H5('⚠️ Needs Preparation:', style=f'color: {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]}; margin-bottom: 0.75rem;'),
+                        P('These steps need work before transplantation:', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 0.5rem;')
                     ])
                     
                     needs_work_items = []
@@ -1098,13 +1143,13 @@ class DevAssistant:
                         needs_work_items.extend([
                             Li(
                                 Div(
-                                    Strong(f"{cmd['step_id']}: ", style='color: #ffc107;'),
-                                    Code(cmd['command'], style='background-color: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px;'),
+                                                                    Strong(f"{cmd['step_id']}: ", style=f'color: {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]};'),
+                                Code(cmd['command'], style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: 0.2rem 0.4rem; border-radius: 3px;'),
                                     style='margin-bottom: 0.25rem;'
                                 ),
                                 Div(
                                     f"Issues: {notes_text}",
-                                    style='font-size: 0.85rem; color: #6c757d; margin-left: 1rem;'
+                                    style=f'font-size: 0.85rem; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-left: 1rem;'
                                 ),
                                 style='margin-bottom: 0.75rem;'
                             )
@@ -1113,22 +1158,22 @@ class DevAssistant:
                     transplant_section.append(
                         Div(
                             Ul(*needs_work_items),
-                            style='background-color: rgba(255, 193, 7, 0.05); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1rem;'
+                            style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["WARNING_OVERLAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["WARNING_YELLOW"]}; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                         )
                     )
                 
                 if compatibility_warnings:
                     transplant_section.extend([
-                        H5('🚨 Compatibility Warnings:', style='color: #dc3545; margin-bottom: 0.75rem;'),
-                        Ul(*[Li(warning, style='color: #dc3545;') for warning in compatibility_warnings]),
+                                            H5('🚨 Compatibility Warnings:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]}; margin-bottom: 0.75rem;'),
+                    Ul(*[Li(warning, style=f'color: {self.UI_CONSTANTS["COLORS"]["ERROR_RED"]};') for warning in compatibility_warnings]),
                         Div(style='margin-bottom: 1rem;')
                     ])
                 
                 transplant_section.extend([
                     Details(
                         Summary(
-                            H5('💡 How to Use These Commands:', style='display: inline; margin: 0; color: #17a2b8;'),
-                            style='cursor: pointer; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px; margin: 1rem 0;'
+                                                    H5('💡 How to Use These Commands:', style=f'display: inline; margin: 0; color: {self.UI_CONSTANTS["COLORS"]["INFO_TEAL"]};'),
+                        style=f'cursor: pointer; padding: 0.75rem; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
                             Ol(
@@ -1141,7 +1186,7 @@ class DevAssistant:
                             P('Example usage:', style='font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem;'),
                             Code(
                                 f'python helpers/swap_workflow_step.py plugins/035_my_workflow.py step_01 plugins/{filename} step_01 --force',
-                                style='background-color: #2d3748; color: #e2e8f0; padding: 0.75rem; border-radius: 4px; display: block; margin-bottom: 1rem;'
+                                style=f'background-color: {self.UI_CONSTANTS["COLORS"]["CODE_BG_DARK"]}; color: {self.UI_CONSTANTS["COLORS"]["CODE_TEXT_LIGHT"]}; padding: 0.75rem; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; display: block; margin-bottom: {self.UI_CONSTANTS["SPACING"]["MARGIN_BOTTOM"]};'
                             ),
                             style='padding: 1rem;'
                         ),
@@ -1150,10 +1195,10 @@ class DevAssistant:
                 ])
             else:
                 transplant_section.extend([
-                    H5('🔀 Transplantation Commands:', style='color: #fd7e14; margin-bottom: 0.75rem;'),
-                    P('No transplantable step methods found in this plugin.', style='color: #6c757d; margin-bottom: 1rem;'),
+                    H5('🔀 Transplantation Commands:', style=f'color: {self.UI_CONSTANTS["COLORS"]["ACCENT_ORANGE"]}; margin-bottom: 0.75rem;'),
+                    P('No transplantable step methods found in this plugin.', style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'),
                     P('This plugin may be a template or infrastructure component rather than a source for step methods.', 
-                      style='color: #6c757d; font-style: italic;')
+                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-style: italic;')
                 ])
             
             # Define widget ID for Prism targeting
@@ -1166,15 +1211,15 @@ class DevAssistant:
                     Details(
                         Summary(
                             H4('🤖 Coding Assistant Fix Instructions', style='display: inline; margin: 0;'),
-                            style='cursor: pointer; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; margin: 1rem 0;'
+                            style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
                             P(f'Copy these detailed instructions for a coding assistant to fix {filename}:', 
-                              style='margin-bottom: 1rem; font-weight: bold; color: #2c3e50;'),
+                              style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
                             Div(
                                 *[
                                     Div(
-                                        H5(f'Fix #{i+1}:', style='color: #007bff; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
+                                        H5(f'Fix #{i+1}:', style=f'color: {self.UI_CONSTANTS["COLORS"]["INFO_BLUE"]}; margin-top: 1.5rem; margin-bottom: 0.5rem;'),
                                         Pre(
                                             Code(prompt, cls='language-markdown'),
                                             cls='line-numbers'
@@ -1219,35 +1264,35 @@ class DevAssistant:
                     
                     # STATUS SUMMARY with consistent headlines
                     Div(
-                        H4("📊 CAPABILITY SUMMARY", style="color: #007bff; margin-bottom: 1rem; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem;"),
+                        H4("📊 CAPABILITY SUMMARY", style=f"color: {self.UI_CONSTANTS['COLORS']['INFO_BLUE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['INFO_BLUE']}; padding-bottom: 0.5rem;"),
                         Div(
                             Div(f"🔧 Functional Plugin: {functional_status}", 
-                                style=f"color: {'#155724' if functional_color == 'green' else '#856404' if functional_color == 'orange' else '#721c24'}; background-color: {'#d4edda' if functional_color == 'green' else '#fff3cd' if functional_color == 'orange' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if functional_color == 'green' else self.UI_CONSTANTS['COLORS']['WARNING_TEXT'] if functional_color == 'orange' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if functional_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['WARNING_BG'] if functional_color == 'orange' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
                             Div(f"📋 Template Source: {template_source_status}", 
-                                style=f"color: {'#155724' if template_source_color == 'green' else '#721c24'}; background-color: {'#d4edda' if template_source_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
                             Div(f"📥 Swap Recipient: {swap_recipient_status}", 
-                                style=f"color: {'#155724' if swap_recipient_color == 'green' else '#721c24'}; background-color: {'#d4edda' if swap_recipient_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold; margin-bottom: 0.5rem;"),
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if swap_recipient_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if swap_recipient_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
                             Div(f"📤 Swap Source: {swap_source_status}", 
-                                style=f"color: {'#155724' if swap_source_color == 'green' else '#721c24'}; background-color: {'#d4edda' if swap_source_color == 'green' else '#f8d7da'}; padding: 0.5rem; border-radius: 4px; font-weight: bold;"),
-                            style="background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem;"
+                                style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if swap_source_color == 'green' else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if swap_source_color == 'green' else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
+                            style=f"background-color: {self.UI_CONSTANTS['BACKGROUNDS']['LIGHT_GRAY']}; padding: {self.UI_CONSTANTS['SPACING']['SECTION_PADDING']}; border-radius: 5px; margin-bottom: 1.5rem;"
                         )
                     ),
                     
                     # 1. FUNCTIONAL PLUGIN DETAILS
                     Div(
-                        H4("🔧 FUNCTIONAL PLUGIN ANALYSIS", style="color: #28a745; margin-bottom: 1rem; border-bottom: 2px solid #28a745; padding-bottom: 0.5rem;"),
+                        H4("🔧 FUNCTIONAL PLUGIN ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; padding-bottom: 0.5rem;"),
                         
                         # Core Patterns Found
                         (Div(
                             H5("✅ Core Patterns:", style="color: green; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(f"✅ {pattern}") for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                            Ul(*[Li(pattern) for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
                                style="color: green; margin-bottom: 1rem;")
                         ) if patterns_found else None),
                         
                         # Functional Issues
                         (Div(
                             H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(f"❌ {issue}") for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                            Ul(*[Li(issue) for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
                                style="color: red; margin-bottom: 1rem;")
                         ) if any(issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])) else None),
                         
@@ -1256,10 +1301,10 @@ class DevAssistant:
                     
                     # 2. TEMPLATE SOURCE DETAILS
                     Div(
-                        H4("📋 TEMPLATE SOURCE ANALYSIS", style="color: #6f42c1; margin-bottom: 1rem; border-bottom: 2px solid #6f42c1; padding-bottom: 0.5rem;"),
+                        H4("📋 TEMPLATE SOURCE ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['ACCENT_PURPLE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ACCENT_PURPLE']}; padding-bottom: 0.5rem;"),
                         P(f"Status: {template_source_status}", style=f"color: {template_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
                         P("Template sources provide the foundation for creating new workflows (like blank_placeholder.py or parameter_buster.py)", 
-                          style="color: #6c757d; margin-bottom: 1rem;"),
+                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
                         
                         # Template Requirements
                         (Div(
@@ -1272,10 +1317,10 @@ class DevAssistant:
                     
                     # 3. SWAP RECIPIENT DETAILS
                     Div(
-                        H4("📥 SWAP RECIPIENT ANALYSIS", style="color: #17a2b8; margin-bottom: 1rem; border-bottom: 2px solid #17a2b8; padding-bottom: 0.5rem;"),
+                        H4("📥 SWAP RECIPIENT ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['INFO_TEAL']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['INFO_TEAL']}; padding-bottom: 0.5rem;"),
                         P(f"Status: {swap_recipient_status}", style=f"color: {swap_recipient_color}; font-weight: bold; margin-bottom: 0.75rem;"),
                         P("Swap recipients can accept step methods from other workflows using swap_workflow_step.py", 
-                          style="color: #6c757d; margin-bottom: 1rem;"),
+                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
                         
                         # Recipient Requirements
                         Div(
@@ -1289,10 +1334,10 @@ class DevAssistant:
                     
                     # 4. SWAP SOURCE DETAILS
                     Div(
-                        H4("📤 SWAP SOURCE ANALYSIS", style="color: #fd7e14; margin-bottom: 1rem; border-bottom: 2px solid #fd7e14; padding-bottom: 0.5rem;"),
+                        H4("📤 SWAP SOURCE ANALYSIS", style=f"color: {self.UI_CONSTANTS['COLORS']['ACCENT_ORANGE']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ACCENT_ORANGE']}; padding-bottom: 0.5rem;"),
                         P(f"Status: {swap_source_status}", style=f"color: {swap_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
                         P("Swap sources provide step methods that can be transplanted into other workflows", 
-                          style="color: #6c757d; margin-bottom: 1rem;"),
+                          style=f"color: {self.UI_CONSTANTS['COLORS']['BODY_TEXT']}; margin-bottom: 1rem;"),
                         *transplant_section,
                         style="margin-bottom: 2rem;"
                     ),
@@ -1411,11 +1456,11 @@ class DevAssistant:
                 implementation_section.extend([
                     H4('🛠️ Implementation Guidance:'),
                     P(f'For {filename}, detailed fix instructions are available in Step 2 (Pattern Validation).', 
-                      style='color: #007bff; font-style: italic;'),
-                    P('Each issue has been analyzed with specific code snippets and placement instructions for a coding assistant.',
-                      style='color: #495057; margin-bottom: 1rem;'),
+                      style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; font-style: italic;'),
+                                          P('Each issue has been analyzed with specific code snippets and placement instructions for a coding assistant.',
+                        style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]}; margin-bottom: 1rem;'),
                     Details(
-                        Summary('💡 Quick Implementation Tips', style='cursor: pointer; font-weight: bold; color: #2c3e50;'),
+                        Summary('💡 Quick Implementation Tips', style=f'cursor: pointer; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};'),
                         Ul(
                             Li('🔄 Use pip.chain_reverter() in submit handlers for automatic chain reactions'),
                             Li('🎯 Add both template markers for helper tool compatibility'),
@@ -1435,7 +1480,7 @@ class DevAssistant:
                     Ul(*[Li(item) for item in debug_checklist]),
                     *implementation_section,
                     H4('💡 General Recommendations:'),
-                    Ul(*[Li(rec, style='color: blue;') for rec in recommendations]) if recommendations else P('No general recommendations.'),
+                    Ul(*[Li(rec, style=f'color: {self.UI_CONSTANTS["COLORS"]["BODY_TEXT"]};') for rec in recommendations]) if recommendations else P('No general recommendations.'),
                     Form(
                         Button('Continue to Final Recommendations ▸', type='submit'),
                         hx_post=f'/{app_name}/{step_id}_submit',
@@ -1517,19 +1562,19 @@ class DevAssistant:
                     H4('🤖 Implementation Strategy:'),
                     Div(
                         P(f'✨ This analysis has generated {len(coding_prompts)} detailed fix instruction(s) for {filename}',
-                          style='color: #28a745; font-weight: bold; margin-bottom: 0.5rem;'),
+                          style=f'color: {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; font-weight: bold; margin-bottom: 0.5rem;'),
                         P('These instructions in Step 2 are specifically designed for coding assistants and include:',
-                          style='margin-bottom: 0.5rem;'),
+                          style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]}; margin-bottom: 0.5rem;'),
                         Ul(
-                            Li('📂 Exact filenames and placement locations'),
-                            Li('💻 Complete code snippets ready to copy'),
-                            Li('🎯 Specific implementation requirements'),
-                            Li('🔧 Step-by-step modification instructions'),
-                            Li('⚠️ Critical placement and indentation notes')
+                            Li('📂 Exact filenames and placement locations', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                            Li('💻 Complete code snippets ready to copy', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                            Li('🎯 Specific implementation requirements', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                            Li('🔧 Step-by-step modification instructions', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
+                            Li('⚠️ Critical placement and indentation notes', style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};')
                         ),
                         P('💡 Copy the instructions from Step 2 and provide them to your coding assistant for precise implementation.',
-                          style='color: #007bff; font-style: italic; margin-top: 1rem;'),
-                        style='background-color: #f8f9fa; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin: 1rem 0;'
+                          style=f'color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]}; font-style: italic; margin-top: 1rem;'),
+                        style=f'background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; border-left: 4px solid {self.UI_CONSTANTS["COLORS"]["SUCCESS_GREEN"]}; margin: 1rem 0;'
                     )
                 ])
             
