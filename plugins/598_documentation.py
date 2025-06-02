@@ -608,12 +608,15 @@ class DocumentationPlugin:
         """Process a single code block and convert to HTML with proper escaping"""
         import html
         
-        # Extract language and content
-        match = re.match(r'```([a-zA-Z]*)\s*\n?(.*?)```', code_block, flags=re.DOTALL)
+        # Extract language and content - preserve exact whitespace
+        match = re.match(r'```([a-zA-Z]*)\s*\n(.*?)```', code_block, flags=re.DOTALL)
         if match:
             language = match.group(1) or 'text'
             content = match.group(2)
-            # Properly escape HTML in code content
+            # Remove only the final newline if present to prevent extra spacing
+            if content.endswith('\n'):
+                content = content[:-1]
+            # Properly escape HTML in code content while preserving all whitespace
             escaped_content = html.escape(content)
             return f'<pre><code class="language-{language}">{escaped_content}</code></pre>'
         return html.escape(code_block)
@@ -1108,6 +1111,8 @@ class DocumentationPlugin:
             overflow-x: auto;
             border-left: 4px solid #0066cc;
             margin: 20px 0;
+            white-space: pre;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }}
         
         /* Custom copy button styling - override Prism defaults */
@@ -1303,6 +1308,50 @@ class DocumentationPlugin:
                 flex-direction: column;
                 gap: 8px;
             }}
+        }}
+        
+        /* Additional whitespace preservation rules - surgical approach */
+        
+        /* Only pre elements and code inside pre should be block-level */
+        pre,
+        pre[class*="language-"] {{
+            white-space: pre !important;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+            display: block !important;
+            overflow-x: auto !important;
+        }}
+        
+        /* Code inside pre blocks should inherit pre behavior */
+        pre code,
+        pre code[class*="language-"] {{
+            white-space: pre !important;
+            font-family: inherit !important;
+            display: block !important;
+        }}
+        
+        /* Inline code should remain inline but preserve whitespace */
+        code:not(pre code),
+        code[class*="language-"]:not(pre code) {{
+            white-space: pre !important;
+            display: inline !important;
+        }}
+        
+        /* Override any Prism.js whitespace handling */
+        .token,
+        .token.text {{
+            white-space: pre !important;
+        }}
+        
+        /* Specific rule for text content in code blocks */
+        .language-text,
+        .language-plaintext {{
+            white-space: pre !important;
+        }}
+        
+        /* Ensure no text normalization for pre content only */
+        pre *,
+        pre code * {{
+            white-space: inherit !important;
         }}
     </style>
 </head>
@@ -1763,6 +1812,8 @@ class DocumentationPlugin:
             overflow-x: auto;
             border-left: 4px solid #0066cc;
             margin: 20px 0;
+            white-space: pre;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }}
         
         /* Custom copy button styling - override Prism defaults */
@@ -1960,6 +2011,50 @@ class DocumentationPlugin:
             .nav-center {{
                 order: -1;
             }}
+        }}
+        
+        /* Additional whitespace preservation rules - surgical approach */
+        
+        /* Only pre elements and code inside pre should be block-level */
+        pre,
+        pre[class*="language-"] {{
+            white-space: pre !important;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+            display: block !important;
+            overflow-x: auto !important;
+        }}
+        
+        /* Code inside pre blocks should inherit pre behavior */
+        pre code,
+        pre code[class*="language-"] {{
+            white-space: pre !important;
+            font-family: inherit !important;
+            display: block !important;
+        }}
+        
+        /* Inline code should remain inline but preserve whitespace */
+        code:not(pre code),
+        code[class*="language-"]:not(pre code) {{
+            white-space: pre !important;
+            display: inline !important;
+        }}
+        
+        /* Override any Prism.js whitespace handling */
+        .token,
+        .token.text {{
+            white-space: pre !important;
+        }}
+        
+        /* Specific rule for text content in code blocks */
+        .language-text,
+        .language-plaintext {{
+            white-space: pre !important;
+        }}
+        
+        /* Ensure no text normalization for pre content only */
+        pre *,
+        pre code * {{
+            white-space: inherit !important;
         }}
     </style>
 </head>
@@ -2211,6 +2306,8 @@ class DocumentationPlugin:
             overflow-x: auto;
             border-left: 4px solid #0066cc;
             margin: 20px 0;
+            white-space: pre;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }}
         
         /* Custom copy button styling - override Prism defaults */
@@ -2408,6 +2505,50 @@ class DocumentationPlugin:
             .nav-center {{
                 order: -1;
             }}
+        }}
+        
+        /* Additional whitespace preservation rules - surgical approach */
+        
+        /* Only pre elements and code inside pre should be block-level */
+        pre,
+        pre[class*="language-"] {{
+            white-space: pre !important;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+            display: block !important;
+            overflow-x: auto !important;
+        }}
+        
+        /* Code inside pre blocks should inherit pre behavior */
+        pre code,
+        pre code[class*="language-"] {{
+            white-space: pre !important;
+            font-family: inherit !important;
+            display: block !important;
+        }}
+        
+        /* Inline code should remain inline but preserve whitespace */
+        code:not(pre code),
+        code[class*="language-"]:not(pre code) {{
+            white-space: pre !important;
+            display: inline !important;
+        }}
+        
+        /* Override any Prism.js whitespace handling */
+        .token,
+        .token.text {{
+            white-space: pre !important;
+        }}
+        
+        /* Specific rule for text content in code blocks */
+        .language-text,
+        .language-plaintext {{
+            white-space: pre !important;
+        }}
+        
+        /* Ensure no text normalization for pre content only */
+        pre *,
+        pre code * {{
+            white-space: inherit !important;
         }}
     </style>
 </head>
