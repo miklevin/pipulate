@@ -473,20 +473,28 @@ def get_affected_plugins(role_name):
                             # Look for plugin classes that might have DISPLAY_NAME
                             for name, obj in inspect.getmembers(module):
                                 if inspect.isclass(obj) and hasattr(obj, 'DISPLAY_NAME'):
-                                    if callable(obj.DISPLAY_NAME):
-                                        # It's a property, need to instantiate or use base logic
-                                        if hasattr(obj, 'EMOJI'):
-                                            emoji = getattr(obj, 'EMOJI', '')
-                                            if emoji:
-                                                display_name = f"{base_name} {emoji}"
+                                    try:
+                                        if inspect.isdatadescriptor(obj.DISPLAY_NAME) or callable(obj.DISPLAY_NAME):
+                                            # It's a property, need to use fallback logic
+                                            if hasattr(obj, 'EMOJI'):
+                                                emoji = getattr(obj, 'EMOJI', '')
+                                                if emoji:
+                                                    display_name = f"{base_name} {emoji}"
+                                                else:
+                                                    display_name = base_name
                                             else:
                                                 display_name = base_name
                                         else:
-                                            display_name = base_name
-                                    else:
-                                        # It's a direct attribute
-                                        display_name = obj.DISPLAY_NAME
-                                    break
+                                            # It's a direct attribute, ensure it's a string
+                                            attr_value = obj.DISPLAY_NAME
+                                            if isinstance(attr_value, str):
+                                                display_name = attr_value
+                                            else:
+                                                display_name = base_name
+                                        break
+                                    except Exception as inner_e:
+                                        logger.debug(f"Error getting DISPLAY_NAME from {name}: {inner_e}")
+                                        continue
                         except Exception as e:
                             logger.debug(f"Could not get display name for {filename}: {e}")
                             display_name = base_name
@@ -529,12 +537,13 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     border_color = colors['border']
     background_color = colors['background']
     
-    # Create the plugin list vertically with clickable links
+    # Create the plugin list vertically with clickable links using CSS counters
     def format_all_plugins_vertical(plugins):
         plugin_items = []
-        for prefix, display_name, endpoint in plugins:
+        for index, (prefix, display_name, endpoint) in enumerate(plugins, 1):
             plugin_items.append(
-                Div(
+                Li(
+                    Span(f"{index}. ", style="font-weight: bold; color: var(--pico-muted-color);"),
                     A(
                         display_name, 
                         href=endpoint,
@@ -543,10 +552,10 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
                         onmouseover="this.style.textDecoration='underline';",
                         onmouseout="this.style.textDecoration='none';"
                     ),
-                    style=f"margin-bottom: {ui_constants['SPACING']['PLUGIN_ITEM_MARGIN']};"
+                    style=f"margin-bottom: {ui_constants['SPACING']['PLUGIN_ITEM_MARGIN']}; list-style: none;"
                 )
             )
-        return plugin_items
+        return Ol(*plugin_items, style=f"padding-left: 1rem; margin: 0; list-style: none !important;")
     
     return Details(
         Summary(
@@ -557,7 +566,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
             style="margin: 0; padding: 0; list-style: none;"
         ),
         Div(
-            *format_all_plugins_vertical(shown_plugins),
+            format_all_plugins_vertical(shown_plugins),
             style=f"padding: {ui_constants['SPACING']['CONTAINER_PADDING']}; background-color: {background_color}; border-radius: {ui_constants['SPACING']['BORDER_RADIUS']}; margin-top: {ui_constants['SPACING']['SECTION_MARGIN']}; border-left: {ui_constants['SPACING']['BORDER_WIDTH']} solid {border_color};"
         ),
         style="margin: 0;"
