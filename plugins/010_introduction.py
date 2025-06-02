@@ -10,7 +10,7 @@ from fasthtml.common import *
 from pathlib import Path
 import urllib.parse
 
-ROLES = ['Tutorial']
+ROLES = ['Core']
 
 logger = logging.getLogger(__name__)
 
@@ -202,17 +202,7 @@ class IntroductionPlugin:
             except Exception as e:
                 logger.error(f"Error in introduction plugin: {str(e)}")
 
-        # Create page navigation
-        nav_buttons = Div(
-            *[
-                A(f"Page {i}", 
-                  href=f'/introduction/page/{i}',
-                  cls="secondary outline" if i != current_page else "primary",
-                  style="margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block;"
-                ) for i in range(1, 5)
-            ],
-            style="margin-bottom: 1rem;"
-        )
+
 
         # Create navigation arrows (matching original server.py style)
         prev_button = Button(
@@ -246,7 +236,6 @@ class IntroductionPlugin:
 
         return Div(
             H2(f"📖 Introduction Guide - Page {current_page}"),
-            nav_buttons,
             page_content,
             nav_arrows
         ) 
