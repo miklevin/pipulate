@@ -897,7 +897,7 @@ class Pipulate:
         article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
         if remove_padding:
             article_style += ' padding: 0;'
-        return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
+        return Card(Div(message, style='flex: 1'), Div(form, style='flex: 0'), style=article_style)
 
     def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
         """Create a standardized container for widgets and visualizations.
@@ -944,9 +944,18 @@ class Pipulate:
         """
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
         if is_tree:
-            return Pre(content, style='background-color: var(--pico-card-sectionning-background-color); border-radius: 4px; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre; ')
+            return Pre(content, style='background-color: var(--pico-card-sectionning-background-color); border-radius: 4px; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre')
         else:
-            return Pre(content, style='background-color: #e3f2fd; border-radius: 4px; border: 1px solid #bbdefb; color: #1976d2; font-family: system-ui; margin: 0; padding: 0.5rem 1rem; white-space: pre-wrap; ')
+            return Pre(content, style=(
+        'background-color: #e3f2fd; ',
+        'border-radius: 4px; ',
+        'border: 1px solid #bbdefb; ',
+        'color: #1976d2; ',
+        'font-family: system-ui; ',
+        'margin: 0; ',
+        'padding: 0.5rem 1rem; ',
+        'white-space: pre-wrap'
+    ))
 
     def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
         """Create a finalized step display with optional content.
@@ -1455,7 +1464,13 @@ class BaseCrud:
         return f'/{self.name}/{action}/{item_id}'
 
     def render_item(self, item):
-        return Li(A('🗑', href='#', hx_swap='outerHTML', hx_delete=f'/task/delete/{item.id}', hx_target=f'#todo-{item.id}', _class='delete-icon', style='cursor: pointer; display: inline;'), Input(type='checkbox', checked='1' if item.done else '0', hx_post=f'/task/toggle/{item.id}', hx_swap='outerHTML', hx_target=f'#todo-{item.id}'), A(item.name, href='#', _class='todo-title', style='color: inherit; text-decoration: none;'), data_id=item.id, data_priority=item.priority, id=f'todo-{item.id}', cls='list-style-none')
+        return Li(A('🗑', href='#', hx_swap='outerHTML', hx_delete=f'/task/delete/{item.id}', hx_target=f'#todo-{item.id}', _class='delete-icon', style=(
+        'cursor: pointer; ',
+        'display: inline'
+    )), Input(type='checkbox', checked='1' if item.done else '0', hx_post=f'/task/toggle/{item.id}', hx_swap='outerHTML', hx_target=f'#todo-{item.id}'), A(item.name, href='#', _class='todo-title', style=(
+        'color: inherit; ',
+        'text-decoration: none'
+    )), data_id=item.id, data_priority=item.priority, id=f'todo-{item.id}', cls='list-style-none')
 
     async def delete_item(self, request, item_id: int):
         try:
@@ -2355,8 +2370,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), style='align-items: center; display: flex; padding: 0.5rem 1rem;'))
-    menu_items.append(Li(Hr(style='margin: 0;'), cls='block'))
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), style=(
+        'align-items: center; ',
+        'display: flex; ',
+        'padding: 0.5rem 1rem'
+    )))
+    menu_items.append(Li(Hr(style='margin: 0'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for profile menu creation")
@@ -2397,7 +2416,10 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style='min-width: max-content; padding-left: 0;', cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
+    return Details(Summary('PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style=(
+        'min-width: max-content; ',
+        'padding-left: 0'
+    ), cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
@@ -2490,7 +2512,7 @@ def create_home_menu_item(menux):
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
     home_css_classes = 'dropdown-item menu-role-core'
-    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus);' if is_home_selected else '')
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus)' if is_home_selected else '')
     menu_items.append(Li(home_label))
     menu_items.append(Li(Hr(), cls='dropdown-separator'))
     return menu_items
@@ -2534,7 +2556,7 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     role_class = f'menu-role-{primary_role}' if primary_role else ''
     css_classes = f'dropdown-item {role_class}'.strip()
     radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
-    return Li(Label(radio_input, display_name, cls=css_classes, style='background-color: var(--pico-primary-focus);' if is_selected else ''))
+    return Li(Label(radio_input, display_name, cls=css_classes, style='background-color: var(--pico-primary-focus)' if is_selected else ''))
 
 def should_include_plugin(instance, active_role_names):
     """Determine if plugin should be included based on its roles."""
@@ -2574,9 +2596,20 @@ async def render_intro_page_with_navigation(page_num_str: str):
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system')
-    prev_button = Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='min-width: 160px; width: 160px;', disabled=page_num == 1)
-    next_button = Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='min-width: 160px; width: 160px;', disabled=page_num == MAX_INTRO_PAGES)
-    nav_container = Div(prev_button, next_button, style='display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;')
+    prev_button = Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style=(
+        'min-width: 160px; ',
+        'width: 160px'
+    ), disabled=page_num == 1)
+    next_button = Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style=(
+        'min-width: 160px; ',
+        'width: 160px'
+    ), disabled=page_num == MAX_INTRO_PAGES)
+    nav_container = Div(prev_button, next_button, style=(
+        'display: flex; ',
+        'gap: 1rem; ',
+        'justify-content: center; ',
+        'margin-top: 1rem'
+    ))
     return Div(page_content_area, nav_container, id='grid-left-content')
 
 def get_workflow_instance(workflow_name):
@@ -2612,8 +2645,14 @@ async def create_grid_left(menux, request, render_items=None):
         current_intro_page_num_str = db.get('intro_page_num', '1')
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
     if content_to_render is None:
-        content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px;')
-    scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none;'), style='border-top: 1px solid var(--pico-muted-border-color); display: none; margin-top: 20px; padding: 10px; text-align: center; ', id='scroll-to-top-link')
+        content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px')
+    scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none'), style=(
+        'border-top: 1px solid var(--pico-muted-border-color); ',
+        'display: none; ',
+        'margin-top: 20px; ',
+        'padding: 10px; ',
+        'text-align: center'
+    ), id='scroll-to-top-link')
     scroll_check_script = Script("\n        function checkScrollHeight() {\n            const container = document.querySelector('.main-grid > div:first-child');\n            const scrollLink = document.getElementById('scroll-to-top-link');\n            if (container && scrollLink) {\n                const isScrollable = container.scrollHeight > container.clientHeight;\n                scrollLink.style.display = isScrollable ? 'block' : 'none';\n            }\n        }\n        // Check on load and when content changes\n        window.addEventListener('load', checkScrollHeight);\n        const observer = new MutationObserver(checkScrollHeight);\n        const container = document.querySelector('.main-grid > div:first-child');\n        if (container) {\n            observer.observe(container, { childList: true, subtree: true });\n        }\n    ")
     return Div(content_to_render, scroll_to_top, scroll_check_script, id='grid-left-content')
 
@@ -2632,7 +2671,7 @@ def create_chat_interface(autofocus=False):
         temp_message = db['temp_message']
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden;')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden')
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """Creates a chat input group with text input and send button.
@@ -2645,7 +2684,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
     Returns:
         Group: Container with input and send button
     """
-    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw;')
+    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw')
 
 def create_poke_button():
     button_style = 'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;'
@@ -3085,7 +3124,25 @@ async def switch_environment(request):
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
         asyncio.create_task(delayed_restart(2))
-        return HTMLResponse(f"""\n            <div \n                aria-busy='true'\n                style="\n                    display: flex;\n                    align-items: center;\n                    {pipulate.MENU_ITEM_PADDING}\n                    border-radius: var(--pico-border-radius);\n                    min-height: 2.5rem;\n                "\n            >\n                Switching\n            </div>\n            <style>\n                body {pointer - events: none;\n                    user-select: none;\n                }\n            </style>\n            """)
+        return HTMLResponse(
+            Div(
+                "Switching",
+                aria_busy="true",
+                style=(
+                    "display: flex;",
+                    "align-items: center;",
+                    f"{pipulate.MENU_ITEM_PADDING}",
+                    "border-radius: var(--pico-border-radius);",
+                    "min-height: 2.5rem;"
+                )
+            ),
+            Style(
+                "body {",
+                "    pointer-events: none;",
+                "    user-select: none;",
+                "}"
+            )
+        )
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
