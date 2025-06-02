@@ -96,7 +96,7 @@ TONE = 'neutral'
 MODEL = 'gemma3'
 MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
-HOME_MENU_ITEM = '👥 Roles'
+HOME_MENU_ITEM = '👥 Roles (Home)'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 INTRO_LLM_PROMPT_DELAY = 4  # Seconds to wait before sending intro prompts for surprise effect
 ENV_FILE = Path('data/environment.txt')
@@ -1732,7 +1732,7 @@ if not os.path.exists('plugins'):
     logger.debug('Created plugins directory')
 
 def build_endpoint_messages(endpoint):
-    endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'}
+    endpoint_messages = {}
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
             if hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
@@ -1742,6 +1742,21 @@ def build_endpoint_messages(endpoint):
             else:
                 class_name = plugin_instance.__class__.__name__
                 endpoint_messages[plugin_name] = f'{class_name} app is where you manage your {plugin_name}.'
+    
+    # Special handling for empty endpoint (homepage) - check if roles plugin exists
+    if not endpoint:
+        roles_instance = plugin_instances.get('roles')
+        if roles_instance:
+            if hasattr(roles_instance, 'get_endpoint_message') and callable(getattr(roles_instance, 'get_endpoint_message')):
+                endpoint_messages[''] = roles_instance.get_endpoint_message()
+            elif hasattr(roles_instance, 'ENDPOINT_MESSAGE'):
+                endpoint_messages[''] = roles_instance.ENDPOINT_MESSAGE
+            else:
+                class_name = roles_instance.__class__.__name__
+                endpoint_messages[''] = f'{class_name} app is where you manage your roles.'
+        else:
+            endpoint_messages[''] = f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'
+    
     if endpoint in plugin_instances:
         plugin_instance = plugin_instances[endpoint]
         logger.debug(f"Checking if {endpoint} has get_endpoint_message: {hasattr(plugin_instance, 'get_endpoint_message')}")
@@ -1750,7 +1765,7 @@ def build_endpoint_messages(endpoint):
     return endpoint_messages.get(endpoint, None)
 
 def build_endpoint_training(endpoint):
-    endpoint_training = {'': 'You were just switched to the home page.'}
+    endpoint_training = {}
     for workflow_name, workflow_instance in plugin_instances.items():
         if workflow_name not in endpoint_training:
             if hasattr(workflow_instance, 'TRAINING_PROMPT'):
@@ -1759,6 +1774,20 @@ def build_endpoint_training(endpoint):
             else:
                 class_name = workflow_instance.__class__.__name__
                 endpoint_training[workflow_name] = f'{class_name} app is where you manage your workflows.'
+    
+    # Special handling for empty endpoint (homepage) - check if roles plugin exists
+    if not endpoint:
+        roles_instance = plugin_instances.get('roles')
+        if roles_instance:
+            if hasattr(roles_instance, 'TRAINING_PROMPT'):
+                prompt = roles_instance.TRAINING_PROMPT
+                endpoint_training[''] = read_training(prompt)
+            else:
+                class_name = roles_instance.__class__.__name__
+                endpoint_training[''] = f'{class_name} app is where you manage your workflows.'
+        else:
+            endpoint_training[''] = 'You were just switched to the home page.'
+    
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}

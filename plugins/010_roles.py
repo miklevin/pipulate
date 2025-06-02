@@ -57,7 +57,7 @@ class PluginIdentityManager:
     def DISPLAY_NAME(self):
         name = title_name(self.name)
         if self.EMOJI:
-            return f"{self.EMOJI} {name}"
+            return f"{self.EMOJI} {name} (Home)"
         return name
 
     @property
@@ -186,7 +186,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu. foo"
+        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
@@ -318,7 +318,7 @@ class CrudUI(PluginIdentityManager):
 
         return Div(
             Card(
-                H2(f"{self.DISPLAY_NAME} List"),
+                H2(f"{self.DISPLAY_NAME}"),
                 P(
                     "👇️ Check the sets-of-APPs (Roles) that match your needs to control which plugins appear in the ",
                     Strong("APP"), 
