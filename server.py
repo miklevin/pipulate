@@ -3117,13 +3117,32 @@ async def refresh_profile_menu(request):
 
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
-    """Handle environment switching and restart the server."""
+    """Handle environment switching and restart the server.
+    
+    This endpoint is called via HTMX when switching between Development/Production modes.
+    It returns a PicoCSS spinner with aria-busy that gets swapped in via HTMX,
+    while the server restarts in the background.
+    
+    The spinner uses PicoCSS's built-in aria-busy animation and styling:
+    - aria-busy='true' triggers PicoCSS's loading animation
+    - The div is styled to match menu item dimensions exactly to create a seamless transition
+    - The spinner appears to replace the radio buttons in the dropdown menu items
+    - Body is made non-interactive during the switch to prevent double-clicks
+    
+    HTMX targets the specific environment selector item that was clicked,
+    creating the illusion that the spinner is replacing just that menu item's radio button.
+    The precise styling ensures the spinner appears in exactly the same position and size
+    as the original menu item, maintaining visual continuity during the transition.
+    """
     try:
         form = await request.form()
         environment = form.get('environment', 'Development')
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
+        # Schedule server restart after a delay to allow HTMX to swap in the spinner
         asyncio.create_task(delayed_restart(2))
+        
+        # Return PicoCSS spinner that will be swapped in via HTMX
         return HTMLResponse(f"""
             <div 
                 aria-busy='true'
