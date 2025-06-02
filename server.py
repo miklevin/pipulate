@@ -3124,25 +3124,26 @@ async def switch_environment(request):
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
         asyncio.create_task(delayed_restart(2))
-        return HTMLResponse(
-            Div(
-                "Switching",
-                aria_busy="true",
-                style=(
-                    "display: flex;",
-                    "align-items: center;",
-                    f"{pipulate.MENU_ITEM_PADDING}",
-                    "border-radius: var(--pico-border-radius);",
-                    "min-height: 2.5rem;"
-                )
-            ),
-            Style(
-                "body {",
-                "    pointer-events: none;",
-                "    user-select: none;",
-                "}"
-            )
-        )
+        return HTMLResponse(f"""
+            <div 
+                aria-busy='true'
+                style="
+                    display: flex;
+                    align-items: center;
+                    {pipulate.MENU_ITEM_PADDING}
+                    border-radius: var(--pico-border-radius);
+                    min-height: 2.5rem;
+                "
+            >
+                Switching
+            </div>
+            <style>
+                body {{
+                    pointer-events: none;
+                    user-select: none;
+                }}
+            </style>
+            """)
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
