@@ -602,7 +602,7 @@ class BotifyCsvDownloaderWorkflow:
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
             
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(button_text, type='submit', cls='mt-10px primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(button_text, type='submit', cls='mt-10px primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
