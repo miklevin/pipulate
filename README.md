@@ -77,14 +77,14 @@ The core workflow creation system with corrected sequencing patterns:
 
 ### 🎯 Interactive Development Assistants
 
-**Development Assistant Plugin** (`515_dev_assistant.py` - "Dev Assistant" in APP menu):
+**Development Assistant Plugin** (`320_dev_assistant.py` - "Dev Assistant" in APP menu):
 - **Pattern Validation**: Validates workflows against all 25 critical Pipulate patterns
 - **Issue Debugging**: Identifies missing auto-key generation, chain reactions, three-phase logic
 - **Template Compatibility**: Analyzes marker requirements for helper tool compatibility
 - **Coding Instructions**: Generates specific fix instructions for coding assistants
 - **Real-time Analysis**: Provides actionable recommendations with exact code snippets
 
-**Workflow Genesis Plugin** (`510_workflow_genesis.py` - "Workflow Creation Helper" in APP menu):
+**Workflow Genesis Plugin** (`310_workflow_genesis.py` - "Workflow Creation Helper" in APP menu):
 - **Template Selection Guidance**: Intelligent recommendations based on use case
 - **Command Generation**: Creates copy-ready helper tool commands with syntax highlighting
 - **Corrected Sequencing**: Demonstrates the proven 5-command sequence for complex workflows
@@ -457,7 +457,7 @@ The `run_all_cells()` method encapsulates the workflow initialization pattern an
 
 **Critical for data integrity:**
 
-* **Filename** (e.g., `510_workflow_genesis.py`): Determines public URL endpoint and menu ordering
+* **Filename** (e.g., `310_workflow_genesis.py`): Determines public URL endpoint and menu ordering
 * **APP_NAME Constant** (e.g., `APP_NAME = "workflow_genesis_internal"`): Internal identifier that MUST REMAIN STABLE
 
 ### 4. State Management via DictLikeDB

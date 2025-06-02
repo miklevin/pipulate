@@ -32,7 +32,7 @@ Emojis serve as visual anchors for quick status recognition:
 - 🔄 **Processing**: Background operations, API calls
 
 ### Button Label Emojis
-Reference: [535_botify_trifecta.py](mdc:pipulate/plugins/535_botify_trifecta.py) lines 180-190
+Reference: [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py) lines 180-190
 
 ```python
 UI_CONSTANTS = {
@@ -745,8 +745,8 @@ Reference: @create_workflow.py lines 35-42
 
 ```python
 TEMPLATE_MAP = {
-    "blank": "710_blank_placeholder.py",      # Minimal single-step template
-    "trifecta": "535_botify_trifecta.py",     # Complex multi-export template
+    "blank": "910_blank_placeholder.py",      # Minimal single-step template
+    "trifecta": "420_botify_trifecta.py",     # Complex multi-export template
     # Future templates can be added here
 }
 ```
@@ -1056,7 +1056,7 @@ This marker system ensures that WET workflows maintain their explicit, debuggabl
    - Centralized styling for consistent appearance across workflows
 
 #### Workflow Genesis Integration
-The [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) workflow provides **educational progression**:
+The [310_workflow_genesis.py](mdc:pipulate/plugins/310_workflow_genesis.py) workflow provides **educational progression**:
 - **Step 1**: Parameter definition
 - **Step 2**: Template selection with appropriate commands
 - **Step 3**: Individual helper tool education
@@ -1116,13 +1116,13 @@ These conventions ensure consistent user experience across all WET workflows whi
 
 ### The Sausage Factory Discovery: Two Template Categories
 
-**Analysis of [510_workflow_genesis.py](mdc:pipulate/plugins/510_workflow_genesis.py) reveals a sophisticated pattern:**
+**Analysis of [310_workflow_genesis.py](mdc:pipulate/plugins/310_workflow_genesis.py) reveals a sophisticated pattern:**
 
 #### Workflow Creation Templates vs. Method-Providing Templates
 
 **Workflow Creation Templates** (Structural Foundation):
-- `710_blank_placeholder.py` - Minimal scaffolding 
-- `535_botify_trifecta.py` - Complex 5-step foundation
+- `910_blank_placeholder.py` - Minimal scaffolding 
+- `420_botify_trifecta.py` - Complex 5-step foundation
 - Provide workflow structure, markers, and basic routing
 - Used by `create_workflow.py` for initial creation
 
@@ -1253,14 +1253,14 @@ UI_CONSTANTS = {
 #### Current Plugin Ecosystem Analysis
 
 **7xx Plugins (Components)**:
-- `710_blank_placeholder.py` - Structural template
-- `750_checkboxes.py` - Widget pattern needing extraction
-- `770_range.py` - Input widget needing standardization
+- `910_blank_placeholder.py` - Structural template
+- `540_checkboxes.py` - Widget pattern needing extraction
+- `560_range.py` - Input widget needing standardization
 
 **8xx Plugins (Widgets)**:
-- `840_matplotlib.py` - **Excellent candidate** (clean JSON → widget pattern)
-- `870_upload.py` - **Good candidate** (reusable file handling)
-- `890_selenium.py` - **Potential candidate** (browser automation patterns)
+- `730_matplotlib.py` - **Excellent candidate** (clean JSON → widget pattern)
+- `580_upload.py` - **Good candidate** (reusable file handling)
+- `820_selenium.py` - **Potential candidate** (browser automation patterns)
 
 #### Universal Plugin Preparation Recipe
 
@@ -1488,7 +1488,7 @@ async def get_suggestion(self, step_id, state):
 
 #### Specific Plugin Transformation Examples
 
-**840_matplotlib.py Enhancement**:
+**730_matplotlib.py Enhancement**:
 ```python
 # Already has: create_matplotlib_histogram() method
 # Needs: UI constants bundle and template markers
@@ -1512,7 +1512,7 @@ UI_CONSTANTS = {
 # - Error handling ✅
 ```
 
-**870_upload.py Enhancement**:
+**580_upload.py Enhancement**:
 ```python
 # Needs: Extraction of upload logic into swappable methods
 # Benefit: File upload pattern applicable across many workflows
@@ -1598,7 +1598,7 @@ python helpers/splice_workflow_step.py complex_workflow.py --position bottom
 
 # Swap new step with visualization logic  
 python helpers/swap_workflow_step.py complex_workflow.py step_06 \
-  plugins/840_matplotlib.py step_01 --force
+  plugins/730_matplotlib.py step_01 --force
 ```
 
 #### Method Dependency Graph

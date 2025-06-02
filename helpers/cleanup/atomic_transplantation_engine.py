@@ -9,13 +9,13 @@ operations for reliable, token-efficient transplantation.
 Usage Examples:
     # Transplant specific section between files
     python helpers/cleanup/atomic_transplantation_engine.py transplant \
-        plugins/535_botify_trifecta.py \
+        plugins/420_botify_trifecta.py \
         plugins/045_parameter_buster_new.py \
         --section "steps_01_04_botify_data_collection"
     
     # Extract section for inspection
     python helpers/cleanup/atomic_transplantation_engine.py extract \
-        plugins/535_botify_trifecta.py \
+        plugins/420_botify_trifecta.py \
         --section "steps_01_04_botify_data_collection"
     
     # Validate markers in a file

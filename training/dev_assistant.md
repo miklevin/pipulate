@@ -111,8 +111,8 @@ When workflows don't work, check these in order:
 - **splice_workflow_step.py**: Add steps to existing workflows
 
 ### Key Plugins
-- **510_workflow_genesis**: Interactive workflow creation assistant
-- **515_dev_assistant**: This development assistant tool
+- **310_workflow_genesis**: Interactive workflow creation assistant
+- **320_dev_assistant**: This development assistant tool
 
 ## LLM Guidance
 

@@ -185,7 +185,7 @@ python helpers/splice_workflow_step.py plugins/035_my_workflow.py step_02 "New S
 ```
 
 ### Use Development Assistant
-1. Navigate to Development Assistant plugin (515_dev_assistant)
+1. Navigate to Development Assistant plugin (320_dev_assistant)
 2. Select plugin file to analyze
 3. Review pattern validation results
 4. Follow debugging recommendations

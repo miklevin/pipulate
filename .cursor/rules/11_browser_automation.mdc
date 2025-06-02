@@ -32,7 +32,7 @@ Handled differently based on `EFFECTIVE_OS`:
     from webdriver_manager.chrome import ChromeDriverManager
     service = ChromeService(ChromeDriverManager().install())
     ```
-    The `550_browser_automation.py` plugin demonstrates this conditional setup.
+    The `440_browser_automation.py` plugin demonstrates this conditional setup.
 
 ## 4. Chrome Options
 
