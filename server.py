@@ -2240,6 +2240,9 @@ async def startup_event():
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
+    
+    # Send environment mode message after a short delay to let UI initialize
+    asyncio.create_task(send_startup_environment_message())
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
@@ -3136,6 +3139,9 @@ async def switch_environment(request):
         environment = form.get('environment', 'Development')
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
+        
+
+        
         # Schedule server restart after a delay to allow HTMX to swap in the spinner
         asyncio.create_task(delayed_restart(2))
         
@@ -3173,6 +3179,22 @@ async def delayed_restart(delay_seconds):
         restart_server()
     except Exception as e:
         logger.error(f'Error during restart: {e}')
+
+async def send_startup_environment_message():
+    """Send a message indicating the current environment mode after server startup."""
+    await asyncio.sleep(3)  # Wait for UI to initialize
+    try:
+        current_env = get_current_environment()
+        env_display = 'DEV' if current_env == 'Development' else 'Prod'
+        
+        if current_env == 'Development':
+            message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
+        else:
+            message = f"🚀 Server started in {env_display} mode. Ready for production use."
+            
+        await pipulate.stream(message, verbatim=True)
+    except Exception as e:
+        logger.error(f'Error sending startup environment message: {e}')
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for item in ALL_ROUTES:
     path = f'/{item}' if item else '/'
