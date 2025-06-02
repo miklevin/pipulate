@@ -168,10 +168,10 @@ class IntroductionPlugin:
         # Store current page in database
         self.db['intro_current_page'] = str(page_num)
         
-        # Create LLM context and send to chat
+        # Create LLM context and add silently to conversation history
         llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
         if self.pipulate:
-            await self.pipulate.stream(llm_context, verbatim=True)
+            self.pipulate.append_to_history(llm_context, role='system')
         
         # Return the updated content directly (same as landing method)
         return await self.landing()
@@ -187,14 +187,8 @@ class IntroductionPlugin:
         # Send the intro message to conversation history, but only once per session
         if self.pipulate is not None and not self._has_streamed:
             try:
-                # First, send the verbatim redirect message
-                await self.pipulate.stream(
-                    self.ENDPOINT_MESSAGE,
-                    verbatim=True,
-                    role="system",
-                    spaces_before=1,
-                    spaces_after=1
-                )
+                # Add the endpoint message silently to conversation history
+                self.pipulate.append_to_history(self.ENDPOINT_MESSAGE, role="system")
 
                 # Then append the current page info to history
                 llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
