@@ -820,3 +820,23 @@ hr {
     list-style-type: none;
     margin-bottom: 0.5rem;
 }
+
+/* ============================================================================
+   UTILITY CLASSES - Common property patterns from inline styles
+   ============================================================================ */
+
+/* Card-like containers with consistent styling */
+.card-container {
+    background-color: var(--pico-card-background-color);
+    border-radius: var(--pico-border-radius);
+    margin-bottom: 2vh;
+    padding: 1rem;
+}
+
+/* Inline elements that need to maintain their content width */
+.inline-nowrap {
+    display: inline-block;
+    min-width: max-content;
+    white-space: nowrap;
+}
+

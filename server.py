@@ -14,7 +14,6 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator, Optional
-
 import aiohttp
 import uvicorn
 from fasthtml.common import *
@@ -35,17 +34,11 @@ import subprocess
 import platform
 import urllib.parse
 from starlette.responses import FileResponse
-
-# Core settings
 DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
-API_LOG_ROTATION_COUNT = 20  # Number of historical API logs to keep (plus current api.log)
-
-# Shared state for critical operations that should prevent server restarts
-shared_app_state = {
-    "critical_operation_in_progress": False,
-}
+API_LOG_ROTATION_COUNT = 20
+shared_app_state = {'critical_operation_in_progress': False}
 
 class GracefulRestartException(SystemExit):
     """Custom exception to signal a restart requested by Watchdog."""
@@ -70,10 +63,6 @@ def clear_critical_operation_flag():
     except FileNotFoundError:
         pass
 
-# Note: The comprehensive logging architecture here suggests this system could support
-# detailed behavioral analysis and interaction pattern recognition over time.
-
-
 def get_app_name(force_app_name=None):
     """Get the name of the app from the app_name.txt file, or the parent directory name."""
     name = force_app_name
@@ -89,7 +78,6 @@ def get_app_name(force_app_name=None):
             name = name[:-5] if name.endswith('-main') else name
     return name.capitalize()
 
-
 def get_db_filename():
     current_env = get_current_environment()
     if current_env == 'Development':
@@ -97,15 +85,12 @@ def get_db_filename():
     else:
         return f'data/{APP_NAME.lower()}.db'
 
-
 def get_current_environment():
     if ENV_FILE.exists():
         return ENV_FILE.read_text().strip()
     else:
         ENV_FILE.write_text('Development')
         return 'Development'
-
-
 APP_NAME = get_app_name()
 TONE = 'neutral'
 MODEL = 'gemma3'
@@ -118,35 +103,24 @@ data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
 DB_FILENAME = get_db_filename()
 
-# The environment switching capability here could support different operational modes
-# or deployment contexts with distinct behavioral profiles.
-
-
 def fig(text, font='slant', color='cyan', width=200):
     figlet = Figlet(font=font, width=width)
     fig_text = figlet.renderText(str(text))
     colored_text = Text(fig_text, style=f'{color} on default')
     console.print(colored_text, style='on default')
 
-
 def set_current_environment(environment):
     ENV_FILE.write_text(environment)
     logger.info(f'Environment set to: {environment}')
 
-
 def setup_logging():
     """Set up unified logging between console, file, and optional lifecycle log."""
-    # The multi-tier logging system here provides comprehensive observability
-    # that could support detailed analysis of user interaction patterns.
-    logger.remove()  # Standard Loguru practice to remove default handlers
+    logger.remove()
     logs_dir = Path('logs')
     logs_dir.mkdir(parents=True, exist_ok=True)
-
     app_log_path = logs_dir / f'{APP_NAME}.log'
     api_log_path = logs_dir / 'api.log'
     log_level = 'DEBUG' if DEBUG_MODE else 'INFO'
-
-    # Clear main app log on server restart
     if app_log_path.exists():
         app_log_path.unlink()
     for old_log in logs_dir.glob(f'{APP_NAME}.????-??-??_*'):
@@ -154,11 +128,8 @@ def setup_logging():
             old_log.unlink()
         except Exception as e:
             print(f'Failed to delete old log file {old_log}: {e}')
-
-    # Handle API log rotation on server restart
     if api_log_path.exists():
-        # Shift existing numbered logs
-        for i in range(API_LOG_ROTATION_COUNT, 1, -1):  # Start from max down to 2
+        for i in range(API_LOG_ROTATION_COUNT, 1, -1):
             old_path = logs_dir / f'api-{i}.log'
             new_path = logs_dir / f'api-{i + 1}.log'
             if old_path.exists():
@@ -166,144 +137,75 @@ def setup_logging():
                     old_path.rename(new_path)
                 except Exception as e:
                     print(f'Failed to rotate API log {old_path}: {e}')
-
-        # Move current api.log to api-2.log
         try:
             api_log_path.rename(logs_dir / 'api-2.log')
         except Exception as e:
             print(f'Failed to rotate current API log: {e}')
-
-        # Clean up any logs beyond the rotation count
         for old_log in logs_dir.glob(f'api-[{API_LOG_ROTATION_COUNT + 1}-9].log'):
             try:
                 old_log.unlink()
             except Exception as e:
                 print(f'Failed to delete old API log {old_log}: {e}')
-
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
+    logger.add(app_log_path, level=log_level, format=f'{time_format} | {message_format}', enqueue=True)
 
-    # Main application log (file)
-    logger.add(
-        app_log_path,
-        level=log_level,
-        format=f'{time_format} | {message_format}',
-        enqueue=True
-    )
-
-    # API log (file) with filter - no rotation since we handle it on server restart
     def api_log_filter(record):
-        # Log all API calls that have the extra key set
-        return record["extra"].get("api_call") is True
-    logger.add(
-        api_log_path,
-        level='INFO',
-        format='{time:YYYY-MM-DD HH:mm:ss} | {message}',
-        filter=api_log_filter,
-        enqueue=True
-    )
-
-    # Console log (stderr)
-    logger.add(
-        sys.stderr,
-        level=log_level,
-        format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}',
-        colorize=True,
-        filter=lambda record: (
-            record['level'].name != 'DEBUG' or 
-            any(key in record['message'] for key in [
-                'HTTP Request:',
-                'Pipeline ID:', 
-                'State changed:',
-                'Creating',
-                'Updated',
-                'Plugin',
-                'Role'
-            ])
-        )
-    )
-
+        return record['extra'].get('api_call') is True
+    logger.add(api_log_path, level='INFO', format='{time:YYYY-MM-DD HH:mm:ss} | {message}', filter=api_log_filter, enqueue=True)
+    logger.add(sys.stderr, level=log_level, format='<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name: <15}</cyan> | {message}', colorize=True, filter=lambda record: record['level'].name != 'DEBUG' or any((key in record['message'] for key in ['HTTP Request:', 'Pipeline ID:', 'State changed:', 'Creating', 'Updated', 'Plugin', 'Role'])))
     if STATE_TABLES:
         logger.info(f'🔍 State tables ENABLED (🍪 and ➡️ tables will be displayed on console)')
-
-    # Dedicated Table Lifecycle Log Sink
     if TABLE_LIFECYCLE_LOGGING:
         lifecycle_log_path = logs_dir / 'table_lifecycle.log'
         if lifecycle_log_path.exists():
-            lifecycle_log_path.unlink()  # Clear on each server start
+            lifecycle_log_path.unlink()
 
         def lifecycle_filter(record):
-            return record["extra"].get("lifecycle") is True
-
-        logger.add(
-            lifecycle_log_path,
-            level="INFO",  # Capture INFO and above for this specific log
-            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {message}",  # Simpler format for this log
-            filter=lifecycle_filter,
-            enqueue=True,
-            rotation="10 MB"  # Optional: manage log file size
-        )
-        # Use a bound logger to announce activation to the lifecycle log itself
-        logger.bind(lifecycle=True).info("TABLE_LIFECYCLE_LOGGING ENABLED. This log will show table states at critical points.")
-        # Also announce to main log for general awareness
-        logger.info("📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log")
-
-    return logger  # Return the configured Loguru logger instance
-
-# Table Lifecycle Logging Helpers
-
+            return record['extra'].get('lifecycle') is True
+        logger.add(lifecycle_log_path, level='INFO', format='{time:YYYY-MM-DD HH:mm:ss.SSS} | {message}', filter=lifecycle_filter, enqueue=True, rotation='10 MB')
+        logger.bind(lifecycle=True).info('TABLE_LIFECYCLE_LOGGING ENABLED. This log will show table states at critical points.')
+        logger.info('📝 TABLE_LIFECYCLE_LOGGING is ENABLED. Detailed table states in logs/table_lifecycle.log')
+    return logger
 
 def _format_records_for_lifecycle_log(records_iterable):
     """Format records (list of dicts or objects) into a readable JSON string for logging.
     Handles empty records, dataclass-like objects, dictionaries, and attempts to convert SQLite rows to dicts.
     Excludes private attributes for cleaner logs."""
     if not records_iterable:
-        return "[] # Empty"
-
+        return '[] # Empty'
     processed_records = []
     for r in records_iterable:
-        if hasattr(r, '_asdict'):  # Handles namedtuples from fastlite
+        if hasattr(r, '_asdict'):
             processed_records.append(r._asdict())
-        elif hasattr(r, '__dict__') and not isinstance(r, type):  # General objects / dataclasses
-            # Filter out SQLAlchemy internal state if present
+        elif hasattr(r, '__dict__') and (not isinstance(r, type)):
             processed_records.append({k: v for k, v in r.__dict__.items() if not k.startswith('_sa_')})
         elif isinstance(r, dict):
             processed_records.append(r)
-        elif hasattr(r, 'keys'):  # Handles sqlite3.Row
+        elif hasattr(r, 'keys'):
             try:
                 processed_records.append(dict(r))
-            except:  # Fallback for other row-like types
+            except:
                 processed_records.append(dict(zip(r.keys(), r)))
         else:
-            processed_records.append(str(r))  # Fallback
-
+            processed_records.append(str(r))
     try:
         return json.dumps(processed_records, indent=2, default=str)
     except Exception as e:
-        return f"[Error formatting records for JSON: {e}] Processed: {str(processed_records)}"
+        return f'[Error formatting records for JSON: {e}] Processed: {str(processed_records)}'
 
-
-def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str = ""):
+def log_dynamic_table_state(table_name: str, data_source_callable, title_prefix: str=''):
     """Logs state of a table obtained via a callable (e.g., fastlite table object)."""
     if not TABLE_LIFECYCLE_LOGGING:
         return
     try:
-        records = list(data_source_callable())  # Execute the callable to get records
+        records = list(data_source_callable())
         content = _format_records_for_lifecycle_log(records)
-        logger.bind(lifecycle=True).info(
-            f"\n"
-            f"--- {title_prefix} Snapshot of '{table_name}' ---\n"
-            f"{content}\n"
-            f"--- End Snapshot '{table_name}' ---"
-        )
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' ---\n{content}\n--- End Snapshot '{table_name}' ---")
     except Exception as e:
-        logger.bind(lifecycle=True).error(
-            f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n"
-            f"{traceback.format_exc(limit=3)}"
-        )
+        logger.bind(lifecycle=True).error(f"Failed to log state for table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
 
-
-def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = ""):
+def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str=''):
     """Logs state of a DictLikeDB instance.
     
     Args:
@@ -313,28 +215,14 @@ def log_dictlike_db_to_lifecycle(db_name: str, db_instance, title_prefix: str = 
     """
     if not TABLE_LIFECYCLE_LOGGING:
         return
-        
     try:
-        # Convert DictLikeDB items to regular dict and format as JSON
         items = dict(db_instance.items())
         content = json.dumps(items, indent=2, default=str)
-        
-        # Log the formatted content with clear section markers
-        logger.bind(lifecycle=True).info(
-            f"\n"
-            f"--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n"
-            f"{content}\n"
-            f"--- End Snapshot '{db_name}' ---"
-        )
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{db_name}' (Key-Value Store) ---\n{content}\n--- End Snapshot '{db_name}' ---")
     except Exception as e:
-        # Log error with traceback if formatting fails
-        logger.bind(lifecycle=True).error(
-            f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n"
-            f"{traceback.format_exc(limit=3)}"
-        )
+        logger.bind(lifecycle=True).error(f"Failed to log state for DictLikeDB '{db_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
 
-
-def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str = ""):
+def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str=''):
     """Logs state of a table using a raw SQL query via provided sqlite3 connection.
     
     Args:
@@ -344,47 +232,24 @@ def log_raw_sql_table_to_lifecycle(db_conn, table_name: str, title_prefix: str =
     """
     if not TABLE_LIFECYCLE_LOGGING:
         return
-        
-    # Store original row factory to restore later
     original_row_factory = db_conn.row_factory
-    
-    # Set row factory to enable dict conversion
     db_conn.row_factory = sqlite3.Row
-    
     try:
-        # Query all rows from the table
         cursor = db_conn.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
+        cursor.execute(f'SELECT * FROM {table_name}')
         rows = cursor.fetchall()
-        
-        # Format and log the table contents
         content = _format_records_for_lifecycle_log(rows)
-        logger.bind(lifecycle=True).info(
-            f"\n"
-            f"--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n"
-            f"{content}\n"
-            f"--- End Snapshot '{table_name}' (Raw SQL) ---"
-        )
-        
+        logger.bind(lifecycle=True).info(f"\n--- {title_prefix} Snapshot of '{table_name}' (Raw SQL) ---\n{content}\n--- End Snapshot '{table_name}' (Raw SQL) ---")
     except Exception as e:
-        # Log error with traceback if query fails
-        logger.bind(lifecycle=True).error(
-            f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n"
-            f"{traceback.format_exc(limit=3)}"
-        )
-        
+        logger.bind(lifecycle=True).error(f"Failed to log raw SQL table '{table_name}' ({title_prefix}): {e}\n{traceback.format_exc(limit=3)}")
     finally:
-        # Always restore original row factory
         db_conn.row_factory = original_row_factory
-
-
 logger = setup_logging()
 if __name__ == '__main__':
     if DEBUG_MODE:
         logger.info('🔍 Running in DEBUG mode (verbose logging enabled)')
     else:
         logger.info('🚀 Running in INFO mode (edit server.py and set DEBUG_MODE=True for verbose logging)')
-
 
 class LogManager:
     """Central logging coordinator for artistic control of console and file output.
@@ -396,19 +261,7 @@ class LogManager:
 
     def __init__(self, logger):
         self.logger = logger
-        self.categories = {
-            'server': '🖥️ SERVER',
-            'startup': '🚀 STARTUP', 
-            'workflow': '⚙️ WORKFLOW',
-            'pipeline': '🔄 PIPELINE',
-            'network': '🌐 NETWORK',
-            'database': '💾 DATABASE',
-            'profile': '👤 PROFILE',
-            'plugin': '🔌 PLUGIN',
-            'chat': '💬 CHAT',
-            'error': '❌ ERROR',
-            'warning': '⚠️ WARNING'
-        }
+        self.categories = {'server': '🖥️ SERVER', 'startup': '🚀 STARTUP', 'workflow': '⚙️ WORKFLOW', 'pipeline': '🔄 PIPELINE', 'network': '🌐 NETWORK', 'database': '💾 DATABASE', 'profile': '👤 PROFILE', 'plugin': '🔌 PLUGIN', 'chat': '💬 CHAT', 'error': '❌ ERROR', 'warning': '⚠️ WARNING'}
 
     def format_message(self, category, message, details=None):
         emoji = self.categories.get(category, f'⚡ {category.upper()}')
@@ -468,43 +321,14 @@ class LogManager:
     def debug(self, category, message, details=None):
         """Log debug information that only appears in DEBUG mode."""
         self.logger.debug(self.format_message(category, message, details))
-
-
 log = LogManager(logger)
-custom_theme = Theme({
-    'default': 'white on black',
-    'header': RichStyle(
-        color='magenta',
-        bold=True,
-        bgcolor='black'
-    ),
-    'cyan': RichStyle(
-        color='cyan',
-        bgcolor='black'
-    ),
-    'green': RichStyle(
-        color='green',
-        bgcolor='black'
-    ),
-    'orange3': RichStyle(
-        color='orange3',
-        bgcolor='black'
-    ),
-    'white': RichStyle(
-        color='white',
-        bgcolor='black'
-    )
-})
-
+custom_theme = Theme({'default': 'white on black', 'header': RichStyle(color='magenta', bold=True, bgcolor='black'), 'cyan': RichStyle(color='cyan', bgcolor='black'), 'green': RichStyle(color='green', bgcolor='black'), 'orange3': RichStyle(color='orange3', bgcolor='black'), 'white': RichStyle(color='white', bgcolor='black')})
 
 class DebugConsole(Console):
 
     def print(self, *args, **kwargs):
         super().print(*args, **kwargs)
-
-
 console = DebugConsole(theme=custom_theme)
-
 
 class SSEBroadcaster:
     _instance = None
@@ -536,10 +360,7 @@ class SSEBroadcaster:
     async def send(self, message):
         logger.bind(name='sse').debug(f'Queueing: {message}')
         await self.queue.put(message)
-
-
 broadcaster = SSEBroadcaster()
-
 
 def read_training(prompt_or_filename):
     if isinstance(prompt_or_filename, str) and prompt_or_filename.endswith('.md'):
@@ -561,15 +382,12 @@ def read_training(prompt_or_filename):
                 logger.warning(f'No training file found for {prompt_or_filename}')
             return f"No training content available for {prompt_or_filename.replace('.md', '')}"
     return prompt_or_filename
-
-
 if MAX_LLM_RESPONSE_WORDS:
     limiter = f'in under {MAX_LLM_RESPONSE_WORDS} {TONE} words'
 else:
     limiter = ''
 global_conversation_history = deque(maxlen=MAX_CONVERSATION_LENGTH)
 conversation = [{'role': 'system', 'content': read_training('system_prompt.md')}]
-
 
 def append_to_conversation(message=None, role='user'):
     """Append a message to the global conversation history.
@@ -586,24 +404,13 @@ def append_to_conversation(message=None, role='user'):
     Returns:
         list: The complete conversation history after appending.
     """
-    # Only process if we have a message
     if message is None:
         return list(global_conversation_history)
-
-    # Ensure system message exists at start of history
-    needs_system_message = (
-        len(global_conversation_history) == 0 or
-        global_conversation_history[0]['role'] != 'system'
-    )
-
+    needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
     if needs_system_message:
         global_conversation_history.appendleft(conversation[0])
-
-    # Add the new message
     global_conversation_history.append({'role': role, 'content': message})
-
     return list(global_conversation_history)
-
 
 def title_name(word: str) -> str:
     """Format a string into a title case form."""
@@ -621,14 +428,12 @@ def title_name(word: str) -> str:
             processed_words.append(word.capitalize())
     return ' '.join(processed_words)
 
-
 def endpoint_name(endpoint: str) -> str:
     if not endpoint:
         return HOME_MENU_ITEM
     if endpoint in friendly_names:
         return friendly_names[endpoint]
     return title_name(endpoint)
-
 
 def pipeline_operation(func):
 
@@ -650,7 +455,6 @@ def pipeline_operation(func):
                 log.debug('pipeline', f"Pipeline '{url}' detailed changes", json.dumps(changes, indent=2))
         return result
     return wrapper
-
 
 class Pipulate:
     """Central coordinator for pipelines and chat functionality.
@@ -692,7 +496,7 @@ class Pipulate:
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
-    def append_to_history(self, message: str, role: str = 'system') -> None:
+    def append_to_history(self, message: str, role: str='system') -> None:
         """Add a message to the LLM conversation history without triggering a response.
 
         This is the preferred way for workflows to update the LLM's context about:
@@ -730,8 +534,6 @@ class Pipulate:
             self._processing = False
             self._current_step = None
             self._step_completed = False
-            # The step tracking mechanism could be extended to support more detailed
-            # behavioral pattern recognition and user interaction analysis.
 
         def _get_workflow_context(self):
             """Get the current workflow context for the LLM."""
@@ -748,16 +550,12 @@ class Pipulate:
             if isinstance(message, str):
                 message = message.replace('http:', 'http꞉').replace('https:', 'https꞉')
             role = kwargs.pop('role', 'system')
-
-            # The step detection logic here could be enhanced to support more sophisticated
-            # interaction pattern recognition and user behavior analysis.
             if 'Step ' in message and 'Please enter' in message:
                 step_num = message.split('Step ')[1].split(':')[0]
                 self._current_step = step_num
                 self._step_completed = False
             elif 'complete' in message.lower() and 'step' in message.lower():
                 self._step_completed = True
-
             context_message = message
             if role == 'system':
                 if 'Please' in message or 'Enter' in message or message.endswith('?'):
@@ -768,9 +566,6 @@ class Pipulate:
                 context_message = f'[USER INPUT] {message}'
             elif role == 'assistant':
                 context_message = f'[RESPONSE] {message}'
-
-            # The contextual message formatting could support detailed interaction logging
-            # for future analysis of user engagement patterns and system effectiveness.
             workflow_context = self._get_workflow_context()
             context_message = f'{workflow_context}\n{context_message}'
             append_to_conversation(context_message, role=role)
@@ -839,7 +634,7 @@ class Pipulate:
         """Return the message queue instance for ordered message delivery."""
         return self.message_queue
 
-    def step_button(self, visual_step_number: str, preserve: bool = False, revert_label: str = None) -> str:
+    def step_button(self, visual_step_number: str, preserve: bool=False, revert_label: str=None) -> str:
         """
         Formats the revert button text.
         Uses visual_step_number for "Step X" numbering if revert_label is not provided.
@@ -850,80 +645,56 @@ class Pipulate:
             revert_label: Custom label to use instead of "Step X" format
         """
         symbol = '⟲' if preserve else '↶'
-
         if revert_label:
             button_text = f'{symbol}\xa0{revert_label}'
         else:
-            button_text = f"{symbol}\xa0Step\xa0{visual_step_number}"
-
+            button_text = f'{symbol}\xa0Step\xa0{visual_step_number}'
         return button_text
 
     def get_style(self, style_type):
-        return getattr(self, f"{style_type.upper()}_STYLE", None)
+        return getattr(self, f'{style_type.upper()}_STYLE', None)
 
-    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str,
-                                   method: str, url: str, headers: dict, payload: Optional[dict] = None,
-                                   response_status: Optional[int] = None, response_preview: Optional[str] = None,
-                                   curl_command: Optional[str] = None, python_command: Optional[str] = None,
-                                   estimated_rows: Optional[int] = None, actual_rows: Optional[int] = None,
-                                   file_path: Optional[str] = None, file_size: Optional[str] = None,
-                                   notes: Optional[str] = None):
+    async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
         """
         Logs detailed information about an API call related to a workflow.
         This serves as a hook for future, more sophisticated logging or UI display.
         """
-        log_entry_parts = [
-            f"API CALL INFO for Pipeline: {pipeline_id}, Step: {step_id}, Description: {call_description}",
-            f"  Request: {method.upper()} {url}"
-        ]
-
-        # Redact token from headers for logging - use a consistent placeholder
+        log_entry_parts = [f'API CALL INFO for Pipeline: {pipeline_id}, Step: {step_id}, Description: {call_description}', f'  Request: {method.upper()} {url}']
         logged_headers = headers.copy()
         if 'Authorization' in logged_headers:
-            logged_headers['Authorization'] = "Token f{YOUR_BOTIFY_API_TOKEN}"
-        log_entry_parts.append(f"  Headers:\n{json.dumps(logged_headers, indent=2)}")
-
+            logged_headers['Authorization'] = 'Token f{YOUR_BOTIFY_API_TOKEN}'
+        log_entry_parts.append(f'  Headers:\n{json.dumps(logged_headers, indent=2)}')
         if payload:
             try:
                 payload_str = json.dumps(payload, indent=2)
-                log_entry_parts.append(f"  Payload:\n{payload_str}")
+                log_entry_parts.append(f'  Payload:\n{payload_str}')
             except TypeError:
-                log_entry_parts.append("  Payload: (Omitted due to non-serializable content)")
-
+                log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
         if python_command:
-            # Add a note about token loading if this is a Python command
-            log_entry_parts.append(f"  Python (httpx) Snippet:\n{python_command}")
-            log_entry_parts.append("  Note: The API token should be loaded from a secure file location.")
-
+            log_entry_parts.append(f'  Python (httpx) Snippet:\n{python_command}')
+            log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
         if estimated_rows is not None:
-            log_entry_parts.append(f"  Estimated Rows (from pre-check): {estimated_rows:,}")
+            log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
         if actual_rows is not None:
-            log_entry_parts.append(f"  Actual Rows Downloaded: {actual_rows:,}")
-
+            log_entry_parts.append(f'  Actual Rows Downloaded: {actual_rows:,}')
         if response_status is not None:
-            log_entry_parts.append(f"  Response Status: {response_status}")
+            log_entry_parts.append(f'  Response Status: {response_status}')
         if response_preview:
-            # Try to pretty-print JSON if possible
             try:
                 parsed = json.loads(response_preview)
                 pretty_preview = json.dumps(parsed, indent=2)
-                log_entry_parts.append(f"  Response Preview:\n{pretty_preview}")
+                log_entry_parts.append(f'  Response Preview:\n{pretty_preview}')
             except Exception:
-                log_entry_parts.append(f"  Response Preview:\n{response_preview}")
-
+                log_entry_parts.append(f'  Response Preview:\n{response_preview}')
         if file_path:
-            log_entry_parts.append(f"  Associated File Path: {file_path}")
+            log_entry_parts.append(f'  Associated File Path: {file_path}')
         if file_size:
-            log_entry_parts.append(f"  Associated File Size: {file_size}")
+            log_entry_parts.append(f'  Associated File Size: {file_size}')
         if notes:
-            log_entry_parts.append(f"  Notes: {notes}")
-
-        full_log_message = "\n".join(log_entry_parts)
-        logger.debug(f"\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---")
-
-        # API log: decide if this is a BQL call
+            log_entry_parts.append(f'  Notes: {notes}')
+        full_log_message = '\n'.join(log_entry_parts)
+        logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
-        # Always set api_call extra, and bql_api_call if BQL
         logger.bind(api_call=True, bql_api_call=is_bql).info(full_log_message)
 
     def fmt(self, endpoint: str) -> str:
@@ -974,7 +745,7 @@ class Pipulate:
         return {'plugin_name': display_name or plugin_name, 'internal_name': plugin_name, 'profile_id': profile_id, 'profile_name': profile_name}
 
     @pipeline_operation
-    def initialize_if_missing(self, pkey: str, initial_step_data: dict = None) -> tuple[Optional[dict], Optional[Card]]:
+    def initialize_if_missing(self, pkey: str, initial_step_data: dict=None) -> tuple[Optional[dict], Optional[Card]]:
         try:
             state = self.read_state(pkey)
             if state:
@@ -1084,8 +855,7 @@ class Pipulate:
             traceback.print_exc()
             raise
 
-    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str = None, 
-                            target_id: str = None, revert_label: str = None, remove_padding: bool = False):
+    def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
         """Create a UI control for reverting to a previous workflow step.
         
         The button label uses the visual sequence number of the step.
@@ -1102,87 +872,34 @@ class Pipulate:
         Returns:
             Card: A FastHTML Card component with revert functionality
         """
-        # Check if we should skip rendering due to finalization
         pipeline_id = db.get('pipeline_id', '')
         finalize_step = steps[-1] if steps and steps[-1].id == 'finalize' else None
-        
         if pipeline_id and finalize_step:
             final_data = self.get_step_data(pipeline_id, finalize_step.id, {})
             if finalize_step.done in final_data:
                 return None
-
-        # Find the target step
         step = next((s for s in steps if s.id == step_id), None)
         if not step:
             logger.error(f"Step with id '{step_id}' not found in steps list for display_revert_header.")
-            return Div(f"Error: Step {step_id} not found.")
-
-        # Calculate the visual step number (excluding finalize step)
+            return Div(f'Error: Step {step_id} not found.')
         data_collection_steps = [s for s in steps if s.id != 'finalize']
-        visual_step_number = "N/A"  # Default if not found
-
+        visual_step_number = 'N/A'
         try:
             step_index = data_collection_steps.index(step)
-            visual_step_number = str(step_index + 1)  # Convert to 1-based numbering
+            visual_step_number = str(step_index + 1)
         except ValueError:
-            logger.warning(
-                f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps. "
-                "Revert button will show 'Step N/A'."
-            )
-
-        # Set up the form components
+            logger.warning(f"Step id '{step_id}' (show: '{step.show}') not found in data_collection_steps. Revert button will show 'Step N/A'.")
         refill = getattr(step, 'refill', False)
         target_id = target_id or f'{app_name}-container'
-
-        # Build the form with revert button
-        form = Form(
-            Input(
-                type='hidden',
-                name='step_id', 
-                value=step_id
-            ),
-            Button(
-                self.step_button(visual_step_number, refill, revert_label),
-                type='submit',
-                cls='button-revert'
-            ),
-            hx_post=f'/{app_name}/revert',
-            hx_target=f'#{target_id}',
-            hx_swap='outerHTML'
-        )
-
-        # Return just the form if no message provided
+        form = Form(Input(type='hidden', name='step_id', value=step_id), Button(self.step_button(visual_step_number, refill, revert_label), type='submit', cls='button-revert'), hx_post=f'/{app_name}/revert', hx_target=f'#{target_id}', hx_swap='outerHTML')
         if not message:
             return form
-
-        # Build the card with message and form
-        article_style = (
-            'display: flex; '
-            'align-items: center; '
-            'justify-content: space-between; '
-            'background-color: var(--pico-card-background-color);'
-        )
-        
+        article_style = 'display: flex; align-items: center; justify-content: space-between; background-color: var(--pico-card-background-color);'
         if remove_padding:
             article_style += ' padding: 0;'
+        return Card(Div(message, style='flex: 1;'), Div(form, style='flex: 0;'), style=article_style)
 
-        return Card(
-            Div(message, style='flex: 1;'),
-            Div(form, style='flex: 0;'),
-            style=article_style
-        )
-
-    def display_revert_widget(
-        self,
-        step_id: str,
-        app_name: str,
-        steps: list,
-        message: str = None,
-        widget = None,
-        target_id: str = None,
-        revert_label: str = None,
-        widget_style = None
-    ):
+    def display_revert_widget(self, step_id: str, app_name: str, steps: list, message: str=None, widget=None, target_id: str=None, revert_label: str=None, widget_style=None):
         """Create a standardized container for widgets and visualizations.
         
         Core pattern for displaying rich content below workflow steps with consistent
@@ -1207,40 +924,11 @@ class Pipulate:
         Returns:
             Div: FastHTML container with revert control and widget content
         """
-        # Get revert header row
-        revert_row = self.display_revert_header(
-            step_id=step_id,
-            app_name=app_name,
-            steps=steps,
-            message=message,
-            target_id=target_id,
-            revert_label=revert_label,
-            remove_padding=True
-        )
-        
-        # Return early if no widget or revert row
+        revert_row = self.display_revert_header(step_id=step_id, app_name=app_name, steps=steps, message=message, target_id=target_id, revert_label=revert_label, remove_padding=True)
         if widget is None or revert_row is None:
             return revert_row
-            
-        # Apply widget style
         applied_style = widget_style or self.CONTENT_STYLE
-        
-        # Build container with revert row and widget
-        return Div(
-            revert_row,
-            Div(
-                widget,
-                style=applied_style,
-                id=f'{step_id}-widget-{hash(str(widget))}'
-            ),
-            id=f'{step_id}-content',
-            style=(
-                'background-color: var(--pico-card-background-color); '
-                'border-radius: var(--pico-border-radius); '
-                'margin-bottom: 2vh; '
-                'padding: 1rem;'
-            )
-        )
+        return Div(revert_row, Div(widget, style=applied_style, id=f'{step_id}-widget-{hash(str(widget))}'), id=f'{step_id}-content', cls='card-container')
 
     def tree_display(self, content):
         """Create a styled display for file paths in tree or box format.
@@ -1254,44 +942,13 @@ class Pipulate:
         Returns:
             Pre: Styled Pre component
         """
-        # Check if content is tree-formatted
         is_tree = '\n' in content and ('└─' in content or '├─' in content)
-        
-        # Return appropriate styled Pre component
         if is_tree:
-            return Pre(
-                content,
-                style=(
-                    'font-family: monospace; '
-                    'white-space: pre; '
-                    'margin: 0; '
-                    'padding: 0.5rem; '
-                    'border-radius: 4px; '
-                    'background-color: var(--pico-card-sectionning-background-color);'
-                )
-            )
+            return Pre(content, style='background-color: var(--pico-card-sectionning-background-color); border-radius: 4px; font-family: monospace; margin: 0; padding: 0.5rem; white-space: pre; ')
         else:
-            return Pre(
-                content,
-                style=(
-                    'font-family: system-ui; '
-                    'white-space: pre-wrap; '
-                    'margin: 0; '
-                    'padding: 0.5rem 1rem; '
-                    'border-radius: 4px; '
-                    'background-color: #e3f2fd; '
-                    'color: #1976d2; '
-                    'border: 1px solid #bbdefb;'
-                )
-            )
+            return Pre(content, style='background-color: #e3f2fd; border-radius: 4px; border: 1px solid #bbdefb; color: #1976d2; font-family: system-ui; margin: 0; padding: 0.5rem 1rem; white-space: pre-wrap; ')
 
-    def finalized_content(
-        self,
-        message: str,
-        content = None,
-        heading_tag = H4,
-        content_style = None
-    ):
+    def finalized_content(self, message: str, content=None, heading_tag=H4, content_style=None):
         """Create a finalized step display with optional content.
         
         Companion to display_revert_widget_advanced for finalized workflows,
@@ -1306,31 +963,12 @@ class Pipulate:
         Returns:
             Card: FastHTML Card component for finalized state
         """
-        # Return simple card if no content
         if content is None:
             return Card(message)
-            
-        # Apply content style
         applied_style = content_style or self.FINALIZED_CONTENT_STYLE
-        
-        # Build finalized card with message and content
-        return Card(
-            heading_tag(message),
-            Div(content, style=applied_style),
-            style=(
-                'background-color: var(--pico-card-background-color); '
-                'border-radius: var(--pico-border-radius); '
-                'margin-bottom: 2vh; '
-                'padding: 1rem;'
-            )
-        )
+        return Card(heading_tag(message), Div(content, style=applied_style), cls='card-container')
 
-    def wrap_with_inline_button(
-        self,
-        input_element: Input,
-        button_label: str = 'Next ▸',
-        button_class: str = 'primary'
-    ) -> Div:
+    def wrap_with_inline_button(self, input_element: Input, button_label: str='Next ▸', button_class: str='primary') -> Div:
         """Wrap an input element with an inline button in a flex container.
         
         Args:
@@ -1341,29 +979,9 @@ class Pipulate:
         Returns:
             Div: A flex container with the input and button
         """
-        button_style = (
-            'display: inline-block;'
-            'cursor: pointer;'
-            'width: auto !important;'
-            'white-space: nowrap;'
-        )
-        
-        container_style = (
-            'display: flex;'
-            'align-items: center;'
-            'gap: 0.5rem;'
-        )
-        
-        return Div(
-            input_element,
-            Button(
-                button_label,
-                type='submit',
-                cls=button_class,
-                style=button_style
-            ),
-            style=container_style
-        )
+        button_style = 'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'
+        container_style = 'display: flex;align-items: center;gap: 0.5rem;'
+        return Div(input_element, Button(button_label, type='submit', cls=button_class, style=button_style), style=container_style)
 
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
         state = self.read_state(pkey)
@@ -1430,7 +1048,6 @@ class Pipulate:
                 user_part: The user-specific part of the key
         """
         context = self.get_plugin_context(plugin_instance)
-        # Prioritize APP_NAME for keys (stable identifier) over DISPLAY_NAME (can have emojis)
         app_name = getattr(plugin_instance, 'APP_NAME', None)
         plugin_name = app_name or context['plugin_name'] or getattr(plugin_instance, 'DISPLAY_NAME', None) or getattr(plugin_instance, 'app_name', 'unknown')
         profile_name = context['profile_name'] or 'default'
@@ -1498,7 +1115,6 @@ class Pipulate:
         else:
             return Datalist(*[Option(value=opt) for opt in options], id=datalist_id, _hx_swap_oob='true')
 
-
     def run_all_cells(self, app_name, steps):
         """
         Rebuild the entire workflow UI from scratch.
@@ -1518,13 +1134,10 @@ class Pipulate:
         Returns:
             Div: Container with all steps ready to be displayed
         """
-        # Create placeholders for each step, with first step loading immediately
         placeholders = []
         for i, step in enumerate(steps):
-            # First step loads immediately, others wait for explicit triggers
             trigger = 'load' if i == 0 else None
             placeholders.append(Div(id=step.id, hx_get=f'/{app_name}/{step.id}', hx_trigger=trigger))
-        
         return Div(*placeholders, id=f'{app_name}-container')
 
     def validate_step_input(self, value, step_show, custom_validator=None):
@@ -1636,28 +1249,11 @@ class Pipulate:
         """
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else None
-
-        # Create the main content for the current step (header + next step trigger)
-        header_component = self.display_revert_header(
-            step_id=step_id,
-            app_name=app_name,
-            message=f'{step.show}: {processed_val}',
-            steps=steps
-        )
-
+        header_component = self.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {processed_val}', steps=steps)
         next_step_trigger_div = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load') if next_step_id else Div()
-
-        # Combine them into the standard structure that replaces the current step's div
-        content_to_swap = Div(
-            header_component,
-            next_step_trigger_div,
-            id=step_id
-        )
-
-        # Return as HTMLResponse to set HX-Trigger header for scrolling
+        content_to_swap = Div(header_component, next_step_trigger_div, id=step_id)
         response = HTMLResponse(to_xml(content_to_swap))
-        # We use HX-Trigger-After-Settle to ensure content is loaded and sizes are calculated
-        response.headers["HX-Trigger-After-Settle"] = json.dumps({"scrollToLeftPanelBottom": True})
+        response.headers['HX-Trigger-After-Settle'] = json.dumps({'scrollToLeftPanelBottom': True})
         return response
 
     async def handle_finalized_step(self, pipeline_id, step_id, steps, app_name, plugin_instance=None):
@@ -1722,7 +1318,6 @@ class Pipulate:
         self.write_state(pipeline_id, state)
         return state
 
-
 async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGenerator[str, None]:
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
@@ -1782,7 +1377,6 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
         accumulated_response.append(error_msg)
         yield error_msg
 
-
 def get_current_profile_id():
     """Get the current profile ID, defaulting to the first profile if none is selected."""
     profile_id = db.get('last_profile_id')
@@ -1796,7 +1390,6 @@ def get_current_profile_id():
         else:
             logger.warning('No profiles found in the database')
     return profile_id
-
 
 def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-background-class'):
     """
@@ -1816,25 +1409,8 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
         - No template complexity or build steps required
         - Classic JavaScript development experience
     """
-    # Python generates dynamic initialization call with server-side parameters
-    python_generated_init_script = f"""
-    document.addEventListener('DOMContentLoaded', (event) => {{
-        // HYBRID PATTERN: Call sortable-parameterized-init.js function with Python-generated config
-        if (window.initializeChatScripts) {{
-            window.initializeChatScripts({{
-                sortableSelector: '{sortable_selector}',
-                ghostClass: '{ghost_class}'
-            }});
-        }}
-    }});
-    """
-
-    return (
-        Script(src='/static/sortable-parameterized-init.js'),     # Static file with parameterized functions
-        Script(python_generated_init_script),                     # Python-generated initialization
-        Link(rel='stylesheet', href='/static/styles.css')
-    )
-
+    python_generated_init_script = f"\n    document.addEventListener('DOMContentLoaded', (event) => {{\n        // HYBRID PATTERN: Call sortable-parameterized-init.js function with Python-generated config\n        if (window.initializeChatScripts) {{\n            window.initializeChatScripts({{\n                sortableSelector: '{sortable_selector}',\n                ghostClass: '{ghost_class}'\n            }});\n        }}\n    }});\n    "
+    return (Script(src='/static/sortable-parameterized-init.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
 
 class BaseCrud:
     """
@@ -1879,39 +1455,7 @@ class BaseCrud:
         return f'/{self.name}/{action}/{item_id}'
 
     def render_item(self, item):
-        return Li(
-            # Delete button
-            A('🗑', 
-              href='#',
-              hx_swap='outerHTML',
-              hx_delete=f'/task/delete/{item.id}',
-              hx_target=f'#todo-{item.id}',
-              _class='delete-icon',
-              style='cursor: pointer; display: inline;'
-            ),
-            
-            # Toggle checkbox
-            Input(
-                type='checkbox',
-                checked='1' if item.done else '0',
-                hx_post=f'/task/toggle/{item.id}',
-                hx_swap='outerHTML',
-                hx_target=f'#todo-{item.id}'
-            ),
-            
-            # Item name link
-            A(item.name,
-              href='#',
-              _class='todo-title',
-              style='text-decoration: none; color: inherit;'
-            ),
-            
-            # Item metadata
-            data_id=item.id,
-            data_priority=item.priority,
-            id=f'todo-{item.id}',
-            cls='list-style-none'
-        )
+        return Li(A('🗑', href='#', hx_swap='outerHTML', hx_delete=f'/task/delete/{item.id}', hx_target=f'#todo-{item.id}', _class='delete-icon', style='cursor: pointer; display: inline;'), Input(type='checkbox', checked='1' if item.done else '0', hx_post=f'/task/toggle/{item.id}', hx_swap='outerHTML', hx_target=f'#todo-{item.id}'), A(item.name, href='#', _class='todo-title', style='color: inherit; text-decoration: none;'), data_id=item.id, data_priority=item.priority, id=f'todo-{item.id}', cls='list-style-none')
 
     async def delete_item(self, request, item_id: int):
         try:
@@ -1989,14 +1533,11 @@ class BaseCrud:
             self.send_message(prompt, verbatim=True)
             logger.debug(f'{self.name.capitalize()} order updated successfully')
             response = HTMLResponse('')
-            
-            # Add appropriate triggers based on the plugin type
             triggers = {}
             if self.name == 'profiles':
                 triggers['refreshProfileMenu'] = {}
             elif self.name == 'roles':
                 triggers['refreshAppMenu'] = {}
-            
             if triggers:
                 response.headers['HX-Trigger'] = json.dumps(triggers)
             return response
@@ -2069,12 +1610,7 @@ class BaseCrud:
             changes_str = '; '.join(changes_log_list)
             item_name_display = getattr(updated_item, self.item_name_field, 'Item')
             if changes_log_list:
-                # Format changes string if pipulate_instance has fmt method, otherwise use raw changes
-                formatted_changes = (
-                    self.pipulate_instance.fmt(changes_str) 
-                    if hasattr(self.pipulate_instance, 'fmt') 
-                    else changes_str
-                )
+                formatted_changes = self.pipulate_instance.fmt(changes_str) if hasattr(self.pipulate_instance, 'fmt') else changes_str
                 action_details = f"The {self.name} item '{item_name_display}' was updated. Changes: {formatted_changes}"
                 self.send_message(action_details, verbatim=True)
                 logger.debug(f'Updated {self.name} item {item_id}. Changes: {changes_str}')
@@ -2112,56 +1648,7 @@ class BaseCrud:
 
     def prepare_update_data(self, form):
         raise NotImplementedError('Subclasses must implement prepare_update_data')
-
-
-# Initialize FastHTML app with database and table configurations
-app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
-    DB_FILENAME,
-    exts='ws',
-    live=True,
-    default_hdrs=False,
-    hdrs=(
-        Meta(charset='utf-8'),
-        Link(rel='stylesheet', href='/static/pico.css'),
-        Link(rel='stylesheet', href='/static/prism.css'),
-        Link(rel='stylesheet', href='/static/rich-table.css'),
-        Script(src='/static/htmx.js'),
-        Script(src='/static/fasthtml.js'),
-        Script(src='/static/surreal.js'),
-        Script(src='/static/script.js'),
-        Script(src='/static/Sortable.js'),
-        Script(src='/static/mermaid.min.js'),
-        Script(src='/static/marked.min.js'),
-        Script(src='/static/prism.js'),
-        Script(src='/static/widget-scripts.js'),
-        create_chat_scripts('.sortable'),  # HYBRID PATTERN: Static JS + Python parameterization
-        Script(type='module')
-    ),
-    store={
-        'key': str,
-        'value': str,
-        'pk': 'key'
-    },
-    profile={
-        'id': int,
-        'name': str,
-        'real_name': str,
-        'address': str,
-        'code': str,
-        'active': bool,
-        'priority': int,
-        'pk': 'id'
-    },
-    pipeline={
-        'pkey': str,
-        'app_name': str,
-        'data': str,
-        'created': str,
-        'updated': str,
-        'pk': 'pkey'
-    }
-)
-
+app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(DB_FILENAME, exts='ws', live=True, default_hdrs=False, hdrs=(Meta(charset='utf-8'), Link(rel='stylesheet', href='/static/pico.css'), Link(rel='stylesheet', href='/static/prism.css'), Link(rel='stylesheet', href='/static/rich-table.css'), Script(src='/static/htmx.js'), Script(src='/static/fasthtml.js'), Script(src='/static/surreal.js'), Script(src='/static/script.js'), Script(src='/static/Sortable.js'), Script(src='/static/mermaid.min.js'), Script(src='/static/marked.min.js'), Script(src='/static/prism.js'), Script(src='/static/widget-scripts.js'), create_chat_scripts('.sortable'), Script(type='module')), store={'key': str, 'value': str, 'pk': 'key'}, profile={'id': int, 'name': str, 'real_name': str, 'address': str, 'code': str, 'active': bool, 'priority': int, 'pk': 'id'}, pipeline={'pkey': str, 'app_name': str, 'data': str, 'created': str, 'updated': str, 'pk': 'pkey'})
 
 class Chat:
 
@@ -2179,12 +1666,7 @@ class Chat:
                 if message.get('type') == 'htmx':
                     htmx_response = message
                     content = to_xml(htmx_response['content'])
-                    formatted_response = (
-                        f'<div id="todo-{htmx_response.get("id")}" '
-                        f'hx-swap-oob="beforeend:#todo-list">\n'
-                        f'    {content}\n'
-                        f'</div>'
-                    )
+                    formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">\n    {content}\n</div>"""
                     for ws in self.active_websockets:
                         await ws.send_text(formatted_response)
                     return
@@ -2207,43 +1689,7 @@ class Chat:
             traceback.print_exc()
 
     def create_progress_card(self):
-        return Card(
-            Header('Chat Playground'),
-            Form(
-                Div(
-                    TextArea(
-                        id='chat-input',
-                        placeholder='Type your message here...',
-                        rows='3'
-                    ),
-                    Button('Send', type='submit'),
-                    id='chat-form'
-                ),
-                onsubmit='sendMessage(event)'
-            ),
-            Div(id='chat-messages'),
-            Script("""
-                const ws = new WebSocket(
-                    `${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`
-                );
-                
-                ws.onmessage = function(event) {
-                    const messages = document.getElementById('chat-messages');
-                    messages.innerHTML += event.data + '<br>';
-                    messages.scrollTop = messages.scrollHeight;
-                };
-                
-                function sendMessage(event) {
-                    event.preventDefault();
-                    const input = document.getElementById('chat-input');
-                    const message = input.value;
-                    if (message.trim()) {
-                        ws.send(message);
-                        input.value = '';
-                    }
-                }
-            """)
-        )
+        return Card(Header('Chat Playground'), Form(Div(TextArea(id='chat-input', placeholder='Type your message here...', rows='3'), Button('Send', type='submit'), id='chat-form'), onsubmit='sendMessage(event)'), Div(id='chat-messages'), Script("\n                const ws = new WebSocket(\n                    `${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`\n                );\n                \n                ws.onmessage = function(event) {\n                    const messages = document.getElementById('chat-messages');\n                    messages.innerHTML += event.data + '<br>';\n                    messages.scrollTop = messages.scrollHeight;\n                };\n                \n                function sendMessage(event) {\n                    event.preventDefault();\n                    const input = document.getElementById('chat-input');\n                    const message = input.value;\n                    if (message.trim()) {\n                        ws.send(message);\n                        input.value = '';\n                    }\n                }\n            "))
 
     async def handle_websocket(self, websocket: WebSocket):
         try:
@@ -2262,8 +1708,6 @@ class Chat:
         finally:
             self.active_websockets.discard(websocket)
             self.logger.debug('WebSocket connection closed')
-
-
 chat = Chat(app, id_suffix='')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 pipulate = Pipulate(pipeline)
@@ -2271,15 +1715,8 @@ if not os.path.exists('plugins'):
     os.makedirs('plugins')
     logger.debug('Created plugins directory')
 
-
 def build_endpoint_messages(endpoint):
-    endpoint_messages = {
-        '': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. '
-            f'Select an app from the menu to get started.',
-        'profile': 'This is where you add, edit, and delete profiles (aka clients). '
-                  'The Nickname field is the only name shown on the menu so it is '
-                  'safe to use in front of clients. They only see each other\'s Nicknames.'
-    }
+    endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.', 'profile': "This is where you add, edit, and delete profiles (aka clients). The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."}
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
             if hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
@@ -2296,7 +1733,6 @@ def build_endpoint_messages(endpoint):
         logger.debug(f"Checking if {endpoint} has ENDPOINT_MESSAGE: {hasattr(plugin_instance, 'ENDPOINT_MESSAGE')}")
     return endpoint_messages.get(endpoint, None)
 
-
 def build_endpoint_training(endpoint):
     endpoint_training = {'': 'You were just switched to the home page.', 'profile': 'You were just switched to the profile app.'}
     for workflow_name, workflow_instance in plugin_instances.items():
@@ -2309,10 +1745,7 @@ def build_endpoint_training(endpoint):
                 endpoint_training[workflow_name] = f'{class_name} app is where you manage your workflows.'
     append_to_conversation(endpoint_training.get(endpoint, ''), 'system')
     return
-
-
 COLOR_MAP = {'key': 'yellow', 'value': 'white', 'error': 'red', 'warning': 'yellow', 'success': 'green', 'debug': 'blue'}
-
 
 def db_operation(func):
 
@@ -2332,7 +1765,6 @@ def db_operation(func):
             log.error(f'Database operation {func.__name__} failed', e)
             raise
     return wrapper
-
 
 class DictLikeDB:
 
@@ -2407,19 +1839,15 @@ class DictLikeDB:
     def set(self, key, value):
         self[key] = value
         return value
-
-
 db = DictLikeDB(store, Store)
 logger.debug('Database wrapper initialized.')
-
 
 def populate_initial_data():
     """Populate initial data in the database."""
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("POPULATE_INITIAL_DATA: Starting.")
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="POPULATE_INITIAL_DATA: Profiles BEFORE")
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="POPULATE_INITIAL_DATA: db BEFORE")
-
+        logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Starting.')
+        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles BEFORE')
+        log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db BEFORE')
     if not profiles():
         default_profile_name_for_db_entry = 'Default Profile'
         existing_default_list = list(profiles('name=?', (default_profile_name_for_db_entry,)))
@@ -2453,17 +1881,13 @@ def populate_initial_data():
     if 'profile_locked' not in db:
         db['profile_locked'] = '0'
         logger.debug("Initialized profile_locked to '0'")
-
     if TABLE_LIFECYCLE_LOGGING:
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="POPULATE_INITIAL_DATA: Profiles AFTER")
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="POPULATE_INITIAL_DATA: db AFTER")
-        logger.bind(lifecycle=True).info("POPULATE_INITIAL_DATA: Finished.")
-
-
+        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='POPULATE_INITIAL_DATA: Profiles AFTER')
+        log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
+        logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Finished.')
 populate_initial_data()
 if 'intro_page_num' not in db:
     db['intro_page_num'] = '1'
-
 
 async def synchronize_roles_to_db():
     """Ensure all roles defined in plugin ROLES constants exist in the 'roles' database table."""
@@ -2497,15 +1921,9 @@ async def synchronize_roles_to_db():
         except ValueError:
             logger.error(f"SYNC_ROLES: Invalid profile_id '{current_profile_id_str}' found in db. Skipping.")
             return
-
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info(f"SYNC_ROLES: Starting for profile_id: {current_profile_id}.")
-        log_dynamic_table_state(
-            "roles",
-            lambda pid=current_profile_id: roles_table_handler(where="profile_id = ?", where_args=(pid,)),
-            title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) BEFORE"
-        )
-
+        logger.bind(lifecycle=True).info(f'SYNC_ROLES: Starting for profile_id: {current_profile_id}.')
+        log_dynamic_table_state('roles', lambda pid=current_profile_id: roles_table_handler(where='profile_id = ?', where_args=(pid,)), title_prefix=f'SYNC_ROLES (Profile {current_profile_id}) BEFORE')
     logger.debug(f'SYNC_ROLES: Synchronizing roles for profile_id: {current_profile_id}')
     discovered_roles_set = set()
     for plugin_key, plugin_instance_obj in plugin_instances.items():
@@ -2586,15 +2004,9 @@ async def synchronize_roles_to_db():
         console.print(roles_rich_table)
         console.print('\n')
         logger.info(f'SYNC_ROLES: Roles synchronization display complete for profile_id {current_profile_id}.')
-
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info(f"SYNC_ROLES: Finished for profile_id: {current_profile_id}.")
-        log_dynamic_table_state(
-            "roles",
-            lambda pid=current_profile_id: roles_table_handler(where="profile_id = ?", where_args=(pid,)),
-            title_prefix=f"SYNC_ROLES (Profile {current_profile_id}) AFTER"
-        )
-
+        logger.bind(lifecycle=True).info(f'SYNC_ROLES: Finished for profile_id: {current_profile_id}.')
+        log_dynamic_table_state('roles', lambda pid=current_profile_id: roles_table_handler(where='profile_id = ?', where_args=(pid,)), title_prefix=f'SYNC_ROLES (Profile {current_profile_id}) AFTER')
 
 def discover_plugin_files():
     """Discover and import all Python files in the plugins directory.
@@ -2646,7 +2058,6 @@ def discover_plugin_files():
     logger.debug(f'Discovered plugin modules: {list(plugin_modules.keys())}')
     return plugin_modules
 
-
 def find_plugin_classes(plugin_modules, discovered_modules):
     """Find all plugin classes in the given modules."""
     plugin_classes = []
@@ -2675,21 +2086,17 @@ def find_plugin_classes(plugin_modules, discovered_modules):
             continue
     logger.debug(f'Discovered plugin classes: {plugin_classes}')
     return plugin_classes
-
-
 plugin_instances = {}
 discovered_modules = discover_plugin_files()
 discovered_classes = find_plugin_classes(discovered_modules, discovered_modules)
 friendly_names = {'': HOME_MENU_ITEM}
 endpoint_training = {}
 
-
 def get_display_name(workflow_name):
     instance = plugin_instances.get(workflow_name)
     if instance and hasattr(instance, 'DISPLAY_NAME'):
         return instance.DISPLAY_NAME
     return workflow_name.replace('_', ' ').title()
-
 
 def get_endpoint_message(workflow_name):
     instance = plugin_instances.get(workflow_name)
@@ -2709,8 +2116,6 @@ def get_endpoint_message(workflow_name):
                 return message
         return message
     return f"{workflow_name.replace('_', ' ').title()} app is where you manage your workflows."
-
-
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in plugin_instances:
         try:
@@ -2730,16 +2135,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                 else:
                     init_sig = inspect.signature(workflow_class.__init__)
                     args_to_pass = {}
-                    param_mapping = {
-                        'app': app,
-                        'pipulate': pipulate,
-                        'pipulate_instance': pipulate,
-                        'pipeline': pipeline,
-                        'pipeline_table': pipeline,
-                        'db': db,
-                        'db_dictlike': db,
-                        'db_key_value_store': db
-                    }
+                    param_mapping = {'app': app, 'pipulate': pipulate, 'pipulate_instance': pipulate, 'pipeline': pipeline, 'pipeline_table': pipeline, 'db': db, 'db_dictlike': db, 'db_key_value_store': db}
                     for param_name in init_sig.parameters:
                         if param_name == 'self':
                             continue
@@ -2809,7 +2205,6 @@ for workflow_name, workflow_instance in plugin_instances.items():
 base_menu_items = ['']
 additional_menu_items = []
 
-
 @app.on_event('startup')
 async def startup_event():
     """Initialize the application on startup.
@@ -2824,15 +2219,12 @@ async def startup_event():
     the full spectrum of content curation, archive surfing, and
     progressive distillation workflows that define the Pipulate vision.
     """
-    logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.")
-    await synchronize_roles_to_db()  # synchronize_roles_to_db will have its own lifecycle logging
-    logger.bind(lifecycle=True).info("SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:")
-    log_dictlike_db_to_lifecycle("db", db, title_prefix="STARTUP FINAL")
-    log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="STARTUP FINAL")
-    log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="STARTUP FINAL")
-    # Roles are best logged from within synchronize_roles_to_db due to profile context
-
-
+    logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Pre synchronize_roles_to_db.')
+    await synchronize_roles_to_db()
+    logger.bind(lifecycle=True).info('SERVER STARTUP_EVENT: Post synchronize_roles_to_db. Final startup states:')
+    log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
+    log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
+    log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
 ordered_plugins = []
 for module_name, class_name, workflow_class in discovered_classes:
     if module_name not in ordered_plugins and module_name in plugin_instances:
@@ -2840,155 +2232,32 @@ for module_name, class_name, workflow_class in discovered_classes:
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
-
 def get_intro_page_content(page_num_str: str):
     """Returns content for intro pages, wrapped in PicoCSS Cards for consistent styling.
     Content is defined once and used for both UI display and LLM context.
     """
     page_num = int(page_num_str)
     card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
-
-    # Define page content based on page number
-    pages = {
-        1: {
-            'title': f'Welcome to {APP_NAME}',
-            'intro': 'Layout:',
-            'features': [
-                ('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'),
-                ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
-                ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')
-            ],
-            'getting_started': 'Getting Started',
-            'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
-            'llm_help': f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'
-        },
-        2: {
-            'experimenting_title': 'Positive First Experience',
-            'experimenting_steps': [
-                'Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.',
-                'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.',
-                f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.'
-            ],
-            'interface_title': 'Understanding the Interface',
-            'interface_items': [
-                ('PROFILES', 'Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won\'t delete.'),
-                ('APPS', 'Try Parameter Buster on your Client. It\'s a big potential win.')
-            ]
-        },
-        3: {
-            'title': 'Tips for Effective Use',
-            'tips': [
-                ('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'),
-                ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
-                ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
-                ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
-                ('BROWSE', 'Go look where things are saved.')
-            ]
-        },
-        4: {
-            'title': 'Local LLM Assistant',
-            'llm_features': [
-                ('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
-                ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
-                ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
-                ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
-                ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
-            ],
-            'usage_tips': [
-                'Try asking "What can I do with this workflow?" when starting a new one.',
-                'Ask for help with specific steps if you get stuck.',
-                'Request explanations of workflow outputs or data.',
-                'Get suggestions for next steps or alternative approaches.'
-            ]
-        }
-    }
-
-    # Get page data or return error
+    pages = {1: {'title': f'Welcome to {APP_NAME}', 'intro': 'Layout:', 'features': [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')], 'getting_started': 'Getting Started', 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.', 'llm_help': f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'}, 2: {'experimenting_title': 'Positive First Experience', 'experimenting_steps': ['Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.'], 'interface_title': 'Understanding the Interface', 'interface_items': [('PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."), ('APPS', "Try Parameter Buster on your Client. It's a big potential win.")]}, 3: {'title': 'Tips for Effective Use', 'tips': [('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'), ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'), ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'), ('BROWSE', 'Go look where things are saved.')]}, 4: {'title': 'Local LLM Assistant', 'llm_features': [('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'), ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'), ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'), ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'), ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')], 'usage_tips': ['Try asking "What can I do with this workflow?" when starting a new one.', 'Ask for help with specific steps if you get stuck.', 'Request explanations of workflow outputs or data.', 'Get suggestions for next steps or alternative approaches.']}}
     page_data = pages.get(page_num)
     if not page_data:
         error_msg = f'Content for instruction page {page_num_str} not found.'
         content = Card(P(error_msg), style=card_style, id=f'intro-page-{page_num_str}-content')
         llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
         return (content, llm_context)
-
-    # Build content based on page number
     if page_num == 1:
-        content = Card(
-            H2(page_data['title']),
-            H4(page_data['intro']),
-            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]),
-            H4(page_data['getting_started']),
-            P(page_data['nav_help']),
-            P(page_data['llm_help']),
-            style=card_style,
-            id='intro-page-1-content'
-        )
-        llm_context = (
-            f"The user is viewing the Introduction page which shows:\n\n"
-            f"{page_data['title']}\n\n"
-            f"{page_data['intro']}\n"
-            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n"
-            f"{page_data['getting_started']}\n"
-            f"{page_data['nav_help']}\n"
-            f"{page_data['llm_help']}"
-        )
-
+        content = Card(H2(page_data['title']), H4(page_data['intro']), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]), H4(page_data['getting_started']), P(page_data['nav_help']), P(page_data['llm_help']), style=card_style, id='intro-page-1-content')
+        llm_context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
     elif page_num == 2:
-        content = Card(
-            H3(page_data['experimenting_title']),
-            Ol(*[Li(step) for step in page_data['experimenting_steps']]),
-            H3(page_data['interface_title']),
-            Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
-            style=card_style,
-            id='intro-page-2-content'
-        )
-        llm_context = (
-            f"The user is viewing the Experimenting page which shows:\n\n"
-            f"{page_data['experimenting_title']}\n"
-            f"{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n"
-            f"{page_data['interface_title']}\n"
-            f"{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
-        )
-
+        content = Card(H3(page_data['experimenting_title']), Ol(*[Li(step) for step in page_data['experimenting_steps']]), H3(page_data['interface_title']), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]), style=card_style, id='intro-page-2-content')
+        llm_context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
     elif page_num == 3:
-        content = Card(
-            H3(page_data['title']),
-            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
-            Hr(),
-            P("Try it now: ", A("Open Downloads Folder",
-                                href="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
-                                hx_get="/open-folder?path=" + urllib.parse.quote(str(Path("downloads").absolute())),
-                                hx_swap="none")),
-            style=card_style,
-            id='intro-page-3-content'
-        )
-        llm_context = (
-            f"The user is viewing the Tips page which shows:\n\n"
-            f"{page_data['title']}\n"
-            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
-        )
-
+        content = Card(H3(page_data['title']), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]), Hr(), P('Try it now: ', A('Open Downloads Folder', href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), hx_swap='none')), style=card_style, id='intro-page-3-content')
+        llm_context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
     elif page_num == 4:
-        content = Card(
-            H3(page_data['title']),
-            P(f"Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:"),
-            Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]),
-            H4("How to Use the LLM"),
-            Ul(*[Li(tip) for tip in page_data['usage_tips']]),
-            style=card_style,
-            id='intro-page-4-content'
-        )
-        llm_context = (
-            f"The user is viewing the Local LLM Assistant page which shows:\n\n"
-            f"{page_data['title']}\n\n"
-            f"Features:\n"
-            f"{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\n"
-            f"Usage Tips:\n"
-            f"{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
-        )
-
+        content = Card(H3(page_data['title']), P(f'Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:'), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]), H4('How to Use the LLM'), Ul(*[Li(tip) for tip in page_data['usage_tips']]), style=card_style, id='intro-page-4-content')
+        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
     return (content, llm_context)
-
 
 def get_profile_name():
     profile_id = get_current_profile_id()
@@ -3002,7 +2271,6 @@ def get_profile_name():
         logger.warning(f'No profile found for ID: {profile_id}')
         return 'Unknown Profile'
 
-
 async def home(request):
     """Handle the main home route request.
 
@@ -3012,28 +2280,19 @@ async def home(request):
     Returns:
         tuple: (Title, Main) containing the page title and main content
     """
-    # Get and normalize the request path
     path = request.url.path.strip('/')
     logger.debug(f'Received request for path: {path}')
-
-    # Get menu selection and update database
     menux = normalize_menu_path(path)
     logger.debug(f'Selected explore item: {menux}')
     db['last_app_choice'] = menux
     db['last_visited_url'] = request.url.path
-
-    # Get current profile and create response
     current_profile_id = get_current_profile_id()
-    menux = db.get('last_app_choice', 'App')  # Fallback to 'App' if not found
+    menux = db.get('last_app_choice', 'App')
     response = await create_outer_container(current_profile_id, menux, request)
-
-    # Create page title
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
-
     logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
-
 
 def create_nav_group():
     """Create the navigation group containing the main nav menu and refresh listeners.
@@ -3041,123 +2300,33 @@ def create_nav_group():
     Returns:
         Group: A container with the navigation menu and HTMX refresh listeners.
     """
-    # Get profiles plugin instance
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for nav group creation")
-        return Group(
-            Div(
-                H1('Error: Profiles plugin not found', cls='text-invalid'),
-                cls='nav-error'
-            ),
-            id='nav-group'
-        )
-
-    # Create main navigation menu
+        return Group(Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-error'), id='nav-group')
     nav = create_nav_menu()
-
-    # Create HTMX refresh listeners for dynamic menu updates
-    refresh_listener = Div(
-        id='profile-menu-refresh-listener',
-        hx_get='/refresh-profile-menu',
-        hx_trigger='refreshProfileMenu from:body',
-        hx_target='#profile-dropdown-menu',
-        hx_swap='outerHTML',
-        cls='hidden'
-    )
-
-    app_menu_refresh_listener = Div(
-        id='app-menu-refresh-listener',
-        hx_get='/refresh-app-menu',
-        hx_trigger='refreshAppMenu from:body',
-        hx_target='#app-dropdown-menu',
-        hx_swap='outerHTML',
-        cls='hidden'
-    )
-
-    # Return grouped components
-    return Group(
-        nav,
-        refresh_listener,
-        app_menu_refresh_listener,
-        id='nav-group'
-    )
-
+    refresh_listener = Div(id='profile-menu-refresh-listener', hx_get='/refresh-profile-menu', hx_trigger='refreshProfileMenu from:body', hx_target='#profile-dropdown-menu', hx_swap='outerHTML', cls='hidden')
+    app_menu_refresh_listener = Div(id='app-menu-refresh-listener', hx_get='/refresh-app-menu', hx_trigger='refreshAppMenu from:body', hx_target='#app-dropdown-menu', hx_swap='outerHTML', cls='hidden')
+    return Group(nav, refresh_listener, app_menu_refresh_listener, id='nav-group')
 
 def create_env_menu():
     """Create environment selection dropdown menu."""
-    # Get current environment and set up display
     current_env = get_current_environment()
     display_env = 'DEV' if current_env == 'Development' else 'Prod'
-
-    # Configure styles
     env_summary_style = 'white-space: nowrap; display: inline-block; min-width: max-content;'
     if current_env == 'Development':
         env_summary_style += ' color: #f77; font-weight: bold;'
-
     menu_item_style = 'text-align: left; {pipulate.MENU_ITEM_PADDING} display: flex; border-radius: var(--pico-border-radius);'
     radio_style = 'min-width: 1rem; margin-right: 0.5rem;'
-
-    # Create menu items
     menu_items = []
-
-    # Development environment option
     is_dev = current_env == 'Development'
-    dev_item = Li(
-        Label(
-            Input(
-                type='radio',
-                name='env_radio_select',
-                value='Development',
-                checked=is_dev,
-                hx_post='/switch_environment',
-                hx_vals='{"environment": "Development"}',
-                hx_target='#dev-env-item',
-                hx_swap='outerHTML',
-                style=radio_style
-            ),
-            'DEV',
-            style=menu_item_style,
-            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
-            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';",
-            id='dev-env-item'
-        )
-    )
+    dev_item = Li(Label(Input(type='radio', name='env_radio_select', value='Development', checked=is_dev, hx_post='/switch_environment', hx_vals='{"environment": "Development"}', hx_target='#dev-env-item', hx_swap='outerHTML', style=radio_style), 'DEV', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_dev else 'transparent')}';", id='dev-env-item'))
     menu_items.append(dev_item)
-
-    # Production environment option
     is_prod = current_env == 'Production'
-    prod_item = Li(
-        Label(
-            Input(
-                type='radio',
-                name='env_radio_select',
-                value='Production',
-                checked=is_prod,
-                hx_post='/switch_environment',
-                hx_vals='{"environment": "Production"}',
-                hx_target='#prod-env-item',
-                hx_swap='outerHTML',
-                style=radio_style
-            ),
-            'Prod',
-            style=menu_item_style,
-            onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
-            onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';",
-            id='prod-env-item'
-        )
-    )
+    prod_item = Li(Label(Input(type='radio', name='env_radio_select', value='Production', checked=is_prod, hx_post='/switch_environment', hx_vals='{"environment": "Production"}', hx_target='#prod-env-item', hx_swap='outerHTML', style=radio_style), 'Prod', style=menu_item_style, onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';", onmouseout=f"this.style.backgroundColor='{('var(--pico-primary-focus)' if is_prod else 'transparent')}';", id='prod-env-item'))
     menu_items.append(prod_item)
-
-    # Create dropdown menu
     dropdown_style = 'padding-left: 0; padding-top: 0.25rem; padding-bottom: 0.25rem; width: 8rem; max-height: 75vh; overflow-y: auto;'
-    return Details(
-        Summary(display_env, style=env_summary_style, id='env-id'),
-        Ul(*menu_items, cls='dropdown-menu', style=dropdown_style),
-        cls='dropdown',
-        id='env-dropdown-menu'
-    )
-
+    return Details(Summary(display_env, style=env_summary_style, id='env-id'), Ul(*menu_items, cls='dropdown-menu', style=dropdown_style), cls='dropdown', id='env-dropdown-menu')
 
 def create_nav_menu():
     logger.debug('Creating navigation menu.')
@@ -3177,38 +2346,16 @@ def create_nav_menu():
     profile_text = Span(title_name(selected_profile_name))
     endpoint_text = Span(endpoint_name(menux) if menux else HOME_MENU_ITEM)
     breadcrumb = H1(home_link, separator, profile_text, separator, endpoint_text)
-    menus = Div(
-        create_profile_menu(selected_profile_id, selected_profile_name),
-        create_app_menu(menux),
-        create_env_menu(),
-        cls='nav-menu-group'
-    )
+    menus = Div(create_profile_menu(selected_profile_id, selected_profile_name), create_app_menu(menux), create_env_menu(), cls='nav-menu-group')
     nav = Div(breadcrumb, menus, cls='nav-breadcrumb')
     logger.debug('Navigation menu created.')
     return nav
-
 
 def create_profile_menu(selected_profile_id, selected_profile_name):
     """Create the profile dropdown menu."""
     menu_items = []
     profile_locked = db.get('profile_locked', '0') == '1'
-    menu_items.append(
-        Li(
-            Label(
-                Input(
-                    type='checkbox',
-                    name='profile_lock_switch',
-                    role='switch',
-                    checked=profile_locked,
-                    hx_post='/toggle_profile_lock',
-                    hx_target='body',
-                    hx_swap='outerHTML'
-                ),
-                'Lock Profile'
-            ),
-            style='display: flex; align-items: center; padding: 0.5rem 1rem;'
-        )
-    )
+    menu_items.append(Li(Label(Input(type='checkbox', name='profile_lock_switch', role='switch', checked=profile_locked, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML'), 'Lock Profile'), style='align-items: center; display: flex; padding: 0.5rem 1rem;'))
     menu_items.append(Li(Hr(style='margin: 0;'), cls='block'))
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
@@ -3217,16 +2364,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(
-                Li(
-                    A(
-                        f'Edit {plugin_display_name}',
-                        href=f'/{profiles_plugin_inst.name}',
-                        cls='dropdown-item menu-item-header'
-                    ),
-                    cls='block'
-                )
-            )
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
     active_profiles_list = []
     if profiles:
         if profile_locked:
@@ -3244,34 +2382,12 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     for profile_item in active_profiles_list:
         is_selected = str(profile_item.id) == str(selected_profile_id)
         item_style = 'background-color: var(--pico-primary-focus);' if is_selected else ''
-        radio_input = Input(
-            type='radio',
-            name='profile_radio_select',
-            value=str(profile_item.id),
-            checked=is_selected,
-            hx_post='/select_profile',
-            hx_vals=json.dumps({'profile_id': str(profile_item.id)}),
-            hx_target='body',
-            hx_swap='outerHTML'
-        )
+        radio_input = Input(type='radio', name='profile_radio_select', value=str(profile_item.id), checked=is_selected, hx_post='/select_profile', hx_vals=json.dumps({'profile_id': str(profile_item.id)}), hx_target='body', hx_swap='outerHTML')
         profile_label = Label(radio_input, profile_item.name)
         hover_style = "this.style.backgroundColor='var(--pico-primary-hover-background)';"
         default_bg = 'var(--pico-primary-focus)' if is_selected else 'transparent'
         mouseout_style = f"this.style.backgroundColor='{default_bg}';"
-        menu_items.append(
-            Li(
-                profile_label,
-                style=(
-                    f'text-align: left; '
-                    f'{pipulate.MENU_ITEM_PADDING} '
-                    f'{item_style} '
-                    f'display: flex; '
-                    f'border-radius: var(--pico-border-radius);'
-                ),
-                onmouseover=hover_style,
-                onmouseout=mouseout_style
-            )
-        )
+        menu_items.append(Li(profile_label, style=f'text-align: left; {pipulate.MENU_ITEM_PADDING} {item_style} display: flex; border-radius: var(--pico-border-radius);', onmouseover=hover_style, onmouseout=mouseout_style))
     summary_profile_name_to_display = selected_profile_name
     if not summary_profile_name_to_display and selected_profile_id:
         try:
@@ -3281,83 +2397,37 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(
-        Summary(
-            'PROFILE',
-            style='white-space: nowrap; display: inline-block; min-width: max-content;',
-            id='profile-id'
-        ),
-        Ul(
-            *menu_items,
-            style='padding-left: 0; min-width: max-content;',
-            cls='dropdown-menu'
-        ),
-        cls='dropdown',
-        id='profile-dropdown-menu'
-    )
-
+    return Details(Summary('PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style='min-width: max-content; padding-left: 0;', cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
 
 def normalize_menu_path(path):
     """Convert empty paths to empty string and return the path otherwise."""
     return '' if path == '' else path
 
-
 def generate_menu_style():
     """Generate consistent menu styling for dropdown menus."""
-    return (
-        'white-space: nowrap; '
-        'display: inline-block; '
-        'min-width: max-content; '
-        'background-color: var(--pico-background-color); '
-        'border: 1px solid var(--pico-muted-border-color); '
-        'border-radius: 16px; '
-        'padding: 0.5rem 1rem; '
-        'cursor: pointer; '
-        'transition: background-color 0.2s;'
-    )
-
+    return 'white-space: nowrap; display: inline-block; min-width: max-content; background-color: var(--pico-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 16px; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s;'
 
 def create_app_menu(menux):
     """Create the App dropdown menu with hierarchical role-based sorting."""
     logger.debug(f"Creating App menu. Currently selected app (menux): '{menux}'")
-    
-    # Get active roles from roles plugin  
     active_role_names = get_active_roles()
-    
-    # Initialize menu items with Home option
     menu_items = create_home_menu_item(menux)
-    
-    # Get roles with their priorities for hierarchical sorting
     role_priorities = get_role_priorities()
-    
-    # Group plugins by their primary role
     plugins_by_role = group_plugins_by_role(active_role_names)
-    
-    # Add plugins to menu grouped by role priority, sorted within each role by filename prefix
     for role_name, role_priority in sorted(role_priorities.items(), key=lambda x: x[1]):
         if role_name in active_role_names:
             role_plugins = plugins_by_role.get(role_name, [])
-            
-            # Sort plugins within this role by their filename numeric prefix
             role_plugins.sort(key=lambda x: get_plugin_numeric_prefix(x))
-            
-            # Add each plugin in this role to the menu
             for plugin_key in role_plugins:
-                menu_item = create_plugin_menu_item(
-                    plugin_key=plugin_key,
-                    menux=menux,
-                    active_role_names=active_role_names
-                )
+                menu_item = create_plugin_menu_item(plugin_key=plugin_key, menux=menux, active_role_names=active_role_names)
                 if menu_item:
                     menu_items.append(menu_item)
-    
     return create_menu_container(menu_items)
 
 def get_active_roles():
     """Get set of active role names from roles plugin."""
     active_role_names = set()
     roles_plugin = plugin_instances.get('roles')
-    
     if roles_plugin and hasattr(roles_plugin, 'table'):
         try:
             active_role_records = list(roles_plugin.table(where='done = ?', where_args=(True,)))
@@ -3367,14 +2437,12 @@ def get_active_roles():
             logger.error(f'Error fetching globally active roles: {e}')
     else:
         logger.warning("Could not fetch active roles: 'roles' plugin or its table not found.")
-    
     return active_role_names
 
 def get_role_priorities():
     """Get role priorities from the roles plugin for hierarchical sorting."""
     role_priorities = {}
     roles_plugin = plugin_instances.get('roles')
-    
     if roles_plugin and hasattr(roles_plugin, 'table'):
         try:
             current_profile_id = get_current_profile_id()
@@ -3385,82 +2453,46 @@ def get_role_priorities():
             logger.error(f'Error fetching role priorities: {e}')
     else:
         logger.warning("Could not fetch role priorities: 'roles' plugin or its table not found.")
-    
     return role_priorities
 
 def group_plugins_by_role(active_role_names):
     """Group plugins by their primary role for hierarchical menu organization."""
     plugins_by_role = {}
-    
     for plugin_key in ordered_plugins:
         instance = plugin_instances.get(plugin_key)
         if not instance:
             continue
-            
-        # Skip profiles and roles plugins
         if plugin_key in ['profiles', 'roles']:
             continue
-            
-        # Check if plugin should be included based on roles
         if not should_include_plugin(instance, active_role_names):
             continue
-        
-        # Get primary role for this plugin
         primary_role = get_plugin_primary_role(instance)
         if primary_role:
-            # Convert CSS class back to role name
             role_name = primary_role.replace('-', ' ').title()
             if role_name not in plugins_by_role:
                 plugins_by_role[role_name] = []
             plugins_by_role[role_name].append(plugin_key)
-        
     logger.debug(f'Plugins grouped by role: {plugins_by_role}')
     return plugins_by_role
 
 def get_plugin_numeric_prefix(plugin_key):
     """Extract numeric prefix from plugin filename for sorting within role groups."""
-    # Look up the original filename from discovered modules
     if plugin_key in discovered_modules:
         original_filename = getattr(discovered_modules[plugin_key], '_original_filename', plugin_key)
-        
-        # Extract numeric prefix from filename
-        match = re.match(r'^(\d+)_', original_filename)
+        match = re.match('^(\\d+)_', original_filename)
         if match:
             return int(match.group(1))
-    
-    # Fallback: no numeric prefix found, sort at end
     return 9999
 
 def create_home_menu_item(menux):
     """Create menu items list starting with Home option."""
     menu_items = []
-    
-    # Add Home/Introduction
     is_home_selected = menux == ''
-    home_radio = Input(
-        type='radio',
-        name='app_radio_select',
-        value='',
-        checked=is_home_selected,
-        hx_post='/redirect/',
-        hx_target='body',
-        hx_swap='outerHTML'
-    )
-    
-    # Home gets "Core" role styling since it's essential
-    home_css_classes = "dropdown-item menu-role-core"
-    
-    home_label = Label(
-        home_radio,
-        HOME_MENU_ITEM,
-        cls=home_css_classes,
-        style='background-color: var(--pico-primary-focus);' if is_home_selected else ''
-    )
+    home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
+    home_css_classes = 'dropdown-item menu-role-core'
+    home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus);' if is_home_selected else '')
     menu_items.append(Li(home_label))
-    
-    # Add separator
     menu_items.append(Li(Hr(), cls='dropdown-separator'))
-    
     return menu_items
 
 def get_plugin_primary_role(instance):
@@ -3475,19 +2507,11 @@ def get_plugin_primary_role(instance):
     plugin_module_path = instance.__module__
     plugin_module = sys.modules.get(plugin_module_path)
     plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
-    
-    # If no roles defined, default to None (no special coloring)
     if not plugin_defined_roles:
         return None
-    
-    # Take first role as primary (80/20 simple approach)
     primary_role = plugin_defined_roles[0]
-    
-    # Convert to CSS class format (lowercase, spaces to hyphens)
     css_role = primary_role.lower().replace(' ', '-')
-    
     logger.debug(f"Plugin '{instance.__class__.__name__}' primary role: '{primary_role}' -> CSS class: 'menu-role-{css_role}'")
-    
     return css_role
 
 def create_plugin_menu_item(plugin_key, menux, active_role_names):
@@ -3496,77 +2520,36 @@ def create_plugin_menu_item(plugin_key, menux, active_role_names):
     if not instance:
         logger.warning(f"Instance for plugin_key '{plugin_key}' not found. Skipping.")
         return None
-        
-    # Skip profiles and roles plugins
     if plugin_key in ['profiles', 'roles']:
         return None
-        
-    # Handle separator
     if plugin_key == 'separator':
         logger.debug('Added separator to App menu.')
         return Li(Hr(), cls='dropdown-separator')
-    
-    # Check if plugin should be included based on roles
     if not should_include_plugin(instance, active_role_names):
         return None
-    
-    # Create menu item for plugin
     display_name = getattr(instance, 'DISPLAY_NAME', title_name(plugin_key))
     is_selected = menux == plugin_key
-    redirect_url = f"/redirect/{plugin_key if plugin_key else ''}"
-    
-    # Get primary role for styling
+    redirect_url = f"/redirect/{(plugin_key if plugin_key else '')}"
     primary_role = get_plugin_primary_role(instance)
-    role_class = f"menu-role-{primary_role}" if primary_role else ""
-    
-    # Combine dropdown-item class with role-based class
-    css_classes = f"dropdown-item {role_class}".strip()
-    
-    radio_input = Input(
-        type='radio',
-        name='app_radio_select',
-        value=plugin_key,
-        checked=is_selected,
-        hx_post=redirect_url,
-        hx_target='body',
-        hx_swap='outerHTML'
-    )
-    
-    return Li(Label(
-        radio_input,
-        display_name,
-        cls=css_classes,
-        style='background-color: var(--pico-primary-focus);' if is_selected else ''
-    ))
+    role_class = f'menu-role-{primary_role}' if primary_role else ''
+    css_classes = f'dropdown-item {role_class}'.strip()
+    radio_input = Input(type='radio', name='app_radio_select', value=plugin_key, checked=is_selected, hx_post=redirect_url, hx_target='body', hx_swap='outerHTML')
+    return Li(Label(radio_input, display_name, cls=css_classes, style='background-color: var(--pico-primary-focus);' if is_selected else ''))
 
 def should_include_plugin(instance, active_role_names):
     """Determine if plugin should be included based on its roles."""
     plugin_module_path = instance.__module__
     plugin_module = sys.modules.get(plugin_module_path)
     plugin_defined_roles = getattr(plugin_module, 'ROLES', []) if plugin_module else []
-    
     is_core_plugin = 'Core' in plugin_defined_roles
-    has_matching_active_role = any(p_role in active_role_names for p_role in plugin_defined_roles)
-    
+    has_matching_active_role = any((p_role in active_role_names for p_role in plugin_defined_roles))
     should_include = is_core_plugin or has_matching_active_role
-    
-    logger.debug(
-        f"Plugin '{instance.__class__.__name__}' (Roles: {plugin_defined_roles}). "
-        f"Core: {is_core_plugin}, Active Roles: {active_role_names}, "
-        f"Match: {has_matching_active_role}, Include: {should_include}"
-    )
-    
+    logger.debug(f"Plugin '{instance.__class__.__name__}' (Roles: {plugin_defined_roles}). Core: {is_core_plugin}, Active Roles: {active_role_names}, Match: {has_matching_active_role}, Include: {should_include}")
     return should_include
 
 def create_menu_container(menu_items):
     """Create the final menu container with all items."""
-    return Details(
-        Summary('APP', style='white-space: nowrap; display: inline-block; min-width: max-content;', id='app-id'),
-        Ul(*menu_items, cls='dropdown-menu'),
-        cls='dropdown',
-        id='app-dropdown-menu'
-    )
-
+    return Details(Summary('APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
@@ -3576,7 +2559,6 @@ async def create_outer_container(current_profile_id, menux, request):
     nav_group = create_nav_group()
     return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
 MAX_INTRO_PAGES = 4
-
 
 async def render_intro_page_with_navigation(page_num_str: str):
     """Renders the content for the given intro page number, including Next/Previous buttons.
@@ -3592,43 +2574,10 @@ async def render_intro_page_with_navigation(page_num_str: str):
     page_num = int(page_num_str)
     page_content_area, llm_context = get_intro_page_content(page_num_str)
     append_to_conversation(llm_context, role='system')
-
-    # Create navigation buttons
-    prev_button = Button(
-        '◂ Previous',
-        hx_post='/navigate_intro',
-        hx_vals={'direction': 'prev', 'current_page': page_num_str},
-        hx_target='#grid-left-content',
-        hx_swap='innerHTML',
-        cls='primary outline' if page_num == 1 else 'primary',
-        style='width: 160px; min-width: 160px;',
-        disabled=page_num == 1
-    )
-
-    next_button = Button(
-        'Next ▸',
-        hx_post='/navigate_intro',
-        hx_vals={'direction': 'next', 'current_page': page_num_str},
-        hx_target='#grid-left-content',
-        hx_swap='innerHTML',
-        cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary',
-        style='width: 160px; min-width: 160px;',
-        disabled=page_num == MAX_INTRO_PAGES
-    )
-
-    # Create navigation container
-    nav_container = Div(
-        prev_button,
-        next_button,
-        style='display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;'
-    )
-
-    return Div(
-        page_content_area,
-        nav_container,
-        id='grid-left-content'
-    )
-
+    prev_button = Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style='min-width: 160px; width: 160px;', disabled=page_num == 1)
+    next_button = Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style='min-width: 160px; width: 160px;', disabled=page_num == MAX_INTRO_PAGES)
+    nav_container = Div(prev_button, next_button, style='display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;')
+    return Div(page_content_area, nav_container, id='grid-left-content')
 
 def get_workflow_instance(workflow_name):
     """
@@ -3641,7 +2590,6 @@ def get_workflow_instance(workflow_name):
         The workflow instance if found, None otherwise
     """
     return plugin_instances.get(workflow_name)
-
 
 async def create_grid_left(menux, request, render_items=None):
     content_to_render = None
@@ -3665,47 +2613,9 @@ async def create_grid_left(menux, request, render_items=None):
         content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
     if content_to_render is None:
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px;')
-
-    # Add scroll to top link at the bottom with visibility check
-    scroll_to_top = Div(
-        A('↑ Scroll To Top',
-          href='javascript:void(0)',
-          onclick='''
-            const container = document.querySelector(".main-grid > div:first-child");
-            container.scrollTo({top: 0, behavior: "smooth"});
-          ''',
-          style='text-decoration: none;'),
-        style='''
-            text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            border-top: 1px solid var(--pico-muted-border-color);
-            display: none;
-        ''',
-        id='scroll-to-top-link'
-    )
-
-    # Add script to check scroll height and show/hide the link
-    scroll_check_script = Script("""
-        function checkScrollHeight() {
-            const container = document.querySelector('.main-grid > div:first-child');
-            const scrollLink = document.getElementById('scroll-to-top-link');
-            if (container && scrollLink) {
-                const isScrollable = container.scrollHeight > container.clientHeight;
-                scrollLink.style.display = isScrollable ? 'block' : 'none';
-            }
-        }
-        // Check on load and when content changes
-        window.addEventListener('load', checkScrollHeight);
-        const observer = new MutationObserver(checkScrollHeight);
-        const container = document.querySelector('.main-grid > div:first-child');
-        if (container) {
-            observer.observe(container, { childList: true, subtree: true });
-        }
-    """)
-
+    scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none;'), style='border-top: 1px solid var(--pico-muted-border-color); display: none; margin-top: 20px; padding: 10px; text-align: center; ', id='scroll-to-top-link')
+    scroll_check_script = Script("\n        function checkScrollHeight() {\n            const container = document.querySelector('.main-grid > div:first-child');\n            const scrollLink = document.getElementById('scroll-to-top-link');\n            if (container && scrollLink) {\n                const isScrollable = container.scrollHeight > container.clientHeight;\n                scrollLink.style.display = isScrollable ? 'block' : 'none';\n            }\n        }\n        // Check on load and when content changes\n        window.addEventListener('load', checkScrollHeight);\n        const observer = new MutationObserver(checkScrollHeight);\n        const container = document.querySelector('.main-grid > div:first-child');\n        if (container) {\n            observer.observe(container, { childList: true, subtree: true });\n        }\n    ")
     return Div(content_to_render, scroll_to_top, scroll_check_script, id='grid-left-content')
-
 
 def create_chat_interface(autofocus=False):
     """Creates the chat interface component with message list and input form.
@@ -3716,39 +2626,13 @@ def create_chat_interface(autofocus=False):
     Returns:
         Div: The chat interface container with all components
     """
-    # Set message list height to 70% of viewport height minus 200px
     msg_list_height = 'height: calc(70vh - 200px);'
-
-    # Get any temporary message from database and clear it
     temp_message = None
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-
-    # Create initialization script with temp message config
-    init_script = f'''
-    // Set global variables for the external script
-    window.PIPULATE_CONFIG = {{
-        tempMessage: {json.dumps(temp_message)}
-    }};
-    '''
-
-    # Build and return the chat interface components
-    return Div(
-        Card(
-            H2(f'{APP_NAME} Chatbot'),
-            Div(id='msg-list', cls='overflow-auto', style=msg_list_height),
-            Form(
-                mk_chat_input_group(value='', autofocus=autofocus),
-                onsubmit='sendSidebarMessage(event)'
-            ),
-            Script(init_script),
-            Script(src='/static/websocket-global-config.js')
-        ),
-        id='chat-interface',
-        style='overflow: hidden;'
-    )
-
+    init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden;')
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """Creates a chat input group with text input and send button.
@@ -3761,60 +2645,13 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
     Returns:
         Group: Container with input and send button
     """
-    return Group(
-        Input(
-            id='msg',
-            name='msg',
-            placeholder='Chat...',
-            value=value,
-            disabled=disabled,
-            autofocus='autofocus' if autofocus else None
-        ),
-        Button(
-            'Send',
-            type='submit',
-            id='send-btn',
-            disabled=disabled
-        ),
-        id='input-group',
-        style='padding-right: 1vw;'
-    )
-
+    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw;')
 
 def create_poke_button():
-    # Define button styles
-    button_style = (
-        'position: fixed; '
-        'bottom: 20px; '
-        'right: 20px; '
-        'width: 50px; '
-        'height: 50px; '
-        'border-radius: 50%; '
-        'font-size: 24px; '
-        'display: flex; '
-        'align-items: center; '
-        'justify-content: center; '
-        'z-index: 1000;'
-    )
-
-    # Create button and flyout panel
-    poke_button = Button(
-        '🤖',
-        cls='contrast outline',
-        style=button_style,
-        hx_get='/poke-flyout',
-        hx_target='#flyout-panel',
-        hx_trigger='mouseenter',
-        hx_swap='outerHTML'
-    )
-
-    flyout_panel = Div(
-        id='flyout-panel',
-        cls='flyout-panel hidden'
-    )
-
+    button_style = 'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;'
+    poke_button = Button('🤖', cls='contrast outline', style=button_style, hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML')
+    flyout_panel = Div(id='flyout-panel', cls='flyout-panel hidden')
     return Div(poke_button, flyout_panel)
-
 
 @rt('/poke-flyout', methods=['GET'])
 async def poke_flyout(request):
@@ -3824,96 +2661,31 @@ async def poke_flyout(request):
     profile_locked = db.get('profile_locked', '0') == '1'
     lock_button_text = '🔓 Unlock Profile' if profile_locked else '🔒 Lock Profile'
     is_dev_mode = get_current_environment() == 'Development'
-
-
-    # Create action buttons
-    poke_button = Button(
-        f'🤖 Poke {MODEL}',
-        hx_post='/poke',
-        hx_target='#msg-list',
-        hx_swap='beforeend',
-        cls='secondary outline'
-    )
-
-    lock_button = Button(
-        lock_button_text,
-        hx_post='/toggle_profile_lock',
-        hx_target='body',
-        hx_swap='outerHTML',
-        cls='secondary outline'
-    )
-
-    roles_button = Button(
-        '👥 Manage Roles',
-        hx_post='/redirect/roles',
-        hx_target='body',
-        hx_swap='outerHTML',
-        cls='secondary outline'
-    )
-
-    delete_workflows_button = Button(
-        '🗑️ Delete Workflows',
-        hx_post='/clear-pipeline',
-        hx_target='body',
-        hx_confirm='Are you sure you want to delete workflows?',
-        hx_swap='outerHTML',
-        cls='secondary outline'
-    ) if is_workflow else None
-
-    reset_db_button = Button(
-        '🔄 Reset Entire Database',
-        hx_post='/clear-db',
-        hx_target='body',
-        hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?',
-        hx_swap='outerHTML',
-        cls='secondary outline'
-    ) if is_dev_mode else None
-
-    # Create list items
-    list_items = [
-        Li(poke_button, cls='flyout-list-item'),
-        Li(lock_button, cls='flyout-list-item'),
-        Li(roles_button, cls='flyout-list-item')
-    ]
-
+    poke_button = Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
+    lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
+    roles_button = Button('👥 Manage Roles', hx_post='/redirect/roles', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
+    delete_workflows_button = Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
+    reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
+    list_items = [Li(poke_button, cls='flyout-list-item'), Li(lock_button, cls='flyout-list-item'), Li(roles_button, cls='flyout-list-item')]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
         list_items.append(Li(reset_db_button, cls='flyout-list-item'))
-
-    # Create the flyout panel
-    return Div(
-        id='flyout-panel',
-        cls='flyout-panel visible',
-        hx_get='/poke-flyout-hide',
-        hx_trigger='mouseleave delay:100ms',
-        hx_target='this',
-        hx_swap='outerHTML'
-    )(
-        Div(
-            H3('Poke Actions'),
-            Ul(*list_items),
-            cls='flyout-content'
-        )
-    )
-
+    return Div(id='flyout-panel', cls='flyout-panel visible', hx_get='/poke-flyout-hide', hx_trigger='mouseleave delay:100ms', hx_target='this', hx_swap='outerHTML')(Div(H3('Poke Actions'), Ul(*list_items), cls='flyout-content'))
 
 @rt('/poke-flyout-hide', methods=['GET'])
 async def poke_flyout_hide(request):
     """Hide the poke flyout panel by returning an empty hidden div."""
     return Div(id='flyout-panel', cls='flyout-panel hidden')
 
-
 @rt('/sse')
 async def sse_endpoint(request):
     return EventStream(broadcaster.generator())
-
 
 @app.post('/chat')
 async def chat_endpoint(request, message: str):
     await pipulate.stream(f'Let the user know {limiter} {message}')
     return ''
-
 
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
@@ -3930,7 +2702,6 @@ def redirect_handler(request):
     build_endpoint_training(path)
     return Redirect(f'/{path}')
 
-
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     logger.debug('Chatbot poke received.')
@@ -3938,51 +2709,41 @@ async def poke_chatbot():
     asyncio.create_task(pipulate.stream(poke_message))
     return 'Poke received. Countdown to local LLM MODEL...'
 
-
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
     """
     Opens a folder in the host OS's file explorer.
     Expects a 'path' query parameter with the absolute path to open.
     """
-    path_param = request.query_params.get("path")
+    path_param = request.query_params.get('path')
     if not path_param:
-        return HTMLResponse("Path parameter is missing", status_code=400)
-
+        return HTMLResponse('Path parameter is missing', status_code=400)
     decoded_path = urllib.parse.unquote(path_param)
-
-    # Basic security check - ensure it's an absolute path and within allowed directories
-    if not os.path.isabs(decoded_path) or ".." in decoded_path:
-        return HTMLResponse("Invalid or potentially insecure path", status_code=400)
-
-    # Ensure the path exists and is a directory
+    if not os.path.isabs(decoded_path) or '..' in decoded_path:
+        return HTMLResponse('Invalid or potentially insecure path', status_code=400)
     if not os.path.exists(decoded_path) or not os.path.isdir(decoded_path):
-        return HTMLResponse("Path does not exist or is not a directory", status_code=400)
-
+        return HTMLResponse('Path does not exist or is not a directory', status_code=400)
     try:
         current_os = platform.system()
-        if current_os == "Windows":
-            subprocess.run(["explorer", decoded_path], check=True)
-        elif current_os == "Darwin":  # macOS
-            subprocess.run(["open", decoded_path], check=True)
-        elif current_os == "Linux":
-            subprocess.run(["xdg-open", decoded_path], check=True)
+        if current_os == 'Windows':
+            subprocess.run(['explorer', decoded_path], check=True)
+        elif current_os == 'Darwin':
+            subprocess.run(['open', decoded_path], check=True)
+        elif current_os == 'Linux':
+            subprocess.run(['xdg-open', decoded_path], check=True)
         else:
-            return HTMLResponse(f"Unsupported operating system: {current_os}", status_code=400)
-
-        return HTMLResponse("Folder opened successfully")
+            return HTMLResponse(f'Unsupported operating system: {current_os}', status_code=400)
+        return HTMLResponse('Folder opened successfully')
     except subprocess.CalledProcessError as e:
-        return HTMLResponse(f"Failed to open folder: {str(e)}", status_code=500)
+        return HTMLResponse(f'Failed to open folder: {str(e)}', status_code=500)
     except Exception as e:
-        return HTMLResponse(f"An unexpected error occurred: {str(e)}", status_code=500)
-
+        return HTMLResponse(f'An unexpected error occurred: {str(e)}', status_code=500)
 
 @rt('/toggle_profile_lock', methods=['POST'])
 async def toggle_profile_lock(request):
     current = db.get('profile_locked', '0')
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
-
 
 @rt('/navigate_intro', methods=['POST'])
 async def navigate_intro_page_endpoint(request):
@@ -4004,7 +2765,6 @@ async def navigate_intro_page_endpoint(request):
     new_content = await render_intro_page_with_navigation(str(next_page_num))
     return HTMLResponse(to_xml(new_content))
 
-
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
     """Refresh the App menu dropdown via HTMX endpoint."""
@@ -4012,7 +2772,6 @@ async def refresh_app_menu_endpoint(request):
     menux = db.get('last_app_choice', '')
     app_menu_details_component = create_app_menu(menux)
     return HTMLResponse(to_xml(app_menu_details_component))
-
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
@@ -4048,25 +2807,19 @@ async def clear_pipeline(request):
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
 
-
 @rt('/clear-db', methods=['POST'])
 async def clear_db(request):
     """Reset the entire database to its initial state."""
-    # Log initial state if lifecycle logging is enabled
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: Starting database reset...")
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB INITIAL")
-        log_dynamic_table_state("pipeline", lambda: pipeline(), title_prefix="CLEAR_DB INITIAL")
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB INITIAL")
-
-    # Preserve some values we want to restore
+        logger.bind(lifecycle=True).info('CLEAR_DB: Starting database reset...')
+        log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
+        log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='CLEAR_DB INITIAL')
+        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
-
-    # Pre-wipe logging for plugin tables using raw SQL
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: Table states BEFORE plugin table wipe:")
+        logger.bind(lifecycle=True).info('CLEAR_DB: Table states BEFORE plugin table wipe:')
         try:
             conn_temp = sqlite3.connect(DB_FILENAME)
             conn_temp.row_factory = sqlite3.Row
@@ -4074,12 +2827,10 @@ async def clear_db(request):
             cursor_temp.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_tuples = cursor_temp.fetchall()
             for table_name_tuple in plugin_table_names_tuples:
-                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix="CLEAR_DB PRE-WIPE")
+                log_raw_sql_table_to_lifecycle(conn_temp, table_name_tuple[0], title_prefix='CLEAR_DB PRE-WIPE')
             conn_temp.close()
         except Exception as e_plugin_log_pre:
-            logger.bind(lifecycle=True).error(f"CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}")
-
-    # Clear core tables
+            logger.bind(lifecycle=True).error(f'CLEAR_DB PRE-WIPE: Error logging plugin tables via SQL: {e_plugin_log_pre}')
     try:
         with sqlite3.connect(DB_FILENAME) as conn:
             cursor = conn.cursor()
@@ -4091,38 +2842,31 @@ async def clear_db(request):
     except Exception as e:
         logger.error(f'Error clearing core tables: {e}')
         return HTMLResponse(f'Error clearing database: {e}', status_code=500)
-
-    # Clear plugin tables with explicit transaction handling
     logger.debug(f'CLEAR_DB: Using database file for plugin table deletion: {DB_FILENAME}')
     try:
         with sqlite3.connect(DB_FILENAME) as conn_delete:
             cursor_delete = conn_delete.cursor()
             cursor_delete.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('store', 'profile', 'pipeline', 'sqlite_sequence')")
             plugin_table_names_to_delete = [row[0] for row in cursor_delete.fetchall()]
-
-            logger.warning(f'Found plugin tables for deletion: {", ".join(plugin_table_names_to_delete)}')
+            logger.warning(f"Found plugin tables for deletion: {', '.join(plugin_table_names_to_delete)}")
             cleared_count = 0
             for table_name in plugin_table_names_to_delete:
                 try:
                     cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')
                     row_count_before_delete = cursor_delete.fetchone()[0]
                     cursor_delete.execute(f'DELETE FROM {table_name}')
-                    conn_delete.commit()  # Commit after each delete for plugin tables
-
-                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')  # Verify
+                    conn_delete.commit()
+                    cursor_delete.execute(f'SELECT COUNT(*) FROM {table_name}')
                     row_count_after_delete = cursor_delete.fetchone()[0]
-
                     logger.warning(f"Plugin table '{table_name}' cleared: Deleted {row_count_before_delete - row_count_after_delete} records (had {row_count_before_delete})")
                     if TABLE_LIFECYCLE_LOGGING:
                         logger.bind(lifecycle=True).info(f"CLEAR_DB: Wiped plugin table '{table_name}'. Rows before: {row_count_before_delete}, Rows after: {row_count_after_delete}")
-
                     cleared_count += 1
-                    # Attempt to reset sequence, ignore common error if table doesn't use it
                     try:
                         cursor_delete.execute(f"DELETE FROM sqlite_sequence WHERE name='{table_name}'")
                         conn_delete.commit()
                     except sqlite3.OperationalError as e_seq:
-                        if "no such table: sqlite_sequence" not in str(e_seq).lower():
+                        if 'no such table: sqlite_sequence' not in str(e_seq).lower():
                             logger.error(f'Error resetting sequence for table {table_name}: {e_seq}')
                 except Exception as e_table_clear:
                     logger.error(f'Error clearing table {table_name}: {e_table_clear}')
@@ -4130,35 +2874,26 @@ async def clear_db(request):
     except Exception as e_db_access:
         logger.error(f'Error accessing SQLite database for plugin table deletion: {e_db_access}')
         if TABLE_LIFECYCLE_LOGGING:
-            logger.bind(lifecycle=True).error(f"CLEAR_DB: Critical error during plugin table deletion: {e_db_access}")
-
-    # Re-initialize data
+            logger.bind(lifecycle=True).error(f'CLEAR_DB: Critical error during plugin table deletion: {e_db_access}')
     populate_initial_data()
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: After populate_initial_data.")
-        log_dynamic_table_state("profiles", lambda: profiles(), title_prefix="CLEAR_DB POST-POPULATE")
-
+        logger.bind(lifecycle=True).info('CLEAR_DB: After populate_initial_data.')
+        log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB POST-POPULATE')
     await synchronize_roles_to_db()
     if TABLE_LIFECYCLE_LOGGING:
-        logger.bind(lifecycle=True).info("CLEAR_DB: After synchronize_roles_to_db.")
-
-    # Restore preserved values
+        logger.bind(lifecycle=True).info('CLEAR_DB: After synchronize_roles_to_db.')
     if last_app_choice:
         db['last_app_choice'] = last_app_choice
     if last_visited_url:
         db['last_visited_url'] = last_visited_url
     if temp_message:
         db['temp_message'] = temp_message
-
-    # Log final state
     if TABLE_LIFECYCLE_LOGGING:
-        log_dictlike_db_to_lifecycle("db", db, title_prefix="CLEAR_DB FINAL (post key restoration)")
-        logger.bind(lifecycle=True).info("CLEAR_DB: Operation fully complete.")
-
+        log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB FINAL (post key restoration)')
+        logger.bind(lifecycle=True).info('CLEAR_DB: Operation fully complete.')
     html_response = HTMLResponse('<div>Database reset complete</div>')
     html_response.headers['HX-Refresh'] = 'true'
     return html_response
-
 
 @rt('/select_profile', methods=['POST'])
 async def select_profile(request):
@@ -4183,65 +2918,55 @@ async def select_profile(request):
     logger.debug(f'Redirecting to: {redirect_url}')
     return Redirect(redirect_url)
 
-
 @rt('/download_file', methods=['GET', 'OPTIONS'])
 async def download_file_endpoint(request):
     """
     Downloads a file from the server.
     Expects 'file' as a query parameter, which should be relative to the downloads directory.
     """
-    # Handle CORS preflight requests
     if request.method == 'OPTIONS':
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': '*',
-            'Access-Control-Max-Age': '86400'  # Cache preflight for 24 hours
-        }
+        headers = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': '*', 'Access-Control-Max-Age': '86400'}
         return HTMLResponse('', headers=headers)
-
-    file_path = request.query_params.get("file")
+    file_path = request.query_params.get('file')
     if DEBUG_MODE:
-        logger.info(f"[📥 DOWNLOAD] Request received for file: {file_path}")
-        logger.info(f"[📥 DOWNLOAD] Request headers: {dict(request.headers)}")
+        logger.info(f'[📥 DOWNLOAD] Request received for file: {file_path}')
+        logger.info(f'[📥 DOWNLOAD] Request headers: {dict(request.headers)}')
     if not file_path:
-        logger.error("[📥 DOWNLOAD] No file path provided")
-        return HTMLResponse("File path is required", status_code=400)
+        logger.error('[📥 DOWNLOAD] No file path provided')
+        return HTMLResponse('File path is required', status_code=400)
     try:
         PLUGIN_PROJECT_ROOT = Path(__file__).resolve().parent
-        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / "downloads"
+        PLUGIN_DOWNLOADS_BASE_DIR = PLUGIN_PROJECT_ROOT / 'downloads'
         if DEBUG_MODE:
-            logger.info(f"[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}")
-            logger.info(f"[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}")
+            logger.info(f'[📥 DOWNLOAD] Base downloads directory: {PLUGIN_DOWNLOADS_BASE_DIR}')
+            logger.info(f'[📥 DOWNLOAD] Base downloads directory exists: {PLUGIN_DOWNLOADS_BASE_DIR.exists()}')
         full_file_path = PLUGIN_DOWNLOADS_BASE_DIR / file_path
         if DEBUG_MODE:
-            logger.info(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
-            logger.info(f"[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}")
+            logger.info(f'[📥 DOWNLOAD] Full file path: {full_file_path}')
+            logger.info(f'[📥 DOWNLOAD] Full file path exists: {full_file_path.exists()}')
             if full_file_path.exists():
-                logger.info(f"[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}")
-                logger.info(f"[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}")
-                logger.info(f"[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}")
+                logger.info(f'[📥 DOWNLOAD] Full file path is file: {full_file_path.is_file()}')
+                logger.info(f'[📥 DOWNLOAD] Full file path is dir: {full_file_path.is_dir()}')
+                logger.info(f'[📥 DOWNLOAD] Full file path size: {full_file_path.stat().st_size}')
         try:
             resolved_path = full_file_path.resolve()
             relative_path = resolved_path.relative_to(PLUGIN_DOWNLOADS_BASE_DIR)
             if DEBUG_MODE:
-                logger.info(f"[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}")
-                logger.info(f"[📥 DOWNLOAD] Relative path: {relative_path}")
+                logger.info(f'[📥 DOWNLOAD] Security check passed. Resolved path: {resolved_path}')
+                logger.info(f'[📥 DOWNLOAD] Relative path: {relative_path}')
         except (ValueError, RuntimeError) as e:
-            logger.error(f"[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}")
-            logger.error(f"[📥 DOWNLOAD] Full file path: {full_file_path}")
-            logger.error(f"[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}")
-            return HTMLResponse("Invalid file path - must be within downloads directory", status_code=400)
+            logger.error(f'[📥 DOWNLOAD] Security check failed for path {file_path}: {str(e)}')
+            logger.error(f'[📥 DOWNLOAD] Full file path: {full_file_path}')
+            logger.error(f'[📥 DOWNLOAD] Base dir: {PLUGIN_DOWNLOADS_BASE_DIR}')
+            return HTMLResponse('Invalid file path - must be within downloads directory', status_code=400)
         if not full_file_path.exists():
-            logger.error(f"[📥 DOWNLOAD] File not found: {full_file_path}")
+            logger.error(f'[📥 DOWNLOAD] File not found: {full_file_path}')
             logger.error(f"[📥 DOWNLOAD] Directory contents: {list(PLUGIN_DOWNLOADS_BASE_DIR.glob('**/*'))}")
-            return HTMLResponse("File not found", status_code=404)
+            return HTMLResponse('File not found', status_code=404)
         if not full_file_path.is_file():
-            logger.error(f"[📥 DOWNLOAD] Path is not a file: {full_file_path}")
-            return HTMLResponse("Path is not a file", status_code=400)
-
-        # Determine content type based on file extension
-        content_type = "application/octet-stream"  # Default
+            logger.error(f'[📥 DOWNLOAD] Path is not a file: {full_file_path}')
+            return HTMLResponse('Path is not a file', status_code=400)
+        content_type = 'application/octet-stream'
         if full_file_path.suffix.lower() == '.csv':
             content_type = 'text/csv'
         elif full_file_path.suffix.lower() == '.txt':
@@ -4256,28 +2981,16 @@ async def download_file_endpoint(request):
             content_type = 'image/png'
         elif full_file_path.suffix.lower() == '.gif':
             content_type = 'image/gif'
-
-        logger.info(f"[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}")
-
-        # Create the response with the file data
-        headers = {
-            'Content-Disposition': f'attachment; filename="{full_file_path.name}"',
-            'Content-Type': content_type,
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': '*',
-            'Access-Control-Allow-Headers': '*'
-        }
-        logger.info(f"[📥 DOWNLOAD] Response headers: {headers}")
-
+        logger.info(f'[📥 DOWNLOAD] Serving file {full_file_path} with content type {content_type}')
+        headers = {'Content-Disposition': f'attachment; filename="{full_file_path.name}"', 'Content-Type': content_type, 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': '*'}
+        logger.info(f'[📥 DOWNLOAD] Response headers: {headers}')
         return FileResponse(full_file_path, headers=headers)
-
     except Exception as e:
-        logger.error(f"[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}")
-        logger.error(f"[📥 DOWNLOAD] Exception type: {type(e)}")
+        logger.error(f'[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}')
+        logger.error(f'[📥 DOWNLOAD] Exception type: {type(e)}')
         import traceback
-        logger.error(f"[📥 DOWNLOAD] Traceback: {traceback.format_exc()}")
-        return HTMLResponse(f"Error serving file: {str(e)}", status_code=500)
-
+        logger.error(f'[📥 DOWNLOAD] Traceback: {traceback.format_exc()}')
+        return HTMLResponse(f'Error serving file: {str(e)}', status_code=500)
 
 class DOMSkeletonMiddleware(BaseHTTPMiddleware):
 
@@ -4315,7 +3028,6 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
                     pipeline_table.add_row(record.pkey, 'ERROR', 'Invalid State')
             console.print(pipeline_table)
         return response
-
 
 def print_routes():
     logger.debug('Route Table')
@@ -4357,14 +3069,12 @@ def print_routes():
         table.add_row(entry[0], entry[1], Text(entry[2], style=f'{entry[3]} on black'), entry[4])
     console.print(table)
 
-
 @rt('/refresh-profile-menu')
 async def refresh_profile_menu(request):
     """Refresh the profile menu dropdown."""
     selected_profile_id = get_current_profile_id()
     selected_profile_name = get_profile_name()
     return create_profile_menu(selected_profile_id, selected_profile_name)
-
 
 @rt('/switch_environment', methods=['POST'])
 async def switch_environment(request):
@@ -4375,32 +3085,10 @@ async def switch_environment(request):
         set_current_environment(environment)
         logger.info(f'Environment switched to: {environment}')
         asyncio.create_task(delayed_restart(2))
-        return HTMLResponse(
-            f"""
-            <div 
-                aria-busy='true'
-                style="
-                    display: flex;
-                    align-items: center;
-                    {pipulate.MENU_ITEM_PADDING}
-                    border-radius: var(--pico-border-radius);
-                    min-height: 2.5rem;
-                "
-            >
-                Switching
-            </div>
-            <style>
-                body {
-                    pointer-events: none;
-                    user-select: none;
-                }
-            </style>
-            """
-        )
+        return HTMLResponse(f"""\n            <div \n                aria-busy='true'\n                style="\n                    display: flex;\n                    align-items: center;\n                    {pipulate.MENU_ITEM_PADDING}\n                    border-radius: var(--pico-border-radius);\n                    min-height: 2.5rem;\n                "\n            >\n                Switching\n            </div>\n            <style>\n                body {pointer - events: none;\n                    user-select: none;\n                }\n            </style>\n            """)
     except Exception as e:
         logger.error(f'Error switching environment: {e}')
         return HTMLResponse(f'Error: {str(e)}', status_code=500)
-
 
 async def delayed_restart(delay_seconds):
     """Restart the server after a delay."""
@@ -4422,7 +3110,6 @@ app.add_middleware(DOMSkeletonMiddleware)
 logger.debug('Application setup completed with DOMSkeletonMiddleware.')
 logger.debug(f'Using MODEL: {MODEL}')
 
-
 def check_syntax(filename):
     with open(filename, 'r') as file:
         source = file.read()
@@ -4436,13 +3123,10 @@ def check_syntax(filename):
         print(f'Error: {e}')
         return False
 
-
 def restart_server():
-    # Check for critical operations before restarting (both methods for safety)
-    if shared_app_state["critical_operation_in_progress"] or is_critical_operation_in_progress():
-        log.warning("Restart requested but critical operation in progress. Deferring restart.")
+    if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
+        log.warning('Restart requested but critical operation in progress. Deferring restart.')
         return
-        
     if not check_syntax(Path(__file__)):
         log.warning('Syntax error detected', 'Fix the error and save the file again')
         return
@@ -4459,34 +3143,27 @@ def restart_server():
             else:
                 log.error('Max restart retries reached', 'Please restart the server manually')
 
-
 class ServerRestartHandler(FileSystemEventHandler):
 
     def _should_ignore_event(self, event):
         """Check if event should be ignored to prevent unnecessary restarts."""
         if event.is_directory:
             return True
-        
-        # Ignore patterns (cache, dotfiles, temp files)
-        ignore_patterns = ["/.", "__pycache__", ".pyc", ".swp", ".tmp", ".DS_Store"]
-        if any(pattern in event.src_path for pattern in ignore_patterns):
+        ignore_patterns = ['/.', '__pycache__', '.pyc', '.swp', '.tmp', '.DS_Store']
+        if any((pattern in event.src_path for pattern in ignore_patterns)):
             return True
         return False
 
     def on_modified(self, event):
         if self._should_ignore_event(event):
             return
-        
         path = Path(event.src_path)
         if path.suffix == '.py':
-            # Check for critical operations before restarting (both methods for safety)
-            if shared_app_state["critical_operation_in_progress"] or is_critical_operation_in_progress():
-                log.warning(f"Watchdog: Critical operation in progress. Deferring restart for {path}")
+            if shared_app_state['critical_operation_in_progress'] or is_critical_operation_in_progress():
+                log.warning(f'Watchdog: Critical operation in progress. Deferring restart for {path}')
                 return
-            
             print(f'{path} has been modified. Checking syntax and restarting...')
             restart_server()
-
 
 def run_server_with_watchdog():
     fig('SERVER RESTART')
@@ -4513,54 +3190,8 @@ def run_server_with_watchdog():
     try:
         log.startup('Server starting on http://localhost:5001')
         log_level = 'debug' if DEBUG_MODE else 'warning'
-        # Configure logging format and settings
-        log_config = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'formatters': {
-                'default': {
-                    '()': 'uvicorn.logging.DefaultFormatter',
-                    'fmt': '%(levelprefix)s %(asctime)s | %(message)s',
-                    'use_colors': True
-                }
-            },
-            'handlers': {
-                'default': {
-                    'formatter': 'default',
-                    'class': 'logging.StreamHandler',
-                    'stream': 'ext://sys.stderr'
-                }
-            },
-            'loggers': {
-                'uvicorn': {
-                    'handlers': ['default'],
-                    'level': log_level.upper()
-                },
-                'uvicorn.error': {
-                    'level': log_level.upper()
-                },
-                'uvicorn.access': {
-                    'handlers': ['default'],
-                    'level': log_level.upper(),
-                    'propagate': False
-                },
-                'uvicorn.asgi': {
-                    'handlers': ['default'],
-                    'level': log_level.upper(),
-                    'propagate': False
-                }
-            }
-        }
-
-        # Start the server with configured logging
-        uvicorn.run(
-            app,
-            host='0.0.0.0',
-            port=5001,
-            log_level=log_level,
-            access_log=DEBUG_MODE,
-            log_config=log_config
-        )
+        log_config = {'version': 1, 'disable_existing_loggers': False, 'formatters': {'default': {'()': 'uvicorn.logging.DefaultFormatter', 'fmt': '%(levelprefix)s %(asctime)s | %(message)s', 'use_colors': True}}, 'handlers': {'default': {'formatter': 'default', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stderr'}}, 'loggers': {'uvicorn': {'handlers': ['default'], 'level': log_level.upper()}, 'uvicorn.error': {'level': log_level.upper()}, 'uvicorn.access': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}, 'uvicorn.asgi': {'handlers': ['default'], 'level': log_level.upper(), 'propagate': False}}}
+        uvicorn.run(app, host='0.0.0.0', port=5001, log_level=log_level, access_log=DEBUG_MODE, log_config=log_config)
     except KeyboardInterrupt:
         log.event('server', 'Server shutdown requested by user')
         observer.stop()
@@ -4570,8 +3201,5 @@ def run_server_with_watchdog():
         restart_server()
     finally:
         observer.join()
-
-
 if __name__ == '__main__':
     run_server_with_watchdog()
-
