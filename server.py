@@ -3216,12 +3216,18 @@ async def send_startup_environment_message():
             
         await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system')
         
-        # Add training prompt to conversation history for current location
+        # Also send endpoint message and training for current location
         current_endpoint = db.get('last_app_choice', '')
+        
+        # Add training prompt to conversation history
         build_endpoint_training(current_endpoint)
         
-        # Note: Don't send endpoint message here as temp_message system handles it
-        # The temp_message from /redirect/ will be processed by JavaScript automatically
+        # Send endpoint message if available (only if no temp_message to avoid duplication)
+        if 'temp_message' not in db:
+            endpoint_message = build_endpoint_messages(current_endpoint)
+            if endpoint_message:
+                await asyncio.sleep(1)  # Brief pause between messages
+                await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
