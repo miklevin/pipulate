@@ -98,7 +98,7 @@ MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = 'Introduction'
 DEFAULT_ACTIVE_ROLES = {'Core', 'Botify Employee'}
-INTRO_LLM_PROMPT_DELAY = 3  # Seconds to wait before sending intro prompts for surprise effect
+INTRO_LLM_PROMPT_DELAY = 4  # Seconds to wait before sending intro prompts for surprise effect
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -3214,7 +3214,7 @@ async def send_startup_environment_message():
         else:
             env_message = f"🚀 Server started in {env_display} mode. Ready for production use."
             
-        await pipulate.stream(env_message, verbatim=True)
+        await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system')
         
         # Also send endpoint message and training for current location
         current_endpoint = db.get('last_app_choice', '')
@@ -3226,7 +3226,7 @@ async def send_startup_environment_message():
         endpoint_message = build_endpoint_messages(current_endpoint)
         if endpoint_message:
             await asyncio.sleep(1)  # Brief pause between messages
-            await pipulate.stream(endpoint_message, verbatim=True)
+            await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
@@ -3235,7 +3235,7 @@ async def delayed_intro_prompt(prompt):
     """Send an intro prompt with delay for surprise effect and to let startup messages appear first."""
     await asyncio.sleep(INTRO_LLM_PROMPT_DELAY)  # Wait longer than startup message (3s) for proper ordering and surprise
     try:
-        await pipulate.stream(prompt, verbatim=False)
+        await pipulate.message_queue.add(pipulate, prompt, verbatim=False, role='user')
     except Exception as e:
         logger.error(f'Error sending delayed intro prompt: {e}')
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
