@@ -1238,18 +1238,18 @@ class DevAssistant:
                         H4("🔧 FUNCTIONAL PLUGIN ANALYSIS", style="color: #28a745; margin-bottom: 1rem; border-bottom: 2px solid #28a745; padding-bottom: 0.5rem;"),
                         
                         # Core Patterns Found
-                        Div([
+                        (Div(
                             H5("✅ Core Patterns:", style="color: green; margin-bottom: 0.5rem;"),
-                            Ul([Li(f"✅ {pattern}") for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                            Ul(*[Li(f"✅ {pattern}") for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
                                style="color: green; margin-bottom: 1rem;")
-                        ]) if patterns_found else None,
+                        ) if patterns_found else None),
                         
                         # Functional Issues
-                        Div([
+                        (Div(
                             H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul([Li(f"❌ {issue}") for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                            Ul(*[Li(f"❌ {issue}") for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
                                style="color: red; margin-bottom: 1rem;")
-                        ]) if any(issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])) else None,
+                        ) if any(issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])) else None),
                         
                         style="margin-bottom: 2rem;"
                     ),
@@ -1262,10 +1262,10 @@ class DevAssistant:
                           style="color: #6c757d; margin-bottom: 1rem;"),
                         
                         # Template Requirements
-                        Div([
+                        (Div(
                             H5("Missing for Template Source:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul([Li(req) for req in missing_reqs], style="color: orange;")
-                        ]) if missing_reqs else Div("✅ All template source requirements met", style="color: green; font-weight: bold;"),
+                            Ul(*[Li(req) for req in missing_reqs], style="color: orange;")
+                        ) if missing_reqs else Div("✅ All template source requirements met", style="color: green; font-weight: bold;")),
                         
                         style="margin-bottom: 2rem;"
                     ),
@@ -1278,11 +1278,11 @@ class DevAssistant:
                           style="color: #6c757d; margin-bottom: 1rem;"),
                         
                         # Recipient Requirements
-                        Div([
+                        Div(
                             P("✅ Has step methods that can be replaced" if swap_recipient_ready 
                               else "❌ No step methods found or missing swappable markers", 
                               style=f"color: {swap_recipient_color}; font-weight: bold;")
-                        ]),
+                        ),
                         
                         style="margin-bottom: 2rem;"
                     ),
