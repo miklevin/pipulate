@@ -543,7 +543,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
         for index, (prefix, display_name, endpoint) in enumerate(plugins, 1):
             plugin_items.append(
                 Li(
-                    Span(f"{index}. ", style="font-weight: bold; color: var(--pico-muted-color);"),
+                    Span(f"{index}. ", style=f"font-weight: bold; color: var(--pico-muted-color); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']};"),
                     A(
                         display_name, 
                         href=endpoint,
