@@ -19,6 +19,7 @@ class DocumentationPlugin:
     def __init__(self, app, pipulate, pipeline, db):
         logger.debug(f"DocumentationPlugin initialized with NAME: {self.NAME}")
         self.pipulate = pipulate
+        self.db = db
         self._has_streamed = False
         
         # Dynamically discover all documentation files
@@ -1362,8 +1363,7 @@ class DocumentationPlugin:
                 
                 self.pipulate.append_to_history(
                     f"[WIDGET CONTENT] Pipulate Documentation Browser\n{docs_message}",
-                    role="system",
-                    quiet=True
+                    role="system"
                 )
 
                 self._has_streamed = True
