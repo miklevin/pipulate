@@ -15,12 +15,12 @@ ROLES = []
 
 # Define the standard order of roles
 ROLE_ORDER = {
-    'Core': 0,
-    'Botify Employee': 1,
+    'Botify Employee': 0,
+    'Core': 1,
     'Tutorial': 2,
     'Developer': 3,
-    'Components': 4,
-    'Workshop': 5,
+    'Workshop': 4,
+    'Components': 5,
 }
 
 # Plugin visibility is now determined by actual ROLES declarations in plugin files
