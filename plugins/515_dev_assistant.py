@@ -1036,35 +1036,13 @@ class DevAssistant:
                     id=step_id
                 )
             
-            # Display comprehensive pattern validation results
+            # Display organized analysis results with clear purpose-driven sections
             patterns_found = analysis_results.get('patterns_found', [])
             issues = analysis_results.get('issues', [])
             template_suitability = analysis_results.get('template_suitability', {})
             coding_prompts = analysis_results.get('coding_assistant_prompts', [])
-            transplant_analysis = analysis_results.get('transplantation_analysis', {})  # NEW
+            transplant_analysis = analysis_results.get('transplantation_analysis', {})
             filename = analysis_results.get('filename', 'unknown')
-            
-            # Create suitability status display
-            suitability_items = []
-            if template_suitability.get('as_template_source'):
-                suitability_items.append(Li("🎯 Template Source: ✅ Ready", style='color: green;'))
-            else:
-                suitability_items.append(Li("🎯 Template Source: ❌ Missing requirements", style='color: red;'))
-                
-            if template_suitability.get('as_splice_target'):
-                suitability_items.append(Li("🔧 Splice Target: ✅ Ready", style='color: green;'))
-            else:
-                suitability_items.append(Li("🔧 Splice Target: ❌ Missing markers", style='color: red;'))
-                
-            if template_suitability.get('as_swap_target'):
-                suitability_items.append(Li("🔄 Swap Target: ✅ Ready", style='color: green;'))
-            else:
-                suitability_items.append(Li("🔄 Swap Target: ❌ No step methods", style='color: red;'))
-                
-            if template_suitability.get('as_swap_source'):
-                suitability_items.append(Li("📤 Swap Source: ✅ Ready", style='color: green;'))
-            else:
-                suitability_items.append(Li("📤 Swap Source: ❌ No step methods", style='color: red;'))
             
             missing_reqs = template_suitability.get('missing_requirements', [])
             
@@ -1212,19 +1190,110 @@ class DevAssistant:
                     )
                 ])
             
+            # PURPOSE-DRIVEN ANALYSIS SECTIONS
+            
+            # 1. FUNCTIONAL PLUGIN STATUS
+            functional_status = "✅ Functional" if patterns_found and not issues else "⚠️ Has Issues" if issues else "❓ Unknown"
+            functional_color = "green" if "✅" in functional_status else "orange" if "⚠️" in functional_status else "gray"
+            
+            # 2. TEMPLATE SOURCE STATUS  
+            template_source_ready = template_suitability.get('as_template_source', False)
+            template_source_status = "✅ Ready" if template_source_ready else "❌ Needs Work"
+            template_source_color = "green" if template_source_ready else "red"
+            
+            # 3. SWAP RECIPIENT STATUS
+            swap_recipient_ready = template_suitability.get('as_swap_target', False)
+            swap_recipient_status = "✅ Ready" if swap_recipient_ready else "❌ Needs Work"
+            swap_recipient_color = "green" if swap_recipient_ready else "red"
+            
+            # 4. SWAP SOURCE STATUS
+            ready_transplant_commands = [cmd for cmd in transplant_analysis.get('transplant_commands', []) if cmd.get('compatibility') == 'Good']
+            swap_source_ready = bool(ready_transplant_commands)
+            swap_source_status = "✅ Ready" if swap_source_ready else "❌ Needs Work"
+            swap_source_color = "green" if swap_source_ready else "red"
+            
             response_content = Div(
                 Card(
-                    H3(f'{step.show}'),
-                    H4('✅ Patterns Found:'),
-                    Ul(*[Li(pattern) for pattern in patterns_found]) if patterns_found else P('No patterns detected.'),
-                    H4('❌ Issues Found:'),
-                    Ul(*[Li(issue, style='color: red;') for issue in issues]) if issues else P('No issues found!', style='color: green;'),
-                    H4('🎯 Template & Helper Tool Compatibility:'),
-                    Ul(*suitability_items),
-                    H4('📋 Missing Requirements:') if missing_reqs else None,
-                    Ul(*[Li(req, style='color: orange;') for req in missing_reqs]) if missing_reqs else None,
-                    *transplant_section,  # NEW: Add transplantation analysis
+                    H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
+                    
+                    # STATUS SUMMARY with consistent headlines
+                    Div(
+                        H4("📊 CAPABILITY SUMMARY", style="color: #007bff; margin-bottom: 1rem; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem;"),
+                        Div([
+                            Div(f"🔧 Functional Plugin: {functional_status}", style=f"color: {functional_color}; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📋 Template Source: {template_source_status}", style=f"color: {template_source_color}; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📥 Swap Recipient: {swap_recipient_status}", style=f"color: {swap_recipient_color}; font-weight: bold; margin-bottom: 0.5rem;"),
+                            Div(f"📤 Swap Source: {swap_source_status}", style=f"color: {swap_source_color}; font-weight: bold;")
+                        ], style="background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem;")
+                    ),
+                    
+                    # 1. FUNCTIONAL PLUGIN DETAILS
+                    Div(
+                        H4("🔧 FUNCTIONAL PLUGIN ANALYSIS", style="color: #28a745; margin-bottom: 1rem; border-bottom: 2px solid #28a745; padding-bottom: 0.5rem;"),
+                        
+                        # Core Patterns Found
+                        Div([
+                            H5("✅ Core Patterns:", style="color: green; margin-bottom: 0.5rem;"),
+                            Ul([Li(f"✅ {pattern}") for pattern in patterns_found if not any(x in pattern.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                               style="color: green; margin-bottom: 1rem;")
+                        ]) if patterns_found else None,
+                        
+                        # Functional Issues
+                        Div([
+                            H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
+                            Ul([Li(f"❌ {issue}") for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])], 
+                               style="color: red; margin-bottom: 1rem;")
+                        ]) if any(issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])) else None,
+                        
+                        style="margin-bottom: 2rem;"
+                    ),
+                    
+                    # 2. TEMPLATE SOURCE DETAILS
+                    Div(
+                        H4("📋 TEMPLATE SOURCE ANALYSIS", style="color: #6f42c1; margin-bottom: 1rem; border-bottom: 2px solid #6f42c1; padding-bottom: 0.5rem;"),
+                        P(f"Status: {template_source_status}", style=f"color: {template_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
+                        P("Template sources provide the foundation for creating new workflows (like blank_placeholder.py or parameter_buster.py)", 
+                          style="color: #6c757d; margin-bottom: 1rem;"),
+                        
+                        # Template Requirements
+                        Div([
+                            H5("Missing for Template Source:", style="color: red; margin-bottom: 0.5rem;"),
+                            Ul([Li(req) for req in missing_reqs], style="color: orange;")
+                        ]) if missing_reqs else Div("✅ All template source requirements met", style="color: green; font-weight: bold;"),
+                        
+                        style="margin-bottom: 2rem;"
+                    ),
+                    
+                    # 3. SWAP RECIPIENT DETAILS
+                    Div(
+                        H4("📥 SWAP RECIPIENT ANALYSIS", style="color: #17a2b8; margin-bottom: 1rem; border-bottom: 2px solid #17a2b8; padding-bottom: 0.5rem;"),
+                        P(f"Status: {swap_recipient_status}", style=f"color: {swap_recipient_color}; font-weight: bold; margin-bottom: 0.75rem;"),
+                        P("Swap recipients can accept step methods from other workflows using swap_workflow_step.py", 
+                          style="color: #6c757d; margin-bottom: 1rem;"),
+                        
+                        # Recipient Requirements
+                        Div([
+                            P("✅ Has step methods that can be replaced" if swap_recipient_ready 
+                              else "❌ No step methods found or missing swappable markers", 
+                              style=f"color: {swap_recipient_color}; font-weight: bold;")
+                        ]),
+                        
+                        style="margin-bottom: 2rem;"
+                    ),
+                    
+                    # 4. SWAP SOURCE DETAILS
+                    Div(
+                        H4("📤 SWAP SOURCE ANALYSIS", style="color: #fd7e14; margin-bottom: 1rem; border-bottom: 2px solid #fd7e14; padding-bottom: 0.5rem;"),
+                        P(f"Status: {swap_source_status}", style=f"color: {swap_source_color}; font-weight: bold; margin-bottom: 0.75rem;"),
+                        P("Swap sources provide step methods that can be transplanted into other workflows", 
+                          style="color: #6c757d; margin-bottom: 1rem;"),
+                        *transplant_section,
+                        style="margin-bottom: 2rem;"
+                    ),
+                    
+                    # CODING ASSISTANCE SECTION
                     *coding_section,
+                    
                     Form(
                         Button('Continue to Debug Assistance ▸', type='submit'),
                         hx_post=f'/{app_name}/{step_id}_submit',
