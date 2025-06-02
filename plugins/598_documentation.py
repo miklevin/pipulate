@@ -1534,6 +1534,13 @@ class DocumentationPlugin:
             
             # Quick stats summary with clickable links to browse sections
             Div(
+                P(A(Span("📄", cls="emoji", style="margin-right: 0.25rem;"), "README - Project Overview", 
+                    href="/docs/readme", target="_blank",
+                    style="color: var(--pico-primary); text-decoration: none; font-weight: bold;",
+                    onmouseover="this.style.textDecoration='underline'; this.style.color='var(--pico-primary-hover)';",
+                    onmouseout="this.style.textDecoration='none'; this.style.color='var(--pico-primary)';"), 
+                  style="margin: 0.25rem 0;"),
+                Hr(style="border: none; height: 1px; background: #e9ecef; margin: 8px 0;"),
                 P(A(Span("📊", cls="emoji", style="margin-right: 0.25rem;"), f"{len(self.DOCS)} documents discovered", 
                     href="/docs", target="_blank",
                     style="color: var(--pico-primary); text-decoration: none;",
