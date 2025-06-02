@@ -34,7 +34,7 @@ class ProfilesPluginIdentity:
             return f"{self.EMOJI} {name}"
         return name
     
-    ENDPOINT_MESSAGE = 'Manage user profiles (clients, customers, etc.). Each profile is a separate workspace.'
+    ENDPOINT_MESSAGE = 'Manage user profiles (clients, customers, etc.). Each Profile is a separate workspace.'
 
 
 class ProfileCrudOperations(BaseCrud):

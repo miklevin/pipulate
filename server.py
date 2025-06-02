@@ -1732,7 +1732,7 @@ if not os.path.exists('plugins'):
     logger.debug('Created plugins directory')
 
 def build_endpoint_messages(endpoint):
-    endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.', 'profile': "This is where you add, edit, and delete profiles (aka clients). The Nickname field is the only name shown on the menu so it is safe to use in front of clients. They only see each other's Nicknames."}
+    endpoint_messages = {'': f'Welcome to {APP_NAME}. You are on the {HOME_MENU_ITEM.lower()} page. Select an app from the menu to get started.'}
     for plugin_name, plugin_instance in plugin_instances.items():
         if plugin_name not in endpoint_messages:
             if hasattr(plugin_instance, 'get_endpoint_message') and callable(getattr(plugin_instance, 'get_endpoint_message')):
@@ -1750,7 +1750,7 @@ def build_endpoint_messages(endpoint):
     return endpoint_messages.get(endpoint, None)
 
 def build_endpoint_training(endpoint):
-    endpoint_training = {'': 'You were just switched to the home page.', 'profile': 'You were just switched to the profile app.'}
+    endpoint_training = {'': 'You were just switched to the home page.'}
     for workflow_name, workflow_instance in plugin_instances.items():
         if workflow_name not in endpoint_training:
             if hasattr(workflow_instance, 'TRAINING_PROMPT'):
@@ -2393,7 +2393,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
     else:
         plugin_display_name = getattr(profiles_plugin_inst, 'DISPLAY_NAME', 'Profiles')
         if not profile_locked:
-            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
+            menu_items.append(Li(A(f'Edit {plugin_display_name}', href=f'/redirect/{profiles_plugin_inst.name}', cls='dropdown-item menu-item-header'), cls='block'))
     active_profiles_list = []
     if profiles:
         if profile_locked:

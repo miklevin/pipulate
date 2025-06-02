@@ -87,7 +87,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def ENDPOINT_MESSAGE(self):
-        return f'Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete. Each list is kept separate for each PROFILE.'
+        return f'Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete. Each list is kept separate for each Profile.'
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""

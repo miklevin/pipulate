@@ -186,7 +186,7 @@ class CrudUI(PluginIdentityManager):
 
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu."
+        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu. foo"
 
     def __init__(self, app, pipulate, pipeline, db_dictlike):
         """Initialize the List Plugin."""
