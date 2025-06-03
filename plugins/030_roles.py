@@ -479,11 +479,31 @@ def render_item(item, app_instance):
     details_id = f"details-{item_id}"
     
     return Li(
-        # Main role item with checkbox and name
+        # Main role item with checkbox and name - make this area clickable too
         Div(
             checkbox,
             text_display,
-            style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']};"
+            style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; cursor: pointer;",
+            onmousedown="this.parentElement._mouseDownPos = {x: event.clientX, y: event.clientY};",
+            onclick=f"""
+                // Only handle click if it wasn't a drag operation and wasn't on checkbox
+                if (this.parentElement._mouseDownPos && event.target.type !== 'checkbox') {{
+                    const dragThreshold = 5; // pixels
+                    const dragDistance = Math.sqrt(
+                        Math.pow(event.clientX - this.parentElement._mouseDownPos.x, 2) + 
+                        Math.pow(event.clientY - this.parentElement._mouseDownPos.y, 2)
+                    );
+                    
+                    // Only process as click if user didn't drag beyond threshold
+                    if (dragDistance < dragThreshold) {{
+                        const details = this.parentElement.querySelector('details');
+                        if (details) {{
+                            details.open = !details.open;
+                        }}
+                    }}
+                    this.parentElement._mouseDownPos = null;
+                }}
+            """
         ),
         # Plugin visibility information below
         plugin_info,
