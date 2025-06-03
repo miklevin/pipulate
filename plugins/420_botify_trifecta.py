@@ -229,12 +229,14 @@ class BotifyCsvDownloaderWorkflow:
             'VIEW_FOLDER': '📂 View Folder',
             'DOWNLOAD_CSV': '⬇️ Download CSV',
             'VISUALIZE_GRAPH': '🌐 Visualize Graph',
-            'SKIP_STEP': '⏭️ Skip'
+            'SKIP_STEP': 'Skip️'
         },
         'BUTTON_STYLES': {
             'STANDARD': 'secondary outline',
             'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
-            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;'
+            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
+            'SKIP_BUTTON': 'secondary outline',
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;'
         }
     }
 
@@ -853,7 +855,8 @@ class BotifyCsvDownloaderWorkflow:
             if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
                 button_row_items.append(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'], 
-                           type='submit', name='action', value='skip', cls='secondary outline')
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.UI_CONSTANTS['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
             
             return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
@@ -1064,7 +1067,8 @@ class BotifyCsvDownloaderWorkflow:
             if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
                 button_row_items.append(
                     Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'], 
-                           type='submit', name='action', value='skip', cls='secondary outline')
+                           type='submit', name='action', value='skip', cls='secondary outline',
+                           style=self.UI_CONSTANTS['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
             
             return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
