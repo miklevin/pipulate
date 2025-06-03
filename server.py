@@ -2609,13 +2609,32 @@ def create_menu_container(menu_items):
     """Create the final menu container with all items."""
     return Details(Summary('APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
+def get_dynamic_role_css():
+    """Get dynamic role CSS from the roles plugin - single source of truth."""
+    roles_plugin = plugin_instances.get('roles')
+    if roles_plugin and hasattr(roles_plugin, 'generate_role_css'):
+        try:
+            return roles_plugin.generate_role_css()
+        except Exception as e:
+            logger.error(f"Error generating role CSS: {e}")
+    return ""  # Fallback to static CSS if dynamic generation fails
+
 async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for container creation")
         return Container(H1('Error: Profiles plugin not found', cls='text-invalid'))
+    
+    # Inject dynamic role CSS - single source of truth
+    dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
-    return Container(nav_group, Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), create_poke_button())
+    
+    return Container(
+        Style(dynamic_css),  # Dynamic CSS injection
+        nav_group, 
+        Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
+        create_poke_button()
+    )
 MAX_INTRO_PAGES = 4
 
 async def render_intro_page_with_navigation(page_num_str: str):

@@ -153,29 +153,36 @@ class CrudUI(PluginIdentityManager):
             'BORDER_WIDTH': '3px',
         },
         'ROLE_COLORS': {
-            'menu-role-botify-employee': {
-                'border': '#3b82f6',
-                'background': 'rgba(59, 130, 246, 0.1)'
-            },
+            # 🎨 SINGLE SOURCE OF TRUTH - Edit colors here, CSS generated automatically
             'menu-role-core': {
-                'border': '#6b7280',
-                'background': 'rgba(107, 114, 128, 0.1)'
+                'border': '#6b7280',            # GRAY - Always visible, neutral
+                'background': 'rgba(107, 114, 128, 0.1)',
+                'background_light': 'rgba(107, 114, 128, 0.05)'
+            },
+            'menu-role-botify-employee': {
+                'border': '#a855f7',            # PURPLE - Botify Employee role
+                'background': 'rgba(168, 85, 247, 0.1)',
+                'background_light': 'rgba(168, 85, 247, 0.05)'
             },
             'menu-role-tutorial': {
-                'border': '#22c55e',
-                'background': 'rgba(34, 197, 94, 0.1)'
+                'border': '#22c55e',            # GREEN - Learning/educational
+                'background': 'rgba(34, 197, 94, 0.1)',
+                'background_light': 'rgba(34, 197, 94, 0.05)'
             },
             'menu-role-developer': {
-                'border': '#f97316',
-                'background': 'rgba(249, 115, 22, 0.1)'
+                'border': '#f97316',            # ORANGE - Advanced/technical
+                'background': 'rgba(249, 115, 22, 0.1)',
+                'background_light': 'rgba(249, 115, 22, 0.05)'
             },
             'menu-role-components': {
-                'border': '#a855f7',
-                'background': 'rgba(168, 85, 247, 0.1)'
+                'border': '#3b82f6',            # BLUE - Components role  
+                'background': 'rgba(59, 130, 246, 0.1)',
+                'background_light': 'rgba(59, 130, 246, 0.05)'
             },
             'menu-role-workshop': {
-                'border': '#eab308',
-                'background': 'rgba(234, 179, 8, 0.1)'
+                'border': '#eab308',            # YELLOW - Experimental/creative
+                'background': 'rgba(234, 179, 8, 0.1)',
+                'background_light': 'rgba(234, 179, 8, 0.05)'
             }
         },
         'FALLBACK_COLORS': {
@@ -183,6 +190,37 @@ class CrudUI(PluginIdentityManager):
             'background': 'var(--pico-card-background-color)'
         }
     }
+    
+    @classmethod 
+    def generate_role_css(cls):
+        """Generate CSS rules from ROLE_COLORS - single source of truth approach."""
+        css_rules = []
+        
+        # Generate main role CSS
+        for role_class, colors in cls.UI_CONSTANTS['ROLE_COLORS'].items():
+            css_rules.append(f"""
+.{role_class} {{
+    background-color: {colors['background']} !important;
+    border-left: 3px solid {colors['border']} !important;
+}}""")
+        
+        # Generate light theme adjustments (except core which doesn't need lighter bg)
+        for role_class, colors in cls.UI_CONSTANTS['ROLE_COLORS'].items():
+            if role_class != 'menu-role-core':  # Core doesn't need light theme adjustment
+                css_rules.append(f"""
+[data-theme="light"] .{role_class} {{
+    background-color: {colors['background_light']} !important;
+}}""")
+        
+        # Generate selected state rules
+        role_selectors = ', '.join([f'.{role_class}[style*="background-color: var(--pico-primary-focus)"]' 
+                                   for role_class in cls.UI_CONSTANTS['ROLE_COLORS'].keys()])
+        css_rules.append(f"""
+{role_selectors} {{
+    background-color: var(--pico-primary-focus) !important;
+}}""")
+        
+        return '\n'.join(css_rules)
 
     @property
     def ENDPOINT_MESSAGE(self):
@@ -317,6 +355,8 @@ class CrudUI(PluginIdentityManager):
         logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
 
         return Div(
+            # Dynamic CSS injection - single source of truth for role colors
+            Style(self.generate_role_css()),
             Card(
                 H2(f"{self.DISPLAY_NAME}"),
                 P(

@@ -671,20 +671,26 @@ hr {
 }
 
 /* ============================================================================
-   ROLE-BASED COLOR SYSTEM - Easy Color Swapping Guide
+   ROLE-BASED COLOR SYSTEM - NOW GENERATED DYNAMICALLY!
    ============================================================================
    
-   TO SWAP COLORS: Simply exchange the hex codes between roles below
+   🎨 ROLE COLORS ARE NOW CONTROLLED BY PYTHON - SINGLE SOURCE OF TRUTH!
    
-   CURRENT COLOR ASSIGNMENTS:
-   • Core (always visible)    → GRAY    (#6b7280)
-   • Botify Employee         → PURPLE  (#a855f7) ← SWAPPED with Components  
-   • Tutorial                → GREEN   (#22c55e)
-   • Developer               → ORANGE  (#f97316)
-   • Components              → BLUE    (#3b82f6) ← SWAPPED with Botify Employee
-   • Workshop                → YELLOW  (#eab308)
+   ✅ TO CHANGE ROLE COLORS: Edit the ROLE_COLORS in pipulate/plugins/030_roles.py
+   ❌ DO NOT EDIT CSS HERE: These static rules have been replaced by dynamic generation
    
-   COLOR PALETTE REFERENCE:
+   HOW IT WORKS:
+   1. Colors defined in Python: pipulate/plugins/030_roles.py -> UI_CONSTANTS -> ROLE_COLORS
+   2. CSS generated dynamically: CrudUI.generate_role_css() method  
+   3. CSS injected at runtime: server.py -> get_dynamic_role_css() -> Style() tag
+   
+   BENEFITS:
+   • Single source of truth - edit colors in one place only
+   • No more sync issues between Python and CSS
+   • Dynamic updates without server restart
+   • Maintainable and less error-prone
+   
+   COLOR PALETTE REFERENCE (edit in Python):
    🔵 BLUE    = #3b82f6 (rgba(59, 130, 246, 0.1))
    🟣 PURPLE  = #a855f7 (rgba(168, 85, 247, 0.1))
    🟢 GREEN   = #22c55e (rgba(34, 197, 94, 0.1))
@@ -692,81 +698,21 @@ hr {
    🟡 YELLOW  = #eab308 (rgba(234, 179, 8, 0.1))
    ⚫ GRAY    = #6b7280 (rgba(107, 114, 128, 0.1))
    
-   NOTE: Each role needs TWO values:
-   1. Border color (solid hex: #xxxxxx)
-   2. Background color (transparent rgba: rgba(r, g, b, 0.1))
+   ============================================================================ */
+
+/* 
+   The following CSS is now GENERATED DYNAMICALLY from Python:
+   - .menu-role-core
+   - .menu-role-botify-employee  
+   - .menu-role-tutorial
+   - .menu-role-developer
+   - .menu-role-components
+   - .menu-role-workshop
+   - [data-theme="light"] variations
+   - Selected state rules
    
-   ============================================================================ */
-
-/* CORE ROLE - Always visible, neutral gray */
-.menu-role-core {
-    background-color: rgba(107, 114, 128, 0.1) !important;  /* GRAY background */
-    border-left: 3px solid #6b7280 !important;              /* GRAY border */
-}
-
-/* BOTIFY EMPLOYEE ROLE - Purple (swapped from blue) */
-.menu-role-botify-employee {
-    background-color: rgba(168, 85, 247, 0.1) !important;   /* PURPLE background */
-    border-left: 3px solid #a855f7 !important;              /* PURPLE border */
-}
-
-/* TUTORIAL ROLE - Green (learning/educational) */
-.menu-role-tutorial {
-    background-color: rgba(34, 197, 94, 0.1) !important;    /* GREEN background */
-    border-left: 3px solid #22c55e !important;              /* GREEN border */
-}
-
-/* DEVELOPER ROLE - Orange (advanced/technical) */
-.menu-role-developer {
-    background-color: rgba(249, 115, 22, 0.1) !important;   /* ORANGE background */
-    border-left: 3px solid #f97316 !important;              /* ORANGE border */
-}
-
-/* COMPONENTS ROLE - Blue (swapped from purple) */
-.menu-role-components {
-    background-color: rgba(59, 130, 246, 0.1) !important;   /* BLUE background */
-    border-left: 3px solid #3b82f6 !important;              /* BLUE border */
-}
-
-/* WORKSHOP ROLE - Yellow (experimental/creative) */
-.menu-role-workshop {
-    background-color: rgba(234, 179, 8, 0.1) !important;    /* YELLOW background */
-    border-left: 3px solid #eab308 !important;              /* YELLOW border */
-}
-
-/* ============================================================================
-   LIGHT THEME ADJUSTMENTS - Subtler backgrounds for better contrast
-   ============================================================================ */
-
-[data-theme="light"] .menu-role-botify-employee {
-    background-color: rgba(168, 85, 247, 0.05) !important;  /* PURPLE - lighter for light theme */
-}
-
-[data-theme="light"] .menu-role-tutorial {
-    background-color: rgba(34, 197, 94, 0.05) !important;   /* GREEN - lighter for light theme */
-}
-
-[data-theme="light"] .menu-role-developer {
-    background-color: rgba(249, 115, 22, 0.05) !important;  /* ORANGE - lighter for light theme */
-}
-
-[data-theme="light"] .menu-role-components {
-    background-color: rgba(59, 130, 246, 0.05) !important;  /* BLUE - lighter for light theme */
-}
-
-[data-theme="light"] .menu-role-workshop {
-    background-color: rgba(234, 179, 8, 0.05) !important;   /* YELLOW - lighter for light theme */
-}
-
-/* Selected state maintains selection color but keeps role border */
-.menu-role-core[style*="background-color: var(--pico-primary-focus)"],
-.menu-role-botify-employee[style*="background-color: var(--pico-primary-focus)"],
-.menu-role-tutorial[style*="background-color: var(--pico-primary-focus)"],
-.menu-role-developer[style*="background-color: var(--pico-primary-focus)"],
-.menu-role-components[style*="background-color: var(--pico-primary-focus)"],
-.menu-role-workshop[style*="background-color: var(--pico-primary-focus)"] {
-    background-color: var(--pico-primary-focus) !important;
-}
+   Edit colors in: pipulate/plugins/030_roles.py -> UI_CONSTANTS -> ROLE_COLORS
+*/
 
 /* ============================================================================
    FLYOUT PANEL - Positioned notification/action panels
