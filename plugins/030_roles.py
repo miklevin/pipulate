@@ -153,13 +153,13 @@ class CrudUI(PluginIdentityManager):
             'BORDER_WIDTH': '3px',
         },
         'ROLE_COLORS': {
-            'menu-role-core': {
-                'border': '#6b7280',
-                'background': 'rgba(107, 114, 128, 0.1)'
-            },
             'menu-role-botify-employee': {
                 'border': '#3b82f6',
                 'background': 'rgba(59, 130, 246, 0.1)'
+            },
+            'menu-role-core': {
+                'border': '#6b7280',
+                'background': 'rgba(107, 114, 128, 0.1)'
             },
             'menu-role-tutorial': {
                 'border': '#22c55e',
@@ -529,9 +529,11 @@ def get_affected_plugins(role_name):
                             # Only count this plugin if its PRIMARY role matches the requested role
                             if primary_role == role_name:
                                 shown_plugins.append((prefix, display_name, plugin_endpoint))
-                        elif role_name == 'Core':
-                            # Plugins with no ROLES declaration default to Core
+                        # Only default to Core if ROLES variable is completely missing, not if it's empty
+                        elif not hasattr(module, 'ROLES') and role_name == 'Core':
+                            # Plugins with no ROLES variable (missing entirely) default to Core
                             shown_plugins.append((prefix, display_name, plugin_endpoint))
+                        # Plugins with ROLES = [] are intentionally invisible and should not appear anywhere
                             
                     except Exception as e:
                         logger.warning(f"Could not check ROLES for {filename}: {e}")
