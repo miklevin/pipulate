@@ -196,28 +196,66 @@ class CrudUI(PluginIdentityManager):
         """Generate CSS rules from ROLE_COLORS - single source of truth approach."""
         css_rules = []
         
-        # Generate main role CSS
+        # Generate main role CSS with role-specific hover/focus states
         for role_class, colors in cls.UI_CONSTANTS['ROLE_COLORS'].items():
-            css_rules.append(f"""
+            # Extract RGB values from border color for darker hover state
+            border_color = colors['border']
+            if border_color.startswith('#'):
+                # Convert hex to RGB for hover/focus calculations
+                hex_color = border_color[1:]
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                
+                # Create hover state with 20% background opacity
+                hover_bg = f"rgba({r}, {g}, {b}, 0.2)"
+                
+                # Create focus/selected state with 25% background opacity 
+                focus_bg = f"rgba({r}, {g}, {b}, 0.25)"
+                
+                css_rules.append(f"""
 .{role_class} {{
     background-color: {colors['background']} !important;
     border-left: 3px solid {colors['border']} !important;
+}}
+
+.{role_class}:hover {{
+    background-color: {hover_bg} !important;
+}}
+
+.{role_class}:focus,
+.{role_class}:active,
+.{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {focus_bg} !important;
 }}""")
         
-        # Generate light theme adjustments (except core which doesn't need lighter bg)
+        # Generate light theme adjustments with matching hover states
         for role_class, colors in cls.UI_CONSTANTS['ROLE_COLORS'].items():
             if role_class != 'menu-role-core':  # Core doesn't need light theme adjustment
-                css_rules.append(f"""
+                border_color = colors['border']
+                if border_color.startswith('#'):
+                    hex_color = border_color[1:]
+                    r = int(hex_color[0:2], 16)
+                    g = int(hex_color[2:4], 16)
+                    b = int(hex_color[4:6], 16)
+                    
+                    # Lighter hover for light theme (15% opacity)
+                    light_hover_bg = f"rgba({r}, {g}, {b}, 0.15)"
+                    light_focus_bg = f"rgba({r}, {g}, {b}, 0.2)"
+                    
+                    css_rules.append(f"""
 [data-theme="light"] .{role_class} {{
     background-color: {colors['background_light']} !important;
-}}""")
-        
-        # Generate selected state rules
-        role_selectors = ', '.join([f'.{role_class}[style*="background-color: var(--pico-primary-focus)"]' 
-                                   for role_class in cls.UI_CONSTANTS['ROLE_COLORS'].keys()])
-        css_rules.append(f"""
-{role_selectors} {{
-    background-color: var(--pico-primary-focus) !important;
+}}
+
+[data-theme="light"] .{role_class}:hover {{
+    background-color: {light_hover_bg} !important;
+}}
+
+[data-theme="light"] .{role_class}:focus,
+[data-theme="light"] .{role_class}:active,
+[data-theme="light"] .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {light_focus_bg} !important;
 }}""")
         
         return '\n'.join(css_rules)
