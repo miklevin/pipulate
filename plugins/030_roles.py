@@ -210,8 +210,11 @@ class CrudUI(PluginIdentityManager):
                 # Create hover state with 20% background opacity
                 hover_bg = f"rgba({r}, {g}, {b}, 0.2)"
                 
-                # Create focus/selected state with 25% background opacity 
+                # Create focus state with 25% background opacity 
                 focus_bg = f"rgba({r}, {g}, {b}, 0.25)"
+                
+                # Create SELECTED state with 35% background opacity (more prominent)
+                selected_bg = f"rgba({r}, {g}, {b}, 0.35)"
                 
                 css_rules.append(f"""
 .{role_class} {{
@@ -224,9 +227,12 @@ class CrudUI(PluginIdentityManager):
 }}
 
 .{role_class}:focus,
-.{role_class}:active,
-.{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+.{role_class}:active {{
     background-color: {focus_bg} !important;
+}}
+
+.{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {selected_bg} !important;
 }}""")
         
         # Generate light theme adjustments with matching hover states
@@ -242,6 +248,7 @@ class CrudUI(PluginIdentityManager):
                     # Lighter hover for light theme (15% opacity)
                     light_hover_bg = f"rgba({r}, {g}, {b}, 0.15)"
                     light_focus_bg = f"rgba({r}, {g}, {b}, 0.2)"
+                    light_selected_bg = f"rgba({r}, {g}, {b}, 0.3)"
                     
                     css_rules.append(f"""
 [data-theme="light"] .{role_class} {{
@@ -253,9 +260,12 @@ class CrudUI(PluginIdentityManager):
 }}
 
 [data-theme="light"] .{role_class}:focus,
-[data-theme="light"] .{role_class}:active,
-[data-theme="light"] .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+[data-theme="light"] .{role_class}:active {{
     background-color: {light_focus_bg} !important;
+}}
+
+[data-theme="light"] .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {light_selected_bg} !important;
 }}""")
         
         return '\n'.join(css_rules)

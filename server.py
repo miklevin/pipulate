@@ -1534,6 +1534,24 @@ class BaseCrud:
             values = await request.form()
             items = json.loads(values.get('items', '[]'))
             logger.debug(f'Parsed items: {items}')
+            
+            # CRITICAL: Server-side validation to prevent meaningless sort requests
+            current_order_changed = False
+            for item in items:
+                item_id = int(item['id'])
+                new_priority = int(item['priority'])
+                current_item = self.table[item_id]
+                current_priority = getattr(current_item, self.sort_field)
+                if current_priority != new_priority:
+                    current_order_changed = True
+                    break
+            
+            if not current_order_changed:
+                logger.debug(f'🚫 SMART SORT BLOCKED: No actual changes detected for {self.name} - current order already matches requested order')
+                return HTMLResponse('')  # Return empty response without triggers
+            
+            logger.debug(f'✅ SMART SORT ALLOWED: Actual changes detected for {self.name}')
+            
             changes = []
             sort_dict = {}
             for item in items:
