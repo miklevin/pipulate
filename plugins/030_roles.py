@@ -155,32 +155,32 @@ class CrudUI(PluginIdentityManager):
         'ROLE_COLORS': {
             # 🎨 SINGLE SOURCE OF TRUTH - Edit colors here, CSS generated automatically
             'menu-role-core': {
-                'border': '#6b7280',            # GRAY - Always visible, neutral
-                'background': 'rgba(107, 114, 128, 0.1)',
-                'background_light': 'rgba(107, 114, 128, 0.05)'
+                'border': '#22c55e',            # GREEN
+                'background': 'rgba(34, 197, 94, 0.1)',
+                'background_light': 'rgba(34, 197, 94, 0.05)'
             },
             'menu-role-botify-employee': {
-                'border': '#a855f7',            # PURPLE - Botify Employee role
+                'border': '#a855f7',            # PURPLE
                 'background': 'rgba(168, 85, 247, 0.1)',
                 'background_light': 'rgba(168, 85, 247, 0.05)'
             },
             'menu-role-tutorial': {
-                'border': '#22c55e',            # GREEN - Learning/educational
-                'background': 'rgba(34, 197, 94, 0.1)',
-                'background_light': 'rgba(34, 197, 94, 0.05)'
-            },
-            'menu-role-developer': {
-                'border': '#f97316',            # ORANGE - Advanced/technical
+                'border': '#f97316',            # ORANGE
                 'background': 'rgba(249, 115, 22, 0.1)',
                 'background_light': 'rgba(249, 115, 22, 0.05)'
             },
-            'menu-role-components': {
-                'border': '#3b82f6',            # BLUE - Components role  
+            'menu-role-developer': {
+                'border': '#3b82f6',            # BLUE
                 'background': 'rgba(59, 130, 246, 0.1)',
                 'background_light': 'rgba(59, 130, 246, 0.05)'
             },
+            'menu-role-components': {
+                'border': '#6b7280',            # GRAY
+                'background': 'rgba(107, 114, 128, 0.1)',
+                'background_light': 'rgba(107, 114, 128, 0.05)'
+            },
             'menu-role-workshop': {
-                'border': '#eab308',            # YELLOW - Experimental/creative
+                'border': '#eab308',            # YELLOW
                 'background': 'rgba(234, 179, 8, 0.1)',
                 'background_light': 'rgba(234, 179, 8, 0.05)'
             }
