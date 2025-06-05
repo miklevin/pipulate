@@ -658,7 +658,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     shown_plugins, hidden_plugins, description = get_affected_plugins(role_name)
     
     if not shown_plugins:
-        return Small(f"📋 No plugins available", style=f"color: var(--pico-muted-color); font-style: italic; font-size: {ui_constants['TYPOGRAPHY']['TINY_TEXT']};")
+        return Small(f"No plugins available", style=f"color: var(--pico-muted-color); font-style: italic; font-size: {ui_constants['TYPOGRAPHY']['TINY_TEXT']};")
     
     shown_count = len(shown_plugins)
     
@@ -692,7 +692,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     return Details(
         Summary(
             Small(
-                f"📋 {shown_count} plugins available",
+                f"{shown_count} plugins available",
                 style=f"color: var(--pico-muted-color); font-size: {ui_constants['TYPOGRAPHY']['SMALL_TEXT']}; cursor: pointer;"
             ),
             style="margin: 0; padding: 0; list-style: none;"
