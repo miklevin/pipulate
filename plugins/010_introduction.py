@@ -90,22 +90,20 @@ class IntroductionPlugin:
                 'secret_word': 'ASSISTANT'
             },
             5: {
-                'title': 'Background LLM Training System',
-                'intro_text': f'🧠 {app_name} automatically trains your local LLM with contextual information as you navigate through the interface. This invisible training system ensures the LLM always understands what you\'re currently viewing and working on.',
+                'title': 'Background LLM Training',
+                'intro_text': f'🧠 {app_name} automatically trains your local LLM as you navigate. The LLM learns what you\'re viewing without cluttering your chat.',
                 'how_it_works': [
-                    ('SILENT UPDATES', 'Content is added to the LLM conversation history in the background without cluttering your chat interface.'),
-                    ('PAGE TRACKING', 'Every time you navigate to a new section, the LLM receives detailed information about what you\'re viewing.'),
-                    ('SECRET VERIFICATION', 'Each page/section has a secret word that proves the content has been successfully added to the LLM context.'),
-                    ('CONTEXTUAL AWARENESS', 'The LLM can answer specific questions about content you\'ve viewed, even if you didn\'t explicitly discuss it.')
+                    ('SILENT UPDATES', 'Page content added to LLM history in the background.'),
+                    ('SECRET WORDS', 'Each page has a secret word proving successful training.'),
+                    ('CONTEXTUAL AWARENESS', 'LLM can answer questions about content you\'ve viewed.')
                 ],
-                'examples_title': 'Where This System Works',
+                'examples_title': 'Where This Works',
                 'examples': [
-                    ('📖 Introduction Pages', 'As you navigate these introduction pages, each page\'s content and secret word is added to the LLM context. Try asking "What is the secret word for page 3?"'),
-                    ('🐇 Workflow Plugins', 'When you start workflows like the Hello Workflow, training content about that specific workflow is loaded into the LLM so it can guide you through each step.'),
-                    ('📚 Documentation Browser', 'When you view any document in the Documentation system, its full content is automatically added to the conversation history so you can ask detailed questions about it.'),
-                    ('🔄 Real-time Updates', 'The system continuously updates as you navigate, ensuring the LLM always has current context about your active workspace.')
+                    ('📖 Introduction Pages', 'Each page trains the LLM with its content and secret word.'),
+                    ('🐇 Workflows', 'Starting workflows loads specific training content.'),
+                    ('📚 Documentation', 'Viewing docs automatically adds full content to LLM context.')
                 ],
-                'testing_tip': 'Try it now: Ask the LLM "What are all the secret words from the Introduction pages?" to see proof that all page content has been loaded into its context!',
+                'testing_tip': 'Ask: "What are all the secret words from the Introduction pages?"',
                 'secret_word': 'CONTEXT'
             }
         }
@@ -198,7 +196,7 @@ class IntroductionPlugin:
         elif page_num == 4:
             context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
         elif page_num == 5:
-            context = f"The user is viewing the Background LLM Training System page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
+            context = f"The user is viewing the Background LLM Training page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
         else:
             context = f"Unknown page {page_num}"
         
