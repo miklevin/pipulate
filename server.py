@@ -2568,7 +2568,7 @@ def create_home_menu_item(menux):
     menu_items = []
     is_home_selected = menux == ''
     home_radio = Input(type='radio', name='app_radio_select', value='', checked=is_home_selected, hx_post='/redirect/', hx_target='body', hx_swap='outerHTML')
-    home_css_classes = 'dropdown-item menu-role-core'
+    home_css_classes = 'dropdown-item'
     home_label = Label(home_radio, HOME_MENU_ITEM, cls=home_css_classes, style='background-color: var(--pico-primary-focus)' if is_home_selected else '')
     menu_items.append(Li(home_label))
     return menu_items
