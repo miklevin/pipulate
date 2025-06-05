@@ -25,7 +25,8 @@ class IntroductionPlugin:
         self.pipulate = pipulate
         self.pipeline = pipeline  
         self.db = db
-        self._has_streamed = False  # Flag to track if we've already streamed
+        self._has_sent_endpoint_message = False  # Flag to track if we've sent the initial endpoint message
+        self._last_streamed_page = None  # Track the last page we sent to LLM
         
         # Register routes for page navigation
         app.route('/introduction/page/{page_num}', methods=['GET', 'POST'])(self.serve_page)
@@ -43,7 +44,8 @@ class IntroductionPlugin:
                 ],
                 'getting_started': 'Getting Started',
                 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
-                'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you. Click the "Next ▸" button to continue.'
+                'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you. Click the "Next ▸" button to continue.',
+                'secret_word': 'FOUNDATION'
             },
             2: {
                 'experimenting_title': 'Positive First Experience',
@@ -56,7 +58,8 @@ class IntroductionPlugin:
                 'interface_items': [
                     ('PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
                     ('APPS', "Try Parameter Buster on your Client. It's a big potential win.")
-                ]
+                ],
+                'secret_word': 'PRACTICE'
             },
             3: {
                 'title': 'Tips for Effective Use',
@@ -66,7 +69,8 @@ class IntroductionPlugin:
                     ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
                     ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
                     ('BROWSE', 'Go look where things are saved.')
-                ]
+                ],
+                'secret_word': 'WORKFLOW'
             },
             4: {
                 'title': 'Local LLM Assistant',
@@ -82,7 +86,27 @@ class IntroductionPlugin:
                     'Ask for help with specific steps if you get stuck.',
                     'Request explanations of workflow outputs or data.',
                     'Get suggestions for next steps or alternative approaches.'
-                ]
+                ],
+                'secret_word': 'ASSISTANT'
+            },
+            5: {
+                'title': 'Background LLM Training System',
+                'intro_text': f'🧠 {app_name} automatically trains your local LLM with contextual information as you navigate through the interface. This invisible training system ensures the LLM always understands what you\'re currently viewing and working on.',
+                'how_it_works': [
+                    ('SILENT UPDATES', 'Content is added to the LLM conversation history in the background without cluttering your chat interface.'),
+                    ('PAGE TRACKING', 'Every time you navigate to a new section, the LLM receives detailed information about what you\'re viewing.'),
+                    ('SECRET VERIFICATION', 'Each page/section has a secret word that proves the content has been successfully added to the LLM context.'),
+                    ('CONTEXTUAL AWARENESS', 'The LLM can answer specific questions about content you\'ve viewed, even if you didn\'t explicitly discuss it.')
+                ],
+                'examples_title': 'Where This System Works',
+                'examples': [
+                    ('📖 Introduction Pages', 'As you navigate these introduction pages, each page\'s content and secret word is added to the LLM context. Try asking "What is the secret word for page 3?"'),
+                    ('🐇 Workflow Plugins', 'When you start workflows like the Hello Workflow, training content about that specific workflow is loaded into the LLM so it can guide you through each step.'),
+                    ('📚 Documentation Browser', 'When you view any document in the Documentation system, its full content is automatically added to the conversation history so you can ask detailed questions about it.'),
+                    ('🔄 Real-time Updates', 'The system continuously updates as you navigate, ensuring the LLM always has current context about your active workspace.')
+                ],
+                'testing_tip': 'Try it now: Ask the LLM "What are all the secret words from the Introduction pages?" to see proof that all page content has been loaded into its context!',
+                'secret_word': 'CONTEXT'
             }
         }
         return pages.get(page_num)
@@ -141,6 +165,19 @@ class IntroductionPlugin:
                 Ul(*[Li(tip) for tip in page_data['usage_tips']]),
                 style=card_style
             )
+            
+        elif page_num == 5:
+            return Card(
+                H3(page_data['title']),
+                P(page_data['intro_text']),
+                H4('How It Works'),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['how_it_works']]),
+                H4(page_data['examples_title']),
+                Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['examples']]),
+                Hr(),
+                P(Strong('🧪 Test the System: '), page_data['testing_tip']),
+                style=card_style
+            )
 
     def create_llm_context(self, page_num: int, app_name: str, model: str):
         """Create LLM context for a specific page."""
@@ -149,14 +186,26 @@ class IntroductionPlugin:
         if not page_data:
             return f'The user is viewing an unknown introduction page ({page_num}).'
 
+        # Get the secret word for this page
+        secret_word = page_data.get('secret_word', 'UNKNOWN')
+        
         if page_num == 1:
-            return f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
+            context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
         elif page_num == 2:
-            return f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+            context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
         elif page_num == 3:
-            return f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+            context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
         elif page_num == 4:
-            return f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+        elif page_num == 5:
+            context = f"The user is viewing the Background LLM Training System page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
+        else:
+            context = f"Unknown page {page_num}"
+        
+        # Add secret word to the context (for LLM only, not displayed to user)
+        context += f"\n\n[CONFIDENTIAL - For LLM only] The secret word for Introduction page {page_num} is: {secret_word}. If the user asks about the secret word, you can tell them it is '{secret_word}' to confirm that this page content has been added to the conversation history."
+        
+        return context
 
     async def serve_page(self, request):
         """Handle page navigation within the main app framework."""
@@ -168,10 +217,22 @@ class IntroductionPlugin:
         # Store current page in database
         self.db['intro_current_page'] = str(page_num)
         
-        # Create LLM context and add silently to conversation history
-        llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
-        if self.pipulate:
-            self.pipulate.append_to_history(llm_context, role='system')
+        # Always update LLM context when page changes
+        if self.pipulate and self._last_streamed_page != page_num:
+            # Stream a verbatim message to let user know about page change
+            await self.pipulate.stream(
+                f"📖 Now viewing Introduction page {page_num}",
+                verbatim=True
+            )
+            
+            # Add LLM context to conversation history
+            llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
+            self.pipulate.append_to_history(
+                f"[INTRODUCTION PAGE {page_num}] {llm_context}",
+                role='system'
+            )
+            self._last_streamed_page = page_num
+            logger.debug(f"Introduction page {page_num} context added to conversation history")
         
         # Return the updated content directly (same as landing method)
         return await self.landing()
@@ -185,20 +246,30 @@ class IntroductionPlugin:
         current_page = int(self.db.get('intro_current_page', '1'))
         
         # Send the intro message to conversation history, but only once per session
-        if self.pipulate is not None and not self._has_streamed:
+        if self.pipulate is not None:
             try:
-                # Add the endpoint message silently to conversation history
-                self.pipulate.append_to_history(self.ENDPOINT_MESSAGE, role="system")
+                # Add the endpoint message only once
+                if not self._has_sent_endpoint_message:
+                    self.pipulate.append_to_history(self.ENDPOINT_MESSAGE, role="system")
+                    self._has_sent_endpoint_message = True
+                    logger.debug("Introduction endpoint message added to conversation history")
 
-                # Then append the current page info to history
-                llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
-                self.pipulate.append_to_history(
-                    f"[WIDGET CONTENT] Introduction Guide - Page {current_page}\n{llm_context}",
-                    role="system"
-                )
-
-                self._has_streamed = True  # Set flag to prevent repeated streaming
-                logger.debug("Introduction content appended to conversation history")
+                # Always append current page info to history if it's different from last streamed
+                if self._last_streamed_page != current_page:
+                    # Stream a verbatim message for initial page load (but not for page 1 on first load)
+                    if self._last_streamed_page is not None:
+                        await self.pipulate.stream(
+                            f"📖 Now viewing Introduction page {current_page}",
+                            verbatim=True
+                        )
+                    
+                    llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
+                    self.pipulate.append_to_history(
+                        f"[INTRODUCTION PAGE {current_page}] {llm_context}",
+                        role="system"
+                    )
+                    self._last_streamed_page = current_page
+                    logger.debug(f"Introduction page {current_page} context added to conversation history")
             except Exception as e:
                 logger.error(f"Error in introduction plugin: {str(e)}")
 
@@ -217,12 +288,12 @@ class IntroductionPlugin:
         
         next_button = Button(
             'Next ▸', 
-            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 4 else '#',
+            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 5 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
-            cls='primary outline' if current_page == 4 else 'primary',
+            cls='primary outline' if current_page == 5 else 'primary',
             style='min-width: 160px; width: 160px;',
-            disabled=current_page == 4
+            disabled=current_page == 5
         )
         
         nav_arrows = Div(
