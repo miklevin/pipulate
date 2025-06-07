@@ -258,7 +258,7 @@ def get_role_css_class(role_name):
     return f"menu-role-{role_name.lower().replace(' ', '-')}"
 
 def render_item(item, app_instance):
-    """Render a single role item with description, controls, and expandable plugin list."""
+    """Render a single role item with clean, discrete presentation."""
     item_id = f'{app_instance.name}-{item.id}'
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
     
@@ -266,7 +266,6 @@ def render_item(item, app_instance):
     roles_config = app_instance.plugin.config.get('ROLES_CONFIG', {})
     role_info = roles_config.get(item.text, {})
     description = role_info.get('description', 'No description available.')
-    emoji = role_info.get('emoji', '▫️')
     
     # Core role is always enabled and cannot be toggled
     is_core = item.text == "Core"
@@ -280,26 +279,21 @@ def render_item(item, app_instance):
         cls="flex-shrink-0"
     )
     
-    text_display = Span(
-        f"{emoji} {item.text}", 
-        style="margin-left: 5px; font-weight: 500;"
+    # Bold title followed by colon and description - all on same line
+    title_and_description = Div(
+        Span(item.text, style="font-weight: bold; margin-left: 5px;"),
+        f": {description}",
+        style="flex: 1;"
     )
     
-    # Role description
-    description_text = P(
-        Strong("Description: "), 
-        description, 
-        style=f"font-size: {app_instance.plugin.UI_CONSTANTS['TYPOGRAPHY']['DESCRIPTION_TEXT']}; color: var(--pico-muted-color); margin-top: 0.5rem;"
-    )
-    
-    # Create expandable plugin list with navigation links
+    # Create discrete expandable plugin list with real emojis
     plugin_info = create_plugin_visibility_table(item.text, app_instance.plugin.UI_CONSTANTS)
     
     return Li(
-        # Main role item with checkbox and name - clickable to expand/collapse
+        # Main role item with checkbox and title:description - clickable to expand/collapse
         Div(
             checkbox, 
-            text_display, 
+            title_and_description, 
             style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; cursor: pointer;",
             onmousedown="this.parentElement._mouseDownPos = {x: event.clientX, y: event.clientY};",
             onclick=f"""
@@ -322,9 +316,7 @@ def render_item(item, app_instance):
                 }}
             """
         ),
-        # Role description
-        description_text,
-        # Expandable plugin list
+        # Discrete expandable plugin list
         plugin_info,
         id=item_id, 
         cls=f"card-container {get_role_css_class(item.text)}",
@@ -389,69 +381,78 @@ def get_plugin_list():
 
 
 
+def get_plugin_emoji(module_name):
+    """Get the real emoji for a plugin by importing and checking its EMOJI attribute."""
+    try:
+        plugin_path = Path(__file__).parent / f"{module_name}.py"
+        if plugin_path.exists():
+            spec = importlib.util.spec_from_file_location(module_name, plugin_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                # Check for EMOJI in classes first (more specific)
+                for name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj) and hasattr(obj, 'EMOJI'):
+                        emoji = getattr(obj, 'EMOJI', '')
+                        if emoji.strip():
+                            return emoji
+                
+                # Fallback to module-level EMOJI
+                emoji = getattr(module, 'EMOJI', '')
+                if emoji.strip():
+                    return emoji
+    except Exception:
+        pass
+    return '⚡'  # Default emoji
+
 def create_plugin_visibility_table(role_name, ui_constants=None):
-    """Create an expandable accordion showing which plugins belong to this role with navigation links."""
+    """Create a discrete expandable accordion showing plugins with real emojis."""
     plugin_list = get_plugin_list()
     affected_plugins = [plugin for plugin in plugin_list if role_name in plugin['roles']]
     
     if not affected_plugins:
         return Details(
-            Summary(f"📦 Plugins (0)", style="font-weight: 500; cursor: pointer;"),
+            Summary(f"Plugins ({len(affected_plugins)})", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
-            style="margin-top: 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 0.5rem;"
+            style="margin-top: 0.5rem;"
         )
     
-    # Create clickable plugin links
+    # Create discrete plugin links with real emojis
     plugin_items = []
     for plugin in affected_plugins:
-        # Skip certain internal plugins that don't have direct navigation
         module_name = plugin['module_name']
         display_name = plugin['display_name']
+        
+        # Get real plugin emoji
+        plugin_emoji = get_plugin_emoji(module_name)
         
         # Create navigation link - strip numeric prefix for URL
         import re
         clean_module_name = re.sub(r'^\d+_', '', module_name)
         plugin_url = f"/redirect/{clean_module_name}"
         
-        # Create the plugin item with navigation link
+        # Create discrete plugin item with real emoji and smaller font
         plugin_items.append(
             Li(
                 A(
-                    f"🔗 {display_name}",
+                    f"{plugin_emoji} {display_name}",
                     href=plugin_url,
-                    style="""
-                        text-decoration: none; 
-                        color: var(--pico-primary);
-                        display: block;
-                        padding: 0.25rem 0.5rem;
-                        border-radius: 4px;
-                        transition: background-color 0.2s;
-                    """,
-                    onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
-                    onmouseout="this.style.backgroundColor='transparent';",
-                    onclick="event.stopPropagation();"  # Prevent accordion from toggling when clicking links
+                    style="text-decoration: none; color: inherit; display: block; padding: 0.25rem 0; font-size: 0.9em;",
+                    onmouseover="this.style.textDecoration = 'underline';",
+                    onmouseout="this.style.textDecoration = 'none';",
+                    onclick="event.stopPropagation();"
                 ),
-                style="list-style-type: none; margin-bottom: 0.25rem;",
-                title=f"Navigate to {display_name} plugin"
+                style="list-style-type: none;",
+                title=f"Navigate to {display_name}"
             )
         )
     
     return Details(
         Summary(
-            f"📦 Plugins ({len(affected_plugins)})", 
-            style="font-weight: 500; cursor: pointer; margin: 0; padding: 0.5rem;"
+            f"Plugins ({len(affected_plugins)})", 
+            style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer; margin: 0.5rem 0 0 0;"
         ),
-        Div(
-            P(f"Click any plugin name to navigate directly to it:", 
-              style="font-size: 0.9em; color: var(--pico-muted-color); margin: 0 0 0.5rem 0; font-style: italic;"
-            ),
-            Ul(*plugin_items, style="padding-left: 0; margin: 0;"),
-            style="padding: 0 0.5rem 0.5rem 0.5rem;"
-        ),
-        style="""
-            margin-top: 0.5rem; 
-            border: 1px solid var(--pico-muted-border-color); 
-            border-radius: 4px; 
-            background-color: var(--pico-card-sectionning-background-color);
-        """
+        Ul(*plugin_items, style="padding-left: 1rem; margin: 0.5rem 0 0 0;"),
+        style="margin-top: 0.5rem;"
     )
