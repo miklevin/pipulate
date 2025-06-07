@@ -52,6 +52,7 @@ class TextFieldWidget:
         
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
+
     async def init(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         form = await request.form()

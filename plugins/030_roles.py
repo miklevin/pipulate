@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 class PluginIdentityManager:
     EMOJI = ''
+
     def __init__(self, filename=None):
         if not filename:
             filename = os.path.basename(__file__)
@@ -41,6 +42,7 @@ class PluginIdentityManager:
         self.CONTAINER_ID = f"{self.name}-container"
         
     @property
+
     def DISPLAY_NAME(self):
         name = title_name(self.name)
         if self.EMOJI:
@@ -48,10 +50,12 @@ class PluginIdentityManager:
         return name
 
     @property
+
     def DB_TABLE_NAME(self):
         return self.name
 
     @property
+
     def TRAINING_PROMPT(self):
         return f"{self.name}.md"
 
@@ -95,6 +99,7 @@ class CrudUI(PluginIdentityManager):
     EMOJI = '👥'
     
     @property
+
     def ENDPOINT_MESSAGE(self):
         return f"Check or uncheck to control which plugins appear in your ⚡️APP menu. Drag-to-reorder. Expand to navigate."
 
@@ -247,6 +252,7 @@ class CrudUI(PluginIdentityManager):
         return await self.landing()
     
     @classmethod 
+
     def generate_role_css(cls):
         """Generate CSS rules from ROLE_COLORS - single source of truth approach.
         Note: This method will be updated to use instance config in future iterations."""

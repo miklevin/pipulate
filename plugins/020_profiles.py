@@ -28,6 +28,7 @@ class ProfilesPluginIdentity:
     APP_NAME = 'profiles'
     
     @property
+
     def DISPLAY_NAME(self):
         name = title_name('profiles')
         if self.EMOJI:

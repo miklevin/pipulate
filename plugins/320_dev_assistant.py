@@ -134,6 +134,7 @@ class DevAssistant:
         
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
+
     async def init(self, request):
         pip, db = self.pipulate, self.db
         internal_app_name = self.APP_NAME
@@ -773,6 +774,7 @@ class DevAssistant:
                 for num, handler_type in missing_handlers:
                     if handler_type == 'GET':
                         handler_code.append(f"""
+
     async def step_{num}(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_{num}'
@@ -810,6 +812,7 @@ class DevAssistant:
             )""")
                     else:  # POST handler
                         handler_code.append(f"""
+
     async def step_{num}_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_{num}'

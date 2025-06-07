@@ -170,6 +170,7 @@ class BotifyExport:
         
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
+
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the UI placeholders.
 

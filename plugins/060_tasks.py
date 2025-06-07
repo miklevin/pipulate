@@ -29,6 +29,7 @@ class PluginIdentityManager:
         self.CONTAINER_ID = f'{self.name}-container'
 
     @property
+
     def DISPLAY_NAME(self):
         base_name = self.name.title()
         if self.EMOJI:
@@ -36,10 +37,12 @@ class PluginIdentityManager:
         return base_name
 
     @property
+
     def DB_TABLE_NAME(self):
         return self.name
 
     @property
+
     def TRAINING_PROMPT(self):
         return f'{self.name}.md'
 
@@ -86,6 +89,7 @@ class CrudUI(PluginIdentityManager):
     EMOJI = '️✔️'
 
     @property
+
     def ENDPOINT_MESSAGE(self):
         return f'Manage your {self.DISPLAY_NAME.lower()} list here. Add, edit, sort, and mark items as complete. Each list is kept separate for each Profile.'
 
