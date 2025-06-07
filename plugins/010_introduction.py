@@ -64,11 +64,11 @@ class IntroductionPlugin:
             3: {
                 'title': 'Tips for Effective Use',
                 'tips': [
-                    ('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'),
-                    ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
-                    ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
-                    ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
-                    ('BROWSE', 'Go look where things are saved.')
+                    ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'),
+                    ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
+                    ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
+                    ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
+                    ('📁 BROWSE', 'Go look where things are saved.')
                 ],
                 'secret_word': 'WORKFLOW'
             },
