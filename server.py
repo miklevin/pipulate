@@ -2439,7 +2439,7 @@ def create_profile_menu(selected_profile_id, selected_profile_name):
         except Exception:
             pass
     summary_profile_name_to_display = summary_profile_name_to_display or 'Select'
-    return Details(Summary('PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style=(
+    return Details(Summary('👤 PROFILE', cls='inline-nowrap', id='profile-id'), Ul(*menu_items, style=(
         'min-width: max-content; ',
         'padding-left: 0'
     ), cls='dropdown-menu'), cls='dropdown', id='profile-dropdown-menu')
@@ -2591,7 +2591,7 @@ def should_include_plugin(instance, active_role_names):
 
 def create_menu_container(menu_items):
     """Create the final menu container with all items."""
-    return Details(Summary('APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
+    return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 def get_dynamic_role_css():
     """Get dynamic role CSS from the roles plugin - single source of truth."""
