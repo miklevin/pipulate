@@ -1141,7 +1141,9 @@ class Pipulate:
             import inspect
             from pathlib import Path
             module_file = inspect.getfile(plugin_instance.__class__)
-            from plugins.plugins_910_blank_placeholder import derive_public_endpoint_from_filename
+            import importlib
+            blank_placeholder_module = importlib.import_module('plugins.910_blank_placeholder')
+            derive_public_endpoint_from_filename = blank_placeholder_module.derive_public_endpoint_from_filename
             public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
         except (TypeError, AttributeError, ImportError):
             public_app_name_for_display = plugin_instance.APP_NAME
@@ -1155,7 +1157,7 @@ class Pipulate:
         
         # Standard form with centralized constants
         ui_constants = PIPULATE_CONFIG['UI_CONSTANTS']
-        landing_constants = PIPULATE_CONFIG['LANDING_PAGE']
+        landing_constants = PIPULATE_CONFIG['UI_CONSTANTS']['LANDING_PAGE']
         
         return Container(
             Card(
