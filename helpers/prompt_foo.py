@@ -63,21 +63,22 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
-/home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
-/home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
-/home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
+# /home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+# /home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
+# /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## MOST OTHER PLUGINS
 /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 /home/mike/repos/pipulate/plugins/040_hello_workflow.py
 /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 /home/mike/repos/pipulate/plugins/510_text_field.py
+# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
 
+# /home/mike/repos/pipulate/plugins/210_widget_examples.py
 # /home/mike/repos/pipulate/plugins/010_introduction.py
 # /home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
-# /home/mike/repos/pipulate/plugins/210_widget_examples.py
 # /home/mike/repos/pipulate/plugins/220_roadmap.py
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
 # /home/mike/repos/pipulate/plugins/320_dev_assistant.py
