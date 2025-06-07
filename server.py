@@ -2701,10 +2701,9 @@ async def poke_flyout(request):
     is_dev_mode = get_current_environment() == 'Development'
     poke_button = Button(f'🤖 Poke {MODEL}', hx_post='/poke', hx_target='#msg-list', hx_swap='beforeend', cls='secondary outline')
     lock_button = Button(lock_button_text, hx_post='/toggle_profile_lock', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
-    roles_button = Button('👥 Manage Roles', hx_post='/redirect/roles', hx_target='body', hx_swap='outerHTML', cls='secondary outline')
     delete_workflows_button = Button('🗑️ Delete Workflows', hx_post='/clear-pipeline', hx_target='body', hx_confirm='Are you sure you want to delete workflows?', hx_swap='outerHTML', cls='secondary outline') if is_workflow else None
     reset_db_button = Button('🔄 Reset Entire Database', hx_post='/clear-db', hx_target='body', hx_confirm='WARNING: This will reset the ENTIRE DATABASE to its initial state. All profiles, workflows, and plugin data will be deleted. Are you sure?', hx_swap='outerHTML', cls='secondary outline') if is_dev_mode else None
-    list_items = [Li(poke_button, cls='flyout-list-item'), Li(lock_button, cls='flyout-list-item'), Li(roles_button, cls='flyout-list-item')]
+    list_items = [Li(poke_button, cls='flyout-list-item'), Li(lock_button, cls='flyout-list-item')]
     if is_workflow:
         list_items.append(Li(delete_workflows_button, cls='flyout-list-item'))
     if is_dev_mode:
