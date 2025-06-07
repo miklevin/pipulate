@@ -115,7 +115,7 @@ PIPULATE_CONFIG = {
     'ROLES_CONFIG': {
         'Botify Employee': {
             'priority': 0, 
-            'description': 'Set your Botify API Token to use Parameter Buster.',
+            'description': 'Connect with Botify to use Parameter Buster.',
             'emoji': '👔'
         },
         'Core': {

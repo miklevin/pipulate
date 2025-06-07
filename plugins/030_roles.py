@@ -96,7 +96,7 @@ class CrudUI(PluginIdentityManager):
     
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Check or uncheck to control which plugins appear in your ⚡️APP menu. Drag-to-reorder APP menu. Expand to see APPs."
+        return f"Check or uncheck to control which plugins appear in your ⚡️APP menu. Drag-to-reorder. Expand to navigate."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike, config):
         """Initialize the Roles Plugin with injected configuration."""
