@@ -2375,9 +2375,9 @@ def create_nav_menu():
     if not profiles_plugin_inst:
         logger.error("Could not get 'profiles' plugin instance for menu creation")
         return Div(H1('Error: Profiles plugin not found', cls='text-invalid'), cls='nav-breadcrumb')
-    link_style = 'text-decoration: none; color: inherit; transition: color 0.2s; white-space: nowrap;'
+    link_style = 'text-decoration: underline; color: inherit; transition: color 0.2s; white-space: nowrap;'
     hover_style = "this.style.color='#4dabf7'; this.style.textDecoration='underline';"
-    normal_style = "this.style.color='inherit'; this.style.textDecoration='none';"
+    normal_style = "this.style.color='inherit'; this.style.textDecoration='underline';"
     separator_style = 'padding: 0 0.3rem;'
     home_link = A(APP_NAME, href='/redirect/', title=f'Go to {HOME_MENU_ITEM.lower()}', style=link_style, onmouseover=hover_style, onmouseout=normal_style)
     separator = Span(' / ', style=separator_style)
