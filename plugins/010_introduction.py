@@ -50,14 +50,14 @@ class IntroductionPlugin:
             2: {
                 'experimenting_title': 'Positive First Experience',
                 'experimenting_steps': [
-                    'Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.',
-                    'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.',
-                    f'{app_name} is for running workflows. Try the Hello Workflow to get a feel for how they work.'
+                    ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.'),
+                    ('👥 PROFILES', 'Add them. Rearrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.'),
+                    ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
                 ],
                 'interface_title': 'Understanding the Interface',
                 'interface_items': [
-                    ('PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
-                    ('APPS', "Try Parameter Buster on your Client. It's a big potential win.")
+                    ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
+                    ('📊 APPS', "Try Parameter Buster on your Client. It's a big potential win.")
                 ],
                 'secret_word': 'PRACTICE'
             },
@@ -136,7 +136,7 @@ class IntroductionPlugin:
         elif page_num == 2:
             return Card(
                 H3(page_data['experimenting_title']),
-                Ol(*[Li(step) for step in page_data['experimenting_steps']]),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['experimenting_steps']]),
                 H3(page_data['interface_title']),
                 Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
                 style=card_style
