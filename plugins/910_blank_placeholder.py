@@ -48,31 +48,8 @@ class BlankPlaceholder:
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
 
-        internal_route_prefix = self.APP_NAME
-
-        routes = [
-            (f'/{internal_route_prefix}/init', self.init, ['POST']),
-            (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
-            (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST'])
-        ]
-
-        for step_obj in self.steps:
-            step_id = step_obj.id
-            handler_method = getattr(self, step_id, None)
-            if handler_method:
-                current_methods = ['GET']
-                if step_id == 'finalize':
-                    current_methods.append('POST')
-                routes.append((f'/{internal_route_prefix}/{step_id}', handler_method, current_methods))
-
-            if step_id != 'finalize': # Only data steps have explicit _submit handlers
-                submit_handler_method = getattr(self, f'{step_id}_submit', None)
-                if submit_handler_method:
-                    routes.append((f'/{internal_route_prefix}/{step_id}_submit', submit_handler_method, ['POST']))
-
-        for path, handler, *methods_list_arg in routes:
-            current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
-            self.app.route(path, methods=current_methods)(handler)
+        # Use centralized route registration helper
+        pipulate.register_workflow_routes(self)
 
         self.step_messages = {}
         for step_obj in self.steps:

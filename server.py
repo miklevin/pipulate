@@ -186,12 +186,22 @@ PIPULATE_CONFIG = {
             'NEXT_STEP': 'Next Step ▸',
             'FINALIZE': '🔒 Finalize',
             'UNLOCK': '🔓 Unlock',
-            'PROCEED': 'Proceed ▸'
+            'PROCEED': 'Proceed ▸',
+            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
+            'VIEW_FOLDER': '📂 View Folder',
+            'DOWNLOAD_CSV': '⬇️ Download CSV',
+            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
+            'SKIP_STEP': 'Skip️'
         },
         'BUTTON_STYLES': {
             'PRIMARY': 'primary',
             'SECONDARY': 'secondary',
-            'OUTLINE': 'secondary outline'
+            'OUTLINE': 'secondary outline',
+            'STANDARD': 'secondary outline',
+            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
+            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
+            'SKIP_BUTTON': 'secondary outline',
+            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;'
         },
         'EMOJIS': {
             # Process Status Indicators
@@ -205,6 +215,7 @@ PIPULATE_CONFIG = {
             
             # Data Type Indicators  
             'USER_INPUT': '👤',
+            'GREETING': '💬',
             'WORKFLOW': '🔄',
             'INPUT_FORM': '📝'
         },
@@ -786,6 +797,47 @@ class Pipulate:
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
         return PIPULATE_CONFIG['UI_CONSTANTS']
+
+    def register_workflow_routes(self, plugin_instance):
+        """
+        Register standard and step-specific routes for a workflow plugin.
+        
+        This helper extracts the common route registration boilerplate from workflow __init__ methods,
+        while maintaining the WET principle - each workflow still explicitly calls this method.
+        
+        Args:
+            plugin_instance: The workflow plugin instance with app, APP_NAME, and steps attributes
+        """
+        app_name = plugin_instance.APP_NAME
+        steps = plugin_instance.steps
+        
+        # Standard workflow lifecycle routes
+        routes = [
+            (f'/{app_name}/init', plugin_instance.init, ['POST']),
+            (f'/{app_name}/revert', plugin_instance.handle_revert, ['POST']),
+            (f'/{app_name}/unfinalize', plugin_instance.unfinalize, ['POST'])
+        ]
+        
+        # Dynamically create routes for each step from the plugin's steps list
+        for step_obj in steps:
+            step_id = step_obj.id
+            handler_method = getattr(plugin_instance, step_id, None)
+            if handler_method:
+                current_methods = ['GET']
+                if step_id == 'finalize':
+                    current_methods.append('POST')
+                routes.append((f'/{app_name}/{step_id}', handler_method, current_methods))
+            
+            # Only data steps (not 'finalize') have explicit _submit handlers
+            if step_id != 'finalize':
+                submit_handler_method = getattr(plugin_instance, f'{step_id}_submit', None)
+                if submit_handler_method:
+                    routes.append((f'/{app_name}/{step_id}_submit', submit_handler_method, ['POST']))
+
+        # Register all routes with the FastHTML app
+        for path, handler, *methods_list_arg in routes:
+            current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
+            plugin_instance.app.route(path, methods=current_methods)(handler)
 
     async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
         """

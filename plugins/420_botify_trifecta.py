@@ -220,30 +220,9 @@ class BotifyCsvDownloaderWorkflow:
         'enable_skip_buttons': True,  # Set to False to disable skip buttons on steps 3 & 4
     }
 
-    # UI Constants - Centralized button labels and styles
-    # ===================================================
-    # Standardized labels and styles for consistent UI across the workflow
-
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---
     # Additional class-level constants can be merged here by manage_class_attributes.py
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
-
-    UI_CONSTANTS = {
-        'BUTTON_LABELS': {
-            'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
-            'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Download CSV',
-            'VISUALIZE_GRAPH': '🌐 Visualize Graph',
-            'SKIP_STEP': 'Skip️'
-        },
-        'BUTTON_STYLES': {
-            'STANDARD': 'secondary outline',
-            'FLEX_CONTAINER': 'display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center;',
-            'BUTTON_ROW': 'display: flex; gap: 0.5em; align-items: center;',
-            'SKIP_BUTTON': 'secondary outline',
-            'SKIP_BUTTON_STYLE': 'padding: 0.5rem 1rem; width: 10%; min-width: 80px; white-space: nowrap;'
-        }
-    }
 
     # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
     # ==================================================================================
@@ -300,20 +279,17 @@ class BotifyCsvDownloaderWorkflow:
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
             Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)
         ]
-        routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
-        for step in steps:
-            step_id = step.id
-            routes.append((f'/{app_name}/{step_id}', getattr(self, step_id)))
-            routes.append((f'/{app_name}/{step_id}_submit', getattr(self, f'{step_id}_submit'), ['POST']))
-        routes.append((f'/{app_name}/step_04_complete', self.step_04_complete, ['POST']))
-        routes.append((f'/{app_name}/step_02_process', self.step_02_process, ['POST']))
-        routes.append((f'/{app_name}/step_03_process', self.step_03_process, ['POST']))
-        routes.append((f'/{app_name}/step_05_process', self.step_05_process, ['POST']))
-        routes.append((f'/{app_name}/toggle', self.common_toggle, ['GET']))
-        for path, handler, *methods in routes:
-            method_list = methods[0] if methods else ['GET']
-            app.route(path, methods=method_list)(handler)
+        
+        # Register routes using centralized helper
+        pipulate.register_workflow_routes(self)
+        
+        # Register custom routes specific to this workflow
+        app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
+        app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
+        app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
+        app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+        app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
@@ -552,14 +528,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Selected analysis: {selected_slug}', cls='code-block-container', style='display: none;'),
@@ -754,14 +730,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -777,14 +753,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -855,12 +831,12 @@ class BotifyCsvDownloaderWorkflow:
             # Add skip button if enabled in config
             if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
                 button_row_items.append(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'],
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
                            type='submit', name='action', value='skip', cls='secondary outline',
-                           style=self.UI_CONSTANTS['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
 
-            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Download Web Logs for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
         """Process the check for Botify web logs and download if available."""
@@ -971,14 +947,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -994,14 +970,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -1067,12 +1043,12 @@ class BotifyCsvDownloaderWorkflow:
             # Add skip button if enabled in config
             if self.FEATURES_CONFIG.get('enable_skip_buttons', False):
                 button_row_items.append(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['SKIP_STEP'],
+                    Button(self.ui['BUTTON_LABELS']['SKIP_STEP'],
                            type='submit', name='action', value='skip', cls='secondary outline',
-                           style=self.UI_CONSTANTS['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
+                           style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE'])
                 )
 
-            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.UI_CONSTANTS['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f"Download Search Console data for '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), Form(Div(*button_row_items, style=self.ui['BUTTON_STYLES']['BUTTON_ROW']), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
         """Process the check for Botify Search Console data."""
@@ -1185,14 +1161,14 @@ class BotifyCsvDownloaderWorkflow:
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data', cls='code-block-container', style=f'color: {"green" if has_search_console else "red"}; display: none;'),
@@ -1238,8 +1214,8 @@ class BotifyCsvDownloaderWorkflow:
         await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
         await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
         widget = Div(
-            Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+            Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                cls=self.ui['BUTTON_STYLES']['STANDARD'],
                 hx_get=f'/{app_name}/toggle?step_id={step_id}',
                 hx_target=f'#{step_id}_widget',
                 hx_swap='innerHTML'
@@ -2708,14 +2684,14 @@ await main()
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Analysis {status_text}{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -2962,14 +2938,14 @@ await main()
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} web logs{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -3294,14 +3270,14 @@ await main()
 
             widget = Div(
                 Div(
-                    Button(self.UI_CONSTANTS['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD'],
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
                         hx_get=f'/{app_name}/toggle?step_id={step_id}',
                         hx_target=f'#{step_id}_widget',
                         hx_swap='innerHTML'
                     ),
                     *action_buttons,
-                    style=self.UI_CONSTANTS['BUTTON_STYLES']['FLEX_CONTAINER']
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
                 ),
                 Div(
                     Pre(f'Status: Project {status_text} Search Console data{download_message}', cls='code-block-container', style=f'color: {status_color}; display: none;'),
@@ -4058,13 +4034,13 @@ await main()
 
         # Always create the View Folder button
         folder_button = A(
-            self.UI_CONSTANTS['BUTTON_LABELS']['VIEW_FOLDER'],
+            self.ui['BUTTON_LABELS']['VIEW_FOLDER'],
             href="#",
             hx_get=f"/open-folder?path={quote(folder_path)}",
             hx_swap="none",
             title=folder_title,
             role="button",
-            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+            cls=self.ui['BUTTON_STYLES']['STANDARD']
         )
 
         buttons = [folder_button]
@@ -4108,11 +4084,11 @@ await main()
 
                     # Always create the download button first
                     download_button = A(
-                        self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                        self.ui['BUTTON_LABELS']['DOWNLOAD_CSV'],
                         href=f"/download_file?file={quote(path_for_url)}",
                         target="_blank",
                         role="button",
-                        cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                        cls=self.ui['BUTTON_STYLES']['STANDARD']
                     )
                     buttons.append(download_button)
 
@@ -4128,11 +4104,11 @@ await main()
                         viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
 
                         viz_button = A(
-                            self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                            self.ui['BUTTON_LABELS']['VISUALIZE_GRAPH'],
                             href=viz_url,
                             target="_blank",
                             role="button",
-                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                            cls=self.ui['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(viz_button)
                 else:
@@ -4160,11 +4136,11 @@ await main()
 
                         # Always create the download button first
                         download_button = A(
-                            self.UI_CONSTANTS['BUTTON_LABELS']['DOWNLOAD_CSV'],
+                            self.ui['BUTTON_LABELS']['DOWNLOAD_CSV'],
                             href=f"/download_file?file={quote(path_for_url)}",
                             target="_blank",
                             role="button",
-                            cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                            cls=self.ui['BUTTON_STYLES']['STANDARD']
                         )
                         buttons.append(download_button)
 
@@ -4179,11 +4155,11 @@ await main()
                             viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
 
                             viz_button = A(
-                                self.UI_CONSTANTS['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                                self.ui['BUTTON_LABELS']['VISUALIZE_GRAPH'],
                                 href=viz_url,
                                 target="_blank",
                                 role="button",
-                                cls=self.UI_CONSTANTS['BUTTON_STYLES']['STANDARD']
+                                cls=self.ui['BUTTON_STYLES']['STANDARD']
                             )
                             buttons.append(viz_button)
                 except Exception as e:
