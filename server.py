@@ -99,6 +99,91 @@ MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = '👥 Roles (Home)'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 
+# ================================================================
+# INSTANCE-SPECIFIC CONFIGURATION - "The Crucible"
+# ================================================================
+# This dictionary holds settings that customize this particular Pipulate instance.
+# Moving configuration here allows for easy white-labeling and configuration management.
+# Over time, more instance-specific "slag" will be skimmed from plugins to here.
+
+PIPULATE_CONFIG = {
+    # UI & Navigation
+    'HOME_MENU_ITEM': HOME_MENU_ITEM,
+    'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
+    
+    # Role System Configuration
+    'ROLES_CONFIG': {
+        'Botify Employee': {
+            'priority': 0, 
+            'description': 'Access to internal Botify tools and advanced analytics workflows for employees.',
+            'emoji': '👔'
+        },
+        'Core': {
+            'priority': 1, 
+            'description': 'Essential plugins for basic app functionality, always available to all users.',
+            'emoji': '⚙️'
+        },
+        'Tutorial': {
+            'priority': 2, 
+            'description': 'Guided workflows and introductory examples for learning the system.',
+            'emoji': '📚'
+        },
+        'Developer': {
+            'priority': 3, 
+            'description': 'Tools for creating, debugging, and managing workflows and plugins.',
+            'emoji': '⚡'
+        },
+        'Workshop': {
+            'priority': 4, 
+            'description': 'Experimental tools and advanced components for power users.',
+            'emoji': '🔬'
+        },
+        'Components': {
+            'priority': 5, 
+            'description': 'UI and data widgets for building rich workflow interfaces.',
+            'emoji': '🧩'
+        }
+    },
+    
+    # Role Color Configuration
+    'ROLE_COLORS': {
+        'menu-role-core': {
+            'border': '#22c55e',            # GREEN
+            'background': 'rgba(34, 197, 94, 0.1)',
+            'background_light': 'rgba(34, 197, 94, 0.05)'
+        },
+        'menu-role-botify-employee': {
+            'border': '#a855f7',            # PURPLE
+            'background': 'rgba(168, 85, 247, 0.1)',
+            'background_light': 'rgba(168, 85, 247, 0.05)'
+        },
+        'menu-role-tutorial': {
+            'border': '#f97316',            # ORANGE
+            'background': 'rgba(249, 115, 22, 0.1)',
+            'background_light': 'rgba(249, 115, 22, 0.05)'
+        },
+        'menu-role-developer': {
+            'border': '#3b82f6',            # BLUE
+            'background': 'rgba(59, 130, 246, 0.1)',
+            'background_light': 'rgba(59, 130, 246, 0.05)'
+        },
+        'menu-role-components': {
+            'border': '#6b7280',            # GRAY
+            'background': 'rgba(107, 114, 128, 0.1)',
+            'background_light': 'rgba(107, 114, 128, 0.05)'
+        },
+        'menu-role-workshop': {
+            'border': '#eab308',            # YELLOW
+            'background': 'rgba(234, 179, 8, 0.1)',
+            'background_light': 'rgba(234, 179, 8, 0.05)'
+        }
+    }
+}
+
+# Update references to use the centralized config
+HOME_MENU_ITEM = PIPULATE_CONFIG['HOME_MENU_ITEM']
+DEFAULT_ACTIVE_ROLES = PIPULATE_CONFIG['DEFAULT_ACTIVE_ROLES']
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -2187,6 +2272,9 @@ for module_name, class_name, workflow_class in discovered_classes:
                             args_to_pass[param_name] = param_mapping[param_name]
                         elif param_name == 'profiles_table_from_server' and module_name == 'profiles':
                             args_to_pass[param_name] = profiles
+                        elif param_name == 'config':
+                            # Inject centralized configuration for plugins that need it
+                            args_to_pass[param_name] = PIPULATE_CONFIG
                     logger.debug(f"Instantiating REGULAR plugin '{module_name}' with args: {args_to_pass.keys()}")
                     try:
                         instance = workflow_class(**args_to_pass)

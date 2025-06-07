@@ -768,3 +768,73 @@ hr {
     white-space: nowrap;
 }
 
+/* ================================================================ */
+/* SEMANTIC LAYOUT UTILITIES - Extracted from repeated inline patterns */
+/* ================================================================ */
+
+/* Flex container patterns found throughout plugins */
+.flex-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.flex-row-wide {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Flex item behaviors */
+.flex-grow {
+    flex-grow: 1;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+/* Common button layout patterns */
+.button-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.button-row-center {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+/* Profile/item layout patterns */
+.profile-layout {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    padding: 0.5rem 0;
+}
+
+.item-layout {
+    list-style-type: none;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
