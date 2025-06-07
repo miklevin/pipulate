@@ -41,6 +41,10 @@ class BlankPlaceholder:
         pip = self.pipulate 
         self.message_queue = pip.get_message_queue()
         
+        # Access centralized UI constants from server configuration
+        from server import PIPULATE_CONFIG
+        self.ui = PIPULATE_CONFIG['UI_CONSTANTS']
+        
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
@@ -80,8 +84,8 @@ class BlankPlaceholder:
         for step_obj in self.steps:
             if step_obj.id == 'finalize':
                 self.step_messages['finalize'] = { 
-                    'ready': 'All steps complete. Ready to finalize workflow.', 
-                    'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'
+                    'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 
+                    'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
@@ -108,7 +112,7 @@ class BlankPlaceholder:
                 Form(
                     pip.wrap_with_inline_button(
                         Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=full_key, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), 
-                        button_label='Enter 🔑', button_class='secondary'
+                        button_label=self.ui['BUTTON_LABELS']['ENTER_KEY'], button_class=self.ui['BUTTON_STYLES']['SECONDARY']
                     ), 
                     pip.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records), 
                     hx_post=f'/{self.APP_NAME}/init', 
@@ -153,12 +157,12 @@ class BlankPlaceholder:
 
         if request.method == 'GET':
             if finalize_step_obj.done in finalize_data:
-                return Card(H3('Workflow is locked.'), Form(Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
             else:
                 # Check if all data steps (all steps in self.steps *before* 'finalize') are complete
                 all_data_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in self.steps if step.id != 'finalize')
                 if all_data_steps_complete:
-                    return Card(H3('All steps complete. Finalize?'), P('You can revert to any step and make changes.', cls='text-secondary'), Form(Button('Finalize 🔒', type='submit', cls='primary'), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
                 else: 
                     return Div(id=finalize_step_obj.id) 
         elif request.method == 'POST':
@@ -170,7 +174,7 @@ class BlankPlaceholder:
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
-        await self.message_queue.add(pip, 'Workflow unfinalized! You can now revert to any step and make changes.', verbatim=True)
+        await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
 
     async def get_suggestion(self, step_id, state):
@@ -245,7 +249,7 @@ class BlankPlaceholder:
                     Form(
                         # Example: Hidden input to submit something for the placeholder
                         Input(type="hidden", name=step.done, value="Placeholder Value for Step 1 Placeholder"),
-                        Button("Next ▸", type="submit", cls="primary"),
+                        Button(self.ui['BUTTON_LABELS']['NEXT_STEP'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
                         hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
                     )
                 ),

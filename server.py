@@ -177,6 +177,44 @@ PIPULATE_CONFIG = {
             'background': 'rgba(234, 179, 8, 0.1)',
             'background_light': 'rgba(234, 179, 8, 0.05)'
         }
+    },
+    
+    # UI Constants for Workflows - Centralized button labels, emojis, and styles
+    'UI_CONSTANTS': {
+        'BUTTON_LABELS': {
+            'ENTER_KEY': '🔑 Enter Key',
+            'NEXT_STEP': 'Next Step ▸',
+            'FINALIZE': '🔒 Finalize',
+            'UNLOCK': '🔓 Unlock',
+            'PROCEED': 'Proceed ▸'
+        },
+        'BUTTON_STYLES': {
+            'PRIMARY': 'primary',
+            'SECONDARY': 'secondary',
+            'OUTLINE': 'secondary outline'
+        },
+        'EMOJIS': {
+            # Process Status Indicators
+            'KEY': '🔑',
+            'SUCCESS': '🎯',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'COMPLETION': '✅',
+            'LOCKED': '🔒',
+            'UNLOCKED': '🔓',
+            
+            # Data Type Indicators  
+            'USER_INPUT': '👤',
+            'WORKFLOW': '🔄',
+            'INPUT_FORM': '📝'
+        },
+        'MESSAGES': {
+            'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
+            'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
+            'FINALIZE_QUESTION': 'All steps complete. Finalize?',
+            'FINALIZE_HELP': 'You can revert to any step and make changes.',
+            'WORKFLOW_LOCKED': 'Workflow is locked.'
+        }
     }
 }
 
