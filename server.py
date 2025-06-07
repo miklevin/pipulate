@@ -2653,7 +2653,7 @@ async def create_outer_container(current_profile_id, menux, request):
         Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
         create_poke_button()
     )
-MAX_INTRO_PAGES = 4
+
 
 async def render_intro_page_with_navigation(page_num_str: str):
     """Renders the content for the given intro page number, including Next/Previous buttons.
