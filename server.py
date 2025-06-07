@@ -782,6 +782,10 @@ class Pipulate:
 
     def get_style(self, style_type):
         return getattr(self, f'{style_type.upper()}_STYLE', None)
+    
+    def get_ui_constants(self):
+        """Access centralized UI constants through dependency injection."""
+        return PIPULATE_CONFIG['UI_CONSTANTS']
 
     async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
         """

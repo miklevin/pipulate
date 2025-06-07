@@ -36,9 +36,8 @@ class BlankPlaceholder:
         pip = self.pipulate
         self.message_queue = pip.get_message_queue()
 
-        # Access centralized UI constants from server configuration
-        from server import PIPULATE_CONFIG
-        self.ui = PIPULATE_CONFIG['UI_CONSTANTS']
+        # Access centralized UI constants through dependency injection
+        self.ui = pip.get_ui_constants()
 
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.

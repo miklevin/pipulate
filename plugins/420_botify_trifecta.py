@@ -287,9 +287,8 @@ class BotifyCsvDownloaderWorkflow:
         pip = self.pipulate
         self.message_queue = pip.message_queue
 
-        # Access centralized UI constants from server configuration
-        from server import PIPULATE_CONFIG
-        self.ui = PIPULATE_CONFIG['UI_CONSTANTS']
+        # Access centralized UI constants through dependency injection
+        self.ui = pip.get_ui_constants()
         # Build step names dynamically based on template configuration
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
