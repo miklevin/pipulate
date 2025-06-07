@@ -115,12 +115,12 @@ PIPULATE_CONFIG = {
     'ROLES_CONFIG': {
         'Botify Employee': {
             'priority': 0, 
-            'description': 'Access to internal Botify tools and advanced analytics workflows for employees.',
+            'description': 'Set your Botify API Token to use Parameter Buster.',
             'emoji': '👔'
         },
         'Core': {
             'priority': 1, 
-            'description': 'Essential plugins for basic app functionality, always available to all users.',
+            'description': 'Essential plugins available to all users.',
             'emoji': '⚙️'
         },
         'Tutorial': {

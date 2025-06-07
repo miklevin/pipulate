@@ -96,7 +96,7 @@ class CrudUI(PluginIdentityManager):
     
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Control which plugins appear in your APP menu by managing {self.DISPLAY_NAME.lower()}. Check roles that match your needs - Core plugins always show, while other roles add specialized plugin categories. Multiple roles can be combined to create custom plugin sets for different user types and workflows. Drag-to-reorder the APP menu."
+        return f"Check or uncheck Roles to control which plugins appear in your APP menu. Drag-to-reorder the APP menu."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike, config):
         """Initialize the Roles Plugin with injected configuration."""
@@ -282,7 +282,8 @@ def render_item(item, app_instance):
     # Bold title followed by colon and description - all on same line
     title_and_description = Div(
         Span(item.text, style="font-weight: bold; margin-left: 5px;"),
-        f": {description}",
+        ": ",
+        Span(description, style="color: var(--pico-muted-color);"),
         style="flex: 1;"
     )
     
