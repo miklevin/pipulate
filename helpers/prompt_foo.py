@@ -33,9 +33,9 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES (Background for the story)
-README.md        <-- Main GitHub README sets the tone
-flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-requirements.txt <-- Python package dependencies for the project
+# README.md        <-- Main GitHub README sets the tone
+# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+# requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
@@ -68,8 +68,12 @@ server.py        <-- Main server file for the project
 /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## MOST OTHER PLUGINS
-/home/mike/repos/pipulate/plugins/010_introduction.py
+/home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 /home/mike/repos/pipulate/plugins/040_hello_workflow.py
+/home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+/home/mike/repos/pipulate/plugins/510_text_field.py
+
+# /home/mike/repos/pipulate/plugins/010_introduction.py
 # /home/mike/repos/pipulate/plugins/050_documentation.py
 # /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
@@ -79,11 +83,9 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/320_dev_assistant.py
 # /home/mike/repos/pipulate/plugins/330_widget_shim.py
 # /home/mike/repos/pipulate/plugins/410_botify_api_tutorial.py
-# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
 # /home/mike/repos/pipulate/plugins/440_browser_automation.py
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
-# /home/mike/repos/pipulate/plugins/510_text_field.py
 # /home/mike/repos/pipulate/plugins/520_text_area.py
 # /home/mike/repos/pipulate/plugins/530_dropdown.py
 # /home/mike/repos/pipulate/plugins/540_checkboxes.py
@@ -100,7 +102,6 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/730_matplotlib.py
 # /home/mike/repos/pipulate/plugins/810_webbrowser.py
 # /home/mike/repos/pipulate/plugins/820_selenium.py
-# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/920_splice_workflow.py
 
 ## COMMON STATIC RESOURCES  <-- Necessary for core system, essentially HTMX & Pico.css, stuff you're likely already trained on
@@ -113,11 +114,11 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/ws.js
 
 ## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
-/home/mike/repos/pipulate/static/alice.txt
-/home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/static/websocket-global-config.js
-/home/mike/repos/pipulate/static/sortable-parameterized-init.js
-/home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/alice.txt
+# /home/mike/repos/pipulate/static/styles.css
+# /home/mike/repos/pipulate/static/websocket-global-config.js
+# /home/mike/repos/pipulate/static/sortable-parameterized-init.js
+# /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.
 # /home/mike/repos/pipulate/static/marked.min.js
@@ -127,14 +128,14 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/rich-table.css
 
 ## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
-/home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/manage_class_attributes.py
-/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
-/home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
+# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+# /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 # DEVELOPMENT NOTES
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 """
 
