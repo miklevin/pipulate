@@ -20,29 +20,29 @@ class RoadmapPlugin:
         title Pipulate Development Roadmap
         dateFormat YYYY-MM-DD
         axisFormat %b %d
-        
+
         section Core Infrastructure
         Nix Environment         :done, nix1, 2024-01-01, 60d
         Magic Cookie System     :done, nix2, after nix1, 30d
         Dev/Test/Prod DB        :active, db1, 2024-03-15, 30d
-        
+
         section Web Data
         Botify Integration     :done, web1, 2024-02-01, 45d
         Parameter Buster       :done, web2, after web1, 30d
         Save HTML & DOM        :web3, 2024-05-01, 28d
-        
+
         section AI Capabilities
         LLM Integration        :done, ai1, 2024-01-15, 45d
         Chat Interface        :done, ai2, after ai1, 30d
         Vector Memory         :ai3, 2024-05-15, 28d
         Graph Memory          :ai4, after ai3, 24d
-        
+
         section UI & Controls
         HTMX Integration      :done, ui1, 2024-01-01, 45d
         FastHTML Components   :done, ui2, after ui1, 30d
         Web Form Fields       :ui3, 2024-06-01, 32d
         Anywidgets Support    :ui4, after ui3, 30d
-        
+
         section Automation
         MCP Server            :auto1, 2024-07-01, 35d
         LLM as MCP Client     :auto2, after auto1, 30d
@@ -95,26 +95,26 @@ class RoadmapPlugin:
             (function() {{
                 var diagramEl = document.getElementById("{unique_id}");
                 if (!diagramEl) return;
-                
+
                 // Use the diagram from class property
                 var diagram = `{self.ROADMAP_DIAGRAM}`;
-                
+
                 // Load Mermaid.js from local static file
                 var script = document.createElement('script');
                 script.src = "/static/mermaid.min.js";
                 script.onload = function() {{
                     console.log("Mermaid loaded from local static");
-                    
+
                     // Create a wrapper div with mermaid class
                     var mermaidWrapper = document.createElement('div');
                     mermaidWrapper.className = 'mermaid';
                     mermaidWrapper.textContent = diagram;
-                    
+
                     // Add to our container
                     diagramEl.appendChild(mermaidWrapper);
-                    
+
                     // Initialize mermaid
-                    mermaid.initialize({{ 
+                    mermaid.initialize({{
                         startOnLoad: true,
                         theme: 'default',
                         securityLevel: 'loose',
@@ -134,7 +134,7 @@ class RoadmapPlugin:
                             useWidth: 1200
                         }}
                     }});
-                    
+
                     // Render the diagram
                     setTimeout(function() {{
                         try {{
@@ -145,7 +145,7 @@ class RoadmapPlugin:
                         }}
                     }}, 100);
                 }};
-                
+
                 document.head.appendChild(script);
             }})();
             """,

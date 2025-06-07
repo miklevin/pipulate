@@ -208,7 +208,7 @@ class WidgetExamples:
         return pip.run_all_cells(app_name, steps)
 
     async def step_01(self, request):
-        """ 
+        """
         Handles GET request for Step 1: Simple Text Widget.
 
         This method demonstrates the "Combined Step" pattern:
@@ -242,7 +242,7 @@ class WidgetExamples:
             return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter text content for the simple widget. Example is pre-populated.'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter text content for the widget', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Record Text ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
-        """ 
+        """
         Process the submission for Step 1.
 
         In the "Combined Step" pattern, this method:
@@ -384,7 +384,7 @@ class WidgetExamples:
         return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter Mermaid diagram syntax for the widget. Example is pre-populated.'), P('Supports flowcharts, sequence diagrams, class diagrams, etc.', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter Mermaid diagram syntax', required=True, rows=15, style='width: 100%; font-family: monospace;'), Div(Button('Create Diagram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_03_submit(self, request):
-        """ 
+        """
         Process the submission for Step 3.
 
         This method demonstrates client-side widget rendering:
@@ -423,7 +423,7 @@ class WidgetExamples:
         return response
 
     async def step_04(self, request):
-        """ 
+        """
         Handles GET request for Step 4: Pandas Table Widget.
 
         This method follows the same "Combined Step" pattern as step_01.
@@ -461,7 +461,7 @@ class WidgetExamples:
         return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter table data as JSON array of objects. Example is pre-populated.'), P('Format: [{"name": "value", "value1": number, ...}, {...}]', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON array of objects for the DataFrame', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Draw Table ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_04_submit(self, request):
-        """ 
+        """
         Process the submission for Step 4.
 
         This method demonstrates using pandas to generate an HTML table:
@@ -732,7 +732,7 @@ class WidgetExamples:
         return Div(container, init_script)
 
     async def step_07(self, request):
-        """ 
+        """
         Handles GET request for Step 7: Matplotlib Histogram Widget.
 
         This step allows users to input counter data and visualizes it as a histogram.
@@ -768,7 +768,7 @@ class WidgetExamples:
         return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_07_submit(self, request):
-        """ 
+        """
         Process the submission for Step 7 (Matplotlib Histogram).
 
         Takes counter data as input and creates a histogram visualization.
@@ -805,7 +805,7 @@ class WidgetExamples:
             return P(f'Error creating histogram: {str(e)}', style=pip.get_style('error'))
 
     async def step_08(self, request):
-        """ 
+        """
         Handles GET request for Step 8: URL Opener Widget.
 
         This widget allows users to input a URL and open it in their default browser.
@@ -832,7 +832,7 @@ class WidgetExamples:
             return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter a URL to open in your default browser.'), Form(Div(Input(type='url', name='url', placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_08_submit(self, request):
-        """ 
+        """
         Process the submission for Step 8 (URL Opener).
 
         Takes a URL input, validates it, opens it in the default browser,
@@ -905,7 +905,7 @@ class WidgetExamples:
             return Div(NotStr(f"<div style='color: red;'>Error creating histogram: {str(e)}<br><pre>{tb}</pre></div>"), _raw=True)
 
     async def step_09(self, request):
-        """ 
+        """
         Handles GET request for Step 9: Rich Table Widget.
 
         This widget demonstrates a beautifully styled table with:

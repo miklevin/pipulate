@@ -18,8 +18,8 @@ class BlankPlaceholder:
     A minimal template for creating new Pipulate workflows.
     It includes one placeholder step and the necessary structure for expansion.
     """
-    APP_NAME = 'placeholder' 
-    DISPLAY_NAME = 'Blank Placeholder' 
+    APP_NAME = 'placeholder'
+    DISPLAY_NAME = 'Blank Placeholder'
     ENDPOINT_MESSAGE = 'Welcome to the Blank Placeholder. This is a starting point for your new workflow.'
     TRAINING_PROMPT = 'This is a minimal workflow template. It has one placeholder step. The user will customize it.'
 
@@ -29,30 +29,30 @@ class BlankPlaceholder:
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
-        self.app_name = self.APP_NAME 
+        self.app_name = self.APP_NAME
         self.pipulate = pipulate
-        self.pipeline = pipeline 
-        self.db = db 
-        pip = self.pipulate 
+        self.pipeline = pipeline
+        self.db = db
+        pip = self.pipulate
         self.message_queue = pip.get_message_queue()
-        
+
         # Access centralized UI constants from server configuration
         from server import PIPULATE_CONFIG
         self.ui = PIPULATE_CONFIG['UI_CONSTANTS']
-        
+
         # self.steps includes all data steps AND the system 'finalize' step at the end.
         # splice_workflow_step.py inserts new data steps BEFORE STEPS_LIST_INSERTION_POINT.
         self.steps = [
             Step(id='step_01', done='placeholder_data_01', show='Step 1 Placeholder', refill=False),
-            # --- STEPS_LIST_INSERTION_POINT --- 
-            Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
+            # --- STEPS_LIST_INSERTION_POINT ---
+            Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
 
-        internal_route_prefix = self.APP_NAME 
-        
+        internal_route_prefix = self.APP_NAME
+
         routes = [
-            (f'/{internal_route_prefix}/init', self.init, ['POST']), 
+            (f'/{internal_route_prefix}/init', self.init, ['POST']),
             (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
             (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST'])
         ]
@@ -62,36 +62,36 @@ class BlankPlaceholder:
             handler_method = getattr(self, step_id, None)
             if handler_method:
                 current_methods = ['GET']
-                if step_id == 'finalize': 
+                if step_id == 'finalize':
                     current_methods.append('POST')
                 routes.append((f'/{internal_route_prefix}/{step_id}', handler_method, current_methods))
-            
+
             if step_id != 'finalize': # Only data steps have explicit _submit handlers
                 submit_handler_method = getattr(self, f'{step_id}_submit', None)
                 if submit_handler_method:
                     routes.append((f'/{internal_route_prefix}/{step_id}_submit', submit_handler_method, ['POST']))
-        
+
         for path, handler, *methods_list_arg in routes:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             self.app.route(path, methods=current_methods)(handler)
-            
+
         self.step_messages = {}
         for step_obj in self.steps:
             if step_obj.id == 'finalize':
-                self.step_messages['finalize'] = { 
-                    'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 
+                self.step_messages['finalize'] = {
+                    'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'],
                     'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'
                 }
             else:
                 self.step_messages[step_obj.id] = {
-                    'input': f'{step_obj.show}: Please provide the required input.', 
+                    'input': f'{step_obj.show}: Please provide the required input.',
                     'complete': f'{step_obj.show} is complete. Proceed to the next action.'
                 }
 
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -107,24 +107,24 @@ class BlankPlaceholder:
             _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
             if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
                 pipeline_id = user_input_key
-            else: 
+            else:
                  _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
                  pipeline_id = f'{prefix}{user_part}'
-        
+
         db['pipeline_id'] = pipeline_id
-        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name}) 
+        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
         await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_WORKFLOW_ID'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_RETURN_HINT'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
-        
+
         return pip.run_all_cells(internal_app_name, self.steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         # Use self.steps as it's the definitive list including 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
 
@@ -136,8 +136,8 @@ class BlankPlaceholder:
                 all_data_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in self.steps if step.id != 'finalize')
                 if all_data_steps_complete:
                     return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
-                else: 
-                    return Div(id=finalize_step_obj.id) 
+                else:
+                    return Div(id=finalize_step_obj.id)
         elif request.method == 'POST':
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
@@ -154,14 +154,14 @@ class BlankPlaceholder:
         pip, db, current_steps = self.pipulate, self.db, self.steps
         step_obj = next((s for s in current_steps if s.id == step_id), None)
         if not step_obj or not step_obj.transform: return ''
-        
+
         current_step_index = self.steps_indices.get(step_id)
         if current_step_index is None or current_step_index == 0: return ''
-        
+
         prev_step_obj = current_steps[current_step_index - 1]
         prev_data = pip.get_step_data(db.get('pipeline_id', 'unknown'), prev_step_obj.id, {})
         prev_value = prev_data.get(prev_step_obj.done, '')
-        
+
         return step_obj.transform(prev_value) if prev_value and callable(step_obj.transform) else ''
 
     async def handle_revert(self, request):
@@ -178,7 +178,7 @@ class BlankPlaceholder:
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id_to_revert_to
         pip.write_state(pipeline_id, state)
-        
+
         message = await pip.get_state_message(pipeline_id, current_steps_to_pass_helpers, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
@@ -238,17 +238,17 @@ class BlankPlaceholder:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         form_data = await request.form()
         # For a placeholder, get value from the hidden input or use a default
-        value_to_save = form_data.get(step.done, f"Default value for {step.show}") 
+        value_to_save = form_data.get(step.done, f"Default value for {step.show}")
         await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
-        
+
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\\n{value_to_save}")
         pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
-        
+
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
+
         return Div(
             pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),

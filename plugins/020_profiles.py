@@ -24,9 +24,9 @@ PLACEHOLDER_CODE = 'CCode (us, uk, de, etc)'
 class ProfilesPluginIdentity:
     # Override this in subclasses to customize the emoji
     EMOJI = '👤'
-    
+
     APP_NAME = 'profiles'
-    
+
     @property
 
     def DISPLAY_NAME(self):
@@ -34,7 +34,7 @@ class ProfilesPluginIdentity:
         if self.EMOJI:
             return f"{self.EMOJI} {name}"
         return name
-    
+
     ENDPOINT_MESSAGE = 'Manage user profiles (clients, customers, etc.). Each Profile is a separate workspace.'
 
 

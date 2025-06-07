@@ -58,7 +58,7 @@ class BlankWorkflow:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -211,11 +211,11 @@ class BlankWorkflow:
         else:
             await self.message_queue.add(pip, 'Enter the URL you want to open in a new tab:', verbatim=True)
             display_value = url_value if step.refill and url_value else 'https://example.com/'
-            return Div(Card(H3(f'{step.show}'), 
+            return Div(Card(H3(f'{step.show}'),
                 P('The URL will open in a new tab and your browser will switch to it. Return to this tab when you\'re done.', cls='text-secondary'),
-                Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'), 
-                Button('Open in New Tab ▸', type='submit', cls='primary'), 
-                hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), 
+                Form(Input(type='url', name='url', placeholder='https://example.com/', required=True, value=display_value, cls='contrast'),
+                Button('Open in New Tab ▸', type='submit', cls='primary'),
+                hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')),
                 Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):

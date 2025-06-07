@@ -89,7 +89,7 @@ class BotifyExport:
     ------------------------------------
     The tree display for file paths uses the standardized pip.widget_container method,
     which provides consistent styling and layout for displaying additional content below
-    the standard revert controls. This ensures proper alignment with revert buttons 
+    the standard revert controls. This ensures proper alignment with revert buttons
     while maintaining visual grouping.
 
     Example usage:
@@ -167,7 +167,7 @@ class BotifyExport:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -235,7 +235,7 @@ class BotifyExport:
         if pipeline_id not in matching_records:
             matching_records.append(pipeline_id)
         updated_datalist = pip.update_datalist('pipeline-ids', options=matching_records)
-        
+
         # Create step placeholders using run_all_cells method
         return Div(updated_datalist, *pip.run_all_cells(app_name, steps).children, id=f'{app_name}-container')
 
@@ -820,7 +820,7 @@ class BotifyExport:
         """
         Format a file path as either a hierarchical ASCII tree or a blue box.
 
-        This visualization is used in various places in the UI to show 
+        This visualization is used in various places in the UI to show
         download locations. The styling of the display is carefully tuned
         in each context where it appears.
 
@@ -1286,7 +1286,7 @@ class BotifyExport:
         """
         Finalize the workflow, locking all steps from further changes.
 
-        This method handles both GET requests (displaying finalization UI) and 
+        This method handles both GET requests (displaying finalization UI) and
         POST requests (performing the actual finalization). The UI portions
         are intentionally kept WET to allow for full customization of the user
         experience, while core state management is handled by DRY helper methods.
@@ -1482,19 +1482,19 @@ def ensure_directories():
     """Ensure all required directories exist."""
     base_dir = Path(f'downloads/{self.app_name}')
     base_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create registry directory
     registry_dir = base_dir / 'registry'
     registry_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create exports directory
     exports_dir = base_dir / 'exports'
     exports_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create downloads directory
     downloads_dir = base_dir / 'downloads'
     downloads_dir.mkdir(parents=True, exist_ok=True)
-    
+
     return {
         'base': base_dir,
         'registry': registry_dir,
@@ -1515,12 +1515,12 @@ def create_export_job(project_url, analysis_id, depth, fields):
         'created_at': datetime.now().isoformat(),
         'updated_at': datetime.now().isoformat()
     }
-    
+
     # Save job to registry
     registry = load_export_registry()
     registry[job_id] = job
     save_export_registry(registry)
-    
+
     return job
 
 def update_export_job(job_id, status, download_url=None):

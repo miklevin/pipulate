@@ -53,7 +53,7 @@ class RangeSelectorWorkflow:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 

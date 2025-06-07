@@ -166,19 +166,19 @@ class StreamSimulatorPlugin:
 
             function startSimulation_ID_SUFFIX() {
                 streamUI_ID_SUFFIX.setButtonState(true);
-                
+
                 const eventSource = new EventSource('ROUTE_PREFIX/stream');
-                
+
                 eventSource.onmessage = function(event) {
                     const message = event.data;
                     streamUI_ID_SUFFIX.appendMessage(message);
-                    
+
                     if (message.includes('Simulation complete')) {
                         eventSource.close();
                         streamUI_ID_SUFFIX.handleJobComplete();
                         return;
                     }
-                    
+
                     const match = message.match(/(\d+)\/(\d+)/);
                     if (match) {
                         const [current, total] = match.slice(1).map(Number);

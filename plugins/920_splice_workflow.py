@@ -14,7 +14,7 @@ class SpliceWorkflow:
     """
     Splice Workflow Template
 
-    A demonstration workflow showing how to extend from a simple single-step workflow 
+    A demonstration workflow showing how to extend from a simple single-step workflow
     (like 70_blank_workflow.py) to a multi-step workflow with proper HTMX chain reactions.
 
     ## Critical Chain Reaction Pattern
@@ -73,7 +73,7 @@ class SpliceWorkflow:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -185,7 +185,7 @@ class SpliceWorkflow:
         2. Check if step is complete -> Show completion with trigger to next step
         3. Otherwise -> Show input form
 
-        CRITICAL: When step is complete, return a div that EXPLICITLY triggers the next step 
+        CRITICAL: When step is complete, return a div that EXPLICITLY triggers the next step
         with <Div id="next_step_id" hx_get="/app_name/next_step_id" hx_trigger="load">
 
         LLM CONTEXT PATTERN:

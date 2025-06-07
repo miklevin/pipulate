@@ -28,7 +28,7 @@ class ParameterBusterWorkflow:
     """
     Parameter Buster Workflow
 
-    A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls, 
+    A comprehensive workflow that analyzes URL parameters from multiple data sources (Botify crawls,
     web logs, and Search Console) to identify optimization opportunities. This workflow demonstrates:
 
     - Multi-step form collection with chain reaction progression
@@ -37,7 +37,7 @@ class ParameterBusterWorkflow:
     - Background processing with progress indicators
     - Complex data analysis with pandas
 
-    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger 
+    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger
     the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
 
     ## Step Flow Pattern
@@ -93,7 +93,7 @@ class ParameterBusterWorkflow:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 

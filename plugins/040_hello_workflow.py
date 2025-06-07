@@ -34,7 +34,7 @@ until it encounters a step requiring user input.
 The chain reaction is maintained through three distinct phases in each step:
 
 1. Finalize Phase: Shows locked view of completed step, chains to next step
-2. Revert Phase: Shows completed view with revert option, chains to next step  
+2. Revert Phase: Shows completed view with revert option, chains to next step
 3. Get Input Phase: Shows input form, waits for user submission
 
 Note: This three-phase pattern could potentially be adapted to support various forms
@@ -156,7 +156,7 @@ class HelloFlow:
     # - BUTTON_STYLES: PicoCSS classes for consistent styling
     # - EMOJIS: Categorized emoji constants for message queue feedback
     #   * Process Status: 🔍🎯⚠️❌✅🔒🔓 (discovery, success, warning, error, completion, locked/unlocked)
-    #   * Data Types: 👤💬🔄 (user input, messages, workflow processes)  
+    #   * Data Types: 👤💬🔄 (user input, messages, workflow processes)
     #   * Actions: 🔄📝 (processing, input forms)
     #
     # Note: The emoji categorization system here could potentially support sophisticated
@@ -179,20 +179,20 @@ class HelloFlow:
             # feedback systems and user guidance mechanisms.
             'KEY': '🔑',
             'DISCOVERY': '🔍',
-            'SUCCESS': '🎯', 
+            'SUCCESS': '🎯',
             'WARNING': '⚠️',
             'ERROR': '❌',
             'COMPLETION': '✅',
             'LOCKED': '🔒',
             'UNLOCKED': '🔓',
-            
-            # Data Type Indicators  
+
+            # Data Type Indicators
             # The data type categorization could support sophisticated content
             # organization and user interface adaptation patterns.
             'USER_INPUT': '👤',
             'GREETING': '💬',
             'WORKFLOW': '🔄',
-            
+
             # Action Indicators
             # These action indicators could be part of a larger system for
             # directing user attention and facilitating interaction flow.
@@ -236,7 +236,7 @@ class HelloFlow:
                 refill=False,
                 transform=lambda name: f'Hello {name}!'  # Transform previous step's output
             ),
-            # --- STEPS_LIST_INSERTION_POINT --- 
+            # --- STEPS_LIST_INSERTION_POINT ---
         ]
 
         # Register standard workflow routes
@@ -280,7 +280,7 @@ class HelloFlow:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -312,11 +312,11 @@ class HelloFlow:
             return error
         all_steps_complete = all((step.id in state and step.done in state[step.id] for step in steps[:-1]))
         is_finalized = 'finalize' in state and 'finalized' in state['finalize']
-        
+
         # Progressive feedback with emoji conventions
         await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["WORKFLOW"]} Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"{self.UI_CONSTANTS["EMOJIS"]["KEY"]} Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        
+
         if all_steps_complete:
             if is_finalized:
                 status_msg = f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} Workflow is complete and finalized. Use {self.UI_CONSTANTS["BUTTON_LABELS"]["UNLOCK"]} to make changes.'
@@ -325,7 +325,7 @@ class HelloFlow:
             await self.message_queue.add(pip, status_msg, verbatim=True)
         elif not any((step.id in state for step in self.steps)):
             await self.message_queue.add(pip, f'{self.UI_CONSTANTS["EMOJIS"]["INPUT_FORM"]} Please complete each step in sequence. Your progress will be saved automatically.', verbatim=True)
-        
+
         parsed = pip.parse_pipeline_key(pipeline_id)
         prefix = f"{parsed['profile_part']}-{parsed['plugin_part']}-"
         self.pipeline.xtra(app_name=app_name)
@@ -344,28 +344,28 @@ class HelloFlow:
         if request.method == 'GET':
             if finalize_step.done in finalize_data:
                 return Card(
-                    H3(f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} Workflow is locked.'), 
-                    P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', style=pip.get_style('muted')), 
+                    H3(f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} Workflow is locked.'),
+                    P('Each step can do ANYTHING. With this you can change the world — or at least show how to in a workflow.', style=pip.get_style('muted')),
                     Form(
-                        Button(self.UI_CONSTANTS['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.UI_CONSTANTS['BUTTON_STYLES']['OUTLINE']), 
-                        hx_post=f'/{app_name}/unfinalize', 
-                        hx_target=f'#{app_name}-container', 
+                        Button(self.UI_CONSTANTS['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.UI_CONSTANTS['BUTTON_STYLES']['OUTLINE']),
+                        hx_post=f'/{app_name}/unfinalize',
+                        hx_target=f'#{app_name}-container',
                         hx_swap='outerHTML'
-                    ), 
+                    ),
                     id=finalize_step.id
                 )
             else:
                 all_steps_complete = all((pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in steps[:-1]))
                 if all_steps_complete:
                     return Card(
-                        H3(f'{self.UI_CONSTANTS["EMOJIS"]["SUCCESS"]} All steps complete. Finalize?'), 
-                        P('At the end they get locked. Or you can go back.', style=pip.get_style('muted')), 
+                        H3(f'{self.UI_CONSTANTS["EMOJIS"]["SUCCESS"]} All steps complete. Finalize?'),
+                        P('At the end they get locked. Or you can go back.', style=pip.get_style('muted')),
                         Form(
-                            Button(self.UI_CONSTANTS['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.UI_CONSTANTS['BUTTON_STYLES']['PRIMARY']), 
-                            hx_post=f'/{app_name}/finalize', 
-                            hx_target=f'#{app_name}-container', 
+                            Button(self.UI_CONSTANTS['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.UI_CONSTANTS['BUTTON_STYLES']['PRIMARY']),
+                            hx_post=f'/{app_name}/finalize',
+                            hx_target=f'#{app_name}-container',
                             hx_swap='outerHTML'
-                        ), 
+                        ),
                         id=finalize_step.id
                     )
                 else:
@@ -506,7 +506,7 @@ class HelloFlow:
         step_id = 'step_01'  # This string literal will be replaced by swap_workflow_step.py
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
-        
+
         pipeline_id = self.db["pipeline_id"]
         form = await request.form()
         user_val = form.get(step.done, "")  # CRITICAL CHANGE: Use step.done from the resolved Step object
@@ -544,31 +544,31 @@ class HelloFlow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')  # Use step.done from resolved Step object
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
+
         # Phase 1: Finalize Phase - Show locked view
         if 'finalized' in finalize_data:
             locked_msg = f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} Greeting is locked: {user_val}'
             await self.message_queue.add(pip, locked_msg, verbatim=True)
             return Div(
-                Card(H3(f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} {step.show}: {user_val}')), 
-                Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'), 
+                Card(H3(f'{self.UI_CONSTANTS["EMOJIS"]["LOCKED"]} {step.show}: {user_val}')),
+                Div(id=next_step_id, hx_get=f'/{self.app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
-        
+
         # Phase 2: Revert Phase - Show completed view with revert option
         elif user_val and state.get('_revert_target') != step_id:
             completed_msg = f'{self.UI_CONSTANTS["EMOJIS"]["SUCCESS"]} Step 2 is complete. Greeting: {user_val}'
             await self.message_queue.add(pip, completed_msg, verbatim=True)
             return Div(
                 pip.display_revert_header(
-                    step_id=step_id, 
-                    app_name=app_name, 
-                    message=f'{self.UI_CONSTANTS["EMOJIS"]["GREETING"]} {step.show}: {user_val}', 
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f'{self.UI_CONSTANTS["EMOJIS"]["GREETING"]} {step.show}: {user_val}',
                     steps=steps
-                ), 
+                ),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
             )
-        
+
         # Phase 3: Input Phase - Show input form
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
@@ -577,26 +577,26 @@ class HelloFlow:
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
-                    H3(f'{self.UI_CONSTANTS["EMOJIS"]["GREETING"]} {pip.fmt(step.id)}: Enter {step.show}'), 
-                    P(explanation, style=pip.get_style('muted')), 
+                    H3(f'{self.UI_CONSTANTS["EMOJIS"]["GREETING"]} {pip.fmt(step.id)}: Enter {step.show}'),
+                    P(explanation, style=pip.get_style('muted')),
                     Form(
                         pip.wrap_with_inline_button(
                             Input(
-                                type='text', 
+                                type='text',
                                 name=step.done,  # CRITICAL: Use step.done from resolved Step object
-                                value=display_value, 
-                                placeholder=f'{step.show} (generated)', 
-                                required=True, 
-                                autofocus=True, 
+                                value=display_value,
+                                placeholder=f'{step.show} (generated)',
+                                required=True,
+                                autofocus=True,
                                 _onfocus='this.setSelectionRange(this.value.length, this.value.length)'
-                            ), 
+                            ),
                             button_label=self.UI_CONSTANTS['BUTTON_LABELS']['NEXT_STEP']
-                        ), 
-                        hx_post=f'/{app_name}/{step_id}_submit', 
+                        ),
+                        hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     )
-                ), 
-                Div(id=next_step_id), 
+                ),
+                Div(id=next_step_id),
                 id=step_id
             )
 
@@ -607,30 +607,30 @@ class HelloFlow:
         step_index = self.steps_indices[step_id]
         step = steps[step_index]  # Use the resolved step object
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         if step.done == 'finalized':
             return await pip.handle_finalized_step(pipeline_id, step_id, steps, app_name, self)
-        
+
         form = await request.form()
         user_val = form.get(step.done, '')  # CRITICAL CHANGE: Use step.done from resolved Step object
-        
+
         # Enhanced validation with emoji error handling
         is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
         if not is_valid:
             error_with_emoji = f'{self.UI_CONSTANTS["EMOJIS"]["ERROR"]} {error_msg}'
             await self.message_queue.add(pip, error_with_emoji, verbatim=True)
             return error_component
-        
+
         processed_val = user_val
         await pip.set_step_data(pipeline_id, step_id, processed_val, steps)
-        
+
         # Progressive feedback with emoji
         success_msg = f'{self.UI_CONSTANTS["EMOJIS"]["SUCCESS"]} {step.show}: {processed_val}'
         await self.message_queue.add(pip, success_msg, verbatim=True)
-        
+
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, self.step_messages['finalize']['ready'], verbatim=True)
-        
+
         return self.pipulate.chain_reverter(
             step_id=step_id,
             step_index=step_index,

@@ -12,7 +12,7 @@ ROLES = ['Botify Employee']
 Acquire a Botify API Key
 
 This is the simplest possible workflow, not even having a step.
-It only has a landing page and a finalize button. 
+It only has a landing page and a finalize button.
 Landing page asks for a Botify API Key.
 Finalize step saves the token to a file.
 
@@ -221,7 +221,7 @@ class BotifyConnect:
         """
         Finalize the workflow, saving the Botify API token.
 
-        This method handles both GET requests (displaying finalization UI) and 
+        This method handles both GET requests (displaying finalization UI) and
         POST requests (performing the actual finalization). The UI portions
         are intentionally kept WET to allow for full customization of the user
         experience, while core state management is handled by DRY helper methods.

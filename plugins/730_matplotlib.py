@@ -59,7 +59,7 @@ class MatplotlibWidget:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -158,7 +158,7 @@ class MatplotlibWidget:
         return pip.run_all_cells(app_name, steps)
 
     async def step_01(self, request):
-        """ 
+        """
         Handles GET request for Step 1: Matplotlib Histogram Widget.
 
         This step allows users to input counter data and visualizes it as a histogram.
@@ -194,7 +194,7 @@ class MatplotlibWidget:
         return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
-        """ 
+        """
         Process the submission for Step 1 (Matplotlib Histogram).
 
         Takes counter data as input and creates a histogram visualization.

@@ -24,7 +24,7 @@ def derive_public_endpoint_from_filename(filename_str: str) -> str:
 class DevAssistant:
     """
     Pipulate Development Assistant
-    
+
     Interactive debugging and development guidance tool that helps developers:
     - Validate workflow patterns against the Ultimate Pipulate Guide
     - Debug common implementation issues
@@ -32,12 +32,12 @@ class DevAssistant:
     - Analyze workflow state and step progression
     - Provide pattern-specific recommendations
     - Check template suitability and marker compatibility
-    
+
     This assistant implements the 25 critical patterns from the Ultimate Pipulate Guide
     and provides real-time validation and debugging assistance for Pipulate development.
     """
-    APP_NAME = 'dev_assistant' 
-    DISPLAY_NAME = 'Development Assistant 🩺' 
+    APP_NAME = 'dev_assistant'
+    DISPLAY_NAME = 'Development Assistant 🩺'
     ENDPOINT_MESSAGE = """Interactive debugging and development guidance for Pipulate workflows. Validate patterns, debug issues, check template suitability, and get expert recommendations based on the Ultimate Pipulate Implementation Guide and workflow creation helper system."""
     TRAINING_PROMPT = """You are the Pipulate Development Assistant. Help developers with: 1. Pattern validation against the 25 critical patterns from the Ultimate Guide. 2. Debugging workflow issues (auto-key generation, three-phase logic, chain reactions). 3. Plugin structure analysis and recommendations. 4. State management troubleshooting. 5. Template suitability and marker compatibility for helper tools. 6. Best practice guidance for workflow development. Always reference specific patterns from the Ultimate Guide and provide actionable debugging steps."""
 
@@ -45,10 +45,10 @@ class DevAssistant:
     UI_CONSTANTS = {
         'COLORS': {
             # Primary text colors
-            'HEADER_TEXT': '#2c3e50',           # Dark blue-gray for headers  
+            'HEADER_TEXT': '#2c3e50',           # Dark blue-gray for headers
             'BODY_TEXT': '#CCCCCC',             # Muted gray for body text
             'SECONDARY_TEXT': '#495057',        # Slightly darker gray for secondary text
-            
+
             # Semantic colors
             'SUCCESS_GREEN': '#28a745',         # Green for success indicators
             'ERROR_RED': '#dc3545',             # Red for errors and warnings
@@ -57,12 +57,12 @@ class DevAssistant:
             'INFO_TEAL': '#17a2b8',             # Teal for secondary info
             'ACCENT_ORANGE': '#fd7e14',         # Orange for special highlights
             'ACCENT_PURPLE': '#6f42c1',         # Purple for template analysis
-            
+
             # Status colors (for success/error badges)
             'SUCCESS_TEXT': '#155724',          # Dark green text for success badges
-            'WARNING_TEXT': '#856404',          # Dark yellow text for warning badges  
+            'WARNING_TEXT': '#856404',          # Dark yellow text for warning badges
             'ERROR_TEXT': '#721c24',            # Dark red text for error badges
-            
+
             # Code display colors
             'CODE_BG_DARK': '#2d3748',          # Dark background for code blocks
             'CODE_TEXT_LIGHT': '#e2e8f0',       # Light text for dark code blocks
@@ -72,7 +72,7 @@ class DevAssistant:
             'SUCCESS_BG': '#d4edda',           # Light green background for success
             'WARNING_BG': '#fff3cd',           # Light yellow background for warnings
             'ERROR_BG': '#f8d7da',             # Light red background for errors
-            
+
             # Transparent overlays for sections
             'SUCCESS_OVERLAY': 'rgba(40, 167, 69, 0.05)',    # Very light green overlay
             'WARNING_OVERLAY': 'rgba(255, 193, 7, 0.05)',    # Very light yellow overlay
@@ -88,24 +88,24 @@ class DevAssistant:
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
-        self.app_name = self.APP_NAME 
+        self.app_name = self.APP_NAME
         self.pipulate = pipulate
-        self.pipeline = pipeline 
-        self.db = db 
-        pip = self.pipulate 
+        self.pipeline = pipeline
+        self.db = db
+        pip = self.pipulate
         self.message_queue = pip.get_message_queue()
-        
+
         self.steps = [
             Step(id='step_01', done='plugin_analysis', show='1. Plugin Selection', refill=False),
             Step(id='step_02', done='comprehensive_analysis', show='2. Analysis & Recommendations', refill=False),
-            Step(id='finalize', done='finalized', show='Finalize Analysis', refill=False) 
+            Step(id='finalize', done='finalized', show='Finalize Analysis', refill=False)
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
 
-        internal_route_prefix = self.APP_NAME 
-        
+        internal_route_prefix = self.APP_NAME
+
         routes = [
-            (f'/{internal_route_prefix}/init', self.init, ['POST']), 
+            (f'/{internal_route_prefix}/init', self.init, ['POST']),
             (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
             (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST'])
         ]
@@ -115,15 +115,15 @@ class DevAssistant:
             handler_method = getattr(self, step_id, None)
             if handler_method:
                 current_methods = ['GET']
-                if step_id == 'finalize': 
+                if step_id == 'finalize':
                     current_methods.append('POST')
                 routes.append((f'/{internal_route_prefix}/{step_id}', handler_method, current_methods))
-            
+
             if step_id != 'finalize':
                 submit_handler_method = getattr(self, f'{step_id}_submit', None)
                 if submit_handler_method:
                     routes.append((f'/{internal_route_prefix}/{step_id}_submit', submit_handler_method, ['POST']))
-        
+
         for path, handler, *methods_list_arg in routes:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             self.app.route(path, methods=current_methods)(handler)
@@ -131,7 +131,7 @@ class DevAssistant:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -146,31 +146,31 @@ class DevAssistant:
             response = Response('')
             response.headers['HX-Refresh'] = 'true'
             return response
-        
+
         _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
         if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
             pipeline_id = user_input_key
-        else: 
+        else:
              _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
              pipeline_id = f'{prefix}{user_part}'
-        
+
         db['pipeline_id'] = pipeline_id
-        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name}) 
+        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
         await self.message_queue.add(pip, f'Development Assistant Session: {pipeline_id}', verbatim=True, spaces_before=0)
-        
+
         return pip.run_all_cells(internal_app_name, self.steps)
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         if request.method == 'POST':
             await pip.set_step_data(pipeline_id, 'finalize', {'finalized': True}, self.steps)
             await self.message_queue.add(pip, 'Development analysis session finalized.', verbatim=True)
             return pip.run_all_cells(app_name, self.steps)
-        
+
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
             return Card(
@@ -207,25 +207,25 @@ class DevAssistant:
         form = await request.form()
         step_id = form.get('step_id')
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         if not step_id:
             return P('Error: No step specified for revert.', style=pip.get_style('error'))
-        
+
         await pip.clear_steps_from(pipeline_id, step_id, self.steps)
-        
+
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id
         pip.write_state(pipeline_id, state)
-        
+
         await self.message_queue.add(pip, f'Reverted to {step_id} for re-analysis.', verbatim=True)
-        
+
         return pip.run_all_cells(app_name, self.steps)
 
     def analyze_plugin_file(self, file_path):
         """Analyze a plugin file for common patterns, issues, and template suitability."""
         if not file_path.exists():
             return {"error": f"File not found: {file_path}"}
-        
+
         content = file_path.read_text()
         filename = file_path.name
         analysis = {
@@ -237,7 +237,7 @@ class DevAssistant:
             "coding_assistant_prompts": [],  # New: Detailed fix instructions
             "template_suitability": {
                 "as_template_source": False,
-                "as_splice_target": False, 
+                "as_splice_target": False,
                 "as_swap_source": True,  # Default true, most workflows can be swap sources
                 "as_swap_target": False,
                 "missing_requirements": []
@@ -249,7 +249,7 @@ class DevAssistant:
                 "compatibility_warnings": []
             }
         }
-        
+
         # Check for auto-key generation pattern (Priority 1)
         if 'HX-Refresh' in content and 'not user_input' in content:
             analysis["patterns_found"].append("✅ Auto-key generation pattern detected")
@@ -268,7 +268,7 @@ class DevAssistant:
                 f"```\n\n"
                 f"This should be placed right after the line: user_input_key = form.get('pipeline_id', '').strip()"
             )
-        
+
         # Check for three-phase pattern (Priority 2)
         if 'finalized' in content and '_revert_target' in content:
             analysis["patterns_found"].append("✅ Three-phase step pattern detected")
@@ -295,7 +295,7 @@ class DevAssistant:
                 f"    # Return input form\n"
                 f"```"
             )
-        
+
         # Check for chain reaction pattern (Priority 6)
         if 'hx_trigger=\'load\'' in content or 'hx_trigger="load"' in content:
             analysis["patterns_found"].append("✅ Chain reaction pattern detected")
@@ -324,7 +324,7 @@ class DevAssistant:
                 f")\n"
                 f"```"
             )
-        
+
         # Check for request parameter (Priority 7)
         if 'async def' in content and 'request' in content:
             analysis["patterns_found"].append("✅ Request parameter pattern detected")
@@ -348,12 +348,12 @@ class DevAssistant:
         # Route Registration Analysis - Check for missing handlers that are being registered
         # ================================================================================
         route_registration_issues = []
-        
+
         # Extract the route registration pattern from __init__ method
         init_method_match = re.search(r'def __init__\(.*?\n(.*?)(?=\n    def|\n    async def|\nclass|\Z)', content, re.DOTALL)
         if init_method_match:
             init_content = init_method_match.group(1)
-            
+
             # Check for explicit finalize_submit registration pattern
             if 'finalize_submit' in init_content:
                 if 'async def finalize_submit(' not in content:
@@ -375,7 +375,7 @@ class DevAssistant:
                         f"```\n\n"
                         f"OR modify the route registration to not expect finalize_submit and handle POST in finalize() method instead."
                     )
-            
+
             # Check for dynamic step registration that would create finalize_submit
             # Pattern: for step in steps: ... getattr(self, f'{step_id}_submit')
             if ('for step in steps:' in init_content or 'for step in self.steps:' in init_content) and 'getattr(self, f' in init_content and '_submit' in init_content:
@@ -387,7 +387,7 @@ class DevAssistant:
                     has_finalize_submit = 'async def finalize_submit(' in content
                     has_finalize_method = 'async def finalize(' in content
                     finalize_handles_post = has_finalize_method and ('request.method' in content and 'POST' in content)
-                    
+
                     if not has_finalize_submit and not finalize_handles_post:
                         route_registration_issues.append(
                             f"❌ CRITICAL: Route registration expects 'finalize_submit' method but it doesn't exist"
@@ -428,7 +428,7 @@ class DevAssistant:
                             f"        return pip.run_all_cells(app_name, self.steps)\n"
                             f"```"
                         )
-            
+
             # Check for step handler registration mismatches
             step_submit_patterns = re.findall(r'(\w+)_submit', init_content)
             for step_submit in step_submit_patterns:
@@ -457,7 +457,7 @@ class DevAssistant:
                         f"    return pip.chain_reverter(step_id, step_index, steps, app_name, user_input)\n"
                         f"```"
                     )
-            
+
             # Check for getattr patterns that might fail
             getattr_patterns = re.findall(r'getattr\(self, [\'"]([^\'"]+)[\'"]', init_content)
             for method_name in getattr_patterns:
@@ -465,7 +465,7 @@ class DevAssistant:
                     route_registration_issues.append(
                         f"❌ getattr() expects '{method_name}' method but it doesn't exist"
                     )
-        
+
         # Add route registration issues to the main issues list
         if route_registration_issues:
             analysis["issues"].extend(route_registration_issues)
@@ -474,10 +474,10 @@ class DevAssistant:
         # Template Assembly Marker Analysis
         steps_insertion_marker = "--- STEPS_LIST_INSERTION_POINT ---"
         methods_insertion_marker = "--- STEP_METHODS_INSERTION_POINT ---"
-        
+
         has_steps_marker = steps_insertion_marker in content
         has_methods_marker = methods_insertion_marker in content
-        
+
         if has_steps_marker:
             analysis["patterns_found"].append("✅ STEPS_LIST_INSERTION_POINT marker found")
         else:
@@ -497,9 +497,9 @@ class DevAssistant:
                 f"```\n\n"
                 f"CRITICAL: The marker must be at the same indentation level as the Step definitions and placed immediately before the finalize step."
             )
-            
+
         if has_methods_marker:
-            analysis["patterns_found"].append("✅ STEP_METHODS_INSERTION_POINT marker found")  
+            analysis["patterns_found"].append("✅ STEP_METHODS_INSERTION_POINT marker found")
         else:
             analysis["template_suitability"]["missing_requirements"].append("STEP_METHODS_INSERTION_POINT marker")
             analysis["issues"].append("❌ Missing STEP_METHODS_INSERTION_POINT marker (template compatibility)")
@@ -522,7 +522,7 @@ class DevAssistant:
         # Standard class attributes check
         required_attributes = ["APP_NAME", "DISPLAY_NAME", "ENDPOINT_MESSAGE", "TRAINING_PROMPT"]
         missing_attributes = []
-        
+
         for attr in required_attributes:
             if f'{attr} =' in content:
                 analysis["patterns_found"].append(f"✅ {attr} attribute found")
@@ -530,7 +530,7 @@ class DevAssistant:
                 missing_attributes.append(attr)
                 analysis["template_suitability"]["missing_requirements"].append(f"{attr} class attribute")
                 analysis["issues"].append(f"❌ Missing {attr} class attribute (template compatibility)")
-        
+
         if missing_attributes:
             analysis["coding_assistant_prompts"].append(
                 f"Add missing class attributes to {filename}:\n"
@@ -556,7 +556,7 @@ class DevAssistant:
                     for attr in missing_attributes
                 ])
             )
-        
+
         # UI Constants check
         if 'UI_CONSTANTS' in content:
             analysis["patterns_found"].append("✅ UI_CONSTANTS for styling found")
@@ -595,41 +595,41 @@ class DevAssistant:
         # NEW: COMPREHENSIVE TRANSPLANTATION ANALYSIS
         # ===========================================
         transplant_analysis = analysis["transplantation_analysis"]
-        
+
         # Find all swappable step methods with proper markers
         swappable_steps = []
         step_dependencies = {}
-        
+
         # Look for both SWAPPABLE_STEP and STEP_BUNDLE markers
         swappable_patterns = [
             r'# --- START_SWAPPABLE_STEP: (step_\d+) ---',
             r'# --- START_STEP_BUNDLE: (step_\d+) ---'
         ]
-        
+
         for pattern in swappable_patterns:
             matches = re.findall(pattern, content)
             for step_id in matches:
                 if step_id not in swappable_steps:
                     swappable_steps.append(step_id)
-        
+
         # Find step methods even without markers (potential for transplantation after adding markers)
         step_method_pattern = r'async def (step_\d+)(?:_submit)?\('
         step_methods = re.findall(step_method_pattern, content)
         potential_steps = list(set(step_methods))  # Remove duplicates
-        
+
         # Analyze each step for dependencies and transplantability
         for step_id in potential_steps:
             # Extract the step method content to analyze dependencies
             step_start_pattern = rf'async def {step_id}\('
             step_submit_pattern = rf'async def {step_id}_submit\('
-            
+
             # Find the step method bounds
             step_content = ""
             lines = content.split('\n')
-            
+
             in_step_method = False
             step_method_indent = None
-            
+
             for i, line in enumerate(lines):
                 if re.search(step_start_pattern, line):
                     in_step_method = True
@@ -643,12 +643,12 @@ class DevAssistant:
                     else:
                         # We've reached the next method
                         break
-            
+
             # Also get the submit method if it exists
             if f'async def {step_id}_submit(' in content:
                 in_submit_method = False
                 submit_method_indent = None
-                
+
                 for i, line in enumerate(lines):
                     if re.search(step_submit_pattern, line):
                         in_submit_method = True
@@ -660,27 +660,27 @@ class DevAssistant:
                             step_content += line + '\n'
                         else:
                             break
-            
+
             # Analyze dependencies in the step content
             dependencies = []
-            
+
             # Check for self.UPPER_CASE class constants
             class_constants = re.findall(r'self\.([A-Z][A-Z_]+)', step_content)
             dependencies.extend([f"self.{const}" for const in set(class_constants)])
-            
+
             # Check for specialized methods or attributes
             specialized_methods = re.findall(r'self\.([a-z_]+[a-z0-9_]*)\(', step_content)
             specialized_attrs = re.findall(r'self\.([a-z_]+[a-z0-9_]*)', step_content)
-            
+
             # Filter out common workflow methods that should be available everywhere
             common_methods = {
                 'pipulate', 'db', 'steps', 'app_name', 'message_queue', 'steps_indices',
                 'get_step_data', 'set_step_data', 'read_state', 'write_state'
             }
-            
+
             specialized = set(specialized_methods + specialized_attrs) - common_methods
             dependencies.extend([f"self.{method}" for method in specialized])
-            
+
             # Check for external imports or specialized functionality
             external_deps = []
             if 'matplotlib' in step_content.lower():
@@ -693,28 +693,28 @@ class DevAssistant:
                 external_deps.append('file handling')
             if 'checkbox' in step_content.lower() or 'fieldset' in step_content.lower():
                 external_deps.append('checkbox UI components')
-            
+
             dependencies.extend(external_deps)
-            
+
             step_dependencies[step_id] = {
                 'class_dependencies': [dep for dep in dependencies if dep.startswith('self.')],
                 'external_dependencies': [dep for dep in dependencies if not dep.startswith('self.')],
                 'has_swappable_markers': step_id in swappable_steps,
                 'self_contained': len([dep for dep in dependencies if dep.startswith('self.') and not any(common in dep for common in ['pipulate', 'db', 'steps', 'app_name'])]) == 0
             }
-        
+
         # Generate transplant commands for each viable step
         transplant_commands = []
         compatibility_warnings = []
-        
+
         source_filename = filename
-        
+
         for step_id in potential_steps:
             step_info = step_dependencies.get(step_id, {})
-            
+
             # Generate command for swapping this step to a target workflow
             command = f"python helpers/swap_workflow_step.py TARGET_FILE.py {step_id} plugins/{source_filename} {step_id} --force"
-            
+
             compatibility_notes = []
             if not step_info.get('has_swappable_markers', False):
                 compatibility_notes.append("⚠️ Needs swappable step markers added first")
@@ -723,7 +723,7 @@ class DevAssistant:
             if step_info.get('external_dependencies'):
                 deps = ', '.join(step_info['external_dependencies'])
                 compatibility_notes.append(f"⚠️ Requires: {deps}")
-            
+
             transplant_commands.append({
                 'step_id': step_id,
                 'command': command,
@@ -731,20 +731,20 @@ class DevAssistant:
                 'notes': compatibility_notes,
                 'dependencies': step_info
             })
-        
+
         # Store results
         transplant_analysis['swappable_steps'] = swappable_steps
         transplant_analysis['step_dependencies'] = step_dependencies
         transplant_analysis['transplant_commands'] = transplant_commands
-        
+
         # Generate compatibility warnings
         if len(swappable_steps) == 0 and len(potential_steps) > 0:
             transplant_analysis['compatibility_warnings'].append(
                 "No swappable step markers found. Add START_SWAPPABLE_STEP/END_SWAPPABLE_STEP markers to enable transplantation."
             )
-        
+
         high_dependency_steps = [
-            step_id for step_id, info in step_dependencies.items() 
+            step_id for step_id, info in step_dependencies.items()
             if len(info.get('class_dependencies', [])) > 3
         ]
         if high_dependency_steps:
@@ -768,7 +768,7 @@ class DevAssistant:
                     missing_type = 'GET' if not has_get else 'POST'
                     analysis["issues"].append(f"❌ Step {num} missing {missing_type} handler")
                     missing_handlers.append((num, missing_type))
-            
+
             if missing_handlers:
                 handler_code = []
                 for num, handler_type in missing_handlers:
@@ -786,7 +786,7 @@ class DevAssistant:
         step_data = pip.get_step_data(pipeline_id, step_id, {{}})
         user_val = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {{}})
-        
+
         if 'finalized' in finalize_data:
             return Div(
                 Card(H3(f'🔒 {{step.show}}: Complete')),
@@ -818,22 +818,22 @@ class DevAssistant:
         step_id = 'step_{num}'
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         form = await request.form()
         # Process form data here
         user_input = form.get('field_name', '').strip()
-        
+
         # Store step data
         await pip.set_step_data(pipeline_id, step_id, user_input, steps)
-        
+
         return pip.chain_reverter(step_id, step_index, steps, app_name, user_input)\n""")
-                
+
                 analysis["coding_assistant_prompts"].append(
                     f"Add missing step handlers to {filename}:\n"
                     f"Add these missing method(s):\n\n"
                     f"```python" + ''.join(handler_code) + "\n```"
                 )
-        
+
         # Finalize step check
         if 'finalize(' in content:
             analysis["patterns_found"].append("✅ Finalize step handler found")
@@ -881,25 +881,25 @@ class DevAssistant:
 
         # Template Suitability Assessment
         suitability = analysis["template_suitability"]
-        
+
         # Template Source Requirements: markers + attributes + UI_CONSTANTS
         if has_steps_marker and has_methods_marker and len(missing_attributes) == 0:
             suitability["as_template_source"] = True
             analysis["patterns_found"].append("🎯 SUITABLE AS TEMPLATE SOURCE")
         else:
             analysis["recommendations"].append("To use as template source: Add missing markers and class attributes")
-            
+
         # Splice Target Requirements: both markers required
         if has_steps_marker and has_methods_marker:
-            suitability["as_splice_target"] = True 
+            suitability["as_splice_target"] = True
             analysis["patterns_found"].append("🔧 SUITABLE AS SPLICE TARGET")
         else:
             analysis["recommendations"].append("To use as splice target: Add both insertion point markers")
-            
+
         # Swap Target Requirements: must have step methods to replace
         if step_methods:
             suitability["as_swap_target"] = True
-            analysis["patterns_found"].append("🔄 SUITABLE AS SWAP TARGET") 
+            analysis["patterns_found"].append("🔄 SUITABLE AS SWAP TARGET")
         else:
             suitability["as_swap_target"] = False
             analysis["recommendations"].append("To use as swap target: Add step methods with proper naming")
@@ -908,7 +908,7 @@ class DevAssistant:
         if transplant_commands:
             good_transplants = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Good']
             needs_work_transplants = [cmd for cmd in transplant_commands if cmd['compatibility'] == 'Needs Work']
-            
+
             if good_transplants:
                 analysis["patterns_found"].append(f"🔀 EXCELLENT SWAP SOURCE: {len(good_transplants)} ready-to-transplant step(s)")
             elif needs_work_transplants:
@@ -923,18 +923,18 @@ class DevAssistant:
         atomic_markers = [
             "START_WORKFLOW_SECTION:",
             "SECTION_STEP_DEFINITION",
-            "END_SECTION_STEP_DEFINITION", 
+            "END_SECTION_STEP_DEFINITION",
             "SECTION_STEP_METHODS",
             "END_SECTION_STEP_METHODS",
             "END_WORKFLOW_SECTION"
         ]
-        
+
         found_atomic_markers = [marker for marker in atomic_markers if marker in content]
         if found_atomic_markers:
             analysis["patterns_found"].append(f"✅ Atomic transplantation markers: {len(found_atomic_markers)}/6")
             if len(found_atomic_markers) == 6:
                 analysis["patterns_found"].append("🧬 SUITABLE FOR ATOMIC TRANSPLANTATION")
-        
+
         return analysis
 
     async def step_01(self, request):
@@ -950,7 +950,7 @@ class DevAssistant:
         # The step_data structure is now: {'plugin_analysis': filename, 'analysis_results': {...}}
         user_val = step_data.get(step.done, '') if step_data else ''
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
+
         if 'finalized' in finalize_data:
             return Div(
                 Card(H3(f'🔒 {step.show}: Analysis Complete')),
@@ -969,7 +969,7 @@ class DevAssistant:
             plugin_files = []
             if plugins_dir.exists():
                 plugin_files = [f.name for f in plugins_dir.glob("*.py") if not f.name.startswith("__")]
-            
+
             return Div(
                 Card(
                     H3(f'{step.show}'),
@@ -995,29 +995,29 @@ class DevAssistant:
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         form = await request.form()
         selected_file = form.get('plugin_analysis', '').strip()
-        
+
         if not selected_file:
             return P('Please select a plugin file to analyze.', style=pip.get_style('error'))
-        
+
         # Analyze the selected plugin
         file_path = Path("plugins") / selected_file
         analysis = self.analyze_plugin_file(file_path)
-        
+
         # Store the filename as the step value, and analysis results separately
         await pip.set_step_data(pipeline_id, step_id, selected_file, steps)
-        
+
         # Store analysis results in the step data
         state = pip.read_state(pipeline_id)
         if step_id not in state:
             state[step_id] = {}
         state[step_id]['analysis_results'] = analysis
         pip.write_state(pipeline_id, state)
-        
+
         await self.message_queue.add(pip, f'Analyzed plugin: {selected_file}', verbatim=True)
-        
+
         return pip.chain_reverter(step_id, step_index, steps, app_name, f'Analyzed: {selected_file}')
 
     async def step_02(self, request):
@@ -1031,11 +1031,11 @@ class DevAssistant:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         user_val = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
+
         # Get analysis from step 1
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         analysis_results = step_01_data.get('analysis_results', {})
-        
+
         if 'finalized' in finalize_data:
             return Div(
                 Card(H3(f'🔒 {step.show}: Analysis Complete')),
@@ -1059,45 +1059,45 @@ class DevAssistant:
                     Div(id=next_step_id),
                     id=step_id
                 )
-            
+
             # Get analysis data
             issues = analysis_results.get('issues', [])
             template_suitability = analysis_results.get('template_suitability', {})
             coding_prompts = analysis_results.get('coding_assistant_prompts', [])
             transplant_analysis = analysis_results.get('transplantation_analysis', {})
             filename = analysis_results.get('filename', 'unknown')
-            
+
             # Focus on what needs fixing - issues first!
             functional_issues = [issue for issue in issues if not any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
             template_issues = [issue for issue in issues if any(x in issue.lower() for x in ['marker', 'template', 'ui_constants'])]
-            
+
             # Quick status for capability overview
             has_functional_issues = bool(functional_issues)
             template_source_ready = template_suitability.get('as_template_source', False)
             transplant_commands = transplant_analysis.get('transplant_commands', [])
             ready_transplants = [cmd for cmd in transplant_commands if cmd.get('compatibility') == 'Good']
-            
+
             # Define widget ID for Prism targeting
             widget_id = f"dev-assistant-{pipeline_id.replace('-', '_')}-{step_id}"
-            
+
             response_content = Div(
                 Card(
                     H3(f"Analysis: {filename}", style="margin-bottom: 1.5rem;"),
-                    
+
                     # WHAT NEEDS FIXING (Primary Focus)
                     (Div(
                         H4("🚨 ISSUES TO FIX", style=f"color: {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; margin-bottom: 1rem; border-bottom: 2px solid {self.UI_CONSTANTS['COLORS']['ERROR_RED']}; padding-bottom: 0.5rem;"),
                         Div(
                             H5("❌ Functional Issues:", style="color: red; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(issue) for issue in functional_issues], 
+                            Ul(*[Li(issue) for issue in functional_issues],
                                style="color: red; margin-bottom: 1rem;")
                         ) if functional_issues else None,
                         Div(
                             H5("📋 Template Issues:", style="color: orange; margin-bottom: 0.5rem;"),
-                            Ul(*[Li(issue) for issue in template_issues], 
+                            Ul(*[Li(issue) for issue in template_issues],
                                style="color: orange; margin-bottom: 1rem;")
                         ) if template_issues else None,
-                        (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;") 
+                        (P("✅ No critical issues found!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;")
                          if not functional_issues and not template_issues else None),
                         style="margin-bottom: 2rem;"
                     ) if functional_issues or template_issues else Div(
@@ -1105,7 +1105,7 @@ class DevAssistant:
                         P("This plugin appears to be correctly implemented!", style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_GREEN']}; font-weight: bold; font-size: 1.1rem;"),
                         style="margin-bottom: 2rem;"
                     )),
-                    
+
                     # CAPABILITIES (Secondary Info)
                     Div(
                         Details(
@@ -1114,17 +1114,17 @@ class DevAssistant:
                                 style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                             ),
                             Div(
-                                Div(f"🔧 Functional Plugin: {'✅ Good' if not has_functional_issues else '❌ Has Issues'}", 
+                                Div(f"🔧 Functional Plugin: {'✅ Good' if not has_functional_issues else '❌ Has Issues'}",
                                     style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if not has_functional_issues else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if not has_functional_issues else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                                Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}", 
+                                Div(f"📋 Template Source: {'✅ Ready' if template_source_ready else '❌ Needs Work'}",
                                     style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if template_source_ready else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if template_source_ready else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold; margin-bottom: {self.UI_CONSTANTS['SPACING']['SMALL_MARGIN']};"),
-                                Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}", 
+                                Div(f"📤 Step Source: {'✅ ' + str(len(ready_transplants)) + ' ready' if ready_transplants else '❌ None ready'}",
                                     style=f"color: {self.UI_CONSTANTS['COLORS']['SUCCESS_TEXT'] if ready_transplants else self.UI_CONSTANTS['COLORS']['ERROR_TEXT']}; background-color: {self.UI_CONSTANTS['BACKGROUNDS']['SUCCESS_BG'] if ready_transplants else self.UI_CONSTANTS['BACKGROUNDS']['ERROR_BG']}; padding: {self.UI_CONSTANTS['SPACING']['SMALL_PADDING']}; border-radius: {self.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; font-weight: bold;"),
                                 style='padding: 1rem;'
                             )
                         )
                     ),
-                    
+
                     # CODING FIXES (If issues exist)
                     (Details(
                         Summary(
@@ -1132,7 +1132,7 @@ class DevAssistant:
                             style=f'cursor: pointer; padding: {self.UI_CONSTANTS["SPACING"]["SECTION_PADDING"]}; background-color: {self.UI_CONSTANTS["BACKGROUNDS"]["LIGHT_GRAY"]}; border-radius: {self.UI_CONSTANTS["SPACING"]["BORDER_RADIUS"]}; margin: 1rem 0;'
                         ),
                         Div(
-                            P(f'Copy these detailed instructions to fix {filename}:', 
+                            P(f'Copy these detailed instructions to fix {filename}:',
                               style=f'margin-bottom: 1rem; font-weight: bold; color: {self.UI_CONSTANTS["COLORS"]["HEADER_TEXT"]};'),
                             Div(
                                 *[
@@ -1152,7 +1152,7 @@ class DevAssistant:
                         ),
                         style='margin: 1rem 0;'
                     ) if coding_prompts else None),
-                    
+
                     # TRANSPLANTATION COMMANDS (If available)
                     (Details(
                         Summary(
@@ -1174,7 +1174,7 @@ class DevAssistant:
                             style='padding: 1rem;'
                         )
                     ) if transplant_commands else None),
-                    
+
                     Form(
                         Button('Complete Analysis ▸', type='submit'),
                         hx_post=f'/{app_name}/{step_id}_submit',
@@ -1188,7 +1188,7 @@ class DevAssistant:
                     if (typeof Prism !== 'undefined') {{
                         Prism.highlightAllUnder(document.getElementById('{widget_id}'));
                     }}
-                    
+
                     // Also listen for the HX-Trigger event as a backup
                     document.body.addEventListener('initializePrism', function(event) {{
                         if (event.detail.targetId === '{widget_id}') {{
@@ -1205,7 +1205,7 @@ class DevAssistant:
                 Div(id=next_step_id),
                 id=step_id
             )
-            
+
             # Return HTMLResponse with HX-Trigger for Prism initialization
             response = HTMLResponse(to_xml(response_content))
             response.headers['HX-Trigger'] = json.dumps({'initializePrism': {'targetId': widget_id}})
@@ -1216,10 +1216,9 @@ class DevAssistant:
         step_id = 'step_02'
         step_index = self.steps_indices[step_id]
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         await pip.set_step_data(pipeline_id, step_id, 'complete', steps)
         await self.message_queue.add(pip, 'Development analysis completed.', verbatim=True)
-        
+
         return pip.chain_reverter(step_id, step_index, steps, app_name, 'Analysis Complete')
 
- 

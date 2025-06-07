@@ -24,20 +24,20 @@ def derive_public_endpoint_from_filename(filename_str: str) -> str:
 class WorkflowGenesis:
     """
     Workflow Creation Assistant - Three Template-Based Experiences
-    
+
     Provides three distinct workflow creation paths:
     1. Blank Placeholder: Single-step workflow for learning step management
-    2. Hello World Recreation: Multi-step process demonstrating helper tool sequence  
+    2. Hello World Recreation: Multi-step process demonstrating helper tool sequence
     3. Trifecta Workflow: Complex workflow starting from Botify template
-    
+
     Each path provides both individual commands and complete copy-paste sequences.
     """
-    
+
     # Simplified UI Constants
     UI_CONSTANTS = {
         'COLORS': {
             'TEXT': '#e9ecef',
-            'ACCENT': '#007bff', 
+            'ACCENT': '#007bff',
             'SUCCESS': '#28a745',
             'INFO': '#17a2b8'
         },
@@ -46,33 +46,33 @@ class WorkflowGenesis:
             'PADDING': '0.75rem'
         }
     }
-    
-    APP_NAME = 'workflow_genesis' 
-    DISPLAY_NAME = 'Workflow Genesis ⚡' 
+
+    APP_NAME = 'workflow_genesis'
+    DISPLAY_NAME = 'Workflow Genesis ⚡'
     ENDPOINT_MESSAGE = """Create Pipulate workflows using three distinct approaches: blank placeholder for learning, hello world recreation for understanding helper tools, or trifecta workflow for complex scenarios."""
     TRAINING_PROMPT = """You are assisting with workflow creation in Pipulate. Help users choose between three approaches: 1) Blank placeholder for beginners learning step management, 2) Hello world recreation for understanding helper tool sequences, 3) Trifecta workflow for complex data collection scenarios. Guide them through command generation and explain the purpose of each approach."""
 
     def __init__(self, app, pipulate, pipeline, db, app_name=None):
         self.app = app
-        self.app_name = self.APP_NAME 
+        self.app_name = self.APP_NAME
         self.pipulate = pipulate
-        self.pipeline = pipeline 
-        self.db = db 
-        pip = self.pipulate 
+        self.pipeline = pipeline
+        self.db = db
+        pip = self.pipulate
         self.message_queue = pip.get_message_queue()
-        
+
         self.steps = [
             Step(id='step_01', done='workflow_params', show='1. Define Workflow Parameters', refill=True),
             Step(id='step_02', done='template_choice', show='2. Choose Template Approach', refill=False),
             Step(id='step_03', done='command_sequence', show='3. Generated Command Sequence', refill=False),
-            Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False) 
+            Step(id='finalize', done='finalized', show='Finalize Workflow', refill=False)
         ]
         self.steps_indices = {step_obj.id: i for i, step_obj in enumerate(self.steps)}
 
-        internal_route_prefix = self.APP_NAME 
-        
+        internal_route_prefix = self.APP_NAME
+
         routes = [
-            (f'/{internal_route_prefix}/init', self.init, ['POST']), 
+            (f'/{internal_route_prefix}/init', self.init, ['POST']),
             (f'/{internal_route_prefix}/revert', self.handle_revert, ['POST']),
             (f'/{internal_route_prefix}/unfinalize', self.unfinalize, ['POST'])
         ]
@@ -82,27 +82,27 @@ class WorkflowGenesis:
             handler_method = getattr(self, step_id, None)
             if handler_method:
                 current_methods = ['GET']
-                if step_id == 'finalize': 
+                if step_id == 'finalize':
                     current_methods.append('POST')
                 routes.append((f'/{internal_route_prefix}/{step_id}', handler_method, current_methods))
-            
+
             if step_id != 'finalize':
                 submit_handler_method = getattr(self, f'{step_id}_submit', None)
                 if submit_handler_method:
                     routes.append((f'/{internal_route_prefix}/{step_id}_submit', submit_handler_method, ['POST']))
-        
+
         for path, handler, *methods_list_arg in routes:
             current_methods = methods_list_arg[0] if methods_list_arg else ['GET']
             self.app.route(path, methods=current_methods)(handler)
-            
+
         self.step_messages = self._init_step_messages()
 
     def _init_step_messages(self):
         """Initialize step messages"""
         pip = self.pipulate
         return {
-            'finalize': { 
-                    'ready': 'All steps complete. Ready to finalize workflow.', 
+            'finalize': {
+                    'ready': 'All steps complete. Ready to finalize workflow.',
                     'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'
             },
             'step_01': {
@@ -122,7 +122,7 @@ class WorkflowGenesis:
     async def landing(self, request):
         """Generate the landing page using the standardized helper while maintaining WET explicitness."""
         pip = self.pipulate
-        
+
         # Use centralized landing page helper - maintains WET principle by explicit call
         return pip.create_standard_landing_page(self)
 
@@ -137,28 +137,28 @@ class WorkflowGenesis:
             response = Response('')
             response.headers['HX-Refresh'] = 'true'
             return response
-        
+
         _, prefix_for_key_gen, _ = pip.generate_pipeline_key(self)
         if user_input_key.startswith(prefix_for_key_gen) and len(user_input_key.split('-')) == 3:
             pipeline_id = user_input_key
-        else: 
+        else:
             _, prefix, user_part = pip.generate_pipeline_key(self, user_input_key)
             pipeline_id = f'{prefix}{user_part}'
-        
+
         db['pipeline_id'] = pipeline_id
-        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name}) 
+        state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
         await self.message_queue.add(pip, f'Workflow ID: {pipeline_id}', verbatim=True, spaces_before=0)
         await self.message_queue.add(pip, f"Return later by selecting '{pipeline_id}' from the dropdown.", verbatim=True, spaces_before=0)
-        
+
         return pip.run_all_cells(internal_app_name, self.steps)
 
     # Common finalization methods (simplified)
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
 
@@ -168,10 +168,10 @@ class WorkflowGenesis:
                     H3('Workflow Creation Complete'),
                     P('Your workflow commands have been generated and are ready to use.', cls='text-secondary'),
                     Form(
-                        Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'), 
-                        hx_post=f'/{app_name}/unfinalize', 
+                        Button(pip.UNLOCK_BUTTON_LABEL, type='submit', cls='secondary outline'),
+                        hx_post=f'/{app_name}/unfinalize',
                         hx_target=f'#{app_name}-container'
-                    ), 
+                    ),
                     id=finalize_step_obj.id
                 )
             else:
@@ -181,14 +181,14 @@ class WorkflowGenesis:
                         H3('Ready to Finalize'),
                         P('All command sequences have been generated. Finalize to complete the workflow creation process.', cls='text-secondary'),
                         Form(
-                            Button('Finalize 🔒', type='submit', cls='primary'), 
-                            hx_post=f'/{app_name}/finalize', 
+                            Button('Finalize 🔒', type='submit', cls='primary'),
+                            hx_post=f'/{app_name}/finalize',
                             hx_target=f'#{app_name}-container'
-                        ), 
+                        ),
                         id=finalize_step_obj.id
                     )
-                else: 
-                    return Div(id=finalize_step_obj.id) 
+                else:
+                    return Div(id=finalize_step_obj.id)
         elif request.method == 'POST':
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
@@ -214,7 +214,7 @@ class WorkflowGenesis:
         state = pip.read_state(pipeline_id)
         state['_revert_target'] = step_id_to_revert_to
         pip.write_state(pipeline_id, state)
-        
+
         message = await pip.get_state_message(pipeline_id, self.steps, self.step_messages)
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, self.steps)
@@ -287,48 +287,48 @@ class WorkflowGenesis:
 
         return Div(
             H4("Blank Placeholder Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
-            P("Creates a single-step workflow and demonstrates step positioning. Like Jupyter's Cell Above/Below concept.", 
+            P("Creates a single-step workflow and demonstrates step positioning. Like Jupyter's Cell Above/Below concept.",
               style="color: #6c757d; margin-bottom: 1.5rem;"),
-            
+
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
-            
+
             Div(
                 H6("1. Create Base Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Creates single-step placeholder workflow ready for customization", 
+                P("Creates single-step placeholder workflow ready for customization",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(create_cmd, cls='language-bash copy-code'), 
+                Pre(Code(create_cmd, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("2. Add Step at Bottom", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Adds new step before finalize (default positioning)", 
+                P("Adds new step before finalize (default positioning)",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(splice_bottom_cmd, cls='language-bash copy-code'), 
+                Pre(Code(splice_bottom_cmd, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("3. Add Step at Top", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Adds new step as first data step", 
+                P("Adds new step as first data step",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(splice_top_cmd, cls='language-bash copy-code'), 
+                Pre(Code(splice_top_cmd, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
-            
+
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to create the workflow and see positioning options:", 
+            P("Copy and paste this single command to create the workflow and see positioning options:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'),
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
-            
+
             id=widget_id
         )
-        
+
     def create_hello_world_recreation_experience(self, workflow_params, widget_id):
         """Create experience for hello world recreation - understanding complete helper tool sequence"""
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
-        
+
         # HELLO WORLD RECREATION: Override with specific Hello World values
         # This tells the story of recreating Hello World using helper tools
         hello_display_name = "Kung Fu Hello World"
@@ -343,13 +343,13 @@ class WorkflowGenesis:
                f"{self.format_bash_command(hello_display_name)} " + \
                f"{self.format_bash_command(hello_endpoint_message)} " + \
                f"{self.format_bash_command(hello_training_prompt)} --template blank --force"
-        
+
         cmd2 = f"python helpers/manage_class_attributes.py {plugins_filename} plugins/040_hello_workflow.py --attributes-to-merge UI_CONSTANTS --force"
-        
+
         cmd3 = f"python helpers/swap_workflow_step.py {plugins_filename} step_01 plugins/040_hello_workflow.py step_01 --force"
-        
+
         cmd4 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
-        
+
         cmd5 = f"python helpers/swap_workflow_step.py {plugins_filename} step_02 plugins/040_hello_workflow.py step_02 --force"
 
         # Combined command with proper && chaining for complete automation
@@ -369,9 +369,9 @@ class WorkflowGenesis:
 
         return Div(
             H4("Hello World Recreation Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
-            P("Recreates Hello World workflow using the complete helper tool sequence. This demonstrates the FULL STORY of workflow construction.", 
+            P("Recreates Hello World workflow using the complete helper tool sequence. This demonstrates the FULL STORY of workflow construction.",
               style="color: #6c757d; margin-bottom: 1.5rem;"),
-            
+
             # Story explanation
             Div(
                 H5("📖 The Story:", style="color: #ffc107; margin-bottom: 0.75rem;"),
@@ -384,52 +384,52 @@ class WorkflowGenesis:
                     style="color: #6c757d; margin-bottom: 1.5rem;"
                 ),
             ),
-            
+
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
-            
+
             Div(
                 H6("1. Create Base Workflow (Blank Template)", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Creates blank workflow - we'll transform it into Hello World step by step", 
+                P("Creates blank workflow - we'll transform it into Hello World step by step",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd1, cls='language-bash copy-code'), 
+                Pre(Code(cmd1, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("2. Condition with UI Constants", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Prepares workflow with styling constants it will need later", 
+                P("Prepares workflow with styling constants it will need later",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd2, cls='language-bash copy-code'), 
+                Pre(Code(cmd2, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("3. Replace Step 1 with Name Collection", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Swaps placeholder step_01 with Hello World's name input logic", 
+                P("Swaps placeholder step_01 with Hello World's name input logic",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd3, cls='language-bash copy-code'), 
+                Pre(Code(cmd3, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("4. Add Step 2 Placeholder", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Creates new blank step_02 - CRITICAL that step_01 exists first!", 
+                P("Creates new blank step_02 - CRITICAL that step_01 exists first!",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd4, cls='language-bash copy-code'), 
+                Pre(Code(cmd4, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("5. Replace Step 2 with Greeting Generation", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Swaps placeholder step_02 with Hello World's greeting logic", 
+                P("Swaps placeholder step_02 with Hello World's greeting logic",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd5, cls='language-bash copy-code'), 
+                Pre(Code(cmd5, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
-            
+
             # All-in-one section
             H5("Complete Recreation Sequence:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to recreate Hello World workflow from scratch:", 
+            P("Copy and paste this single command to recreate Hello World workflow from scratch:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'),
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
-            
+
             id=widget_id
         )
-        
+
     def create_trifecta_workflow_experience(self, workflow_params, widget_id):
         """Create experience for trifecta workflow - complex template conditioning"""
         filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
@@ -448,7 +448,7 @@ class WorkflowGenesis:
                f"{self.format_bash_command(display_name)} " + \
                f"{self.format_bash_command(endpoint_message)} " + \
                f"{self.format_bash_command(training_prompt)} --template trifecta --force"
-        
+
         cmd2 = f"python helpers/splice_workflow_step.py {plugins_filename} --position bottom"
 
         # Combined command with backslash line breaks for readability
@@ -461,33 +461,33 @@ class WorkflowGenesis:
 
         return Div(
             H4("Trifecta Workflow Experience", style="color: #e9ecef; margin-bottom: 1rem;"),
-            P("Starts with the sophisticated Botify Trifecta template and adds a blank placeholder for your custom step.", 
+            P("Starts with the sophisticated Botify Trifecta template and adds a blank placeholder for your custom step.",
               style="color: #6c757d; margin-bottom: 1.5rem;"),
-            
+
             # Individual commands section
             H5("Individual Commands:", style="color: #17a2b8; margin-bottom: 0.75rem;"),
-            
+
             Div(
                 H6("1. Create Trifecta Workflow", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Creates complex 5-step workflow from Botify Trifecta template", 
+                P("Creates complex 5-step workflow from Botify Trifecta template",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd1, cls='language-bash copy-code'), 
+                Pre(Code(cmd1, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; overflow-x: auto; position: relative;"),
-                
+
                 H6("2. Add Blank Placeholder Step", style="color: #007bff; margin-bottom: 0.25rem;"),
-                P("Adds a new blank placeholder step at the end of the workflow for customization", 
+                P("Adds a new blank placeholder step at the end of the workflow for customization",
                   style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
-                Pre(Code(cmd2, cls='language-bash copy-code'), 
+                Pre(Code(cmd2, cls='language-bash copy-code'),
                     style="background-color: #2d3748; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; overflow-x: auto; position: relative;")
             ),
-            
+
             # All-in-one section
             H5("All-in-One Command:", style="color: #28a745; margin-bottom: 0.75rem;"),
-            P("Copy and paste this single command to create the trifecta workflow with an additional placeholder step:", 
+            P("Copy and paste this single command to create the trifecta workflow with an additional placeholder step:",
               style="color: #6c757d; margin-bottom: 0.5rem;"),
-            Pre(Code(combined_cmd, cls='language-bash copy-code'), 
+            Pre(Code(combined_cmd, cls='language-bash copy-code'),
                 style="background-color: #2d3748; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; overflow-x: auto; position: relative;"),
-            
+
             id=widget_id
         )
 
@@ -499,7 +499,7 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
@@ -512,7 +512,7 @@ class WorkflowGenesis:
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
-            
+
         elif current_value and state.get('_revert_target') != step_id:
             return Div(
                 pip.display_revert_widget(
@@ -527,21 +527,21 @@ class WorkflowGenesis:
             )
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
+
             # Comprehensive form with all workflow parameters including ENDPOINT_MESSAGE and TRAINING_PROMPT
             form_content = Form(
                 Label("Target Filename", **{'for': 'target_filename'}),
                 Input(type="text", id="target_filename", name="target_filename", value="035_kungfu_workflow.py", required=True),
-                
+
                 Label("Class Name", **{'for': 'class_name'}),
                 Input(type="text", id="class_name", name="class_name", value="KungfuWorkflow", required=True),
-                
+
                 Label("Internal App Name", **{'for': 'internal_app_name'}),
                 Input(type="text", id="internal_app_name", name="internal_app_name", value="kungfu", required=True),
-                
+
                 Label("Display Name", **{'for': 'display_name'}),
                 Input(type="text", id="display_name", name="display_name", value="Kung Fu Download", required=True),
-                
+
                 Label("Endpoint Message", **{'for': 'endpoint_message'}),
                 Textarea(
                     "Welcome to the Kung Fu Download workflow. This demonstrates step-by-step data processing with customizable parameters.",
@@ -552,7 +552,7 @@ class WorkflowGenesis:
                     rows=3,
                     style="resize: vertical;"
                 ),
-                
+
                 Label("Training Prompt", **{'for': 'training_prompt'}),
                 Textarea(
                     "You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it's a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS",
@@ -563,7 +563,7 @@ class WorkflowGenesis:
                     rows=4,
                     style="resize: vertical;"
                 ),
-                
+
                 Button('Continue ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
@@ -577,10 +577,10 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         form_data = await request.form()
-        
+
         # Properly capture form data with fallbacks for empty fields
         params = {
             'target_filename': form_data.get('target_filename', '').strip() or '035_kungfu_workflow.py',
@@ -590,11 +590,11 @@ class WorkflowGenesis:
             'endpoint_message': form_data.get('endpoint_message', '').strip() or 'Welcome to the Kung Fu Download workflow. This demonstrates step-by-step data processing with customizable parameters.',
             'training_prompt': form_data.get('training_prompt', '').strip() or 'You are assisting with the Kung Fu Download workflow. Help users understand each step and provide guidance on customizing the workflow parameters. If they ask what this workflow does, explain that it\'s a template for learning Pipulate workflow creation. The user will likely ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them MORPHEUS'
         }
-        
+
         # Store form data using set_step_data which handles the {step.done: value} wrapping
         await pip.set_step_data(pipeline_id, step_id, params, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-        
+
         return Div(
             pip.display_revert_widget(
                 step_id=step_id,
@@ -614,7 +614,7 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
@@ -628,7 +628,7 @@ class WorkflowGenesis:
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
-            
+
         elif current_value and state.get('_revert_target') != step_id:
             template_info = self.get_template_info(current_value.get('template', 'blank'))
             return Div(
@@ -644,7 +644,7 @@ class WorkflowGenesis:
             )
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
+
             form_content = Form(
                 Label("Template Approach", **{'for': 'template'}),
                     Select(
@@ -655,7 +655,7 @@ class WorkflowGenesis:
                         id="template",
                         required=True
                     ),
-                
+
                 Button('Generate Commands ▸', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
@@ -669,25 +669,25 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         form_data = await request.form()
-        
+
         template_choice = {
             'template': form_data.get('template', 'blank')
         }
-        
+
         # Store template choice using set_step_data which handles the {step.done: value} wrapping
         await pip.set_step_data(pipeline_id, step_id, template_choice, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-        
+
         # Get previous step data for command generation
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         workflow_params = step_01_data.get('workflow_params', {})
         selected_template = template_choice.get('template', 'blank')
-        
+
         widget_id = f"template-experience-{pipeline_id.replace('-', '_')}-{step_id}"
-        
+
         # Route to appropriate template experience
         if selected_template == 'blank':
             experience_widget = self.create_blank_placeholder_experience(workflow_params, widget_id)
@@ -706,7 +706,7 @@ class WorkflowGenesis:
                 codeBlocks.forEach(function(codeBlock) {
                     const pre = codeBlock.parentElement;
                     if (pre.querySelector('.copy-btn')) return; // Already has button
-                    
+
                     const button = document.createElement('button');
                     button.className = 'copy-btn';
                     button.innerHTML = '📋';
@@ -724,7 +724,7 @@ class WorkflowGenesis:
                         font-size: 12px;
                         z-index: 10;
                     `;
-                    
+
                     button.addEventListener('click', function() {
                         const text = codeBlock.textContent;
                         navigator.clipboard.writeText(text).then(function() {
@@ -748,14 +748,14 @@ class WorkflowGenesis:
                             }, 2000);
                         });
                     });
-                    
+
                     pre.appendChild(button);
                 });
             });
         """)
 
         template_info = self.get_template_info(template_choice['template'])
-        
+
         return Div(
             copy_script,
             pip.display_revert_widget(
@@ -776,7 +776,7 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
@@ -789,7 +789,7 @@ class WorkflowGenesis:
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
-            
+
         elif current_value and state.get('_revert_target') != step_id:
             return Div(
                 pip.display_revert_widget(
@@ -804,22 +804,22 @@ class WorkflowGenesis:
             )
         else:
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            
+
             # Get workflow parameters to show what file will be created
             step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
             workflow_params = step_01_data.get('workflow_params', {})
             target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
             display_name = workflow_params.get('display_name', 'Kung Fu Download')
-            
+
             # Ensure plugins/ prefix for path display
             if not target_filename.startswith('plugins/'):
                 display_filename = f"plugins/{target_filename}"
             else:
                 display_filename = target_filename
-                
+
             # Create filesystem button to open plugins directory
             plugins_dir = os.path.join(os.getcwd(), 'plugins')
-            
+
             open_plugins_folder_ui = A(
                 "📂 View Plugins Folder",
                 href="#",
@@ -830,7 +830,7 @@ class WorkflowGenesis:
                 cls="outline contrast",
                 style="margin-bottom: 1rem; display: inline-block;"
             )
-            
+
             form_content = Form(
                 # Warning section with clear expectations
                 Div(
@@ -844,16 +844,16 @@ class WorkflowGenesis:
                     ),
                     style="background-color: rgba(255, 193, 7, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1.5rem;"
                 ),
-                
+
                 # Troubleshooting section
                 Div(
                     H5("🔍 If Your Workflow Doesn't Appear:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
-                    P("Check the console window where you started Pipulate for yellow warnings above the 'SERVER RESTART' banner. Import errors will be shown there but won't break the server.", 
+                    P("Check the console window where you started Pipulate for yellow warnings above the 'SERVER RESTART' banner. Import errors will be shown there but won't break the server.",
                       style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;"),
                     open_plugins_folder_ui,
                     style="background-color: rgba(23, 162, 184, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #17a2b8; margin-bottom: 1.5rem;"
                 ),
-                
+
                 P("Ready to create your workflow and restart the server?", style="color: #e9ecef; margin-bottom: 1rem;"),
                 Button('🚀 Execute & Restart Server', type='submit', cls='primary'),
                 hx_post=f'/{app_name}/{step_id}_submit',
@@ -868,39 +868,39 @@ class WorkflowGenesis:
         step_index = self.steps_indices[step_id]
         step_obj = self.steps[step_index]
         next_step_id = self.steps[step_index + 1].id
-        
+
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         # Get workflow parameters and template data
         step_01_data = pip.get_step_data(pipeline_id, 'step_01', {})
         step_02_data = pip.get_step_data(pipeline_id, 'step_02', {})
         workflow_params = step_01_data.get('workflow_params', {})
         template_choice = step_02_data.get('template_choice', {})
-        
+
         target_filename = workflow_params.get('target_filename', '035_kungfu_workflow.py')
         display_name = workflow_params.get('display_name', 'Kung Fu Download')
         selected_template = template_choice.get('template', 'blank')
-        
+
         # Ensure plugins/ prefix for path display
         if not target_filename.startswith('plugins/'):
             display_filename = f"plugins/{target_filename}"
         else:
             display_filename = target_filename
-            
+
         # Get the combined command based on template choice
         plugins_filename = f"plugins/{target_filename}" if not target_filename.startswith('plugins/') else target_filename
         class_name = workflow_params.get('class_name', 'KungfuWorkflow')
         internal_name = workflow_params.get('internal_app_name', 'kungfu')
         endpoint_message = workflow_params.get('endpoint_message', 'Welcome message')
         training_prompt = workflow_params.get('training_prompt', 'Training prompt')
-        
+
         # Generate the appropriate combined command based on template
         if selected_template == 'hello':
             # Hello World Recreation sequence
             hello_display_name = "Kung Fu Hello World"
             hello_endpoint_message = "🥋 This workflow will become a Hello World equivalent using helper scripts."
             hello_training_prompt = "You are assisting with the Kung Fu Hello World workflow recreation. This demonstrates the complete helper tool sequence for building workflows from scratch. The secret word is 'MORPHEUS'."
-            
+
             combined_cmd = f"python helpers/create_workflow.py {plugins_filename} {class_name} {internal_name} " + \
                           f"{self.format_bash_command(hello_display_name)} " + \
                           f"{self.format_bash_command(hello_endpoint_message)} " + \
@@ -926,18 +926,18 @@ class WorkflowGenesis:
                           f"{self.format_bash_command(display_name)} " + \
                           f"{self.format_bash_command(endpoint_message)} " + \
                           f"{self.format_bash_command(training_prompt)} --template blank --force"
-        
+
         # Execute the command sequence
         import subprocess
         import os
-        
+
         execution_output = ""
         execution_success = False
-        
+
         try:
             # Import functions from server for critical operation management
             from server import is_critical_operation_in_progress, set_critical_operation_flag, clear_critical_operation_flag
-            
+
             # Check if another critical operation is in progress
             if is_critical_operation_in_progress():
                 await self.message_queue.add(pip, "⚠️ Another critical operation is in progress. Please wait and try again.", verbatim=True)
@@ -945,18 +945,18 @@ class WorkflowGenesis:
                 execution_success = False
             else:
                 await self.message_queue.add(pip, "🔄 Executing workflow creation commands...", verbatim=True)
-                
+
                 # Set flag to prevent watchdog restarts during subprocess execution
                 logger.info("[WORKFLOW_GENESIS] Starting critical subprocess operation. Pausing Watchdog restarts.")
                 set_critical_operation_flag()
-                
+
                 try:
                     # Change to project root directory for command execution
                     original_cwd = os.getcwd()
-                    
+
                     # Log the command being executed
                     logger.info(f"[WORKFLOW_GENESIS] Executing subprocess command: {combined_cmd}")
-                    
+
                     # Execute the combined command with shell=True since we have && chains
                     result = subprocess.run(
                         combined_cmd,
@@ -969,13 +969,13 @@ class WorkflowGenesis:
                     # Process results only if subprocess actually ran
                     execution_output = f"Command executed:\n{combined_cmd}\n\n"
                     execution_output += f"Exit code: {result.returncode}\n\n"
-                    
+
                     if result.stdout:
                         execution_output += f"Output:\n{result.stdout}\n\n"
-                    
+
                     if result.stderr:
                         execution_output += f"Errors/Warnings:\n{result.stderr}\n\n"
-                    
+
                     if result.returncode == 0:
                         execution_success = True
                         execution_output += "✅ Workflow creation completed successfully!"
@@ -984,18 +984,18 @@ class WorkflowGenesis:
                     else:
                         execution_output += f"❌ Command failed with exit code {result.returncode}"
                         await self.message_queue.add(pip, f"❌ Command execution failed with exit code {result.returncode}", verbatim=True)
-                        
+
                 finally:
                     # Always reset the flag, even if subprocess fails
                     logger.info("[WORKFLOW_GENESIS] Critical subprocess operation finished. Resuming Watchdog restarts.")
                     clear_critical_operation_flag()
-                    
+
                     # Trigger restart now that the critical operation is complete
                     if execution_success:
                         logger.info("[WORKFLOW_GENESIS] Triggering server restart after successful workflow creation.")
                         from server import restart_server
                         restart_server()
-                
+
         except subprocess.TimeoutExpired:
             execution_output = f"❌ Command timed out after 60 seconds:\n{combined_cmd}"
             await self.message_queue.add(pip, "❌ Command execution timed out", verbatim=True)
@@ -1006,10 +1006,10 @@ class WorkflowGenesis:
             await self.message_queue.add(pip, f"❌ Error executing command: {str(e)}", verbatim=True)
             # Reset flag on error
             clear_critical_operation_flag()
-        
+
         # Create filesystem button to open plugins directory
         plugins_dir = os.path.join(os.getcwd(), 'plugins')
-        
+
         open_plugins_folder_ui = A(
             "📂 View Plugins Folder",
             href="#",
@@ -1020,7 +1020,7 @@ class WorkflowGenesis:
             cls="outline contrast",
             style="margin-right: 10px;"
         )
-        
+
         # Store detailed execution results
         execution_summary = f"Workflow Creation Execution Report\n\n"
         execution_summary += f"📄 Target File: {display_filename}\n"
@@ -1028,10 +1028,10 @@ class WorkflowGenesis:
         execution_summary += f"📂 Location: {plugins_dir}\n"
         execution_summary += f"✅ Success: {'Yes' if execution_success else 'No'}\n\n"
         execution_summary += execution_output
-        
+
         await pip.set_step_data(pipeline_id, step_id, execution_summary, self.steps)
         await self.message_queue.add(pip, self.step_messages[step_id]['complete'], verbatim=True)
-        
+
         if execution_success:
             # Parse current pipeline key to show next key guidance
             parsed_key = pip.parse_pipeline_key(pipeline_id)
@@ -1039,17 +1039,17 @@ class WorkflowGenesis:
             next_number = current_number + 1
             next_key = f"{parsed_key['profile_part']}-{parsed_key['plugin_part']}-{next_number:02d}"
             previous_key = f"{parsed_key['profile_part']}-{parsed_key['plugin_part']}-{current_number:02d}"
-            
+
             success_widget = Div(
                 P(f"✅ Workflow file created: {display_filename}", cls='text-success', style="margin-bottom: 1rem;"),
-                
+
                 Div(
                     H5("📁 File Location:", style="color: #28a745; margin-bottom: 0.5rem;"),
                     P(f"Created in: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
                     open_plugins_folder_ui,
                     style="background-color: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 1rem;"
                 ),
-                
+
                 Div(
                     H5("🔄 After Server Restart:", style="color: #ffc107; margin-bottom: 0.5rem;"),
                     Ul(
@@ -1061,7 +1061,7 @@ class WorkflowGenesis:
                     ),
                     style="background-color: rgba(255, 193, 7, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 1rem;"
                 ),
-                
+
                 Div(
                     H5("🎯 Next Steps:", style="color: #17a2b8; margin-bottom: 0.5rem;"),
                     Ul(
@@ -1077,13 +1077,13 @@ class WorkflowGenesis:
             # Failure widget with execution details
             success_widget = Div(
                 P(f"❌ Workflow creation failed", cls='text-danger', style="margin-bottom: 1rem;"),
-                
+
                 Div(
                     H5("🔍 Execution Details:", style="color: #dc3545; margin-bottom: 0.5rem;"),
                     Pre(execution_output, style="background-color: #2d3748; color: #e2e8f0; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem;"),
                     style="background-color: rgba(220, 53, 69, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #dc3545; margin-bottom: 1rem;"
                 ),
-                
+
                 Div(
                     H5("📁 Project Location:", style="color: #6c757d; margin-bottom: 0.5rem;"),
                     P(f"Check: {plugins_dir}", style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;"),
@@ -1091,7 +1091,7 @@ class WorkflowGenesis:
                     style="background-color: rgba(108, 117, 125, 0.1); padding: 1rem; border-radius: 4px; border-left: 4px solid #6c757d;"
                 )
             )
-        
+
         return Div(
             pip.display_revert_widget(
                 step_id=step_id,

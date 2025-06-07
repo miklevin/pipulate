@@ -23,11 +23,11 @@ class IntroductionPlugin:
         logger.debug(f"IntroductionPlugin initialized with NAME: {self.NAME}")
         self.app = app
         self.pipulate = pipulate
-        self.pipeline = pipeline  
+        self.pipeline = pipeline
         self.db = db
         self._has_sent_endpoint_message = False  # Flag to track if we've sent the initial endpoint message
         self._last_streamed_page = None  # Track the last page we sent to LLM
-        
+
         # Register routes for page navigation
         app.route('/introduction/page/{page_num}', methods=['GET', 'POST'])(self.serve_page)
 
@@ -112,7 +112,7 @@ class IntroductionPlugin:
     def create_page_content(self, page_num: int, app_name: str, model: str):
         """Create FastHTML content for a specific page."""
         page_data = self.get_intro_page_data(page_num, app_name, model)
-        
+
         if not page_data:
             return Card(
                 H3("Page Not Found"),
@@ -121,7 +121,7 @@ class IntroductionPlugin:
             )
 
         card_style = "min-height: 400px; margin-bottom: 2rem;"
-        
+
         if page_num == 1:
             return Card(
                 H2(page_data['title']),
@@ -132,7 +132,7 @@ class IntroductionPlugin:
                 P(page_data['llm_help']),
                 style=card_style
             )
-            
+
         elif page_num == 2:
             return Card(
                 H3(page_data['experimenting_title']),
@@ -141,19 +141,19 @@ class IntroductionPlugin:
                 Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]),
                 style=card_style
             )
-            
+
         elif page_num == 3:
             return Card(
                 H3(page_data['title']),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
                 Hr(),
-                P('Try it now: ', A('Open Downloads Folder', 
-                                   href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), 
-                                   hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), 
+                P('Try it now: ', A('Open Downloads Folder',
+                                   href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())),
+                                   hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())),
                                    hx_swap='none')),
                 style=card_style
             )
-            
+
         elif page_num == 4:
             return Card(
                 H3(page_data['title']),
@@ -163,7 +163,7 @@ class IntroductionPlugin:
                 Ul(*[Li(tip) for tip in page_data['usage_tips']]),
                 style=card_style
             )
-            
+
         elif page_num == 5:
             return Card(
                 H3(page_data['title']),
@@ -180,13 +180,13 @@ class IntroductionPlugin:
     def create_llm_context(self, page_num: int, app_name: str, model: str):
         """Create LLM context for a specific page."""
         page_data = self.get_intro_page_data(page_num, app_name, model)
-        
+
         if not page_data:
             return f'The user is viewing an unknown introduction page ({page_num}).'
 
         # Get the secret word for this page
         secret_word = page_data.get('secret_word', 'UNKNOWN')
-        
+
         if page_num == 1:
             context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
         elif page_num == 2:
@@ -199,22 +199,22 @@ class IntroductionPlugin:
             context = f"The user is viewing the Background LLM Training page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
         else:
             context = f"Unknown page {page_num}"
-        
+
         # Add secret word to the context (for LLM only, not displayed to user)
         context += f"\n\n[CONFIDENTIAL - For LLM only] The secret word for Introduction page {page_num} is: {secret_word}. If the user asks about the secret word, you can tell them it is '{secret_word}' to confirm that this page content has been added to the conversation history."
-        
+
         return context
 
     async def serve_page(self, request):
         """Handle page navigation within the main app framework."""
         page_num = int(request.path_params.get('page_num', '1'))
-        
+
         # Get app name and model from server settings
         from server import APP_NAME, MODEL
-        
+
         # Store current page in database
         self.db['intro_current_page'] = str(page_num)
-        
+
         # Always update LLM context when page changes
         if self.pipulate and self._last_streamed_page != page_num:
             # Stream a verbatim message to let user know about page change
@@ -222,7 +222,7 @@ class IntroductionPlugin:
                 f"📖 Now viewing Introduction page {page_num}",
                 verbatim=True
             )
-            
+
             # Add LLM context to conversation history
             llm_context = self.create_llm_context(page_num, APP_NAME, MODEL)
             self.pipulate.append_to_history(
@@ -231,7 +231,7 @@ class IntroductionPlugin:
             )
             self._last_streamed_page = page_num
             logger.debug(f"Introduction page {page_num} context added to conversation history")
-        
+
         # Return the updated content directly (same as landing method)
         return await self.landing()
 
@@ -239,10 +239,10 @@ class IntroductionPlugin:
         """Always appears in create_grid_left."""
         # Get app name and model from server settings
         from server import APP_NAME, MODEL
-        
+
         # Get current page from database, default to 1
         current_page = int(self.db.get('intro_current_page', '1'))
-        
+
         # Send the intro message to conversation history, but only once per session
         if self.pipulate is not None:
             try:
@@ -260,7 +260,7 @@ class IntroductionPlugin:
                             f"📖 Now viewing Introduction page {current_page}",
                             verbatim=True
                         )
-                    
+
                     llm_context = self.create_llm_context(current_page, APP_NAME, MODEL)
                     self.pipulate.append_to_history(
                         f"[INTRODUCTION PAGE {current_page}] {llm_context}",
@@ -275,7 +275,7 @@ class IntroductionPlugin:
 
         # Create navigation arrows (matching original server.py style)
         prev_button = Button(
-            '◂ Previous', 
+            '◂ Previous',
             hx_post=f'/introduction/page/{current_page - 1}' if current_page > 1 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
@@ -283,9 +283,9 @@ class IntroductionPlugin:
             style='min-width: 160px; width: 160px;',
             disabled=current_page == 1
         )
-        
+
         next_button = Button(
-            'Next ▸', 
+            'Next ▸',
             hx_post=f'/introduction/page/{current_page + 1}' if current_page < 5 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
@@ -293,7 +293,7 @@ class IntroductionPlugin:
             style='min-width: 160px; width: 160px;',
             disabled=current_page == 5
         )
-        
+
         nav_arrows = Div(
             prev_button,
             next_button,
@@ -307,4 +307,4 @@ class IntroductionPlugin:
             H2(f"📖 Introduction Guide - Page {current_page}"),
             page_content,
             nav_arrows
-        ) 
+        )
