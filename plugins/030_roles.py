@@ -96,7 +96,7 @@ class CrudUI(PluginIdentityManager):
     
     @property
     def ENDPOINT_MESSAGE(self):
-        return f"Check or uncheck Roles to control which plugins appear in your APP menu. Drag-to-reorder the APP menu."
+        return f"Check or uncheck to control which plugins appear in your ⚡️APP menu. Drag-to-reorder APP menu. Expand to see APPs."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike, config):
         """Initialize the Roles Plugin with injected configuration."""
@@ -414,7 +414,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     
     if not affected_plugins:
         return Details(
-            Summary(f"Plugins ({len(affected_plugins)})", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
+            Summary(f"APPs ({len(affected_plugins)})", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
             style="margin-top: 0.5rem;"
         )
@@ -451,7 +451,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     
     return Details(
         Summary(
-            f"Plugins ({len(affected_plugins)})", 
+            f"APPs ({len(affected_plugins)})", 
             style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer; margin: 0.5rem 0 0 0;"
         ),
         Ul(*plugin_items, style="padding-left: 1rem; margin: 0.5rem 0 0 0;"),
