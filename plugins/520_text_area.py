@@ -48,15 +48,11 @@ class TextAreaWidget:
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self, request):
-        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
-        title = f'{self.DISPLAY_NAME or app_name.title()}'
-        full_key, prefix, user_part = pip.generate_pipeline_key(self)
-        default_value = full_key
-        pipeline.xtra(app_name=app_name)
-        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
-        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
-        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
-
+        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
+        pip = self.pipulate
+        
+        # Use centralized landing page helper - maintains WET principle by explicit call
+        return pip.create_standard_landing_page(self)
     async def init(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         form = await request.form()

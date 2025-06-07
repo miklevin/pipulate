@@ -1,35 +1,28 @@
 import asyncio
 import json
-import os
-import shutil
-import tempfile
+import webbrowser
 from collections import namedtuple
 from datetime import datetime
-from pathlib import Path
 
 from fasthtml.common import *
 from loguru import logger
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from starlette.responses import HTMLResponse
-from webdriver_manager.chrome import ChromeDriverManager
 
 ROLES = ['Components']
-'\nPipulate Selenium URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in a Selenium-controlled Chrome browser.\n'
+'\nPipulate Webbrowser URL Opener Widget Workflow\nA workflow for demonstrating opening a URL in the default system browser.\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class SeleniumUrlOpenerWidget:
+class WebbrowserUrlOpenerWidget:
     """
-    Selenium URL Opener Widget Workflow
+    Webbrowser URL Opener Widget Workflow
 
-    Demonstrates opening a URL using Selenium and ChromeDriver.
+    Demonstrates opening a URL using Python's webbrowser module.
     """
-    APP_NAME = 'selenium_url_opener'
-    DISPLAY_NAME = 'Selenium URL Opener'
-    ENDPOINT_MESSAGE = 'This workflow demonstrates opening a URL in a new Chrome browser window controlled by Selenium.'
-    TRAINING_PROMPT = 'This workflow is for demonstrating and testing the Selenium URL opener. The user will input a URL, which will then be opened in a Selenium-controlled Chrome browser.'
+    APP_NAME = 'webbrowser_url_opener'
+    DISPLAY_NAME = 'Webbrowser URL Opener'
+    ENDPOINT_MESSAGE = "This workflow demonstrates opening a URL in the default system browser using Python's webbrowser module."
+    TRAINING_PROMPT = 'This workflow is for demonstrating and testing the webbrowser URL opener. The user will input a URL, which will then be opened in their default browser.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
@@ -41,8 +34,8 @@ class SeleniumUrlOpenerWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='selenium_url', show='URL for Selenium', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
-        routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST']), (f'/{app_name}/reopen_selenium_url', self.reopen_selenium_url, ['POST'])]
+        steps = [Step(id='step_01', done='url_to_open', show='URL to Open', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
+        routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
             step_id = step.id
@@ -51,16 +44,20 @@ class SeleniumUrlOpenerWidget:
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
-        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'step_01': {'input': 'Please enter the URL to open with Selenium.', 'complete': 'URL processed for Selenium.'}}
+        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'step_01': {'input': 'Please enter the URL to open.', 'complete': 'URL processed.'}}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-        
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
+        title = f'{self.DISPLAY_NAME or app_name.title()}'
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+
     async def init(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         form = await request.form()
@@ -117,7 +114,7 @@ class SeleniumUrlOpenerWidget:
 
     async def get_suggestion(self, step_id, state):
         if step_id == 'step_01':
-            return 'https://www.google.com'
+            return 'https://example.com'
         return ''
 
     async def handle_revert(self, request):
@@ -135,48 +132,9 @@ class SeleniumUrlOpenerWidget:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, steps)
 
-    def _create_selenium_url_display(self, url_value, step_id):
-        """Helper method to create the display for the URL and reopen button for Selenium."""
-        return Div(P(f'URL configured: ', B(url_value)), Form(Input(type='hidden', name='url', value=url_value), Button('Open URL Again 🪄', type='submit', cls='secondary'), hx_post=f'/{self.app_name}/reopen_selenium_url', hx_target=f'#{step_id}-status', hx_swap='innerHTML'), Div(id=f'{step_id}-status'))
-
-    async def _execute_selenium_open(self, url_to_open):
-        """Core Selenium logic to open a URL."""
-        pip = self.pipulate
-        try:
-            chrome_options = Options()
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--new-window')
-            chrome_options.add_argument('--start-maximized')
-            profile_dir = tempfile.mkdtemp()
-            chrome_options.add_argument(f'--user-data-dir={profile_dir}')
-            effective_os = os.environ.get('EFFECTIVE_OS', 'unknown')
-            await self.message_queue.add(pip, f'Effective OS for Selenium: {effective_os}', verbatim=True)
-            if effective_os == 'darwin':
-                await self.message_queue.add(pip, 'Using webdriver-manager for macOS.', verbatim=True)
-                service = Service(ChromeDriverManager().install())
-            else:
-                await self.message_queue.add(pip, "Attempting to use system ChromeDriver (ensure it's in PATH).", verbatim=True)
-                service = Service()
-            await self.message_queue.add(pip, 'Initializing Chrome driver with Selenium...', verbatim=True)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            await self.message_queue.add(pip, f'Selenium opening URL: {url_to_open}', verbatim=True)
-            driver.get(url_to_open)
-            await asyncio.sleep(2)
-            page_title = driver.title
-            await self.message_queue.add(pip, f'Selenium page loaded. Title: {page_title}', verbatim=True)
-            await asyncio.sleep(5)
-            driver.quit()
-            await self.message_queue.add(pip, 'Selenium browser closed.', verbatim=True)
-            shutil.rmtree(profile_dir, ignore_errors=True)
-            return (True, f'Successfully opened and closed: {url_to_open}. Page title: {page_title}')
-        except Exception as e:
-            error_msg = f'Selenium error: {str(e)}'
-            logger.error(error_msg)
-            await self.message_queue.add(pip, error_msg, verbatim=True)
-            if 'profile_dir' in locals() and os.path.exists(profile_dir):
-                shutil.rmtree(profile_dir, ignore_errors=True)
-            return (False, error_msg)
+    def _create_url_display(self, url_value):
+        """Helper method to create the display for the URL and reopen button."""
+        return Div(P(f'URL configured: ', B(url_value)), Button('Open URL Again ▸', type='button', _onclick=f"window.open('{url_value}', '_blank')", cls='secondary'))
 
     async def step_01(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -190,18 +148,18 @@ class SeleniumUrlOpenerWidget:
         user_val = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data and user_val:
-            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            url_widget_display = self._create_url_display(user_val)
             return Div(Card(H3(f'🔒 {step.show}'), url_widget_display), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         elif user_val and state.get('_revert_target') != step_id:
-            url_widget_display = self._create_selenium_url_display(user_val, step_id)
+            url_widget_display = self._create_url_display(user_val)
             content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {user_val}', widget=url_widget_display, steps=steps)
             return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = 'Enter a URL to open with Selenium (e.g., https://www.google.com).'
+            explanation = 'Enter a URL to open in your default browser (e.g., https://example.com).'
             await self.message_queue.add(pip, explanation, verbatim=True)
-            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Input(type='url', name=step.done, placeholder='https://www.google.com', required=True, value=display_value, cls='contrast'), Div(Button('Open with Selenium ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P(explanation, style=pip.get_style('muted')), Form(Div(Input(type='url', name=step.done, placeholder='https://example.com', required=True, value=display_value, cls='contrast'), Div(Button('Open URL ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -217,27 +175,22 @@ class SeleniumUrlOpenerWidget:
         if not url_to_open.startswith(('http://', 'https://')):
             url_to_open = f'https://{url_to_open}'
         await pip.set_step_data(pipeline_id, step_id, url_to_open, steps)
-        success, message = await self._execute_selenium_open(url_to_open)
-        pip.append_to_history(f'[WIDGET ACTION] {step.show}: Attempted to open URL {url_to_open}. Success: {success}. Message: {message}')
-        url_widget_display = self._create_selenium_url_display(url_to_open, step_id)
-        status_message_widget = P(message, style='color: green;' if success else pip.get_style('error'))
-        combined_widget = Div(url_widget_display, status_message_widget)
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: URL processed - {url_to_open}', widget=combined_widget, steps=steps)
+        try:
+            webbrowser.open(url_to_open)
+            await self.message_queue.add(pip, f'Attempting to open URL: {url_to_open}', verbatim=True)
+        except Exception as e:
+            error_msg = f'Error opening URL with webbrowser: {str(e)}'
+            logger.error(error_msg)
+            await self.message_queue.add(pip, error_msg, verbatim=True)
+            error_widget = P(error_msg, style=pip.get_style('error'))
+            url_widget_display_on_error = self._create_url_display(url_to_open)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Error Opening URL', widget=Div(error_widget, url_widget_display_on_error), steps=steps)
+            return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        pip.append_to_history(f'[WIDGET ACTION] {step.show}: Opened URL {url_to_open}')
+        url_widget_display = self._create_url_display(url_to_open)
+        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: URL opened - {url_to_open}', widget=url_widget_display, steps=steps)
         response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        await self.message_queue.add(pip, f'{step.show} complete. {message}', verbatim=True)
+        await self.message_queue.add(pip, f'{step.show} complete. URL opened.', verbatim=True)
         if pip.check_finalize_needed(step_index, steps):
             await self.message_queue.add(pip, self.step_messages['finalize']['ready'], verbatim=True)
         return HTMLResponse(to_xml(response_content))
-
-    async def reopen_selenium_url(self, request):
-        """Handles reopening a URL with Selenium via a button press."""
-        pip = self.pipulate
-        form = await request.form()
-        url_to_open = form.get('url', '').strip()
-        if not url_to_open:
-            return P('Error: URL for reopening is missing.', style=pip.get_style('error'))
-        success, message = await self._execute_selenium_open(url_to_open)
-        if success:
-            return P(f"Successfully reopened: {url_to_open}. Page title: {message.split('Page title: ')[-1]}", style='color: green;')
-        else:
-            return P(f'Error reopening URL: {message}', style=pip.get_style('error'))

@@ -6,22 +6,24 @@ from fasthtml.common import *
 from loguru import logger
 
 ROLES = ['Components']
-'\nPipulate Dropdown Widget\nA standalone dropdown widget workflow for selecting from a list of options.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Dropdown Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Dropdown Widget Pattern", "Option Management"\n   - Critical for understanding dropdown implementation\n\n2. State Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Widget State Management", "Selection State"\n   - Essential for proper dropdown state handling\n\n3. UI Construction:\n   - See: implementation/implementation-workflow.mdc\n   - Review: "Dropdown UI Patterns", "Option Grouping"\n   - Important for maintaining consistent dropdown UI\n\n4. Option Management:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Dynamic Options", "Option Groups"\n   - Critical for dropdown functionality\n\n5. Recovery Process:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Recovery Process", "Selection Recovery"\n   - Essential for handling dropdown workflow breaks\n\nIMPLEMENTATION NOTES:\n-------------------\n1. Dropdown Specifics:\n   - Uses select element with option groups\n   - Handles dynamic option updates\n   - Includes option formatting\n\n2. State Management:\n   - Stores selection in \'dropdown_value\' field\n   - Handles option changes\n   - Maintains selection state\n\n3. UI Considerations:\n   - Grouped options for clarity\n   - Clear selection display\n   - Consistent option formatting\n\n4. Common Pitfalls:\n   - Option group handling\n   - Selection state preservation\n   - Dynamic option updates\n'
+'\nPipulate Radio Button Workflow\nA workflow for managing and testing radio button-based interactions.\n\nRULE NAVIGATION GUIDE:\n--------------------\n1. Core Widget Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Key sections: "Common Widget Patterns", "Widget State Management"\n   - Critical for understanding the immutable chain reaction pattern\n\n2. Implementation Guidelines:\n   - See: implementation/implementation-workflow.mdc\n   - Focus on: "Widget Implementation Steps", "Widget Testing Checklist"\n   - Essential for maintaining workflow integrity\n\n3. Common Pitfalls:\n   - See: patterns/workflow-patterns.mdc\n   - Review: "Common Widget Pitfalls", "Recovery Process"\n   - Critical for avoiding state management issues\n\n4. Widget Design Philosophy:\n   - See: philosophy/philosophy-core.mdc\n   - Key concepts: "State Management", "UI Construction"\n   - Important for maintaining consistent patterns\n\n5. Recovery Patterns:\n   - See: patterns/workflow-patterns.mdc\n   - Focus on: "Recovery Process", "Prevention Guidelines"\n   - Essential for handling workflow breaks\n\nCONVERSION POINTS:\n----------------\nWhen converting this template to a new widget:\n1. CUSTOMIZE_STEP_DEFINITION: Change \'done\' field to specific data field name\n2. CUSTOMIZE_FORM: Replace the Proceed button with specific form elements\n3. CUSTOMIZE_DISPLAY: Update the finalized state display for your widget\n4. CUSTOMIZE_COMPLETE: Enhance the completion state with widget display\n\nCRITICAL ELEMENTS TO PRESERVE:\n----------------------------\n- Chain reaction with next_step_id\n- Finalization state handling pattern\n- Revert control mechanism\n- Overall Div structure and ID patterns\n- LLM context updates for widget content\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class DropdownWidget:
+class RadioButtonWorkflow:
     """
-    Dropdown Widget Workflow
+    Radio Button Workflow
 
-    A focused environment for implementing and testing dropdown selection widgets.
+    A focused environment for designing and testing radio button-based interactions in isolation.
+    This workflow provides a clean environment to focus on radio button development without the complexity
+    of a full workflow implementation.
     """
-    APP_NAME = 'dropdown_widget'
-    DISPLAY_NAME = 'Dropdown Widget'
-    ENDPOINT_MESSAGE = 'Welcome to the Dropdown Widget! This is a focused environment for implementing and testing dropdown selection widgets. Use this space to prototype and refine your dropdown designs without distractions.'
-    TRAINING_PROMPT = 'This is a specialized workflow for implementing and testing dropdown selection widgets. It provides a clean environment to focus on dropdown development without the complexity of a full workflow implementation.'
+    APP_NAME = 'radio_widget'
+    DISPLAY_NAME = 'Radio Button Widget'
+    ENDPOINT_MESSAGE = 'Welcome to the Radio Button Widget! This is a focused environment for designing and testing radio button-based interactions in isolation. Use this space to prototype and refine your radio button designs without distractions.'
+    TRAINING_PROMPT = 'This is a specialized workflow for designing and testing radio button interactions in isolation. It provides a clean environment to focus on radio button development without the complexity of a full workflow implementation.'
     SOURCE_TYPE = 'static'
-    SOURCE_CONFIG = {'api_url': None, 'file_path': None, 'db_query': None, 'previous_step': None, 'value_field': 'value', 'label_field': 'label', 'group_field': 'group', 'description_field': 'description', 'options': [{'value': '1', 'label': 'Option 1', 'group': 'Group A'}, {'value': '2', 'label': 'Option 2', 'group': 'Group A'}, {'value': '3', 'label': 'Option 3', 'group': 'Group B'}]}
+    SOURCE_CONFIG = {'api_url': None, 'file_path': None, 'db_query': None, 'previous_step': None, 'value_field': 'value', 'label_field': 'label', 'group_field': 'group', 'description_field': 'description', 'options': [{'value': '1', 'label': 'Option 1', 'group': 'Group A', 'description': 'First option'}, {'value': '2', 'label': 'Option 2', 'group': 'Group A', 'description': 'Second option'}, {'value': '3', 'label': 'Option 3', 'group': 'Group B', 'description': 'Third option'}]}
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
@@ -33,7 +35,7 @@ class DropdownWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='dropdown_selection', show='Dropdown Selection', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
+        steps = [Step(id='step_01', done='radio_selection', show='Radio Selection', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -50,11 +52,16 @@ class DropdownWidget:
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-        
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        """Renders the initial landing page with the key input form."""
+        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
+        title = f'{self.DISPLAY_NAME or app_name.title()}'
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+
     async def init(self, request):
         """Handles the key submission, initializes state, and renders the step UI placeholders."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -176,7 +183,7 @@ class DropdownWidget:
         return {'value': value, 'label': label, 'group': group, 'description': description}
 
     async def step_01(self, request):
-        """Handles GET request for dropdown selection step."""
+        """Handles GET request for radio button selection step."""
         logger.debug('Entering step_01')
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
@@ -210,15 +217,21 @@ class DropdownWidget:
                     grouped_options[group] = []
                 grouped_options[group].append(option)
             logger.debug(f'Grouped options: {grouped_options}')
-            select = Select(*[Optgroup(*[Option(option['label'], value=option['value'], selected=option['value'] == selected_value, title=option['description'] if option['description'] else None) for option in group_options], label=group) for group, group_options in grouped_options.items()], name=step.done, required=True, autofocus=True)
-            return Div(Card(H3(f'{step.show}'), Form(select, Button('Submit', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            radio_groups = []
+            for group, group_options in grouped_options.items():
+                group_radios = []
+                for option in group_options:
+                    radio = Label(Input(type='radio', name=step.done, value=option['value'], checked=option['value'] == selected_value, title=option['description'] if option['description'] else None), f" {option['label']}")
+                    group_radios.append(radio)
+                radio_groups.append(Fieldset(Legend(group), *group_radios))
+            return Div(Card(H3(f'{step.show}'), Form(*radio_groups, Button('Submit', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
         except Exception as e:
             logger.error(f'Error getting options: {str(e)}')
             logger.exception('Full traceback:')
-            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', style=pip.ERROR_STYLE)), id=step_id)
+            return Div(Card(H3(f'{step.show}'), P(f'Error loading options: {str(e)}', style=self.pipulate.ERROR_STYLE)), id=step_id)
 
     async def step_01_submit(self, request):
-        """Handles POST request for dropdown selection step."""
+        """Handles POST request for radio button selection step."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
@@ -228,7 +241,7 @@ class DropdownWidget:
         form = await request.form()
         value = form.get(step.done, '').strip()
         if not value:
-            return P('Error: Please select an option', style=pip.ERROR_STYLE)
-        await pip.set_step_data(pipeline_id, step_id, value, steps)
-        await self.message_queue.add(pip, self.step_messages.get(step_id, {}).get('complete', f'{step.show} complete: {value}'), verbatim=True)
-        return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            return P('Error: Please select an option', style=self.pipulate.ERROR_STYLE)
+        await self.pipulate.set_step_data(pipeline_id, step_id, value, steps)
+        await self.message_queue.add(self.pipulate, self.step_messages.get(step_id, {}).get('complete', f'{step.show} complete: {value}'), verbatim=True)
+        return Div(self.pipulate.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: {value}', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)

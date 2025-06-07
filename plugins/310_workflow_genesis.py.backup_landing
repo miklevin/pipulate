@@ -120,11 +120,34 @@ class WorkflowGenesis:
                 }
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
+        pip, pipeline_table = self.pipulate, self.pipeline
+        try:
+            module_file = inspect.getfile(self.__class__)
+            public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
+        except TypeError: 
+            public_app_name_for_display = self.APP_NAME 
         
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        title = f'{self.DISPLAY_NAME or public_app_name_for_display.replace("_", " ").title()}'
+        full_key, prefix, _ = pip.generate_pipeline_key(self) 
+        
+        pipeline_table.xtra(app_name=self.APP_NAME) 
+        matching_records = [record.pkey for record in pipeline_table() if record.pkey.startswith(prefix)]
+        
+        return Container(
+            Card( H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), 
+                Form(
+                    pip.wrap_with_inline_button(
+                        Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=full_key, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), 
+                        button_label='Enter 🔑', button_class='secondary'
+                    ), 
+                    pip.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records), 
+                    hx_post=f'/{self.APP_NAME}/init', 
+                    hx_target=f'#{self.APP_NAME}-container'
+                )
+            ), 
+            Div(id=f'{self.APP_NAME}-container')
+        )
+
     async def init(self, request):
         pip, db = self.pipulate, self.db
         internal_app_name = self.APP_NAME

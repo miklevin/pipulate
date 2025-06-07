@@ -121,10 +121,44 @@ class LandingPageStandardizer:
 
     def extract_landing_method(self, content: str) -> Optional[str]:
         """Extract the landing method from plugin content."""
-        # Look for async def landing method
-        pattern = r'(async def landing\s*\([^)]*\).*?)(?=\n    async def|\n    def|\n\nclass|\n\n\n|\Z)'
-        match = re.search(pattern, content, re.DOTALL)
-        return match.group(1) if match else None
+        lines = content.split('\n')
+        start_idx = None
+        end_idx = None
+        
+        # Find the start of the landing method
+        for i, line in enumerate(lines):
+            if re.search(r'^\s*async def landing\s*\(', line):
+                start_idx = i
+                break
+        
+        if start_idx is None:
+            return None
+        
+        # Find the indentation level of the method
+        method_line = lines[start_idx]
+        method_indent = len(method_line) - len(method_line.lstrip())
+        
+        # Find the end of the method by looking for the next method at the same or lower indentation
+        for i in range(start_idx + 1, len(lines)):
+            line = lines[i]
+            if line.strip() == '':  # Skip empty lines
+                continue
+            
+            # Check if this line starts a new method/function at the same or lower indentation
+            line_indent = len(line) - len(line.lstrip())
+            if (line_indent <= method_indent and 
+                (re.search(r'^\s*(async\s+)?def\s+', line) or 
+                 re.search(r'^\s*class\s+', line) or
+                 re.search(r'^\s*#\s*---', line))):  # Also stop at comment markers
+                end_idx = i
+                break
+        
+        if end_idx is None:
+            end_idx = len(lines)
+        
+        # Extract the method
+        method_lines = lines[start_idx:end_idx]
+        return '\n'.join(method_lines)
 
     def get_ineligibility_reason(self, standard_score: int, current_lines: int, landing_method: str) -> str:
         """Determine why a plugin is not eligible for standardization."""
@@ -175,25 +209,62 @@ class LandingPageStandardizer:
             print("No eligible plugins found.")
             return
         
-        template = '''    async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-        
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)'''
-        
         if not force:
             response = input(f"\nProceed with standardization of {len(self.eligible_plugins)} plugins? (y/N): ")
             if response.lower() not in ['y', 'yes']:
                 print("Cancelled.")
                 return
         
+        success_count = 0
         for plugin_file in self.eligible_plugins:
-            analysis = self.analysis_results[plugin_file]
-            content = plugin_file.read_text(encoding='utf-8')
-            new_content = content.replace(analysis['landing_method'], template)
-            plugin_file.write_text(new_content, encoding='utf-8')
-            print(f"✅ Standardized: {plugin_file.name}")
+            try:
+                if self.standardize_plugin(plugin_file):
+                    success_count += 1
+                    print(f"✅ Standardized: {plugin_file.name}")
+                else:
+                    print(f"❌ Failed: {plugin_file.name}")
+            except Exception as e:
+                print(f"❌ Error in {plugin_file.name}: {str(e)}")
+        
+        print(f"\n🎉 Successfully standardized: {success_count}/{len(self.eligible_plugins)} plugins")
+
+    def standardize_plugin(self, plugin_file: Path) -> bool:
+        """Standardize a single plugin's landing method with proper indentation."""
+        content = plugin_file.read_text(encoding='utf-8')
+        analysis = self.analysis_results[plugin_file]
+        landing_method = analysis['landing_method']
+        
+        # Detect the base indentation of the method
+        lines = landing_method.split('\n')
+        method_line = lines[0]  # The "async def landing..." line
+        
+        # Find the indentation by looking at the method definition line
+        base_indent = len(method_line) - len(method_line.lstrip())
+        method_indent = ' ' * base_indent
+        body_indent = ' ' * (base_indent + 4)  # Method body is indented 4 more spaces
+        
+        # Create properly indented replacement
+        standardized_method = f'''{method_indent}async def landing(self, request):
+{body_indent}"""Generate the landing page using the standardized helper while maintaining WET explicitness."""
+{body_indent}pip = self.pipulate
+{body_indent}
+{body_indent}# Use centralized landing page helper - maintains WET principle by explicit call
+{body_indent}return pip.create_standard_landing_page(self)'''
+        
+        # Replace the method
+        new_content = content.replace(landing_method, standardized_method)
+        
+        # Verify the replacement worked
+        if new_content == content:
+            return False
+        
+        # Create backup before writing
+        backup_file = plugin_file.with_suffix('.py.backup_landing')
+        backup_file.write_text(content, encoding='utf-8')
+        
+        # Write the standardized version
+        plugin_file.write_text(new_content, encoding='utf-8')
+        return True
 
 
 def main():
@@ -201,6 +272,7 @@ def main():
     parser.add_argument('--analyze', action='store_true', help='Analyze plugins and show preview only')
     parser.add_argument('--apply', action='store_true', help='Apply standardization with confirmation')
     parser.add_argument('--force', action='store_true', help='Apply standardization without confirmation')
+    parser.add_argument('--test', type=str, help='Test on single plugin file')
     
     args = parser.parse_args()
     
@@ -214,6 +286,31 @@ def main():
                 sys.exit(1)
     
     standardizer = LandingPageStandardizer(plugins_dir)
+    
+    if args.test:
+        # Test on single file
+        test_file = plugins_dir / args.test
+        if test_file.exists():
+            analysis = standardizer.analyze_plugin(test_file)
+            print(f"Test file: {test_file.name}")
+            print(f"Eligible: {analysis['eligible']}")
+            print(f"Reason: {analysis['reason']}")
+            print(f"Lines: {analysis['current_lines']}")
+            print(f"Score: {analysis['standard_score']}")
+            
+            if analysis['eligible']:
+                print("\nTesting standardization...")
+                # Store the analysis for the standardize method
+                standardizer.analysis_results[test_file] = analysis
+                if standardizer.standardize_plugin(test_file):
+                    print("✅ Test standardization successful!")
+                    print("Run: git diff to see the changes")
+                else:
+                    print("❌ Test standardization failed")
+        else:
+            print(f"Test file not found: {args.test}")
+        return
+    
     standardizer.analyze_all_plugins()
     
     if args.apply or args.force:

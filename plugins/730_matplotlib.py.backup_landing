@@ -1,31 +1,34 @@
 import asyncio
+import base64
 import json
 import os
-from collections import namedtuple
+from collections import Counter, namedtuple
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+from fastcore.xml import NotStr
 from fasthtml.common import *
 from loguru import logger
 from starlette.responses import HTMLResponse
 
 ROLES = ['Components']
-'\nExecutable JavaScript Widget\n\nThis workflow demonstrates a widget that executes user-provided JavaScript code\nwithin a designated area. The widget allows users to input JavaScript code that\nwill be executed in the browser, with the ability to manipulate a target element\nand re-run the code as needed.\n\nKey Features:\n- Interactive JavaScript execution\n- Re-run capability\n- Safe code execution environment\n- Visual feedback\n'
+'\nMatplotlib Histogram Widget\n\nThis workflow demonstrates a Matplotlib histogram rendering widget.\nUsers can input JSON counter data and see it rendered as a histogram image.\n\nThe widget supports:\n- JSON counter data input (keys and values)\n- Automatic histogram generation\n- Responsive image display\n- Error handling and validation\n'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class JavaScriptWidget:
+class MatplotlibWidget:
     """
-    Executable JavaScript Widget Workflow
+    Matplotlib Histogram Widget Workflow
 
-    A focused environment for creating and testing JavaScript execution widgets.
-    Users input JavaScript code that will be executed in the browser, with the
-    ability to manipulate a target element and re-run the code as needed.
+    A focused environment for creating and testing Matplotlib histogram visualizations.
+    Users input JSON counter data and see it rendered as a histogram image.
     """
-    APP_NAME = 'javascript_widget'
-    DISPLAY_NAME = 'Executable JavaScript Widget'
-    ENDPOINT_MESSAGE = 'This workflow demonstrates a widget that executes user-provided JavaScript code within a designated area.'
-    TRAINING_PROMPT = 'This workflow is for demonstrating and testing the JavaScript execution widget. The user will input JavaScript code, which will then be run in the browser, potentially manipulating a target element.'
+    APP_NAME = 'matplotlib_widget'
+    DISPLAY_NAME = 'Matplotlib Histogram Widget'
+    ENDPOINT_MESSAGE = 'This workflow demonstrates a Matplotlib histogram rendering widget. Enter JSON counter data to see it rendered as an image.'
+    TRAINING_PROMPT = 'This workflow is for demonstrating and testing the Matplotlib histogram widget. The user will input JSON formatted counter data (keys and values), and the system will render it as a histogram image.'
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """
@@ -39,7 +42,7 @@ class JavaScriptWidget:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-        steps = [Step(id='step_01', done='js_content', show='JavaScript Code', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
+        steps = [Step(id='step_01', done='counter_data', show='Counter Data (JSON)', refill=True, transform=lambda prev_value: prev_value.strip() if prev_value else '')]
         routes = [(f'/{app_name}', self.landing), (f'/{app_name}/init', self.init, ['POST']), (f'/{app_name}/revert', self.handle_revert, ['POST']), (f'/{app_name}/finalize', self.finalize, ['GET', 'POST']), (f'/{app_name}/unfinalize', self.unfinalize, ['POST'])]
         self.steps = steps
         for step in steps:
@@ -49,16 +52,22 @@ class JavaScriptWidget:
         for path, handler, *methods in routes:
             method_list = methods[0] if methods else ['GET']
             app.route(path, methods=method_list)(handler)
-        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'new': 'Please complete each step to explore the JavaScript execution widget.', 'step_01': {'input': 'Please enter JavaScript code to execute.', 'complete': 'JavaScript code processed.'}}
+        self.step_messages = {'finalize': {'ready': 'All steps complete. Ready to finalize workflow.', 'complete': f'Workflow finalized. Use {pip.UNLOCK_BUTTON_LABEL} to make changes.'}, 'new': 'Please enter JSON counter data to create a histogram visualization.', 'step_01': {'input': 'Please enter JSON counter data for the histogram.', 'complete': 'Counter data processed and histogram rendered.'}}
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     async def landing(self, request):
-        """Generate the landing page using the standardized helper while maintaining WET explicitness."""
-        pip = self.pipulate
-        
-        # Use centralized landing page helper - maintains WET principle by explicit call
-        return pip.create_standard_landing_page(self)
+        """ Renders the initial landing page with the key input form. """
+        pip, pipeline, steps, app_name = (self.pipulate, self.pipeline, self.steps, self.app_name)
+        context = pip.get_plugin_context(self)
+        title = f'{self.DISPLAY_NAME or app_name.title()}'
+        full_key, prefix, user_part = pip.generate_pipeline_key(self)
+        default_value = full_key
+        pipeline.xtra(app_name=app_name)
+        matching_records = [record.pkey for record in pipeline() if record.pkey.startswith(prefix)]
+        datalist_options = [f"{prefix}{record_key.replace(prefix, '')}" for record_key in matching_records]
+        return Container(Card(H2(title), P(self.ENDPOINT_MESSAGE, cls='text-secondary'), Form(pip.wrap_with_inline_button(Input(placeholder='Existing or new 🗝 here (Enter for auto)', name='pipeline_id', list='pipeline-ids', type='search', required=False, autofocus=True, value=default_value, _onfocus='this.setSelectionRange(this.value.length, this.value.length)', cls='contrast'), button_label=f'Enter 🔑', button_class='secondary'), pip.update_datalist('pipeline-ids', options=datalist_options if datalist_options else None), hx_post=f'/{app_name}/init', hx_target=f'#{app_name}-container')), Div(id=f'{app_name}-container'))
+
     async def init(self, request):
         """ Initialize the workflow state and redirect to the first step. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -134,7 +143,7 @@ class JavaScriptWidget:
     async def get_suggestion(self, step_id, state):
         """ Gets a suggested input value for a step. """
         if step_id == 'step_01':
-            return "// Simple counter example\nlet count = 0;\nconst countDisplay = document.createElement('div');\ncountDisplay.style.fontSize = '24px';\ncountDisplay.style.margin = '20px 0';\ncountDisplay.textContent = count;\n\nconst button = document.createElement('button');\nbutton.textContent = 'Increment Count';\nbutton.style.backgroundColor = '#9370DB';\nbutton.style.borderColor = '#9370DB';\nbutton.onclick = function() {\n    count++;\n    countDisplay.textContent = count;\n};\n\nwidget.appendChild(countDisplay);\nwidget.appendChild(button);"
+            return '{\n    "apples": 35,\n    "oranges": 42,\n    "bananas": 28,\n    "grapes": 51,\n    "peaches": 22,\n    "plums": 18,\n    "mangoes": 39\n}'
         return ''
 
     async def handle_revert(self, request):
@@ -153,12 +162,12 @@ class JavaScriptWidget:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, steps)
 
-    def _create_js_display(self, js_code, widget_id, target_id):
-        """Helper method to create the JavaScript widget display."""
-        return Div(P('JavaScript will execute here...', id=target_id, style='padding: 1.5rem; background-color: var(--pico-card-background-color); border-radius: var(--pico-border-radius); min-height: 100px;'), Button('Re-run JavaScript ▸', type='button', _onclick=f"runJsWidget('{widget_id}', `{js_code.replace('`', '\\`')}`, '{target_id}')", style='margin-top: 1rem; background-color: #9370DB; border-color: #9370DB;'), id=widget_id)
-
     async def step_01(self, request):
-        """ Handles GET request for JavaScript execution widget. """
+        """ 
+        Handles GET request for Step 1: Matplotlib Histogram Widget.
+
+        This step allows users to input counter data and visualizes it as a histogram.
+        """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
@@ -167,38 +176,34 @@ class JavaScriptWidget:
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        user_val = step_data.get(step.done, '')
+        counter_data = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        if 'finalized' in finalize_data and user_val:
+        if 'finalized' in finalize_data and counter_data:
             try:
-                widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
-                target_id = f'{widget_id}_target'
-                js_widget = self._create_js_display(user_val, widget_id, target_id)
-                response = HTMLResponse(to_xml(Div(Card(H3(f'🔒 {step.show}'), js_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
-                response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
-                return response
+                histogram_widget = self.create_matplotlib_histogram(counter_data)
+                return Div(Card(H3(f'🔒 {step.show}'), histogram_widget), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
-                logger.error(f'Error creating JS widget in locked view: {str(e)}')
+                logger.error(f'Error creating histogram in finalized view: {str(e)}')
                 return Div(Card(f'🔒 {step.show}: <content locked>'), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
-        elif user_val and state.get('_revert_target') != step_id:
+        elif counter_data and state.get('_revert_target') != step_id:
             try:
-                widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
-                target_id = f'{widget_id}_target'
-                js_widget = self._create_js_display(user_val, widget_id, target_id)
-                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=js_widget, steps=steps)
-                response = HTMLResponse(to_xml(Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))))
-                response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
-                return response
+                histogram_widget = self.create_matplotlib_histogram(counter_data)
+                content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=histogram_widget, steps=steps)
+                return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'))
             except Exception as e:
-                logger.error(f'Error creating JS widget: {str(e)}')
+                logger.error(f'Error creating histogram widget: {str(e)}')
                 state['_revert_target'] = step_id
                 pip.write_state(pipeline_id, state)
-        display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
+        display_value = counter_data if step.refill and counter_data else await self.get_suggestion(step_id, state)
         await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter JavaScript code for the widget. Example is pre-populated.'), P("Use the 'widget' variable to access the container element.", cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JavaScript code', required=True, rows=12, style='width: 100%; font-family: monospace;'), Div(Button('Run JavaScript ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+        return Div(Card(H3(f'{pip.fmt(step_id)}: Configure {step.show}'), P('Enter counter data as JSON object (keys and values):'), P('Format: {"category1": count1, "category2": count2, ...}', cls='text-note'), Form(Div(Textarea(display_value, name=step.done, placeholder='Enter JSON object for Counter data', required=True, rows=10, style='width: 100%; font-family: monospace;'), Div(Button('Create Histogram ▸', type='submit', cls='primary'), style='margin-top: 1vh; text-align: right;'), cls='w-full'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
 
     async def step_01_submit(self, request):
-        """ Process the submission for JavaScript execution widget. """
+        """ 
+        Process the submission for Step 1 (Matplotlib Histogram).
+
+        Takes counter data as input and creates a histogram visualization.
+        """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
         step_index = self.steps_indices[step_id]
@@ -206,18 +211,63 @@ class JavaScriptWidget:
         pipeline_id = db.get('pipeline_id', 'unknown')
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
-        user_val = form.get(step.done, '')
-        is_valid, error_msg, error_component = pip.validate_step_input(user_val, step.show)
+        counter_data = form.get(step.done, '').strip()
+        is_valid, error_msg, error_component = pip.validate_step_input(counter_data, step.show)
         if not is_valid:
             return error_component
-        await pip.set_step_data(pipeline_id, step_id, user_val, steps)
-        pip.append_to_history(f'[WIDGET CONTENT] JavaScript Widget Code:\n{user_val}')
-        widget_id = f'js-widget-{pipeline_id}-{step_id}'.replace('-', '_')
-        target_id = f'{widget_id}_target'
-        js_widget = self._create_js_display(user_val, widget_id, target_id)
-        content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Interactive JavaScript example', widget=js_widget, steps=steps)
-        response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        response = HTMLResponse(to_xml(response_content))
-        response.headers['HX-Trigger'] = json.dumps({'runJavaScript': {'widgetId': widget_id, 'code': user_val, 'targetId': target_id}})
-        await self.message_queue.add(pip, f'{step.show} complete. JavaScript executed.', verbatim=True)
-        return response
+        try:
+            data = json.loads(counter_data)
+            if not isinstance(data, dict):
+                return P('Invalid JSON: Must be an object (dictionary) with keys and values', style=pip.get_style('error'))
+            if not data:
+                return P('Invalid data: Counter cannot be empty', style=pip.get_style('error'))
+        except json.JSONDecodeError:
+            return P('Invalid JSON format. Please check your syntax.', style=pip.get_style('error'))
+        await pip.set_step_data(pipeline_id, step_id, counter_data, steps)
+        try:
+            histogram_widget = self.create_matplotlib_histogram(counter_data)
+            content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Histogram created from Counter data', widget=histogram_widget, steps=steps)
+            response_content = Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            await self.message_queue.add(pip, f'{step.show} complete. Histogram created.', verbatim=True)
+            return HTMLResponse(to_xml(response_content))
+        except Exception as e:
+            logger.error(f'Error creating histogram visualization: {e}')
+            return P(f'Error creating histogram: {str(e)}', style=pip.get_style('error'))
+
+    def create_matplotlib_histogram(self, data_str):
+        """
+        Create a matplotlib histogram visualization from JSON counter data.
+
+        Args:
+            data_str: A JSON string representing counter data
+
+        Returns:
+            A Div element containing the histogram image
+        """
+        try:
+            data = json.loads(data_str)
+            if not isinstance(data, dict):
+                return Div(NotStr("<div style='color: red;'>Error: Data must be a JSON object with keys and values</div>"), _raw=True)
+            counter = Counter(data)
+            if not counter:
+                return Div(NotStr("<div style='color: red;'>Error: No data to plot</div>"), _raw=True)
+            plt.figure(figsize=(10, 6))
+            labels = sorted(counter.keys())
+            values = [counter[label] for label in labels]
+            plt.bar(labels, values, color='skyblue')
+            plt.xlabel('Categories')
+            plt.ylabel('Counts')
+            plt.title('Histogram from Counter Data')
+            plt.grid(axis='y', linestyle='--', alpha=0.7)
+            if len(labels) > 5:
+                plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png')
+            plt.close()
+            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            return Div(H4('Histogram Visualization:'), P(f'Data: {len(counter)} categories, {sum(counter.values())} total counts'), Div(NotStr(f'<img src="data:image/png;base64,{img_str}" style="max-width:100%; height:auto;" />'), style='text-align: center; margin-top: 1rem;'), cls='overflow-auto')
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            return Div(NotStr(f"<div style='color: red;'>Error creating histogram: {str(e)}<br><pre>{tb}</pre></div>"), _raw=True)
