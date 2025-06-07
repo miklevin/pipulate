@@ -2628,50 +2628,7 @@ async def create_outer_container(current_profile_id, menux, request):
     )
 
 
-async def render_intro_page_with_navigation(page_num_str: str):
-    """Renders the content for the given intro page number, including Next/Previous buttons.
 
-    This function returns the content that will be swapped into the #grid-left-content div.
-
-    Args:
-        page_num_str: String representation of the page number to render
-
-    Returns:
-        Div: Container with page content and navigation buttons
-    """
-    page_num = int(page_num_str)
-    page_content_area, llm_context = get_intro_page_content(page_num_str)
-    append_to_conversation(llm_context, role='system')
-    
-    # Only prompt the LLM once per intro page to avoid spam
-    intro_prompted_key = f'intro_prompted_{page_num}'
-    if intro_prompted_key not in db:
-        intro_prompts = {
-            1: f"{limiter}, welcome the user to {APP_NAME} and suggest they try DEV mode for practice.",
-            2: f"{limiter}, encourage experimentation and mention that database resets are safe in DEV mode.", 
-            3: f"{limiter}, reassure them that workflows are disposable but files stay saved.",
-            4: f"{limiter}, briefly introduce yourself as their local LLM assistant."
-        }
-        
-        if page_num in intro_prompts:
-            db[intro_prompted_key] = 'done'
-            # Send brief prompt to LLM with delay for surprise effect and to let startup messages appear first
-            asyncio.create_task(delayed_intro_prompt(intro_prompts[page_num]))
-    prev_button = Button('◂ Previous', hx_post='/navigate_intro', hx_vals={'direction': 'prev', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == 1 else 'primary', style=(
-        'min-width: 160px; ',
-        'width: 160px'
-    ), disabled=page_num == 1)
-    next_button = Button('Next ▸', hx_post='/navigate_intro', hx_vals={'direction': 'next', 'current_page': page_num_str}, hx_target='#grid-left-content', hx_swap='innerHTML', cls='primary outline' if page_num == MAX_INTRO_PAGES else 'primary', style=(
-        'min-width: 160px; ',
-        'width: 160px'
-    ), disabled=page_num == MAX_INTRO_PAGES)
-    nav_container = Div(prev_button, next_button, style=(
-        'display: flex; ',
-        'gap: 1rem; ',
-        'justify-content: center; ',
-        'margin-top: 1rem'
-    ))
-    return Div(page_content_area, nav_container, id='grid-left-content')
 
 def get_workflow_instance(workflow_name):
     """
@@ -2696,10 +2653,7 @@ async def create_grid_left(menux, request, render_items=None):
             else:
                 logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
                 content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
-        elif menux == 'intro':
-            # Handle the intro endpoint (moved from homepage)
-            current_intro_page_num_str = db.get('intro_page_num', '1')
-            content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
+
         else:
             workflow_instance = get_workflow_instance(menux)
             if workflow_instance:
@@ -2712,9 +2666,8 @@ async def create_grid_left(menux, request, render_items=None):
         if roles_instance:
             content_to_render = await roles_instance.landing(request)
         else:
-            logger.error("Roles plugin not found for homepage. Falling back to intro.")
-            current_intro_page_num_str = db.get('intro_page_num', '1')
-            content_to_render = await render_intro_page_with_navigation(current_intro_page_num_str)
+            logger.error("Roles plugin not found for homepage. Showing welcome message.")
+            content_to_render = Card(H3('Welcome'), P('Roles plugin not found. Please check your plugin configuration.'))
     if content_to_render is None:
         content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px')
     scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none'), style=(
@@ -2855,25 +2808,7 @@ async def toggle_profile_lock(request):
     db['profile_locked'] = '1' if current == '0' else '0'
     return HTMLResponse('', headers={'HX-Refresh': 'true'})
 
-@rt('/navigate_intro', methods=['POST'])
-async def navigate_intro_page_endpoint(request):
-    form = await request.form()
-    direction = form.get('direction')
-    current_page_str = form.get('current_page', '1')
-    try:
-        current_page_num = int(current_page_str)
-    except ValueError:
-        logger.warning(f'Invalid current_page value received: {current_page_str}. Defaulting to 1.')
-        current_page_num = 1
-    next_page_num = current_page_num
-    if direction == 'next':
-        next_page_num = min(current_page_num + 1, MAX_INTRO_PAGES)
-    elif direction == 'prev':
-        next_page_num = max(current_page_num - 1, 1)
-    db['intro_page_num'] = str(next_page_num)
-    logger.debug(f'Navigating intro. From: {current_page_num}, To: {next_page_num}, Direction: {direction}')
-    new_content = await render_intro_page_with_navigation(str(next_page_num))
-    return HTMLResponse(to_xml(new_content))
+
 
 @rt('/refresh-app-menu')
 async def refresh_app_menu_endpoint(request):
