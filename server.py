@@ -2304,33 +2304,6 @@ for module_name, class_name, workflow_class in discovered_classes:
 MENU_ITEMS = base_menu_items + ordered_plugins + additional_menu_items
 logger.debug(f'Dynamic MENU_ITEMS: {MENU_ITEMS}')
 
-def get_intro_page_content(page_num_str: str):
-    """Returns content for intro pages, wrapped in PicoCSS Cards for consistent styling.
-    Content is defined once and used for both UI display and LLM context.
-    """
-    page_num = int(page_num_str)
-    card_style = 'min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start;'
-    pages = {1: {'title': f'Welcome to {APP_NAME}', 'intro': 'Layout:', 'features': [('Breadcrumb Headline', f'Headline is {APP_NAME} / Profile Name / APP Name.'), ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'), ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')], 'getting_started': 'Getting Started', 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.', 'llm_help': f'The chat interface on the right is powered by a local LLM ({MODEL}) to assist you. Click the "Next ▸" button to continue.'}, 2: {'experimenting_title': 'Positive First Experience', 'experimenting_steps': ['Start in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.', 'Add PROFILES. Rerrange them. Check and uncheck them. Changes are reflected instantly in the PROFILE menu.', f'{APP_NAME} is for running workflows. Try the Hello Workflow to get a feel for how they work.'], 'interface_title': 'Understanding the Interface', 'interface_items': [('PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."), ('APPS', "Try Parameter Buster on your Client. It's a big potential win.")]}, 3: {'title': 'Tips for Effective Use', 'tips': [('CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'), ('DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'), ('SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'), ('LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'), ('BROWSE', 'Go look where things are saved.')]}, 4: {'title': 'Local LLM Assistant', 'llm_features': [('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'), ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'), ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'), ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'), ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')], 'usage_tips': ['Try asking "What can I do with this workflow?" when starting a new one.', 'Ask for help with specific steps if you get stuck.', 'Request explanations of workflow outputs or data.', 'Get suggestions for next steps or alternative approaches.']}}
-    page_data = pages.get(page_num)
-    if not page_data:
-        error_msg = f'Content for instruction page {page_num_str} not found.'
-        content = Card(P(error_msg), style=card_style, id=f'intro-page-{page_num_str}-content')
-        llm_context = f'The user is viewing an unknown page ({page_num_str}) which shows: {error_msg}'
-        return (content, llm_context)
-    if page_num == 1:
-        content = Card(H2(page_data['title']), H4(page_data['intro']), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]), H4(page_data['getting_started']), P(page_data['nav_help']), P(page_data['llm_help']), style=card_style, id='intro-page-1-content')
-        llm_context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
-    elif page_num == 2:
-        content = Card(H3(page_data['experimenting_title']), Ol(*[Li(step) for step in page_data['experimenting_steps']]), H3(page_data['interface_title']), Ul(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['interface_items']]), style=card_style, id='intro-page-2-content')
-        llm_context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
-    elif page_num == 3:
-        content = Card(H3(page_data['title']), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]), Hr(), P('Try it now: ', A('Open Downloads Folder', href='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), hx_get='/open-folder?path=' + urllib.parse.quote(str(Path('downloads').absolute())), hx_swap='none')), style=card_style, id='intro-page-3-content')
-        llm_context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
-    elif page_num == 4:
-        content = Card(H3(page_data['title']), P(f'Your local LLM ({MODEL}) provides intelligent assistance throughout your workflow:'), Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['llm_features']]), H4('How to Use the LLM'), Ul(*[Li(tip) for tip in page_data['usage_tips']]), style=card_style, id='intro-page-4-content')
-        llm_context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
-    return (content, llm_context)
-
 def get_profile_name():
     profile_id = get_current_profile_id()
     logger.debug(f'Retrieving profile name for ID: {profile_id}')
