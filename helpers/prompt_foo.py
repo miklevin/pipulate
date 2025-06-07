@@ -37,58 +37,104 @@ README.md        <-- Main GitHub README sets the tone
 flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py  <-- This is a template file intended to create new stubs just like 910_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
-# /home/mike/repos/pipulate/plugins/040_parameter_buster.py  <-- This (and below in this block) are from the last thing I was thinking about with you
-# /home/mike/repos/pipulate/plugins/035_kungfu_workflow.py
-# /home/mike/repos/pipulate/plugins/999_test_trifecta.py
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
 
 ## DA RULES
-/home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
-/home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
-/home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
-/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
-/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
-/home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
-/home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
-/home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
-/home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
-/home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
-/home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
-/home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
-/home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
-/home/mike/repos/pipulate/.cursor/rules/15_wet_workflow_conventions.mdc
-/home/mike/repos/pipulate/.cursor/rules/16_atomic_transplantation_system.mdc
-/home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
-/home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
+# /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
+# /home/mike/repos/pipulate/.cursor/rules/00_meta_rule_routing.mdc
+# /home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
+# /home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
+# /home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
+# /home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
+# /home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
+# /home/mike/repos/pipulate/.cursor/rules/09_llm_integration.mdc
+# /home/mike/repos/pipulate/.cursor/rules/10_data_and_file_operations.mdc
+# /home/mike/repos/pipulate/.cursor/rules/11_browser_automation.mdc
+# /home/mike/repos/pipulate/.cursor/rules/12_plugin_development_guidelines.mdc
+# /home/mike/repos/pipulate/.cursor/rules/13_server_py_overview.mdc
+# /home/mike/repos/pipulate/.cursor/rules/14_testing_and_debugging.mdc
+# /home/mike/repos/pipulate/.cursor/rules/15_wet_workflow_conventions.mdc
+# /home/mike/repos/pipulate/.cursor/rules/16_atomic_transplantation_system.mdc
+# /home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
+# /home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
 
 ## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
-# /home/mike/repos/pipulate/plugins/000_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
-# /home/mike/repos/pipulate/plugins/010_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
+/home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+/home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
+/home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
-## STATIC RESOURCES (Plot devices)
-# /home/mike/repos/pipulate/static/styles.css
-# /home/mike/repos/pipulate/static/websocket-global-config.js
-# /home/mike/repos/pipulate/static/sortable-parameterized-init.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
+## MOST OTHER PLUGINS
+/home/mike/repos/pipulate/plugins/010_introduction.py
+/home/mike/repos/pipulate/plugins/040_hello_workflow.py
+# /home/mike/repos/pipulate/plugins/050_documentation.py
+# /home/mike/repos/pipulate/plugins/100_connect_with_botify.py
+# /home/mike/repos/pipulate/plugins/110_parameter_buster.py
+# /home/mike/repos/pipulate/plugins/210_widget_examples.py
+# /home/mike/repos/pipulate/plugins/220_roadmap.py
+# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
+# /home/mike/repos/pipulate/plugins/320_dev_assistant.py
+# /home/mike/repos/pipulate/plugins/330_widget_shim.py
+# /home/mike/repos/pipulate/plugins/410_botify_api_tutorial.py
+# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/430_tab_opener.py
+# /home/mike/repos/pipulate/plugins/440_browser_automation.py
+# /home/mike/repos/pipulate/plugins/450_stream_simulator.py
+# /home/mike/repos/pipulate/plugins/510_text_field.py
+# /home/mike/repos/pipulate/plugins/520_text_area.py
+# /home/mike/repos/pipulate/plugins/530_dropdown.py
+# /home/mike/repos/pipulate/plugins/540_checkboxes.py
+# /home/mike/repos/pipulate/plugins/550_radios.py
+# /home/mike/repos/pipulate/plugins/560_range.py
+# /home/mike/repos/pipulate/plugins/570_switch.py
+# /home/mike/repos/pipulate/plugins/580_upload.py
+# /home/mike/repos/pipulate/plugins/610_markdown.py
+# /home/mike/repos/pipulate/plugins/620_mermaid.py
+# /home/mike/repos/pipulate/plugins/630_prism.py
+# /home/mike/repos/pipulate/plugins/640_javascript.py
+# /home/mike/repos/pipulate/plugins/710_pandas.py
+# /home/mike/repos/pipulate/plugins/720_rich.py
+# /home/mike/repos/pipulate/plugins/730_matplotlib.py
+# /home/mike/repos/pipulate/plugins/810_webbrowser.py
+# /home/mike/repos/pipulate/plugins/820_selenium.py
+# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/920_splice_workflow.py
 
-## HELPER SCRIPTS (Meta plot devices)
-/home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 910_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 910_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/manage_class_attributes.py
-/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
-/home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+## COMMON STATIC RESOURCES  <-- Necessary for core system, essentially HTMX & Pico.css, stuff you're likely already trained on
+# /home/mike/repos/pipulate/static/fasthtml.js
+# /home/mike/repos/pipulate/static/htmx.js
+# /home/mike/repos/pipulate/static/pico.css
+# /home/mike/repos/pipulate/static/script.js
+# /home/mike/repos/pipulate/static/Sortable.js
+# /home/mike/repos/pipulate/static/surreal.js
+# /home/mike/repos/pipulate/static/ws.js
 
-## SAMPLE WORKFLOWS (Frequently recurring challenges)
-/home/mike/repos/pipulate/plugins/500_hello_workflow.py     <-- Hello World workflow
-# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py  <-- The workflow from which spliced-in blank steps in other workflows are copied
+## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
+/home/mike/repos/pipulate/static/alice.txt
+/home/mike/repos/pipulate/static/styles.css
+/home/mike/repos/pipulate/static/websocket-global-config.js
+/home/mike/repos/pipulate/static/sortable-parameterized-init.js
+/home/mike/repos/pipulate/static/widget-scripts.js
+
+## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.
+# /home/mike/repos/pipulate/static/marked.min.js
+# /home/mike/repos/pipulate/static/mermaid.min.js
+# /home/mike/repos/pipulate/static/prism.css
+# /home/mike/repos/pipulate/static/prism.js
+# /home/mike/repos/pipulate/static/rich-table.css
+
+## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
+# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 910_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 910_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
+# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+# /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+
+# DEVELOPMENT NOTES
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 """
 
@@ -103,8 +149,8 @@ FILES_TO_INCLUDE = [line for line in FILES_TO_INCLUDE if line.strip()]
 # Store the original content for the manifest
 ORIGINAL_FILES_TO_INCLUDE = "\n".join(FILES_TO_INCLUDE)
 
-# Strip off any <-- comments (handling variable whitespace)
-FILES_TO_INCLUDE = [line.split('<--')[0].rstrip() for line in FILES_TO_INCLUDE]
+# Strip off any <-- comments and trailing # comments (handling variable whitespace)
+FILES_TO_INCLUDE = [re.sub(r'\s*#.*$', '', line.split('<--')[0]).rstrip() for line in FILES_TO_INCLUDE]
 
 # FILES_TO_INCLUDE = """\
 # """.strip().splitlines()
