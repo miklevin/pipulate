@@ -258,7 +258,7 @@ def get_role_css_class(role_name):
     return f"menu-role-{role_name.lower().replace(' ', '-')}"
 
 def render_item(item, app_instance):
-    """Render a single role item with description and controls."""
+    """Render a single role item with description, controls, and expandable plugin list."""
     item_id = f'{app_instance.name}-{item.id}'
     toggle_url = f"{app_instance.plugin.ENDPOINT_PREFIX}/toggle/{item.id}"
     
@@ -291,21 +291,69 @@ def render_item(item, app_instance):
         description, 
         style=f"font-size: {app_instance.plugin.UI_CONSTANTS['TYPOGRAPHY']['DESCRIPTION_TEXT']}; color: var(--pico-muted-color); margin-top: 0.5rem;"
     )
-
+    
+    # Create expandable plugin list with navigation links
+    plugin_info = create_plugin_visibility_table(item.text, app_instance.plugin.UI_CONSTANTS)
+    
     return Li(
+        # Main role item with checkbox and name - clickable to expand/collapse
         Div(
             checkbox, 
             text_display, 
-            cls='flex-row'
+            style=f"display: flex; align-items: center; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; cursor: pointer;",
+            onmousedown="this.parentElement._mouseDownPos = {x: event.clientX, y: event.clientY};",
+            onclick=f"""
+                // Only handle click if it wasn't a drag operation and wasn't on checkbox
+                if (this.parentElement._mouseDownPos && event.target.type !== 'checkbox') {{
+                    const dragThreshold = 5; // pixels
+                    const dragDistance = Math.sqrt(
+                        Math.pow(event.clientX - this.parentElement._mouseDownPos.x, 2) + 
+                        Math.pow(event.clientY - this.parentElement._mouseDownPos.y, 2)
+                    );
+                    
+                    // Only process as click if user didn't drag beyond threshold
+                    if (dragDistance < dragThreshold) {{
+                        const details = this.parentElement.querySelector('details');
+                        if (details) {{
+                            details.open = !details.open;
+                        }}
+                    }}
+                    this.parentElement._mouseDownPos = null;
+                }}
+            """
         ),
+        # Role description
         description_text,
+        # Expandable plugin list
+        plugin_info,
         id=item_id, 
         cls=f"card-container {get_role_css_class(item.text)}",
-        style="list-style-type: none; cursor: grab; margin-bottom: 0.5rem;",
+        style=f"list-style-type: none; margin-bottom: {app_instance.plugin.UI_CONSTANTS['SPACING']['CARD_MARGIN']}; padding: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']}; border-radius: {app_instance.plugin.UI_CONSTANTS['SPACING']['BORDER_RADIUS']}; background-color: var(--pico-card-background-color); cursor: pointer;",
+        onmousedown="this._mouseDownPos = {x: event.clientX, y: event.clientY};",
+        onclick=f"""
+            // Only handle click if it wasn't a drag operation
+            if (this._mouseDownPos) {{
+                const dragThreshold = 5; // pixels
+                const dragDistance = Math.sqrt(
+                    Math.pow(event.clientX - this._mouseDownPos.x, 2) + 
+                    Math.pow(event.clientY - this._mouseDownPos.y, 2)
+                );
+                
+                // Only process as click if user didn't drag beyond threshold
+                if (dragDistance < dragThreshold && event.target.type !== 'checkbox' && !event.target.closest('a')) {{
+                    const details = this.querySelector('details');
+                    if (details) {{
+                        details.open = !details.open;
+                    }}
+                }}
+                this._mouseDownPos = null;
+            }}
+        """,
         data_id=item.id, 
         data_priority=item.priority or 0,
         data_plugin_item='true',
-        data_list_target=app_instance.plugin.LIST_ID
+        data_list_target=app_instance.plugin.LIST_ID,
+        data_endpoint_prefix=app_instance.plugin.ENDPOINT_PREFIX
     )
 
 # Supporting functions for plugin discovery and visibility
@@ -339,39 +387,71 @@ def get_plugin_list():
     
     return sorted(plugins, key=lambda x: x['filename'])
 
-def get_affected_plugins(role_name):
-    """Get plugins that would be affected by toggling this role."""
-    affected = []
-    for plugin in get_plugin_list():
-        if role_name in plugin['roles']:
-            affected.append(plugin['display_name'])
-    return affected
+
 
 def create_plugin_visibility_table(role_name, ui_constants=None):
-    """Create a table showing which plugins belong to this role."""
-    affected_plugins = get_affected_plugins(role_name)
+    """Create an expandable accordion showing which plugins belong to this role with navigation links."""
+    plugin_list = get_plugin_list()
+    affected_plugins = [plugin for plugin in plugin_list if role_name in plugin['roles']]
     
     if not affected_plugins:
-        return P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color);")
-    
-    def format_all_plugins_vertical(plugins):
-        """Format plugin list vertically with consistent styling."""
-        if not plugins:
-            return P("No plugins in this role.")
-        
-        plugin_items = []
-        for plugin_name in plugins:
-            plugin_items.append(
-                Li(
-                    plugin_name,
-                    style="list-style-type: none; padding: 0.25rem 0; border-bottom: 1px solid var(--pico-muted-border-color);"
-                )
-            )
-        
-        return Div(
-            P(f"Plugins in this role ({len(plugins)}):", style="font-weight: 500; margin-bottom: 0.5rem;"),
-            Ul(*plugin_items, style="padding-left: 0; margin: 0;"),
-            style="margin-top: 0.5rem;"
+        return Details(
+            Summary(f"📦 Plugins (0)", style="font-weight: 500; cursor: pointer;"),
+            P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
+            style="margin-top: 0.5rem; border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 0.5rem;"
         )
     
-    return format_all_plugins_vertical(affected_plugins)
+    # Create clickable plugin links
+    plugin_items = []
+    for plugin in affected_plugins:
+        # Skip certain internal plugins that don't have direct navigation
+        module_name = plugin['module_name']
+        display_name = plugin['display_name']
+        
+        # Create navigation link - strip numeric prefix for URL
+        import re
+        clean_module_name = re.sub(r'^\d+_', '', module_name)
+        plugin_url = f"/redirect/{clean_module_name}"
+        
+        # Create the plugin item with navigation link
+        plugin_items.append(
+            Li(
+                A(
+                    f"🔗 {display_name}",
+                    href=plugin_url,
+                    style="""
+                        text-decoration: none; 
+                        color: var(--pico-primary);
+                        display: block;
+                        padding: 0.25rem 0.5rem;
+                        border-radius: 4px;
+                        transition: background-color 0.2s;
+                    """,
+                    onmouseover="this.style.backgroundColor='var(--pico-primary-hover-background)';",
+                    onmouseout="this.style.backgroundColor='transparent';",
+                    onclick="event.stopPropagation();"  # Prevent accordion from toggling when clicking links
+                ),
+                style="list-style-type: none; margin-bottom: 0.25rem;",
+                title=f"Navigate to {display_name} plugin"
+            )
+        )
+    
+    return Details(
+        Summary(
+            f"📦 Plugins ({len(affected_plugins)})", 
+            style="font-weight: 500; cursor: pointer; margin: 0; padding: 0.5rem;"
+        ),
+        Div(
+            P(f"Click any plugin name to navigate directly to it:", 
+              style="font-size: 0.9em; color: var(--pico-muted-color); margin: 0 0 0.5rem 0; font-style: italic;"
+            ),
+            Ul(*plugin_items, style="padding-left: 0; margin: 0;"),
+            style="padding: 0 0.5rem 0.5rem 0.5rem;"
+        ),
+        style="""
+            margin-top: 0.5rem; 
+            border: 1px solid var(--pico-muted-border-color); 
+            border-radius: 4px; 
+            background-color: var(--pico-card-sectionning-background-color);
+        """
+    )
