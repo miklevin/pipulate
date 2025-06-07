@@ -95,23 +95,21 @@ class CrudCustomizer(BaseCrud):
             logger.warning(f"Attempted to insert {self.plugin.name} with empty text.")
             return None
 
-        current_profile_id = self.plugin.db_dictlike.get("last_profile_id", 1)
-        logger.debug(f"Using profile_id: {current_profile_id} for new {self.plugin.name}")
-
         # If this is one of our predefined roles, use its specific priority
         if text in ROLE_ORDER:
             priority = ROLE_ORDER[text]
         else:
             # For any other roles, add them after the predefined ones
-            items_for_profile = self.table("profile_id = ?", [current_profile_id])
-            max_priority = max((i.priority or 0 for i in items_for_profile), default=4) + 1
+            # CRITICAL: Roles are global - check all existing roles, not filtered by profile
+            all_items = self.table()
+            max_priority = max((i.priority or 0 for i in all_items), default=4) + 1
             priority = int(form.get(f"{self.plugin.name}_priority", max_priority))
 
         insert_data = {
             "text": text,
             "done": text in ["Core", "Botify Employee"],  # Set done=True for both Core and Botify Employee roles
             "priority": priority,
-            "profile_id": current_profile_id,
+            # REMOVED: profile_id - roles are global, not per-profile
         }
         logger.debug(f"Prepared insert data: {insert_data}")
         return insert_data
@@ -294,7 +292,7 @@ class CrudUI(PluginIdentityManager):
             "text": str,
             "done": bool,
             "priority": int,
-            "profile_id": int,
+            # REMOVED: "profile_id": int, - roles are global, not per-profile
             "pk": "id"
         }
         schema_fields = {k: v for k, v in schema.items() if k != 'pk'}
@@ -328,17 +326,16 @@ class CrudUI(PluginIdentityManager):
         self.register_plugin_routes()
         logger.debug(f"{self.DISPLAY_NAME} Plugin initialized successfully.")
 
-        # Check if roles need initialization for the current profile
-        current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-        self.ensure_roles_initialized(current_profile_id)
+        # CRITICAL: Roles are global - initialize once for all profiles
+        self.ensure_roles_initialized()
 
-    def ensure_roles_initialized(self, profile_id):
-        """Check if roles exist for the profile and initialize if needed."""
-        existing_roles = list(self.table("profile_id = ?", [profile_id]))
+    def ensure_roles_initialized(self):
+        """Check if roles exist globally and initialize if needed."""
+        existing_roles = list(self.table())
         
-        # If no roles exist for this profile, initialize them
+        # If no roles exist globally, initialize them
         if not existing_roles:
-            self.initialize_roles(profile_id)
+            self.initialize_roles()
             return
 
         # Check if all predefined roles exist
@@ -347,12 +344,12 @@ class CrudUI(PluginIdentityManager):
 
         # If any predefined roles are missing, initialize them
         if missing_roles:
-            self.initialize_roles(profile_id)
+            self.initialize_roles()
 
-    def initialize_roles(self, profile_id):
-        """Initialize roles in the correct order, resetting states to defaults."""
+    def initialize_roles(self):
+        """Initialize roles globally in the correct order, resetting states to defaults."""
         # Get existing roles and their states
-        existing_roles = {role.text: role for role in self.table("profile_id = ?", [profile_id])}
+        existing_roles = {role.text: role for role in self.table()}
 
         # Sort roles by their priority value to ensure correct insertion order
         sorted_roles = sorted(ROLE_ORDER.items(), key=lambda x: x[1])
@@ -371,9 +368,9 @@ class CrudUI(PluginIdentityManager):
                     text=role_name,
                     done=(role_name in ['Core', 'Botify Employee']),  # Set both Core and Botify Employee to done=True
                     priority=priority,
-                    profile_id=profile_id
+                    # REMOVED: profile_id - roles are global, not per-profile
                 )
-        logger.debug(f"Initialized roles for profile {profile_id}")
+        logger.debug("Initialized roles globally (applies to all profiles)")
 
     def register_plugin_routes(self):
         """Register routes manually using app.route."""
@@ -394,13 +391,12 @@ class CrudUI(PluginIdentityManager):
     async def landing(self, request=None):
         """Renders the main view for the plugin."""
         logger.debug(f"{self.DISPLAY_NAME}Plugin.landing called")
-        current_profile_id = self.db_dictlike.get("last_profile_id", 1)
-        logger.debug(f"Landing page using profile_id: {current_profile_id}")
 
-        items_query = self.table(where=f"profile_id = {current_profile_id}")
+        # CRITICAL: Roles are global - all profiles see the same roles
+        items_query = self.table()
         # Sort items by their current priority, preserving user's custom order
         items = sorted(items_query, key=lambda item: float(item.priority or 0) if isinstance(item.priority, (int, float, str)) else float('inf'))
-        logger.debug(f"Found {len(items)} {self.name} for profile {current_profile_id}")
+        logger.debug(f"Found {len(items)} {self.name} (global - applies to all profiles)")
 
         return Div(
             # Dynamic CSS injection - single source of truth for role colors
