@@ -2664,14 +2664,91 @@ def create_menu_container(menu_items):
     return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 def get_dynamic_role_css():
-    """Get dynamic role CSS from the roles plugin - single source of truth."""
-    roles_plugin = plugin_instances.get('roles')
-    if roles_plugin and hasattr(roles_plugin, 'generate_role_css'):
-        try:
-            return roles_plugin.generate_role_css()
-        except Exception as e:
-            logger.error(f"Error generating role CSS: {e}")
-    return ""  # Fallback to static CSS if dynamic generation fails
+    """Generate dynamic role CSS from centralized PIPULATE_CONFIG - single source of truth."""
+    try:
+        role_colors = PIPULATE_CONFIG.get('ROLE_COLORS', {})
+        if not role_colors:
+            return ""
+        
+        css_rules = []
+        
+        # Generate main role CSS with role-specific hover/focus states
+        for role_class, colors in role_colors.items():
+            # Extract RGB values from border color for darker hover state
+            border_color = colors['border']
+            if border_color.startswith('#'):
+                # Convert hex to RGB for hover/focus calculations
+                hex_color = border_color[1:]
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                
+                # Create hover state with 20% background opacity
+                hover_bg = f"rgba({r}, {g}, {b}, 0.2)"
+                
+                # Create focus state with 25% background opacity 
+                focus_bg = f"rgba({r}, {g}, {b}, 0.25)"
+                
+                # Create SELECTED state with 35% background opacity (more prominent)
+                selected_bg = f"rgba({r}, {g}, {b}, 0.35)"
+                
+                css_rules.append(f"""
+.{role_class} {{
+    background-color: {colors['background']} !important;
+    border-left: 3px solid {colors['border']} !important;
+}}
+
+.{role_class}:hover {{
+    background-color: {hover_bg} !important;
+}}
+
+.{role_class}:focus,
+.{role_class}:active {{
+    background-color: {focus_bg} !important;
+}}
+
+.{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {selected_bg} !important;
+}}""")
+        
+        # Generate light theme adjustments with matching hover states
+        for role_class, colors in role_colors.items():
+            if role_class != 'menu-role-core':  # Core doesn't need light theme adjustment
+                border_color = colors['border']
+                if border_color.startswith('#'):
+                    hex_color = border_color[1:]
+                    r = int(hex_color[0:2], 16)
+                    g = int(hex_color[2:4], 16)
+                    b = int(hex_color[4:6], 16)
+                    
+                    # Lighter hover for light theme (15% opacity)
+                    light_hover_bg = f"rgba({r}, {g}, {b}, 0.15)"
+                    light_focus_bg = f"rgba({r}, {g}, {b}, 0.2)"
+                    light_selected_bg = f"rgba({r}, {g}, {b}, 0.3)"
+                    
+                    css_rules.append(f"""
+[data-theme="light"] .{role_class} {{
+    background-color: {colors['background_light']} !important;
+}}
+
+[data-theme="light"] .{role_class}:hover {{
+    background-color: {light_hover_bg} !important;
+}}
+
+[data-theme="light"] .{role_class}:focus,
+[data-theme="light"] .{role_class}:active {{
+    background-color: {light_focus_bg} !important;
+}}
+
+[data-theme="light"] .{role_class}[style*="background-color: var(--pico-primary-focus)"] {{
+    background-color: {light_selected_bg} !important;
+}}""")
+        
+        return '\n'.join(css_rules)
+        
+    except Exception as e:
+        logger.error(f"Error generating dynamic role CSS: {e}")
+        return ""  # Fallback to static CSS if dynamic generation fails
 
 async def create_outer_container(current_profile_id, menux, request):
     profiles_plugin_inst = plugin_instances.get('profiles')
