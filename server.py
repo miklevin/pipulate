@@ -1949,8 +1949,6 @@ def populate_initial_data():
         log_dictlike_db_to_lifecycle('db', db, title_prefix='POPULATE_INITIAL_DATA: db AFTER')
         logger.bind(lifecycle=True).info('POPULATE_INITIAL_DATA: Finished.')
 populate_initial_data()
-if 'intro_page_num' not in db:
-    db['intro_page_num'] = '1'
 
 async def synchronize_roles_to_db():
     """Ensure all roles defined in plugin ROLES constants exist in the 'roles' database table."""
@@ -2288,12 +2286,7 @@ async def startup_event():
     log_dictlike_db_to_lifecycle('db', db, title_prefix='STARTUP FINAL')
     log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='STARTUP FINAL')
     log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
-    
-    # Clear intro prompt tracking for fresh session
-    for i in range(1, 5):  # Clear intro_prompted_1 through intro_prompted_4
-        intro_key = f'intro_prompted_{i}'
-        if intro_key in db:
-            del db[intro_key]
+
     
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
@@ -2753,9 +2746,7 @@ async def chat_endpoint(request, message: str):
 @rt('/redirect/{path:path}')
 def redirect_handler(request):
     path = request.path_params['path']
-    if not path:
-        db['intro_page_num'] = '1'
-        logger.debug('Reset intro_page_num to 1 due to navigation to home via /redirect/.')
+
     logger.debug(f'Redirecting to: /{path}')
     message = build_endpoint_messages(path)
     if message:
