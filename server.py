@@ -214,6 +214,11 @@ PIPULATE_CONFIG = {
             'FINALIZE_QUESTION': 'All steps complete. Finalize?',
             'FINALIZE_HELP': 'You can revert to any step and make changes.',
             'WORKFLOW_LOCKED': 'Workflow is locked.'
+        },
+        'LANDING_PAGE': {
+            'INPUT_PLACEHOLDER': 'Existing or new 🗝 here (Enter for auto)',
+            'INIT_MESSAGE_WORKFLOW_ID': 'Workflow ID: {pipeline_id}',
+            'INIT_MESSAGE_RETURN_HINT': "Return later by selecting '{pipeline_id}' from the dropdown."
         }
     }
 }
@@ -1115,6 +1120,70 @@ class Pipulate:
         button_style = 'display: inline-block;cursor: pointer;width: auto !important;white-space: nowrap;'
         container_style = 'display: flex;align-items: center;gap: 0.5rem;'
         return Div(input_element, Button(button_label, type='submit', cls=button_class, style=button_style), style=container_style)
+
+    def create_standard_landing_page(self, plugin_instance):
+        """
+        Creates a standardized landing page for workflows using centralized UI constants.
+        
+        This helper reduces boilerplate while maintaining WET workflow explicitness.
+        Each workflow still explicitly calls this method and can customize the result.
+        
+        Args:
+            plugin_instance: The workflow plugin instance
+            
+        Returns:
+            Container: Standard landing page structure
+        """
+        from server import PIPULATE_CONFIG
+        
+        # Standard display name derivation
+        try:
+            import inspect
+            from pathlib import Path
+            module_file = inspect.getfile(plugin_instance.__class__)
+            from plugins.plugins_910_blank_placeholder import derive_public_endpoint_from_filename
+            public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
+        except (TypeError, AttributeError, ImportError):
+            public_app_name_for_display = plugin_instance.APP_NAME
+            
+        title = plugin_instance.DISPLAY_NAME or public_app_name_for_display.replace("_", " ").title()
+        
+        # Standard pipeline key generation and matching records
+        full_key, prefix, _ = self.generate_pipeline_key(plugin_instance)
+        self.table.xtra(app_name=plugin_instance.APP_NAME)
+        matching_records = [record.pkey for record in self.table() if record.pkey.startswith(prefix)]
+        
+        # Standard form with centralized constants
+        ui_constants = PIPULATE_CONFIG['UI_CONSTANTS']
+        landing_constants = PIPULATE_CONFIG['LANDING_PAGE']
+        
+        return Container(
+            Card(
+                H2(title),
+                P(plugin_instance.ENDPOINT_MESSAGE, cls='text-secondary'),
+                Form(
+                    self.wrap_with_inline_button(
+                        Input(
+                            placeholder=landing_constants['INPUT_PLACEHOLDER'],
+                            name='pipeline_id',
+                            list='pipeline-ids',
+                            type='search',
+                            required=False,
+                            autofocus=True,
+                            value=full_key,
+                            _onfocus='this.setSelectionRange(this.value.length, this.value.length)',
+                            cls='contrast'
+                        ),
+                        button_label=ui_constants['BUTTON_LABELS']['ENTER_KEY'],
+                        button_class=ui_constants['BUTTON_STYLES']['SECONDARY']
+                    ),
+                    self.update_datalist('pipeline-ids', options=matching_records, clear=not matching_records),
+                    hx_post=f'/{plugin_instance.APP_NAME}/init',
+                    hx_target=f'#{plugin_instance.APP_NAME}-container'
+                )
+            ),
+            Div(id=f'{plugin_instance.APP_NAME}-container')
+        )
 
     async def get_state_message(self, pkey: str, steps: list, messages: dict) -> str:
         state = self.read_state(pkey)
