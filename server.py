@@ -98,7 +98,7 @@ MAX_LLM_RESPONSE_WORDS = 80
 MAX_CONVERSATION_LENGTH = 10000
 HOME_MENU_ITEM = '👥 Roles (Home)'
 DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
-INTRO_LLM_PROMPT_DELAY = 4  # Seconds to wait before sending intro prompts for surprise effect
+
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
 data_dir.mkdir(parents=True, exist_ok=True)
