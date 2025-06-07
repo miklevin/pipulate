@@ -35,16 +35,16 @@ class IntroductionPlugin:
         """Returns page data for intro pages."""
         pages = {
             1: {
-                'title': f'Welcome to {app_name}',
+                'title': f'Welcome to {app_name} 🎯',
                 'intro': 'Layout:',
                 'features': [
-                    ('Breadcrumb Headline', f'Headline is {app_name} / Profile Name / APP Name.'),
-                    ('PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
-                    ('APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')
+                    ('📍 Breadcrumb Headline', f'Headline is {app_name} / Profile Name / APP Name.'),
+                    ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
+                    ('⚡ APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')
                 ],
                 'getting_started': 'Getting Started',
                 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
-                'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you. Click the "Next ▸" button to continue.',
+                'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you 🤖. Click the "Next ▸" button to continue.',
                 'secret_word': 'FOUNDATION'
             },
             2: {
@@ -73,13 +73,13 @@ class IntroductionPlugin:
                 'secret_word': 'WORKFLOW'
             },
             4: {
-                'title': 'Local LLM Assistant',
+                'title': 'Local LLM Assistant 🤖',
                 'llm_features': [
-                    ('PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
-                    ('CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
-                    ('GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
-                    ('INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
-                    ('REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
+                    ('🔒 PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
+                    ('🧠 CONTEXT', 'The LLM understands your current workflow and can help with specific tasks.'),
+                    ('💡 GUIDANCE', 'Ask questions about workflows, get help with API keys, or request explanations.'),
+                    ('🔗 INTEGRATION', 'The LLM is aware of your current profile, environment, and active workflow.'),
+                    ('⚡ REAL-TIME', 'Chat updates in real-time as you progress through workflows.')
                 ],
                 'usage_tips': [
                     'Try asking "What can I do with this workflow?" when starting a new one.',
