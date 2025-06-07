@@ -814,7 +814,7 @@ class BotifyCsvDownloaderWorkflow:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    weblog_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
+                    weblog_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/weblog.csv"
                     is_cached = os.path.exists(weblog_path)
             except Exception:
                 is_cached = False
@@ -1027,7 +1027,7 @@ class BotifyCsvDownloaderWorkflow:
 
                 # Only check for cached files if we found an analysis slug
                 if current_analysis_slug:
-                    gsc_path = f"downloads/trifecta/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
+                    gsc_path = f"downloads/{self.app_name}/{username}/{project_name}/{current_analysis_slug}/gsc.csv"
                     is_cached = os.path.exists(gsc_path)
             except Exception:
                 is_cached = False
@@ -1566,7 +1566,7 @@ class BotifyCsvDownloaderWorkflow:
         # 1. Create deterministic paths based on user/project identifiers
         # 2. Check if files exist before re-downloading
         # 3. Store metadata about cached files for user feedback
-        # 4. Use APP_NAME namespace to prevent collisions between workflows
+        # 4. Use app_name namespace to prevent collisions between workflows
 
         Args:
             username: Organization username
@@ -1577,7 +1577,7 @@ class BotifyCsvDownloaderWorkflow:
         Returns:
             String path to either the file location or base directory
         """
-        base_dir = f'downloads/{self.APP_NAME}/{username}/{project_name}/{analysis_slug}'
+        base_dir = f'downloads/{self.app_name}/{username}/{project_name}/{analysis_slug}'
         if not data_type:
             return base_dir
         filenames = {
