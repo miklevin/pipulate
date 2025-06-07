@@ -3308,13 +3308,7 @@ async def send_startup_environment_message():
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
 
-async def delayed_intro_prompt(prompt):
-    """Send an intro prompt with delay for surprise effect and to let startup messages appear first."""
-    await asyncio.sleep(INTRO_LLM_PROMPT_DELAY)  # Wait longer than startup message (3s) for proper ordering and surprise
-    try:
-        await pipulate.message_queue.add(pipulate, prompt, verbatim=False, role='user')
-    except Exception as e:
-        logger.error(f'Error sending delayed intro prompt: {e}')
+
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
 for item in ALL_ROUTES:
     path = f'/{item}' if item else '/'
