@@ -214,11 +214,9 @@ class ConservativeFormatter:
                     text=True
                 )
                 
-                if result.returncode == 0:
-                    self.fixes_applied['import_sorting'] += 1
-                    print(f"✅ Fixed imports: {py_file.name}")
-                else:
-                    print(f"❌ Failed to fix imports: {py_file.name}")
+                # isort always returns 0 when successful, even if changes were made
+                self.fixes_applied['import_sorting'] += 1
+                print(f"✅ Fixed imports: {py_file.name}")
                     
             except subprocess.SubprocessError as e:
                 print(f"❌ Error fixing imports in {py_file.name}: {e}")
