@@ -414,7 +414,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     
     if not affected_plugins:
         return Details(
-            Summary(f"APPs ({len(affected_plugins)})", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
+            Summary(f"{len(affected_plugins)} APPs", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
             style="margin-top: 0.5rem;"
         )
@@ -451,7 +451,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     
     return Details(
         Summary(
-            f"APPs ({len(affected_plugins)})", 
+            f"{len(affected_plugins)} APPs", 
             style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer; margin: 0.5rem 0 0 0;"
         ),
         Ul(*plugin_items, style="padding-left: 1rem; margin: 0.5rem 0 0 0;"),
