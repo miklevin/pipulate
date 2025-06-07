@@ -223,6 +223,11 @@ class BotifyCsvDownloaderWorkflow:
     # UI Constants - Centralized button labels and styles
     # ===================================================
     # Standardized labels and styles for consistent UI across the workflow
+
+    # --- START_CLASS_ATTRIBUTES_BUNDLE ---
+    # Additional class-level constants can be merged here by manage_class_attributes.py
+    # --- END_CLASS_ATTRIBUTES_BUNDLE ---
+
     UI_CONSTANTS = {
         'BUTTON_LABELS': {
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
@@ -281,6 +286,10 @@ class BotifyCsvDownloaderWorkflow:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
+
+        # Access centralized UI constants from server configuration
+        from server import PIPULATE_CONFIG
+        self.ui = PIPULATE_CONFIG['UI_CONSTANTS']
         # Build step names dynamically based on template configuration
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
