@@ -38,7 +38,7 @@ class IntroductionPlugin:
                 'title': f'Welcome to {app_name} 🎯',
                 'intro': 'Layout:',
                 'features': [
-                    ('📍 Breadcrumb Headline', f'Headline is {app_name} / Profile Name / APP Name.'),
+                    ('📍 Breadcrumb', f'Headline is {app_name} / Profile Name / APP Name.'),
                     ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
                     ('⚡ APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')
                 ],

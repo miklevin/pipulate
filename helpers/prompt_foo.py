@@ -127,14 +127,14 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/rich-table.css
 
 ## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
-# /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 910_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 910_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
-# /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
+/home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/manage_class_attributes.py
+/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+/home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 # DEVELOPMENT NOTES
-# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 """
 
