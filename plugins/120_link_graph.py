@@ -88,6 +88,7 @@ class LinkGraphVisualizer:
                     '{collection}.canonical.to.equal',
                     '{collection}.sitemaps.present'
                 ],
+                'metrics': [],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
@@ -703,7 +704,7 @@ class LinkGraphVisualizer:
         )
 
     async def step_02b(self, request):
-        """Handles GET request for Node Attributes Download."""
+        """Handles GET request for Node Attributes (Crawl Basic) download."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02b'
         step_index = self.steps_indices[step_id]
@@ -712,33 +713,85 @@ class LinkGraphVisualizer:
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
-        current_value = step_data.get(step.done, '')
+        analysis_result_str = step_data.get(step.done, '')
+        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+        
+        # Get analysis slug from step_02 (we need this to know which analysis to use)
+        prev_step_id = 'step_02'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('analysis_selection', '')
+        if not prev_data_str:
+            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
+        
+        prev_analysis_data = json.loads(prev_data_str)
+        analysis_slug = prev_analysis_data.get('analysis_slug', '')
+        project_name = prev_analysis_data.get('project', '')
+        username = prev_analysis_data.get('username', '')
+        
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-
+        
         # Phase 1: Finalized view (locked)
-        if 'finalized' in finalize_data and current_value:
+        if 'finalized' in finalize_data and analysis_result:
             return Div(
-                Card(H3(f'🔒 {step.show}: Completed')),
+                Card(H3(f'🔒 {step.show}'), 
+                     Div(P(f'Project: {project_name}', style='margin-bottom: 5px;'), 
+                         P(f'Node Attributes Downloaded: {analysis_slug}', style='font-weight: bold;'), 
+                         cls='custom-card-padding-bg')),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
+        
         # Phase 2: Completed view (revertible)
-        elif current_value and state.get('_revert_target') != step_id:
+        elif analysis_result and state.get('_revert_target') != step_id:
+            action_buttons = self._create_action_buttons(analysis_result, step_id)
+            
+            widget = Div(
+                Div(
+                    Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                        cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                        hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                        hx_target=f'#{step_id}_widget',
+                        hx_swap='innerHTML'
+                    ),
+                    *action_buttons,
+                    style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+                ),
+                Div(
+                    Pre(f'Node attributes downloaded for: {analysis_slug}', cls='code-block-container', style='display: none;'),
+                    id=f'{step_id}_widget'
+                )
+            )
             return Div(
-                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
+                pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug}', widget=widget, steps=steps),
                 Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
                 id=step_id
             )
+        
         # Phase 3: Input view
         else:
-            await self.message_queue.add(pip, f'❔{pip.fmt(step_id)}: {step.show} - Ready to download node attributes.', verbatim=True)
+            # Get "Crawl Basic" template details
+            basic_template_details = self.QUERY_TEMPLATES.get('Crawl Basic', {})
+            template_name = basic_template_details.get('name', 'Crawl Basic')
+            user_message = basic_template_details.get('user_message', 'This will download basic crawl data.')
+            button_suffix = basic_template_details.get('button_label_suffix', 'Basic Attributes')
+            
+            # Check for cached file using "crawl_attributes" export type
+            is_cached = False
+            if analysis_slug:
+                is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, 'crawl_attributes')
+            
+            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+            
+            await self.message_queue.add(pip, f'Ready to download node attributes for analysis {analysis_slug}', verbatim=True)
+            
             return Div(
                 Card(
                     H3(f'{step.show}'),
-                    P('Download page-level attributes that will be used for node metadata in the visualization.'),
-                    P('This includes pagetype, compliance status, canonical URLs, and sitemap presence.', cls='text-secondary'),
+                    P(f"Download node attributes for analysis '{analysis_slug}'"),
+                    P(f'Organization: {username}', cls='text-secondary'),
+                    P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'),
                     Form(
-                        Button('Download Node Attributes ▸', type='submit', cls='primary'),
+                        Button(button_text, type='submit', cls='mt-10px primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     )
@@ -748,35 +801,350 @@ class LinkGraphVisualizer:
             )
 
     async def step_02b_submit(self, request):
-        """Process the Node Attributes download submission."""
+        """Process the Node Attributes (Crawl Basic) download submission."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02b'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-
-        # For now, simulate completion with placeholder data
-        await self.message_queue.add(pip, '📊 Node attributes download started...', verbatim=True)
         
-        # TODO: Implement actual download logic
-        placeholder_result = 'Node attributes download placeholder - completed'
-        await pip.set_step_data(pipeline_id, step_id, placeholder_result, steps)
+        # Get analysis data from step_02
+        prev_step_id = 'step_02'
+        prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
+        prev_data_str = prev_step_data.get('analysis_selection', '')
+        if not prev_data_str:
+            return P('Error: Analysis data not found. Please complete step 2 first.', style=pip.get_style('error'))
         
-        await self.message_queue.add(pip, '✅ Node attributes download complete.', verbatim=True)
-
-        return Div(
-            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
-            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+        prev_analysis_data = json.loads(prev_data_str)
+        analysis_slug = prev_analysis_data.get('analysis_slug', '')
+        project_name = prev_analysis_data.get('project', '')
+        username = prev_analysis_data.get('username', '')
+        
+        if not all([analysis_slug, username, project_name]):
+            return P('Error: Missing required analysis data', style=pip.get_style('error'))
+        
+        await self.message_queue.add(pip, f'📊 Starting node attributes download for {analysis_slug}...', verbatim=True)
+        
+        # Create analysis result for step_02b using Crawl Basic template
+        analysis_result = {
+            'analysis_slug': analysis_slug,
+            'project': project_name,
+            'username': username,
+            'timestamp': datetime.now().isoformat(),
+            'download_started': True,
+            'export_type': 'crawl_attributes',  # Always use crawl_attributes for basic data
+            'template_used': 'Crawl Basic'
+        }
+        
+        analysis_result_str = json.dumps(analysis_result)
+        await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
+        
+        return Card(
+            H3(f'{step.show}'),
+            P(f"Downloading node attributes for analysis '{analysis_slug}'..."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/step_02b_process', {{
+                        target: '#{step_id}',
+                        values: {{
+                            'analysis_slug': '{analysis_slug}',
+                            'username': '{username}',
+                            'project_name': '{project_name}'
+                        }}
+                    }});
+                }}, 500);
+            """),
             id=step_id
         )
 
     async def step_02b_process(self, request):
-        """Background processing for Node Attributes download."""
-        # TODO: Implement background processing if needed
-        pip, db, app_name = (self.pipulate, self.db, self.app_name)
+        """Process the actual Crawl Basic download after showing the progress indicator."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_02b'
-        return Div(P('Node attributes processing...'), id=step_id)
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        form = await request.form()
+        analysis_slug = form.get('analysis_slug', '').strip()
+        username = form.get('username', '').strip()
+        project_name = form.get('project_name', '').strip()
+        
+        if not all([analysis_slug, username, project_name]):
+            return P('Error: Missing required parameters', style=pip.get_style('error'))
+        
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        analysis_result_str = step_data.get(step.done, '')
+        analysis_result = json.loads(analysis_result_str) if analysis_result_str else {}
+        
+        # Always use "Crawl Basic" template and "crawl_attributes" export type
+        basic_template_details = self.QUERY_TEMPLATES.get('Crawl Basic', {})
+        export_type = 'crawl_attributes'
+        
+        try:
+            crawl_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, export_type)
+            file_exists, file_info = await self.check_file_exists(crawl_filepath)
+            
+            if file_exists:
+                await self.message_queue.add(pip, f"✅ Using cached node attributes ({file_info['size']})", verbatim=True)
+                analysis_result.update({
+                    'download_complete': True,
+                    'download_info': {
+                        'has_file': True,
+                        'file_path': crawl_filepath,
+                        'timestamp': file_info['created'],
+                        'size': file_info['size'],
+                        'cached': True
+                    }
+                })
+                
+                # Generate Python debugging code even for cached files
+                try:
+                    analysis_date_obj = datetime.strptime(analysis_slug, '%Y%m%d')
+                except ValueError:
+                    analysis_date_obj = datetime.now()
+                
+                collection = f'crawl.{analysis_slug}'
+                template_query = self.apply_template('Crawl Basic', collection)
+                
+                export_query = {
+                    'job_type': 'export',
+                    'payload': {
+                        'username': username,
+                        'project': project_name,
+                        'connector': 'direct_download',
+                        'formatter': 'csv',
+                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'query': {
+                            'collections': [collection],
+                            'query': template_query
+                        }
+                    }
+                }
+                
+                _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
+                analysis_result['python_command'] = python_command
+                
+            else:
+                await self.message_queue.add(pip, '🔄 Initiating node attributes export...', verbatim=True)
+                api_token = self.read_api_token()
+                if not api_token:
+                    raise ValueError('Cannot read API token')
+                
+                collection = f'crawl.{analysis_slug}'
+                template_query = self.apply_template('Crawl Basic', collection)
+                
+                export_query = {
+                    'job_type': 'export',
+                    'payload': {
+                        'username': username,
+                        'project': project_name,
+                        'connector': 'direct_download',
+                        'formatter': 'csv',
+                        'export_size': self.config['BOTIFY_API']['CRAWL_EXPORT_SIZE'],
+                        'query': {
+                            'collections': [collection],
+                            'query': template_query
+                        }
+                    }
+                }
+                
+                job_url = 'https://api.botify.com/v1/jobs'
+                headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
+                logging.info(f'Submitting node attributes export job with payload: {json.dumps(export_query, indent=2)}')
+                
+                # Generate Python command snippet
+                _, _, python_command = self.generate_query_api_call(export_query, username, project_name)
+                analysis_result['python_command'] = python_command
+                
+                async with httpx.AsyncClient() as client:
+                    try:
+                        response = await client.post(job_url, headers=headers, json=export_query, timeout=60.0)
+                        if response.status_code >= 400:
+                            error_detail = 'Unknown error'
+                            try:
+                                error_body = response.json()
+                                error_detail = json.dumps(error_body, indent=2)
+                                logging.error(f'API error details: {error_detail}')
+                            except Exception:
+                                error_detail = response.text[:500]
+                                logging.error(f'API error text: {error_detail}')
+                            response.raise_for_status()
+                        
+                        job_data = response.json()
+                        job_url_path = job_data.get('job_url')
+                        if not job_url_path:
+                            raise ValueError('Failed to get job URL from response')
+                        
+                        full_job_url = f'https://api.botify.com{job_url_path}'
+                        await self.message_queue.add(pip, '✅ Node attributes export job created successfully!', verbatim=True)
+                        await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
+                        
+                    except httpx.HTTPStatusError as e:
+                        error_message = f'Export request failed: HTTP {e.response.status_code}'
+                        await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                        analysis_result.update({
+                            'download_complete': False,
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False,
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                        full_job_url = None
+                        
+                    except Exception as e:
+                        error_message = f'Export request failed: {str(e)}'
+                        await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                        analysis_result.update({
+                            'download_complete': False,
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False,
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                        full_job_url = None
+                
+                if full_job_url:
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="node_attributes_export")
+                    if not success:
+                        error_message = isinstance(result, str) and result or 'Export job failed'
+                        await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
+                        
+                        detailed_error = await self._diagnose_query_endpoint_error(export_query, username, project_name, api_token)
+                        if detailed_error:
+                            error_message = f"{error_message} | Detailed diagnosis: {detailed_error}"
+                            await self.message_queue.add(pip, f'🔍 Detailed error diagnosis: {detailed_error}', verbatim=True)
+                        
+                        analysis_result.update({
+                            'download_complete': False,
+                            'error': error_message,
+                            'download_info': {
+                                'has_file': False,
+                                'error': error_message,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        })
+                    else:
+                        await self.message_queue.add(pip, '✅ Export completed and ready for download!', verbatim=True)
+                        download_url = result.get('download_url')
+                        if not download_url:
+                            await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
+                            analysis_result.update({
+                                'download_complete': False,
+                                'error': 'No download URL found in job result',
+                                'download_info': {
+                                    'has_file': False,
+                                    'error': 'No download URL found in job result',
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            })
+                        else:
+                            await self.message_queue.add(pip, '🔄 Downloading node attributes...', verbatim=True)
+                            await self.ensure_directory_exists(crawl_filepath)
+                            try:
+                                gz_filepath = f'{crawl_filepath}.gz'
+                                async with httpx.AsyncClient(timeout=300.0) as client:
+                                    async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
+                                        response.raise_for_status()
+                                        with open(gz_filepath, 'wb') as gz_file:
+                                            async for chunk in response.aiter_bytes():
+                                                gz_file.write(chunk)
+                                
+                                with gzip.open(gz_filepath, 'rb') as f_in:
+                                    with open(crawl_filepath, 'wb') as f_out:
+                                        shutil.copyfileobj(f_in, f_out)
+                                os.remove(gz_filepath)
+                                
+                                _, file_info = await self.check_file_exists(crawl_filepath)
+                                await self.message_queue.add(pip, f"✅ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
+                                
+                                # Set proper column names for Crawl Basic data
+                                df = pd.read_csv(crawl_filepath)
+                                if len(df.columns) >= 7:
+                                    df.columns = ['URL', 'HTTP Code', 'Page Title', 'Page Type', 'Is Compliant', 'Canonical URL', 'In Sitemap'][:len(df.columns)]
+                                else:
+                                    # Fallback for unexpected column count
+                                    df.columns = [f'Column_{i+1}' for i in range(len(df.columns))]
+                                
+                                df.to_csv(crawl_filepath, index=False)
+                                await self.message_queue.add(pip, f'✅ Node attributes data saved with {len(df):,} rows', verbatim=True)
+                                
+                                analysis_result.update({
+                                    'download_complete': True,
+                                    'download_info': {
+                                        'has_file': True,
+                                        'file_path': crawl_filepath,
+                                        'timestamp': file_info['created'],
+                                        'size': file_info['size'],
+                                        'cached': False,
+                                        'row_count': len(df)
+                                    }
+                                })
+                                
+                            except Exception as e:
+                                error_message = f'Download failed: {str(e)}'
+                                await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+                                analysis_result.update({
+                                    'download_complete': False,
+                                    'error': error_message,
+                                    'download_info': {
+                                        'has_file': False,
+                                        'error': error_message,
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                })
+            
+            # Update step data with final result
+            analysis_result_str = json.dumps(analysis_result)
+            await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
+            
+        except Exception as e:
+            error_message = f'Unexpected error in step_02b_process: {str(e)}'
+            logging.exception(error_message)
+            await self.message_queue.add(pip, f'❌ {error_message}', verbatim=True)
+            analysis_result.update({
+                'download_complete': False,
+                'error': error_message,
+                'download_info': {
+                    'has_file': False,
+                    'error': error_message,
+                    'timestamp': datetime.now().isoformat()
+                }
+            })
+            analysis_result_str = json.dumps(analysis_result)
+            await pip.set_step_data(pipeline_id, step_id, analysis_result_str, steps)
+        
+        # Return completed view with action buttons
+        action_buttons = self._create_action_buttons(analysis_result, step_id)
+        
+        widget = Div(
+            Div(
+                Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
+                    cls=self.ui['BUTTON_STYLES']['STANDARD'],
+                    hx_get=f'/{app_name}/toggle?step_id={step_id}',
+                    hx_target=f'#{step_id}_widget',
+                    hx_swap='innerHTML'
+                ),
+                *action_buttons,
+                style=self.ui['BUTTON_STYLES']['FLEX_CONTAINER']
+            ),
+            Div(
+                Pre(f'Node attributes downloaded for: {analysis_slug}', cls='code-block-container', style='display: none;'),
+                id=f'{step_id}_widget'
+            )
+        )
+        
+        return Div(
+            pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {analysis_slug}', widget=widget, steps=steps),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
 
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
