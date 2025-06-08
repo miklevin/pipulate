@@ -400,7 +400,7 @@ class HelloFlow:
             form_msg = f'{self.ui["EMOJIS"]["INPUT_FORM"]} Showing name input form. No name has been entered yet.'
             await self.message_queue.add(pip, form_msg, verbatim=True)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = f"{self.ui['EMOJIS']['WORKFLOW']} Workflows are Notebooks without having to look at the code. Let's collect some data..."
+            explanation = f"Workflows are Notebooks without having to look at the code. Let's collect some data..."
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
@@ -508,7 +508,7 @@ class HelloFlow:
         else:
             display_value = user_val if step.refill and user_val else await self.get_suggestion(step_id, state)
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            explanation = f"{self.ui['EMOJIS']['WORKFLOW']} That's it! Workflows just collect data — walking you from one Step to the Next Step ▸"
+            explanation = f"That's it! Workflows just collect data — walking you from one Step to the Next Step ▸"
             await self.message_queue.add(pip, explanation, verbatim=True)
             return Div(
                 Card(
