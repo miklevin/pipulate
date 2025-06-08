@@ -392,7 +392,8 @@ def get_plugin_list():
                                     
                                     emoji = getattr(obj, 'EMOJI', '')
                                     if emoji:
-                                        display_name = f"{emoji} {display_name}"
+                                        # Put emoji at the right for consistency with workflows
+                                        display_name = f"{display_name} {emoji}"
                                     break
                             except:
                                 continue
