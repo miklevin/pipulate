@@ -179,6 +179,15 @@ PIPULATE_CONFIG = {
         }
     },
     
+    # Botify API Configuration
+    'BOTIFY_API': {
+        'MAX_EXPORT_SIZE': 1000000,  # Botify's maximum export size limit (1M rows)
+        'DEFAULT_EXPORT_SIZE': 1000000,  # Conservative default for testing/development
+        'GSC_EXPORT_SIZE': 1000000,  # GSC can handle full export size
+        'WEBLOG_EXPORT_SIZE': 1000000,  # Web logs can handle full export size
+        'CRAWL_EXPORT_SIZE': 1000000,  # Crawl exports can handle full export size
+    },
+    
     # UI Constants for Workflows - Centralized button labels, emojis, and styles
     'UI_CONSTANTS': {
         'BUTTON_LABELS': {
@@ -797,6 +806,10 @@ class Pipulate:
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
         return PIPULATE_CONFIG['UI_CONSTANTS']
+    
+    def get_config(self):
+        """Access centralized configuration through dependency injection."""
+        return PIPULATE_CONFIG
 
     def register_workflow_routes(self, plugin_instance):
         """
