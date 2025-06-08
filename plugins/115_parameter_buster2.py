@@ -1699,6 +1699,7 @@ class ParameterBuster2:
             return (True, f'Valid Botify project: {project_slug}', project_data)
         except Exception as e:
             return (False, f'Error parsing URL: {str(e)}', {})
+
     async def check_if_project_has_collection(self, org_slug, project_slug, collection_id='logs'):
         """
         Checks if a specific collection exists for the given org and project.
@@ -1753,6 +1754,7 @@ class ParameterBuster2:
             return (False, 'Could not decode the API response as JSON.')
         except Exception as e:
             return (False, f'An unexpected error occurred: {e}')
+
     async def fetch_analyses(self, org, project, api_token):
         """
         Fetch analysis slugs for a Botify project.
@@ -1811,6 +1813,7 @@ class ParameterBuster2:
                 return all_slugs
         logging.info(f'Found {len(all_slugs)} total analyses')
         return all_slugs
+
     def read_api_token(self):
         """Read the Botify API token from the token file."""
         try:
@@ -1945,6 +1948,7 @@ class ParameterBuster2:
             raise ValueError(f'Unknown data type: {data_type}')
         filename = filenames[data_type]
         return f'{base_dir}/{filename}'
+
     async def check_file_exists(self, filepath):
         """Check if a file exists and is non-empty.
         Args:
@@ -1959,6 +1963,7 @@ class ParameterBuster2:
             return (False, {})
         file_info = {'path': filepath, 'size': f'{stats.st_size / 1024:.1f} KB', 'created': time.ctime(stats.st_ctime)}
         return (True, file_info)
+
     async def ensure_directory_exists(self, filepath):
         directory = os.path.dirname(filepath)
         if not os.path.exists(directory):
@@ -1971,6 +1976,7 @@ class ParameterBuster2:
             return file_info['exists']
         except Exception:
             return False
+
     def _generate_api_call_representations(self, method: str, url: str, headers: dict, payload: Optional[dict] = None, step_context: Optional[str] = None, template_info: Optional[dict] = None, username: Optional[str] = None, project_name: Optional[str] = None) -> tuple[str, str]:
         """Generate both cURL and Python representations of API calls for debugging.
         CRITICAL INSIGHT: Jupyter Notebook Debugging Pattern
@@ -2189,6 +2195,7 @@ await main()
 #     asyncio.run(main())
 """
         return curl_command, python_command
+
     async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
         """Process search console data in the background."""
         logging.info(f'Starting real GSC data export for {username}/{project_name}/{analysis_slug}')
@@ -2290,6 +2297,7 @@ await main()
             await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
             await self.message_queue.add(pip, f'❌ Error processing Search Console data: {str(e)}', verbatim=True)
             raise
+
     async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None, dynamic_param_value=None, placeholder_for_dynamic_param=None):
         """Builds BQLv2 query objects and export job payloads.
         CRITICAL INSIGHT: Multiple BQL Structures in One Method
@@ -4239,290 +4247,6 @@ await main()
                     logger.error(f"Error creating fallback download button for {step_id}: {e}")
         return buttons
 
-
-    def validate_botify_url(self, url):
-        """Validate a Botify project URL and extract project information."""
-        url = url.strip()
-        if not url:
-            return (False, 'URL is required', {})
-        try:
-            if not url.startswith(('https://app.botify.com/', 'https://analyze.botify.com/')):
-                return (False, 'URL must be a Botify project URL (starting with https://app.botify.com/ or https://analyze.botify.com/)', {})
-            parsed_url = urlparse(url)
-            path_parts = [p for p in parsed_url.path.strip('/').split('/') if p]
-            if len(path_parts) < 2:
-                return (False, 'Invalid Botify URL: must contain at least organization and project', {})
-            org_slug = path_parts[0]
-            project_slug = path_parts[1]
-            canonical_url = f'https://{parsed_url.netloc}/{org_slug}/{project_slug}/'
-            project_data = {'url': canonical_url, 'username': org_slug, 'project_name': project_slug, 'project_id': f'{org_slug}/{project_slug}'}
-            return (True, f'Valid Botify project: {project_slug}', project_data)
-        except Exception as e:
-            return (False, f'Error parsing URL: {str(e)}', {})
-
-    async def check_if_project_has_collection(self, org_slug, project_slug, collection_id='logs'):
-        """
-        Checks if a specific collection exists for the given org and project.
-
-        # API PATTERN: This method demonstrates the standard Botify API interaction pattern:
-        # 1. Read API token from local file
-        # 2. Construct API endpoint URL with proper path parameters
-        # 3. Make authenticated request with error handling
-        # 4. Return tuple of (result, error_message) for consistent error handling
-
-        Args:
-            org_slug: Organization slug
-            project_slug: Project slug
-            collection_id: ID of the collection to check for (default: "logs")
-
-        Returns:
-            (True, None) if found, (False, None) if not found, or (False, error_message) on error.
-        """
-        TOKEN_FILE = 'botify_token.txt'
-        try:
-            if not os.path.exists(TOKEN_FILE):
-                return (False, f"Token file '{TOKEN_FILE}' not found.")
-            with open(TOKEN_FILE) as f:
-                content = f.read().strip()
-                api_key = content.split('\n')[0].strip()
-                if not api_key:
-                    return (False, f"Token file '{TOKEN_FILE}' is empty.")
-        except Exception as e:
-            return (False, f'Error loading API key: {e}')
-        if not org_slug or not project_slug:
-            return (False, 'Organization and project slugs are required.')
-        collections_url = f'https://api.botify.com/v1/projects/{org_slug}/{project_slug}/collections'
-        headers = {'Authorization': f'Token {api_key}', 'Content-Type': 'application/json'}
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(collections_url, headers=headers, timeout=60.0)
-            if response.status_code == 401:
-                return (False, 'Authentication failed (401). Check your API token.')
-            elif response.status_code == 403:
-                return (False, 'Forbidden (403). You may not have access to this project or endpoint.')
-            elif response.status_code == 404:
-                return (False, 'Project not found (404). Check org/project slugs.')
-            response.raise_for_status()
-            collections_data = response.json()
-            if not isinstance(collections_data, list):
-                return (False, 'Unexpected API response format. Expected a list.')
-            for collection in collections_data:
-                if isinstance(collection, dict) and collection.get('id') == collection_id:
-                    return (True, None)
-            return (False, None)
-        except httpx.HTTPStatusError as e:
-            return (False, f'API Error: {e.response.status_code}')
-        except httpx.RequestError as e:
-            return (False, f'Network error: {e}')
-        except json.JSONDecodeError:
-            return (False, 'Could not decode the API response as JSON.')
-        except Exception as e:
-            return (False, f'An unexpected error occurred: {e}')
-
-    async def fetch_analyses(self, org, project, api_token):
-        """
-        Fetch analysis slugs for a Botify project.
-
-        Args:
-            org: Organization slug
-            project: Project slug
-            api_token: Botify API token
-
-        Returns:
-            List of analysis slugs or empty list on error
-        """
-        if not org or not project or (not api_token):
-            logging.error(f'Missing required parameters: org={org}, project={project}')
-            return []
-        url = f'https://api.botify.com/v1/analyses/{org}/{project}'
-        headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, headers=headers, timeout=60.0)
-            if response.status_code != 200:
-                logging.error(f'API error: Status {response.status_code} for {url}')
-                return []
-            data = response.json()
-            logging.info(f'API response keys: {data.keys()}')
-            if 'results' not in data:
-                logging.error(f"No 'results' key in response: {data}")
-                return []
-            analyses = data['results']
-            if not analyses:
-                logging.error('Analyses list is empty')
-                return []
-            logging.info(f'Found {len(analyses)} analyses')
-            slugs = [analysis.get('slug') for analysis in analyses if analysis.get('slug')]
-            return slugs
-        except Exception as e:
-            logging.exception(f'Error fetching analyses: {str(e)}')
-            return []
-
-    def read_api_token(self):
-        """Read the Botify API token from the token file."""
-        TOKEN_FILE = 'botify_token.txt'
-        try:
-            if not os.path.exists(TOKEN_FILE):
-                return None
-            with open(TOKEN_FILE) as f:
-                content = f.read().strip()
-                token = content.split('\n')[0].strip()
-            return token
-        except Exception:
-            return None
-
-    async def check_file_exists(self, filepath):
-        """Check if a file exists and is non-empty.
-
-        Args:
-            filepath: Path to check
-
-        Returns:
-            (bool, dict): Tuple of (exists, file_info)
-        """
-        if not os.path.exists(filepath):
-            return (False, {})
-        stats = os.stat(filepath)
-        if stats.st_size == 0:
-            return (False, {})
-        file_info = {'path': filepath, 'size': f'{stats.st_size / 1024:.1f} KB', 'created': time.ctime(stats.st_ctime)}
-        return (True, file_info)
-
-    async def ensure_directory_exists(self, filepath):
-        """Ensure the directory for a file exists.
-
-        Args:
-            filepath: Path to the file
-        """
-        directory = os.path.dirname(filepath)
-        os.makedirs(directory, exist_ok=True)
-
-    async def process_search_console_data(self, pip, pipeline_id, step_id, username, project_name, analysis_slug, check_result):
-        """Process search console data in the background."""
-        logging.info(f'Starting real GSC data export for {username}/{project_name}/{analysis_slug}')
-        try:
-            gsc_filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, 'gsc')
-            file_exists, file_info = await self.check_file_exists(gsc_filepath)
-            if file_exists:
-                await self.message_queue.add(pip, f"✓ Using cached GSC data ({file_info['size']})", verbatim=True)
-                check_result.update({'download_complete': True, 'download_info': {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': True}})
-                check_result_str = json.dumps(check_result)
-                await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-                return
-            await self.message_queue.add(pip, '🔄 Initiating Search Console data export...', verbatim=True)
-            api_token = self.read_api_token()
-            if not api_token:
-                raise ValueError('Cannot read API token')
-            end_date = datetime.now().strftime('%Y-%m-%d')
-            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-            export_query = await self.build_exports(username, project_name, analysis_slug, data_type='gsc', start_date=start_date, end_date=end_date)
-            job_url = 'https://api.botify.com/v1/jobs'
-            headers = {'Authorization': f'Token {api_token}', 'Content-Type': 'application/json'}
-            try:
-                logging.info(f"Submitting export job with payload: {json.dumps(export_query['export_job_payload'], indent=2)}")
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(job_url, headers=headers, json=export_query['export_job_payload'], timeout=60.0)
-                    logging.info(f'Export job submission response status: {response.status_code}')
-                    try:
-                        logging.info(f'Export job response: {json.dumps(response.json(), indent=2)}')
-                    except:
-                        logging.info(f'Could not parse response as JSON. Raw: {response.text[:500]}')
-                    response.raise_for_status()
-                    job_data = response.json()
-                    job_url_path = job_data.get('job_url')
-                    if not job_url_path:
-                        raise ValueError('Failed to get job URL from response')
-                    full_job_url = f'https://api.botify.com{job_url_path}'
-                    logging.info(f'Got job URL: {full_job_url}')
-                    await self.message_queue.add(pip, '✓ Export job created successfully!', verbatim=True)
-            except Exception as e:
-                logging.exception(f'Error creating export job: {str(e)}')
-                await self.message_queue.add(pip, f'❌ Error creating export job: {str(e)}', verbatim=True)
-                raise
-            await self.message_queue.add(pip, '🔄 Polling for export completion...', verbatim=True)
-            success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
-            if not success:
-                error_message = isinstance(result, str) and result or 'Export job failed'
-                await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
-                raise ValueError(f'Export failed: {error_message}')
-            await self.message_queue.add(pip, '✓ Export completed and ready for download!', verbatim=True)
-            download_url = result.get('download_url')
-            if not download_url:
-                await self.message_queue.add(pip, '❌ No download URL found in job result', verbatim=True)
-                raise ValueError('No download URL found in job result')
-            await self.message_queue.add(pip, '🔄 Downloading Search Console data...', verbatim=True)
-            await self.ensure_directory_exists(gsc_filepath)
-            zip_path = f'{gsc_filepath}.zip'
-            try:
-                async with httpx.AsyncClient() as client:
-                    async with client.stream('GET', download_url, headers={'Authorization': f'Token {api_token}'}) as response:
-                        response.raise_for_status()
-                        with open(zip_path, 'wb') as f:
-                            async for chunk in response.aiter_bytes():
-                                f.write(chunk)
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    csv_name = None
-                    for name in zip_ref.namelist():
-                        if name.endswith('.csv'):
-                            csv_name = name
-                            break
-                    if not csv_name:
-                        raise ValueError('No CSV file found in the downloaded zip')
-                    zip_ref.extract(csv_name, os.path.dirname(gsc_filepath))
-                    extracted_path = os.path.join(os.path.dirname(gsc_filepath), csv_name)
-                    if extracted_path != gsc_filepath:
-                        if os.path.exists(gsc_filepath):
-                            os.remove(gsc_filepath)
-                        os.rename(extracted_path, gsc_filepath)
-                if os.path.exists(zip_path):
-                    os.remove(zip_path)
-                _, file_info = await self.check_file_exists(gsc_filepath)
-                await self.message_queue.add(pip, f"✓ Download complete: {file_info['path']} ({file_info['size']})", verbatim=True)
-                df = pd.read_csv(gsc_filepath, skiprows=1)
-                df.to_csv(gsc_filepath, index=False)
-                download_info = {'has_file': True, 'file_path': gsc_filepath, 'timestamp': file_info['created'], 'size': file_info['size'], 'cached': False}
-                check_result.update({'download_complete': True, 'download_info': download_info})
-            except Exception as e:
-                await self.message_queue.add(pip, f'❌ Error downloading or extracting file: {str(e)}', verbatim=True)
-                raise
-            await self.message_queue.add(pip, '✓ Search Console data ready for analysis!', verbatim=True)
-            check_result_str = json.dumps(check_result)
-            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-        except Exception as e:
-            logging.exception(f'Error in process_search_console_data: {e}')
-            check_result.update({'download_complete': True, 'error': str(e)})
-            check_result_str = json.dumps(check_result)
-            await pip.set_step_data(pipeline_id, step_id, check_result_str, self.steps)
-            await self.message_queue.add(pip, f'❌ Error processing Search Console data: {str(e)}', verbatim=True)
-            raise
-
-    async def build_exports(self, username, project_name, analysis_slug=None, data_type='crawl', start_date=None, end_date=None):
-        """Builds BQLv2 query objects and export job payloads."""
-        if data_type == 'gsc':
-            if not start_date or not end_date:
-                end_date = datetime.now().strftime('%Y%m%d')
-                start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-            export_job_payload = {'job_type': 'export', 'payload': {'query': {'collections': ['search_console'], 'periods': [[start_date, end_date]], 'query': {'dimensions': ['url'], 'metrics': [{'field': 'search_console.period_0.count_impressions', 'name': 'Impressions'}, {'field': 'search_console.period_0.count_clicks', 'name': 'Clicks'}, {'field': 'search_console.period_0.ctr', 'name': 'CTR'}, {'field': 'search_console.period_0.avg_position', 'name': 'Avg. Position'}], 'sort': [{'type': 'metrics', 'index': 0, 'order': 'desc'}]}}, 'export_size': 10000, 'formatter': 'csv', 'connector': 'direct_download', 'formatter_config': {'print_header': True, 'print_delimiter': True}, 'extra_config': {'compression': 'zip'}, 'username': username, 'project': project_name, 'export_job_name': 'Search Console Export'}}
-            check_query_payload = {'collections': ['search_console'], 'periods': [[start_date, end_date]], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['search_console.url']}]}}
-            return {'check_query_payload': check_query_payload, 'check_url': f'/v1/projects/{username}/{project_name}/query', 'export_job_payload': export_job_payload, 'export_url': '/v1/jobs', 'data_type': data_type}
-        elif data_type == 'crawl':
-            if not analysis_slug:
-                raise ValueError("analysis_slug is required for data_type 'crawl'")
-            collection = f'crawl.{analysis_slug}'
-            bql_query = {'collections': [collection], 'query': {'dimensions': [f'{collection}.url', f'{collection}.http_code', f'{collection}.metadata.title.content'], 'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}}}
-            check_query_payload = {'collections': [collection], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': [f'{collection}.url']}], 'filters': {'field': f'{collection}.http_code', 'predicate': 'eq', 'value': 200}}}
-        elif data_type == 'weblog':
-            if not start_date or not end_date:
-                end_date = datetime.now().strftime('%Y-%m-%d')
-                start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-            bql_query = {'collections': ['logs'], 'periods': [[start_date, end_date]], 'query': {'dimensions': ['logs.url'], 'metrics': ['logs.all.count_visits'], 'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}}}
-            check_query_payload = {'collections': ['logs'], 'periods': [[start_date, end_date]], 'query': {'dimensions': [], 'metrics': [{'function': 'count', 'args': ['logs.url']}], 'filters': {'field': 'logs.all.count_visits', 'predicate': 'gt', 'value': 0}}}
-        else:
-            raise ValueError(f'Unknown data type: {data_type}')
-        export_job_payload = {'job_type': 'export', 'payload': {'username': username, 'project': project_name, 'connector': 'direct_download', 'formatter': 'csv', 'export_size': 1000000, 'query': bql_query, 'formatter_config': {'print_header': True}}}
-        return {'check_query_payload': check_query_payload, 'check_url': f'/v1/projects/{username}/{project_name}/query', 'export_job_payload': export_job_payload, 'export_url': '/v1/jobs', 'data_type': data_type}
-
-
     async def analyze_parameters(self, username, project_name, analysis_slug):
         """Counts URL parameters from crawl, GSC, and web logs data.
 
@@ -4882,4 +4606,5 @@ await main()
             logging.exception(f'Error creating parameter visualization: {e}')
             error_msg = f'Error creating visualization: {str(e)}\n\nDebug info:\n' + '\n'.join(debug_info)
             return Div(NotStr(f"<div style='color: red; padding: 10px; background: #333; border-radius: 5px;'>{error_msg}</div>"), _raw=True)
+
 
