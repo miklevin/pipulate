@@ -197,6 +197,13 @@ class LinkGraphVisualizer:
             'failure_text': 'does NOT have crawl analysis',
             'error_prefix': 'FAILED to download crawl analysis'
         },
+        'step_02b': {
+            'data_key': 'analysis_result',
+            'status_field': 'download_complete',
+            'success_text': 'HAS node attributes',
+            'failure_text': 'does NOT have node attributes',
+            'error_prefix': 'FAILED to download node attributes'
+        },
         'step_03': {
             'data_key': 'check_result',
             'status_field': 'has_logs',
@@ -782,7 +789,7 @@ class LinkGraphVisualizer:
             
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
             
-            await self.message_queue.add(pip, f'Ready to download node attributes for analysis {analysis_slug}', verbatim=True)
+            await self.message_queue.add(pip, f'📄 Ready to download node attributes for analysis {analysis_slug}', verbatim=True)
             
             return Div(
                 Card(
@@ -4718,6 +4725,9 @@ await main()
                 'link_graph_edges': 'link_graph.csv'
             }
             expected_filename = filename_mapping.get(export_type, 'crawl.csv')
+        elif step_id == 'step_02b':
+            # step_02b always uses 'Crawl Basic' template which has 'crawl_attributes' export type
+            expected_filename = 'crawl.csv'
         elif step_id == 'step_03':
             expected_filename = 'weblog.csv'
         elif step_id == 'step_04':
