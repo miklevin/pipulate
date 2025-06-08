@@ -96,7 +96,7 @@ class BotifyCsvDownloaderWorkflow:
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
     """
     APP_NAME = 'trifecta'
-    DISPLAY_NAME = 'Botify Trifecta'
+    DISPLAY_NAME = 'Botify Trifecta 💜'
     ENDPOINT_MESSAGE = 'Download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) — the Trifecta!'
     TRAINING_PROMPT = 'This workflow provides an example of how to download one CSV of each kind: LogAnalyzer (Web Logs), SiteCrawler (Crawl Analysis), RealKeywords (Search Console) from the Botify API. The queries are different for each type. Downloading one of each type is often the precursor to a comprehensive Botify deliverable, incorporating the full funnel philosophy of the Botify way.'
 

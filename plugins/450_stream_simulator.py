@@ -19,7 +19,7 @@ limiter = ""
 
 class StreamSimulatorPlugin:
     APP_NAME = "stream_simulator"
-    DISPLAY_NAME = "Stream Simulator"
+    DISPLAY_NAME = "Stream Simulator 📡"
     ENDPOINT_MESSAGE = "Stream Simulator app is where you simulate a long-running server-side process. Press the 'Start Stream Simulation' button to begin."
     id_suffix = "1"
     route_prefix = "/stream-sim"

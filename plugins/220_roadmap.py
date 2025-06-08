@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class RoadmapPlugin:
     NAME = "roadmap"
-    DISPLAY_NAME = "Roadmap"
+    DISPLAY_NAME = "Roadmap 🗺️"
     ENDPOINT_MESSAGE = "Displaying project roadmap..."
 
     # Define the Mermaid diagram as a class property

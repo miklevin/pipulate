@@ -24,7 +24,7 @@ class BlankWorkflow:
     A minimal starting point for creating new workflows.
     """
     APP_NAME = 'tab'
-    DISPLAY_NAME = 'Tab Opener'
+    DISPLAY_NAME = 'Tab Opener 🗂️'
     ENDPOINT_MESSAGE = 'Open any URL in your default browser using your existing profile and settings. Perfect for accessing pages that require login.'
     TRAINING_PROMPT = 'This workflow helps users open URLs in their default browser. It uses the widget_container pattern for consistent UI and provides a simple interface for URL input and Google search functionality. This is the non-browser-automation way to open URLs. It does use your default browser so it has all your logins, extensions, etc. It can open URLs with querystrings so is a great way to open search results or SEMRush reports. For more advanced browser automation, see the the Browser Automation plugin. Though we do throw in a simple Selenium URL opener at the end of this workflow just to remind you that this capability exists — and as a bit of flex to entice you to explore.'
     PRESERVE_REFILL = True

@@ -69,7 +69,7 @@ class WidgetExamples:
       feedback is valuable to the user
     """
     APP_NAME = 'widgets'
-    DISPLAY_NAME = 'Widget Examples'
+    DISPLAY_NAME = 'Widget Examples 📊'
     ENDPOINT_MESSAGE = 'This workflow demonstrates various widget types for Pipulate. Enter an ID to start or resume your workflow.'
     TRAINING_PROMPT = 'widget_examples.md'
 
