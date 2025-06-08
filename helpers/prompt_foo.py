@@ -33,15 +33,14 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES (Background for the story)
-# README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-# requirements.txt <-- Python package dependencies for the project
-# server.py        <-- Main server file for the project
+README.md        <-- Main GitHub README sets the tone
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+requirements.txt <-- Python package dependencies for the project
+server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/110_parameter_buster.py
-/home/mike/repos/pipulate/plugins/115_parameter_buster2.py
+/home/mike/repos/pipulate/plugins/120_link_graph.py
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
@@ -77,6 +76,7 @@ FILES_TO_INCLUDE_RAW = """\
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
 
 ## MOST OTHER PLUGINS
+# /home/mike/repos/pipulate/plugins/110_parameter_buster.py
 # /home/mike/repos/pipulate/plugins/510_text_field.py
 # /home/mike/repos/pipulate/plugins/210_widget_examples.py
 # /home/mike/repos/pipulate/plugins/010_introduction.py
@@ -133,9 +133,9 @@ FILES_TO_INCLUDE_RAW = """\
 
 ## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
 # /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
-# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
-# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
+/home/mike/repos/pipulate/helpers/manage_class_attributes.py
+/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 # DEVELOPER TOOLS
