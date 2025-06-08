@@ -18,7 +18,8 @@ import httpx
 import pandas as pd
 from fasthtml.common import *
 from loguru import logger
-ROLES = ['Workshop']
+
+ROLES = ['Botify Employee']
 TOKEN_FILE = 'botify_token.txt'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
@@ -76,7 +77,7 @@ class ParameterBuster:
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
     """
     APP_NAME = 'param_buster'
-    DISPLAY_NAME = 'Parameter Buster'
+    DISPLAY_NAME = 'Parameter Buster 🔨'
     ENDPOINT_MESSAGE = """Extract and analyze URL parameters from any web address. Perfect for understanding tracking codes and URL structure."""
     TRAINING_PROMPT = """This workflow helps users analyze URL parameters and tracking codes. It uses the widget_container pattern to display parameter breakdowns and provides insights into URL structure and tracking mechanisms."""
     # Query Templates - Extracted from build_exports for reusability
@@ -444,7 +445,42 @@ class ParameterBuster:
         else:
             display_value = project_url if step.refill and project_url else ''
             await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P('Enter a Botify project URL:'), Small('Example: ', Span('https://app.botify.com/uhnd-com/uhnd.com-demo-account/', id='copy-example-url', style='cursor: pointer; color: #888; text-decoration: none;', hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)', title='Click to use this example URL'), style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'), Form(Input(type='url', name='botify_url', placeholder='https://app.botify.com/org/project/', value=display_value, required=True, pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*', cls='w-full'), Div(Button('Use this URL ▸', type='submit', cls='primary'), cls='mt-vh text-end'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(
+                Card(
+                    H3(f'{step.show}'),
+                    P('Enter a Botify project URL:'),
+                    Small(
+                        'Example: ',
+                        Span(
+                            'https://app.botify.com/uhnd-com/uhnd.com-demo-account/ <--click for example',
+                            id='copy-example-url',
+                            style='cursor: pointer; color: #888; text-decoration: none;',
+                            hx_on_click='document.querySelector(\'input[name="botify_url"]\').value = this.innerText.split(" <--")[0]; this.style.color = \'#28a745\'; setTimeout(() => this.style.color = \'#888\', 1000)',
+                            title='Click to use this example URL'
+                        ),
+                        style='display: block; margin-bottom: 10px; color: #666; font-style: italic;'
+                    ),
+                    Form(
+                        Input(
+                            type='url',
+                            name='botify_url',
+                            placeholder='https://app.botify.com/org/project/',
+                            value=display_value,
+                            required=True,
+                            pattern='https://(app|analyze)\\.botify\\.com/[^/]+/[^/]+/[^/]+.*',
+                            cls='w-full'
+                        ),
+                        Div(
+                            Button('Use this URL ▸', type='submit', cls='primary'),
+                            cls='mt-vh text-end'
+                        ),
+                        hx_post=f'/{app_name}/{step_id}_submit',
+                        hx_target=f'#{step_id}'
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
 
     async def step_01_submit(self, request):
         """Process the submission for Botify URL input widget.
