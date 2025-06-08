@@ -189,7 +189,7 @@ PIPULATE_CONFIG = {
             'PROCEED': 'Proceed ▸',
             'HIDE_SHOW_CODE': '🐍 Hide/Show Code',
             'VIEW_FOLDER': '📂 View Folder',
-            'DOWNLOAD_CSV': '⬇️ Download CSV',
+            'DOWNLOAD_CSV': '⬇️ Copy to Downloads',
             'VISUALIZE_GRAPH': '🌐 Visualize Graph',
             'SKIP_STEP': 'Skip️'
         },
