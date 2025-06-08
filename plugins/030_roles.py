@@ -186,6 +186,15 @@ class CrudUI(PluginIdentityManager):
         # CRITICAL: Roles are global - initialize once for all profiles
         self.ensure_roles_initialized()
 
+    def get_app_name(self):
+        """Get the app name from app_name.txt file."""
+        try:
+            app_name_path = os.path.join(os.path.dirname(__file__), "..", "app_name.txt")
+            with open(app_name_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception:
+            return "Pipulate"  # Fallback to default name
+
     def ensure_roles_initialized(self):
         """Ensure all roles from config are initialized in the database."""
         try:
@@ -237,6 +246,15 @@ class CrudUI(PluginIdentityManager):
             Card(
                 H2(f"{self.DISPLAY_NAME}"),
                 H3(self.ENDPOINT_MESSAGE),
+                P(
+                    f"New to {self.get_app_name()}? Start with the ",
+                    A("Introduction", href="/redirect/introduction", 
+                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
+                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+                    " for a guided overview.",
+                    style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
+                ),
                 Ul(
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID, cls='sortable', style="padding-left: 0;",
