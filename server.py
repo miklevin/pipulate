@@ -3175,6 +3175,8 @@ async def clear_db(request):
         log_dictlike_db_to_lifecycle('db', db, title_prefix='CLEAR_DB INITIAL')
         log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='CLEAR_DB INITIAL')
         log_dynamic_table_state('profiles', lambda: profiles(), title_prefix='CLEAR_DB INITIAL')
+    
+    # Safely preserve certain values before clearing
     last_app_choice = db.get('last_app_choice')
     last_visited_url = db.get('last_visited_url')
     temp_message = db.get('temp_message')
@@ -3197,7 +3199,15 @@ async def clear_db(request):
             cursor.execute('DELETE FROM store')
             cursor.execute('DELETE FROM pipeline')
             cursor.execute('DELETE FROM profile')
-            cursor.execute('DELETE FROM sqlite_sequence')
+            
+            # Only delete from sqlite_sequence if it exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+            if cursor.fetchone():
+                cursor.execute('DELETE FROM sqlite_sequence')
+                logger.debug('Cleared sqlite_sequence table')
+            else:
+                logger.debug('sqlite_sequence table does not exist, skipping')
+            
             conn.commit()
     except Exception as e:
         logger.error(f'Error clearing core tables: {e}')
@@ -3242,6 +3252,7 @@ async def clear_db(request):
     await synchronize_roles_to_db()
     if TABLE_LIFECYCLE_LOGGING:
         logger.bind(lifecycle=True).info('CLEAR_DB: After synchronize_roles_to_db.')
+    # Restore preserved values if they existed
     if last_app_choice:
         db['last_app_choice'] = last_app_choice
     if last_visited_url:
