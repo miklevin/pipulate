@@ -270,6 +270,7 @@ class ParameterBuster2:
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+        app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
