@@ -1815,17 +1815,18 @@ class BaseCrud:
             
             logger.debug(f'✅ SMART SORT ALLOWED: Actual changes detected for {self.name}')
             
-            changes = []
-            sort_dict = {}
-            for item in items:
+            # Update all items and collect their names in new order
+            updated_items = []
+            for item in sorted(items, key=lambda x: int(x['priority'])):
                 item_id = int(item['id'])
                 priority = int(item['priority'])
                 self.table.update(id=item_id, **{self.sort_field: priority})
                 item_name = getattr(self.table[item_id], self.item_name_field, 'Item')
-                sort_dict[item_id] = priority
-                changes.append(f"'{item_name}' moved to position {priority}")
-            changes_str = '; '.join(changes)
-            action_details = f'The {self.name} items were reordered: {changes_str}'
+                updated_items.append(item_name)
+            
+            # Create a concise, human-friendly message showing the new order
+            items_list = ', '.join(updated_items)
+            action_details = f'Reordered {self.name}: {items_list}'
             prompt = action_details
             self.send_message(prompt, verbatim=True)
             logger.debug(f'{self.name.capitalize()} order updated successfully')
