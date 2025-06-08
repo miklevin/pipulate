@@ -36,7 +36,7 @@ FILES_TO_INCLUDE_RAW = """\
 # README.md        <-- Main GitHub README sets the tone
 # flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 # requirements.txt <-- Python package dependencies for the project
-server.py        <-- Main server file for the project
+# server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
@@ -71,7 +71,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## WORKFLOW TEMPLATE PLUGINS AND TEMPLATING PLUGIN
-/home/mike/repos/pipulate/plugins/910_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 # /home/mike/repos/pipulate/plugins/040_hello_workflow.py
 # /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
