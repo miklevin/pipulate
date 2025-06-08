@@ -736,7 +736,7 @@ class LinkGraphVisualizer:
         username = prev_analysis_data.get('username', '')
         
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        
+
         # Phase 1: Finalized view (locked)
         if 'finalized' in finalize_data and analysis_result:
             return Div(
@@ -815,7 +815,7 @@ class LinkGraphVisualizer:
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-        
+
         # Get analysis data from step_02
         prev_step_id = 'step_02'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
@@ -1831,6 +1831,32 @@ class LinkGraphVisualizer:
             else:
                 await self.message_queue.add(pip, '⚠️ No GSC data found, continuing without performance metrics', verbatim=True)
             
+            # Load and merge basic crawl attributes from step_02b if available
+            crawl_file = data_path / 'crawl.csv'
+            if crawl_file.exists():
+                try:
+                    crawl_df = pd.read_csv(crawl_file)
+                    await self.message_queue.add(pip, f'📄 Loaded crawl attributes: {len(crawl_df):,} rows', verbatim=True)
+                    
+                    # Handle different possible URL column names from step_02b
+                    url_column = None
+                    for col in crawl_df.columns:
+                        if 'url' in col.lower() and not any(x in col.lower() for x in ['target', 'source', 'canonical']):
+                            url_column = col
+                            break
+                    
+                    if url_column and url_column != 'url':
+                        crawl_df.rename(columns={url_column: 'url'}, inplace=True)
+                    
+                    # Merge crawl attributes (left join to preserve all nodes)
+                    nodes_df = nodes_df.merge(crawl_df, on='url', how='left')
+                    await self.message_queue.add(pip, f'✅ Merged crawl attributes (HTTP status, page titles, compliance, etc.)', verbatim=True)
+                    
+                except Exception as e:
+                    await self.message_queue.add(pip, f'⚠️ Warning: Could not load crawl attributes: {str(e)}', verbatim=True)
+            else:
+                await self.message_queue.add(pip, '⚠️ No crawl attributes found from step_02b', verbatim=True)
+
             # Load and merge weblog data if available
             if weblog_file.exists():
                 try:
