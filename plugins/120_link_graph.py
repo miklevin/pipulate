@@ -702,6 +702,21 @@ class LinkGraphVisualizer:
             id=step_id
         )
 
+    async def step_02b(self, request):
+        """Placeholder for step_02b - Node Attributes Download."""
+        # TODO: Implement node attributes download step
+        return Div(P("Step 02b placeholder - Node Attributes"), id='step_02b')
+
+    async def step_02b_submit(self, request):
+        """Placeholder for step_02b submit handler."""
+        # TODO: Implement node attributes download submit logic
+        return Div(P("Step 02b submit placeholder"), id='step_02b')
+
+    async def step_02b_process(self, request):
+        """Placeholder for step_02b process handler.""" 
+        # TODO: Implement node attributes download processing
+        return Div(P("Step 02b process placeholder"), id='step_02b')
+
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
