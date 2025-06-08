@@ -187,7 +187,7 @@ class ParameterBuster2:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'crawl': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
+        'crawl': 'Not Compliant',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
     # Optional Features Configuration
