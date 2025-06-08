@@ -293,7 +293,7 @@ async def {step_id_str}_submit(self, request):
     swappable_start = f"{method_indent}# --- START_SWAPPABLE_STEP: {step_id_str} ---"
     swappable_end = f"{method_indent}# --- END_SWAPPABLE_STEP: {step_id_str} ---"
     
-    return f"\n{swappable_start}\n{indented_get}\n\n{indented_submit}\n{swappable_end}\n"
+    return f"\n{swappable_start}\n{indented_get}\n\n\n{indented_submit}\n{swappable_end}\n"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -419,7 +419,7 @@ Examples:
         
         # --- 8. Insert new methods before the methods marker ---
         class_member_indent = "    " # Typical indent for class members / method definitions
-        replacement_for_methods_marker = f"{new_methods_code.rstrip()}\n\n{class_member_indent}{STEP_METHODS_MARKER}"
+        replacement_for_methods_marker = f"{new_methods_code.rstrip()}\n\n\n{class_member_indent}{STEP_METHODS_MARKER}"
         
         # Ensure the marker we're replacing has the expected indentation
         marker_with_indent = f"{class_member_indent}{STEP_METHODS_MARKER}"
