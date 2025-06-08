@@ -1597,7 +1597,14 @@ class ParameterBuster2:
             markdown_content = f'# PageWorkers Optimization Ready to Copy/Paste\n\n## Instructions\n1. Copy/Paste the JavaScript (found above) into a new PageWorkers custom Optimization.\n2. Update the `REPLACE_ME!!!` with the ID found in the URL of the Optimization.\n\n**Parameter Optimization Settings**\n- GSC Threshold: {gsc_threshold}\n- Minimum Frequency: {min_frequency_formatted}\n- Total Parameters Optimized: {len(params_list)}\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View all {len(params_list)} parameters[[SUMMARY_END]]\n\n{param_list_str}\n[[DETAILS_END]]\n\n[[DETAILS_START]]\n[[SUMMARY_START]]View robots.txt rules[[SUMMARY_END]]\n\n```robots.txt\nUser-agent: *\n{robots_txt_rules}\n```\n[[DETAILS_END]]\n\n**Important Notes:** robots.txt is advisory, not enforcement; prevents crawling but not indexing; for testing only\n'
             if step_data.get(step.done, '') == '':
                 markdown_data = {'markdown': markdown_content, 'parameters_info': parameters_info}
-                await self.update_state_with_html(pipeline_id, step_id, markdown_data, self.steps, clear_previous=False)
+                # Update state directly
+                state = pip.read_state(pipeline_id)
+                if step_id not in state:
+                    state[step_id] = {}
+                state[step_id][step.done] = json.dumps(markdown_data)
+                if '_revert_target' in state:
+                    del state['_revert_target']
+                pip.write_state(pipeline_id, state)
         widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
         if 'finalized' in finalize_data:
@@ -1648,7 +1655,15 @@ class ParameterBuster2:
                 parameters_info = {'selected_params': [], 'gsc_threshold': '0', 'min_frequency': '100000'}
         markdown_data = {'markdown': markdown_content, 'parameters_info': parameters_info}
         data_str = json.dumps(markdown_data)
-        await self.update_state_with_html(pipeline_id, step_id, markdown_data, self.steps)
+        # Update state directly
+        state = pip.read_state(pipeline_id)
+        if step_id not in state:
+            state[step_id] = {}
+        state[step_id][step.done] = json.dumps(markdown_data)
+        await pip.clear_steps_from(pipeline_id, step_id, self.steps)
+        if '_revert_target' in state:
+            del state['_revert_target']
+        pip.write_state(pipeline_id, state)
         await self.message_queue.add(pip, f'{step.show}: Markdown content updated', verbatim=True)
         widget_id = f"markdown-widget-{pipeline_id.replace('-', '_')}-{step_id}"
         markdown_widget = self.create_marked_widget(markdown_content, widget_id)
