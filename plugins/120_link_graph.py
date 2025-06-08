@@ -79,7 +79,15 @@ class LinkGraphVisualizer:
             'user_message': 'This will download basic crawl data including URLs, HTTP status codes, and page titles.',
             'button_label_suffix': 'Basic Attributes',
             'query': {
-                'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'dimensions': [
+                    '{collection}.url', 
+                    '{collection}.http_code', 
+                    '{collection}.metadata.title.content',
+                    '{collection}.segments.pagetype.value',
+                    '{collection}.compliant.is_compliant',
+                    '{collection}.canonical.to.equal',
+                    '{collection}.sitemaps.present'
+                ],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
@@ -230,6 +238,7 @@ class LinkGraphVisualizer:
         steps = [
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
             Step(id='step_02', done='analysis_selection', show=f'Download: {crawl_template}', refill=False),
+            Step(id='step_02b', done='node_attributes', show='Download: Node Attributes', refill=False),
             Step(id='step_03', done='weblogs_check', show='Download Web Logs (Optional)', refill=False),
             Step(id='step_04', done='search_console_check', show=f'Download: {gsc_template}', refill=False),
             Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True),
