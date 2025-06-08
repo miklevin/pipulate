@@ -75,7 +75,7 @@
   # In this case, it's a development shell that works across different systems
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.2 (Roles)";  # Define version here in the outputs scope
+      version = "1.0.3 (Notebook Fix)";  # Updated version to reflect notebook conflict fix
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -113,12 +113,26 @@
           chromium                     # Chromium browser for Selenium automation
         ]);
 
+        # Define notebook paths for the copy-on-first-run solution
+        originalNotebook = "helpers/botify/botify_api.ipynb";
+        localNotebook = "helpers/botify/botify_api_local.ipynb";
+
         # This script sets up our Python environment and project
         runScript = pkgs.writeShellScriptBin "run-script" ''
           #!/usr/bin/env bash
           
           # Activate the virtual environment
           source .venv/bin/activate
+
+          # Define function to copy notebook if needed (copy-on-first-run solution)
+          copy_notebook_if_needed() {
+            if [ -f "${originalNotebook}" ] && [ ! -f "${localNotebook}" ]; then
+              echo "INFO: Creating a local, user-editable copy of the Botify API notebook..."
+              echo "      Your work will be saved in '${localNotebook}' and will not interfere with updates."
+              cp "${originalNotebook}" "${localNotebook}"
+              echo "      To get future updates to the original notebook, you can delete '${localNotebook}'."
+            fi
+          }
 
           # Create a fancy welcome message
           if [ ! -f app_name.txt ]; then
@@ -177,9 +191,10 @@
           # Note: We've disabled token and password for easier access, especially in WSL environments
           cat << EOF > .venv/bin/start
           #!/bin/sh
+          copy_notebook_if_needed
           echo "A JupyterLab tab will open in your default browser."
           tmux kill-session -t jupyter 2>/dev/null || echo "No tmux session named 'jupyter' is running."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           echo "If no tab opens, visit http://localhost:8888/lab"
           echo "To view JupyterLab server: tmux attach -t jupyter"
           echo "To stop JupyterLab server: stop"
@@ -211,12 +226,13 @@
           cat << EOF > .venv/bin/run-jupyter
           #!/bin/sh
           echo "Starting JupyterLab..."
+          copy_notebook_if_needed
           
           # Kill existing jupyter tmux session
           tmux kill-session -t jupyter 2>/dev/null || true
           
           # Start JupyterLab
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -237,6 +253,7 @@
           cat << EOF > .venv/bin/run-all
           #!/bin/sh
           echo "JupyterLab will start in the background."
+          copy_notebook_if_needed
           
           # Kill existing tmux sessions
           tmux kill-session -t jupyter 2>/dev/null || true
@@ -246,7 +263,7 @@
           
           # Start JupyterLab
           echo "Starting JupyterLab..."
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
@@ -287,8 +304,9 @@
           
           # Automatically start JupyterLab in background and server in foreground
           # Start JupyterLab in a tmux session
+          copy_notebook_if_needed
           tmux kill-session -t jupyter 2>/dev/null || true
-          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab helpers/botify/botify_api.ipynb --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
+          tmux new-session -d -s jupyter "source .venv/bin/activate && jupyter lab ${localNotebook} --NotebookApp.token=\"\" --NotebookApp.password=\"\" --NotebookApp.disable_check_xsrf=True"
           
           # Wait for JupyterLab to start
           echo "JupyterLab is starting..."
