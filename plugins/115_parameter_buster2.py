@@ -256,9 +256,13 @@ class ParameterBuster2:
             Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True),
             Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False),
         ]
-        self.steps = steps
         
-        # Register routes using centralized helper
+        # --- STEPS_LIST_INSERTION_POINT ---
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps = steps  # Update self.steps to include finalize step
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        
+        # Register routes using centralized helper (AFTER finalize step is added)
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
@@ -268,6 +272,7 @@ class ParameterBuster2:
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/parameter_preview', methods=['POST'])(self.parameter_preview)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
+        
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
@@ -277,9 +282,6 @@ class ParameterBuster2:
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: Ready to count parameters from downloaded data.", 'complete': 'Parameter counting is complete.'}
         self.step_messages['step_06'] = {'input': f"❔{pip.fmt('step_06')}: Ready to configure parameter optimization.", 'complete': 'Parameter optimization configured.'}
         self.step_messages['step_07'] = {'input': f"❔{pip.fmt('step_07')}: Ready to generate instructions and robots.txt.", 'complete': 'Instructions generated.'}
-        # --- STEPS_LIST_INSERTION_POINT ---
-        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
