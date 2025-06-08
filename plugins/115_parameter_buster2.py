@@ -252,14 +252,10 @@ class ParameterBuster2:
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
-            Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True),
-        
-            Step(
-                id='step_06',
-                done='placeholder_06',
-                show='Placeholder Step 6 (Edit Me)',
-                refill=False,
-            ),]
+            Step(id='step_05', done='placeholder', show='Count Parameters Per Source', refill=True),
+            Step(id='step_06', done='parameter_optimization', show='Parameter Optimization', refill=True),
+            Step(id='step_07', done='robots_txt', show='Instructions & robots.txt', refill=False),
+        ]
         self.steps = steps
         
         # Register routes using centralized helper
@@ -278,7 +274,9 @@ class ParameterBuster2:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
+        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: Ready to count parameters from downloaded data.", 'complete': 'Parameter counting is complete.'}
+        self.step_messages['step_06'] = {'input': f"❔{pip.fmt('step_06')}: Ready to configure parameter optimization.", 'complete': 'Parameter optimization configured.'}
+        self.step_messages['step_07'] = {'input': f"❔{pip.fmt('step_07')}: Ready to generate instructions and robots.txt.", 'complete': 'Instructions generated.'}
         # --- STEPS_LIST_INSERTION_POINT ---
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
