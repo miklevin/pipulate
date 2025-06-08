@@ -44,6 +44,7 @@ class IntroductionPlugin:
                 ],
                 'getting_started': 'Getting Started',
                 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
+                'home': f'The home page is also the Roles app where you can add apps to the APP menu.',
                 'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you 🤖. Click the "Next ▸" button to continue.',
                 'secret_word': 'FOUNDATION'
             },
@@ -129,6 +130,7 @@ class IntroductionPlugin:
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['features']]),
                 H4(page_data['getting_started']),
                 P(page_data['nav_help']),
+                P(page_data['home']),
                 P(page_data['llm_help']),
                 style=card_style
             )
@@ -188,7 +190,7 @@ class IntroductionPlugin:
         secret_word = page_data.get('secret_word', 'UNKNOWN')
 
         if page_num == 1:
-            context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['llm_help']}"
+            context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['home']}\n{page_data['llm_help']}"
         elif page_num == 2:
             context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
         elif page_num == 3:
