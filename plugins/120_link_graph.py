@@ -251,6 +251,7 @@ class LinkGraphVisualizer:
         # Register custom routes specific to this workflow
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
+        app.route(f'/{app_name}/step_02b_process', methods=['POST'])(self.step_02b_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
