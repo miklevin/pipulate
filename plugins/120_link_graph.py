@@ -1422,8 +1422,11 @@ class LinkGraphVisualizer:
             # Add label (shortened URL for readability)
             nodes_df['label'] = nodes_df['url'].apply(lambda x: x.split('/')[-1][:30] if x else '')
             
-            # Select final columns for Cosmograph
-            cosmo_columns = ['url', 'label', 'size', 'color']
+            # Create id column as required by Cosmograph (rename url to id)
+            nodes_df['id'] = nodes_df['url']
+            
+            # Select final columns for Cosmograph (first column must be 'id' per Cosmograph docs)
+            cosmo_columns = ['id', 'label', 'size', 'color']
             
             # Add performance metrics if available
             if 'Impressions' in nodes_df.columns:
