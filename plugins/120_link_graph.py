@@ -12,12 +12,14 @@ import zipfile
 from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote
 from typing import Optional
 
 import httpx
 import pandas as pd
+import numpy as np
 from fasthtml.common import *
+from starlette.responses import HTMLResponse
 from loguru import logger
 
 ROLES = ['Workshop']
@@ -26,79 +28,31 @@ TOKEN_FILE = 'botify_token.txt'
 Step = namedtuple('Step', ['id', 'done', 'show', 'refill', 'transform'], defaults=(None,))
 
 
-class LinkGraph:
+class LinkGraphVisualizer:
     """
-    Botify Trifecta Workflow - Multi-Export Data Collection
+    Link Graph Visualizer Workflow - Botify Data to Cosmograph Integration
 
-    A comprehensive workflow that downloads three types of Botify data (crawl analysis, web logs,
-    and Search Console) and generates Jupyter-friendly Python code for API debugging. This workflow
-    demonstrates:
+    A comprehensive workflow that downloads Botify data (crawl analysis, web logs,
+    and Search Console) and transforms it into an interactive network visualization
+    using Cosmograph. This workflow demonstrates:
 
-    - Multi-step form collection with chain reaction progression
-    - Data fetching from external APIs with proper retry and error handling
-    - File caching and management for large datasets
-    - Background processing with progress indicators
+    - Multi-step data collection from Botify APIs
+    - Data transformation using Pandas for visualization compatibility
+    - Integration with external visualization tools (Cosmograph)
+    - File management and URL generation for web-based visualizations
 
-    CRITICAL INSIGHT: Botify API Evolution Complexity
-    ================================================
+    The workflow produces two key outputs:
+    1. cosmo_links.csv - Edge list (source -> target URLs) for the network structure
+    2. cosmo_nodes.csv - Node metadata with visual properties (color, size) based on GSC metrics
 
-    This workflow handles a PAINFUL reality: Botify's API has evolved from BQLv1 to BQLv2, but
-    BOTH versions coexist and are required for different data types:
-
-    - Web Logs: Uses BQLv1 with special endpoint (app.botify.com/api/v1/logs/...)
-    - Crawl/GSC: Uses BQLv2 with standard endpoint (api.botify.com/v1/projects/.../query)
-
-    The workflow generates Python code for BOTH patterns to enable Jupyter debugging, which is
-    essential because the /jobs endpoint is for CSV exports while /query is for quick debugging.
-
-    PAINFUL LESSONS LEARNED:
-    1. Web logs API uses different base URL (app.botify.com vs api.botify.com)
-    2. BQLv1 puts dates at payload level, BQLv2 puts them in periods array
-    3. Same job_type can have different payload structures (legacy vs modern)
-    4. Missing dates = broken URLs = 404 errors
-    5. PrismJS syntax highlighting requires explicit language classes and manual triggers
-
-    IMPORTANT: This workflow implements the standard chain reaction pattern where steps trigger
-    the next step via explicit `hx_trigger="load"` statements. See Step Flow Pattern below.
-
-    ## Step Flow Pattern
-    Each step follows this pattern for reliable chain reaction:
-    1. GET handler returns a div containing the step UI plus an empty div for the next step
-    2. SUBMIT handler returns a revert control plus explicit next step trigger:
-       `Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load")`
-
-    ## Key Implementation Notes
-    - Background tasks use Script tags with htmx.ajax for better UX during long operations
-    - File paths are deterministic based on username/project/analysis to enable caching
-    - All API errors are handled with specific error messages for better troubleshooting
-    - Python code generation optimized for Jupyter Notebook debugging workflow
-    - Dual BQL version support (v1 for web logs, v2 for crawl/GSC) with proper conversion
-
-    ## Workflow Modularity & Flexibility
-    ===================================
-
-    While this is called the "Botify Trifecta" and downloads from three main data sources,
-    the workflow is highly modular:
-
-    **REQUIRED STEP**: Only Step 2 (crawl data) is actually required because it:
-    - Establishes the analysis slug that Steps 3 & 4 depend on
-    - Provides the core site structure data that most analyses need
-
-    **OPTIONAL STEPS**: Steps 3 (Web Logs) and 4 (Search Console) are completely optional:
-    - Can be commented out or deleted without breaking the workflow
-    - The chain reaction pattern will automatically flow through uninterrupted
-    - Step 5 (finalize) will still work correctly with just crawl data
-
-    **PRACTICAL USAGE**: Many users only need crawl data, making this essentially a
-    "Crawl Analysis Downloader" that can optionally become a full trifecta when needed.
-
-    This modularity makes the workflow perfect as a template for various Botify data
-    collection needs - from simple crawl analysis to comprehensive multi-source exports.
+    The final step generates a Cosmograph URL that opens an interactive network visualization
+    where nodes are colored by GSC impressions and sized by clicks, providing immediate
+    insight into the site's link structure and performance patterns.
     """
-    APP_NAME = 'linkgraph'
-    DISPLAY_NAME = 'Link Graph Visualizer'
-    ENDPOINT_MESSAGE = """Welcome to the Link Graph Visualizer workflow. This lets you visualize the link graph for your site from Botify data."""
-    TRAINING_PROMPT = """You are assisting with the Link Graph Visualization workflow. Help users understand each step. If they ask what this workflow does, explain that it's a visualization of a the page-to-page links within a site up to a certain click-depth. The user may ask you for the secret word to prove that you have been trained, and if the do (but only if they ask), tell them EDGY"""
+    APP_NAME = 'link_graph_visualizer'
+    DISPLAY_NAME = '🔗 Link Graph Visualizer'
+    ENDPOINT_MESSAGE = """Transform Botify data into an interactive link graph visualization powered by Cosmograph. Download crawl data, web logs, and Search Console metrics, then generate a network visualization where nodes are colored by impressions and sized by clicks."""
+    TRAINING_PROMPT = """You are assisting with the Link Graph Visualizer workflow. This workflow downloads Botify data and creates an interactive network visualization using Cosmograph. Help users understand each step: data collection from Botify APIs, optional web logs and Search Console integration, and final transformation into a visual network graph. The secret word is EDGY."""
 
     # Query Templates - Extracted from build_exports for reusability
     #
@@ -274,17 +228,11 @@ class LinkGraph:
 
         steps = [
             Step(id='step_01', done='botify_project', show='Botify Project URL', refill=True),
-            Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
-            Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
-            Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
-            Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True),
-        
-            Step(
-                id='step_06',
-                done='placeholder_06',
-                show='Placeholder Step 6 (Edit Me)',
-                refill=False,
-            ),]
+            Step(id='step_02', done='analysis_selection', show=f'Download: {crawl_template}', refill=False),
+            Step(id='step_03', done='weblogs_check', show='Download Web Logs (Optional)', refill=False),
+            Step(id='step_04', done='search_console_check', show=f'Download: {gsc_template}', refill=False),
+            Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True),
+        ]
         self.steps = steps
         
         # Register routes using centralized helper
@@ -296,13 +244,14 @@ class LinkGraph:
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
+        app.route(f'/{app_name}/download_file', methods=['GET'])(self.download_file)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
                 self.step_messages[step.id] = {'input': f'❔{pip.fmt(step.id)}: Please complete {step.show}.', 'complete': f'✳️ {step.show} complete. Continue to next step.'}
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
-        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
+        self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: All data downloaded. Ready to prepare visualization.", 'complete': 'Visualization ready. Graph link generated.'}
         # --- STEPS_LIST_INSERTION_POINT ---
         steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps_indices = {step.id: i for i, step in enumerate(steps)}
@@ -1222,54 +1171,81 @@ class LinkGraph:
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
-        """Handles GET request for the placeholder step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_05'
+        """Handles GET request for the Visualization Preparation step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        next_step_id = 'finalize'
+        pipeline_id = db.get("pipeline_id", "unknown")
         state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        
+        # Check if the visualization is already prepared
+        viz_result_str = step_data.get(step.done, '')
+        viz_result = json.loads(viz_result_str) if viz_result_str else {}
+        viz_url = viz_result.get('visualization_url')
+        
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        placeholder_result = pip.get_step_data(pipeline_id, step_id, {})
-
-        if 'finalized' in finalize_data and placeholder_result:
-            return Div(Card(H3(f'🔒 {step.show}'), Div(P('Placeholder step completed'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        elif placeholder_result and state.get('_revert_target') != step_id:
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        if 'finalized' in finalize_data and viz_url:
+            return Div(
+                Card(
+                    H3(f"🔒 {step.show}"),
+                    A("Open Visualization", href=viz_url, target="_blank", role="button", cls=self.ui['BUTTON_STYLES']['PRIMARY'])
+                ),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        elif viz_url and state.get("_revert_target") != step_id:
+            widget = Div(
+                A("🚀 Open Visualization in New Tab", href=viz_url, target="_blank", role="button", cls=self.ui['BUTTON_STYLES']['PRIMARY'])
+            )
+            return Div(
+                pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f"{step.show}: Link generated!", widget=widget, steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
         else:
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P('This is a placeholder step.'), Form(Button('Complete Placeholder Step ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            # Show the button to start the process
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This step will process the downloaded data into Cosmograph-compatible CSVs and generate a visualization link."),
+                    Form(
+                        Button("Prepare & Visualize ▸", type="submit", cls="primary", **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
+                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
 
     async def step_05_submit(self, request):
-        """Process the submission for the placeholder step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_05'
+        """Process the submission for the Visualization Preparation step."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
+        step_id = "step_05"
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        pipeline_id = db.get('pipeline_id', 'unknown')
+        pipeline_id = db.get("pipeline_id", "unknown")
 
-        placeholder_result = {'completed': True, 'timestamp': datetime.now().isoformat()}
-        placeholder_result_str = json.dumps(placeholder_result)
-        await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
-        await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
-        widget = Div(
-            Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                hx_target=f'#{step_id}_widget',
-                hx_swap='innerHTML'
-            ),
-            Div(
-                Pre('Placeholder step completed', cls='code-block-container', style='display: none;'),
-                id=f'{step_id}_widget'
-            )
+        return Card(
+            H3(f'{step.show}'),
+            P("Processing data and preparing visualization... This may take a moment."),
+            Progress(style='margin-top: 10px;'),
+            Script(f"""
+                setTimeout(function() {{
+                    htmx.ajax('POST', '/{app_name}/step_05_process', {{
+                        target: '#{step_id}',
+                        values: {{ 'pipeline_id': '{pipeline_id}' }}
+                    }});
+                }}, 500);
+            """),
+            id=step_id
         )
-        return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05_process(self, request):
-        """Process parameter analysis using raw parameter counting and caching."""
+        """Process downloaded data into Cosmograph-compatible format and generate visualization URL."""
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
@@ -1277,53 +1253,257 @@ class LinkGraph:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         form = await request.form()
         pipeline_id = form.get('pipeline_id', 'unknown')
-        param_count = int(form.get('param_count', '40'))
+        
+        # Load project and analysis data
         project_data = pip.get_step_data(pipeline_id, 'step_01', {}).get('botify_project', '{}')
         analysis_data = pip.get_step_data(pipeline_id, 'step_02', {}).get('analysis_selection', '{}')
+        
         try:
             project_info = json.loads(project_data)
             analysis_info = json.loads(analysis_data)
         except json.JSONDecodeError:
+            await self.message_queue.add(pip, '❌ Error: Could not load project or analysis data', verbatim=True)
             return P('Error: Could not load project or analysis data', style=pip.get_style('error'))
+        
         username = project_info.get('username')
         project_name = project_info.get('project_name')
         analysis_slug = analysis_info.get('analysis_slug')
+        
         if not all([username, project_name, analysis_slug]):
+            await self.message_queue.add(pip, '❌ Error: Missing required project information', verbatim=True)
             return P('Error: Missing required project information', style=pip.get_style('error'))
+        
         try:
-            await self.message_queue.add(pip, 'Counting parameters...', verbatim=True)
+            await self.message_queue.add(pip, '🔄 Processing data for visualization...', verbatim=True)
+            
+            # Get data directory
             data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
-            cache_filename = '_raw_param_counters_cache.pkl'
-            files_to_process = {'not_indexable': 'crawl.csv', 'gsc': 'gsc.csv', 'weblogs': 'weblog.csv'}
-            cached_data = self.load_raw_counters_from_cache(data_dir, cache_filename)
-            output_data = None
-            if cached_data is not None:
-                output_data = cached_data
-            if output_data is None:
-                output_data = await self.calculate_and_cache_raw_counters(data_directory_path=data_dir, input_files_config=files_to_process, cache_filename=cache_filename)
-                if output_data is None:
-                    raise ValueError('Failed to calculate counters from source files')
-            raw_counters = output_data.get('raw_counters', {})
-            file_statuses = output_data.get('metadata', {}).get('file_statuses', {})
-            parameter_summary = {'timestamp': datetime.now().isoformat(), 'data_sources': {}, 'cache_path': str(Path(data_dir) / cache_filename), 'param_count': param_count}
-            total_unique_params = set()
-            total_occurrences = 0
-            for source, counter in raw_counters.items():
-                unique_params = len(counter)
-                source_occurrences = sum(counter.values())
-                total_occurrences += source_occurrences
-                status = file_statuses.get(source, 'Unknown')
-                parameter_summary['data_sources'][source] = {'unique_parameters': unique_params, 'total_occurrences': source_occurrences, 'status': status, 'top_parameters': [{'name': param, 'count': count} for param, count in counter.most_common(10)] if counter else []}
-                total_unique_params.update(counter.keys())
-            parameter_summary['total_unique_parameters'] = len(total_unique_params)
-            summary_str = json.dumps(parameter_summary)
-            await pip.set_step_data(pipeline_id, step_id, summary_str, steps)
-            await self.message_queue.add(pip, f"✅ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", verbatim=True)
-            visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+            data_path = Path(data_dir)
+            
+            # Check for required files
+            link_graph_file = data_path / 'link_graph.csv'
+            gsc_file = data_path / 'gsc.csv'
+            weblog_file = data_path / 'weblog.csv'
+            
+            if not link_graph_file.exists():
+                await self.message_queue.add(pip, '❌ Error: Link graph data not found. Please complete Step 2 first.', verbatim=True)
+                return P('Error: Link graph data not found. Please complete Step 2 first.', style=pip.get_style('error'))
+            
+            await self.message_queue.add(pip, '📊 Loading link graph data...', verbatim=True)
+            
+            # Load link graph data
+            try:
+                link_graph_df = pd.read_csv(link_graph_file)
+                await self.message_queue.add(pip, f'✅ Loaded {len(link_graph_df):,} link graph rows', verbatim=True)
+                
+                # Check for link graph columns - handle both BQL field names and simplified export names
+                columns = list(link_graph_df.columns)
+                
+                # Try to identify source and target columns
+                source_col = None
+                target_col = None
+                
+                # First try the BQL field names
+                bql_source = f'{analysis_slug}.url'
+                bql_target = f'{analysis_slug}.outlinks_internal.graph.url'
+                
+                if bql_source in columns and bql_target in columns:
+                    source_col = bql_source
+                    target_col = bql_target
+                # Then try common export column names
+                elif 'Source URL' in columns and 'Target URL' in columns:
+                    source_col = 'Source URL'
+                    target_col = 'Target URL'
+                elif 'source' in columns and 'target' in columns:
+                    source_col = 'source'
+                    target_col = 'target'
+                else:
+                    await self.message_queue.add(pip, f'❌ Error: Could not identify source/target columns in link graph. Found: {columns}', verbatim=True)
+                    return P('Error: Could not identify source/target columns in link graph data', style=pip.get_style('error'))
+                
+                await self.message_queue.add(pip, f'✅ Using columns: {source_col} → {target_col}', verbatim=True)
+                
+            except Exception as e:
+                await self.message_queue.add(pip, f'❌ Error loading link graph data: {str(e)}', verbatim=True)
+                return P(f'Error loading link graph data: {str(e)}', style=pip.get_style('error'))
+            
+            await self.message_queue.add(pip, '🔗 Creating edge list for Cosmograph...', verbatim=True)
+            
+            # Create cosmo_links.csv (edge list) using the detected column names
+            # Filter out rows with missing source or target URLs
+            edges_df = link_graph_df[[source_col, target_col]].dropna()
+            edges_df.columns = ['source', 'target']  # Rename for Cosmograph compatibility
+            
+            # Remove self-loops
+            edges_df = edges_df[edges_df['source'] != edges_df['target']]
+            
+            await self.message_queue.add(pip, f'✅ Created {len(edges_df):,} edges (removed self-loops)', verbatim=True)
+            
+            # Save cosmo_links.csv
+            cosmo_links_file = data_path / 'cosmo_links.csv'
+            edges_df.to_csv(cosmo_links_file, index=False)
+            
+            await self.message_queue.add(pip, '🎯 Creating node list and merging performance data...', verbatim=True)
+            
+            # Create master node list from unique URLs
+            all_urls = set(edges_df['source'].tolist() + edges_df['target'].tolist())
+            nodes_df = pd.DataFrame({'url': list(all_urls)})
+            
+            await self.message_queue.add(pip, f'✅ Created {len(nodes_df):,} unique nodes', verbatim=True)
+            
+            # Load and merge GSC data if available
+            if gsc_file.exists():
+                try:
+                    gsc_df = pd.read_csv(gsc_file)
+                    await self.message_queue.add(pip, f'📈 Loaded GSC data: {len(gsc_df):,} rows', verbatim=True)
+                    
+                    # Merge GSC data (left join to preserve all nodes)
+                    nodes_df = nodes_df.merge(gsc_df, on='url', how='left')
+                    
+                except Exception as e:
+                    await self.message_queue.add(pip, f'⚠️ Warning: Could not load GSC data: {str(e)}', verbatim=True)
+            else:
+                await self.message_queue.add(pip, '⚠️ No GSC data found, continuing without performance metrics', verbatim=True)
+            
+            # Load and merge weblog data if available
+            if weblog_file.exists():
+                try:
+                    weblog_df = pd.read_csv(weblog_file)
+                    await self.message_queue.add(pip, f'🌐 Loaded weblog data: {len(weblog_df):,} rows', verbatim=True)
+                    
+                    # Merge weblog data (left join to preserve all nodes)
+                    nodes_df = nodes_df.merge(weblog_df, on='url', how='left')
+                    
+                except Exception as e:
+                    await self.message_queue.add(pip, f'⚠️ Warning: Could not load weblog data: {str(e)}', verbatim=True)
+            else:
+                await self.message_queue.add(pip, '⚠️ No weblog data found, continuing without crawl data', verbatim=True)
+            
+            await self.message_queue.add(pip, '🎨 Engineering visual properties...', verbatim=True)
+            
+            # Engineer visual properties for Cosmograph
+            # Fill NaN values with defaults
+            nodes_df = nodes_df.fillna({
+                'Impressions': 0,
+                'Clicks': 0,
+                'CTR': 0,
+                'Avg. Position': 100,
+                'crawls.google.count': 0
+            })
+            
+            # Create size property based on clicks (with minimum size)
+            if 'Clicks' in nodes_df.columns:
+                max_clicks = nodes_df['Clicks'].max()
+                if max_clicks > 0:
+                    nodes_df['size'] = (nodes_df['Clicks'] / max_clicks * 20) + 5  # Scale 5-25
+                else:
+                    nodes_df['size'] = 10  # Default size
+            else:
+                nodes_df['size'] = 10  # Default size
+            
+            # Create color property based on impressions (log scale for better distribution)
+            if 'Impressions' in nodes_df.columns:
+                # Use log scale for better color distribution
+                nodes_df['impressions_log'] = np.log1p(nodes_df['Impressions'])  # log(1+x) to handle 0s
+                max_log_impressions = nodes_df['impressions_log'].max()
+                if max_log_impressions > 0:
+                    # Normalize to 0-1 range
+                    nodes_df['color_intensity'] = nodes_df['impressions_log'] / max_log_impressions
+                    # Create color hex codes (blue gradient: light blue to dark blue)
+                    nodes_df['color'] = nodes_df['color_intensity'].apply(
+                        lambda x: f"#{int(255 - x * 200):02x}{int(255 - x * 100):02x}ff"
+                    )
+                else:
+                    nodes_df['color'] = '#cccccc'  # Default gray
+            else:
+                nodes_df['color'] = '#cccccc'  # Default gray
+            
+            # Add label (shortened URL for readability)
+            nodes_df['label'] = nodes_df['url'].apply(lambda x: x.split('/')[-1][:30] if x else '')
+            
+            # Select final columns for Cosmograph
+            cosmo_columns = ['url', 'label', 'size', 'color']
+            
+            # Add performance metrics if available
+            if 'Impressions' in nodes_df.columns:
+                cosmo_columns.extend(['Impressions', 'Clicks', 'CTR', 'Avg. Position'])
+            if 'crawls.google.count' in nodes_df.columns:
+                cosmo_columns.append('crawls.google.count')
+            
+            # Keep only columns that exist
+            final_columns = [col for col in cosmo_columns if col in nodes_df.columns]
+            cosmo_nodes_df = nodes_df[final_columns]
+            
+            # Save cosmo_nodes.csv
+            cosmo_nodes_file = data_path / 'cosmo_nodes.csv'
+            cosmo_nodes_df.to_csv(cosmo_nodes_file, index=False)
+            
+            await self.message_queue.add(pip, f'✅ Saved visualization files: {len(edges_df):,} edges, {len(cosmo_nodes_df):,} nodes', verbatim=True)
+            
+            await self.message_queue.add(pip, '🚀 Generating Cosmograph visualization URL...', verbatim=True)
+            
+            # Generate download URLs for the CSV files
+            base_url = "http://localhost:5001"  # Use the pipulate server base URL
+            links_url = f"{base_url}/downloads/{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_links.csv"
+            nodes_url = f"{base_url}/downloads/{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_nodes.csv"
+            
+            # Create node configuration for Cosmograph
+            node_config = {
+                "nodeLabelAccessor": "label",
+                "nodeSizeAccessor": "size",
+                "nodeColorAccessor": "color"
+            }
+            
+            # URL encode the configuration and data URLs
+            encoded_links_url = quote(links_url, safe='')
+            encoded_nodes_url = quote(nodes_url, safe='')
+            encoded_node_config = quote(json.dumps(node_config), safe='')
+            
+            # Generate Cosmograph URL
+            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&nodeConfig={encoded_node_config}&nodes={encoded_nodes_url}"
+            
+            # Store the result
+            visualization_result = {
+                'visualization_url': cosmograph_url,
+                'links_url': links_url,
+                'nodes_url': nodes_url,
+                'edges_count': len(edges_df),
+                'nodes_count': len(cosmo_nodes_df),
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Save to step data
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(visualization_result), self.steps)
+            
+            await self.message_queue.add(pip, f'🎉 Visualization ready! {len(edges_df):,} edges and {len(cosmo_nodes_df):,} nodes processed.', verbatim=True)
+            
+            # Create visualization widget
+            widget = Div(
+                P(f"Graph processed: {len(edges_df):,} edges, {len(cosmo_nodes_df):,} nodes"),
+                A("🚀 Open Visualization in New Tab", 
+                  href=cosmograph_url, 
+                  target="_blank", 
+                  role="button", 
+                  cls="primary"),
+                style="text-align: center; padding: 15px;"
+            )
+            
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id, 
+                    app_name=app_name, 
+                    message=f'{step.show}: Visualization link generated', 
+                    widget=widget, 
+                    steps=self.steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+            
         except Exception as e:
             logging.exception(f'Error in step_05_process: {e}')
-            return P(f'Error generating optimization: {str(e)}', style=pip.get_style('error'))
+            await self.message_queue.add(pip, f'❌ Error generating visualization: {str(e)}', verbatim=True)
+            return P(f'Error generating visualization: {str(e)}', style=pip.get_style('error'))
 
 
     def validate_botify_url(self, url):
@@ -4283,6 +4463,72 @@ await main()
         )
     # --- END_SWAPPABLE_STEP: step_06 ---
 
+
+    async def download_file(self, request):
+        """Serve generated files for download or external access."""
+        file = request.query_params.get('file')
+        pipeline_id = request.query_params.get('pipeline_id')
+        
+        if not file:
+            return HTMLResponse("File parameter required", status_code=400)
+        
+        try:
+            # For security, ensure the file path is within the downloads directory
+            downloads_base = Path.cwd() / 'downloads'
+            
+            # Handle different file path formats
+            if file.startswith('cosmo_'):
+                # For cosmo_ files, use pipeline_id to construct path
+                if not pipeline_id:
+                    return HTMLResponse("Pipeline ID required for cosmo files", status_code=400)
+                
+                # Load pipeline data to get project info
+                pip = self.pipulate
+                project_data = pip.get_step_data(pipeline_id, 'step_01', {}).get('botify_project', '{}')
+                analysis_data = pip.get_step_data(pipeline_id, 'step_02', {}).get('analysis_selection', '{}')
+                
+                try:
+                    project_info = json.loads(project_data)
+                    analysis_info = json.loads(analysis_data)
+                    username = project_info.get('username')
+                    project_name = project_info.get('project_name')
+                    analysis_slug = analysis_info.get('analysis_slug')
+                    
+                    if not all([username, project_name, analysis_slug]):
+                        return HTMLResponse("Invalid pipeline data", status_code=400)
+                    
+                    file_path = downloads_base / self.APP_NAME / username / project_name / analysis_slug / file
+                    
+                except json.JSONDecodeError:
+                    return HTMLResponse("Invalid pipeline data", status_code=400)
+            else:
+                # For regular files, use the file path directly
+                file_path = downloads_base / file
+            
+            # Security check: ensure the resolved path is within downloads directory
+            try:
+                file_path = file_path.resolve()
+                downloads_base = downloads_base.resolve()
+                if not str(file_path).startswith(str(downloads_base)):
+                    return HTMLResponse("Access denied", status_code=403)
+            except Exception:
+                return HTMLResponse("Invalid file path", status_code=400)
+            
+            # Check if file exists
+            if not file_path.exists():
+                return HTMLResponse("File not found", status_code=404)
+            
+            # Serve the file
+            from starlette.responses import FileResponse
+            return FileResponse(
+                file_path,
+                media_type='application/octet-stream',
+                filename=file_path.name
+            )
+            
+        except Exception as e:
+            logging.exception(f"Error serving file {file}: {e}")
+            return HTMLResponse("Internal server error", status_code=500)
 
     # --- STEP_METHODS_INSERTION_POINT ---
 
