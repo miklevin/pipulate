@@ -1358,6 +1358,10 @@ class LinkGraphVisualizer:
                     gsc_df = pd.read_csv(gsc_file)
                     await self.message_queue.add(pip, f'📈 Loaded GSC data: {len(gsc_df):,} rows', verbatim=True)
                     
+                    # Rename 'Full URL' to 'url' for consistent merging
+                    if 'Full URL' in gsc_df.columns:
+                        gsc_df.rename(columns={'Full URL': 'url'}, inplace=True)
+                    
                     # Merge GSC data (left join to preserve all nodes)
                     nodes_df = nodes_df.merge(gsc_df, on='url', how='left')
                     
@@ -1372,6 +1376,10 @@ class LinkGraphVisualizer:
                     weblog_df = pd.read_csv(weblog_file)
                     await self.message_queue.add(pip, f'🌐 Loaded weblog data: {len(weblog_df):,} rows', verbatim=True)
                     
+                    # Rename 'Full URL' to 'url' for consistent merging
+                    if 'Full URL' in weblog_df.columns:
+                        weblog_df.rename(columns={'Full URL': 'url'}, inplace=True)
+                    
                     # Merge weblog data (left join to preserve all nodes)
                     nodes_df = nodes_df.merge(weblog_df, on='url', how='left')
                     
@@ -1380,10 +1388,10 @@ class LinkGraphVisualizer:
             else:
                 await self.message_queue.add(pip, '⚠️ No weblog data found, continuing without crawl data', verbatim=True)
             
-            await self.message_queue.add(pip, '🎨 Engineering visual properties...', verbatim=True)
+            await self.message_queue.add(pip, '📋 Preparing non-destructive metadata for Cosmograph...', verbatim=True)
             
-            # Engineer visual properties for Cosmograph
-            # Fill NaN values with defaults
+            # Non-destructive approach: Keep all original metric names and values
+            # Fill NaN values with defaults only for visualization
             nodes_df = nodes_df.fillna({
                 'Impressions': 0,
                 'Clicks': 0,
@@ -1392,47 +1400,17 @@ class LinkGraphVisualizer:
                 'crawls.google.count': 0
             })
             
-            # Create size property based on clicks (with minimum size)
-            if 'Clicks' in nodes_df.columns:
-                max_clicks = nodes_df['Clicks'].max()
-                if max_clicks > 0:
-                    nodes_df['size'] = (nodes_df['Clicks'] / max_clicks * 20) + 5  # Scale 5-25
-                else:
-                    nodes_df['size'] = 10  # Default size
-            else:
-                nodes_df['size'] = 10  # Default size
-            
-            # Create color property based on impressions (log scale for better distribution)
-            if 'Impressions' in nodes_df.columns:
-                # Use log scale for better color distribution
-                nodes_df['impressions_log'] = np.log1p(nodes_df['Impressions'])  # log(1+x) to handle 0s
-                max_log_impressions = nodes_df['impressions_log'].max()
-                if max_log_impressions > 0:
-                    # Normalize to 0-1 range
-                    nodes_df['color_intensity'] = nodes_df['impressions_log'] / max_log_impressions
-                    # Create color hex codes (blue gradient: light blue to dark blue)
-                    nodes_df['color'] = nodes_df['color_intensity'].apply(
-                        lambda x: f"#{int(255 - x * 200):02x}{int(255 - x * 100):02x}ff"
-                    )
-                else:
-                    nodes_df['color'] = '#cccccc'  # Default gray
-            else:
-                nodes_df['color'] = '#cccccc'  # Default gray
-            
-            # Add label (shortened URL for readability)
-            nodes_df['label'] = nodes_df['url'].apply(lambda x: x.split('/')[-1][:30] if x else '')
-            
             # Create id column as required by Cosmograph (rename url to id)
             nodes_df['id'] = nodes_df['url']
             
-            # Select final columns for Cosmograph (first column must be 'id' per Cosmograph docs)
-            cosmo_columns = ['id', 'label', 'size', 'color']
+            # Non-destructive selection: Keep all original columns, let Cosmograph handle gradients
+            # Start with 'id' as required by Cosmograph, then include all other original columns
+            cosmo_columns = ['id']
             
-            # Add performance metrics if available
-            if 'Impressions' in nodes_df.columns:
-                cosmo_columns.extend(['Impressions', 'Clicks', 'CTR', 'Avg. Position'])
-            if 'crawls.google.count' in nodes_df.columns:
-                cosmo_columns.append('crawls.google.count')
+            # Add all other columns except 'url' (since we renamed it to 'id')
+            for col in nodes_df.columns:
+                if col not in ['id', 'url']:  # Exclude id (already added) and url (renamed to id)
+                    cosmo_columns.append(col)
             
             # Keep only columns that exist
             final_columns = [col for col in cosmo_columns if col in nodes_df.columns]
@@ -1462,8 +1440,8 @@ class LinkGraphVisualizer:
             encoded_links_url = quote(links_url, safe='')
             encoded_nodes_url = quote(nodes_url, safe='')
             
-            # Generate Cosmograph URL using the meta + nodeColor pattern (simpler and proven)
-            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&meta={encoded_nodes_url}&nodeColor=color&link-spring=.03"
+            # Generate Cosmograph URL using the meta pattern (let Cosmograph auto-detect columns)
+            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&meta={encoded_nodes_url}&link-spring=.03"
             
             # Store the result
             visualization_result = {
