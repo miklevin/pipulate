@@ -1443,25 +1443,24 @@ class LinkGraphVisualizer:
             
             await self.message_queue.add(pip, '🚀 Generating Cosmograph visualization URL...', verbatim=True)
             
-            # Generate download URLs for the CSV files
-            base_url = "http://localhost:5001"  # Use the pipulate server base URL
-            links_url = f"{base_url}/downloads/{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_links.csv"
-            nodes_url = f"{base_url}/downloads/{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_nodes.csv"
+            # Generate download URLs for the CSV files using the proper download_file endpoint
             
-            # Create node configuration for Cosmograph
-            node_config = {
-                "nodeLabelAccessor": "label",
-                "nodeSizeAccessor": "size",
-                "nodeColorAccessor": "color"
-            }
+            base_url = "http://localhost:5001"
+            links_path = f"{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_links.csv"
+            nodes_path = f"{app_name}/{username}/{project_name}/{analysis_slug}/cosmo_nodes.csv"
             
-            # URL encode the configuration and data URLs
+            # Create proper download URLs with timestamps (same pattern as _create_action_buttons)
+            timestamp = int(datetime.now().timestamp())
+            links_url = f"{base_url}/download_file?file={quote(links_path)}&t={timestamp}"
+            nodes_url = f"{base_url}/download_file?file={quote(nodes_path)}&t={timestamp}"
+            
+            # Use the simpler Cosmograph pattern that's proven to work (from botifython.py)
+            # URL encode the CSV URLs properly for Cosmograph parameters
             encoded_links_url = quote(links_url, safe='')
             encoded_nodes_url = quote(nodes_url, safe='')
-            encoded_node_config = quote(json.dumps(node_config), safe='')
             
-            # Generate Cosmograph URL
-            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&nodeConfig={encoded_node_config}&nodes={encoded_nodes_url}"
+            # Generate Cosmograph URL using the meta + nodeColor pattern (simpler and proven)
+            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&meta={encoded_nodes_url}&nodeColor=color&link-spring=.03"
             
             # Store the result
             visualization_result = {
@@ -4314,25 +4313,40 @@ await main()
                     )
                     buttons.append(download_button)
 
-                    # For link graph files, also add the Cosmograph visualization button
+                    # For link graph files, add the Cosmograph visualization button
+                    # Check if we have a comprehensive visualization URL from step_05_process first
                     if is_link_graph:
-                        from datetime import datetime
-                        # Create Cosmograph visualization link using the same pattern as botifython.py
-                        # Important: URL-encode the entire data URL to prevent query parameter conflicts
-                        file_url = f"/download_file?file={quote(path_for_url)}"
-                        timestamp = int(datetime.now().timestamp())
-                        data_url = f"http://localhost:5001{file_url}&t={timestamp}"
-                        encoded_data_url = quote(data_url, safe='')
-                        viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                        viz_url = None
+                        
+                        # Try to get the comprehensive visualization URL from step_05_process
+                        if step_id == 'step_05':
+                            try:
+                                step_05_data = step_data.get('step_05_process', '')
+                                if step_05_data:
+                                    visualization_result = json.loads(step_05_data)
+                                    viz_url = visualization_result.get('visualization_url')
+                            except (json.JSONDecodeError, KeyError):
+                                pass
+                        
+                        # Fallback: create simple visualization URL for individual link graph files
+                        if not viz_url:
+                            from datetime import datetime
+                            # Create simple Cosmograph visualization link for individual files
+                            file_url = f"/download_file?file={quote(path_for_url)}"
+                            timestamp = int(datetime.now().timestamp())
+                            data_url = f"http://localhost:5001{file_url}&t={timestamp}"
+                            encoded_data_url = quote(data_url, safe='')
+                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.03"
 
-                        viz_button = A(
-                            self.ui['BUTTON_LABELS']['VISUALIZE_GRAPH'],
-                            href=viz_url,
-                            target="_blank",
-                            role="button",
-                            cls=self.ui['BUTTON_STYLES']['STANDARD']
-                        )
-                        buttons.append(viz_button)
+                        if viz_url:
+                            viz_button = A(
+                                self.ui['BUTTON_LABELS']['VISUALIZE_GRAPH'],
+                                href=viz_url,
+                                target="_blank",
+                                role="button",
+                                cls=self.ui['BUTTON_STYLES']['STANDARD']
+                            )
+                            buttons.append(viz_button)
                 else:
                     logger.debug(f"Expected file not found: {expected_file_path}")
             except Exception as e:
