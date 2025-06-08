@@ -703,19 +703,80 @@ class LinkGraphVisualizer:
         )
 
     async def step_02b(self, request):
-        """Placeholder for step_02b - Node Attributes Download."""
-        # TODO: Implement node attributes download step
-        return Div(P("Step 02b placeholder - Node Attributes"), id='step_02b')
+        """Handles GET request for Node Attributes Download."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_02b'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+        state = pip.read_state(pipeline_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step.done, '')
+        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
+
+        # Phase 1: Finalized view (locked)
+        if 'finalized' in finalize_data and current_value:
+            return Div(
+                Card(H3(f'🔒 {step.show}: Completed')),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        # Phase 2: Completed view (revertible)
+        elif current_value and state.get('_revert_target') != step_id:
+            return Div(
+                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+        # Phase 3: Input view
+        else:
+            await self.message_queue.add(pip, f'❔{pip.fmt(step_id)}: {step.show} - Ready to download node attributes.', verbatim=True)
+            return Div(
+                Card(
+                    H3(f'{step.show}'),
+                    P('Download page-level attributes that will be used for node metadata in the visualization.'),
+                    P('This includes pagetype, compliance status, canonical URLs, and sitemap presence.', cls='text-secondary'),
+                    Form(
+                        Button('Download Node Attributes ▸', type='submit', cls='primary'),
+                        hx_post=f'/{app_name}/{step_id}_submit',
+                        hx_target=f'#{step_id}'
+                    )
+                ),
+                Div(id=next_step_id),  # Empty placeholder, no trigger yet
+                id=step_id
+            )
 
     async def step_02b_submit(self, request):
-        """Placeholder for step_02b submit handler."""
-        # TODO: Implement node attributes download submit logic
-        return Div(P("Step 02b submit placeholder"), id='step_02b')
+        """Process the Node Attributes download submission."""
+        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        step_id = 'step_02b'
+        step_index = self.steps_indices[step_id]
+        step = steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        pipeline_id = db.get('pipeline_id', 'unknown')
+
+        # For now, simulate completion with placeholder data
+        await self.message_queue.add(pip, '📊 Node attributes download started...', verbatim=True)
+        
+        # TODO: Implement actual download logic
+        placeholder_result = 'Node attributes download placeholder - completed'
+        await pip.set_step_data(pipeline_id, step_id, placeholder_result, steps)
+        
+        await self.message_queue.add(pip, '✅ Node attributes download complete.', verbatim=True)
+
+        return Div(
+            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Complete', steps=steps),
+            Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+            id=step_id
+        )
 
     async def step_02b_process(self, request):
-        """Placeholder for step_02b process handler.""" 
-        # TODO: Implement node attributes download processing
-        return Div(P("Step 02b process placeholder"), id='step_02b')
+        """Background processing for Node Attributes download."""
+        # TODO: Implement background processing if needed
+        pip, db, app_name = (self.pipulate, self.db, self.app_name)
+        step_id = 'step_02b'
+        return Div(P('Node attributes processing...'), id=step_id)
 
     async def step_03(self, request):
         """Handles GET request for checking if a Botify project has web logs."""
