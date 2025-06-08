@@ -33,12 +33,14 @@ FILES_TO_INCLUDE_RAW = """\
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
 # CORE FILES (Background for the story)
-# README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-# requirements.txt <-- Python package dependencies for the project
+README.md        <-- Main GitHub README sets the tone
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
+/home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
+/home/mike/repos/pipulate/helpers/botify/botify_api.ipynb
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
@@ -67,13 +69,14 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
 # /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
-## MOST OTHER PLUGINS
-/home/mike/repos/pipulate/plugins/910_blank_placeholder.py
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py
-/home/mike/repos/pipulate/plugins/420_botify_trifecta.py
-/home/mike/repos/pipulate/plugins/510_text_field.py
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py
+## WORKFLOW TEMPLATE PLUGINS AND TEMPLATING PLUGIN
+# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
+# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
 
+## MOST OTHER PLUGINS
+# /home/mike/repos/pipulate/plugins/510_text_field.py
 # /home/mike/repos/pipulate/plugins/210_widget_examples.py
 # /home/mike/repos/pipulate/plugins/010_introduction.py
 # /home/mike/repos/pipulate/plugins/050_documentation.py
