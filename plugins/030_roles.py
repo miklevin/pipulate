@@ -372,7 +372,37 @@ def get_plugin_list():
                 spec.loader.exec_module(module)
 
                 plugin_roles = getattr(module, 'ROLES', [])
-                display_name = getattr(module, 'DISPLAY_NAME', file_path.stem.replace('_', ' ').title())
+                
+                # Look for DISPLAY_NAME in classes first (more common pattern)
+                display_name = None
+                for name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj) and hasattr(obj, 'DISPLAY_NAME'):
+                        display_name_attr = getattr(obj, 'DISPLAY_NAME', None)
+                        # Handle both properties and direct attributes
+                        if isinstance(display_name_attr, property):
+                            # For CRUD apps with property-based DISPLAY_NAME, replicate the logic
+                            try:
+                                # Check if it's a PluginIdentityManager subclass
+                                if hasattr(obj, 'EMOJI'):
+                                    # Replicate the PluginIdentityManager.DISPLAY_NAME property logic
+                                    # Get the module filename and process it like PluginIdentityManager does
+                                    filename = file_path.name.replace('.py', '')
+                                    name = re.sub(r'^\d+_', '', filename)  # Remove numeric prefix
+                                    display_name = title_name(name)  # Use the same title_name function
+                                    
+                                    emoji = getattr(obj, 'EMOJI', '')
+                                    if emoji:
+                                        display_name = f"{emoji} {display_name}"
+                                    break
+                            except:
+                                continue
+                        elif display_name_attr and isinstance(display_name_attr, str):
+                            display_name = display_name_attr
+                            break
+                
+                # Fallback to module-level DISPLAY_NAME or filename-based name
+                if not display_name:
+                    display_name = getattr(module, 'DISPLAY_NAME', file_path.stem.replace('_', ' ').title())
 
                 plugins.append({
                     'filename': file_path.name,
@@ -425,25 +455,22 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
             style="margin-top: 0.5rem;"
         )
 
-    # Create discrete plugin links with real emojis
+    # Create discrete plugin links using display names as-is
     plugin_items = []
     for plugin in affected_plugins:
         module_name = plugin['module_name']
         display_name = plugin['display_name']
-
-        # Get real plugin emoji
-        plugin_emoji = get_plugin_emoji(module_name)
 
         # Create navigation link - strip numeric prefix for URL
         import re
         clean_module_name = re.sub(r'^\d+_', '', module_name)
         plugin_url = f"/redirect/{clean_module_name}"
 
-        # Create discrete plugin item with real emoji and smaller font
+        # Use display name as-is without adding extra emojis
         plugin_items.append(
             Li(
                 A(
-                    f"{plugin_emoji} {display_name}",
+                    display_name,
                     href=plugin_url,
                     style="text-decoration: none; color: inherit; display: block; padding: 0.25rem 0; font-size: 0.9em;",
                     onmouseover="this.style.textDecoration = 'underline';",
