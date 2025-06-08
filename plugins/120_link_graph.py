@@ -2258,7 +2258,7 @@ await main()
                         'periods': [[start_date, end_date]],
                         'query': template_query
                     },
-                    'export_size': 10000,
+                    'export_size': 1000000,  # Use Botify's actual 1M row limit for GSC
                     'formatter': 'csv',
                     'connector': 'direct_download',
                     'formatter_config': {'print_header': True, 'print_delimiter': True},
@@ -2347,7 +2347,7 @@ await main()
                     'project': project_name,
                     'connector': 'direct_download',
                     'formatter': 'csv',
-                    'export_size': 10000,
+                    'export_size': 1000000,  # Use Botify's actual 1M row limit instead of 10K
                     'query': bql_query,
                     'formatter_config': {'print_header': True}
                 }
@@ -2658,7 +2658,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': 10000,
+                        'export_size': 1000000,  # Use Botify's actual 1M row limit for crawl exports
                         'query': {
                             'collections': [collection],
                             'query': template_query
@@ -2711,7 +2711,7 @@ await main()
                         'project': project_name,
                         'connector': 'direct_download',
                         'formatter': 'csv',
-                        'export_size': 10000,
+                        'export_size': 1000000,  # Use Botify's actual 1M row limit for crawl exports
                         'query': {
                             'collections': [collection],
                             'query': template_query
