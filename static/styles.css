@@ -204,7 +204,7 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    background-color: var(--pico-background-color);
+    background-color: color-mix(in srgb, var(--pico-background-color) 75%, black);
 }
 
 /* Headline Size Adjustments */
@@ -524,6 +524,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .message p {
     margin: 0 !important;
     padding: 0 !important;
+    line-height: normal;
 }
 
 .message ul, 
