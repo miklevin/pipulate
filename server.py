@@ -2002,9 +2002,10 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
 
 class Chat:
 
-    def __init__(self, app, id_suffix=''):
+    def __init__(self, app, id_suffix='', pipulate_instance=None):
         self.app = app
         self.id_suffix = id_suffix
+        self.pipulate_instance = pipulate_instance
         self.logger = logger.bind(name=f'Chat{id_suffix}')
         self.active_websockets = set()
         self.startup_messages = []  # Store startup messages to replay when first client connects
@@ -2089,12 +2090,13 @@ class Chat:
         finally:
             self.active_websockets.discard(websocket)
             self.logger.debug('WebSocket connection closed')
-chat = Chat(app, id_suffix='')
-app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
+
 pipulate = Pipulate(pipeline)
+app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
 if not os.path.exists('plugins'):
     os.makedirs('plugins')
     logger.debug('Created plugins directory')
+chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {}
