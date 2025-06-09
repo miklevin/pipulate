@@ -3143,7 +3143,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         ),
         Div(
             Button(
-                Img(src='/static/feather/arrow-up-circle.svg', alt='Run', style='width: 20px; height: 20px;'),
+                Img(src='/static/feather/arrow-up-circle.svg', alt='Run', style='width: 30px; height: 30px; filter: invert(1);'),
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
