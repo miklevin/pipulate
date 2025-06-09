@@ -311,4 +311,19 @@ function linkifyText(text) {
     return text.replace(urlRegex, function(url) {
         return '<a href="' + url + '" target="_blank">' + url + '</a>';
     });
+}
+
+// Initialize the splitter for layout resizing
+function initializeSplitter(elements, options) {
+    if (window.Split && elements.length >= 2) {
+        // Verify elements exist
+        const elementsExist = elements.every(selector => document.querySelector(selector));
+        if (elementsExist) {
+            return window.Split(elements, options);
+        } else {
+            console.warn('Split.js: One or more elements not found:', elements);
+        }
+    } else {
+        console.warn('Split.js library not loaded or insufficient elements provided');
+    }
 } 

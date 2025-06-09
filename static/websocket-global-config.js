@@ -187,6 +187,29 @@ function updateStreamingUI(streaming) {
         input.placeholder = 'Chat...';
         input.focus();
     }
+    updateChatIcon();
+}
+
+// Initialize chat interface icons and state
+function initializeChatInterface() {
+    updateStreamingUI(false);
+    updateChatIcon();
+}
+
+// Update chat button icons based on streaming state
+function updateChatIcon() {
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    
+    if (!sendBtn || !stopBtn) return;
+    
+    if (isStreaming) {
+        sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
+        stopBtn.style.display = 'block';
+    } else {
+        sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
+        stopBtn.style.display = 'none';
+    }
 }
 
 window.stopSidebarStream = function() {
@@ -221,8 +244,36 @@ window.sendSidebarMessage = function(event) {
     }
 }
 
+// Scroll utilities for the main grid
+function scrollToTop() {
+    const container = document.querySelector(".main-grid > div:first-child");
+    if (container) {
+        container.scrollTo({top: 0, behavior: "smooth"});
+    }
+}
+
+function checkScrollHeight() {
+    const container = document.querySelector('.main-grid > div:first-child');
+    const scrollLink = document.getElementById('scroll-to-top-link');
+    if (container && scrollLink) {
+        const isScrollable = container.scrollHeight > container.clientHeight;
+        scrollLink.style.display = isScrollable ? 'block' : 'none';
+    }
+}
+
+function initializeScrollObserver() {
+    // Check on load and when content changes
+    window.addEventListener('load', checkScrollHeight);
+    const observer = new MutationObserver(checkScrollHeight);
+    const container = document.querySelector('.main-grid > div:first-child');
+    if (container) {
+        observer.observe(container, { childList: true, subtree: true });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    updateStreamingUI(false);
+    initializeChatInterface();
+    initializeScrollObserver();
     if (tempMessage) {
         console.log('Sidebar sending verbatim:', tempMessage);
         const messageWithNewline = tempMessage + '';

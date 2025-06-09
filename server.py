@@ -3071,17 +3071,13 @@ async def create_outer_container(current_profile_id, menux, request):
     init_splitter_script = Script("""
         document.addEventListener('DOMContentLoaded', function() {
             if (window.initializeSplitter) {
-                // Selectors for the two columns
                 const elements = ['#grid-left-content', '#chat-interface'];
-                
-                // Default options
                 const options = {
-                    sizes: [65, 35],      // Default layout: 65% / 35%
-                    minSize: [400, 300],  // Minimum width in pixels for each pane
-                    gutterSize: 10,       // Width of the draggable gutter
-                    cursor: 'col-resize'  // Cursor to show on hover
+                    sizes: [65, 35],
+                    minSize: [400, 300],
+                    gutterSize: 10,
+                    cursor: 'col-resize'
                 };
-                
                 initializeSplitter(elements, options);
             }
         });
@@ -3162,10 +3158,7 @@ async def create_grid_left(menux, request, render_items=None):
     scroll_to_top = Div(
         A('↑ Scroll To Top', 
           href='javascript:void(0)',
-          onclick='''
-            const container = document.querySelector(".main-grid > div:first-child");
-            container.scrollTo({top: 0, behavior: "smooth"});
-          ''',
+          onclick='scrollToTop()',
           style='text-decoration: none'
         ),
         style=(
@@ -3178,30 +3171,9 @@ async def create_grid_left(menux, request, render_items=None):
         id='scroll-to-top-link'
     )
 
-    # Create scroll height check script
-    scroll_check_script = Script("""
-        function checkScrollHeight() {
-            const container = document.querySelector('.main-grid > div:first-child');
-            const scrollLink = document.getElementById('scroll-to-top-link');
-            if (container && scrollLink) {
-                const isScrollable = container.scrollHeight > container.clientHeight;
-                scrollLink.style.display = isScrollable ? 'block' : 'none';
-            }
-        }
-        
-        // Check on load and when content changes
-        window.addEventListener('load', checkScrollHeight);
-        const observer = new MutationObserver(checkScrollHeight);
-        const container = document.querySelector('.main-grid > div:first-child');
-        if (container) {
-            observer.observe(container, { childList: true, subtree: true });
-        }
-    """)
-
     return Div(
         content_to_render,
         scroll_to_top,
-        scroll_check_script,
         id='grid-left-content'
     )
 
@@ -3221,25 +3193,7 @@ def create_chat_interface(autofocus=False):
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script("""
-        // Listen for streaming state changes and update the icon
-        const sendBtn = document.getElementById('send-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const isStreaming = false; // This should be updated based on the actual streaming state
-
-        function updateIcon() {
-            if (isStreaming) {
-                sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
-                stopBtn.style.display = 'block';
-            } else {
-                sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
-                stopBtn.style.display = 'none';
-            }
-        }
-
-        // Call updateIcon initially
-        updateIcon();
-    """)), id='chat-interface', style='overflow: hidden')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface', style='overflow: hidden')
 
 # Global variable to track streaming state
 is_streaming = False
@@ -3292,7 +3246,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
             style='display: flex; justify-content: flex-end;',
         ),
         id='input-group',
-        style='display: flex; flex-direction: column; width: 100%; margin-bottom: 0px; padding-right: 20px;',
+        style='display: flex; flex-direction: column; width: 100%; margin-bottom: 0px; padding-right: .5vw;',
     )
 
 def create_poke_button():

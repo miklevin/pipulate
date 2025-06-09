@@ -379,7 +379,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     height: calc(100% - var(--nav-group-actual-height) - var(--space-sm));
     overflow: hidden;
     padding-top: var(--space-sm);
-    width: 98%;
+    width: 100%;
 }
 
 .main-grid > div {
@@ -406,6 +406,10 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 }
 
 /* Grid Left Content */
+#grid-left-content {
+    margin-right: 1vw;
+}
+
 #grid-left-content > main.container {
     padding: 0 !important;
     margin: 0 !important;
@@ -419,6 +423,7 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     flex-direction: column;
     height: 100%;
     width: 100%;
+    margin-left: 1vw;
 }
 
 #chat-interface > article.card {
