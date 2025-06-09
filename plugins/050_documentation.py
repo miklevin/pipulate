@@ -40,6 +40,10 @@ class DocumentationPlugin:
         # Register route for serving raw markdown content
         app.route('/docs/raw/{doc_key}', methods=['GET'])(self.serve_raw_markdown)
 
+        # Register botify_open_api endpoints (baby step, copy pattern)
+        app.route('/docs/botify_open_api', methods=['GET'])(self.serve_botify_open_api_toc)
+        app.route('/docs/botify_open_api/page/{page_num}', methods=['GET'])(self.serve_botify_open_api_page)
+
     def discover_documentation_files(self):
         """Dynamically discover all documentation files from training and rules directories"""
         docs = {}
@@ -2722,3 +2726,75 @@ class DocumentationPlugin:
         except Exception as e:
             logger.error(f"Error serving botify_api page {page_num}: {str(e)}")
             return HTMLResponse(f"Error loading page: {str(e)}", status_code=500)
+
+    def parse_botify_open_api_pages(self, content):
+        """Parse the botify_open_api.md content into pages separated by 80 hyphens"""
+        pages = []
+        current_page = []
+        lines = content.split('\n')
+        for line in lines:
+            if line.strip() == '-' * 80:
+                if current_page:
+                    pages.append('\n'.join(current_page))
+                    current_page = []
+            else:
+                current_page.append(line)
+        if current_page:
+            pages.append('\n'.join(current_page))
+        return pages
+
+    def extract_botify_open_api_toc(self, pages):
+        """Extract table of contents from botify_open_api pages"""
+        toc = []
+        for page_num, page_content in enumerate(pages, 1):
+            lines = page_content.split('\n')
+            page_title = f"Page {page_num}"
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not line.startswith('```'):
+                    page_title = line[2:].strip()
+                    break
+            description = ""
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#') and not line.startswith('```') and len(line) > 20:
+                    description = line[:100] + ('...' if len(line) > 100 else '')
+                    break
+            toc.append({
+                'page_num': page_num,
+                'title': page_title,
+                'description': description or "Documentation content"
+            })
+        return toc
+
+    async def serve_botify_open_api_toc(self, request):
+        """Serve the table of contents for botify_open_api.md"""
+        from starlette.responses import HTMLResponse
+        from pathlib import Path
+        file_path = Path('training/botify_open_api.md')
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        content = file_path.read_text(encoding='utf-8')
+        pages = self.parse_botify_open_api_pages(content)
+        toc = self.extract_botify_open_api_toc(pages)
+        toc_items = []
+        for item in toc:
+            toc_items.append(f'''<div class="toc-item"><h3><a href="/docs/botify_open_api/page/{item['page_num']}">{item['title']}</a></h3><p class="toc-description">{item['description']}</p><span class="page-number">Page {item['page_num']} of {len(pages)}</span></div>''')
+        page_html = f"""<!DOCTYPE html><html><head><title>Botify Open API Documentation - Table of Contents</title></head><body><h1>Botify Open API Documentation</h1>{''.join(toc_items)}</body></html>"""
+        return HTMLResponse(page_html)
+
+    async def serve_botify_open_api_page(self, request):
+        from starlette.responses import HTMLResponse
+        from pathlib import Path
+        page_num = int(request.path_params.get('page_num', 1))
+        file_path = Path('training/botify_open_api.md')
+        if not file_path.exists():
+            return HTMLResponse("File not found", status_code=404)
+        content = file_path.read_text(encoding='utf-8')
+        pages = self.parse_botify_open_api_pages(content)
+        if page_num < 1 or page_num > len(pages):
+            return HTMLResponse("Page not found", status_code=404)
+        page_content = pages[page_num - 1]
+        html_content = self.markdown_to_html(page_content)
+        page_html = f"""<!DOCTYPE html><html><head><title>Botify Open API - Page {page_num}</title></head><body><h1>Botify Open API - Page {page_num}</h1>{html_content}</body></html>"""
+        return HTMLResponse(page_html)
