@@ -40,7 +40,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/plugins/120_link_graph.py
+# /home/mike/repos/pipulate/plugins/120_link_graph.py
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
@@ -71,7 +71,7 @@ server.py        <-- Main server file for the project
 
 ## WORKFLOW TEMPLATE PLUGINS AND TEMPLATING PLUGIN
 # /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
+/home/mike/repos/pipulate/plugins/040_hello_workflow.py
 # /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
 
@@ -119,10 +119,10 @@ server.py        <-- Main server file for the project
 
 ## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
 # /home/mike/repos/pipulate/static/alice.txt
-# /home/mike/repos/pipulate/static/styles.css
-# /home/mike/repos/pipulate/static/websocket-global-config.js
-# /home/mike/repos/pipulate/static/sortable-parameterized-init.js
-# /home/mike/repos/pipulate/static/widget-scripts.js
+/home/mike/repos/pipulate/static/styles.css
+/home/mike/repos/pipulate/static/websocket-global-config.js
+/home/mike/repos/pipulate/static/sortable-parameterized-init.js
+/home/mike/repos/pipulate/static/widget-scripts.js
 
 ## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.
 # /home/mike/repos/pipulate/static/marked.min.js
@@ -133,9 +133,9 @@ server.py        <-- Main server file for the project
 
 ## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
 # /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/manage_class_attributes.py
-/home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/manage_class_attributes.py
+# /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
 # DEVELOPER TOOLS

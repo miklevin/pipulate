@@ -893,7 +893,7 @@ class DocumentationPlugin:
                     open_api_info = self.DOCS['botify_open_api']
                     html_parts.append(f'''
                         <li class="tree-item">
-                            <a href="/docs/botify_open_api" class="tree-link featured">
+                            <a href="/docs/botify_open_api/page/1" class="tree-link featured">
                                 Botify Open API Swagger Examples (Paginated)
                             </a>
                             <div class="tree-description">{open_api_info["description"]}</div>
@@ -2504,9 +2504,15 @@ class DocumentationPlugin:
             for item in toc:
                 toc_items.append(f'''
                     <div class="toc-item">
-                        <h3><a href="/docs/botify_open_api/page/{item['page_num']}">{item['title']}</a></h3>
+                        <div class="toc-header">
+                            <h3>{item['title']}</h3>
+                            <a href="/docs/botify_open_api/page/{item['page_num']}" class="view-page-btn">View Page {item['page_num']}</a>
+                        </div>
                         <p class="toc-description">{item['description']}</p>
-                        <span class="page-number">Page {item['page_num']} of {len(pages)}</span>
+                        <div class="toc-footer">
+                            <span class="page-number">📄 Page {item['page_num']} of {len(pages)}</span>
+                            <a href="/docs/botify_open_api/page/{item['page_num']}" class="page-link">Read this page →</a>
+                        </div>
                     </div>
                 ''')
 
@@ -2591,27 +2597,59 @@ class DocumentationPlugin:
             background-color: #f8f9fa;
         }}
 
-        .toc-item h3 {{
-            margin: 0 0 10px 0;
+        .toc-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }}
 
-        .toc-item h3 a {{
-            color: #0066cc;
+        .toc-header h3 {{
+            margin: 0;
+            color: #333;
+        }}
+
+        .view-page-btn {{
+            display: inline-block;
+            padding: 8px 16px;
+            background: #0066cc;
+            color: white;
             text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
         }}
 
-        .toc-item h3 a:hover {{
-            text-decoration: underline;
+        .view-page-btn:hover {{
+            background: #0052a3;
+            text-decoration: none;
         }}
 
         .toc-description {{
             color: #666;
-            margin: 0 0 10px 0;
+            margin: 0 0 15px 0;
+        }}
+
+        .toc-footer {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
         }}
 
         .page-number {{
-            font-size: 0.9em;
             color: #6c757d;
+            font-weight: 500;
+        }}
+
+        .page-link {{
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .page-link:hover {{
+            text-decoration: underline;
         }}
 
         .navigation {{
@@ -2633,6 +2671,20 @@ class DocumentationPlugin:
         .nav-button:hover {{
             background: #0052a3;
             text-decoration: none;
+        }}
+
+        @media (max-width: 768px) {{
+            .toc-header {{
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }}
+
+            .toc-footer {{
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }}
         }}
     </style>
 </head>

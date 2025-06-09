@@ -545,6 +545,7 @@ def append_to_conversation(message=None, role='user'):
     1. Ensuring a system message exists at the start of history
     2. Appending new messages with specified roles
     3. Maintaining conversation length limits via deque maxlen
+    4. Preventing duplicate consecutive messages
 
     Args:
         message (str, optional): The message content to append. If None, returns current history.
@@ -555,6 +556,11 @@ def append_to_conversation(message=None, role='user'):
     """
     if message is None:
         return list(global_conversation_history)
+    
+    # Check if this would be a duplicate of the last message
+    if global_conversation_history and global_conversation_history[-1]['content'] == message and global_conversation_history[-1]['role'] == role:
+        return list(global_conversation_history)
+        
     needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
     if needs_system_message:
         global_conversation_history.appendleft(conversation[0])
