@@ -3118,7 +3118,7 @@ def create_chat_interface(autofocus=False):
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
-    Create a chat input group with a textarea input and send/stop buttons.
+    Create a chat input group with a textarea input and run/stop buttons in a modern chatbot layout.
 
     Args:
         disabled (bool): Whether the input group should be disabled.
@@ -3126,7 +3126,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         autofocus (bool): Whether the input field should autofocus.
 
     Returns:
-        Group: An HTML group containing the chat textarea and buttons.
+        Group: An HTML group containing the chat textarea and buttons in a modern layout.
     """
     return Group(
         Textarea(
@@ -3136,24 +3136,29 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
             placeholder='Chat...',
             disabled=disabled,
             autofocus='autofocus' if autofocus else None,
-            style='min-height: 100px; width: 100%; padding: 8px;',
+            style='min-height: 100px; width: 100%; padding: 8px; margin-bottom: 8px;',
             required=True,
             aria_required='true',
         ),
-        Button(
-            "Send",
-            type='submit',
-            id='send-btn',
-            disabled=disabled,
+        Div(
+            Button(
+                "▶️",
+                type='submit',
+                id='send-btn',
+                disabled=disabled,
+                style='background-color: var(--pico-primary); padding: 0.5rem 1rem;',
+            ),
+            Button(
+                "⏹️",
+                type='button',
+                id='stop-btn',
+                disabled=True,  # Disabled by default until we implement stop functionality
+                style='background-color: var(--pico-del-color); padding: 0.5rem 1rem; display: none;',
+            ),
+            style='display: flex; justify-content: flex-end; gap: 8px;',
         ),
-        Button(
-            "⏹️",
-            type='button',
-            id='stop-btn',
-            disabled=True,  # Disabled by default until we implement stop functionality
-            style='background-color: var(--pico-del-color); padding: 0 0.5rem;',
-        ),
-        id='input-group'
+        id='input-group',
+        style='display: flex; flex-direction: column; width: 100%;',
     )
 
 def create_poke_button():
