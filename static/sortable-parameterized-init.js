@@ -288,6 +288,22 @@ function setupInteractions() {
             }
         }
     });
+
+    // Add Enter/Shift+Enter handling for chat textarea
+    const textarea = document.getElementById('msg');
+    if (textarea) {
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                // Find the form and submit it
+                var form = textarea.closest('form');
+                if (form) {
+                    form.requestSubmit ? form.requestSubmit() : form.submit();
+                }
+            }
+            // else allow Shift+Enter for newline
+        });
+    }
 }
 
 function linkifyText(text) {

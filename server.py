@@ -3114,26 +3114,8 @@ def create_chat_interface(autofocus=False):
         temp_message = db['temp_message']
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
-    # Add script for Enter/Shift+Enter handling (no <script> tags)
-    enter_script = '''
-    document.addEventListener('DOMContentLoaded', function() {
-        var textarea = document.getElementById('msg');
-        if (textarea) {
-            textarea.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    // Find the form and submit it
-                    var form = textarea.closest('form');
-                    if (form) {
-                        form.requestSubmit ? form.requestSubmit() : form.submit();
-                    }
-                }
-                // else allow Shift+Enter for newline
-            });
-        }
-    });
-    '''
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script(enter_script)), id='chat-interface', style='overflow: hidden')
+    # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden')
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
