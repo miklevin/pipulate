@@ -1952,7 +1952,53 @@ class BaseCrud:
 
     def prepare_update_data(self, form):
         raise NotImplementedError('Subclasses must implement prepare_update_data')
-app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(DB_FILENAME, exts='ws', live=True, default_hdrs=False, hdrs=(Meta(charset='utf-8'), Link(rel='stylesheet', href='/static/pico.css'), Link(rel='stylesheet', href='/static/prism.css'), Link(rel='stylesheet', href='/static/rich-table.css'), Script(src='/static/htmx.js'), Script(src='/static/fasthtml.js'), Script(src='/static/surreal.js'), Script(src='/static/script.js'), Script(src='/static/Sortable.js'), Script(src='/static/mermaid.min.js'), Script(src='/static/marked.min.js'), Script(src='/static/prism.js'), Script(src='/static/widget-scripts.js'), create_chat_scripts('.sortable'), Script(type='module')), store={'key': str, 'value': str, 'pk': 'key'}, profile={'id': int, 'name': str, 'real_name': str, 'address': str, 'code': str, 'active': bool, 'priority': int, 'pk': 'id'}, pipeline={'pkey': str, 'app_name': str, 'data': str, 'created': str, 'updated': str, 'pk': 'pkey'})
+# Initialize FastApp with database and configuration
+app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
+    DB_FILENAME,
+    exts='ws',
+    live=True,
+    default_hdrs=False,
+    hdrs=(
+        Meta(charset='utf-8'),
+        Link(rel='stylesheet', href='/static/pico.css'),
+        Link(rel='stylesheet', href='/static/prism.css'),
+        Link(rel='stylesheet', href='/static/rich-table.css'),
+        Script(src='/static/htmx.js'),
+        Script(src='/static/fasthtml.js'),
+        Script(src='/static/surreal.js'),
+        Script(src='/static/script.js'),
+        Script(src='/static/Sortable.js'),
+        Script(src='/static/mermaid.min.js'),
+        Script(src='/static/marked.min.js'),
+        Script(src='/static/prism.js'),
+        Script(src='/static/widget-scripts.js'),
+        create_chat_scripts('.sortable'),
+        Script(type='module')
+    ),
+    store={
+        'key': str,
+        'value': str,
+        'pk': 'key'
+    },
+    profile={
+        'id': int,
+        'name': str,
+        'real_name': str,
+        'address': str,
+        'code': str,
+        'active': bool,
+        'priority': int,
+        'pk': 'id'
+    },
+    pipeline={
+        'pkey': str,
+        'app_name': str,
+        'data': str,
+        'created': str,
+        'updated': str,
+        'pk': 'pkey'
+    }
+)
 
 class Chat:
 

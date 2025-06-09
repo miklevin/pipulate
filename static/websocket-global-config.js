@@ -96,10 +96,20 @@ sidebarWs.onmessage = function(event) {
     }
     sidebarCurrentMessage.dataset.rawText += event.data;
     
+    // Debug logging for marked.js
+    console.log('marked.js available:', typeof marked !== 'undefined');
+    if (typeof marked !== 'undefined') {
+        console.log('marked.parse available:', typeof marked.parse === 'function');
+        console.log('Current raw text:', sidebarCurrentMessage.dataset.rawText);
+    }
+    
     // Render the accumulated Markdown
     if (typeof marked !== 'undefined') {
         try {
-            sidebarCurrentMessage.innerHTML = marked.parse(sidebarCurrentMessage.dataset.rawText);
+            // Use marked.parse() to render the accumulated markdown
+            const renderedHtml = marked.parse(sidebarCurrentMessage.dataset.rawText);
+            console.log('Rendered HTML:', renderedHtml);
+            sidebarCurrentMessage.innerHTML = renderedHtml;
             
             // Apply syntax highlighting if Prism is available
             if (typeof Prism !== 'undefined') {
@@ -112,6 +122,7 @@ sidebarWs.onmessage = function(event) {
         }
     } else {
         // Fallback to plain text if marked.js is not available
+        console.error('marked.js is not available');
         sidebarCurrentMessage.textContent = sidebarCurrentMessage.dataset.rawText;
     }
     
