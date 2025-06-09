@@ -557,9 +557,12 @@ def append_to_conversation(message=None, role='user'):
     if message is None:
         return list(global_conversation_history)
     
-    # Check if this would be a duplicate of the last message
-    if global_conversation_history and global_conversation_history[-1]['content'] == message and global_conversation_history[-1]['role'] == role:
-        return list(global_conversation_history)
+    # Check if this would be a duplicate of any of the last 3 messages to prevent rapid duplicates
+    if global_conversation_history:
+        recent_messages = list(global_conversation_history)[-3:]  # Check last 3 messages
+        for recent_msg in recent_messages:
+            if recent_msg['content'] == message and recent_msg['role'] == role:
+                return list(global_conversation_history)
         
     needs_system_message = len(global_conversation_history) == 0 or global_conversation_history[0]['role'] != 'system'
     if needs_system_message:
@@ -3774,26 +3777,26 @@ async def send_startup_environment_message():
         
         # Send endpoint message if available (only if no temp_message to avoid duplication)
         if 'temp_message' not in db:
-            endpoint_message = build_endpoint_messages(current_endpoint)
-            if endpoint_message:
-                await asyncio.sleep(1)  # Brief pause between messages
-                
-                # Retry logic for endpoint message too
-                for attempt in range(max_retries):
+            # Create a unique session key that includes environment to prevent cross-environment duplication
+            current_env = get_current_environment()
+            session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
+            
+            # Check if we've already sent this endpoint message for this environment session
+            if session_key not in db:
+                endpoint_message = build_endpoint_messages(current_endpoint)
+                if endpoint_message:
+                    await asyncio.sleep(1)  # Brief pause between messages
+                    
+                    # Try to send the endpoint message only once per environment session
                     try:
                         await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
-                        logger.debug(f"Successfully sent endpoint message (attempt {attempt + 1})")
-                        # Mark startup endpoint message as sent
-                        session_key = f'endpoint_message_sent_{current_endpoint}'
+                        logger.debug(f"Successfully sent endpoint message for {current_endpoint} in {current_env} mode")
+                        # Mark startup endpoint message as sent for this environment
                         db[session_key] = 'sent'
-                        break
                     except Exception as e:
-                        logger.warning(f"Failed to send endpoint message (attempt {attempt + 1}/{max_retries}): {e}")
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(2)  # Wait before retry
-                        else:
-                            # Don't raise here - endpoint message is less critical than startup message
-                            logger.error(f"Failed to send endpoint message after {max_retries} attempts: {e}")
+                        logger.warning(f"Failed to send endpoint message for {current_endpoint}: {e}")
+            else:
+                logger.debug(f"Endpoint message for {current_endpoint} in {current_env} mode already sent this session, skipping")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
