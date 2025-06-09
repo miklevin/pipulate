@@ -3111,42 +3111,99 @@ def get_workflow_instance(workflow_name):
     return plugin_instances.get(workflow_name)
 
 async def create_grid_left(menux, request, render_items=None):
+    """Create the left grid content based on the selected menu item.
+    
+    Args:
+        menux: The selected menu item key
+        request: The HTTP request object
+        render_items: Optional items to render (unused)
+        
+    Returns:
+        Div: Container with the rendered content and scroll controls
+    """
     content_to_render = None
     profiles_plugin_key = 'profiles'
-    if menux:
-        if menux == profiles_plugin_key:
-            profiles_instance = plugin_instances.get(profiles_plugin_key)
-            if profiles_instance:
-                content_to_render = await profiles_instance.landing(request)
-            else:
-                logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
-                content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
 
+    # Handle profiles plugin selection
+    if menux == profiles_plugin_key:
+        profiles_instance = plugin_instances.get(profiles_plugin_key)
+        if profiles_instance:
+            content_to_render = await profiles_instance.landing(request)
         else:
-            workflow_instance = get_workflow_instance(menux)
-            if workflow_instance:
-                if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
-                    logger.debug(f'Selected plugin {menux} has roles: {workflow_instance.ROLES}')
-                content_to_render = await workflow_instance.landing(request)
+            logger.error(f"Plugin '{profiles_plugin_key}' not found in plugin_instances for create_grid_left.")
+            content_to_render = Card(H3('Error'), P(f"Plugin '{profiles_plugin_key}' not found."))
+    
+    # Handle workflow plugin selection
+    elif menux:
+        workflow_instance = get_workflow_instance(menux)
+        if workflow_instance:
+            if hasattr(workflow_instance, 'ROLES') and DEBUG_MODE:
+                logger.debug(f'Selected plugin {menux} has roles: {workflow_instance.ROLES}')
+            content_to_render = await workflow_instance.landing(request)
+    
+    # Handle homepage (no menu selection)
     else:
-        # New homepage: serve the Roles plugin
         roles_instance = plugin_instances.get('roles')
         if roles_instance:
             content_to_render = await roles_instance.landing(request)
         else:
             logger.error("Roles plugin not found for homepage. Showing welcome message.")
             content_to_render = Card(H3('Welcome'), P('Roles plugin not found. Please check your plugin configuration.'))
+
+    # Fallback content if nothing was rendered
     if content_to_render is None:
-        content_to_render = Card(H3('Welcome'), P('Select an option from the menu to begin.'), style='min-height: 400px')
-    scroll_to_top = Div(A('↑ Scroll To Top', href='javascript:void(0)', onclick='\n            const container = document.querySelector(".main-grid > div:first-child");\n            container.scrollTo({top: 0, behavior: "smooth"});\n          ', style='text-decoration: none'), style=(
-        'border-top: 1px solid var(--pico-muted-border-color); ',
-        'display: none; ',
-        'margin-top: 20px; ',
-        'padding: 10px; ',
-        'text-align: center'
-    ), id='scroll-to-top-link')
-    scroll_check_script = Script("\n        function checkScrollHeight() {\n            const container = document.querySelector('.main-grid > div:first-child');\n            const scrollLink = document.getElementById('scroll-to-top-link');\n            if (container && scrollLink) {\n                const isScrollable = container.scrollHeight > container.clientHeight;\n                scrollLink.style.display = isScrollable ? 'block' : 'none';\n            }\n        }\n        // Check on load and when content changes\n        window.addEventListener('load', checkScrollHeight);\n        const observer = new MutationObserver(checkScrollHeight);\n        const container = document.querySelector('.main-grid > div:first-child');\n        if (container) {\n            observer.observe(container, { childList: true, subtree: true });\n        }\n    ")
-    return Div(content_to_render, scroll_to_top, scroll_check_script, id='grid-left-content')
+        content_to_render = Card(
+            H3('Welcome'), 
+            P('Select an option from the menu to begin.'), 
+            style='min-height: 400px'
+        )
+
+    # Create scroll-to-top button
+    scroll_to_top = Div(
+        A('↑ Scroll To Top', 
+          href='javascript:void(0)',
+          onclick='''
+            const container = document.querySelector(".main-grid > div:first-child");
+            container.scrollTo({top: 0, behavior: "smooth"});
+          ''',
+          style='text-decoration: none'
+        ),
+        style=(
+            'border-top: 1px solid var(--pico-muted-border-color); '
+            'display: none; '
+            'margin-top: 20px; '
+            'padding: 10px; '
+            'text-align: center'
+        ),
+        id='scroll-to-top-link'
+    )
+
+    # Create scroll height check script
+    scroll_check_script = Script("""
+        function checkScrollHeight() {
+            const container = document.querySelector('.main-grid > div:first-child');
+            const scrollLink = document.getElementById('scroll-to-top-link');
+            if (container && scrollLink) {
+                const isScrollable = container.scrollHeight > container.clientHeight;
+                scrollLink.style.display = isScrollable ? 'block' : 'none';
+            }
+        }
+        
+        // Check on load and when content changes
+        window.addEventListener('load', checkScrollHeight);
+        const observer = new MutationObserver(checkScrollHeight);
+        const container = document.querySelector('.main-grid > div:first-child');
+        if (container) {
+            observer.observe(container, { childList: true, subtree: true });
+        }
+    """)
+
+    return Div(
+        content_to_render,
+        scroll_to_top,
+        scroll_check_script,
+        id='grid-left-content'
+    )
 
 def create_chat_interface(autofocus=False):
     """Creates the chat interface component with message list and input form.
