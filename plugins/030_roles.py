@@ -470,7 +470,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
 
     if not affected_plugins:
         return Details(
-            Summary(f"{len(affected_plugins)} APPs", style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer;"),
+            Summary(f"{len(affected_plugins)} APPs", style="font-size: 0.75em; color: var(--pico-muted-color); opacity: 0.7; cursor: pointer;"),
             P("No plugins assigned to this role.", style="font-style: italic; color: var(--pico-muted-color); margin: 0.5rem 0;"),
             style="margin-top: 0.5rem;"
         )
@@ -492,12 +492,13 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
                 A(
                     display_name,
                     href=plugin_url,
-                    cls="role-plugin-link",
-                    onmouseover="this.style.textDecoration = 'underline';",
-                    onmouseout="this.style.textDecoration = 'none';",
+                    cls="role-plugin-links",
+                    style="font-size: 0.8em; color: rgba(255, 255, 255, 0.9); text-decoration: none;",
+                    onmouseover="this.style.color = 'var(--pico-primary)'; this.style.textDecoration = 'underline';",
+                    onmouseout="this.style.color = 'rgba(255, 255, 255, 0.9)'; this.style.textDecoration = 'none';",
                     onclick="event.stopPropagation();"
                 ),
-                style="list-style-type: none;",
+                style="list-style-type: none; margin: 0; padding: 0; line-height: 1.2;",
                 title=f"Navigate to {display_name}"
             )
         )
@@ -505,8 +506,9 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     return Details(
         Summary(
             f"{len(affected_plugins)} APPs",
-            cls="role-plugin-summary"
+            cls="role-plugin-summary",
+            style="font-size: 0.75em; color: var(--pico-muted-color); opacity: 0.7; cursor: pointer;"
         ),
-        Ul(*plugin_items, cls="role-plugin-list"),
+        Ul(*plugin_items, cls="role-plugin-links", style="margin: 0.25rem 0; padding: 0;"),
         style="margin-top: 0.5rem;"
     )
