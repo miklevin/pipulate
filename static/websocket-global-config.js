@@ -45,15 +45,21 @@ function linkifyText(text) {
 
 // Add this function to update the icon based on streaming state with dampening
 let streamingTimeout = null;
+let lastStreamTime = 0;
+const DAMPENING_DELAY = 500; // 500ms dampening
 
 function showStopButtonDuringStreaming() {
-    const stopBtn = document.getElementById('stop-btn');
-    if (!stopBtn) return;
-    stopBtn.style.display = 'block';
+    const sendBtn = document.getElementById('send-btn');
+    if (!sendBtn) return;
+    const now = Date.now();
+    if (now - lastStreamTime > DAMPENING_DELAY) {
+        sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
+    }
+    lastStreamTime = now;
     clearTimeout(streamingTimeout);
     streamingTimeout = setTimeout(() => {
-        stopBtn.style.display = 'none';
-    }, 1000); // 1s after last message
+        sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
+    }, 2000); // 2s after last message
 }
 
 // Update the WebSocket message handler to call showStopButtonDuringStreaming
