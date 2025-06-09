@@ -43,6 +43,37 @@ function linkifyText(text) {
     });
 }
 
+// Add this function to update the icon based on streaming state with dampening
+let isStreaming = false;
+let streamingTimeout = null;
+
+function updateIcon(streaming) {
+    if (streaming) {
+        isStreaming = true;
+        clearTimeout(streamingTimeout);
+        streamingTimeout = setTimeout(() => {
+            isStreaming = false;
+            const sendBtn = document.getElementById('send-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
+            stopBtn.style.display = 'none';
+        }, 1000); // Dampening effect: wait 1 second after the last message before switching back
+    } else {
+        isStreaming = false;
+    }
+
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    if (isStreaming) {
+        sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
+        stopBtn.style.display = 'block';
+    } else {
+        sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
+        stopBtn.style.display = 'none';
+    }
+}
+
+// Update the WebSocket message handler to call updateIcon
 sidebarWs.onmessage = function(event) {
     console.log('Sidebar received:', event.data);
     
@@ -128,6 +159,9 @@ sidebarWs.onmessage = function(event) {
     
     // Keep the latest message in view
     sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
+    
+    // Update the icon based on streaming state
+    updateIcon(true); // Set to true when streaming is active
 };
 
 // Handle temp_message if it exists

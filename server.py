@@ -3115,7 +3115,28 @@ def create_chat_interface(autofocus=False):
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script("""
+        // Listen for streaming state changes and update the icon
+        const sendBtn = document.getElementById('send-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const isStreaming = false; // This should be updated based on the actual streaming state
+
+        function updateIcon() {
+            if (isStreaming) {
+                sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
+                stopBtn.style.display = 'block';
+            } else {
+                sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
+                stopBtn.style.display = 'none';
+            }
+        }
+
+        // Call updateIcon initially
+        updateIcon();
+    """)), id='chat-interface', style='overflow: hidden')
+
+# Global variable to track streaming state
+is_streaming = False
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
@@ -3129,6 +3150,11 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
     Returns:
         Group: An HTML group containing the chat textarea and buttons in a modern layout.
     """
+    global is_streaming
+    # Determine the icon to display based on the streaming state
+    icon_src = '/static/feather/x-octagon.svg' if is_streaming else '/static/feather/arrow-up-circle.svg'
+    icon_alt = 'Stop' if is_streaming else 'Run'
+
     return Group(
         Textarea(
             value,
@@ -3143,7 +3169,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         ),
         Div(
             Button(
-                Img(src='/static/feather/arrow-up-circle.svg', alt='Run', style='width: 30px; height: 30px; filter: invert(1);'),
+                Img(src=icon_src, alt=icon_alt, style='width: 30px; height: 30px; filter: invert(1);'),
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
