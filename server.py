@@ -1957,6 +1957,8 @@ class Chat:
         self.active_websockets = set()
         self.startup_messages = []  # Store startup messages to replay when first client connects
         self.first_connection_handled = False  # Track if we've sent startup messages
+        self.last_message = None
+        self.last_message_time = 0
         self.app.websocket_route('/ws')(self.handle_websocket)
         self.logger.debug('Registered WebSocket route: /ws')
 
@@ -1975,6 +1977,13 @@ class Chat:
                         self.startup_messages.append(formatted_response)
                     return
             formatted_msg = message.replace('\n', '<br>') if isinstance(message, str) else str(message)
+            current_time = time.time()
+            if formatted_msg == self.last_message and current_time - self.last_message_time < 2:
+                self.logger.debug(f'Skipping duplicate message: {formatted_msg[:50]}...')
+                return
+
+            self.last_message = formatted_msg
+            self.last_message_time = current_time
             if self.active_websockets:
                 for ws in self.active_websockets:
                     await ws.send_text(formatted_msg)
