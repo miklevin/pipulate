@@ -300,14 +300,15 @@ def render_item(item, app_instance):
         hx_post=toggle_url if not is_core else None,
         hx_swap="outerHTML",
         hx_target=f"#{item_id}",
-        cls="flex-shrink-0"
+        cls="flex-shrink-0",
+        style=f"margin-left: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']};"
     )
 
     # Bold title followed by colon and description - all on same line
     title_and_description = Div(
-        Span(item.text, style="font-weight: bold; margin-left: 5px;"),
+        Span(item.text, cls="role-title"),
         ": ",
-        Span(description, style="color: var(--pico-muted-color);"),
+        Span(description, cls="role-description"),
         style="flex: 1;"
     )
 
@@ -491,7 +492,7 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
                 A(
                     display_name,
                     href=plugin_url,
-                    style="text-decoration: none; color: inherit; display: block; padding: 0.25rem 0; font-size: 0.9em;",
+                    cls="role-plugin-link",
                     onmouseover="this.style.textDecoration = 'underline';",
                     onmouseout="this.style.textDecoration = 'none';",
                     onclick="event.stopPropagation();"
@@ -504,8 +505,8 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
     return Details(
         Summary(
             f"{len(affected_plugins)} APPs",
-            style="font-size: 0.9em; color: var(--pico-muted-color); cursor: pointer; margin: 0.5rem 0 0 0;"
+            cls="role-plugin-summary"
         ),
-        Ul(*plugin_items, style="padding-left: 1rem; margin: 0.5rem 0 0 0;"),
+        Ul(*plugin_items, cls="role-plugin-list"),
         style="margin-top: 0.5rem;"
     )
