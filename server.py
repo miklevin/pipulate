@@ -3134,7 +3134,7 @@ def create_chat_interface(autofocus=False):
     Returns:
         Div: The chat interface container with all components
     """
-    msg_list_height = 'height: calc(70vh - 200px);'
+    msg_list_height = 'height: calc(75vh - 200px);'
     temp_message = None
     if 'temp_message' in db:
         temp_message = db['temp_message']
@@ -3199,7 +3199,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
-                style='background-color: var(--pico-primary); padding: 0.5rem 1rem;',
+                style='background-color: var(--pico-primary); padding: 0.5rem 1rem; margin-bottom: 0px;',
             ),
             Button(
                 Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 30px; height: 30px; filter: invert(1);'),
@@ -3209,10 +3209,10 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 onclick='stopSidebarStream()',
                 style='background-color: var(--pico-del-color); padding: 0.5rem 1rem; display: none;',
             ),
-            style='display: flex; justify-content: flex-end; gap: 8px;',
+            style='display: flex; justify-content: flex-end;',
         ),
         id='input-group',
-        style='display: flex; flex-direction: column; width: 100%;',
+        style='display: flex; flex-direction: column; width: 100%; margin-bottom: 0px; padding-right: 20px;',
     )
 
 def create_poke_button():
