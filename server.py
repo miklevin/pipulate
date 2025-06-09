@@ -1955,6 +1955,8 @@ class Chat:
         self.id_suffix = id_suffix
         self.logger = logger.bind(name=f'Chat{id_suffix}')
         self.active_websockets = set()
+        self.startup_messages = []  # Store startup messages to replay when first client connects
+        self.first_connection_handled = False  # Track if we've sent startup messages
         self.app.websocket_route('/ws')(self.handle_websocket)
         self.logger.debug('Registered WebSocket route: /ws')
 
@@ -1965,12 +1967,20 @@ class Chat:
                     htmx_response = message
                     content = to_xml(htmx_response['content'])
                     formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">\n    {content}\n</div>"""
-                    for ws in self.active_websockets:
-                        await ws.send_text(formatted_response)
+                    if self.active_websockets:
+                        for ws in self.active_websockets:
+                            await ws.send_text(formatted_response)
+                    else:
+                        # Store startup messages if no clients connected yet
+                        self.startup_messages.append(formatted_response)
                     return
             formatted_msg = message.replace('\n', '<br>') if isinstance(message, str) else str(message)
-            for ws in self.active_websockets:
-                await ws.send_text(formatted_msg)
+            if self.active_websockets:
+                for ws in self.active_websockets:
+                    await ws.send_text(formatted_msg)
+            else:
+                # Store startup messages if no clients connected yet
+                self.startup_messages.append(formatted_msg)
         except Exception as e:
             self.logger.error(f'Error in broadcast: {e}')
 
@@ -1994,6 +2004,16 @@ class Chat:
             await websocket.accept()
             self.active_websockets.add(websocket)
             self.logger.debug('Chat WebSocket connected')
+            
+            # Send any stored startup messages to the first connecting client
+            if not self.first_connection_handled and self.startup_messages:
+                self.logger.debug(f'Sending {len(self.startup_messages)} stored startup messages to first client')
+                for stored_message in self.startup_messages:
+                    await websocket.send_text(stored_message)
+                self.first_connection_handled = True
+                # Clear startup messages after sending to avoid re-sending to other clients
+                self.startup_messages.clear()
+            
             while True:
                 message = await websocket.receive_text()
                 self.logger.debug(f'Received message: {message}')
@@ -2579,6 +2599,21 @@ async def home(request):
     response = await create_outer_container(current_profile_id, menux, request)
     last_profile_name = get_profile_name()
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
+    
+    # Backup mechanism: send endpoint message if not yet sent for this session
+    session_key = f'endpoint_message_sent_{menux}'
+    if session_key not in db:
+        try:
+            # Add training to conversation history
+            build_endpoint_training(menux)
+            
+            # Send endpoint message
+            endpoint_message = build_endpoint_messages(menux)
+            if endpoint_message:
+                asyncio.create_task(send_delayed_endpoint_message(endpoint_message, session_key))
+        except Exception as e:
+            logger.error(f'Error sending backup endpoint message: {e}')
+    
     logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
 
@@ -3513,9 +3548,21 @@ async def delayed_restart(delay_seconds):
     except Exception as e:
         logger.error(f'Error during restart: {e}')
 
+async def send_delayed_endpoint_message(message, session_key):
+    """Send an endpoint message after a delay to ensure chat system is ready."""
+    await asyncio.sleep(2)  # Brief delay to ensure page has loaded
+    try:
+        await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system')
+        db[session_key] = 'sent'  # Mark as sent for this session
+        logger.debug(f"Successfully sent delayed endpoint message for {session_key}")
+    except Exception as e:
+        logger.warning(f"Failed to send delayed endpoint message for {session_key}: {e}")
+
 async def send_startup_environment_message():
     """Send a message indicating the current environment mode after server startup."""
-    await asyncio.sleep(3)  # Wait for UI to initialize
+    # Longer wait for fresh nix develop startup to ensure chat system is fully ready
+    await asyncio.sleep(5)  # Increased from 3 to 5 seconds
+    
     try:
         current_env = get_current_environment()
         env_display = 'DEV' if current_env == 'Development' else 'Prod'
@@ -3524,8 +3571,20 @@ async def send_startup_environment_message():
             env_message = f"🚀 Server started in {env_display} mode. Ready for experimentation and testing!"
         else:
             env_message = f"🚀 Server started in {env_display} mode. Ready for production use."
-            
-        await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system')
+        
+        # Ensure message queue is ready with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system')
+                logger.debug(f"Successfully sent startup environment message (attempt {attempt + 1})")
+                break
+            except Exception as e:
+                logger.warning(f"Failed to send startup environment message (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2)  # Wait before retry
+                else:
+                    raise
         
         # Also send endpoint message and training for current location
         current_endpoint = db.get('last_app_choice', '')
@@ -3538,7 +3597,23 @@ async def send_startup_environment_message():
             endpoint_message = build_endpoint_messages(current_endpoint)
             if endpoint_message:
                 await asyncio.sleep(1)  # Brief pause between messages
-                await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
+                
+                # Retry logic for endpoint message too
+                for attempt in range(max_retries):
+                    try:
+                        await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
+                        logger.debug(f"Successfully sent endpoint message (attempt {attempt + 1})")
+                        # Mark startup endpoint message as sent
+                        session_key = f'endpoint_message_sent_{current_endpoint}'
+                        db[session_key] = 'sent'
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to send endpoint message (attempt {attempt + 1}/{max_retries}): {e}")
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(2)  # Wait before retry
+                        else:
+                            # Don't raise here - endpoint message is less critical than startup message
+                            logger.error(f"Failed to send endpoint message after {max_retries} attempts: {e}")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
