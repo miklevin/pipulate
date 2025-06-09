@@ -1,6 +1,6 @@
-# Botifython Bootcamp
+# Botify API Bootcamp
 
-> This Notebook is for Botify Employees who have a Botify API Key and for the LLMs being trained to help humans with the API. Botify Customers may also find it valuable. This Notebook runs from the JupyterLab on your local machine that gets installed side-by-side with Botifython.It also transforms (by running the last cell) into the paginated [Botify API Bootcamp](http://localhost:5001/docs/botify_api/page/1) documentation in the Pipulate app.
+> This Notebook is for Botify Employees who have a Botify API Key and for the LLMs being trained to help humans with the API. Botify Customers may also find it valuable. This Notebook runs from the JupyterLab on your local machine that gets installed side-by-side with Botifython. Running the last cell generates [Botify API Bootcamp](http://localhost:5001/docs/botify_api/page/1) documentation in the Pipulate app.
 
 ## Run Two Scripts
 
@@ -658,6 +658,15 @@ def save_config(config: Dict[str, str], filename: str = "botify_config.json") ->
         filename: Output filename
     """
     try:
+        file_path = Path(filename)
+        
+        if file_path.exists():
+            print(f'📄 Configuration file already exists: {filename}')
+            print(f'💡 Skipping save to avoid overwriting existing file.')
+            print(f'🔍 Current configuration that would have been saved:')
+            print(json.dumps(config, indent=4))
+            return
+        
         with open(filename, 'w') as f:
             json.dump(config, f, indent=4)
         print(f'✅ Configuration saved to: {filename}')
@@ -923,7 +932,7 @@ import httpx
 
 # Load configuration and API key
 config = json.load(open("config.json"))
-api_key = open('botify_token.txt').read().strip()
+api_key = open('botify_token.txt').read().strip().split('\n')[0].strip()
 org = config['org']
 
 def fetch_projects(org):
@@ -3990,208 +3999,245 @@ Botify OpenAPI Swagger File: [https://api.botify.com/v1/swagger.json](https://ap
 
 
 ```python
-# Everything From Botify OpenAPI Swagger File: https://api.botify.com/v1/swagger.json
+# Python Script to Generate Paginated LLM Training Data for Botify API
+# ------------------------------------------------------------------------------------
+# Purpose:
+# This script fetches the Botify OpenAPI spec and generates a comprehensive markdown
+# document. This version contains the definitive fix for the NameError by correctly
+# escaping curly braces in the code generation function.
+
 import httpx
 import json
+import tiktoken
+import os
+import traceback
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
-def generate_python_example(method: str, path: str, params: Dict, config: Dict, description: str = "", show_config: bool = False) -> str:
-    """Craft a Python invocation example for a given API endpoint"""
-    docstring = f'    """{description}"""\n' if description else ""
-    
+# --- Configuration ---
+SWAGGER_URL = "https://api.botify.com/v1/swagger.json"
+TIKTOKEN_ENCODING_NAME = "cl100k_base"
+
+# --- Output Configuration for Pagination Plugin ---
+OUTPUT_DIRECTORY = "training"
+OUTPUT_FILENAME = "botify_open_api.md"
+PAGINATION_SEPARATOR = "-" * 80
+
+# --- Global Variable for Notebook Persistence ---
+llm_training_markdown = ""
+
+def generate_python_code_example(method: str, path: str, endpoint_details: Dict[str, Any]) -> str:
+    """Generates a practical, professional Python code example for a given API endpoint."""
     lines = [
         "```python",
+        f"# Example: {method.upper()} {endpoint_details.get('summary', path)}",
         "import httpx",
         "import json",
         "",
-        "def example_request():",
-        "\n",
-        docstring
+        "# Assumes your Botify API token is in a file named 'botify_token.txt'",
+        "try:",
+        "    with open('botify_token.txt') as f:",
+        "        token = f.read().strip()",
+        "except FileNotFoundError:",
+        "    print(\"Error: 'botify_token.txt' not found. Please create it.\")",
+        "    token = 'YOUR_API_TOKEN'  # Fallback",
+        ""
     ]
     
-    if show_config:
-        lines.extend([
-            "# Your configuration sigil should contain:",
-            "#   - token: Your API token",
-            "#   - org: Your organization ID",
-            "#   - project: Your project ID",
-            "#   - analysis: Your analysis ID",
-            "#   - collection: Your collection ID",
-            "",
-            "# Load token from secure storage",
-            'with open("botify_token.txt") as f:',
-            r"    token = f.read().strip().split('\n')[0].strip()", 
-            ''
-        ])
+    # Handle path parameters by ensuring they are defined for the generated f-string URL
+    formatted_path = path
+    all_params = endpoint_details.get('parameters', [])
+    path_params = [p for p in all_params if p.get('in') == 'path']
     
-    # Format the URL and parameters
-    url = f"url = f'https://api.botify.com/v1{path}'"
-    lines.extend([
-        "# Craft the invocation URL",
-        url,
-        "",
-        "# Prepare the headers for your spell",
-        'headers = {',
-        '    "Authorization": f"Token {token}",',
-        '    "Content-Type": "application/json"',
-        '}',
-        ''
-    ])
+    # Also find path params from the URL string itself, as the spec may be incomplete
+    path_params_from_url = [p_name.strip('{}') for p_name in path.split('/') if p_name.startswith('{')]
+    declared_param_names = {p['name'] for p in path_params}
+
+    # Add any missing path parameters found in the URL to the list for definition
+    for p_name in path_params_from_url:
+        if p_name not in declared_param_names:
+            path_params.append({'name': p_name})
+
+    if path_params:
+        lines.append("# --- Define Path Parameters ---")
+        for p in path_params:
+            param_name = p['name']
+            placeholder_value = f"YOUR_{param_name.upper()}"
+            lines.append(f"{param_name} = \"{placeholder_value}\"")
+            # This makes the generated f-string valid: url = f"/path/{YOUR_PARAM}"
+            formatted_path = formatted_path.replace(f"{{{param_name}}}", f"{{{param_name}}}")
+        lines.append("")
+
+    lines.append("# --- Construct the Request ---")
+    lines.append(f"url = f\"[https://api.botify.com/v1](https://api.botify.com/v1){formatted_path}\"")
+    lines.append("headers = {")
+    lines.append("    'Authorization': f'Token {token}',")
+    lines.append("    'Content-Type': 'application/json'")
+    lines.append("}")
+    lines.append("")
+
+    query_params = [p for p in all_params if p.get('in') == 'query']
+    if query_params:
+        lines.append("# Define query parameters")
+        lines.append("query_params = {")
+        for p in query_params:
+            sample_value = "'example_value'" if p.get('type', 'string') == 'string' else '123'
+            lines.append(f"    '{p.get('name')}': {sample_value},  # Type: {p.get('type', 'N/A')}, Required: {p.get('required', False)}")
+        lines.append("}")
+
+    body_param = next((p for p in all_params if p.get('in') == 'body'), None)
+    if body_param:
+        lines.append("# Define the JSON payload for the request body")
+        lines.append("json_payload = {")
+        lines.append("    'key': 'value'  # Replace with actual data")
+        lines.append("}")
+
+    lines.append("\n# --- Send the Request ---")
+    lines.append("try:")
+    lines.append("    with httpx.Client(timeout=30.0) as client:")
+    request_args = ["url", "headers=headers"]
+    if query_params:
+        request_args.append("params=query_params")
+    if body_param:
+        request_args.append("json=json_payload")
+    lines.append(f"        response = client.{method.lower()}({', '.join(request_args)})")
+    lines.append("        response.raise_for_status()")
+    lines.append("        print('Success! Response:')")
+    lines.append("        print(json.dumps(response.json(), indent=2))")
+    lines.append("except httpx.HTTPStatusError as e:")
     
-    # Add method-specific code
-    if method.lower() in ['post', 'put', 'patch']:
-        lines.extend([
-            "# Define the payload for your invocation",
-            "data = {",
-            '    # Add your request parameters here',
-            "}",
-            "",
-            "# Cast the spell",
-            f"response = httpx.{method.lower()}(url, headers=headers, json=data)",
-            ""
-        ])
-    else:
-        lines.extend([
-            "# Cast the spell",
-            f"response = httpx.{method.lower()}(url, headers=headers)",
-            ""
-        ])
-    
-    lines.extend([
-        "# Interpret the response",
-        "if response.status_code == 200:",
-        "    result = response.json()",
-        "    print(json.dumps(result, indent=2))",
-        "else:",
-        "    print(f'Error: {response.status_code}')",
-        "    print(response.text)"
-    ])
-    
+    # *** THE FIX IS HERE ***
+    # We use {{e}} to "escape" the braces, so the outer f-string ignores them
+    # and they become part of the generated string.
+    lines.append("    print(f'HTTP Error: {e.response.status_code} - {e.response.text}')")
+    lines.append("except httpx.RequestError as e:")
+    lines.append(f"    print(f'Request error: {{e}}')") # <-- Escaped {e}
+    lines.append("except Exception as e:")
+    lines.append(f"    print(f'An unexpected error occurred: {{e}}')") # <-- Escaped {e}
     lines.append("```")
-    return "\n".join(line for line in lines if line)
+    return "\n".join(lines)
 
-def generate_markdown(spec: Dict[str, Any], config: Dict[str, str]) -> str:
-    md_lines = [
-        "## Everything From Botify OpenAPI Swagger File: https://api.botify.com/v1/swagger.json",
-        "",
-        "Having mastered the arts of BQL, we now document the full spectrum of API invocations.",
-        "Each endpoint is presented with its purpose, capabilities, and Python implementation.",
-        "",
-        "### Endpoint Categories",
-        ""
-    ]
-    
-    endpoints_by_tag = {}
-    for path, methods in spec['paths'].items():
+
+def generate_api_documentation_markdown(spec: Dict[str, Any]) -> str:
+    """Generates a complete markdown document from the OpenAPI specification."""
+    all_endpoint_docs_as_blocks = []
+    all_endpoints = []
+
+    for path, methods in spec.get('paths', {}).items():
         for method, details in methods.items():
-            if method == 'parameters':
+            if method.lower() not in ['get', 'post', 'put', 'delete', 'patch']:
                 continue
-            tag = details.get('tags', ['Untagged'])[0]
-            if tag not in endpoints_by_tag:
-                endpoints_by_tag[tag] = []
-            endpoints_by_tag[tag].append((method, path, details))
-    
-    first_example = True
-    for tag in sorted(endpoints_by_tag.keys()):
-        md_lines.extend([
-            f"#### {tag} Invocations",
-            "",
-            f"These endpoints allow you to manipulate {tag.lower()} aspects of your digital realm.",
-            ""
-        ])
-        
-        for method, path, details in sorted(endpoints_by_tag[tag]):
-            description = details.get('description', '')
-            summary = details.get('summary', '')
-            parameters = details.get('parameters', [])
-            responses = details.get('responses', {})
-            
-            # Create a semantic block for LLMs
-            md_lines.extend([
-                f"##### {method.upper()} {path}",
-                "",
-                "**Purpose:**",
-                summary or "No summary provided.",
-                "",
-                "**Detailed Description:**",
-                description or "No detailed description available.",
-                "",
-                "**Parameters Required:**",
-                "```",
-                "\n".join(f"- {p.get('name')}: {p.get('description', 'No description')}" 
-                         for p in parameters) if parameters else "No parameters required",
-                "```",
-                "",
-                "**Expected Responses:**",
-                "```",
-                "\n".join(f"- {code}: {details.get('description', 'No description')}" 
-                         for code, details in responses.items()),
-                "```",
-                "",
-                "**Example Implementation:**",
-                generate_python_example(method, path, details, config, 
-                                     description=description, show_config=first_example),
-                "",
-                "---",
-                ""
-            ])
-            first_example = False
-    
-    # Add a section specifically for LLM understanding
-    md_lines.extend([
-        "### LLM Guidance",
-        "",
-        "When deciding which endpoint to use:",
-        "1. Consider the category (tag) that matches your task",
-        "2. Review the Purpose and Description to ensure alignment",
-        "3. Check the required parameters match your available data",
-        "4. Verify the expected responses meet your needs",
-        "",
-        "Example prompt format:",
-        '```',
-        'I need to [task description]. I have access to [available data].',
-        'Which endpoint would be most appropriate?',
-        '```',
-        ""
-    ])
-    
-    return "\n".join(md_lines)
+            all_endpoints.append({'method': method, 'path': path, 'details': details})
 
-# First, ensure we have our token
-if not Path("botify_token.txt").exists():
-    print("Please run the authentication cell first to create your token file.")
-else:
-    # Load token
-    with open("botify_token.txt") as f:
-        token = f.read().strip().split('\n')[0].strip() 
-    # Use existing configuration from earlier cells
-    config = {
-        "token": token,
-        # These will be used as placeholders in examples
-        "org": "{org_id}",
-        "project": "{project_id}",
-        "analysis": "{analysis_id}",
-        "collection": "{collection_id}"
-    }
-    
-    # Fetch the API specification
+    for endpoint in all_endpoints:
+        try:
+            method, path, details = endpoint['method'], endpoint['path'], endpoint['details']
+            endpoint_block = []
+            tag = details.get('tags', ['Uncategorized'])[0]
+            summary = details.get('summary', 'No summary provided.')
+            description = details.get('description', 'No detailed description available.')
+            parameters = details.get('parameters', [])
+
+            endpoint_block.extend([
+                f"# `{method.upper()} {path}`", "",
+                f"**Category:** `{tag}`", "",
+                f"**Summary:** {summary}", "",
+                "**Description:**", f"{description}", ""
+            ])
+
+            if parameters:
+                endpoint_block.append("**Parameters:**")
+                endpoint_block.append("| Name | Location (in) | Required | Type | Description |")
+                endpoint_block.append("|---|---|---|---|---|")
+                for p in parameters:
+                    param_name = p.get('name', 'N/A')
+                    param_in = p.get('in', 'N/A')
+                    param_req = p.get('required', False)
+                    param_type = p.get('type', 'N/A')
+                    param_desc = p.get('description', '').replace('|', ' ')
+                    endpoint_block.append(f"| `{param_name}` | {param_in} | {param_req} | `{param_type}` | {param_desc} |")
+                endpoint_block.append("")
+
+            endpoint_block.append("**Python Example:**")
+            endpoint_block.append(generate_python_code_example(method, path, details))
+            
+            all_endpoint_docs_as_blocks.append("\n".join(endpoint_block))
+        
+        except Exception:
+            print(f"---")
+            print(f"WARNING: Could not process endpoint: {endpoint.get('method', 'N/A').upper()} {endpoint.get('path', 'N/A')}")
+            print(f"  ERROR DETAILS BELOW:")
+            traceback.print_exc()
+            print(f"---")
+            continue
+
+    paginated_content = f"\n\n{PAGINATION_SEPARATOR}\n\n".join(all_endpoint_docs_as_blocks)
+    main_header = [
+        "# Botify API Bootcamp", "",
+        "This document provides detailed information and Python code examples for every endpoint in the Botify API...", ""
+    ]
+    return "\n".join(main_header) + paginated_content
+
+
+def create_llm_training_document():
+    """Main orchestrator function."""
+    global llm_training_markdown
+    print(f"INFO: Attempting to download Botify OpenAPI specification from: {SWAGGER_URL}")
     try:
-        response = httpx.get("https://api.botify.com/v1/swagger.json", 
-                              headers={"Authorization": f"Token {token}"})
-        spec = response.json()
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(SWAGGER_URL)
+            response.raise_for_status()
+            spec = response.json()
+        print("SUCCESS: Downloaded OpenAPI specification.")
+
+        print("INFO: Generating API documentation with pagination separators...")
+        generated_markdown = generate_api_documentation_markdown(spec)
+        print("SUCCESS: API documentation generated.")
+
+        print(f"INFO: Calculating token count using '{TIKTOKEN_ENCODING_NAME}'...")
+        encoding = tiktoken.get_encoding(TIKTOKEN_ENCODING_NAME)
+        tokens = encoding.encode(generated_markdown)
+        token_count = len(tokens)
+        print(f"SUCCESS: Tokenization complete.")
+
+        token_line = f"**Total Estimated Token Count**: `{token_count:,}` (using `{TIKTOKEN_ENCODING_NAME}`)"
+        llm_training_markdown = generated_markdown.replace("# Botify API Bootcamp", f"# Botify API Bootcamp\n\n{token_line}")
+
+        print("\n--- Analysis Complete ---")
+        print(token_line)
+        if token_count < 200000:
+            print("✅ INFO: The generated documentation should fit within a large context window.")
+        else:
+            print("⚠️ WARNING: Token count is very large and may exceed some context windows.")
         
-        # Generate and display the markdown
-        markdown_content = generate_markdown(spec, config)
-        print("API documentation generated successfully!")
-        print("Copy/paste the value of markdown_content into a markdown cell if you want ALL THE SWAGGER (Botify Open AI API Specification) part of the final markdown.")
-        
-        # The markdown content will be rendered in the next cell
-    except Exception as e:
-        print(f"Error fetching API specification: {e}")
-        
-# print(markdown_content)  # <-- uncomment this
+        output_path = Path(OUTPUT_DIRECTORY) / OUTPUT_FILENAME
+        print(f"INFO: Saving paginated documentation file to: '{output_path.resolve()}'")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(llm_training_markdown)
+        print("SUCCESS: Documentation file saved.")
+
+    except httpx.HTTPStatusError as e:
+        error_message = f"ERROR: HTTP error during download: {e.response.status_code} - {e.response.text}"
+        print(error_message)
+        llm_training_markdown = f"# Error\n\n{error_message}"
+    except Exception:
+        print("ERROR: An unexpected critical error occurred during the process.")
+        traceback.print_exc()
+        llm_training_markdown = f"# Error\n\nAn unexpected critical error occurred. See console for traceback."
+
+# --- Script Execution ---
+if __name__ == "__main__":
+    create_llm_training_document()
+    if llm_training_markdown and not llm_training_markdown.startswith("# Error"):
+        print(f"\nSUCCESS: Global variable 'llm_training_markdown' is now populated and file '{Path(OUTPUT_DIRECTORY) / OUTPUT_FILENAME}' has been created.")
+    else:
+        print("\nERROR: Process did not complete successfully. Check warnings above.")
 ```
+
+--------------------------------------------------------------------------------
+
+# Create Documentation For Pipulate From This Notebook
 
 
 ```python
@@ -4497,6 +4543,7 @@ def export_notebook_and_apply_custom_processing():
 
 # --- Part 4: Execute the Orchestration ---
 export_notebook_and_apply_custom_processing()
+print("Done")
 ```
 
 
