@@ -59,7 +59,7 @@ function showStopButtonDuringStreaming() {
     clearTimeout(streamingTimeout);
     streamingTimeout = setTimeout(() => {
         sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
-    }, 2000); // 2s after last message
+    }, 300); // 1s after last message
 }
 
 // Update the WebSocket message handler to call showStopButtonDuringStreaming
