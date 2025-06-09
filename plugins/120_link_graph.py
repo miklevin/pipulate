@@ -1979,7 +1979,7 @@ class LinkGraphVisualizer:
             encoded_nodes_url = quote(nodes_url, safe='')
             
             # Generate Cosmograph URL using the meta pattern (let Cosmograph auto-detect columns)
-            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&meta={encoded_nodes_url}&link-spring=.03"
+            cosmograph_url = f"https://cosmograph.app/run/?data={encoded_links_url}&meta={encoded_nodes_url}&link-spring=.03&nodeColor=pagetype"
             
             # Store the result
             visualization_result = {
@@ -4858,7 +4858,7 @@ await main()
                             timestamp = int(datetime.now().timestamp())
                             data_url = f"http://localhost:5001{file_url}&t={timestamp}"
                             encoded_data_url = quote(data_url, safe='')
-                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.03"
+                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.03&nodeColor=pagetype"
 
                         if viz_url:
                             viz_button = A(
@@ -4910,7 +4910,7 @@ await main()
                             timestamp = int(datetime.now().timestamp())
                             data_url = f"http://localhost:5001{file_url}&t={timestamp}"
                             encoded_data_url = quote(data_url, safe='')
-                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.1"
+                            viz_url = f"https://cosmograph.app/run/?data={encoded_data_url}&link-spring=.03&nodeColor=pagetype"
 
                             viz_button = A(
                                 self.ui['BUTTON_LABELS']['VISUALIZE_GRAPH'],
