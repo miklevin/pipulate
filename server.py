@@ -2072,7 +2072,8 @@ class Chat:
                     else:
                         self.logger.warning(f"No active chat task found for {websocket} to stop.")
                 else:
-                    await self.handle_chat_message(websocket, message)
+                    # Launch as a non-blocking background task
+                    asyncio.create_task(self.handle_chat_message(websocket, message))
 
         except WebSocketDisconnect:
             self.logger.info('WebSocket disconnected')
