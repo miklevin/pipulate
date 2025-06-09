@@ -1685,8 +1685,8 @@ class BotifyCsvDownloaderWorkflow:
         """Check if a file exists for the given parameters and return appropriate button text."""
         try:
             filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
-            file_info = await self.check_file_exists(filepath)
-            return file_info['exists']
+            exists, file_info = await self.check_file_exists(filepath)
+            return exists
         except Exception:
             return False
 
