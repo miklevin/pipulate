@@ -370,11 +370,11 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     padding-right: 1vw;
 }
 
-/* Grid Layout */
+/* Grid Layout - Modified for Split.js draggable splitter */
 .main-grid {
-    display: grid;
-    grid-template-columns: var(--grid-layout-columns);
-    gap: var(--grid-gap);
+    display: flex;
+    flex-direction: row;
+    gap: 0; /* No gap needed - split.js creates its own gutter */
     flex-grow: 1;
     height: calc(100% - var(--nav-group-actual-height) - var(--space-sm));
     overflow: hidden;
@@ -385,6 +385,24 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 .main-grid > div {
     height: 100%;
     overflow-y: auto;
+}
+
+/* Split.js Gutter Styles */
+.gutter {
+    background-color: var(--pico-muted-border-color);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.gutter:hover {
+    background-color: var(--pico-primary);
+}
+
+.gutter.gutter-horizontal {
+    cursor: col-resize;
+    /* A simple base64 encoded SVG for the drag handle dots */
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjMwIiB2aWV3Qm94PSIwIDAgOCA0MCI+PHJlY3Qgd2lkdGg9IjIiIGhlaWdodD0iMiIgeD0iMyIgeT0iNCIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjUiLz48cmVjdCB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4PSIzIiB5PSIxMCIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjUiLz48cmVjdCB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4PSIzIiB5PSIxNiIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjUiLz48cmVjdCB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4PSIzIiB5PSIyMiIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjUiLz48cmVjdCB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4PSIzIiB5PSIyOCIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjUiLz48L3N2Zz4=');
 }
 
 /* Grid Left Content */

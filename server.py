@@ -1972,6 +1972,8 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/surreal.js'),
         Script(src='/static/script.js'),
         Script(src='/static/Sortable.js'),
+        Script(src='/static/split.js'),
+        Script(src='/static/splitter-init.js'),
         Script(src='/static/mermaid.min.js'),
         Script(src='/static/marked.min.js'),
         Script(src='/static/prism.js'),
@@ -3065,11 +3067,32 @@ async def create_outer_container(current_profile_id, menux, request):
     dynamic_css = get_dynamic_role_css()
     nav_group = create_nav_group()
     
+    # Initialize splitter script
+    init_splitter_script = Script("""
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.initializeSplitter) {
+                // Selectors for the two columns
+                const elements = ['#grid-left-content', '#chat-interface'];
+                
+                // Default options
+                const options = {
+                    sizes: [65, 35],      // Default layout: 65% / 35%
+                    minSize: [400, 300],  // Minimum width in pixels for each pane
+                    gutterSize: 10,       // Width of the draggable gutter
+                    cursor: 'col-resize'  // Cursor to show on hover
+                };
+                
+                initializeSplitter(elements, options);
+            }
+        });
+    """)
+
     return Container(
         Style(dynamic_css),  # Dynamic CSS injection
         nav_group, 
-        Grid(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
-        create_poke_button()
+        Div(await create_grid_left(menux, request), create_chat_interface(), cls='main-grid'), 
+        create_poke_button(),
+        init_splitter_script  # Initialize the draggable splitter
     )
 
 
