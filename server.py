@@ -3117,17 +3117,41 @@ def create_chat_interface(autofocus=False):
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js')), id='chat-interface', style='overflow: hidden')
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
-    """Creates a chat input group with text input and send button.
+    """
+    Create a chat input group with a message input and a send button.
 
     Args:
-        disabled (bool): Whether the input and button should be disabled
-        value (str): Initial value for the text input
-        autofocus (bool): Whether to autofocus the text input
+        disabled (bool): Whether the input group should be disabled.
+        value (str): The pre-filled value for the input field.
+        autofocus (bool): Whether the input field should autofocus.
 
     Returns:
-        Group: Container with input and send button
+        Group: An HTML group containing the chat input and send button.
     """
-    return Group(Input(id='msg', name='msg', placeholder='Chat...', value=value, disabled=disabled, autofocus='autofocus' if autofocus else None), Button('Send', type='submit', id='send-btn', disabled=disabled), id='input-group', style='padding-right: 1vw')
+    return Group(
+        Input(
+            id='msg',
+            name='msg',
+            placeholder='Chat...',
+            value=value,
+            disabled=disabled,
+            autofocus='autofocus' if autofocus else None,
+        ),
+        Button(
+            "Send",
+            type='submit',
+            id='send-btn',
+            disabled=disabled,
+        ),
+        Button(
+            "Stop",
+            type='button',
+            id='stop-btn',
+            disabled=True,  # Disabled by default until we implement stop functionality
+            style='background-color: var(--pico-del-color);',
+        ),
+        id='input-group'
+    )
 
 def create_poke_button():
     button_style = 'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;'
