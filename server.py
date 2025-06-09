@@ -1982,7 +1982,9 @@ class Chat:
                         # Store startup messages if no clients connected yet
                         self.startup_messages.append(formatted_response)
                     return
-            formatted_msg = message.replace('\n', '<br>') if isinstance(message, str) else str(message)
+
+            # Send raw message without converting newlines to <br> tags
+            formatted_msg = message if isinstance(message, str) else str(message)
             current_time = time.time()
             if formatted_msg == self.last_message and current_time - self.last_message_time < 2:
                 self.logger.debug(f'Skipping duplicate message: {formatted_msg[:50]}...')

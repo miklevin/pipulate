@@ -90,10 +90,32 @@ sidebarWs.onmessage = function(event) {
         sidebarMsgList.appendChild(sidebarCurrentMessage);
     }
     
-    // Linkify URLs in the message before displaying
-    const linkedText = linkifyText(event.data);
-    sidebarCurrentMessage.innerHTML += linkedText;
+    // Initialize or update the raw text buffer
+    if (!sidebarCurrentMessage.dataset.rawText) {
+        sidebarCurrentMessage.dataset.rawText = '';
+    }
+    sidebarCurrentMessage.dataset.rawText += event.data;
     
+    // Render the accumulated Markdown
+    if (typeof marked !== 'undefined') {
+        try {
+            sidebarCurrentMessage.innerHTML = marked.parse(sidebarCurrentMessage.dataset.rawText);
+            
+            // Apply syntax highlighting if Prism is available
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAllUnder(sidebarCurrentMessage);
+            }
+        } catch (e) {
+            console.error('Error rendering Markdown:', e);
+            // Fallback to plain text if Markdown rendering fails
+            sidebarCurrentMessage.textContent = sidebarCurrentMessage.dataset.rawText;
+        }
+    } else {
+        // Fallback to plain text if marked.js is not available
+        sidebarCurrentMessage.textContent = sidebarCurrentMessage.dataset.rawText;
+    }
+    
+    // Keep the latest message in view
     sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
 };
 
