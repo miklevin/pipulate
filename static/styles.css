@@ -611,8 +611,29 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
 
 /* Components */
 hr {
-    border-color: var(--pico-primary);
-    opacity: 0.3;
+    margin: 1rem 0;
+    border: none;
+    border-top: 2px solid var(--pico-color);
+    opacity: 1;
+}
+
+/* Ensure proper contrast in both themes */
+[data-theme="light"] hr {
+    border-color: var(--pico-color);
+    opacity: 1;
+}
+
+[data-theme="dark"] hr {
+    border-color: var(--pico-color);
+    opacity: 1;
+}
+
+/* Dark mode system preference */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) hr {
+        border-color: var(--pico-color);
+        opacity: 1;
+    }
 }
 
 article > div:first-child {
@@ -716,12 +737,6 @@ input[type="password"]:focus {
     color: var(--key-field-text) !important;
     border-color: var(--key-field-focus-border) !important;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
-}
-
-hr {
-    margin: 1rem 0;
-    border: none;
-    border-top: 1px solid var(--pico-muted-border-color);
 }
 
 /* ============================================================================

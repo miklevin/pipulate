@@ -1644,7 +1644,7 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                 content = '\n' + content.lstrip('\n')
                             else:
                                 content = re.sub('\\n\\s*\\n\\s*', '\n\n', content)
-                                content = re.sub('([.!?])\\n', '\\1 ', content)
+                                content = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', content)
                                 content = re.sub('\\n ([^\\s])', '\\n\\1', content)
                             print(content, end='', flush=True)
                             accumulated_response.append(content)
