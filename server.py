@@ -1231,8 +1231,8 @@ class Pipulate:
         
         # Standard pipeline key generation and matching records
         full_key, prefix, _ = self.generate_pipeline_key(plugin_instance)
-        self.table.xtra(app_name=plugin_instance.APP_NAME)
-        matching_records = [record.pkey for record in self.table() if record.pkey.startswith(prefix)]
+        self.pipeline_table.xtra(app_name=plugin_instance.APP_NAME)
+        matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
         
         # Standard form with centralized constants
         ui_constants = PIPULATE_CONFIG['UI_CONSTANTS']
@@ -1338,9 +1338,9 @@ class Pipulate:
         plugin_part = plugin_name.replace(' ', '_')
         prefix = f'{profile_part}-{plugin_part}-'
         if user_input is None:
-            self.table.xtra()
-            self.table.xtra(app_name=app_name)
-            app_records = list(self.table())
+            self.pipeline_table.xtra()
+            self.pipeline_table.xtra(app_name=app_name)
+            app_records = list(self.pipeline_table())
             matching_records = [record.pkey for record in app_records if record.pkey.startswith(prefix)]
             numeric_suffixes = []
             for record_key in matching_records:
