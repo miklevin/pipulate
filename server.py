@@ -3202,7 +3202,7 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 style='background-color: var(--pico-primary); padding: 0.5rem 1rem;',
             ),
             Button(
-                Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 20px; height: 20px;'),
+                Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 30px; height: 30px; filter: invert(1);'),
                 type='button',
                 id='stop-btn',
                 disabled=False,  # Enabled, JS will control visibility
