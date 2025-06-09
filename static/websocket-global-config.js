@@ -64,6 +64,19 @@ function showStopButtonDuringStreaming() {
 
 // Update the WebSocket message handler to call showStopButtonDuringStreaming
 sidebarWs.onmessage = function(event) {
+    // Handle UI control messages first
+    if (event.data === '%%STREAM_START%%') {
+        updateStreamingUI(true);
+        return; // Do not display this message
+    }
+    if (event.data === '%%STREAM_END%%') {
+        updateStreamingUI(false);
+        // Reset message buffer for next stream
+        sidebarCurrentMessage = document.createElement('div');
+        sidebarCurrentMessage.className = 'message assistant';
+        return; // Do not display this message
+    }
+
     console.log('Sidebar received:', event.data);
     
     // Check if the message is a script
@@ -153,19 +166,42 @@ sidebarWs.onmessage = function(event) {
     showStopButtonDuringStreaming();
 };
 
-// Handle temp_message if it exists
-window.addEventListener('DOMContentLoaded', () => {
-    if (tempMessage) {
-        console.log('Sidebar sending verbatim:', tempMessage);
-        const messageWithNewline = tempMessage + '';  // put \n if needed
-        setTimeout(() => sidebarWs.send(`${messageWithNewline}|verbatim`), 1000);
+// --- Streaming state and UI control ---
+let isStreaming = false;
+
+function updateStreamingUI(streaming) {
+    isStreaming = streaming;
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const input = document.getElementById('msg');
+    if (!sendBtn || !stopBtn || !input) return;
+    if (isStreaming) {
+        sendBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        input.disabled = true;
+        input.placeholder = 'Streaming response...';
+    } else {
+        sendBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+        input.disabled = false;
+        input.placeholder = 'Chat...';
+        input.focus();
     }
-});
+}
+
+window.stopSidebarStream = function() {
+    if (isStreaming && sidebarWs.readyState === WebSocket.OPEN) {
+        console.log('Sending stop command to server...');
+        sidebarWs.send('%%STOP_STREAM%%');
+        // The UI will be fully updated once the server sends back %%STREAM_END%%
+        updateStreamingUI(false); // Optimistically update UI
+    }
+}
 
 window.sendSidebarMessage = function(event) {
     event.preventDefault();
     const input = document.getElementById('msg');
-    if (input.value) {
+    if (input.value && !isStreaming) { // Prevent sending while streaming
         const userMsg = document.createElement('div');
         userMsg.className = 'message user';
         userMsg.textContent = input.value;
@@ -178,9 +214,18 @@ window.sendSidebarMessage = function(event) {
         if (sidebarWs.readyState === WebSocket.OPEN) {
             sidebarWs.send(input.value);
             input.value = '';
-            sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
+            // The server will now send %%STREAM_START%% to lock the UI
         } else {
             console.error('WebSocket not connected');
         }
     }
-} 
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateStreamingUI(false);
+    if (tempMessage) {
+        console.log('Sidebar sending verbatim:', tempMessage);
+        const messageWithNewline = tempMessage + '';
+        setTimeout(() => sidebarWs.send(`${messageWithNewline}|verbatim`), 1000);
+    }
+}); 

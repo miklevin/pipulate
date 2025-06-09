@@ -647,7 +647,7 @@ class Pipulate:
             pipeline_table: The database table for storing pipeline state
             chat_instance: Optional chat coordinator instance
         """
-        self.table = pipeline_table
+        self.pipeline_table = pipeline_table
         self.chat = chat_instance
         self.message_queue = self.OrderedMessageQueue()
 
@@ -909,7 +909,7 @@ class Pipulate:
 
     def _get_clean_state(self, pkey):
         try:
-            record = self.table[pkey]
+            record = self.pipeline_table[pkey]
             state = json.loads(record.data)
             state.pop('created', None)
             state.pop('updated', None)
@@ -961,7 +961,7 @@ class Pipulate:
                 if 'app_name' in initial_step_data:
                     app_name = initial_step_data.pop('app_name')
                 state.update(initial_step_data)
-            self.table.insert({'pkey': pkey, 'app_name': app_name if app_name else None, 'data': json.dumps(state), 'created': now, 'updated': now})
+            self.pipeline_table.insert({'pkey': pkey, 'app_name': app_name if app_name else None, 'data': json.dumps(state), 'created': now, 'updated': now})
             return (state, None)
         except:
             error_card = Card(H3('ID Already In Use'), P(f"The ID '{pkey}' is already being used by another workflow. Please try a different ID."), style=self.id_conflict_style())
@@ -970,8 +970,8 @@ class Pipulate:
     def read_state(self, pkey: str) -> dict:
         logger.debug(f'Reading state for pipeline: {pkey}')
         try:
-            self.table.xtra(pkey=pkey)
-            records = self.table()
+            self.pipeline_table.xtra(pkey=pkey)
+            records = self.pipeline_table()
             logger.debug(f'Records found: {records}')
             if records:
                 logger.debug(f'First record type: {type(records[0])}')
@@ -990,7 +990,7 @@ class Pipulate:
         state['updated'] = datetime.now().isoformat()
         payload = {'pkey': pkey, 'data': json.dumps(state), 'updated': state['updated']}
         logger.debug(f'Update payload:\n{json.dumps(payload, indent=2)}')
-        self.table.update(payload)
+        self.pipeline_table.update(payload)
         verification = self.read_state(pkey)
         logger.debug(f'Verification read:\n{json.dumps(verification, indent=2)}')
 
@@ -1010,12 +1010,10 @@ class Pipulate:
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=1, simulate_typing=True):
         """
         Stream a message to the chat interface.
-
         This method is now a direct passthrough to the streaming implementation.
         Using this method directly will bypass the OrderedMessageQueue - it's
         recommended to use message_queue.add() for proper message ordering in 
         complex async scenarios.
-
         Args:
             message: The message to stream
             verbatim: If True, send message as-is; if False, process with LLM
@@ -1023,11 +1021,11 @@ class Pipulate:
             spaces_before: Number of line breaks to add before the message
             spaces_after: Number of line breaks to add after the message
             simulate_typing: Whether to simulate typing for verbatim messages
-
         Returns:
             The original message
         """
         try:
+            await chat.broadcast('%%STREAM_START%%') # Signal UI to show "Stop" button
             conversation_history = append_to_conversation(message, role)
             if spaces_before:
                 for _ in range(spaces_before):
@@ -1054,10 +1052,16 @@ class Pipulate:
             append_to_conversation(response_text, 'assistant')
             logger.debug(f'Message streamed: {response_text}')
             return message
+        except asyncio.CancelledError:
+            logger.info("Stream was cancelled. The UI will be updated.")
+            # Do not re-raise, allow the stream to stop gracefully.
         except Exception as e:
             logger.error(f'Error in pipulate.stream: {e}')
             traceback.print_exc()
             raise
+        finally:
+            await chat.broadcast('%%STREAM_END%%') # Signal UI to show "Send" button
+            logger.debug("Stream finished or cancelled, sent %%STREAM_END%%")
 
     def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
         """Create a UI control for reverting to a previous workflow step.
@@ -2012,56 +2016,33 @@ class Chat:
         self.first_connection_handled = False  # Track if we've sent startup messages
         self.last_message = None
         self.last_message_time = 0
+        self.active_chat_tasks = {}  # Add this to track tasks per websocket
         self.app.websocket_route('/ws')(self.handle_websocket)
         self.logger.debug('Registered WebSocket route: /ws')
 
-    async def broadcast(self, message: str):
-        try:
-            if isinstance(message, dict):
-                if message.get('type') == 'htmx':
-                    htmx_response = message
-                    content = to_xml(htmx_response['content'])
-                    formatted_response = f"""<div id="todo-{htmx_response.get('id')}" hx-swap-oob="beforeend:#todo-list">\n    {content}\n</div>"""
-                    if self.active_websockets:
-                        for ws in self.active_websockets:
-                            await ws.send_text(formatted_response)
-                    else:
-                        # Store startup messages if no clients connected yet
-                        self.startup_messages.append(formatted_response)
-                    return
-
-            # Send raw message without converting newlines to <br> tags
-            formatted_msg = message if isinstance(message, str) else str(message)
-            current_time = time.time()
-            if formatted_msg == self.last_message and current_time - self.last_message_time < 2:
-                self.logger.debug(f'Skipping duplicate message: {formatted_msg[:50]}...')
-                return
-
-            self.last_message = formatted_msg
-            self.last_message_time = current_time
-            if self.active_websockets:
-                for ws in self.active_websockets:
-                    await ws.send_text(formatted_msg)
-            else:
-                # Store startup messages if no clients connected yet
-                self.startup_messages.append(formatted_msg)
-        except Exception as e:
-            self.logger.error(f'Error in broadcast: {e}')
-
     async def handle_chat_message(self, websocket: WebSocket, message: str):
+        task = None
         try:
             append_to_conversation(message, 'user')
             parts = message.split('|')
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
-            raw_response = await pipulate.stream(msg, verbatim=verbatim)
-            append_to_conversation(raw_response, 'assistant')
+
+            # Create and store the task
+            task = asyncio.create_task(pipulate.stream(msg, verbatim=verbatim))
+            self.active_chat_tasks[websocket] = task
+            await task
+
+        except asyncio.CancelledError:
+            self.logger.info(f"Chat task for {websocket} was cancelled by user.")
+            # The 'finally' block in pipulate.stream will send the %%STREAM_END%% signal
         except Exception as e:
             self.logger.error(f'Error in handle_chat_message: {e}')
             traceback.print_exc()
-
-    def create_progress_card(self):
-        return Card(Header('Chat Playground'), Form(Div(TextArea(id='chat-input', placeholder='Type your message here...', rows='3'), Button('Send', type='submit'), id='chat-form'), onsubmit='sendMessage(event)'), Div(id='chat-messages'), Script("\n                const ws = new WebSocket(\n                    `${window.location.protocol === 'https:' ? 'wss:' : 'ws'}://${window.location.host}/ws`\n                );\n                \n                ws.onmessage = function(event) {\n                    const messages = document.getElementById('chat-messages');\n                    messages.innerHTML += event.data + '<br>';\n                    messages.scrollTop = messages.scrollHeight;\n                };\n                \n                function sendMessage(event) {\n                    event.preventDefault();\n                    const input = document.getElementById('chat-input');\n                    const message = input.value;\n                    if (message.trim()) {\n                        ws.send(message);\n                        input.value = '';\n                    }\n                }\n            "))
+        finally:
+            # Ensure the task is removed from tracking when it's done or cancelled
+            if websocket in self.active_chat_tasks:
+                del self.active_chat_tasks[websocket]
 
     async def handle_websocket(self, websocket: WebSocket):
         try:
@@ -2081,15 +2062,59 @@ class Chat:
             while True:
                 message = await websocket.receive_text()
                 self.logger.debug(f'Received message: {message}')
-                await self.handle_chat_message(websocket, message)
+
+                # Check for our special stop command
+                if message == '%%STOP_STREAM%%':
+                    self.logger.info(f"Received stop command from {websocket}.")
+                    task_to_cancel = self.active_chat_tasks.get(websocket)
+                    if task_to_cancel:
+                        task_to_cancel.cancel()
+                    else:
+                        self.logger.warning(f"No active chat task found for {websocket} to stop.")
+                else:
+                    await self.handle_chat_message(websocket, message)
+
         except WebSocketDisconnect:
             self.logger.info('WebSocket disconnected')
         except Exception as e:
             self.logger.error(f'Error in WebSocket connection: {str(e)}')
             self.logger.error(traceback.format_exc())
         finally:
+            # Also clean up any lingering task on disconnect
+            if websocket in self.active_chat_tasks:
+                self.active_chat_tasks.pop(websocket, None).cancel()
             self.active_websockets.discard(websocket)
             self.logger.debug('WebSocket connection closed')
+
+    async def broadcast(self, message: str):
+        try:
+            if isinstance(message, dict):
+                if message.get('type') == 'htmx':
+                    htmx_response = message
+                    content = to_xml(htmx_response['content'])
+                    formatted_response = f"""<div id=\"todo-{htmx_response.get('id')}\" hx-swap-oob=\"beforeend:#todo-list\">\n    {content}\n</div>"""
+                    if self.active_websockets:
+                        for ws in self.active_websockets:
+                            await ws.send_text(formatted_response)
+                    else:
+                        self.startup_messages.append(formatted_response)
+                    return
+
+            formatted_msg = message if isinstance(message, str) else str(message)
+            current_time = time.time()
+            if formatted_msg == self.last_message and current_time - self.last_message_time < 2:
+                self.logger.debug(f'Skipping duplicate message: {formatted_msg[:50]}...')
+                return
+
+            self.last_message = formatted_msg
+            self.last_message_time = current_time
+            if self.active_websockets:
+                for ws in self.active_websockets:
+                    await ws.send_text(formatted_msg)
+            else:
+                self.startup_messages.append(formatted_msg)
+        except Exception as e:
+            self.logger.error(f'Error in broadcast: {e}')
 
 pipulate = Pipulate(pipeline)
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'], allow_credentials=True)
@@ -3179,7 +3204,8 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
                 Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 20px; height: 20px;'),
                 type='button',
                 id='stop-btn',
-                disabled=True,  # Disabled by default until we implement stop functionality
+                disabled=False,  # Enabled, JS will control visibility
+                onclick='stopSidebarStream()',
                 style='background-color: var(--pico-del-color); padding: 0.5rem 1rem; display: none;',
             ),
             style='display: flex; justify-content: flex-end; gap: 8px;',
