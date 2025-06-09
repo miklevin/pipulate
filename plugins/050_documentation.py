@@ -2694,6 +2694,14 @@ class DocumentationPlugin:
             # Convert markdown to HTML
             html_content = self.markdown_to_html(page_content)
 
+            # Navigation center buttons
+            nav_center = f'''
+            <div class="nav-center">
+                <a href="/docs/botify_open_api">📑 Table of Contents</a>
+                <a href="/docs">🏠 Back to Documentation</a>
+            </div>
+            '''
+
             page_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -2764,7 +2772,11 @@ class DocumentationPlugin:
         .navigation {{
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
 
         .nav-button {{
@@ -2909,16 +2921,21 @@ class DocumentationPlugin:
         </div>
     </div>
 
+    <!-- Top Navigation -->
+    <div class="navigation">
+        {prev_button}
+        {nav_center}
+        {next_button}
+    </div>
+
     <div class="content">
         {html_content}
     </div>
 
+    <!-- Bottom Navigation -->
     <div class="navigation">
         {prev_button}
-        <div class="nav-center">
-            <a href="/docs/botify_open_api">📑 Table of Contents</a>
-            <a href="/docs">🏠 Back to Documentation</a>
-        </div>
+        {nav_center}
         {next_button}
     </div>
 
