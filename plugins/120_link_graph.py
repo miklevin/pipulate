@@ -806,7 +806,11 @@ class LinkGraphVisualizer:
                     P(f'Organization: {username}', cls='text-secondary'),
                     P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'),
                     Form(
-                        Button(button_text, type='submit', cls='mt-10px primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}),
+                        Div(
+                            Button(button_text, type='submit', name='action', value='download', cls='mt-10px primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}),
+                            Button(self.ui['BUTTON_LABELS']['SKIP_STEP'], type='submit', name='action', value='skip', cls='mt-10px secondary outline', style=self.ui['BUTTON_STYLES']['SKIP_BUTTON_STYLE']) if self.FEATURES_CONFIG.get('enable_skip_buttons', False) else None,
+                            style=self.ui['BUTTON_STYLES']['BUTTON_ROW']
+                        ),
                         hx_post=f'/{app_name}/{step_id}_submit',
                         hx_target=f'#{step_id}'
                     )
@@ -824,6 +828,41 @@ class LinkGraphVisualizer:
         next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
 
+        # Check if user clicked skip button
+        form = await request.form()
+        action = form.get('action', 'download')  # Default to download for backward compatibility
+
+        if action == 'skip':
+            # Handle skip action - create fake completion data and proceed to next step
+            await self.message_queue.add(pip, f"⏭️ Skipping Node Attributes download...", verbatim=True)
+
+            # Create skip data that indicates step was skipped
+            skip_result = {
+                'download_complete': False,
+                'skipped': True,
+                'skip_reason': 'User chose to skip node attributes download',
+                'file_path': None,
+                'python_command': '',
+                'export_type': 'crawl_attributes',
+                'template_used': 'Crawl Basic'
+            }
+
+            await pip.set_step_data(pipeline_id, step_id, json.dumps(skip_result), steps)
+            await self.message_queue.add(pip, f"⏭️ Node Attributes step skipped. Proceeding to next step.", verbatim=True)
+
+            return Div(
+                pip.display_revert_widget(
+                    step_id=step_id,
+                    app_name=app_name,
+                    message=f'{step.show}: Skipped',
+                    widget=Div(P('This step was skipped.', style='color: #888; font-style: italic;')),
+                    steps=steps
+                ),
+                Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'),
+                id=step_id
+            )
+
+        # Handle normal download action
         # Get analysis data from step_02
         prev_step_id = 'step_02'
         prev_step_data = pip.get_step_data(pipeline_id, prev_step_id, {})
