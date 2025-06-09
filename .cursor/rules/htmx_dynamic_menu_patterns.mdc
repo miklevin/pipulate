@@ -1,0 +1,327 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# HTMX Dynamic Menu and Button Update Patterns
+
+## Overview
+
+Pipulate uses HTMX for dynamic UI updates without full page reloads. This rule documents the established patterns for dropdown menus, button text updates, and form interactions based on implementations in [020_profiles.py](mdc:pipulate/plugins/020_profiles.py), [030_roles.py](mdc:pipulate/plugins/030_roles.py), and workflow enhancements in [110_parameter_buster.py](mdc:pipulate/plugins/110_parameter_buster.py), [120_link_graph.py](mdc:pipulate/plugins/120_link_graph.py), and [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py).
+
+## Core HTMX Patterns
+
+### 1. Dynamic Button Text Updates (Workflow Pattern)
+
+**Use Case**: Button text changes based on dropdown selection (e.g., "Download" vs "Use Cached")
+
+**Implementation Pattern**:
+```python
+# 1. Add route registration in __init__
+app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
+
+# 2. Create update method (Template-Aware Version)
+async def update_button_text(self, request):
+    """Update button text dynamically based on selected analysis."""
+    try:
+        form = await request.form()
+        analysis_slug = form.get('analysis_slug', '').strip()
+        username = form.get('username', '').strip()
+        project_name = form.get('project_name', '').strip()
+        
+        if not all([analysis_slug, username, project_name]):
+            # Return default button - get template details for fallback
+            active_crawl_template_key = self.get_configured_template('crawl')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button')
+        
+        # Get active template details (critical for templates!)
+        active_crawl_template_key = self.get_configured_template('crawl')
+        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+        export_type = active_template_details.get('export_type', 'crawl_attributes')
+        button_suffix = active_template_details.get('button_label_suffix', 'Data')
+        
+        # Check if cached file exists
+        file_exists = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
+        
+        # Return appropriate button text
+        if file_exists:
+            button_text = f'Use Cached {button_suffix} ▸'
+        else:
+            button_text = f'Download {button_suffix} ▸'
+            
+        return Button(button_text, type='submit', cls='mt-10px primary', id='submit-button')
+        
+    except Exception as e:
+        logger.error(f"Error in update_button_text: {e}")
+        # Fallback with template awareness
+        active_crawl_template_key = self.get_configured_template('crawl')
+        active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+        button_suffix = active_template_details.get('button_label_suffix', 'Data')
+        return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button')
+
+# 3. Critical: File existence checking with proper tuple unpacking
+async def check_cached_file_for_button_text(self, username, project_name, analysis_slug, data_type):
+    """Check if a file exists for the given parameters and return appropriate button text."""
+    try:
+        filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
+        # CRITICAL: check_file_exists returns (exists, file_info) tuple!
+        exists, file_info = await self.check_file_exists(filepath)
+        return exists
+    except Exception:
+        return False
+
+# 4. Structured form with HTMX attributes
+Form(
+    Select(
+        *dropdown_options,
+        name='analysis_slug',
+        required=True,
+        autofocus=True,
+        hx_post=f'/{app_name}/update_button_text',
+        hx_target='#submit-button',
+        hx_trigger='change',
+        hx_include='closest form',
+        hx_swap='outerHTML'  # Critical: use outerHTML to replace entire button
+    ),
+    Input(type='hidden', name='username', value=username),
+    Input(type='hidden', name='project_name', value=project_name),
+    Button(button_text, type='submit', cls='mt-10px primary', id='submit-button'),
+    hx_post=f'/{app_name}/step_submit',
+    hx_target=f'#step_id'
+)
+```
+
+**Critical Elements for Success**:
+- **Route Registration**: Must be in `__init__` method with exact pattern
+- **Template Integration**: Use `get_configured_template()` and `QUERY_TEMPLATES.get()` with defaults
+- **File Check Bug Fix**: Always use `exists, file_info = await self.check_file_exists(filepath)`
+- **Button ID**: Must be exactly `id='submit-button'` for targeting
+- **HTMX Swap**: Must use `hx_swap='outerHTML'` to avoid nested buttons
+- **Context Preservation**: Hidden inputs for username/project_name
+- **Error Handling**: Always return fallback buttons with template-aware text
+
+### 2. Profile/CRUD Toggle Pattern
+
+**Use Case**: Checkbox toggles that update item state without page reload
+
+**Implementation Pattern** (from [020_profiles.py](mdc:pipulate/plugins/020_profiles.py)):
+```python
+# Toggle checkbox with HTMX
+Input(
+    type='checkbox',
+    name='active_status_profile',
+    checked=profile_record.active,
+    hx_post=toggle_url,
+    hx_target=f'#{item_id_dom}',
+    hx_swap='outerHTML',
+    title='Toggle Active Status'
+)
+```
+
+**Key Elements**:
+- `hx_swap='outerHTML'` - Replaces entire element
+- Target-specific updates using unique IDs
+- Immediate visual feedback
+
+### 3. Role Menu Expansion Pattern
+
+**Use Case**: Expandable menu sections with click handling (from [030_roles.py](mdc:pipulate/plugins/030_roles.py))
+
+**Implementation Pattern**:
+```python
+# Clickable role item with expansion
+Div(
+    checkbox,
+    title_and_description,
+    onclick=f"""
+        if (this.parentElement._mouseDownPos && event.target.type !== 'checkbox') {{
+            const dragThreshold = 5;
+            const dragDistance = Math.sqrt(
+                Math.pow(event.clientX - this.parentElement._mouseDownPos.x, 2) +
+                Math.pow(event.clientY - this.parentElement._mouseDownPos.y, 2)
+            );
+            
+            if (dragDistance < dragThreshold) {{
+                const details = this.parentElement.querySelector('details');
+                if (details) {{
+                    details.open = !details.open;
+                }}
+            }}
+        }}
+    """
+)
+```
+
+**Key Elements**:
+- Mouse position tracking for drag vs click detection
+- Event delegation to avoid conflicts with form elements
+- DOM manipulation for expand/collapse behavior
+
+### 4. Form Reset and Focus Pattern
+
+**Use Case**: Clear form and refocus after successful submission (from [020_profiles.py](mdc:pipulate/plugins/020_profiles.py))
+
+**Implementation Pattern**:
+```python
+Form(
+    # Form fields
+    hx_post=f'/{self.name}',
+    hx_target='#profile-list-ul',
+    hx_swap='beforeend',
+    hx_on_htmx_after_request="this.reset(); this.querySelector('input[name=profile_name]').focus();"
+)
+```
+
+**Key Elements**:
+- `hx_on_htmx_after_request` - Executes after successful HTMX request
+- Form reset and refocus for improved UX
+- `hx_swap='beforeend'` - Appends new content
+
+## HTMX Attribute Reference
+
+### Essential Attributes
+- `hx_post` / `hx_get` - HTTP method and endpoint
+- `hx_target` - Element to update (CSS selector)
+- `hx_swap` - How to update (`innerHTML`, `outerHTML`, `beforeend`, etc.)
+- `hx_trigger` - Event that triggers request (`change`, `click`, `load`, etc.)
+
+### Advanced Attributes
+- `hx_include` - Additional form data to send
+- `hx_confirm` - Confirmation dialog before request
+- `hx_on_htmx_after_request` - Post-request JavaScript
+- `hx_swap_oob` - Out-of-band swaps for multiple updates
+
+## Implementation Insights & Lessons Learned
+
+### 1. Template Compatibility (Critical for Dynamic Systems)
+
+When implementing in template-based workflows like [420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py):
+
+**✅ Do:**
+- Use `self.get_configured_template('crawl')` to get current template
+- Use `self.QUERY_TEMPLATES.get(template_key, {})` with defaults
+- Check `export_type` from template to determine file type
+- Use `button_label_suffix` from template for consistent naming
+- Keep implementation lean (80/20 rule) - don't over-engineer
+
+**❌ Don't:**
+- Hardcode template names or file types
+- Assume templates won't change
+- Access template dictionaries without `.get()` and defaults
+- Bloat templates with unnecessary complexity
+
+### 2. Critical Bug Pattern (File Existence Checking)
+
+**The Bug**: `check_file_exists()` returns a tuple `(exists, file_info)`, not a dict.
+
+**Wrong Pattern** (causes silent failures):
+```python
+file_info = await self.check_file_exists(filepath)
+return file_info['exists']  # ❌ WRONG: TypeError
+```
+
+**Correct Pattern** (always use this):
+```python
+exists, file_info = await self.check_file_exists(filepath)
+return exists  # ✅ CORRECT
+```
+
+### 3. Nested Button Bug Prevention
+
+**The Bug**: Using `innerHTML` swap with button targets creates nested buttons.
+
+**HTML Result of Bug**:
+```html
+<button id="submit-button">
+  <button id="submit-button">New Text</button>  <!-- Nested! -->
+</button>
+```
+
+**Fix**: Always use `hx_swap='outerHTML'` for button targets:
+```python
+Select(
+    hx_target='#submit-button',
+    hx_swap='outerHTML'  # ✅ Replaces entire button
+)
+```
+
+## Best Practices
+
+### 1. Always Provide Fallbacks
+```python
+try:
+    # Main logic
+    return dynamic_content
+except Exception as e:
+    logger.error(f"Error in update: {e}")
+    # Always return fallback UI with template awareness
+    return default_content_with_template_suffix
+```
+
+### 2. Use Specific IDs for Targeting
+```python
+# Good - specific targeting
+Button('Text', id='submit-button-step-02')
+hx_target='#submit-button-step-02'
+
+# Avoid - generic IDs that might conflict
+Button('Text', id='button')
+```
+
+### 3. Include Context via Hidden Inputs
+```python
+# Always pass necessary context
+Input(type='hidden', name='username', value=username),
+Input(type='hidden', name='project_name', value=project_name),
+Input(type='hidden', name='step_context', value=step_id)
+```
+
+### 4. Handle Loading States
+```python
+Button(
+    'Submit',
+    **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}
+)
+```
+
+### 5. Consistent Button Styling
+```python
+# Standard pattern for workflow buttons
+Button(button_text, type='submit', cls='mt-10px primary', id='submit-button')
+```
+
+## Proven Working Examples
+
+### Workflow Button Updates (All Working ✅)
+- **[110_parameter_buster.py](mdc:pipulate/plugins/110_parameter_buster.py)** - Parameter-based button text with "Not Compliant" template
+- **[120_link_graph.py](mdc:pipulate/plugins/120_link_graph.py)** - Link graph button updates with "Link Graph Edges" template  
+- **[420_botify_trifecta.py](mdc:pipulate/plugins/420_botify_trifecta.py)** - Template-aware button updates with "Crawl Basic" template
+
+### CRUD Interactions  
+- **[020_profiles.py](mdc:pipulate/plugins/020_profiles.py)** - Profile management with toggles
+- **[030_roles.py](mdc:pipulate/plugins/030_roles.py)** - Role selection with expansion
+
+### Menu Systems
+- Server-level profile/app dropdown updates
+- Dynamic role-based menu visibility
+
+## Common Anti-Patterns to Avoid
+
+1. **Missing Template Integration**: Hardcoding file types instead of using template configuration
+2. **Tuple Unpacking Bug**: Not properly unpacking `check_file_exists()` return value
+3. **Nested Button Bug**: Using `innerHTML` instead of `outerHTML` for button targets
+4. **Missing Error Handling**: Not providing fallback UI when template lookup fails
+5. **Generic IDs**: Using non-specific button IDs that could conflict
+6. **Missing Context**: Not including hidden inputs for required form context
+
+## Pattern Summary
+
+1. **Dropdown → Button Update**: Selection changes trigger template-aware button text updates
+2. **Checkbox → State Toggle**: Immediate state changes with visual feedback  
+3. **Click → Expand/Collapse**: Progressive disclosure without page reloads
+4. **Submit → Reset**: Form submission with automatic cleanup and refocus
+5. **Load → Progressive Enhancement**: Chain reactions for workflow progression
+
+These patterns provide consistent, responsive user experiences while maintaining the server-side rendering philosophy of the Pipulate framework and properly integrating with template-based workflow systems.
