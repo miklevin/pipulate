@@ -235,10 +235,11 @@ class LinkGraphVisualizer:
         self.db = db
         pip = self.pipulate
         self.message_queue = pip.message_queue
-
+        
         # Access centralized configuration through dependency injection
         self.ui = pip.get_ui_constants()
         self.config = pip.get_config()
+        
         # Build step names dynamically based on template configuration
         crawl_template = self.get_configured_template('crawl')
         gsc_template = self.get_configured_template('gsc')
@@ -251,9 +252,13 @@ class LinkGraphVisualizer:
             Step(id='step_04', done='search_console_check', show=f'Download: {gsc_template}', refill=False),
             Step(id='step_05', done='visualization_ready', show='Prepare & Visualize Graph', refill=True),
         ]
-        self.steps = steps
         
-        # Register routes using centralized helper
+        # --- STEPS_LIST_INSERTION_POINT ---
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
+        self.steps = steps  # Update self.steps to include finalize step
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        
+        # Register routes using centralized helper (AFTER finalize step is added)
         pipulate.register_workflow_routes(self)
         
         # Register custom routes specific to this workflow
@@ -264,6 +269,7 @@ class LinkGraphVisualizer:
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/download_file', methods=['GET'])(self.download_file)
+        
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
@@ -271,9 +277,7 @@ class LinkGraphVisualizer:
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: All data downloaded. Ready to prepare visualization.", 'complete': 'Visualization ready. Graph link generated.'}
-        # --- STEPS_LIST_INSERTION_POINT ---
-        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
+        self.step_messages['step_02b'] = {'input': f"❔{pip.fmt('step_02b')}: Download node attributes (page type, compliance, etc.)", 'complete': 'Node attributes download complete. Continue to next step.'}
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
