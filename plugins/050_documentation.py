@@ -48,8 +48,11 @@ class DocumentationPlugin:
         """Dynamically discover all documentation files from training and rules directories"""
         docs = {}
 
+        # Get the absolute path to the pipulate root directory
+        pipulate_root = Path('/home/mike/repos/pipulate')
+
         # Scan training directory
-        training_dir = Path('training')
+        training_dir = pipulate_root / 'training'
         if training_dir.exists():
             for file_path in training_dir.glob('*.md'):
                 key, info = self.process_training_file(file_path)
@@ -57,7 +60,7 @@ class DocumentationPlugin:
                     docs[key] = info
 
         # Scan cursor rules directory
-        rules_dir = Path('.cursor/rules')
+        rules_dir = pipulate_root / '.cursor/rules'
         if rules_dir.exists():
             for file_path in rules_dir.glob('*.mdc'):
                 key, info = self.process_rules_file(file_path)
@@ -65,7 +68,7 @@ class DocumentationPlugin:
                     docs[key] = info
 
         # Special case: Add README.md from project root
-        readme_path = Path('README.md')
+        readme_path = pipulate_root / 'README.md'
         if readme_path.exists():
             key, info = self.process_readme_file(readme_path)
             if key and info:
@@ -876,7 +879,7 @@ class DocumentationPlugin:
             html_parts.append('<div class="tree-category" id="featured">')
             html_parts.append('<span class="tree-label">🌟 Featured Guides</span>')
             html_parts.append('<ul class="tree">')
-            for key, info in featured_docs:
+            for idx, (key, info) in enumerate(featured_docs):
                 html_parts.append(f'''
                     <li class="tree-item">
                         <a href="/docs/{key}" class="tree-link featured">
@@ -885,6 +888,17 @@ class DocumentationPlugin:
                         <div class="tree-description">{info["description"]}</div>
                     </li>
                 ''')
+                # After Botify API Bootcamp (Paginated), insert Botify Open API Swagger Examples (Paginated) if present
+                if key == 'botify_api' and 'botify_open_api' in self.DOCS:
+                    open_api_info = self.DOCS['botify_open_api']
+                    html_parts.append(f'''
+                        <li class="tree-item">
+                            <a href="/docs/botify_open_api" class="tree-link featured">
+                                Botify Open API Swagger Examples (Paginated)
+                            </a>
+                            <div class="tree-description">{open_api_info["description"]}</div>
+                        </li>
+                    ''')
             html_parts.append('</ul>')
             html_parts.append('</div>')
 
@@ -921,6 +935,8 @@ class DocumentationPlugin:
                 ''')
             html_parts.append('</ul>')
             html_parts.append('</div>')
+
+        # Remove API Documentation section for botify_api and botify_open_api (now handled in featured)
 
         return ''.join(html_parts)
 
@@ -2269,7 +2285,6 @@ class DocumentationPlugin:
             overflow-x: auto !important;
         }}
 
-        /* Code inside pre blocks should inherit pre behavior */
         pre code,
         pre code[class*="language-"] {{
             white-space: pre !important;
@@ -2277,26 +2292,22 @@ class DocumentationPlugin:
             display: block !important;
         }}
 
-        /* Inline code should remain inline but preserve whitespace */
         code:not(pre code),
         code[class*="language-"]:not(pre code) {{
             white-space: pre !important;
             display: inline !important;
         }}
 
-        /* Override any Prism.js whitespace handling */
         .token,
         .token.text {{
             white-space: pre !important;
         }}
 
-        /* Specific rule for text content in code blocks */
         .language-text,
         .language-plaintext {{
             white-space: pre !important;
         }}
 
-        /* Ensure no text normalization for pre content only */
         pre *,
         pre code * {{
             white-space: inherit !important;
@@ -2485,8 +2496,8 @@ class DocumentationPlugin:
 
         try:
             content = file_path.read_text(encoding='utf-8')
-            pages = self.parse_botify_api_pages(content)
-            toc = self.extract_botify_api_toc(pages)
+            pages = self.parse_botify_open_api_pages(content)
+            toc = self.extract_botify_open_api_toc(pages)
 
             # Create table of contents HTML
             toc_items = []
@@ -2666,7 +2677,7 @@ class DocumentationPlugin:
 
         try:
             content = file_path.read_text(encoding='utf-8')
-            pages = self.parse_botify_api_pages(content)
+            pages = self.parse_botify_open_api_pages(content)
 
             if page_num < 1 or page_num > len(pages):
                 return HTMLResponse("Page not found", status_code=404)
