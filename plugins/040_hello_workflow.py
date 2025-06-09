@@ -145,7 +145,7 @@ class HelloFlow:
     """
     APP_NAME = 'hello'
     DISPLAY_NAME = 'Hello Workflow🐇🕳️'
-    ENDPOINT_MESSAGE = '👋 Start a new Hello Workflow. Keys automatically are: PROFILE_Name-APP_Name-XX (just press Enter)...'
+    ENDPOINT_MESSAGE = 'Start a new Hello Workflow. Keys automatically are: PROFILE_Name-APP_Name-XX (just press Enter)...'
     TRAINING_PROMPT = 'hello_workflow.md'
 
     # --- START_CLASS_ATTRIBUTES_BUNDLE ---

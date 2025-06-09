@@ -20,7 +20,7 @@
    
    ============================================================================ */
 
-/* Layout Variables - CRITICAL: Adjust --nav-group-actual-height */
+/* Layout Variables - CRITICAL: Adjust --nvav-group-actual-height */
 :root {
     /* Base viewport spacing units */
     --spacing-vw: .5vw;  /* Base horizontal spacing */
@@ -39,7 +39,6 @@
     --grid-layout-columns: 65% 35%;
     --grid-gap: 20px;                          /* Fixed grid gap */
     --nav-group-actual-height: 60px;           /* Fixed height for nav */
-    --nav-padding: var(--space-xs);            /* Smaller padding for nav */
 
     /* Key Field Colors - The distinctive "key hole" appearance */
     --key-field-bg: #000000;                   /* Pure black background for key fields */
@@ -245,9 +244,7 @@ body > main:first-of-type > main.container {
     top: 0;
     z-index: 1020;
     border-bottom: 1px solid var(--pico-muted-border-color);
-    margin-left: calc(-1 * var(--web-ui-padding));
-    margin-right: calc(-1 * var(--web-ui-padding));
-    padding: var(--nav-padding) var(--web-ui-padding);
+    padding: 0 0 0 1vw;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -424,6 +421,48 @@ details.dropdown summary + ul li label[style*="background-color: var(--pico-prim
     height: 100%;
     width: 100%;
     margin-left: 1vw;
+    overflow: hidden;
+}
+
+/* Chat Input Group */
+#input-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0px;
+    padding-right: .5vw;
+}
+
+#input-group textarea {
+    min-height: 100px;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+#input-group .button-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+#send-btn, #stop-btn {
+    padding: 0.5rem 1rem;
+    margin-bottom: 0px;
+}
+
+#send-btn {
+    background-color: var(--pico-primary);
+}
+
+#stop-btn {
+    background-color: var(--pico-del-color);
+    display: none;
+}
+
+#send-btn img, #stop-btn img {
+    width: 30px;
+    height: 30px;
+    filter: invert(1);
 }
 
 #chat-interface > article.card {
@@ -839,6 +878,21 @@ input[type="password"]:focus {
 .flyout-list-item {
     list-style-type: none;
     margin-bottom: 0.5rem;
+}
+
+/* Poke Button */
+.poke-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
 /* ============================================================================

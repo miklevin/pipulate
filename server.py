@@ -3193,7 +3193,7 @@ def create_chat_interface(autofocus=False):
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface', style='overflow: hidden')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface')
 
 # Global variable to track streaming state
 is_streaming = False
@@ -3223,35 +3223,30 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
             placeholder='Chat...',
             disabled=disabled,
             autofocus='autofocus' if autofocus else None,
-            style='min-height: 100px; width: 100%; padding: 8px; margin-bottom: 8px;',
             required=True,
             aria_required='true',
         ),
         Div(
             Button(
-                Img(src=icon_src, alt=icon_alt, style='width: 30px; height: 30px; filter: invert(1);'),
+                Img(src=icon_src, alt=icon_alt),
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
-                style='background-color: var(--pico-primary); padding: 0.5rem 1rem; margin-bottom: 0px;',
             ),
             Button(
-                Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 30px; height: 30px; filter: invert(1);'),
+                Img(src='/static/feather/x-octagon.svg', alt='Stop'),
                 type='button',
                 id='stop-btn',
                 disabled=False,  # Enabled, JS will control visibility
                 onclick='stopSidebarStream()',
-                style='background-color: var(--pico-del-color); padding: 0.5rem 1rem; display: none;',
             ),
-            style='display: flex; justify-content: flex-end;',
+            cls='button-container',
         ),
         id='input-group',
-        style='display: flex; flex-direction: column; width: 100%; margin-bottom: 0px; padding-right: .5vw;',
     )
 
 def create_poke_button():
-    button_style = 'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000;'
-    poke_button = Button('🤖', cls='contrast outline', style=button_style, hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML')
+    poke_button = Button('🤖', cls='contrast outline poke-button', hx_get='/poke-flyout', hx_target='#flyout-panel', hx_trigger='mouseenter', hx_swap='outerHTML')
     flyout_panel = Div(id='flyout-panel', cls='flyout-panel hidden')
     return Div(poke_button, flyout_panel)
 
