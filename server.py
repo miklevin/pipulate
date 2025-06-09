@@ -3118,7 +3118,7 @@ def create_chat_interface(autofocus=False):
 
 def mk_chat_input_group(disabled=False, value='', autofocus=True):
     """
-    Create a chat input group with a message input and a send button.
+    Create a chat input group with a textarea input and send/stop buttons.
 
     Args:
         disabled (bool): Whether the input group should be disabled.
@@ -3126,16 +3126,19 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         autofocus (bool): Whether the input field should autofocus.
 
     Returns:
-        Group: An HTML group containing the chat input and send button.
+        Group: An HTML group containing the chat textarea and buttons.
     """
     return Group(
-        Input(
+        Textarea(
+            value,
             id='msg',
             name='msg',
             placeholder='Chat...',
-            value=value,
             disabled=disabled,
             autofocus='autofocus' if autofocus else None,
+            style='min-height: 100px; width: 100%; padding: 8px;',
+            required=True,
+            aria_required='true',
         ),
         Button(
             "Send",
@@ -3144,11 +3147,11 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
             disabled=disabled,
         ),
         Button(
-            "Stop",
+            "⏹️",
             type='button',
             id='stop-btn',
             disabled=True,  # Disabled by default until we implement stop functionality
-            style='background-color: var(--pico-del-color);',
+            style='background-color: var(--pico-del-color); padding: 0 0.5rem;',
         ),
         id='input-group'
     )
