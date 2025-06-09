@@ -583,6 +583,14 @@ class LinkGraphVisualizer:
                     filename = os.path.basename(crawl_filepath)
                     files_found.append(filename)
 
+                # Check for step_02b crawl.csv file (always 'crawl_attributes' export type)
+                # Only check if the active template is NOT already 'crawl_attributes' to avoid duplication
+                if active_template_details.get('export_type') != 'crawl_attributes':
+                    step_02b_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'crawl_attributes')
+                    step_02b_exists, _ = await self.check_file_exists(step_02b_filepath)
+                    if step_02b_exists:
+                        files_found.append('crawl.csv')
+
                 # Check weblog data
                 weblog_filepath = await self.get_deterministic_filepath(username, project_name, slug, 'weblog')
                 weblog_exists, _ = await self.check_file_exists(weblog_filepath)
