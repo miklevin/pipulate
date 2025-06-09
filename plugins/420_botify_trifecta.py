@@ -209,7 +209,7 @@ class BotifyCsvDownloaderWorkflow:
     # Change these values to switch between different query templates
     # without modifying the workflow logic.
     TEMPLATE_CONFIG = {
-        'crawl': 'Link Graph Edges',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
+        'crawl': 'Crawl Basic',   # Options: 'Crawl Basic', 'Not Compliant', 'Link Graph Edges'
         'gsc': 'GSC Performance'       # Options: 'GSC Performance'
     }
 
@@ -291,6 +291,7 @@ class BotifyCsvDownloaderWorkflow:
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
         app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
+        app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
@@ -647,7 +648,35 @@ class BotifyCsvDownloaderWorkflow:
 
             button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
 
-            return Div(Card(H3(f'{step.show}'), P(f"Select an analysis for project '{project_name}'"), P(f'Organization: {username}', cls='text-secondary'), P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), Form(Select(*dropdown_options, name='analysis_slug', required=True, autofocus=True), Button(button_text, type='submit', cls='mt-10px primary', **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            return Div(
+                Card(
+                    H3(f'{step.show}'), 
+                    P(f"Select an analysis for project '{project_name}'"), 
+                    P(f'Organization: {username}', cls='text-secondary'), 
+                    P(user_message, cls='text-muted', style='font-style: italic; margin-top: 10px;'), 
+                    Form(
+                                            Select(
+                        *dropdown_options, 
+                        name='analysis_slug', 
+                        required=True, 
+                        autofocus=True,
+                        hx_post=f'/{app_name}/update_button_text',
+                        hx_target='#submit-button',
+                        hx_trigger='change',
+                        hx_include='closest form',
+                        hx_swap='outerHTML'
+                    ),
+                        Input(type='hidden', name='username', value=username),
+                        Input(type='hidden', name='project_name', value=project_name),
+                        Button(button_text, type='submit', cls='mt-10px primary', id='submit-button',
+                               **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'}), 
+                        hx_post=f'/{app_name}/{step_id}_submit', 
+                        hx_target=f'#{step_id}'
+                    )
+                ), 
+                Div(id=next_step_id), 
+                id=step_id
+            )
         except Exception as e:
             logging.exception(f'Error in {step_id}: {e}')
             return P(f'Error fetching analyses: {str(e)}', style=pip.get_style('error'))
@@ -3088,6 +3117,44 @@ await main()
         else:
             # Show the content
             return content_div
+
+    async def update_button_text(self, request):
+        """Update button text dynamically based on selected analysis."""
+        try:
+            form = await request.form()
+            analysis_slug = form.get('analysis_slug', '').strip()
+            username = form.get('username', '').strip()
+            project_name = form.get('project_name', '').strip()
+            
+            if not all([analysis_slug, username, project_name]):
+                # Return default button if missing parameters
+                active_crawl_template_key = self.get_configured_template('crawl')
+                active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+                button_suffix = active_template_details.get('button_label_suffix', 'Data')
+                return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
+                             **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+            
+            # Get active template details
+            active_crawl_template_key = self.get_configured_template('crawl')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            export_type = active_template_details.get('export_type', 'crawl_attributes')
+            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            
+            # Check if files are cached for the selected analysis
+            is_cached = await self.check_cached_file_for_button_text(username, project_name, analysis_slug, export_type)
+            
+            button_text = f'Use Cached {button_suffix} ▸' if is_cached else f'Download {button_suffix} ▸'
+                
+            return Button(button_text, type='submit', cls='mt-10px primary', id='submit-button',
+                         **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
+        except Exception as e:
+            logger.error(f"Error in update_button_text: {e}")
+            # Return default button on error
+            active_crawl_template_key = self.get_configured_template('crawl')
+            active_template_details = self.QUERY_TEMPLATES.get(active_crawl_template_key, {})
+            button_suffix = active_template_details.get('button_label_suffix', 'Data')
+            return Button(f'Download {button_suffix} ▸', type='submit', cls='mt-10px primary', id='submit-button',
+                         **{'hx-on:click': 'this.setAttribute("aria-busy", "true"); this.textContent = "Processing..."'})
 
     async def step_04_process(self, request):
         """Process the search console check and download if available."""
