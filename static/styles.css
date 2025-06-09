@@ -865,6 +865,7 @@ input[type="password"]:focus {
 }
 
 .flyout-panel.visible {
+    background: var(--pico-accordion-border-color);
     display: block;
     padding: 1rem;
 }
@@ -893,41 +894,6 @@ input[type="password"]:focus {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-}
-
-/* Roles Plugin Styling */
-.role-title {
-    font-weight: bold; 
-    margin-left: 5px;
-}
-
-.role-description {
-    color: var(--pico-muted-color);
-    font-size: 0.85rem;
-    line-height: 1.2;
-}
-
-.role-plugin-summary {
-    font-size: 0.8rem;
-    color: var(--pico-muted-color);
-    cursor: pointer;
-    margin: 0.5rem 0 0 0;
-    line-height: 1.1;
-}
-
-.role-plugin-list {
-    padding-left: 1rem;
-    margin: 0.3rem 0 0 0;
-    line-height: 1.1;
-}
-
-.role-plugin-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-    padding: 0.15rem 0;
-    font-size: 0.8rem;
-    line-height: 1.1;
 }
 
 /* ============================================================================
