@@ -126,6 +126,7 @@ class BotifyCsvDownloaderWorkflow:
             'button_label_suffix': 'Basic Attributes',
             'query': {
                 'dimensions': ['{collection}.url', '{collection}.http_code', '{collection}.metadata.title.content'],
+                'metrics': [],
                 'filters': {'field': '{collection}.http_code', 'predicate': 'eq', 'value': 200}
             }
         },
