@@ -847,6 +847,64 @@ input[type="password"]:focus {
 */
 
 /* ============================================================================
+   ROLE CONTENT STYLING - Role descriptions and plugin links
+   ============================================================================ */
+
+/* Role Description Styling - Grayer and smaller */
+.role-description {
+    color: var(--pico-muted-color);
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+/* Role Plugin Links Styling - Whiter, smaller, tighter spacing */
+.role-plugin-links {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8em;
+    line-height: 1.2;
+}
+
+.role-plugin-links a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-size: inherit;
+}
+
+/* Preserve hover effects - blue and underlined */
+.role-plugin-links a:hover {
+    color: var(--pico-primary);
+    text-decoration: underline;
+}
+
+/* Ensure proper contrast in both themes */
+[data-theme="light"] .role-plugin-links {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .role-plugin-links a {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .role-plugin-links {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .role-plugin-links a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Dark mode system preference */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .role-plugin-links {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    :root:not([data-theme]) .role-plugin-links a {
+        color: rgba(255, 255, 255, 0.9);
+    }
+}
+
+/* ============================================================================
    FLYOUT PANEL - Positioned notification/action panels
    ============================================================================ */
 
