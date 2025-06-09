@@ -40,7 +40,8 @@ class IntroductionPlugin:
                 'features': [
                     ('📍 Breadcrumb', f'Headline is {app_name} / Profile Name / APP Name.'),
                     ('👤 PROFILE', 'Set up Client (aka Customer) profiles. Each is their own separate workspace.'),
-                    ('⚡ APP', 'For each Client/Customer, try each APP (Parameter Buster for example).')
+                    ('⚡ APP', 'For each Client/Customer, try each APP (Parameter Buster for example).'),
+                    ('👥 Roles (Home)', 'Control which apps appear in the APP menu. Drag to reorder, check/uncheck to show/hide.')
                 ],
                 'getting_started': 'Getting Started',
                 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
@@ -56,16 +57,18 @@ class IntroductionPlugin:
                     ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
                 ],
                 'interface_title': 'Understanding the Interface',
-                'interface_items': [
-                    ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
-                    ('📊 APPS', "Try Parameter Buster on your Client. It's a big potential win.")
-                ],
+                                  'interface_items': [
+                      ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
+                      ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
+                      ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
+                  ],
                 'secret_word': 'PRACTICE'
             },
+
             3: {
                 'title': 'Tips for Effective Use',
                 'tips': [
-                    ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster.'),
+                    ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
                     ('🗑️ DELETE', 'Workflows are disposable because they are so easily re-created. So if you lose a particular workflow, just make it again with the same inputs 🤯'),
                     ('💾 SAVE', 'Anything you do that has side-effects like CSVs stays on your computer even when you delete the workflows. Browse direclty to files or attach new workflows to them by using the same input.'),
                     ('🔒 LOCK', 'Lock PROFILE to avoid showing other Client (Nick)names to each other.'),
