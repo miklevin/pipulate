@@ -1026,7 +1026,7 @@ class LinkGraphVisualizer:
                         full_job_url = None
                 
                 if full_job_url:
-                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="node_attributes_export")
+                    success, result = await self.poll_job_status(full_job_url, api_token, step_context="export")
                     if not success:
                         error_message = isinstance(result, str) and result or 'Export job failed'
                         await self.message_queue.add(pip, f'❌ Export failed: {error_message}', verbatim=True)
