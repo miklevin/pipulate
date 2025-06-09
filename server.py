@@ -3143,14 +3143,14 @@ def mk_chat_input_group(disabled=False, value='', autofocus=True):
         ),
         Div(
             Button(
-                "▶️",
+                Img(src='/static/feather/arrow-up-circle.svg', alt='Run', style='width: 20px; height: 20px;'),
                 type='submit',
                 id='send-btn',
                 disabled=disabled,
                 style='background-color: var(--pico-primary); padding: 0.5rem 1rem;',
             ),
             Button(
-                "⏹️",
+                Img(src='/static/feather/x-octagon.svg', alt='Stop', style='width: 20px; height: 20px;'),
                 type='button',
                 id='stop-btn',
                 disabled=True,  # Disabled by default until we implement stop functionality
