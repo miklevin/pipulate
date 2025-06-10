@@ -103,6 +103,7 @@ class CrudCustomizer(BaseCrud):
             
             # Add out-of-band update for the Default button
             from fasthtml.common import HTMLResponse, to_xml
+            import json
             
             # Get the updated button
             updated_button = await self.plugin.update_default_button(request)
@@ -117,6 +118,7 @@ class CrudCustomizer(BaseCrud):
             # Create response with the button update
             button_html = to_xml(updated_button)
             response = HTMLResponse(str(button_html))
+            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
             return response
             
         except Exception as e:
@@ -147,6 +149,7 @@ class CrudCustomizer(BaseCrud):
             
             # Get the updated button
             from fasthtml.common import HTMLResponse, to_xml
+            import json
             updated_button = await self.plugin.update_default_button(request)
             
             # Add hx-swap-oob attribute
@@ -160,7 +163,9 @@ class CrudCustomizer(BaseCrud):
             button_html = str(to_xml(updated_button))
             combined_html = item_html + button_html
             
-            return HTMLResponse(combined_html)
+            response = HTMLResponse(combined_html)
+            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            return response
             
         except Exception as e:
             logger.error(f"Error in toggle_role: {e}")
