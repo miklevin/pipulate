@@ -2724,7 +2724,8 @@ async def home(request):
     page_title = f'{APP_NAME} - {title_name(last_profile_name)} - {(endpoint_name(menux) if menux else HOME_MENU_ITEM)}'
     
     # Backup mechanism: send endpoint message if not yet sent for this session
-    session_key = f'endpoint_message_sent_{menux}'
+    current_env = get_current_environment()
+    session_key = f'endpoint_message_sent_{menux}_{current_env}'
     if session_key not in db:
         try:
             # Add training to conversation history
@@ -3815,6 +3816,12 @@ async def send_startup_environment_message():
                 else:
                     raise
         
+        # Clear any existing endpoint message session keys to allow fresh messages after server restart
+        endpoint_keys_to_clear = [key for key in db.keys() if key.startswith('endpoint_message_sent_')]
+        for key in endpoint_keys_to_clear:
+            del db[key]
+        logger.debug(f"Cleared {len(endpoint_keys_to_clear)} endpoint message session keys on startup")
+        
         # Also send endpoint message and training for current location
         current_endpoint = db.get('last_app_choice', '')
         
@@ -3843,6 +3850,8 @@ async def send_startup_environment_message():
                         logger.warning(f"Failed to send endpoint message for {current_endpoint}: {e}")
             else:
                 logger.debug(f"Endpoint message for {current_endpoint} in {current_env} mode already sent this session, skipping")
+        else:
+            logger.debug(f"Skipping endpoint message because temp_message exists in db - will be handled by page load backup mechanism")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
