@@ -288,6 +288,14 @@ class CrudUI(PluginIdentityManager):
                            hx_on_htmx_after_swap="if(window.setupSortable) setupSortable('.sortable', 'blue-background-class')",
                            cls="secondary outline",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
+                    Button("Expand ALL", 
+                           onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = true; }});",
+                           cls="secondary",
+                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
+                    Button("Collapse ALL", 
+                           onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = false; }});",
+                           cls="secondary outline",
+                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
                     style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;"
                 ),
                 Ol(
@@ -378,6 +386,8 @@ class CrudUI(PluginIdentityManager):
         except Exception as e:
             logger.error(f"Error in select_default_roles: {e}")
             return await self.render_roles_list()
+
+
 
     async def render_roles_list(self):
         """Render just the roles list for HTMX updates."""
