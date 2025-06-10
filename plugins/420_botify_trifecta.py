@@ -303,36 +303,7 @@ class BotifyCsvDownloaderWorkflow:
     # Additional class-level constants can be merged here by manage_class_attributes.py
     # --- END_CLASS_ATTRIBUTES_BUNDLE ---
 
-    # Toggle Method Configuration - Maps step IDs to their specific data extraction logic
-    # ==================================================================================
-    TOGGLE_CONFIG = {
-        'step_02': {
-            'data_key': 'analysis_result',
-            'status_field': 'download_complete',
-            'success_text': 'HAS crawl analysis',
-            'failure_text': 'does NOT have crawl analysis',
-            'error_prefix': 'FAILED to download crawl analysis'
-        },
-        'step_03': {
-            'data_key': 'check_result',
-            'status_field': 'has_logs',
-            'success_text': 'HAS web logs',
-            'failure_text': 'does NOT have web logs',
-            'error_prefix': 'FAILED to download web logs',
-            'status_prefix': 'Project '
-        },
-        'step_04': {
-            'data_key': 'check_result',
-            'status_field': 'has_search_console',
-            'success_text': 'HAS Search Console data',
-            'failure_text': 'does NOT have Search Console data',
-            'error_prefix': 'FAILED to download Search Console data',
-            'status_prefix': 'Project '
-        },
-        'step_05': {
-            'simple_content': 'Placeholder step completed'
-        }
-    }
+
 
     def __init__(self, app, pipulate, pipeline, db, app_name=APP_NAME):
         """Initialize the workflow, define steps, and register routes."""
@@ -359,7 +330,11 @@ class BotifyCsvDownloaderWorkflow:
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
             Step(id='step_05', done='placeholder_data_05', show='Step 5 Placeholder', refill=False)
         ]
+        
+        # --- STEPS_LIST_INSERTION_POINT ---
+        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
         self.steps = steps
+        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
         
         # Register routes using centralized helper
         pipulate.register_workflow_routes(self)
@@ -368,9 +343,10 @@ class BotifyCsvDownloaderWorkflow:
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
-
-        app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
+        # Note: Toggle route removed as part of step_05 standardization. 
+        # Other steps may need individual toggle method implementations.
+
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
         for step in steps:
             if step.id not in self.step_messages:
@@ -378,9 +354,6 @@ class BotifyCsvDownloaderWorkflow:
         self.step_messages['step_04'] = {'input': f"❔{pip.fmt('step_04')}: Please check if the project has Search Console data.", 'complete': 'Search Console check complete. Continue to next step.'}
         self.step_messages['step_03'] = {'input': f"❔{pip.fmt('step_03')}: Please check if the project has web logs available.", 'complete': '📋 Web logs check complete. Continue to next step.'}
         self.step_messages['step_05'] = {'input': f"❔{pip.fmt('step_05')}: This is a placeholder step.", 'complete': 'Placeholder step complete. Ready to finalize.'}
-        # --- STEPS_LIST_INSERTION_POINT ---
-        steps.append(Step(id='finalize', done='finalized', show='Finalize', refill=False))
-        self.steps_indices = {step.id: i for i, step in enumerate(steps)}
 
     def get_available_templates_for_data_type(self, data_type):
         """Get available query templates for a specific data type."""
@@ -1325,7 +1298,7 @@ class BotifyCsvDownloaderWorkflow:
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
-        """Handles GET request for Step 5 Placeholder, standardized."""
+        """Handles GET request for Step 5 Placeholder."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
@@ -1336,7 +1309,7 @@ class BotifyCsvDownloaderWorkflow:
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         current_value = step_data.get(step.done, "")
         finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
-        
+
         if "finalized" in finalize_data and current_value:
             pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
             return Div(
@@ -1357,10 +1330,10 @@ class BotifyCsvDownloaderWorkflow:
             return Div(
                 Card(
                     H3(f"{step.show}"),
-                    P("This is a placeholder step. Click Proceed to continue."),
+                    P("This is a placeholder step. Customize its input form as needed. Click Proceed to continue."),
                     Form(
-                        Input(type="hidden", name=step.done, value=f"Placeholder Value for {step.show}"),
-                        Button(self.ui['BUTTON_LABELS']['PROCEED'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
+                        Input(type="hidden", name=step.done, value="Placeholder Value for Step 5 Placeholder"),
+                        Button(self.ui['BUTTON_LABELS']['NEXT_STEP'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
                         hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
                     )
                 ),
@@ -1369,21 +1342,23 @@ class BotifyCsvDownloaderWorkflow:
             )
 
     async def step_05_submit(self, request):
-        """Process the submission for the placeholder step, standardized."""
+        """Process the submission for Step 5 Placeholder."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
         next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
+
         form_data = await request.form()
         value_to_save = form_data.get(step.done, f"Default value for {step.show}")
-        
         await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
+
         pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
         pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+
         await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
-        
+
         return Div(
             pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
@@ -3072,93 +3047,7 @@ await main()
 
 
 
-    async def common_toggle(self, request):
-        """Unified toggle method for all step widgets using configuration-driven approach."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
 
-        # Extract step_id from query parameters
-        step_id = request.query_params.get('step_id')
-        if not step_id or step_id not in self.TOGGLE_CONFIG:
-            return Div("Invalid step ID", style="color: red;")
-
-        config = self.TOGGLE_CONFIG[step_id]
-        pipeline_id = db.get('pipeline_id', 'unknown')
-
-        # Handle simple content case (step_05)
-        if 'simple_content' in config:
-            state = pip.read_state(pipeline_id)
-            is_visible = state.get(f'{step_id}_widget_visible', False)
-
-            if f'{step_id}_widget_visible' not in state:
-                state[f'{step_id}_widget_visible'] = True
-                pip.write_state(pipeline_id, state)
-                return Pre(config['simple_content'], cls='code-block-container')
-
-            state[f'{step_id}_widget_visible'] = not is_visible
-            pip.write_state(pipeline_id, state)
-
-            if is_visible:
-                return Pre(config['simple_content'], cls='code-block-container', style='display: none;')
-            else:
-                return Pre(config['simple_content'], cls='code-block-container')
-
-        # Handle complex data-driven content
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        step_data = pip.get_step_data(pipeline_id, step_id, {})
-
-        # Extract data based on configuration
-        data_str = step_data.get(step.done, '')
-        data_obj = json.loads(data_str) if data_str else {}
-
-        # Get python command for display
-        python_command = data_obj.get('python_command', '')
-
-        # Determine status message and color
-        status_prefix = config.get('status_prefix', '')
-        if 'error' in data_obj:
-            status_text = f'{config["error_prefix"]}: {data_obj["error"]}'
-            status_color = 'red'
-        else:
-            has_data = data_obj.get(config['status_field'], False)
-            status_text = f'{status_prefix}{config["success_text"] if has_data else config["failure_text"]}'
-            status_color = 'green' if has_data else 'red'
-
-        # Handle visibility toggle
-        state = pip.read_state(pipeline_id)
-        is_visible = state.get(f'{step_id}_widget_visible', False)
-
-        # Create the content div
-        content_div = Div(
-            P(f'Status: {status_text}', style=f'color: {status_color};'),
-            H4('Python Command (for debugging):'),
-            Pre(Code(python_command, cls='language-python'), cls='code-block-container'),
-            Script(f"""
-                setTimeout(function() {{
-                    if (typeof Prism !== 'undefined') {{
-                        Prism.highlightAllUnder(document.getElementById('{step_id}_widget'));
-                    }}
-                }}, 100);
-            """)
-        )
-
-        # Special case: If this is the first toggle after download (state not set yet)
-        if f'{step_id}_widget_visible' not in state:
-            state[f'{step_id}_widget_visible'] = True
-            pip.write_state(pipeline_id, state)
-            return content_div
-
-        # Normal toggle behavior
-        state[f'{step_id}_widget_visible'] = not is_visible
-        pip.write_state(pipeline_id, state)
-
-        if is_visible:
-            # Hide the content
-            content_div.attrs['style'] = 'display: none;'
-            return content_div
-        else:
-            # Show the content
-            return content_div
 
     async def update_button_text(self, request):
         """Update button text dynamically based on selected analysis."""
