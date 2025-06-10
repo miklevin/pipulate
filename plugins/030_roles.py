@@ -242,7 +242,25 @@ class CrudUI(PluginIdentityManager):
         """Render the main roles management interface."""
         items_query = self.table()
         roles_config = self.config.get('ROLES_CONFIG', {})
-        items = sorted(items_query, key=lambda item: item.priority or 99)
+        
+        # Debug logging for role priorities
+        logger.info("LANDING: Current role priorities in database:")
+        for item in items_query:
+            logger.info(f"  - '{item.text}': priority={item.priority}, done={item.done}")
+        
+        # Debug the sorting process
+        logger.info("LANDING: Sorting roles by priority...")
+        
+        # Debug the sorting key function
+        def debug_sort_key(item):
+            key_value = item.priority if item.priority is not None else 99
+            logger.info(f"  SORT_KEY: '{item.text}' -> key={key_value} (raw priority={item.priority})")
+            return key_value
+        
+        items = sorted(items_query, key=debug_sort_key)
+        logger.info("LANDING: After sorting:")
+        for i, item in enumerate(items):
+            logger.info(f"  Position {i+1}: '{item.text}' - priority={item.priority}")
 
         return Div(
             Style(self.generate_role_css()),
@@ -367,18 +385,46 @@ class CrudUI(PluginIdentityManager):
             return response
 
     async def select_default_roles(self, request):
-        """Reset roles to DEFAULT_ACTIVE_ROLES configuration."""
+        """Reset roles to DEFAULT_ACTIVE_ROLES configuration and original sort order."""
         try:
             # Get the default active roles from config
             default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
+            roles_config = self.config.get('ROLES_CONFIG', {})
+            logger.info(f"DEFAULT: Starting reset process")
+            logger.info(f"DEFAULT: Target active roles: {default_active}")
+            logger.info(f"DEFAULT: Available ROLES_CONFIG: {list(roles_config.keys())}")
+            
+            # Debug the config structure for Botify Employee specifically
+            botify_config = roles_config.get('Botify Employee', {})
+            logger.info(f"DEFAULT: Botify Employee config: {botify_config}")
             
             # Update all roles based on default configuration
             all_roles = self.table()
+            logger.info(f"DEFAULT: Found {len(all_roles)} roles in database")
+            
             for role in all_roles:
+                # Reset selection state
                 should_be_active = role.text in default_active
-                if role.done != should_be_active:
+                role_changed = role.done != should_be_active
+                if role_changed:
                     role.done = should_be_active
+                
+                # Reset priority to config ROLES_CONFIG (the same source as initialization)
+                original_priority = roles_config.get(role.text, {}).get('priority', 99)
+                priority_changed = role.priority != original_priority
+                
+                logger.info(f"DEFAULT: Role '{role.text}' - current priority: {role.priority}, target priority: {original_priority}, needs change: {priority_changed}")
+                
+                if priority_changed:
+                    role.priority = original_priority
+                
+                # Update if anything changed
+                if role_changed or priority_changed:
+                    logger.info(f"DEFAULT: UPDATING role '{role.text}' - done: {role.done}, priority: {role.priority}")
                     self.table.update(role)
+                    logger.info(f"DEFAULT: UPDATE COMPLETE for role '{role.text}'")
+                else:
+                    logger.info(f"DEFAULT: No changes needed for role '{role.text}'")
             
             # Return HX-Refresh header to trigger full page reload
             from fasthtml.common import HTMLResponse
@@ -399,7 +445,7 @@ class CrudUI(PluginIdentityManager):
         """Render just the roles list for HTMX updates."""
         items_query = self.table()
         roles_config = self.config.get('ROLES_CONFIG', {})
-        items = sorted(items_query, key=lambda item: item.priority or 99)
+        items = sorted(items_query, key=lambda item: item.priority if item.priority is not None else 99)
         
         return Ol(
             *[self.app_instance.render_item(item) for item in items],
