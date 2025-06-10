@@ -17,6 +17,9 @@ window.testAlert = function(message) {
 const config = window.PCONFIG || {};
 const tempMessage = config.tempMessage;
 
+// Flag to prevent duplicate temp message sending
+let tempMessageSent = false;
+
 // Match the WebSocket route from Chat
 const sidebarWs = new WebSocket('ws://' + window.location.host + '/ws');
 const sidebarMsgList = document.getElementById('msg-list');
@@ -25,6 +28,13 @@ sidebarCurrentMessage.className = 'message assistant';
 
 sidebarWs.onopen = function() {
     console.log('Sidebar WebSocket connected');
+    // If there's a temp message waiting and we just connected, send it immediately
+    if (tempMessage && document.readyState === 'complete' && !tempMessageSent) {
+        console.log('WebSocket opened, sending queued temp message:', tempMessage);
+        const messageWithNewline = tempMessage + '';
+        sidebarWs.send(`${messageWithNewline}|verbatim`);
+        tempMessageSent = true;
+    }
 };
 
 sidebarWs.onclose = function() {
@@ -233,12 +243,28 @@ function initializeScrollObserver() {
     }
 }
 
+// Function to send temp message when WebSocket is ready
+function sendTempMessageWhenReady() {
+    if (!tempMessage || tempMessageSent) return;
+    
+    if (sidebarWs.readyState === WebSocket.OPEN) {
+        console.log('Sidebar sending verbatim:', tempMessage);
+        const messageWithNewline = tempMessage + '';
+        sidebarWs.send(`${messageWithNewline}|verbatim`);
+        tempMessageSent = true;
+    } else {
+        // Wait for connection and retry
+        console.log('WebSocket not ready, waiting for connection...');
+        setTimeout(sendTempMessageWhenReady, 100);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeChatInterface();
     initializeScrollObserver();
-    if (tempMessage) {
-        console.log('Sidebar sending verbatim:', tempMessage);
-        const messageWithNewline = tempMessage + '';
-        setTimeout(() => sidebarWs.send(`${messageWithNewline}|verbatim`), 1000);
+    
+    // Send temp message when WebSocket is ready (with initial delay for page load)
+    if (tempMessage && !tempMessageSent) {
+        setTimeout(sendTempMessageWhenReady, 1000);
     }
 }); 

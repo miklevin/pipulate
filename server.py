@@ -35,7 +35,7 @@ import platform
 import urllib.parse
 from starlette.responses import FileResponse
 DEBUG_MODE = False
-STATE_TABLES = False
+STATE_TABLES = True
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20
 shared_app_state = {'critical_operation_in_progress': False}
@@ -2083,33 +2083,8 @@ class Chat:
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
 
-            # Coordination check for verbatim messages (likely endpoint messages)
-            if verbatim:
-                # Check if this is an endpoint message that might be duplicated
-                current_env = get_current_environment()
-                current_endpoint = db.get('last_app_choice', '')
-                expected_endpoint_message = build_endpoint_messages(current_endpoint)
-                
-                # If this verbatim message matches an endpoint message, check coordination
-                if expected_endpoint_message and msg.strip() in expected_endpoint_message:
-                    message_id = f'{current_endpoint}_{current_env}_{hash(expected_endpoint_message) % 10000}'
-                    
-                    import time
-                    current_time = time.time()
-                    last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
-                    
-                    # Skip if recently sent through another pathway
-                    if current_time - last_sent < 5:
-                        self.logger.debug(f"Skipping frontend verbatim message - recently sent: {message_id}")
-                        # Clear temp_message to prevent multiple frontend attempts
-                        if 'temp_message' in db:
-                            del db['temp_message']
-                        return
-                    else:
-                        # Update coordination system to mark this message as sent
-                        message_coordination['last_endpoint_message_time'][message_id] = current_time
-                        message_coordination['endpoint_messages_sent'].add(message_id)
-                        self.logger.debug(f"Processing frontend verbatim message: {message_id}")
+            # Frontend verbatim messages (from temp_message) are legitimate navigation messages
+            # No coordination needed - these should always go through
 
             # Create and store the task
             task = asyncio.create_task(pipulate.stream(msg, verbatim=verbatim))
@@ -3738,7 +3713,7 @@ class DOMSkeletonMiddleware(BaseHTTPMiddleware):
             pipeline_table.add_column('Created', style='magenta')
             pipeline_table.add_column('Updated', style='cyan')
             pipeline_table.add_column('Steps', style='white')
-            for record in pipulate.table():
+            for record in pipeline():
                 try:
                     state = json.loads(record.data)
                     pre_state = json.loads(record.data)
