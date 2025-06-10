@@ -231,6 +231,8 @@ class CrudUI(PluginIdentityManager):
         routes = [
             (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
             (f"{prefix}_sort", self.app_instance.sort_items, ['POST']),
+            (f"{prefix}/select_all", self.select_all_roles, ['POST']),
+            (f"{prefix}/deselect_all", self.deselect_all_roles, ['POST']),
         ]
         for path, handler, methods in routes:
             self.app.route(path, methods=methods)(handler)
@@ -255,6 +257,20 @@ class CrudUI(PluginIdentityManager):
                     " for a guided overview.",
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
+                Div(
+                    Button("Select ALL", 
+                           hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
+                           hx_target=f"#{self.LIST_ID}",
+                           hx_swap="outerHTML",
+                           cls="secondary",
+                           style="margin-right: 0.5rem;"),
+                    Button("Deselect ALL", 
+                           hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
+                           hx_target=f"#{self.LIST_ID}",
+                           hx_swap="outerHTML",
+                           cls="secondary outline"),
+                    style="margin-bottom: 1rem; display: flex; gap: 0.5rem;"
+                ),
                 Ol(
                     *[self.app_instance.render_item(item) for item in items],
                     id=self.LIST_ID, cls='sortable', style="padding-left: 1.5rem;",
@@ -268,6 +284,67 @@ class CrudUI(PluginIdentityManager):
     async def render(self, render_items=None):
         """Render method for compatibility."""
         return await self.landing()
+
+    async def select_all_roles(self, request):
+        """Select all roles except Core (which is always selected)."""
+        try:
+            # Get all roles except Core
+            all_roles = self.table()
+            for role in all_roles:
+                if role.text != "Core" and not role.done:
+                    # Update using proper fastlite syntax
+                    role.done = True
+                    self.table.update(role)
+            
+            # Return updated roles list with APP menu refresh trigger
+            from fasthtml.common import HTMLResponse, to_xml
+            import json
+            
+            roles_list = await self.render_roles_list()
+            html_content = to_xml(roles_list)
+            response = HTMLResponse(str(html_content))
+            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            return response
+        except Exception as e:
+            logger.error(f"Error in select_all_roles: {e}")
+            return await self.render_roles_list()
+
+    async def deselect_all_roles(self, request):
+        """Deselect all roles except Core (which stays selected)."""  
+        try:
+            # Get all roles except Core
+            all_roles = self.table()
+            for role in all_roles:
+                if role.text != "Core" and role.done:
+                    # Update using proper fastlite syntax
+                    role.done = False
+                    self.table.update(role)
+            
+            # Return updated roles list with APP menu refresh trigger
+            from fasthtml.common import HTMLResponse, to_xml
+            import json
+            
+            roles_list = await self.render_roles_list()
+            html_content = to_xml(roles_list)
+            response = HTMLResponse(str(html_content))
+            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            return response
+        except Exception as e:
+            logger.error(f"Error in deselect_all_roles: {e}")
+            return await self.render_roles_list()
+
+    async def render_roles_list(self):
+        """Render just the roles list for HTMX updates."""
+        items_query = self.table()
+        roles_config = self.config.get('ROLES_CONFIG', {})
+        items = sorted(items_query, key=lambda item: roles_config.get(item.text, {}).get('priority', 99))
+        
+        return Ol(
+            *[self.app_instance.render_item(item) for item in items],
+            id=self.LIST_ID, cls='sortable', style="padding-left: 1.5rem;",
+            hx_post=f"{self.ENDPOINT_PREFIX}_sort", hx_swap="none",
+            data_plugin_name=self.name
+        )
 
     @classmethod
 
