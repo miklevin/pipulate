@@ -46,10 +46,28 @@ class IntroductionPlugin:
                 'getting_started': 'Getting Started',
                 'nav_help': f'Use DEV mode for practice. Use Prod mode in front of your Client or Customer.',
                 'home': f'The home page is also the Roles app where you can add apps to the APP menu.',
-                'llm_help': f'The chat interface on the right is powered by a local LLM ({model}) to assist you 🤖. Click the "Next ▸" button to continue.',
+                'llm_help': f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click Next ▸ button to continue.',
                 'secret_word': 'FOUNDATION'
             },
             2: {
+                'title': 'Local AI Assistant Setup 🤖',
+                'intro_text': f'{app_name} uses a separately installed local chatbot called Ollama. Having a local LLM installed is not required for {app_name} to keep working, but it is highly encouraged because it will always be "in the loop" knowing what you\'re doing with the app and able to provide extremely context-aware advice.',
+                'benefits': [
+                    ('🔒 PRIVATE', 'No registration or API token required. Completely local and private.'),
+                    ('💰 FREE', 'Free for the price of electricity - no monthly subscriptions.'),
+                    ('🧠 CONTEXT-AWARE', 'Always knows what you\'re doing and can provide specific advice.'),
+                    ('🚀 INSTANT', 'No network delays - responds immediately from your machine.')
+                ],
+                'installation_title': 'Installation Steps',
+                'installation_steps': [
+                    ('DOWNLOAD OLLAMA', 'Ollama has custom Mac and Windows installers - use them for best results.'),
+                    ('LOAD GEMMA 3', 'Follow Ollama\'s instructions to load Gemma 3 (recommended starter model).'),
+                    ('EXPERIMENT', 'Feel free to try other models once you\'re comfortable with the basics.')
+                ],
+                'fallback_note': f'If you don\'t take this step, the majority of {app_name} will still work — just without an AI riding shotgun.',
+                'secret_word': 'OLLAMA'
+            },
+            3: {
                 'experimenting_title': 'Positive First Experience',
                 'experimenting_steps': [
                     ('🚀 START', 'in DEV mode. Practice! Try stuff like resetting the entire database 🔄 (in 🤖). Experiment and get comfortable.'),
@@ -57,15 +75,14 @@ class IntroductionPlugin:
                     ('⚡ WORKFLOWS', f'Try the Hello Workflow to get a feel for how {app_name} workflows work.')
                 ],
                 'interface_title': 'Understanding the Interface',
-                                  'interface_items': [
-                      ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
-                      ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
-                      ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
-                  ],
+                'interface_items': [
+                    ('👤 PROFILES', "Give Clients cute nicknames in Prod mode (Appliances, Sneakers, etc). Resetting database won't delete."),
+                    ('📊 APPS', "Botify folks: try Parameter Buster on your Client. It's a big potential win."),
+                    ('🔗 LINK GRAPH', "Botify folks: try Link Graph Visualizer to explore internal linking patterns.")
+                ],
                 'secret_word': 'PRACTICE'
             },
-
-            3: {
+            4: {
                 'title': 'Tips for Effective Use',
                 'tips': [
                     ('🔗 CONNECT', 'Set up your API keys to activate Botify-integrated workflows such as Parameter Buster and Link Graph Visualizer.'),
@@ -76,7 +93,7 @@ class IntroductionPlugin:
                 ],
                 'secret_word': 'WORKFLOW'
             },
-            4: {
+            5: {
                 'title': 'Local LLM Assistant 🤖',
                 'llm_features': [
                     ('🔒 PRIVACY', 'All conversations stay on your machine. No data is sent to external servers.'),
@@ -93,7 +110,7 @@ class IntroductionPlugin:
                 ],
                 'secret_word': 'ASSISTANT'
             },
-            5: {
+            6: {
                 'title': 'Background LLM Training',
                 'intro_text': f'🧠 {app_name} automatically trains your local LLM as you navigate. The LLM learns what you\'re viewing without cluttering your chat.',
                 'how_it_works': [
@@ -134,11 +151,47 @@ class IntroductionPlugin:
                 H4(page_data['getting_started']),
                 P(page_data['nav_help']),
                 P(page_data['home']),
-                P(page_data['llm_help']),
+                P(f'The chat interface on the right is optionally powered by a local LLM ({model}) to assist you 🤖. Click ',
+                  A('Next ▸', 
+                    hx_post='/introduction/page/2',
+                    hx_target='#grid-left-content',
+                    hx_swap='innerHTML',
+                    style='color: inherit; text-decoration: underline; cursor: pointer;',
+                    onmouseover='this.style.color="#007bff";',
+                    onmouseout='this.style.color="inherit";'),
+                  ' to continue.'),
                 style=card_style
             )
 
         elif page_num == 2:
+            return Card(
+                H3(page_data['title']),
+                P(page_data['intro_text']),
+                Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['benefits']]),
+                H3(page_data['installation_title']),
+                Ol(
+                    Li(
+                        Strong(
+                            A('DOWNLOAD OLLAMA', 
+                              href='https://ollama.com/', 
+                              target='_blank',
+                              style='text-decoration: none; color: inherit;',
+                              onmouseover='this.style.textDecoration="underline"; this.style.color="#007bff";',
+                              onmouseout='this.style.textDecoration="none"; this.style.color="inherit";'),
+                            Img(src='/static/feather/external-link.svg', 
+                                alt='External link', 
+                                style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
+                            ':'
+                        ), 
+                        ' Ollama has custom Mac and Windows installers - use them for best results.'
+                    ),
+                    *[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['installation_steps'][1:]]
+                ),
+                P(page_data['fallback_note']),
+                style=card_style
+            )
+
+        elif page_num == 3:
             return Card(
                 H3(page_data['experimenting_title']),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['experimenting_steps']]),
@@ -147,7 +200,7 @@ class IntroductionPlugin:
                 style=card_style
             )
 
-        elif page_num == 3:
+        elif page_num == 4:
             return Card(
                 H3(page_data['title']),
                 Ol(*[Li(Strong(f'{name}:'), f' {desc}') for name, desc in page_data['tips']]),
@@ -159,7 +212,7 @@ class IntroductionPlugin:
                 style=card_style
             )
 
-        elif page_num == 4:
+        elif page_num == 5:
             return Card(
                 H3(page_data['title']),
                 P(f'Your local LLM ({model}) provides intelligent assistance throughout your workflow:'),
@@ -169,7 +222,7 @@ class IntroductionPlugin:
                 style=card_style
             )
 
-        elif page_num == 5:
+        elif page_num == 6:
             return Card(
                 H3(page_data['title']),
                 P(page_data['intro_text']),
@@ -195,12 +248,14 @@ class IntroductionPlugin:
         if page_num == 1:
             context = f"The user is viewing the Introduction page which shows:\n\n{page_data['title']}\n\n{page_data['intro']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['features'])))}\n\n{page_data['getting_started']}\n{page_data['nav_help']}\n{page_data['home']}\n{page_data['llm_help']}"
         elif page_num == 2:
-            context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
+            context = f"The user is viewing the Local AI Assistant Setup page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nBenefits:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['benefits']))}"
         elif page_num == 3:
-            context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
+            context = f"The user is viewing the Experimenting page which shows:\n\n{page_data['experimenting_title']}\n{chr(10).join((f'{i + 1}. {step}' for i, step in enumerate(page_data['experimenting_steps'])))}\n\n{page_data['interface_title']}\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['interface_items']))}"
         elif page_num == 4:
-            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+            context = f"The user is viewing the Tips page which shows:\n\n{page_data['title']}\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['tips'])))}"
         elif page_num == 5:
+            context = f"The user is viewing the Local LLM Assistant page which shows:\n\n{page_data['title']}\n\nFeatures:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['llm_features'])))}\n\nUsage Tips:\n{chr(10).join((f'• {tip}' for tip in page_data['usage_tips']))}"
+        elif page_num == 6:
             context = f"The user is viewing the Background LLM Training page which shows:\n\n{page_data['title']}\n\n{page_data['intro_text']}\n\nHow It Works:\n{chr(10).join((f'{i + 1}. {name}: {desc}' for i, (name, desc) in enumerate(page_data['how_it_works'])))}\n\n{page_data['examples_title']}:\n{chr(10).join((f'• {name}: {desc}' for name, desc in page_data['examples']))}\n\nTesting Tip: {page_data['testing_tip']}"
         else:
             context = f"Unknown page {page_num}"
@@ -291,12 +346,12 @@ class IntroductionPlugin:
 
         next_button = Button(
             'Next ▸',
-            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 5 else '#',
+            hx_post=f'/introduction/page/{current_page + 1}' if current_page < 6 else '#',
             hx_target='#grid-left-content',
             hx_swap='innerHTML',
-            cls='primary outline' if current_page == 5 else 'primary',
+            cls='primary outline' if current_page == 6 else 'primary',
             style='min-width: 160px; width: 160px;',
-            disabled=current_page == 5
+            disabled=current_page == 6
         )
 
         nav_arrows = Div(

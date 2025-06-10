@@ -255,12 +255,15 @@ class CrudUI(PluginIdentityManager):
                       style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    " for a guided overview. Chat not working? Install ",
-                    A("Ollama", href="https://ollama.com/", target="_blank",
+                    " for a guided overview. Chat not working? Want it to? Install ",
+                    A("Ollama", 
+                      Img(src='/static/feather/external-link.svg', 
+                          alt='External link', 
+                          style='width: 14px; height: 14px; margin-left: 0.25rem; vertical-align: middle; filter: brightness(0) invert(1);'),
+                      href="https://ollama.com/", target="_blank",
                       style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    "!",
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
                 Div(
