@@ -1,5 +1,5 @@
 /**
- * GLOBAL CONFIG PATTERN: Reads window.PIPULATE_CONFIG set by Python
+ * GLOBAL CONFIG PATTERN: Reads window.PCONFIG set by Python
  * 
  * This file automatically reads configuration from global variables.
  * No initialization call needed - Python sets config before loading.
@@ -14,7 +14,7 @@ window.testAlert = function(message) {
 };
 
 // Get configuration from the global variable
-const config = window.PIPULATE_CONFIG || {};
+const config = window.PCONFIG || {};
 const tempMessage = config.tempMessage;
 
 // Match the WebSocket route from Chat

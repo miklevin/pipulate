@@ -106,7 +106,7 @@ DEFAULT_ACTIVE_ROLES = {'Botify Employee', 'Core'}
 # Moving configuration here allows for easy white-labeling and configuration management.
 # Over time, more instance-specific "slag" will be skimmed from plugins to here.
 
-PIPULATE_CONFIG = {
+PCONFIG = {
     # UI & Navigation
     'HOME_MENU_ITEM': HOME_MENU_ITEM,
     'DEFAULT_ACTIVE_ROLES': DEFAULT_ACTIVE_ROLES,
@@ -244,8 +244,8 @@ PIPULATE_CONFIG = {
 }
 
 # Update references to use the centralized config
-HOME_MENU_ITEM = PIPULATE_CONFIG['HOME_MENU_ITEM']
-DEFAULT_ACTIVE_ROLES = PIPULATE_CONFIG['DEFAULT_ACTIVE_ROLES']
+HOME_MENU_ITEM = PCONFIG['HOME_MENU_ITEM']
+DEFAULT_ACTIVE_ROLES = PCONFIG['DEFAULT_ACTIVE_ROLES']
 
 ENV_FILE = Path('data/environment.txt')
 data_dir = Path('data')
@@ -814,11 +814,11 @@ class Pipulate:
     
     def get_ui_constants(self):
         """Access centralized UI constants through dependency injection."""
-        return PIPULATE_CONFIG['UI_CONSTANTS']
+        return PCONFIG['UI_CONSTANTS']
     
     def get_config(self):
         """Access centralized configuration through dependency injection."""
-        return PIPULATE_CONFIG
+        return PCONFIG
 
     def register_workflow_routes(self, plugin_instance):
         """
@@ -1243,7 +1243,7 @@ class Pipulate:
         Returns:
             Container: Standard landing page structure
         """
-        from server import PIPULATE_CONFIG
+        from server import PCONFIG
         
         # Standard display name derivation
         try:
@@ -1265,8 +1265,8 @@ class Pipulate:
         matching_records = [record.pkey for record in self.pipeline_table() if record.pkey.startswith(prefix)]
         
         # Standard form with centralized constants
-        ui_constants = PIPULATE_CONFIG['UI_CONSTANTS']
-        landing_constants = PIPULATE_CONFIG['UI_CONSTANTS']['LANDING_PAGE']
+        ui_constants = PCONFIG['UI_CONSTANTS']
+        landing_constants = PCONFIG['UI_CONSTANTS']['LANDING_PAGE']
         
         return Container(
             Card(
@@ -2596,7 +2596,7 @@ for module_name, class_name, workflow_class in discovered_classes:
                             args_to_pass[param_name] = profiles
                         elif param_name == 'config':
                             # Inject centralized configuration for plugins that need it
-                            args_to_pass[param_name] = PIPULATE_CONFIG
+                            args_to_pass[param_name] = PCONFIG
                     logger.debug(f"Instantiating REGULAR plugin '{module_name}' with args: {args_to_pass.keys()}")
                     try:
                         instance = workflow_class(**args_to_pass)
@@ -3001,9 +3001,9 @@ def create_menu_container(menu_items):
     return Details(Summary('⚡ APP', cls='inline-nowrap', id='app-id'), Ul(*menu_items, cls='dropdown-menu'), cls='dropdown', id='app-dropdown-menu')
 
 def get_dynamic_role_css():
-    """Generate dynamic role CSS from centralized PIPULATE_CONFIG - single source of truth."""
+    """Generate dynamic role CSS from centralized PCONFIG - single source of truth."""
     try:
-        role_colors = PIPULATE_CONFIG.get('ROLE_COLORS', {})
+        role_colors = PCONFIG.get('ROLE_COLORS', {})
         if not role_colors:
             return ""
         
@@ -3221,7 +3221,7 @@ def create_chat_interface(autofocus=False):
     if 'temp_message' in db:
         temp_message = db['temp_message']
         del db['temp_message']
-    init_script = f'\n    // Set global variables for the external script\n    window.PIPULATE_CONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
+    init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface')
 
