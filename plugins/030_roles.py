@@ -242,7 +242,7 @@ class CrudUI(PluginIdentityManager):
         """Render the main roles management interface."""
         items_query = self.table()
         roles_config = self.config.get('ROLES_CONFIG', {})
-        items = sorted(items_query, key=lambda item: roles_config.get(item.text, {}).get('priority', 99))
+        items = sorted(items_query, key=lambda item: item.priority or 99)
 
         return Div(
             Style(self.generate_role_css()),
@@ -279,9 +279,6 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Select ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
-                           hx_target=f"#{self.LIST_ID}",
-                           hx_swap="outerHTML",
-                           hx_on_htmx_after_swap="if(window.setupSortable) setupSortable('.sortable', 'blue-background-class')",
                            cls="secondary",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
                     Button(Img(src='/static/feather/square.svg', 
@@ -289,9 +286,6 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
-                           hx_target=f"#{self.LIST_ID}",
-                           hx_swap="outerHTML",
-                           hx_on_htmx_after_swap="if(window.setupSortable) setupSortable('.sortable', 'blue-background-class')",
                            cls="secondary outline",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
                     Button(Img(src='/static/feather/chevrons-down.svg', 
@@ -335,18 +329,18 @@ class CrudUI(PluginIdentityManager):
                     role.done = True
                     self.table.update(role)
             
-            # Return updated roles list with APP menu refresh trigger
-            from fasthtml.common import HTMLResponse, to_xml
-            import json
-            
-            roles_list = await self.render_roles_list()
-            html_content = to_xml(roles_list)
-            response = HTMLResponse(str(html_content))
-            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            # Return HX-Refresh header to trigger full page reload
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
             return response
         except Exception as e:
             logger.error(f"Error in select_all_roles: {e}")
-            return await self.render_roles_list()
+            # Even on error, trigger page refresh to show current state
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
 
     async def deselect_all_roles(self, request):
         """Deselect all roles except Core (which stays selected)."""  
@@ -359,18 +353,18 @@ class CrudUI(PluginIdentityManager):
                     role.done = False
                     self.table.update(role)
             
-            # Return updated roles list with APP menu refresh trigger
-            from fasthtml.common import HTMLResponse, to_xml
-            import json
-            
-            roles_list = await self.render_roles_list()
-            html_content = to_xml(roles_list)
-            response = HTMLResponse(str(html_content))
-            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            # Return HX-Refresh header to trigger full page reload
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
             return response
         except Exception as e:
             logger.error(f"Error in deselect_all_roles: {e}")
-            return await self.render_roles_list()
+            # Even on error, trigger page refresh to show current state
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
 
     async def select_default_roles(self, request):
         """Reset roles to DEFAULT_ACTIVE_ROLES configuration."""
@@ -405,7 +399,7 @@ class CrudUI(PluginIdentityManager):
         """Render just the roles list for HTMX updates."""
         items_query = self.table()
         roles_config = self.config.get('ROLES_CONFIG', {})
-        items = sorted(items_query, key=lambda item: roles_config.get(item.text, {}).get('priority', 99))
+        items = sorted(items_query, key=lambda item: item.priority or 99)
         
         return Ol(
             *[self.app_instance.render_item(item) for item in items],
