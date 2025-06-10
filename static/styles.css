@@ -876,6 +876,25 @@ input[type="password"]:focus {
     text-decoration: underline;
 }
 
+/* Role Plugin Ordered List - Shows numbering for ordered plugin lists */
+.role-plugin-ordered-list {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1em;
+    line-height: 1.2;
+    list-style-type: decimal;
+}
+
+.role-plugin-ordered-list a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-size: inherit;
+}
+
+.role-plugin-ordered-list a:hover {
+    color: var(--pico-primary);
+    text-decoration: underline;
+}
+
 /* Ensure proper contrast in both themes */
 [data-theme="light"] .role-plugin-links {
     color: rgba(0, 0, 0, 0.7);
@@ -893,6 +912,22 @@ input[type="password"]:focus {
     color: rgba(255, 255, 255, 0.9);
 }
 
+[data-theme="light"] .role-plugin-ordered-list {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .role-plugin-ordered-list a {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .role-plugin-ordered-list {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .role-plugin-ordered-list a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
 /* Dark mode system preference */
 @media only screen and (prefers-color-scheme: dark) {
     :root:not([data-theme]) .role-plugin-links {
@@ -900,6 +935,14 @@ input[type="password"]:focus {
     }
     
     :root:not([data-theme]) .role-plugin-links a {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    :root:not([data-theme]) .role-plugin-ordered-list {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    :root:not([data-theme]) .role-plugin-ordered-list a {
         color: rgba(255, 255, 255, 0.9);
     }
 }

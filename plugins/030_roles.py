@@ -255,9 +255,9 @@ class CrudUI(PluginIdentityManager):
                     " for a guided overview.",
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
-                Ul(
+                Ol(
                     *[self.app_instance.render_item(item) for item in items],
-                    id=self.LIST_ID, cls='sortable', style="padding-left: 0;",
+                    id=self.LIST_ID, cls='sortable', style="padding-left: 1.5rem;",
                     hx_post=f"{self.ENDPOINT_PREFIX}_sort", hx_swap="none",
                     data_plugin_name=self.name
                 )
@@ -488,19 +488,18 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
 
         # Use display name as-is without adding extra emojis
         plugin_items.append(
-            Li(
-                A(
-                    display_name,
-                    href=plugin_url,
-                    cls="role-plugin-links",
-                    style="font-size: 0.8em; color: rgba(255, 255, 255, 0.9); text-decoration: none;",
-                    onmouseover="this.style.color = 'var(--pico-primary)'; this.style.textDecoration = 'underline';",
-                    onmouseout="this.style.color = 'rgba(255, 255, 255, 0.9)'; this.style.textDecoration = 'none';",
-                    onclick="event.stopPropagation();"
-                ),
-                style="list-style-type: none; margin: 0; padding: 0; line-height: 1.2;",
-                title=f"Navigate to {display_name}"
-            )
+                            Li(
+                    A(
+                        display_name,
+                        href=plugin_url,
+                        style="font-size: 0.8em; color: rgba(255, 255, 255, 0.9); text-decoration: none;",
+                        onmouseover="this.style.color = 'var(--pico-primary)'; this.style.textDecoration = 'underline';",
+                        onmouseout="this.style.color = 'rgba(255, 255, 255, 0.9)'; this.style.textDecoration = 'none';",
+                        onclick="event.stopPropagation();"
+                    ),
+                    style="margin: 0; padding: 0; line-height: 1.2;",
+                    title=f"Navigate to {display_name}"
+                )
         )
 
     return Details(
@@ -509,6 +508,6 @@ def create_plugin_visibility_table(role_name, ui_constants=None):
             cls="role-plugin-summary",
             style="font-size: 0.75em; color: var(--pico-muted-color); opacity: 0.7; cursor: pointer;"
         ),
-        Ul(*plugin_items, cls="role-plugin-links", style="margin: 0.25rem 0; padding: 0;"),
+        Ol(*plugin_items, cls="role-plugin-ordered-list", style="margin: 0.25rem 0; padding-left: 1.5rem;"),
         style="margin-top: 0.5rem;"
     )
