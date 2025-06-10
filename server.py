@@ -34,10 +34,12 @@ import subprocess
 import platform
 import urllib.parse
 from starlette.responses import FileResponse
+
+# Various debug settings
 DEBUG_MODE = False
 STATE_TABLES = True
 TABLE_LIFECYCLE_LOGGING = False
-API_LOG_ROTATION_COUNT = 20
+API_LOG_ROTATION_COUNT = 10
 shared_app_state = {'critical_operation_in_progress': False}
 
 # Global message coordination to prevent race conditions between multiple message-sending systems
@@ -285,23 +287,34 @@ def setup_logging():
         except Exception as e:
             print(f'Failed to delete old log file {old_log}: {e}')
     if api_log_path.exists():
-        for i in range(API_LOG_ROTATION_COUNT, 1, -1):
+        # First, clean up any logs beyond our rotation limit
+        for i in range(API_LOG_ROTATION_COUNT + 1, 100):  # Check up to api-99.log
+            old_log = logs_dir / f'api-{i}.log'
+            if old_log.exists():
+                try:
+                    old_log.unlink()
+                    print(f'Deleted old API log beyond rotation limit: {old_log}')
+                except Exception as e:
+                    print(f'Failed to delete old API log {old_log}: {e}')
+        
+        # Rotate existing numbered logs (shift them up by 1)
+        # This moves api-2.log → api-3.log, api-3.log → api-4.log, etc.
+        for i in range(API_LOG_ROTATION_COUNT - 1, 1, -1):
             old_path = logs_dir / f'api-{i}.log'
             new_path = logs_dir / f'api-{i + 1}.log'
             if old_path.exists():
                 try:
                     old_path.rename(new_path)
+                    print(f'Rotated API log: {old_path} → {new_path}')
                 except Exception as e:
                     print(f'Failed to rotate API log {old_path}: {e}')
+        
+        # Move current api.log to api-2.log (preserves the original numbering scheme)
         try:
             api_log_path.rename(logs_dir / 'api-2.log')
+            print(f'Rotated current API log: {api_log_path} → api-2.log (previous run)')
         except Exception as e:
             print(f'Failed to rotate current API log: {e}')
-        for old_log in logs_dir.glob(f'api-[{API_LOG_ROTATION_COUNT + 1}-9].log'):
-            try:
-                old_log.unlink()
-            except Exception as e:
-                print(f'Failed to delete old API log {old_log}: {e}')
     time_format = '{time:HH:mm:ss}'
     message_format = '{level: <8} | {name: <15} | {message}'
     logger.add(app_log_path, level=log_level, format=f'{time_format} | {message_format}', enqueue=True)
