@@ -37,7 +37,7 @@ README.md        <-- Main GitHub README sets the tone
 flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
 requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-/home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
+# /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
 /home/mike/repos/pipulate/static/split.js
