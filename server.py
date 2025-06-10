@@ -37,7 +37,7 @@ from starlette.responses import FileResponse
 
 # Various debug settings
 DEBUG_MODE = False
-STATE_TABLES = True
+STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 10
 shared_app_state = {'critical_operation_in_progress': False}
