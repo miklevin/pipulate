@@ -40,6 +40,13 @@ TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 20
 shared_app_state = {'critical_operation_in_progress': False}
 
+# Global message coordination to prevent race conditions between multiple message-sending systems
+message_coordination = {
+    'endpoint_messages_sent': set(),  # Track sent endpoint messages
+    'last_endpoint_message_time': {},  # Track timing to prevent duplicates
+    'startup_in_progress': False,     # Flag to coordinate startup vs page load
+}
+
 class GracefulRestartException(SystemExit):
     """Custom exception to signal a restart requested by Watchdog."""
     pass
@@ -2076,6 +2083,34 @@ class Chat:
             msg = parts[0]
             verbatim = len(parts) > 1 and parts[1] == 'verbatim'
 
+            # Coordination check for verbatim messages (likely endpoint messages)
+            if verbatim:
+                # Check if this is an endpoint message that might be duplicated
+                current_env = get_current_environment()
+                current_endpoint = db.get('last_app_choice', '')
+                expected_endpoint_message = build_endpoint_messages(current_endpoint)
+                
+                # If this verbatim message matches an endpoint message, check coordination
+                if expected_endpoint_message and msg.strip() in expected_endpoint_message:
+                    message_id = f'{current_endpoint}_{current_env}_{hash(expected_endpoint_message) % 10000}'
+                    
+                    import time
+                    current_time = time.time()
+                    last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
+                    
+                    # Skip if recently sent through another pathway
+                    if current_time - last_sent < 5:
+                        self.logger.debug(f"Skipping frontend verbatim message - recently sent: {message_id}")
+                        # Clear temp_message to prevent multiple frontend attempts
+                        if 'temp_message' in db:
+                            del db['temp_message']
+                        return
+                    else:
+                        # Update coordination system to mark this message as sent
+                        message_coordination['last_endpoint_message_time'][message_id] = current_time
+                        message_coordination['endpoint_messages_sent'].add(message_id)
+                        self.logger.debug(f"Processing frontend verbatim message: {message_id}")
+
             # Create and store the task
             task = asyncio.create_task(pipulate.stream(msg, verbatim=verbatim))
             self.active_chat_tasks[websocket] = task
@@ -2697,6 +2732,12 @@ async def startup_event():
     log_dynamic_table_state('pipeline', lambda: pipeline(), title_prefix='STARTUP FINAL')
 
     
+    # Clear any stale coordination data on startup
+    message_coordination['endpoint_messages_sent'].clear()
+    message_coordination['last_endpoint_message_time'].clear()
+    message_coordination['startup_in_progress'] = False
+    logger.debug("Cleared message coordination state on startup")
+    
     # Send environment mode message after a short delay to let UI initialize
     asyncio.create_task(send_startup_environment_message())
 ordered_plugins = []
@@ -2742,17 +2783,38 @@ async def home(request):
     # Backup mechanism: send endpoint message if not yet sent for this session
     current_env = get_current_environment()
     session_key = f'endpoint_message_sent_{menux}_{current_env}'
-    if session_key not in db:
-        try:
-            # Add training to conversation history
-            build_endpoint_training(menux)
+    
+    # Check coordination system to prevent duplicates
+    endpoint_message = build_endpoint_messages(menux)
+    if endpoint_message and session_key not in db:
+        # Create unique message identifier for coordination
+        message_id = f'{menux}_{current_env}_{hash(endpoint_message) % 10000}'
+        
+        # Check if this message was recently sent through any pathway
+        import time
+        current_time = time.time()
+        last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
+        
+        # Only send if not recently sent and startup is not in progress
+        if (current_time - last_sent > 10 and 
+            not message_coordination['startup_in_progress'] and
+            message_id not in message_coordination['endpoint_messages_sent']):
             
-            # Send endpoint message
-            endpoint_message = build_endpoint_messages(menux)
-            if endpoint_message:
+            try:
+                # Add training to conversation history
+                build_endpoint_training(menux)
+                
+                # Mark as being sent to prevent other systems from sending
+                message_coordination['last_endpoint_message_time'][message_id] = current_time
+                message_coordination['endpoint_messages_sent'].add(message_id)
+                
+                # Send endpoint message with coordination
                 asyncio.create_task(send_delayed_endpoint_message(endpoint_message, session_key))
-        except Exception as e:
-            logger.error(f'Error sending backup endpoint message: {e}')
+                logger.debug(f"Scheduled backup endpoint message: {message_id}")
+            except Exception as e:
+                logger.error(f'Error sending backup endpoint message: {e}')
+        else:
+            logger.debug(f"Skipping backup endpoint message - coordination check failed: {message_id}")
     
     logger.debug('Returning response for main GET request.')
     return (Title(page_title), Main(response))
@@ -3340,7 +3402,12 @@ def redirect_handler(request):
     if message:
         prompt = read_training(message)
         append_to_conversation(prompt, role='system')
+        
+        # Always set temp_message for redirects - this is legitimate navigation
+        # The coordination system will prevent race condition duplicates in other pathways
         db['temp_message'] = message
+        logger.debug(f"Set temp_message for redirect to: {path}")
+            
     build_endpoint_training(path)
     return Redirect(f'/{path}')
 
@@ -3797,15 +3864,37 @@ async def delayed_restart(delay_seconds):
 async def send_delayed_endpoint_message(message, session_key):
     """Send an endpoint message after a delay to ensure chat system is ready."""
     await asyncio.sleep(2)  # Brief delay to ensure page has loaded
+    
+    # Create message ID for final coordination check
+    current_env = get_current_environment()
+    endpoint = session_key.replace(f'endpoint_message_sent_', '').replace(f'_{current_env}', '')
+    message_id = f'{endpoint}_{current_env}_{hash(message) % 10000}'
+    
     try:
-        await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system')
-        db[session_key] = 'sent'  # Mark as sent for this session
-        logger.debug(f"Successfully sent delayed endpoint message for {session_key}")
+        # Final check - only send if still not recently sent by another pathway
+        import time
+        current_time = time.time()
+        last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
+        
+        if current_time - last_sent > 5:  # 5-second window for delayed messages
+            await pipulate.message_queue.add(pipulate, message, verbatim=True, role='system')
+            db[session_key] = 'sent'  # Mark as sent for this session
+            
+            # Update coordination system
+            message_coordination['last_endpoint_message_time'][message_id] = current_time
+            logger.debug(f"Successfully sent delayed endpoint message: {message_id}")
+        else:
+            logger.debug(f"Skipping delayed endpoint message - recently sent by another pathway: {message_id}")
+            # Still mark session as sent to prevent future attempts
+            db[session_key] = 'sent'
     except Exception as e:
         logger.warning(f"Failed to send delayed endpoint message for {session_key}: {e}")
 
 async def send_startup_environment_message():
     """Send a message indicating the current environment mode after server startup."""
+    # Set startup coordination flag
+    message_coordination['startup_in_progress'] = True
+    
     # Longer wait for fresh nix develop startup to ensure chat system is fully ready
     await asyncio.sleep(5)  # Increased from 3 to 5 seconds
     
@@ -3838,39 +3927,55 @@ async def send_startup_environment_message():
             del db[key]
         logger.debug(f"Cleared {len(endpoint_keys_to_clear)} endpoint message session keys on startup")
         
+        # Clear message coordination on startup to allow fresh messages
+        message_coordination['endpoint_messages_sent'].clear()
+        message_coordination['last_endpoint_message_time'].clear()
+        
         # Also send endpoint message and training for current location
         current_endpoint = db.get('last_app_choice', '')
         
         # Add training prompt to conversation history
         build_endpoint_training(current_endpoint)
         
-        # Send endpoint message if available (only if no temp_message to avoid duplication)
+        # Send endpoint message if available (with coordination check)
         if 'temp_message' not in db:
-            # Create a unique session key that includes environment to prevent cross-environment duplication
-            current_env = get_current_environment()
-            session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
-            
-            # Check if we've already sent this endpoint message for this environment session
-            if session_key not in db:
-                endpoint_message = build_endpoint_messages(current_endpoint)
-                if endpoint_message:
+            endpoint_message = build_endpoint_messages(current_endpoint)
+            if endpoint_message:
+                # Create unique message identifier for coordination
+                message_id = f'{current_endpoint}_{current_env}_{hash(endpoint_message) % 10000}'
+                
+                # Check if this message was recently sent through any pathway
+                import time
+                current_time = time.time()
+                last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
+                
+                # Only send if not recently sent (10-second window)
+                if current_time - last_sent > 10:
                     await asyncio.sleep(1)  # Brief pause between messages
                     
-                    # Try to send the endpoint message only once per environment session
                     try:
                         await pipulate.message_queue.add(pipulate, endpoint_message, verbatim=True, role='system')
-                        logger.debug(f"Successfully sent endpoint message for {current_endpoint} in {current_env} mode")
-                        # Mark startup endpoint message as sent for this environment
+                        logger.debug(f"Successfully sent startup endpoint message: {message_id}")
+                        
+                        # Mark as sent in coordination system
+                        message_coordination['last_endpoint_message_time'][message_id] = current_time
+                        message_coordination['endpoint_messages_sent'].add(message_id)
+                        
+                        # Also mark in session system for backward compatibility
+                        session_key = f'endpoint_message_sent_{current_endpoint}_{current_env}'
                         db[session_key] = 'sent'
                     except Exception as e:
-                        logger.warning(f"Failed to send endpoint message for {current_endpoint}: {e}")
-            else:
-                logger.debug(f"Endpoint message for {current_endpoint} in {current_env} mode already sent this session, skipping")
+                        logger.warning(f"Failed to send startup endpoint message: {e}")
+                else:
+                    logger.debug(f"Skipping startup endpoint message - recently sent: {message_id}")
         else:
-            logger.debug(f"Skipping endpoint message because temp_message exists in db - will be handled by page load backup mechanism")
+            logger.debug(f"Skipping startup endpoint message because temp_message exists in db")
             
     except Exception as e:
         logger.error(f'Error sending startup environment message: {e}')
+    finally:
+        # Clear startup flag
+        message_coordination['startup_in_progress'] = False
 
 
 ALL_ROUTES = list(set([''] + MENU_ITEMS))
