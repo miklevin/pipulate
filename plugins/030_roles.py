@@ -98,11 +98,8 @@ class CrudCustomizer(BaseCrud):
     async def sort_items(self, request):
         """Override sort_items to include Default button update."""
         try:
-            logger.info(f"DEBUG: sort_items called")
-            
             # Call the parent sort method
             result = await super().sort_items(request)
-            logger.info(f"DEBUG: parent sort_items completed, result type: {type(result)}")
             
             # Add out-of-band update for the Default button
             from fasthtml.common import HTMLResponse, to_xml
@@ -117,13 +114,9 @@ class CrudCustomizer(BaseCrud):
                 # If attrs doesn't exist, create it
                 updated_button.attrs = {'hx-swap-oob': 'true'}
             
-            logger.info(f"DEBUG: created button with hx-swap-oob=true, attrs: {updated_button.attrs}")
-            
             # Create response with the button update
             button_html = to_xml(updated_button)
-            logger.info(f"DEBUG: button HTML: {str(button_html)[:200]}...")
             response = HTMLResponse(str(button_html))
-            logger.info(f"DEBUG: returning HTMLResponse with button update")
             return response
             
         except Exception as e:
@@ -141,19 +134,13 @@ class CrudCustomizer(BaseCrud):
             path_parts = request.url.path.split('/')
             item_id = int(path_parts[-1])  # Last part should be the item_id
             
-            logger.info(f"DEBUG: toggle_role called for item_id: {item_id}")
-            
             # Get the item and toggle its done status
             item = self.table[item_id]
-            logger.info(f"DEBUG: Found item '{item.text}' with current done={item.done}")
             
             # Toggle the done status (but Core is always done)
             if item.text != "Core":
                 item.done = not item.done
                 self.table.update(item)
-                logger.info(f"DEBUG: Updated item '{item.text}' done={item.done}")
-            else:
-                logger.info(f"DEBUG: Core role - no toggle allowed")
             
             # Render the updated item
             updated_item_html = self.render_item(item)
@@ -168,14 +155,11 @@ class CrudCustomizer(BaseCrud):
             else:
                 updated_button.attrs = {'hx-swap-oob': 'true'}
             
-            logger.info(f"DEBUG: toggle_role - created button with hx-swap-oob=true")
-            
             # Combine the updated item with the button update
             item_html = str(to_xml(updated_item_html))
             button_html = str(to_xml(updated_button))
             combined_html = item_html + button_html
             
-            logger.info(f"DEBUG: toggle_role - returning combined response")
             return HTMLResponse(combined_html)
             
         except Exception as e:
@@ -429,13 +413,27 @@ class CrudUI(PluginIdentityManager):
                     role.done = True
                     self.table.update(role)
             
-            # Return updated roles list with APP menu refresh trigger
+            # Get updated roles list
+            roles_list = await self.render_roles_list()
+            
+            # Get the updated Default button
             from fasthtml.common import HTMLResponse, to_xml
             import json
             
-            roles_list = await self.render_roles_list()
-            html_content = to_xml(roles_list)
-            response = HTMLResponse(str(html_content))
+            updated_button = await self.update_default_button(request)
+            
+            # Add hx-swap-oob attribute
+            if hasattr(updated_button, 'attrs'):
+                updated_button.attrs['hx-swap-oob'] = 'true'
+            else:
+                updated_button.attrs = {'hx-swap-oob': 'true'}
+            
+            # Combine roles list and button update
+            roles_html = str(to_xml(roles_list))
+            button_html = str(to_xml(updated_button))
+            combined_html = roles_html + button_html
+            
+            response = HTMLResponse(combined_html)
             response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
             return response
         except Exception as e:
@@ -453,13 +451,27 @@ class CrudUI(PluginIdentityManager):
                     role.done = False
                     self.table.update(role)
             
-            # Return updated roles list with APP menu refresh trigger
+            # Get updated roles list
+            roles_list = await self.render_roles_list()
+            
+            # Get the updated Default button
             from fasthtml.common import HTMLResponse, to_xml
             import json
             
-            roles_list = await self.render_roles_list()
-            html_content = to_xml(roles_list)
-            response = HTMLResponse(str(html_content))
+            updated_button = await self.update_default_button(request)
+            
+            # Add hx-swap-oob attribute
+            if hasattr(updated_button, 'attrs'):
+                updated_button.attrs['hx-swap-oob'] = 'true'
+            else:
+                updated_button.attrs = {'hx-swap-oob': 'true'}
+            
+            # Combine roles list and button update
+            roles_html = str(to_xml(roles_list))
+            button_html = str(to_xml(updated_button))
+            combined_html = roles_html + button_html
+            
+            response = HTMLResponse(combined_html)
             response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
             return response
         except Exception as e:
@@ -549,25 +561,19 @@ class CrudUI(PluginIdentityManager):
             roles_config = self.config.get('ROLES_CONFIG', {})
             
             all_roles = self.table()
-            logger.info(f"DEBUG: is_in_default_state - checking {len(all_roles)} roles")
-            logger.info(f"DEBUG: default_active roles: {default_active}")
             
             for role in all_roles:
                 # Check if selection state matches default
                 should_be_active = role.text in default_active
-                logger.info(f"DEBUG: Role '{role.text}' - current done: {role.done}, should be: {should_be_active}, priority: {role.priority}")
                 
                 if role.done != should_be_active:
-                    logger.info(f"DEBUG: Role '{role.text}' selection state differs from default")
                     return False
                 
                 # Check if priority matches default
                 expected_priority = roles_config.get(role.text, {}).get('priority', 99)
                 if role.priority != expected_priority:
-                    logger.info(f"DEBUG: Role '{role.text}' priority differs: {role.priority} vs {expected_priority}")
                     return False
             
-            logger.info(f"DEBUG: All roles match default state")
             return True
         except Exception as e:
             logger.error(f"Error checking default state: {e}")
@@ -575,10 +581,7 @@ class CrudUI(PluginIdentityManager):
 
     async def update_default_button(self, request):
         """Return the updated state of the Default button."""
-        logger.info(f"DEBUG: update_default_button called")
-        
         is_default = self.is_in_default_state()
-        logger.info(f"DEBUG: is_in_default_state = {is_default}")
         
         button = Button(Img(src='/static/feather/rewind.svg', 
                          alt='Reset', 
@@ -591,7 +594,6 @@ class CrudUI(PluginIdentityManager):
                       title="Reset to default roles and order" + (" (already at default)" if is_default else ""),
                       id="default-button")
         
-        logger.info(f"DEBUG: returning button with opacity={'0.4' if is_default else '1.0'}")
         return button
 
 def get_role_css_class(role_name):
