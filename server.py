@@ -36,7 +36,7 @@ import urllib.parse
 from starlette.responses import FileResponse
 
 # Various debug settings
-DEBUG_MODE = True
+DEBUG_MODE = False
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 10
@@ -55,18 +55,15 @@ class GracefulRestartException(SystemExit):
 
 def is_critical_operation_in_progress():
     """Check if a critical operation is in progress via file flag."""
-    import os
     return os.path.exists('.critical_operation_lock')
 
 def set_critical_operation_flag():
     """Set the critical operation flag via file."""
-    import os
     with open('.critical_operation_lock', 'w') as f:
         f.write('critical operation in progress')
 
 def clear_critical_operation_flag():
     """Clear the critical operation flag."""
-    import os
     try:
         os.remove('.critical_operation_lock')
     except FileNotFoundError:
@@ -480,7 +477,6 @@ class LogManager:
         """Log an error with traceback at ERROR level."""
         formatted = self.format_message('error', message)
         if error:
-            import traceback
             error_details = f'{error.__class__.__name__}: {str(error)}'
             self.logger.error(f'{formatted} | {error_details}')
             self.logger.debug(traceback.format_exc())
@@ -1022,7 +1018,6 @@ class Pipulate:
         Convert plain URLs in text to clickable HTML links.
         Safe for logging but renders as HTML in the UI.
         """
-        import re
         url_pattern = 'https?://(?:[-\\w.]|(?:%[\\da-fA-F]{2}))+'
 
         def replace_url(match):
@@ -1263,14 +1258,9 @@ class Pipulate:
         Returns:
             Container: Standard landing page structure
         """
-        from server import PCONFIG
-        
         # Standard display name derivation
         try:
-            import inspect
-            from pathlib import Path
             module_file = inspect.getfile(plugin_instance.__class__)
-            import importlib
             blank_placeholder_module = importlib.import_module('plugins.910_blank_placeholder')
             derive_public_endpoint_from_filename = blank_placeholder_module.derive_public_endpoint_from_filename
             public_app_name_for_display = derive_public_endpoint_from_filename(Path(module_file).name)
@@ -1826,8 +1816,6 @@ class BaseCrud:
         self.item_name_field = 'name'
         self.sort_dict = sort_dict or {'id': 'id', sort_field: sort_field}
         self.pipulate_instance = pipulate_instance
-        import asyncio
-        import inspect
 
         def safe_send_message(message, verbatim=True):
             if not self.pipulate_instance:
@@ -1839,7 +1827,6 @@ class BaseCrud:
                 else:
                     return stream_method(message, verbatim=verbatim, spaces_after=1)
             except Exception as e:
-                import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f'Error in send_message: {e}')
                 return None
@@ -2571,7 +2558,6 @@ def discover_plugin_files():
         return plugin_modules
 
     def numeric_prefix_sort(filename):
-        import re
         match = re.match('^(\\d+)_', filename)
         if match:
             return int(match.group(1))
@@ -2587,7 +2573,6 @@ def discover_plugin_files():
             continue
         if filename.endswith('.py') and (not filename.startswith('__')):
             base_name = filename[:-3]
-            import re
             clean_name = re.sub('^\\d+_', '', base_name)
             original_name = base_name
             logger.debug(f'Module name: {clean_name} (from {original_name})')
@@ -2647,9 +2632,7 @@ def get_endpoint_message(workflow_name):
         message = instance.ENDPOINT_MESSAGE
         if hasattr(pipulate, 'format_links_in_text'):
             try:
-                import inspect
                 if inspect.iscoroutinefunction(pipulate.format_links_in_text):
-                    import asyncio
                     asyncio.create_task(pipulate.format_links_in_text(message))
                     return message
                 else:
@@ -2721,9 +2704,7 @@ for module_name, class_name, workflow_class in discovered_classes:
         except Exception as e:
             logger.warning(f'Issue with workflow {module_name}.{class_name} - continuing anyway')
             logger.debug(f'Error type: {e.__class__.__name__}')
-            import inspect
             if inspect.iscoroutine(e):
-                import asyncio
                 asyncio.create_task(e)
     plugin_instances[module_name] = instance
     logger.debug(f'Auto-registered plugin: {module_name} (class: {workflow_class.__name__})')
@@ -2832,7 +2813,6 @@ async def home(request):
         message_id = f'{menux}_{current_env}_{hash(endpoint_message) % 10000}'
         
         # Check if this message was recently sent through any pathway
-        import time
         current_time = time.time()
         last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
         
@@ -3538,7 +3518,6 @@ async def save_split_sizes(request):
         form = await request.form()
         sizes = form.get('sizes')
         if sizes:
-            import json
             # Basic validation
             parsed_sizes = json.loads(sizes)
             if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
@@ -3806,7 +3785,6 @@ async def download_file_endpoint(request):
     except Exception as e:
         logger.error(f'[📥 DOWNLOAD] Error serving file {file_path}: {str(e)}')
         logger.error(f'[📥 DOWNLOAD] Exception type: {type(e)}')
-        import traceback
         logger.error(f'[📥 DOWNLOAD] Traceback: {traceback.format_exc()}')
         return HTMLResponse(f'Error serving file: {str(e)}', status_code=500)
 
@@ -3970,7 +3948,6 @@ async def send_delayed_endpoint_message(message, session_key):
     
     try:
         # Final check - only send if still not recently sent by another pathway
-        import time
         current_time = time.time()
         last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
         
@@ -4043,7 +4020,6 @@ async def send_startup_environment_message():
                 message_id = f'{current_endpoint}_{current_env}_{hash(endpoint_message) % 10000}'
                 
                 # Check if this message was recently sent through any pathway
-                import time
                 current_time = time.time()
                 last_sent = message_coordination['last_endpoint_message_time'].get(message_id, 0)
                 
