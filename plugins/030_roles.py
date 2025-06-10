@@ -272,9 +272,6 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Default", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
-                           hx_target=f"#{self.LIST_ID}",
-                           hx_swap="outerHTML",
-                           hx_on_htmx_after_swap="if(window.setupSortable) setupSortable('.sortable', 'blue-background-class')",
                            cls="secondary",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
                     Button(Img(src='/static/feather/check-square.svg', 
@@ -389,18 +386,18 @@ class CrudUI(PluginIdentityManager):
                     role.done = should_be_active
                     self.table.update(role)
             
-            # Return updated roles list with APP menu refresh trigger
-            from fasthtml.common import HTMLResponse, to_xml
-            import json
-            
-            roles_list = await self.render_roles_list()
-            html_content = to_xml(roles_list)
-            response = HTMLResponse(str(html_content))
-            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            # Return HX-Refresh header to trigger full page reload
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
             return response
         except Exception as e:
             logger.error(f"Error in select_default_roles: {e}")
-            return await self.render_roles_list()
+            # Even on error, trigger page refresh to show current state
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
 
 
 
