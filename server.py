@@ -1698,9 +1698,10 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             # Add this chunk to our full content buffer
                             full_content_buffer += content
                             
-                            # If we detect start of MCP but haven't completed it yet, skip this chunk
-                            if '<mcp-request>' in full_content_buffer and '</mcp-request>' not in full_content_buffer:
-                                continue  # Don't yield partial MCP content
+                            # Early detection: if we see '<m' anywhere, we might be starting MCP
+                            # Skip this chunk if we're potentially in an MCP block
+                            if ('<m' in full_content_buffer or '<mcp' in full_content_buffer) and '</mcp-request>' not in full_content_buffer:
+                                continue  # Don't yield potential MCP content
                             
                             # If we have a complete MCP block, handle it
                             if not mcp_detected and '<mcp-request>' in full_content_buffer and '</mcp-request>' in full_content_buffer:
