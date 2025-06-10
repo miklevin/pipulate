@@ -1,0 +1,92 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Python Sorting Truthiness Gotcha - Priority Fields
+
+## Critical Bug Pattern: Zero Priority Values in Sorting
+
+### The Problem
+When sorting database records with priority fields, using `item.priority or default_value` causes items with `priority=0` to be treated as falsy and sorted incorrectly.
+
+### Example from [030_roles.py](mdc:pipulate/plugins/030_roles.py)
+
+**❌ WRONG - Treats 0 as falsy:**
+```python
+# This causes priority=0 to become priority=99!
+items = sorted(items_query, key=lambda item: item.priority or 99)
+
+# Debug output shows the problem:
+# SORT_KEY: 'Botify Employee' -> key=99 (raw priority=0)
+```
+
+**✅ CORRECT - Explicit None check:**
+```python
+# This correctly handles priority=0 as a valid value
+items = sorted(items_query, key=lambda item: item.priority if item.priority is not None else 99)
+
+# Debug output shows correct behavior:
+# SORT_KEY: 'Botify Employee' -> key=0 (raw priority=0)
+```
+
+### Symptoms
+- Items with priority 0 appear last instead of first
+- Database shows correct priority values but UI ordering is wrong
+- Default/reset operations don't fix the sort order
+
+### Root Cause
+Python's truthiness evaluation:
+- `0` is falsy in Python
+- `item.priority or default` returns `default` when priority is 0
+- This causes `priority=0` (should be first) to become `priority=99` (appears last)
+
+### Debug Pattern
+Add logging to see actual sort keys vs database values:
+```python
+def debug_sort_key(item):
+    key_value = item.priority if item.priority is not None else 99
+    logger.info(f"SORT_KEY: '{item.text}' -> key={key_value} (raw priority={item.priority})")
+    return key_value
+
+items = sorted(items_query, key=debug_sort_key)
+```
+
+### When This Applies
+- **Database priority/order fields** that can legitimately be 0
+- **Any sorting logic** where 0 is a valid, meaningful value
+- **Default value patterns** using `or` operator
+- **Index-based ordering** where 0 represents "first position"
+
+### Other Common Cases
+```python
+# ❌ WRONG patterns:
+user.role_level or 1          # role_level=0 becomes 1
+item.sort_order or 999        # sort_order=0 becomes 999  
+config.timeout or 30          # timeout=0 becomes 30
+record.sequence or -1         # sequence=0 becomes -1
+
+# ✅ CORRECT patterns:
+user.role_level if user.role_level is not None else 1
+item.sort_order if item.sort_order is not None else 999
+config.timeout if config.timeout is not None else 30
+record.sequence if record.sequence is not None else -1
+```
+
+### Prevention Strategy
+1. **Always use explicit None checks** for numeric database fields
+2. **Add debug logging** when implementing sort logic
+3. **Test with zero values** during development
+4. **Document when 0 is a valid value** in field definitions
+
+### Quick Test
+```python
+# Test your sorting logic with this pattern:
+test_items = [
+    MockItem(priority=0),    # Should be first
+    MockItem(priority=1),    # Should be second  
+    MockItem(priority=None), # Should use default
+]
+```
+
+This pattern prevents silent bugs where legitimate zero values get incorrectly treated as missing data.
