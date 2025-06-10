@@ -94,6 +94,84 @@ class BotifyCsvDownloaderWorkflow:
 
     This modularity makes the workflow perfect as a template for various Botify data
     collection needs - from simple crawl analysis to comprehensive multi-source exports.
+
+    ## HTMX Dynamic Menu Implementation - CRITICAL PATTERN
+    =====================================================
+
+    🚨 **PRESERVATION WARNING**: This HTMX pattern is essential for dynamic button text
+    and must be preserved during any refactoring. LLMs often strip this out during
+    "creative" refactoring because they don't understand the pattern.
+
+    ### Core Components That Must Never Be Removed:
+
+    **1. Route Registration (in __init__ method):**
+    ```python
+    app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
+    ```
+
+    **2. Form HTMX Attributes (in step templates):**
+    ```python
+    Form(
+        # ... form fields ...
+        hx_post=f'/{app_name}/update_button_text',
+        hx_target='#submit-button',
+        hx_trigger='change',
+        hx_include='closest form',
+        hx_swap='outerHTML'
+    )
+    ```
+
+    **3. Button ID Consistency:**
+    ```python
+    # Initial button in form
+    Button("Process Data", id='submit-button', ...)
+    
+    # Updated button in update_button_text method
+    return Button("Download Existing File", id='submit-button', ...)
+    ```
+
+    **4. File Check Method (check_cached_file_for_button_text):**
+    ```python
+    async def check_cached_file_for_button_text(self, username, project_name, analysis_slug, data_type):
+        filepath = await self.get_deterministic_filepath(username, project_name, analysis_slug, data_type)
+        exists, file_info = await self.check_file_exists(filepath)  # CRITICAL: Proper tuple unpacking
+        return exists, file_info if exists else None
+    ```
+
+    **5. Dynamic Button Text Method (update_button_text):**
+    ```python
+    async def update_button_text(self, request):
+        try:
+            # Extract form data and determine file status
+            # Return updated button with proper id='submit-button'
+            return Button("Updated Text", id='submit-button', ...)
+        except Exception as e:
+            # Always return fallback button with proper ID
+            return Button("Process Data", id='submit-button', ...)
+    ```
+
+    ### How The Pattern Works:
+    1. User changes any form field (hx_trigger='change')
+    2. HTMX sends POST to /update_button_text with full form data (hx_include='closest form')
+    3. Method checks if cached file exists for current form state
+    4. Returns updated button text: "Process Data" vs "Download Existing File"
+    5. Button gets swapped in place (hx_target='#submit-button', hx_swap='outerHTML')
+
+    ### Critical Implementation Details:
+    - The `check_file_exists` method returns a tuple: `(exists: bool, file_info: dict|None)`
+    - Must unpack properly: `exists, file_info = await self.check_file_exists(filepath)`
+    - Button ID must be consistent: `id='submit-button'` in both initial and updated versions
+    - Template-aware: Button text considers current template selection for accurate filepath generation
+    - Error handling: Always return a valid button with proper ID, even on exceptions
+
+    ### Why LLMs Break This Pattern:
+    1. They don't understand the HTMX request/response cycle
+    2. They see the route registration as "unused" and remove it
+    3. They "simplify" the button ID thinking it's redundant
+    4. They break the tuple unpacking in check_cached_file_for_button_text
+    5. They remove the try/except wrapper thinking it's unnecessary
+
+    **DO NOT REFACTOR THIS PATTERN WITHOUT UNDERSTANDING IT COMPLETELY**
     """
     APP_NAME = 'trifecta'
     DISPLAY_NAME = 'Botify Trifecta 💜'
