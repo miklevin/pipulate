@@ -36,7 +36,7 @@ import urllib.parse
 from starlette.responses import FileResponse
 
 # Various debug settings
-DEBUG_MODE = False
+DEBUG_MODE = True
 STATE_TABLES = False
 TABLE_LIFECYCLE_LOGGING = False
 API_LOG_ROTATION_COUNT = 10
@@ -1655,6 +1655,10 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
     accumulated_response = []
+    
+    # MCP monitoring state - accumulate all content to detect patterns
+    full_content_buffer = ""
+    mcp_detected = False
     table = Table(title='User Input')
     table.add_column('Role', style='cyan')
     table.add_column('Content', style='orange3')
@@ -1690,6 +1694,54 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             console.print(table)
                             break
                         if (content := chunk.get('message', {}).get('content', '')):
+                            # ---- MCP MONITORING LOGIC ----
+                            # Add this chunk to our full content buffer
+                            full_content_buffer += content
+                            
+                            # If we detect start of MCP but haven't completed it yet, skip this chunk
+                            if '<mcp-request>' in full_content_buffer and '</mcp-request>' not in full_content_buffer:
+                                continue  # Don't yield partial MCP content
+                            
+                            # If we have a complete MCP block, handle it
+                            if not mcp_detected and '<mcp-request>' in full_content_buffer and '</mcp-request>' in full_content_buffer:
+                                # Extract the MCP block
+                                start_idx = full_content_buffer.find('<mcp-request>')
+                                end_idx = full_content_buffer.find('</mcp-request>') + len('</mcp-request>')
+                                
+                                if start_idx != -1 and end_idx > start_idx:
+                                    mcp_block = full_content_buffer[start_idx:end_idx]
+                                    
+                                    # Log the captured MCP block
+                                    logger.info(f"🔧 MCP CLIENT: Tool call detected in LLM stream!")
+                                    logger.info(f"🔧 MCP BLOCK:\n{mcp_block}")
+                                    
+                                    # Mark as detected to avoid double processing
+                                    mcp_detected = True
+                                    
+                                    # --- HOOK FOR STEP 4 (future implementation) ---
+                                    # This is where we'll parse and execute the tool call
+                                    
+                                    # Only yield content before the MCP block (if any)
+                                    content_before_mcp = full_content_buffer[:start_idx]
+                                    if content_before_mcp and content_before_mcp not in ''.join(accumulated_response):
+                                        if content_before_mcp.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
+                                            content_before_mcp = '\n' + content_before_mcp.lstrip('\n')
+                                        else:
+                                            content_before_mcp = re.sub('\\n\\s*\\n\\s*', '\n\n', content_before_mcp)
+                                            content_before_mcp = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', content_before_mcp)
+                                            content_before_mcp = re.sub('\\n ([^\\s])', '\\n\\1', content_before_mcp)
+                                        print(content_before_mcp, end='', flush=True)
+                                        accumulated_response.append(content_before_mcp)
+                                        yield content_before_mcp
+                                    
+                                    # Skip all MCP content - continue to next chunk
+                                    continue
+                            
+                            # If we've detected MCP, skip any remaining content
+                            if mcp_detected:
+                                continue
+                            
+                            # ---- ORIGINAL STREAMING LOGIC ----
                             if content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
                                 content = '\n' + content.lstrip('\n')
                             else:
@@ -3401,10 +3453,36 @@ def redirect_handler(request):
 
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
-    logger.debug('Chatbot poke received.')
-    poke_message = f'The user poked the {APP_NAME} Chatbot. Respond with a brief, funny comment about being poked.'
-    asyncio.create_task(pipulate.stream(poke_message))
-    return 'Poke received. Countdown to local LLM MODEL...'
+    """
+    Triggers the MCP 'Hello World' proof-of-concept by sending a one-shot
+    prompt to the LLM, instructing it to generate a tool call request.
+    """
+    logger.debug('🔧 MCP tool call proof-of-concept initiated via Poke button.')
+
+    one_shot_mcp_prompt = """You are a helpful assistant with access to a special set of tools. To use these tools, you must strictly follow the "Model Context Protocol" (MCP).
+
+When you decide to call a tool, you MUST stop generating conversational text and output an MCP request block. The block looks like this:
+<mcp-request>
+  <tool name="the_tool_to_use" />
+  <param name="parameter_name">the_value_for_the_parameter</param>
+</mcp-request>
+
+Here is the only tool you have available:
+
+Tool Name: `say_hello`
+Description: A simple tool that returns a secret word.
+Parameters: None
+
+---
+
+Now, your task is to retrieve the secret word. Use the MCP protocol you just learned to call the `say_hello` tool. Do not say anything else or add any commentary. Just generate the MCP request block."""
+
+    # Use the existing stream function to send the prompt.
+    # The monitoring logic in `chat_with_llm` will handle the response.
+    asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
+    
+    # Provide immediate feedback to the user in the chat UI.
+    return "🔧 MCP 'Hello World' request sent. Check server console for tool call detection..."
 
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
@@ -3469,6 +3547,37 @@ async def save_split_sizes(request):
     except Exception as e:
         logger.error(f"Error saving split sizes: {e}")
         return HTMLResponse(f'Error: {e}', status_code=500)
+
+
+@rt('/mcp-hello', methods=['POST'])
+async def mcp_hello_endpoint(request):
+    """
+    A simple MCP server endpoint for the 'Hello World' proof-of-concept.
+    It logs the reception of a tool call and returns a secret word.
+    """
+    try:
+        data = await request.json()
+        tool_name = data.get("tool")
+        params = data.get("params", {})
+        
+        # Use our existing logger to provide visible feedback in the console
+        logger.info(f"🔧 MCP SERVER: Tool call received - '{tool_name}' with params: {params}")
+        
+        if tool_name == "say_hello":
+            secret_word = "MORPHEUS"
+            response_data = {
+                "status": "success", 
+                "result": f"The secret word is '{secret_word}'"
+            }
+            logger.success(f"🔧 MCP SERVER: Responding with secret word: {secret_word}")
+            return JSONResponse(response_data)
+        else:
+            logger.warning(f"🔧 MCP SERVER: Unknown tool requested: {tool_name}")
+            return JSONResponse({"status": "error", "message": "Tool not found"}, status_code=404)
+            
+    except Exception as e:
+        logger.error(f"🔧 MCP SERVER: Error processing request: {e}")
+        return JSONResponse({"status": "error", "message": "Invalid request format"}, status_code=400)
 
 @rt('/clear-pipeline', methods=['POST'])
 async def clear_pipeline(request):
