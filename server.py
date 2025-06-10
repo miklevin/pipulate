@@ -1708,21 +1708,36 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
     """
     HYBRID JAVASCRIPT PATTERN: Creates static includes + Python-parameterized initialization
 
-    This function demonstrates the hybrid pattern used throughout Pipulate:
-    1. Static JavaScript files for caching and simple development
-    2. Python-generated initialization scripts for dynamic configuration
-    3. Global inclusion (not conditional) for consistent availability
+    This function creates the remaining non-sortable chat functionality:
+    - WebSocket and SSE setup
+    - Form interactions
+    - Chat message handling
+    - Other UI interactions
+
+    Sortable functionality is now handled by the dedicated sortable-init.js file.
 
     Returns:
         tuple: (static_js_script, dynamic_init_script, stylesheet)
-
-    Pattern Benefits:
-        - Static files can be cached by browser
-        - Python can configure JavaScript behavior dynamically  
-        - No template complexity or build steps required
-        - Classic JavaScript development experience
     """
-    python_generated_init_script = f"\n    document.addEventListener('DOMContentLoaded', (event) => {{\n        // HYBRID PATTERN: Call sortable-parameterized-init.js function with Python-generated config\n        if (window.initializeChatScripts) {{\n            window.initializeChatScripts({{\n                sortableSelector: '{sortable_selector}',\n                ghostClass: '{ghost_class}'\n            }});\n        }}\n    }});\n    "
+    python_generated_init_script = f"""
+    document.addEventListener('DOMContentLoaded', (event) => {{
+        // Initialize sortable functionality with clean dedicated file
+        if (window.initializePipulateSortable) {{
+            window.initializePipulateSortable('{sortable_selector}', {{
+                ghostClass: '{ghost_class}',
+                animation: 150
+            }});
+        }}
+        
+        // Initialize remaining chat functionality from sortable-parameterized-init.js
+        if (window.initializeChatScripts) {{
+            window.initializeChatScripts({{
+                sortableSelector: '{sortable_selector}',
+                ghostClass: '{ghost_class}'
+            }});
+        }}
+    }});
+    """
     return (Script(src='/static/sortable-parameterized-init.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
 
 class BaseCrud:
@@ -2002,6 +2017,7 @@ app, rt, (store, Store), (profiles, Profile), (pipeline, Pipeline) = fast_app(
         Script(src='/static/surreal.js'),
         Script(src='/static/script.js'),
         Script(src='/static/Sortable.js'),
+        Script(src='/static/sortable-init.js'),
         Script(src='/static/split.js'),
         Script(src='/static/splitter-init.js'),
         Script(src='/static/mermaid.min.js'),

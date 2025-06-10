@@ -21,143 +21,15 @@ window.initializeChatScripts = function(config) {
         return;
     }
     
-    const sortableSelector = config.sortableSelector || '.sortable';
-    const ghostClass = config.ghostClass || 'blue-background-class';
-    
-    setupSortable(sortableSelector, ghostClass);
+    // Note: Sortable functionality is now handled by dedicated sortable-init.js
     setupWebSocketAndSSE();
     setupInteractions();
     
     window._pipulateInitialized = true;
-    console.log('✅ All scripts initialized with config:', config);
+    console.log('✅ Chat scripts initialized (sortable handled separately)');
 };
 
-function setupSortable(sortableSelector, ghostClass) {
-    console.log('🔧 Setting up sortable with selector:', sortableSelector);
-    const sortableEl = document.querySelector(sortableSelector);
-    
-    if (sortableEl) {
-        console.log('✅ Found sortable element:', sortableEl);
-        
-        // Check if sortable is already initialized on this element
-        if (sortableEl._sortable) {
-            console.warn('⚠️ Sortable already initialized on this element, destroying previous instance');
-            sortableEl._sortable.destroy();
-        }
-        
-        // Track if user is actually dragging vs clicking to expand/collapse 
-        let isDragging = false;
-        let startPosition = null;
-        let dragStartTime = null;
-        
-        const sortableInstance = new Sortable(sortableEl, {
-            animation: 150,
-            ghostClass: ghostClass,
-            onStart: function (evt) {
-                // Reset drag state and capture starting position
-                isDragging = false;
-                startPosition = { x: evt.originalEvent?.clientX || 0, y: evt.originalEvent?.clientY || 0 };
-                dragStartTime = Date.now();
-                console.log('🎯 Drag start detected:', {
-                    oldIndex: evt.oldIndex,
-                    startPosition: startPosition,
-                    timestamp: dragStartTime
-                });
-            },
-            onMove: function (evt, originalEvent) {
-                // This is called when item is being moved - indicates actual dragging
-                if (!isDragging) {
-                    isDragging = true;
-                    console.log('✅ Actual drag movement detected - will allow sort request');
-                }
-                // Let the drag continue (don't return false)
-                return true;
-            },
-            onEnd: function (evt) {
-                const dragEndTime = Date.now();
-                const dragDuration = dragEndTime - (dragStartTime || dragEndTime);
-                
-                // EMERGENCY DEBUGGING: Capture stack trace to see what called this
-                const stackTrace = new Error().stack;
-                
-                console.log('🔍 SortableJS onEnd triggered:', {
-                    isDragging: isDragging,
-                    oldIndex: evt.oldIndex,
-                    newIndex: evt.newIndex,
-                    dragDuration: dragDuration + 'ms',
-                    wasActualDrag: isDragging && evt.oldIndex !== evt.newIndex,
-                    item: evt.item?.id,
-                    from: evt.from?.id,
-                    to: evt.to?.id,
-                    stackTrace: stackTrace
-                });
-                
-                // CRITICAL DEBUG: Check if onStart was actually called
-                if (dragStartTime === null) {
-                    console.error('🚨 CRITICAL: onEnd called but onStart was never called!');
-                    console.error('🚨 This suggests SortableJS is being triggered programmatically');
-                    console.error('🚨 Stack trace:', stackTrace);
-                    // Still don't send sort request for phantom events
-                    return;
-                }
-                
-                // SUPER STRICT: Only allow sort if we have clear evidence of dragging
-                if (!isDragging || evt.oldIndex === evt.newIndex) {
-                    console.log('🚫 Blocking sort request: isDragging=' + isDragging + ', same position=' + (evt.oldIndex === evt.newIndex));
-                    return; 
-                }
-                
-                console.log(`✅ Valid drag-and-drop completed: ${evt.oldIndex} → ${evt.newIndex} - sending sort request`);
-                
-                // Build items array for the current order
-                let items = Array.from(sortableEl.children).map((item, index) => ({
-                    id: item.dataset.id,
-                    priority: index
-                }));
-                
-                console.log('📦 Items to sort:', items);
-                
-                // Try to get plugin name from the sortable element's data attribute first
-                let pluginName = sortableEl.dataset.pluginName;
-                
-                // Fallback to URL parsing if no data attribute
-                if (!pluginName) {
-                    let path = window.location.pathname;
-                    let basePath = path;
-                    
-                    if (path.endsWith('/')) {
-                        basePath = path.slice(0, -1);
-                    }
-                    
-                    pluginName = basePath.split('/').pop();
-                }
-                
-                // Use the hx-post attribute if available, otherwise construct URL
-                let sortUrl = sortableEl.getAttribute('hx-post') || ('/' + pluginName + '_sort');
-                
-                console.log('🚀 Sending sort request to:', sortUrl);
-                
-                htmx.ajax('POST', sortUrl, {
-                    target: sortableEl,
-                    swap: 'none',
-                    values: { items: JSON.stringify(items) }
-                });
-                
-                // Reset tracking variables
-                isDragging = false;
-                startPosition = null;
-                dragStartTime = null;
-            }
-        });
-        
-        // Store reference to prevent duplicate initialization
-        sortableEl._sortable = sortableInstance;
-        
-        console.log('✅ Sortable initialized successfully');
-    } else {
-        console.warn('⚠️ Sortable element not found with selector:', sortableSelector);
-    }
-}
+// setupSortable function removed - now handled by dedicated sortable-init.js
 
 function setupWebSocketAndSSE() {
     // SSE Setup
@@ -313,17 +185,4 @@ function linkifyText(text) {
     });
 }
 
-// Initialize the splitter for layout resizing
-function initializeSplitter(elements, options) {
-    if (window.Split && elements.length >= 2) {
-        // Verify elements exist
-        const elementsExist = elements.every(selector => document.querySelector(selector));
-        if (elementsExist) {
-            return window.Split(elements, options);
-        } else {
-            console.warn('Split.js: One or more elements not found:', elements);
-        }
-    } else {
-        console.warn('Split.js library not loaded or insufficient elements provided');
-    }
-} 
+// Splitter initialization removed - now handled by dedicated splitter-init.js
