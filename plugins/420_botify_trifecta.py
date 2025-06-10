@@ -357,7 +357,7 @@ class BotifyCsvDownloaderWorkflow:
             Step(id='step_02', done='analysis_selection', show=f'Download Crawl Analysis: {crawl_template}', refill=False),
             Step(id='step_03', done='weblogs_check', show='Download Web Logs', refill=False),
             Step(id='step_04', done='search_console_check', show=f'Download Search Console: {gsc_template}', refill=False),
-            Step(id='step_05', done='placeholder', show='Placeholder Step', refill=True)
+            Step(id='step_05', done='placeholder_data_05', show='Step 5 Placeholder', refill=False)
         ]
         self.steps = steps
         
@@ -368,7 +368,7 @@ class BotifyCsvDownloaderWorkflow:
         app.route(f'/{app_name}/step_04_complete', methods=['POST'])(self.step_04_complete)
         app.route(f'/{app_name}/step_02_process', methods=['POST'])(self.step_02_process)
         app.route(f'/{app_name}/step_03_process', methods=['POST'])(self.step_03_process)
-        app.route(f'/{app_name}/step_05_process', methods=['POST'])(self.step_05_process)
+
         app.route(f'/{app_name}/toggle', methods=['GET'])(self.common_toggle)
         app.route(f'/{app_name}/update_button_text', methods=['POST'])(self.update_button_text)
         self.step_messages = {'finalize': {'ready': self.ui['MESSAGES']['ALL_STEPS_COMPLETE'], 'complete': f'Workflow finalized. Use {self.ui["BUTTON_LABELS"]["UNLOCK"]} to make changes.'}, 'step_02': {'input': f"❔{pip.fmt('step_02')}: Please select a crawl analysis for this project.", 'complete': '📊 Crawl analysis download complete. Continue to next step.'}}
@@ -1325,108 +1325,71 @@ class BotifyCsvDownloaderWorkflow:
             return Div(P(f'Error: {str(e)}', style=pip.get_style('error')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
     async def step_05(self, request):
-        """Handles GET request for the placeholder step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        """Handles GET request for Step 5 Placeholder, standardized."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
-        finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
-        placeholder_result = pip.get_step_data(pipeline_id, step_id, {})
-
-        if 'finalized' in finalize_data and placeholder_result:
-            return Div(Card(H3(f'🔒 {step.show}'), Div(P('Placeholder step completed'), cls='custom-card-padding-bg')), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        elif placeholder_result and state.get('_revert_target') != step_id:
-            return Div(pip.display_revert_header(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+        step_data = pip.get_step_data(pipeline_id, step_id, {})
+        current_value = step_data.get(step.done, "")
+        finalize_data = pip.get_step_data(pipeline_id, "finalize", {})
+        
+        if "finalized" in finalize_data and current_value:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Finalized):\n{current_value}")
+            return Div(
+                Card(H3(f"🔒 {step.show}: Completed")),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
+        elif current_value and state.get("_revert_target") != step_id:
+            pip.append_to_history(f"[WIDGET CONTENT] {step.show} (Completed):\n{current_value}")
+            return Div(
+                pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+                Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+                id=step_id
+            )
         else:
-            await self.message_queue.add(pip, self.step_messages[step_id]['input'], verbatim=True)
-            return Div(Card(H3(f'{step.show}'), P('This is a placeholder step.'), Form(Button('Complete Placeholder Step ▸', type='submit', cls='primary'), hx_post=f'/{app_name}/{step_id}_submit', hx_target=f'#{step_id}')), Div(id=next_step_id), id=step_id)
+            pip.append_to_history(f"[WIDGET STATE] {step.show}: Showing input form")
+            await self.message_queue.add(pip, self.step_messages[step_id]["input"], verbatim=True)
+            return Div(
+                Card(
+                    H3(f"{step.show}"),
+                    P("This is a placeholder step. Click Proceed to continue."),
+                    Form(
+                        Input(type="hidden", name=step.done, value=f"Placeholder Value for {step.show}"),
+                        Button(self.ui['BUTTON_LABELS']['PROCEED'], type="submit", cls=self.ui['BUTTON_STYLES']['PRIMARY']),
+                        hx_post=f"/{app_name}/{step_id}_submit", hx_target=f"#{step_id}"
+                    )
+                ),
+                Div(id=next_step_id),
+                id=step_id
+            )
 
     async def step_05_submit(self, request):
-        """Process the submission for the placeholder step."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
+        """Process the submission for the placeholder step, standardized."""
+        pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.app_name
         step_id = 'step_05'
         step_index = self.steps_indices[step_id]
         step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-
-        placeholder_result = {'completed': True, 'timestamp': datetime.now().isoformat()}
-        placeholder_result_str = json.dumps(placeholder_result)
-        await pip.set_step_data(pipeline_id, step_id, placeholder_result_str, steps)
-        await self.message_queue.add(pip, f"{step.show} complete", verbatim=True)
-        widget = Div(
-            Button(self.ui['BUTTON_LABELS']['HIDE_SHOW_CODE'],
-                cls=self.ui['BUTTON_STYLES']['STANDARD'],
-                hx_get=f'/{app_name}/toggle?step_id={step_id}',
-                hx_target=f'#{step_id}_widget',
-                hx_swap='innerHTML'
-            ),
-            Div(
-                Pre('Placeholder step completed', cls='code-block-container', style='display: none;'),
-                id=f'{step_id}_widget'
-            )
+        form_data = await request.form()
+        value_to_save = form_data.get(step.done, f"Default value for {step.show}")
+        
+        await pip.set_step_data(pipeline_id, step_id, value_to_save, steps)
+        pip.append_to_history(f"[WIDGET CONTENT] {step.show}:\n{value_to_save}")
+        pip.append_to_history(f"[WIDGET STATE] {step.show}: Step completed")
+        await self.message_queue.add(pip, f"{step.show} complete.", verbatim=True)
+        
+        return Div(
+            pip.display_revert_header(step_id=step_id, app_name=app_name, message=f"{step.show}: Complete", steps=steps),
+            Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
+            id=step_id
         )
-        return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: Completed', widget=widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
 
-    async def step_05_process(self, request):
-        """Process parameter analysis using raw parameter counting and caching."""
-        pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
-        step_id = 'step_05'
-        step_index = self.steps_indices[step_id]
-        step = steps[step_index]
-        next_step_id = steps[step_index + 1].id if step_index < len(steps) - 1 else 'finalize'
-        form = await request.form()
-        pipeline_id = form.get('pipeline_id', 'unknown')
-        param_count = int(form.get('param_count', '40'))
-        project_data = pip.get_step_data(pipeline_id, 'step_01', {}).get('botify_project', '{}')
-        analysis_data = pip.get_step_data(pipeline_id, 'step_02', {}).get('analysis_selection', '{}')
-        try:
-            project_info = json.loads(project_data)
-            analysis_info = json.loads(analysis_data)
-        except json.JSONDecodeError:
-            return P('Error: Could not load project or analysis data', style=pip.get_style('error'))
-        username = project_info.get('username')
-        project_name = project_info.get('project_name')
-        analysis_slug = analysis_info.get('analysis_slug')
-        if not all([username, project_name, analysis_slug]):
-            return P('Error: Missing required project information', style=pip.get_style('error'))
-        try:
-            await self.message_queue.add(pip, 'Counting parameters...', verbatim=True)
-            data_dir = await self.get_deterministic_filepath(username, project_name, analysis_slug)
-            cache_filename = '_raw_param_counters_cache.pkl'
-            files_to_process = {'not_indexable': 'crawl.csv', 'gsc': 'gsc.csv', 'weblogs': 'weblog.csv'}
-            cached_data = self.load_raw_counters_from_cache(data_dir, cache_filename)
-            output_data = None
-            if cached_data is not None:
-                output_data = cached_data
-            if output_data is None:
-                output_data = await self.calculate_and_cache_raw_counters(data_directory_path=data_dir, input_files_config=files_to_process, cache_filename=cache_filename)
-                if output_data is None:
-                    raise ValueError('Failed to calculate counters from source files')
-            raw_counters = output_data.get('raw_counters', {})
-            file_statuses = output_data.get('metadata', {}).get('file_statuses', {})
-            parameter_summary = {'timestamp': datetime.now().isoformat(), 'data_sources': {}, 'cache_path': str(Path(data_dir) / cache_filename), 'param_count': param_count}
-            total_unique_params = set()
-            total_occurrences = 0
-            for source, counter in raw_counters.items():
-                unique_params = len(counter)
-                source_occurrences = sum(counter.values())
-                total_occurrences += source_occurrences
-                status = file_statuses.get(source, 'Unknown')
-                parameter_summary['data_sources'][source] = {'unique_parameters': unique_params, 'total_occurrences': source_occurrences, 'status': status, 'top_parameters': [{'name': param, 'count': count} for param, count in counter.most_common(10)] if counter else []}
-                total_unique_params.update(counter.keys())
-            parameter_summary['total_unique_parameters'] = len(total_unique_params)
-            summary_str = json.dumps(parameter_summary)
-            await pip.set_step_data(pipeline_id, step_id, summary_str, steps)
-            await self.message_queue.add(pip, f"✅ Parameter analysis complete! Found {len(total_unique_params):,} unique parameters across {len(parameter_summary['data_sources'])} sources with {total_occurrences:,} total occurrences.", verbatim=True)
-            visualization_widget = self.create_parameter_visualization_placeholder(summary_str)
-            return Div(pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show}: {len(total_unique_params):,} unique parameters found', widget=visualization_widget, steps=steps), Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
-        except Exception as e:
-            logging.exception(f'Error in step_05_process: {e}')
-            return P(f'Error generating optimization: {str(e)}', style=pip.get_style('error'))
 
 
     def validate_botify_url(self, url):

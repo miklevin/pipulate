@@ -41,6 +41,8 @@ server.py        <-- Main server file for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
 # /home/mike/repos/pipulate/plugins/120_link_graph.py
+/home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+/home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
@@ -70,9 +72,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## WORKFLOW TEMPLATE PLUGINS AND TEMPLATING PLUGIN
-# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
-/home/mike/repos/pipulate/plugins/040_hello_workflow.py
-# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/040_hello_workflow.py
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
 
 ## MOST OTHER PLUGINS
