@@ -1645,9 +1645,8 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
     url = 'http://localhost:11434/api/chat'
     payload = {'MODEL': MODEL, 'messages': messages, 'stream': True}
     accumulated_response = []
-    
-    # MCP monitoring state - accumulate all content to detect patterns
     full_content_buffer = ""
+    word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     table = Table(title='User Input')
     table.add_column('Role', style='cyan')
@@ -1684,64 +1683,77 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                             console.print(table)
                             break
                         if (content := chunk.get('message', {}).get('content', '')):
-                            # ---- MCP MONITORING LOGIC ----
-                            # Add this chunk to our full content buffer
+                            # ---- WORD-BOUNDARY MCP DETECTION ----
+                            # Add content to full buffer for MCP monitoring
                             full_content_buffer += content
                             
-                            # Early detection: if we see '<m' anywhere, we might be starting MCP
-                            # Skip this chunk if we're potentially in an MCP block
-                            if ('<m' in full_content_buffer or '<mcp' in full_content_buffer) and '</mcp-request>' not in full_content_buffer:
-                                continue  # Don't yield potential MCP content
-                            
-                            # If we have a complete MCP block, handle it
-                            if not mcp_detected and '<mcp-request>' in full_content_buffer and '</mcp-request>' in full_content_buffer:
-                                # Extract the MCP block
-                                start_idx = full_content_buffer.find('<mcp-request>')
-                                end_idx = full_content_buffer.find('</mcp-request>') + len('</mcp-request>')
-                                
-                                if start_idx != -1 and end_idx > start_idx:
-                                    mcp_block = full_content_buffer[start_idx:end_idx]
-                                    
-                                    # Log the captured MCP block
-                                    logger.info(f"🔧 MCP CLIENT: Tool call detected in LLM stream!")
-                                    logger.info(f"🔧 MCP BLOCK:\n{mcp_block}")
-                                    
-                                    # Mark as detected to avoid double processing
-                                    mcp_detected = True
-                                    
-                                    # --- HOOK FOR STEP 4 (future implementation) ---
-                                    # This is where we'll parse and execute the tool call
-                                    
-                                    # Only yield content before the MCP block (if any)
-                                    content_before_mcp = full_content_buffer[:start_idx]
-                                    if content_before_mcp and content_before_mcp not in ''.join(accumulated_response):
-                                        if content_before_mcp.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
-                                            content_before_mcp = '\n' + content_before_mcp.lstrip('\n')
-                                        else:
-                                            content_before_mcp = re.sub('\\n\\s*\\n\\s*', '\n\n', content_before_mcp)
-                                            content_before_mcp = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', content_before_mcp)
-                                            content_before_mcp = re.sub('\\n ([^\\s])', '\\n\\1', content_before_mcp)
-                                        print(content_before_mcp, end='', flush=True)
-                                        accumulated_response.append(content_before_mcp)
-                                        yield content_before_mcp
-                                    
-                                    # Skip all MCP content - continue to next chunk
-                                    continue
-                            
-                            # If we've detected MCP, skip any remaining content
+                            # If we've already detected MCP, skip any remaining content
                             if mcp_detected:
                                 continue
                             
-                            # ---- ORIGINAL STREAMING LOGIC ----
-                            if content.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
-                                content = '\n' + content.lstrip('\n')
+                            # Buffer content until we have complete words to evaluate
+                            word_buffer += content
+                            
+                            # Check if we have complete words to process (whitespace boundaries)
+                            words_to_process = []
+                            remaining_partial = ""
+                            
+                            # Split on whitespace but preserve the whitespace
+                            import re
+                            parts = re.split(r'(\s+)', word_buffer)
+                            
+                            # Process complete word+whitespace pairs
+                            for i in range(0, len(parts) - 1, 2):
+                                if i + 1 < len(parts):
+                                    word_with_space = parts[i] + (parts[i + 1] if i + 1 < len(parts) else '')
+                                    words_to_process.append(word_with_space)
+                                else:
+                                    remaining_partial = parts[i]
+                            
+                            # Keep the last partial word in buffer if it doesn't end with whitespace
+                            if parts and not re.match(r'.*\s$', word_buffer):
+                                remaining_partial = parts[-1]
+                                word_buffer = remaining_partial
                             else:
-                                content = re.sub('\\n\\s*\\n\\s*', '\n\n', content)
-                                content = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', content)
-                                content = re.sub('\\n ([^\\s])', '\\n\\1', content)
-                            print(content, end='', flush=True)
-                            accumulated_response.append(content)
-                            yield content
+                                word_buffer = ""
+                            
+                            # Check each complete word for MCP content before streaming
+                            for word_chunk in words_to_process:
+                                # Check if this word chunk contains MCP start
+                                if '<mcp-' in word_chunk:
+                                    # MCP detected! Check if we have complete block in full buffer
+                                    if '</mcp-request>' in full_content_buffer:
+                                        # Complete MCP block - extract and log it
+                                        start_idx = full_content_buffer.find('<mcp-request>')
+                                        end_idx = full_content_buffer.find('</mcp-request>') + len('</mcp-request>')
+                                        
+                                        if start_idx != -1 and end_idx > start_idx:
+                                            mcp_block = full_content_buffer[start_idx:end_idx]
+                                            
+                                            # Log the captured MCP block
+                                            logger.info(f"🔧 MCP CLIENT: Tool call detected in LLM stream!")
+                                            logger.info(f"🔧 MCP BLOCK:\n{mcp_block}")
+                                            
+                                            # Mark as detected and stop all streaming
+                                            mcp_detected = True
+                                            break
+                                    
+                                    # Incomplete MCP - stop streaming until complete
+                                    break
+                                
+                                # No MCP detected in this word - safe to stream
+                                # Apply original content formatting
+                                formatted_word = word_chunk
+                                if formatted_word.startswith('\n') and accumulated_response and accumulated_response[-1].endswith('\n'):
+                                    formatted_word = '\n' + formatted_word.lstrip('\n')
+                                else:
+                                    formatted_word = re.sub('\\n\\s*\\n\\s*', '\n\n', formatted_word)
+                                    formatted_word = re.sub(r'([.!?])\n(?!\s*([-*_]){3,}\s*($|\n))', r'\1 ', formatted_word)
+                                    formatted_word = re.sub('\\n ([^\\s])', '\\n\\1', formatted_word)
+                                
+                                print(formatted_word, end='', flush=True)
+                                accumulated_response.append(formatted_word)
+                                yield formatted_word
                     except json.JSONDecodeError:
                         continue
     except aiohttp.ClientConnectorError as e:
