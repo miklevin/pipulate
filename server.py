@@ -1013,13 +1013,14 @@ class Pipulate:
     async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=1, simulate_typing=True):
         """
         Stream a message to the chat interface.
-        This method is now a direct passthrough to the streaming implementation.
-        Using this method directly will bypass the OrderedMessageQueue - it's
-        recommended to use message_queue.add() for proper message ordering in 
-        complex async scenarios.
+        
+        This method now distinguishes between interruptible LLM streams and non-interruptible
+        verbatim messages. Only actual LLM streams will trigger the UI streaming state to
+        prevent jarring "Stop" button flashes for quick system messages.
+        
         Args:
             message: The message to stream
-            verbatim: If True, send message as-is; if False, process with LLM
+            verbatim: If True, send message as-is without streaming UI; if False, process with LLM
             role: The role for the message in the conversation history
             spaces_before: Number of line breaks to add before the message
             spaces_after: Number of line breaks to add after the message
@@ -1027,13 +1028,17 @@ class Pipulate:
         Returns:
             The original message
         """
-        try:
-            await chat.broadcast('%%STREAM_START%%') # Signal UI to show "Stop" button
-            conversation_history = append_to_conversation(message, role)
-            if spaces_before:
-                for _ in range(spaces_before):
-                    await chat.broadcast(' <br>\n')
-            if verbatim:
+        # For verbatim messages, bypass the streaming signals for a smoother experience
+        if verbatim:
+            try:
+                # Append to history right away for context
+                append_to_conversation(message, 'assistant')
+                
+                if spaces_before:
+                    for _ in range(spaces_before):
+                        await chat.broadcast(' <br>\n')
+                
+                # Typing simulation for verbatim messages can still provide a nice UX
                 if simulate_typing:
                     words = message.split(' ')
                     for i, word in enumerate(words):
@@ -1043,28 +1048,50 @@ class Pipulate:
                         await asyncio.sleep(0.005)
                 else:
                     await chat.broadcast(message)
-                response_text = message
-            else:
-                response_text = ''
-                async for chunk in chat_with_llm(MODEL, conversation_history):
-                    await chat.broadcast(chunk)
-                    response_text += chunk
+                
+                if spaces_after:
+                    for _ in range(spaces_after):
+                        await chat.broadcast(' <br>\n')
+                
+                logger.debug(f'Verbatim message sent: {message}')
+                return message
+            except Exception as e:
+                logger.error(f'Error in verbatim stream: {e}')
+                traceback.print_exc()
+                raise
+        
+        # The logic below is for interruptible LLM streams only
+        try:
+            await chat.broadcast('%%STREAM_START%%')  # Signal UI to show "Stop" button
+            conversation_history = append_to_conversation(message, role)
+            
+            if spaces_before:
+                for _ in range(spaces_before):
+                    await chat.broadcast(' <br>\n')
+            
+            response_text = ''
+            async for chunk in chat_with_llm(MODEL, conversation_history):
+                await chat.broadcast(chunk)
+                response_text += chunk
+            
             if spaces_after:
                 for _ in range(spaces_after):
                     await chat.broadcast(' <br>\n')
+            
             append_to_conversation(response_text, 'assistant')
-            logger.debug(f'Message streamed: {response_text}')
+            logger.debug(f'LLM message streamed: {response_text}')
             return message
         except asyncio.CancelledError:
-            logger.info("Stream was cancelled. The UI will be updated.")
-            # Do not re-raise, allow the stream to stop gracefully.
+            logger.info("LLM stream was cancelled. The UI will be updated.")
+            # Do not re-raise, allow the stream to stop gracefully
         except Exception as e:
-            logger.error(f'Error in pipulate.stream: {e}')
+            logger.error(f'Error in LLM stream: {e}')
             traceback.print_exc()
             raise
         finally:
-            await chat.broadcast('%%STREAM_END%%') # Signal UI to show "Send" button
-            logger.debug("Stream finished or cancelled, sent %%STREAM_END%%")
+            # Only send STREAM_END for non-verbatim streams
+            await chat.broadcast('%%STREAM_END%%')  # Signal UI to show "Send" button
+            logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
 
     def display_revert_header(self, step_id: str, app_name: str, steps: list, message: str=None, target_id: str=None, revert_label: str=None, remove_padding: bool=False):
         """Create a UI control for reverting to a previous workflow step.

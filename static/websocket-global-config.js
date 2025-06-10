@@ -43,26 +43,7 @@ function linkifyText(text) {
     });
 }
 
-// Add this function to update the icon based on streaming state with dampening
-let streamingTimeout = null;
-let lastStreamTime = 0;
-const DAMPENING_DELAY = 500; // 500ms dampening
-
-function showStopButtonDuringStreaming() {
-    const sendBtn = document.getElementById('send-btn');
-    if (!sendBtn) return;
-    const now = Date.now();
-    if (now - lastStreamTime > DAMPENING_DELAY) {
-        sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
-    }
-    lastStreamTime = now;
-    clearTimeout(streamingTimeout);
-    streamingTimeout = setTimeout(() => {
-        sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
-    }, 300); // 1s after last message
-}
-
-// Update the WebSocket message handler to call showStopButtonDuringStreaming
+// Timer-based UI prediction removed - server now controls streaming state completely
 sidebarWs.onmessage = function(event) {
     // Handle UI control messages first
     if (event.data === '%%STREAM_START%%') {
@@ -161,9 +142,6 @@ sidebarWs.onmessage = function(event) {
     
     // Keep the latest message in view
     sidebarMsgList.scrollTop = sidebarMsgList.scrollHeight;
-    
-    // Show the stop button during streaming
-    showStopButtonDuringStreaming();
 };
 
 // --- Streaming state and UI control ---
@@ -174,7 +152,9 @@ function updateStreamingUI(streaming) {
     const sendBtn = document.getElementById('send-btn');
     const stopBtn = document.getElementById('stop-btn');
     const input = document.getElementById('msg');
+    
     if (!sendBtn || !stopBtn || !input) return;
+    
     if (isStreaming) {
         sendBtn.style.display = 'none';
         stopBtn.style.display = 'block';
@@ -187,29 +167,11 @@ function updateStreamingUI(streaming) {
         input.placeholder = 'Chat...';
         input.focus();
     }
-    updateChatIcon();
 }
 
 // Initialize chat interface icons and state
 function initializeChatInterface() {
     updateStreamingUI(false);
-    updateChatIcon();
-}
-
-// Update chat button icons based on streaming state
-function updateChatIcon() {
-    const sendBtn = document.getElementById('send-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    
-    if (!sendBtn || !stopBtn) return;
-    
-    if (isStreaming) {
-        sendBtn.innerHTML = '<img src="/static/feather/x-octagon.svg" alt="Stop" style="width: 30px; height: 30px; filter: invert(1);">';
-        stopBtn.style.display = 'block';
-    } else {
-        sendBtn.innerHTML = '<img src="/static/feather/arrow-up-circle.svg" alt="Run" style="width: 30px; height: 30px; filter: invert(1);">';
-        stopBtn.style.display = 'none';
-    }
 }
 
 window.stopSidebarStream = function() {
