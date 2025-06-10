@@ -3103,37 +3103,15 @@ async def create_outer_container(current_profile_id, menux, request):
     # Initialize splitter script with server-provided sizes
     init_splitter_script = Script(f"""
         document.addEventListener('DOMContentLoaded', function() {{
-            console.log('🎯 DOMContentLoaded - checking for initializePipulateSplitter function...');
-            console.log('🔍 window.initializePipulateSplitter type:', typeof window.initializePipulateSplitter);
             if (window.initializePipulateSplitter) {{
-                console.log('✅ Found initializePipulateSplitter, calling it now...');
-                
                 const elements = ['#grid-left-content', '#chat-interface'];
-                console.log('📋 Elements to pass:', elements);
-                
                 const options = {{
                     sizes: {saved_sizes_str},
                     minSize: [400, 300],
                     gutterSize: 10,
                     cursor: 'col-resize'
                 }};
-                console.log('⚙️ Options to pass:', options);
-                
-                try {{
-                    console.log('🚀 About to call initializePipulateSplitter...');
-                    
-                    const result = initializePipulateSplitter(elements, options);
-                    
-                    console.log('✅ initializePipulateSplitter call completed successfully');
-                    console.log('🔍 Function returned:', result);
-                }} catch (error) {{
-                    console.error('💥 Error calling initializePipulateSplitter:', error);
-                    console.error('💥 Error stack:', error.stack);
-                    alert('Error calling initializePipulateSplitter: ' + error.message);
-                }}
-            }} else {{
-                console.error('❌ initializePipulateSplitter function not found!');
-                console.log('🔍 Available functions on window:', Object.keys(window).filter(k => k.includes('init')));
+                initializePipulateSplitter(elements, options);
             }}
         }});
     """)
@@ -3145,8 +3123,6 @@ async def create_outer_container(current_profile_id, menux, request):
         create_poke_button(),
         init_splitter_script  # Initialize the draggable splitter
     )
-
-
 
 
 def get_workflow_instance(workflow_name):
@@ -3407,24 +3383,19 @@ async def refresh_app_menu_endpoint(request):
 @rt('/save-split-sizes', methods=['POST'])
 async def save_split_sizes(request):
     """Save Split.js sizes to the persistent DictLikeDB."""
-    logger.info("🎯 /save-split-sizes endpoint hit!")
     try:
         form = await request.form()
-        logger.info(f"📝 Form data received: {dict(form)}")
         sizes = form.get('sizes')
-        logger.info(f"📏 Sizes value: {sizes}")
         if sizes:
             import json
             # Basic validation
             parsed_sizes = json.loads(sizes)
             if isinstance(parsed_sizes, list) and all(isinstance(x, (int, float)) for x in parsed_sizes):
                 db['split-sizes'] = sizes
-                logger.info(f"✅ Saved split sizes to db: {sizes}")
-                return HTMLResponse('') # Return an empty response
-        logger.warning(f"❌ Invalid or missing split sizes in request: {sizes}")
+                return HTMLResponse('')
         return HTMLResponse('Invalid format or sizes not provided', status_code=400)
     except Exception as e:
-        logger.error(f"💥 Error saving split sizes: {e}", exc_info=True)
+        logger.error(f"Error saving split sizes: {e}")
         return HTMLResponse(f'Error: {e}', status_code=500)
 
 @rt('/clear-pipeline', methods=['POST'])
