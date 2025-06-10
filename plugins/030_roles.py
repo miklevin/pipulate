@@ -274,7 +274,9 @@ class CrudUI(PluginIdentityManager):
                            "Default", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
                            cls="secondary",
-                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
+                           style=f"font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; opacity: {'0.4' if self.is_in_default_state() else '1.0'};",
+                           disabled=self.is_in_default_state(),
+                           title="Reset to default roles and order" + (" (already at default)" if self.is_in_default_state() else "")),
                     Button(Img(src='/static/feather/check-square.svg', 
                               alt='Select all', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
@@ -426,8 +428,6 @@ class CrudUI(PluginIdentityManager):
             response.headers['HX-Refresh'] = 'true'
             return response
 
-
-
     async def render_roles_list(self):
         """Render just the roles list for HTMX updates."""
         items_query = self.table()
@@ -448,6 +448,30 @@ class CrudUI(PluginIdentityManager):
         Note: This method will be updated to use instance config in future iterations."""
         # For now, return empty string as CSS is handled by server.py get_dynamic_role_css
         return ""
+
+    def is_in_default_state(self):
+        """Check if current roles state matches the default configuration."""
+        try:
+            default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
+            roles_config = self.config.get('ROLES_CONFIG', {})
+            
+            all_roles = self.table()
+            
+            for role in all_roles:
+                # Check if selection state matches default
+                should_be_active = role.text in default_active
+                if role.done != should_be_active:
+                    return False
+                
+                # Check if priority matches default
+                expected_priority = roles_config.get(role.text, {}).get('priority', 99)
+                if role.priority != expected_priority:
+                    return False
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error checking default state: {e}")
+            return False
 
 def get_role_css_class(role_name):
     """Generate CSS class name for a role."""
