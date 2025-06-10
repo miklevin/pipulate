@@ -161,6 +161,16 @@ ORIGINAL_FILES_TO_INCLUDE = "\n".join(FILES_TO_INCLUDE)
 # Strip off any <-- comments and trailing # comments (handling variable whitespace)
 FILES_TO_INCLUDE = [re.sub(r'\s*#.*$', '', line.split('<--')[0]).rstrip() for line in FILES_TO_INCLUDE]
 
+# Remove duplicates while preserving order
+seen_files = set()
+deduplicated_files = []
+for file_path in FILES_TO_INCLUDE:
+    if file_path and file_path not in seen_files:
+        seen_files.add(file_path)
+        deduplicated_files.append(file_path)
+
+FILES_TO_INCLUDE = deduplicated_files
+
 # FILES_TO_INCLUDE = """\
 # """.strip().splitlines()
 
