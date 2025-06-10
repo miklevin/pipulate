@@ -95,6 +95,97 @@ class CrudCustomizer(BaseCrud):
             return None
         return {"text": text}
 
+    async def sort_items(self, request):
+        """Override sort_items to include Default button update."""
+        try:
+            logger.info(f"DEBUG: sort_items called")
+            
+            # Call the parent sort method
+            result = await super().sort_items(request)
+            logger.info(f"DEBUG: parent sort_items completed, result type: {type(result)}")
+            
+            # Add out-of-band update for the Default button
+            from fasthtml.common import HTMLResponse, to_xml
+            
+            # Get the updated button
+            updated_button = await self.plugin.update_default_button(request)
+            
+            # Add hx-swap-oob attribute correctly
+            if hasattr(updated_button, 'attrs'):
+                updated_button.attrs['hx-swap-oob'] = 'true'
+            else:
+                # If attrs doesn't exist, create it
+                updated_button.attrs = {'hx-swap-oob': 'true'}
+            
+            logger.info(f"DEBUG: created button with hx-swap-oob=true, attrs: {updated_button.attrs}")
+            
+            # Create response with the button update
+            button_html = to_xml(updated_button)
+            logger.info(f"DEBUG: button HTML: {str(button_html)[:200]}...")
+            response = HTMLResponse(str(button_html))
+            logger.info(f"DEBUG: returning HTMLResponse with button update")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in sort_items: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Return empty response on error
+            from fasthtml.common import HTMLResponse
+            return HTMLResponse('')
+
+    async def toggle_role(self, request):
+        """Custom toggle method that includes Default button update."""
+        try:
+            # Extract item_id from the request path
+            path_parts = request.url.path.split('/')
+            item_id = int(path_parts[-1])  # Last part should be the item_id
+            
+            logger.info(f"DEBUG: toggle_role called for item_id: {item_id}")
+            
+            # Get the item and toggle its done status
+            item = self.table[item_id]
+            logger.info(f"DEBUG: Found item '{item.text}' with current done={item.done}")
+            
+            # Toggle the done status (but Core is always done)
+            if item.text != "Core":
+                item.done = not item.done
+                self.table.update(item)
+                logger.info(f"DEBUG: Updated item '{item.text}' done={item.done}")
+            else:
+                logger.info(f"DEBUG: Core role - no toggle allowed")
+            
+            # Render the updated item
+            updated_item_html = self.render_item(item)
+            
+            # Get the updated button
+            from fasthtml.common import HTMLResponse, to_xml
+            updated_button = await self.plugin.update_default_button(request)
+            
+            # Add hx-swap-oob attribute
+            if hasattr(updated_button, 'attrs'):
+                updated_button.attrs['hx-swap-oob'] = 'true'
+            else:
+                updated_button.attrs = {'hx-swap-oob': 'true'}
+            
+            logger.info(f"DEBUG: toggle_role - created button with hx-swap-oob=true")
+            
+            # Combine the updated item with the button update
+            item_html = str(to_xml(updated_item_html))
+            button_html = str(to_xml(updated_button))
+            combined_html = item_html + button_html
+            
+            logger.info(f"DEBUG: toggle_role - returning combined response")
+            return HTMLResponse(combined_html)
+            
+        except Exception as e:
+            logger.error(f"Error in toggle_role: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Return error response
+            from fasthtml.common import HTMLResponse
+            return HTMLResponse('Error toggling role', status_code=500)
+
 class CrudUI(PluginIdentityManager):
     EMOJI = '👥'
 
@@ -229,11 +320,12 @@ class CrudUI(PluginIdentityManager):
         """Register the routes for the roles plugin."""
         prefix = self.ENDPOINT_PREFIX
         routes = [
-            (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_item, ['POST']),
+            (f'{prefix}/toggle/{{item_id:int}}', self.app_instance.toggle_role, ['POST']),
             (f"{prefix}_sort", self.app_instance.sort_items, ['POST']),
             (f"{prefix}/select_all", self.select_all_roles, ['POST']),
             (f"{prefix}/deselect_all", self.deselect_all_roles, ['POST']),
             (f"{prefix}/select_default", self.select_default_roles, ['POST']),
+            (f"{prefix}/update_default_button", self.update_default_button, ['POST']),
         ]
         for path, handler, methods in routes:
             self.app.route(path, methods=methods)(handler)
@@ -276,7 +368,8 @@ class CrudUI(PluginIdentityManager):
                            cls="secondary",
                            style=f"font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; opacity: {'0.4' if self.is_in_default_state() else '1.0'};",
                            disabled=self.is_in_default_state(),
-                           title="Reset to default roles and order" + (" (already at default)" if self.is_in_default_state() else "")),
+                           title="Reset to default roles and order" + (" (already at default)" if self.is_in_default_state() else ""),
+                           id="default-button"),
                     Button(Img(src='/static/feather/check-square.svg', 
                               alt='Select all', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
@@ -456,22 +549,50 @@ class CrudUI(PluginIdentityManager):
             roles_config = self.config.get('ROLES_CONFIG', {})
             
             all_roles = self.table()
+            logger.info(f"DEBUG: is_in_default_state - checking {len(all_roles)} roles")
+            logger.info(f"DEBUG: default_active roles: {default_active}")
             
             for role in all_roles:
                 # Check if selection state matches default
                 should_be_active = role.text in default_active
+                logger.info(f"DEBUG: Role '{role.text}' - current done: {role.done}, should be: {should_be_active}, priority: {role.priority}")
+                
                 if role.done != should_be_active:
+                    logger.info(f"DEBUG: Role '{role.text}' selection state differs from default")
                     return False
                 
                 # Check if priority matches default
                 expected_priority = roles_config.get(role.text, {}).get('priority', 99)
                 if role.priority != expected_priority:
+                    logger.info(f"DEBUG: Role '{role.text}' priority differs: {role.priority} vs {expected_priority}")
                     return False
             
+            logger.info(f"DEBUG: All roles match default state")
             return True
         except Exception as e:
             logger.error(f"Error checking default state: {e}")
             return False
+
+    async def update_default_button(self, request):
+        """Return the updated state of the Default button."""
+        logger.info(f"DEBUG: update_default_button called")
+        
+        is_default = self.is_in_default_state()
+        logger.info(f"DEBUG: is_in_default_state = {is_default}")
+        
+        button = Button(Img(src='/static/feather/rewind.svg', 
+                         alt='Reset', 
+                         style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
+                      "Default", 
+                      hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
+                      cls="secondary",
+                      style=f"font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; opacity: {'0.4' if is_default else '1.0'};",
+                      disabled=is_default,
+                      title="Reset to default roles and order" + (" (already at default)" if is_default else ""),
+                      id="default-button")
+        
+        logger.info(f"DEBUG: returning button with opacity={'0.4' if is_default else '1.0'}")
+        return button
 
 def get_role_css_class(role_name):
     """Generate CSS class name for a role."""
@@ -489,15 +610,23 @@ def render_item(item, app_instance):
 
     # Core role is always enabled and cannot be toggled
     is_core = item.text == "Core"
+    
+    # Prepare HTMX attributes for non-Core roles
+    htmx_attrs = {}
+    if not is_core:
+        htmx_attrs.update({
+            'hx_post': toggle_url,
+            'hx_swap': "outerHTML",
+            'hx_target': f"#{item_id}"
+        })
+    
     checkbox = Input(
         type="checkbox",
         checked=True if is_core else item.done,
         disabled=is_core,
-        hx_post=toggle_url if not is_core else None,
-        hx_swap="outerHTML",
-        hx_target=f"#{item_id}",
         cls="flex-shrink-0",
-        style=f"margin-left: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']};"
+        style=f"margin-left: {app_instance.plugin.UI_CONSTANTS['SPACING']['SECTION_MARGIN']};",
+        **htmx_attrs
     )
 
     # Bold title followed by colon and description - all on same line
