@@ -23,7 +23,7 @@ The Pipulate framework includes a sophisticated set of helper tools for creating
 **Template Map**: [create_workflow.py](mdc:pipulate/helpers/create_workflow.py) lines 35-42
 ```python
 TEMPLATE_MAP = {
-    "blank": "910_blank_placeholder.py",      # Minimal single-step template
+    "blank": "900_blank_placeholder.py",      # Minimal single-step template
     "hello": "500_hello_workflow.py",         # 2-step hello world template  
     "trifecta": "420_botify_trifecta.py",     # Complex multi-export template
 }
@@ -99,7 +99,7 @@ python helpers/swap_workflow_step.py target_workflow.py target_step_id source_wo
 
 ### Two Types of Templates
 
-**Workflow Creation Templates** (like `910_blank_placeholder.py`):
+**Workflow Creation Templates** (like `900_blank_placeholder.py`):
 - Provide structural foundation for new workflows
 - Include required markers and basic scaffolding
 - Used by `create_workflow.py` as starting points
@@ -188,7 +188,7 @@ UI_CONSTANTS = {
 
 ### Current Plugin Analysis
 
-**7xx Plugins** (Components): `910_blank_placeholder.py`, `540_checkboxes.py`, `560_range.py`
+**7xx Plugins** (Components): `900_blank_placeholder.py`, `540_checkboxes.py`, `560_range.py`
 **8xx Plugins** (Widgets): `730_matplotlib.py`, `580_upload.py`, `820_selenium.py`
 
 These are **widget-focused** and need preparation for method-providing template usage.

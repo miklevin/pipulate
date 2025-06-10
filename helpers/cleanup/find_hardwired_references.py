@@ -64,7 +64,7 @@ FILENAME_MAPPINGS = {
     "890_selenium.py": "820_selenium.py",
     
     # Development/Template Components (900-999)
-    "710_blank_placeholder.py": "910_blank_placeholder.py",
+    "710_blank_placeholder.py": "900_blank_placeholder.py",
     "715_splice_workflow.py": "920_splice_workflow.py",
 }
 

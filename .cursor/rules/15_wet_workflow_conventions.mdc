@@ -745,7 +745,7 @@ Reference: @create_workflow.py lines 35-42
 
 ```python
 TEMPLATE_MAP = {
-    "blank": "910_blank_placeholder.py",      # Minimal single-step template
+    "blank": "900_blank_placeholder.py",      # Minimal single-step template
     "trifecta": "420_botify_trifecta.py",     # Complex multi-export template
     # Future templates can be added here
 }
@@ -1121,7 +1121,7 @@ These conventions ensure consistent user experience across all WET workflows whi
 #### Workflow Creation Templates vs. Method-Providing Templates
 
 **Workflow Creation Templates** (Structural Foundation):
-- `910_blank_placeholder.py` - Minimal scaffolding 
+- `900_blank_placeholder.py` - Minimal scaffolding 
 - `420_botify_trifecta.py` - Complex 5-step foundation
 - Provide workflow structure, markers, and basic routing
 - Used by `create_workflow.py` for initial creation
@@ -1253,7 +1253,7 @@ UI_CONSTANTS = {
 #### Current Plugin Ecosystem Analysis
 
 **7xx Plugins (Components)**:
-- `910_blank_placeholder.py` - Structural template
+- `900_blank_placeholder.py` - Structural template
 - `540_checkboxes.py` - Widget pattern needing extraction
 - `560_range.py` - Input widget needing standardization
 

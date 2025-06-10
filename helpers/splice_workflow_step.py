@@ -62,7 +62,7 @@ def find_pipulate_root():
 
 # Define paths - now dynamically found
 PROJECT_ROOT = find_pipulate_root()
-TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "910_blank_placeholder.py"
+TEMPLATE_FILE_PATH = PROJECT_ROOT / "plugins" / "900_blank_placeholder.py"
 PLUGINS_DIR = PROJECT_ROOT / "plugins"
 
 # Markers to find insertion points
