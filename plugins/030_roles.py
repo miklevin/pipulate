@@ -255,7 +255,7 @@ class CrudUI(PluginIdentityManager):
                       style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    " for a guided overview. Chat not working? Want it to? Install ",
+                    " for a guided overview. Chat not working? Optionally install ",
                     A("Ollama", 
                       Img(src='/static/feather/external-link.svg', 
                           alt='External link', 
@@ -267,7 +267,7 @@ class CrudUI(PluginIdentityManager):
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
                 Div(
-                    Button(Img(src='/static/feather/arrow-left.svg', 
+                    Button(Img(src='/static/feather/rewind.svg', 
                               alt='Reset', 
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Default", 
@@ -311,7 +311,7 @@ class CrudUI(PluginIdentityManager):
                            onclick=f"document.querySelectorAll('#{self.CONTAINER_ID} details').forEach(function(details) {{ details.open = false; }});",
                            cls="secondary outline",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
-                    style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;"
+                    style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;"
                 ),
                 Ol(
                     *[self.app_instance.render_item(item) for item in items],
