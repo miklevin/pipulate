@@ -101,7 +101,7 @@ class CrudUI(PluginIdentityManager):
     @property
 
     def ENDPOINT_MESSAGE(self):
-        return f"Welcome! Check or uncheck Roles for APP menu choices. Drag-to-reorder. Expand to see apps. Or chat."
+        return f"Welcome! Check Roles to add to APP menu. Drag-to-reorder. Expand to see apps. Or try chatting."
 
     def __init__(self, app, pipulate, pipeline, db_dictlike, config):
         """Initialize the Roles Plugin with injected configuration."""
@@ -255,7 +255,12 @@ class CrudUI(PluginIdentityManager):
                       style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
                       onmouseover="this.style.color = 'var(--pico-primary-hover)';",
                       onmouseout="this.style.color = 'var(--pico-primary-color)';"),
-                    " for a guided overview.",
+                    " for a guided overview. Chat not working? Install ",
+                    A("Ollama", href="https://ollama.com/", target="_blank",
+                      style="color: var(--pico-primary-color); text-decoration: underline; font-weight: 500;",
+                      onmouseover="this.style.color = 'var(--pico-primary-hover)';",
+                      onmouseout="this.style.color = 'var(--pico-primary-color)';"),
+                    "!",
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
                 Div(
