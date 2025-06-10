@@ -40,9 +40,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-/home/mike/repos/pipulate/static/split.js
-/home/mike/repos/pipulate/static/splitter-init.js
-/home/mike/repos/pipulate/plugins/910_blank_placeholder.py
+# /home/mike/repos/pipulate/plugins/910_blank_placeholder.py
 
 # /home/mike/repos/pipulate/plugins/040_hello_workflow.py  <-- Master example and Jupyter Notebook / Unix pipe parallel illustration
 # /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
@@ -129,10 +127,13 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/ws.js
 
 ## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
-# /home/mike/repos/pipulate/static/alice.txt
+/home/mike/repos/pipulate/static/alice.txt
+/home/mike/repos/pipulate/static/sortable-init.js
+/home/mike/repos/pipulate/static/chat-interactions.js
+/home/mike/repos/pipulate/static/split.js
+/home/mike/repos/pipulate/static/splitter-init.js
 /home/mike/repos/pipulate/static/styles.css
 /home/mike/repos/pipulate/static/websocket-global-config.js
-/home/mike/repos/pipulate/static/sortable-parameterized-init.js
 /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.

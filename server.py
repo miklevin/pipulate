@@ -1729,7 +1729,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
             }});
         }}
         
-        // Initialize remaining chat functionality from sortable-parameterized-init.js
+        // Initialize remaining chat functionality from chat-interactions.js
         if (window.initializeChatScripts) {{
             window.initializeChatScripts({{
                 sortableSelector: '{sortable_selector}',
@@ -1738,7 +1738,7 @@ def create_chat_scripts(sortable_selector='.sortable', ghost_class='blue-backgro
         }}
     }});
     """
-    return (Script(src='/static/sortable-parameterized-init.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
+    return (Script(src='/static/chat-interactions.js'), Script(python_generated_init_script), Link(rel='stylesheet', href='/static/styles.css'))
 
 class BaseCrud:
     """
@@ -3240,7 +3240,7 @@ def create_chat_interface(autofocus=False):
         temp_message = db['temp_message']
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
-    # Enter/Shift+Enter handling is now externalized in sortable-parameterized-init.js
+    # Enter/Shift+Enter handling is now externalized in chat-interactions.js
     return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface')
 
 # Global variable to track streaming state
