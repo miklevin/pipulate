@@ -3291,7 +3291,7 @@ def create_chat_interface(autofocus=False):
         del db['temp_message']
     init_script = f'\n    // Set global variables for the external script\n    window.PCONFIG = {{\n        tempMessage: {json.dumps(temp_message)}\n    }};\n    '
     # Enter/Shift+Enter handling is now externalized in chat-interactions.js
-    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-global-config.js'), Script('initializeChatInterface();')), id='chat-interface')
+    return Div(Card(H2(f'{APP_NAME} Chatbot'), Div(id='msg-list', cls='overflow-auto', style=msg_list_height), Form(mk_chat_input_group(value='', autofocus=autofocus), onsubmit='sendSidebarMessage(event)'), Script(init_script), Script(src='/static/websocket-config.js'), Script('initializeChatInterface();')), id='chat-interface')
 
 # Global variable to track streaming state
 is_streaming = False

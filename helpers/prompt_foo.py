@@ -133,7 +133,7 @@ server.py        <-- Main server file for the project
 /home/mike/repos/pipulate/static/split.js
 /home/mike/repos/pipulate/static/splitter-init.js
 /home/mike/repos/pipulate/static/styles.css
-/home/mike/repos/pipulate/static/websocket-global-config.js
+/home/mike/repos/pipulate/static/websocket-config.js
 /home/mike/repos/pipulate/static/widget-scripts.js
 
 ## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.
