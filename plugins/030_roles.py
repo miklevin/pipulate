@@ -233,6 +233,7 @@ class CrudUI(PluginIdentityManager):
             (f"{prefix}_sort", self.app_instance.sort_items, ['POST']),
             (f"{prefix}/select_all", self.select_all_roles, ['POST']),
             (f"{prefix}/deselect_all", self.deselect_all_roles, ['POST']),
+            (f"{prefix}/select_default", self.select_default_roles, ['POST']),
         ]
         for path, handler, methods in routes:
             self.app.route(path, methods=methods)(handler)
@@ -258,18 +259,25 @@ class CrudUI(PluginIdentityManager):
                     style="margin-bottom: 1rem; color: var(--pico-muted-color); font-size: 0.9em;"
                 ),
                 Div(
+                    Button("Default", 
+                           hx_post=f"{self.ENDPOINT_PREFIX}/select_default",
+                           hx_target=f"#{self.LIST_ID}",
+                           hx_swap="outerHTML",
+                           cls="secondary",
+                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
                     Button("Select ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
                            hx_target=f"#{self.LIST_ID}",
                            hx_swap="outerHTML",
                            cls="secondary",
-                           style="margin-right: 0.5rem;"),
+                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
                     Button("Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
                            hx_target=f"#{self.LIST_ID}",
                            hx_swap="outerHTML",
-                           cls="secondary outline"),
-                    style="margin-bottom: 1rem; display: flex; gap: 0.5rem;"
+                           cls="secondary outline",
+                           style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"),
+                    style="margin-bottom: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;"
                 ),
                 Ol(
                     *[self.app_instance.render_item(item) for item in items],
@@ -331,6 +339,33 @@ class CrudUI(PluginIdentityManager):
             return response
         except Exception as e:
             logger.error(f"Error in deselect_all_roles: {e}")
+            return await self.render_roles_list()
+
+    async def select_default_roles(self, request):
+        """Reset roles to DEFAULT_ACTIVE_ROLES configuration."""
+        try:
+            # Get the default active roles from config
+            default_active = self.config.get('DEFAULT_ACTIVE_ROLES', set())
+            
+            # Update all roles based on default configuration
+            all_roles = self.table()
+            for role in all_roles:
+                should_be_active = role.text in default_active
+                if role.done != should_be_active:
+                    role.done = should_be_active
+                    self.table.update(role)
+            
+            # Return updated roles list with APP menu refresh trigger
+            from fasthtml.common import HTMLResponse, to_xml
+            import json
+            
+            roles_list = await self.render_roles_list()
+            html_content = to_xml(roles_list)
+            response = HTMLResponse(str(html_content))
+            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            return response
+        except Exception as e:
+            logger.error(f"Error in select_default_roles: {e}")
             return await self.render_roles_list()
 
     async def render_roles_list(self):
