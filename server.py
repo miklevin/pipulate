@@ -963,7 +963,7 @@ class Pipulate:
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
-            log_entry_parts.append(f'  {snippet_intro}\n{python_command}')
+            log_entry_parts.append(f'{snippet_intro}\n{python_command}')
             log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
             python_snippet_info = snippet_end
         if estimated_rows is not None:
@@ -988,7 +988,7 @@ class Pipulate:
         
         # Add Python snippet END marker at the very end if we had a Python snippet
         if python_snippet_info:
-            log_entry_parts.append(f'  {python_snippet_info}')
+            log_entry_parts.append(f'{python_snippet_info}')
         
         full_log_message = '\n'.join(log_entry_parts)
         logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
