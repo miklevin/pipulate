@@ -121,8 +121,8 @@ class SimonSaysMcpWidget:
         state, error = pip.initialize_if_missing(pipeline_id, {'app_name': internal_app_name})
         if error: return error
 
-        await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_WORKFLOW_ID'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
-        await self.message_queue.add(pip, self.ui['LANDING_PAGE']['INIT_MESSAGE_RETURN_HINT'].format(pipeline_id=pipeline_id), verbatim=True, spaces_before=0)
+        # Skip verbose init messages for cleaner Simon Says demonstration
+        pass
 
         return pip.run_all_cells(internal_app_name, self.steps)
 
@@ -178,14 +178,14 @@ class SimonSaysMcpWidget:
         
         elif request.method == 'POST':
             await pip.finalize_workflow(pipeline_id)
-            await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
+            # Skip finalize message for cleaner demonstration
             return pip.run_all_cells(app_name, self.steps)
 
     async def unfinalize(self, request):
         pip, db, app_name = (self.pipulate, self.db, self.APP_NAME)
         pipeline_id = db.get('pipeline_id', 'unknown')
         await pip.unfinalize_workflow(pipeline_id)
-        await self.message_queue.add(pip, self.ui['MESSAGES']['WORKFLOW_UNLOCKED'], verbatim=True)
+        # Skip unfinalize message for cleaner demonstration
         return pip.run_all_cells(app_name, self.steps)
 
     async def get_suggestion(self, step_id, state):
@@ -217,8 +217,8 @@ class SimonSaysMcpWidget:
         state['_revert_target'] = step_id_to_revert_to
         pip.write_state(pipeline_id, state)
 
-        message = await pip.get_state_message(pipeline_id, current_steps_to_pass_helpers, self.step_messages)
-        await self.message_queue.add(pip, message, verbatim=True)
+        # Skip revert state messages for cleaner demonstration
+        pass
         return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
 
     def _get_base_style(self):
@@ -291,7 +291,8 @@ class SimonSaysMcpWidget:
 
         # Phase 3: Get Input View
         else:
-            await self.message_queue.add(pip, "Let's play Simon Says with the LLM. Edit the prompt below and see if you can get it to make a tool call!", verbatim=True)
+            # Keep this message since it's the main instructional content
+            await self.message_queue.add(pip, "🎪 Ready to play Simon Says! Edit the prompt below to instruct the LLM to make a tool call.", verbatim=True)
             
             simon_says_prompt = """You are a helpful assistant with a tool that can fetch random cat facts. To use the tool, you MUST stop generating conversational text and output an MCP request block.
 
@@ -341,8 +342,8 @@ Do not say anything else. Just output the exact MCP block above."""
                 logger.error(f"Error in {app_name}/{step_id}: {error_msg}")
                 return P(error_msg, style=pip.get_style('error'))
 
-            # Show immediate feedback
-            await pip.stream(f'🤖 Okay, Simon Says... I\'m sending your instructions to the LLM. Let\'s see what happens...', role='system')
+            # Show clean initiation message
+            await pip.stream(f'🎪 Simon Says: Sending your prompt to the LLM...', role='system')
 
             # Prepare messages for LLM interaction
             messages = [

@@ -1984,7 +1984,9 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
     word_buffer = ""  # Buffer for word-boundary detection
     mcp_detected = False
     chunk_count = 0
-    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>)', re.DOTALL)
+    # Match both full MCP requests and standalone tool tags
+    mcp_pattern = re.compile(r'(<mcp-request>.*?</mcp-request>|<tool\s+[^>]*/>|<tool\s+[^>]*>.*?</tool>)', re.DOTALL)
+    
 
     logger.debug("🔍 DEBUG: === STARTING process_llm_interaction ===")
     logger.debug(f"🔍 DEBUG: MODEL='{MODEL}', messages_count={len(messages)}")
@@ -2050,6 +2052,12 @@ async def process_llm_interaction(MODEL: str, messages: list, base_app=None) -> 
                             # If no MCP block is detected yet, stream the content normally.
                             # This handles regular, non-tool-call conversations.
                             word_buffer += content
+                            
+                            # Check if word_buffer contains start of potential MCP/tool tag
+                            if '<tool' in word_buffer or '<mcp-request' in word_buffer:
+                                # Hold off on yielding if we might be building a tool call
+                                continue
+                            
                             parts = re.split(r'(\s+)', word_buffer)
                             if len(parts) > 1:
                                 complete_parts = parts[:-1]

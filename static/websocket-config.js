@@ -127,17 +127,29 @@ sidebarWs.onmessage = function(event) {
         console.log('Current raw text:', sidebarCurrentMessage.dataset.rawText);
     }
     
-    // Render the accumulated Markdown
+    // Render the accumulated Markdown - but avoid parsing incomplete code fences
     if (typeof marked !== 'undefined') {
         try {
-            // Use marked.parse() to render the accumulated markdown
-            const renderedHtml = marked.parse(sidebarCurrentMessage.dataset.rawText);
-            console.log('Rendered HTML:', renderedHtml);
-            sidebarCurrentMessage.innerHTML = renderedHtml;
+            const rawText = sidebarCurrentMessage.dataset.rawText;
             
-            // Apply syntax highlighting if Prism is available
-            if (typeof Prism !== 'undefined') {
-                Prism.highlightAllUnder(sidebarCurrentMessage);
+            // Check for incomplete code fences that would break MarkedJS
+            const openCodeFences = (rawText.match(/```\w*/g) || []).length;
+            const closeCodeFences = (rawText.match(/^```$/gm) || []).length;
+            const hasIncompleteCodeFence = openCodeFences > closeCodeFences;
+            
+            if (hasIncompleteCodeFence) {
+                // Don't parse incomplete markdown - show as plain text for now
+                sidebarCurrentMessage.textContent = rawText;
+            } else {
+                // Safe to parse complete markdown
+                const renderedHtml = marked.parse(rawText);
+                console.log('Rendered HTML:', renderedHtml);
+                sidebarCurrentMessage.innerHTML = renderedHtml;
+                
+                // Apply syntax highlighting if Prism is available
+                if (typeof Prism !== 'undefined') {
+                    Prism.highlightAllUnder(sidebarCurrentMessage);
+                }
             }
         } catch (e) {
             console.error('Error rendering Markdown:', e);
