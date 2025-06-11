@@ -278,8 +278,8 @@ PCONFIG = {
         },
         'CONSOLE_MESSAGES': {
             # Server console log messages - centralized for consistency
-            'PYTHON_SNIPPET_INTRO': '{python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
-            'PYTHON_SNIPPET_END': '{python_emoji} Python (httpx) Snippet END {snippet_emoji}',
+            'PYTHON_SNIPPET_INTRO': '# {python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '# {python_emoji} Python (httpx) Snippet END {snippet_emoji}',
             'API_CALL_LOG': 'API Call: {method} {url}',
             'FILE_GENERATED': 'Generated file: {filename}',
             'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
@@ -949,6 +949,8 @@ class Pipulate:
                 log_entry_parts.append(f'  Payload:\n{payload_str}')
             except TypeError:
                 log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
+        # Store Python snippet info for later (will add END marker at the very end)
+        python_snippet_info = None
         if python_command:
             # Use centralized emoji configuration for console messages
             python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
@@ -961,8 +963,9 @@ class Pipulate:
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
-            log_entry_parts.append(f'  {snippet_intro}\n{python_command}\n  {snippet_end}')
+            log_entry_parts.append(f'  {snippet_intro}\n{python_command}')
             log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
+            python_snippet_info = snippet_end
         if estimated_rows is not None:
             log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
         if actual_rows is not None:
@@ -982,6 +985,11 @@ class Pipulate:
             log_entry_parts.append(f'  Associated File Size: {file_size}')
         if notes:
             log_entry_parts.append(f'  Notes: {notes}')
+        
+        # Add Python snippet END marker at the very end if we had a Python snippet
+        if python_snippet_info:
+            log_entry_parts.append(f'  {python_snippet_info}')
+        
         full_log_message = '\n'.join(log_entry_parts)
         logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
