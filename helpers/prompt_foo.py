@@ -32,34 +32,32 @@ FILES_TO_INCLUDE_RAW = """\
 # THE STUFF IN THIS XML PAYLOAD IS STILL ONLY PART OF THE STORY
 # BUT YOU CAN SEE ME PAIRING IT DOWN TO ~100K TOKENS FOR US NOW
 
-# CORE FILES (Background for the story)
-# README.md        <-- Main GitHub README sets the tone
-# flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-# requirements.txt <-- Python package dependencies for the project
+# CORE FILES & DOCS (Setting the stage)
+README.md        <-- Main GitHub README sets the tone
+flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
+requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-# /home/mike/repos/Pipulate.com/install.sh  <-- The install script for the project
+/home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
+/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
-# /home/mike/repos/pipulate/plugins/040_hello_workflow.py  <-- Master example and Jupyter Notebook / Unix pipe parallel illustration
-# /home/mike/repos/pipulate/plugins/900_blank_placeholder.py
-# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py  <-- The templating plugin that creates new workflows from scratch
-# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
-# /home/mike/repos/pipulate/plugins/120_link_graph.py
-# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+/home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
+/home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
 
-## REQUIRED PLUGINS: ROLES & PROFILES (Secondary characters)
-# /home/mike/repos/pipulate/plugins/020_profiles.py  # <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
-# /home/mike/repos/pipulate/plugins/030_roles.py     # <-- Controls APP menu, required DRY CRUD plugin controls role management
-# /home/mike/repos/pipulate/plugins/060_tasks.py     # <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
+## REQUIRED CRUD PLUGINS FOR SYSTEM CONFIGURATION: (Supporting characters)
+# /home/mike/repos/pipulate/plugins/020_profiles.py  <-- Controls PROFILE menu, required DRY CRUD plugin controls profile management
+# /home/mike/repos/pipulate/plugins/030_roles.py     <-- Controls APP menu, required DRY CRUD plugin controls role management
+# /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
-## HELPER SCRIPTS  <-- Scripts to create WET Workflows, plus the Prompt Fu that made the XML bundle you're looking at
+## HELPER SCRIPTS (Why WET can work)
+# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py   <-- The templating plugin that creates new workflows from scratch
 # /home/mike/repos/pipulate/helpers/create_workflow.py        <-- Creates a new workflow (copies 920_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/splice_workflow_step.py   <-- Splices a step into a workflow (copies 920_blank_placeholder.py)
 # /home/mike/repos/pipulate/helpers/manage_class_attributes.py
 # /home/mike/repos/pipulate/helpers/swap_workflow_step.py  <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py             <-- This script (used to generate the manifest)
 
-## CUSTOM STATIC RESOURCES  <-- Necessary for core system but are custom to this project, so you weren't trained on
+## CUSTOM STATIC RESOURCES (Supporting characters)
 # /home/mike/repos/pipulate/static/alice.txt
 # /home/mike/repos/pipulate/static/sortable-init.js
 # /home/mike/repos/pipulate/static/chat-interactions.js
@@ -68,6 +66,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/styles.css
 # /home/mike/repos/pipulate/static/websocket-config.js
 # /home/mike/repos/pipulate/static/widget-scripts.js
+# /home/mike/repos/pipulate/static/rich-table.css
 
 ## DA RULES
 # /home/mike/repos/pipulate/.cursor/rules/00_CRITICAL_SERVER_ENVIRONMENT_WATCHDOG.mdc
@@ -91,10 +90,12 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/.cursor/rules/17_cleanup_helpers_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/18_evolutionary_vision.mdc
 
-## WORKFLOW TEMPLATE PLUGINS AND TEMPLATING PLUGIN
-
-## MOST OTHER PLUGINS
+# THE BIG BOTIFY WORKFLOWS (Often, the main event)
+# /home/mike/repos/pipulate/plugins/420_botify_trifecta.py
+# /home/mike/repos/pipulate/plugins/120_link_graph.py
 # /home/mike/repos/pipulate/plugins/110_parameter_buster.py
+
+## MOST OTHER PLUGINS (Swap-in's for Blank Placeholder)
 # /home/mike/repos/pipulate/plugins/510_text_field.py
 # /home/mike/repos/pipulate/plugins/210_widget_examples.py
 # /home/mike/repos/pipulate/plugins/010_introduction.py
@@ -108,7 +109,7 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/430_tab_opener.py
 # /home/mike/repos/pipulate/plugins/440_browser_automation.py
 # /home/mike/repos/pipulate/plugins/450_stream_simulator.py
-# /home/mike/repos/pipulate/plugins/520_text_area.py
+/home/mike/repos/pipulate/plugins/520_text_area.py  <-- What we're probably going to use for the Simon Says Make MCP Tool-call Widget
 # /home/mike/repos/pipulate/plugins/530_dropdown.py
 # /home/mike/repos/pipulate/plugins/540_checkboxes.py
 # /home/mike/repos/pipulate/plugins/550_radios.py
@@ -124,9 +125,8 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/730_matplotlib.py
 # /home/mike/repos/pipulate/plugins/810_webbrowser.py
 # /home/mike/repos/pipulate/plugins/820_selenium.py
-# /home/mike/repos/pipulate/plugins/920_splice_workflow.py
 
-## COMMON STATIC RESOURCES  <-- Necessary for core system, essentially HTMX & Pico.css, stuff you're likely already trained on
+## COMMON STATIC RESOURCES (The Usual Suspects / you're already trained on these) 
 # /home/mike/repos/pipulate/static/fasthtml.js
 # /home/mike/repos/pipulate/static/htmx.js
 # /home/mike/repos/pipulate/static/pico.css
@@ -134,13 +134,12 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/static/Sortable.js
 # /home/mike/repos/pipulate/static/surreal.js
 # /home/mike/repos/pipulate/static/ws.js
+# /home/mike/repos/pipulate/static/marked.min.js  <-- Used to render Markdown in the Chat UI
 
-## PLUGIN STATIC RESOURCES  <-- Necessary for certain plugins, widgets, workflows, etc.
-# /home/mike/repos/pipulate/static/marked.min.js
-# /home/mike/repos/pipulate/static/mermaid.min.js
+## PLUGIN STATIC RESOURCES (Widget support) 
+# /home/mike/repos/pipulate/static/prism.js  <-- https://prismjs.com/download#themes=prism&languages=markup+css+clike+javascript+bash+diff+json+json5+jsonp+liquid+lua+markdown+markup-templating+mermaid+nix+python+regex+yaml&plugins=line-highlight+line-numbers+show-language+jsonp-highlight+toolbar+copy-to-clipboard+download-button+diff-highlight+treeview
 # /home/mike/repos/pipulate/static/prism.css
-# /home/mike/repos/pipulate/static/prism.js
-# /home/mike/repos/pipulate/static/rich-table.css
+# /home/mike/repos/pipulate/static/mermaid.min.js
 
 # DEVELOPER TOOLS
 # /home/mike/repos/pipulate/helpers/botify/botify_api.ipynb
