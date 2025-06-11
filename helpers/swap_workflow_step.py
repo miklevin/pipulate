@@ -75,52 +75,16 @@ def extract_step_bundle(content: str, bundle_id: str) -> Optional[str]:
 
 
 def extract_step_definition(content: str, step_id: str) -> Optional[str]:
-    """Extract Step definition for given step_id from self.steps list"""
+    """Extract Step definition for given step_id from self.steps list or steps variable"""
     
     lines = content.split('\n')
     
-    # Pattern 1: Direct assignment `self.steps = [...]`
-    steps_pattern = r'self\.steps\s*=\s*\['
-    steps_start_line = None
+    # Look for any line containing Step( and the target step_id
     for i, line in enumerate(lines):
-        if re.search(steps_pattern, line):
-            steps_start_line = i
-            break
-    
-    # Pattern 2: Indirect assignment via variable
-    if steps_start_line is None:
-        # Look for `self.steps = variable_name`
-        indirect_pattern = r'^\s*self\.steps\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[;#]|$)'
-        variable_name = None
-        for line in lines:
-            match = re.search(indirect_pattern, line, re.MULTILINE)
-            if match:
-                variable_name = match.group(1)
-                break
-        
-        if variable_name:
-            # Find `variable_name = [...]`
-            var_pattern = rf'^\s*{re.escape(variable_name)}\s*=\s*\['
-            for i, line in enumerate(lines):
-                if re.search(var_pattern, line):
-                    steps_start_line = i
-                    break
-    
-    if steps_start_line is None:
-        return None
-    
-    # Find the Step definition with matching id starting from steps_start_line
-    i = steps_start_line
-    
-    while i < len(lines):
-        line = lines[i]
-        
-        # Check if this line starts a Step definition
-        if re.search(r'Step\s*\(', line):
-            # This could be our target step, let's check
+        if 'Step(' in line and f"id='{step_id}'" in line:
+            # Found the line, now extract the complete Step definition
             step_start_line = i
             paren_count = 0
-            found_target_id = False
             step_lines = []
             
             # Scan from this line until we find the matching closing parenthesis
@@ -154,25 +118,39 @@ def extract_step_definition(content: str, step_id: str) -> Optional[str]:
                     
                     k += 1
                 
-                # Check if this line contains our target step_id
-                step_id_pattern = rf'id\s*=\s*[\'\"]{re.escape(step_id)}[\'\"]'
-                if re.search(step_id_pattern, current_line):
-                    found_target_id = True
-                
                 # If we've closed all parentheses for this Step definition
                 if paren_count == 0:
-                    # If this was our target step, return it
-                    if found_target_id:
-                        return '\n'.join(step_lines)
-                    else:
-                        # This wasn't our target step, continue searching
-                        i = j + 1
-                        break
-            else:
-                # Reached end of file without closing parentheses
-                break
-        else:
-            i += 1
+                    # We have the complete step definition
+                    full_definition = '\n'.join(step_lines)
+                    
+                    # Extract just the Step(...) part by finding the Step( and removing any leading assignment
+                    lines_of_def = full_definition.split('\n')
+                    step_lines_clean = []
+                    
+                    for line in lines_of_def:
+                        # Remove any leading assignment like "steps = [" or variable assignments
+                        if 'Step(' in line:
+                            # Find where Step( starts and extract from there
+                            step_start_pos = line.find('Step(')
+                            clean_line = line[step_start_pos:]
+                            step_lines_clean.append(clean_line)
+                        elif step_lines_clean:  # We're inside the Step definition
+                            step_lines_clean.append(line)
+                    
+                    # Clean up the ending - remove any trailing )] that are from source list context
+                    result = '\n'.join(step_lines_clean)
+                    
+                    # If the result ends with )] or similar list-closing patterns, 
+                    # remove them as they're source context artifacts
+                    result = result.rstrip()
+                    if result.endswith(')]'):
+                        result = result[:-2] + ')'
+                    elif result.endswith(']'):
+                        result = result[:-1]
+                    
+                    return result
+            
+            break
     
     return None
 
@@ -252,9 +230,40 @@ def replace_step_definition_in_target(content: str, target_step_id: str, new_ste
         return content, False
     
     # Replace the target Step definition with the new one
+    # Get the indentation from the original step line
+    original_line = lines[step_start_line]
+    leading_whitespace = len(original_line) - len(original_line.lstrip())
+    indent = ' ' * leading_whitespace
+    
+    # Apply proper indentation to the new step definition
+    new_step_lines = new_step_definition.split('\n')
+    indented_step_lines = []
+    for i, line in enumerate(new_step_lines):
+        if i == 0:
+            # First line gets the same indentation as the original
+            indented_step_lines.append(indent + line.lstrip())
+        else:
+            # Subsequent lines get additional indentation if they have content
+            if line.strip():
+                indented_step_lines.append(indent + '    ' + line.lstrip())
+            else:
+                indented_step_lines.append('')
+    
+    # Ensure the step definition ends with a comma (but not double comma)
+    if indented_step_lines:
+        last_line = indented_step_lines[-1].rstrip()
+        # Add comma after Step definition if it doesn't end with one
+        # Check various ending patterns to determine if comma is needed
+        if last_line.endswith(')') and not last_line.endswith(','):
+            # This is likely the end of a Step() definition, add comma
+            indented_step_lines[-1] = last_line + ','
+        elif not (last_line.endswith(',') or last_line.endswith('];') or last_line.endswith('},') or last_line.endswith('],')):
+            # General case - add comma if none of the list termination patterns match
+            indented_step_lines[-1] = last_line + ','
+    
     new_lines = (
         lines[:step_start_line] + 
-        new_step_definition.split('\n') + 
+        indented_step_lines + 
         lines[step_end_line + 1:]
     )
     
@@ -263,34 +272,25 @@ def replace_step_definition_in_target(content: str, target_step_id: str, new_ste
 
 def find_swappable_step_bounds(lines: List[str], target_step_id: str) -> Tuple[Optional[int], Optional[int]]:
     """
-    Find the start and end line indices for a swappable step.
-    Looks for both SWAPPABLE_STEP and STEP_BUNDLE markers since steps that have been
-    swapped once will have STEP_BUNDLE markers.
+    Find the start and end line indices for a step bundle.
+    Uses unified STEP_BUNDLE markers for consistency.
     """
-    start_patterns = [
-        f'# --- START_SWAPPABLE_STEP: {target_step_id} ---',
-        f'# --- START_STEP_BUNDLE: {target_step_id} ---'
-    ]
-    end_patterns = [
-        f'# --- END_SWAPPABLE_STEP: {target_step_id} ---',
-        f'# --- END_STEP_BUNDLE: {target_step_id} ---'
-    ]
+    start_marker = f'# --- START_STEP_BUNDLE: {target_step_id} ---'
+    end_marker = f'# --- END_STEP_BUNDLE: {target_step_id} ---'
     
     start_line = None
     end_line = None
     
     # Find start marker
     for i, line in enumerate(lines):
-        line_stripped = line.strip()
-        if any(pattern in line_stripped for pattern in start_patterns):
+        if start_marker in line.strip():
             start_line = i
             break
     
     # Find end marker
     if start_line is not None:
         for i in range(start_line + 1, len(lines)):
-            line_stripped = lines[i].strip()
-            if any(pattern in line_stripped for pattern in end_patterns):
+            if end_marker in lines[i].strip():
                 end_line = i
                 break
     
@@ -378,10 +378,8 @@ def transform_bundle_content(bundle_content: str, source_step_id: str, target_st
     
     transformed_content = '\n'.join(transformed_lines)
     
-    # Wrap with new step bundle markers (preserving the swapped content as a bundle)
-    wrapped = f"# --- START_STEP_BUNDLE: {target_step_id} ---\n{transformed_content}\n# --- END_STEP_BUNDLE: {target_step_id} ---"
-    
-    return wrapped
+    # Don't wrap with markers since we're replacing content that already has markers
+    return transformed_content
 
 
 def transform_step_definition(step_definition: str, source_step_id: str, target_step_id: str) -> str:
@@ -488,16 +486,13 @@ def main():
     
     start_line, end_line = find_swappable_step_bounds(target_lines, args.target_step_id)
     if start_line is None or end_line is None:
-        print(f"Error: Could not find swappable step '{args.target_step_id}' in target file")
+        print(f"Error: Could not find step bundle '{args.target_step_id}' in target file")
         print("Looking for markers:")
-        print(f"  # --- START_SWAPPABLE_STEP: {args.target_step_id} ---")
-        print(f"  # --- END_SWAPPABLE_STEP: {args.target_step_id} ---")
-        print("  OR")
         print(f"  # --- START_STEP_BUNDLE: {args.target_step_id} ---")
         print(f"  # --- END_STEP_BUNDLE: {args.target_step_id} ---")
         return
 
-    print(f"✓ Found swappable step '{args.target_step_id}' (lines {start_line+1}-{end_line+1})")
+    print(f"✓ Found step bundle '{args.target_step_id}' (lines {start_line+1}-{end_line+1})")
 
     # Replace the step methods block
     new_lines = target_lines[:start_line+1] + transformed_bundle.split('\n') + target_lines[end_line:]

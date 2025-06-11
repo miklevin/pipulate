@@ -159,7 +159,7 @@ class BlankPlaceholder:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
 
-    # --- START_SWAPPABLE_STEP: step_01 ---
+    # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
         """Handles GET request for Step 1 Placeholder."""
         pip, db, steps, app_name = self.pipulate, self.db, self.steps, self.APP_NAME
@@ -230,6 +230,6 @@ class BlankPlaceholder:
             Div(id=next_step_id, hx_get=f"/{app_name}/{next_step_id}", hx_trigger="load"),
             id=step_id
         )
-    # --- END_SWAPPABLE_STEP: step_01 ---
+    # --- END_STEP_BUNDLE: step_01 ---
 
     # --- STEP_METHODS_INSERTION_POINT ---

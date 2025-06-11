@@ -136,6 +136,7 @@ class TextAreaWidget:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, steps)
 
+    # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
         """ Handles GET request for Step 1: Displays textarea form or completed value. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
@@ -199,3 +200,4 @@ class TextAreaWidget:
         text_widget = Pre(processed_val, cls='code-block-container')
         content_container = pip.display_revert_widget(step_id=step_id, app_name=app_name, message=f'{step.show} Configured', widget=text_widget, steps=steps)
         return Div(content_container, Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load'), id=step_id)
+    # --- END_STEP_BUNDLE: step_01 ---

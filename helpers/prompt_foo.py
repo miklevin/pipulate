@@ -41,6 +41,7 @@ server.py        <-- Main server file for the project
 /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
+/home/mike/repos/pipulate/plugins/830_simon_mcp.py
 /home/mike/repos/pipulate/plugins/900_blank_placeholder.py  <-- The minimal template that propegates everywhere (as WET as we get)
 /home/mike/repos/pipulate/plugins/040_hello_workflow.py     <-- Master example and Jupyter Notebook, shows parallels to Unix pipe
 
