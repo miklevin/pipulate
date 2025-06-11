@@ -1771,16 +1771,22 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                 logger.info(f"🔍 DEBUG: MCP already detected, skipping content")
                                 continue
                             
-                            # STATE MACHINE: Once MCP starts, buffer everything until complete
+                            # 🚨 AGGRESSIVE MCP DETECTION: Buffer as soon as we see ANY start of MCP
+                            # Check for any possible MCP start patterns to prevent leakage
+                            potential_mcp_start = ('<mcp' in full_content_buffer or 
+                                                 full_content_buffer.strip().endswith('<mc') or 
+                                                 full_content_buffer.strip().endswith('<m') or
+                                                 full_content_buffer.strip().endswith('<'))
                             mcp_start_found = '<mcp-' in full_content_buffer
                             mcp_end_found = '</mcp-request>' in full_content_buffer
-                            logger.info(f"🔍 DEBUG: MCP detection - Start: {mcp_start_found}, End: {mcp_end_found}")
+                            logger.info(f"🔍 DEBUG: MCP detection - Potential: {potential_mcp_start}, Start: {mcp_start_found}, End: {mcp_end_found}")
                             
-                            if mcp_start_found:
-                                logger.info(f"🔍 DEBUG: MCP start detected! Checking for completion...")
+                            # If we detect ANY potential MCP content, start buffering immediately
+                            if potential_mcp_start:
+                                logger.info(f"🔍 DEBUG: Potential MCP content detected! Checking for completion...")
                                 
-                                # Check if we have complete MCP block
-                                if mcp_end_found:
+                                # Check if we have complete MCP block (only process if we have the full start tag)
+                                if mcp_start_found and mcp_end_found:
                                     # Extract and log the complete MCP block
                                     start_idx = full_content_buffer.find('<mcp-request>')
                                     end_idx = full_content_buffer.find('</mcp-request>') + len('</mcp-request>')
@@ -1817,9 +1823,13 @@ async def chat_with_llm(MODEL: str, messages: list, base_app=None) -> AsyncGener
                                         yield formatted_content
                                     else:
                                         logger.info(f"🔍 DEBUG: No remaining content, task will handle response")
-                                else:
+                                elif mcp_start_found:
                                     # MCP started but not complete - skip all content
                                     logger.info(f"🔍 DEBUG: MCP incomplete, buffering and skipping content")
+                                    continue
+                                else:
+                                    # Potential MCP but not confirmed yet - buffer aggressively
+                                    logger.info(f"🔍 DEBUG: Potential MCP detected, buffering content to prevent leakage")
                                     continue
                             else:
                                 # No MCP detected - process normally
