@@ -373,8 +373,16 @@ Do not say anything else. Just output the exact MCP block above."""
             ]
 
             # Process the LLM interaction through the Pipulate instance
+            mcp_result = None
             async for chunk in pip.process_llm_interaction(MODEL, messages):
                 await pip.stream(chunk, verbatim=True, role='assistant', simulate_typing=False)
+                # Capture the MCP result if it's a cat fact
+                if 'Cat Fact Alert!' in chunk and 'Would you like another fact?' in chunk:
+                    mcp_result = chunk
+            
+            # Add the MCP result to conversation history if we got one
+            if mcp_result:
+                await self.message_queue.add(pip, mcp_result, verbatim=True, role='assistant')
 
             # Store a summary for the revert state
             interaction_summary = f"--- Simon Says Prompt ---\n{prompt_text}\n\n--- Result ---\nCheck the chat panel and server logs for the detailed interaction and observability report."
