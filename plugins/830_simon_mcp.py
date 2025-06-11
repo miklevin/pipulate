@@ -335,12 +335,33 @@ Do not say anything else. Just output the exact MCP block above."""
 
         try:
             form = await request.form()
-            prompt_text = form.get('simon_says_prompt', '').strip()
+            raw_input = form.get('simon_says_prompt', '').strip()
             
-            if not prompt_text:
+            if not raw_input:
                 error_msg = 'Please provide a prompt for the LLM interaction.'
                 logger.error(f"Error in {app_name}/{step_id}: {error_msg}")
                 return P(error_msg, style=pip.get_style('error'))
+            
+            # Extract clean prompt text, removing any previous formatting
+            if '--- Simon Says Prompt ---' in raw_input:
+                # Extract the actual prompt content between the markers
+                lines = raw_input.split('\n')
+                start_collecting = False
+                prompt_lines = []
+                
+                for line in lines:
+                    if line.strip() == '--- Simon Says Prompt ---':
+                        start_collecting = True
+                        continue
+                    elif line.strip() == '--- Result ---':
+                        break
+                    elif start_collecting:
+                        prompt_lines.append(line)
+                
+                prompt_text = '\n'.join(prompt_lines).strip()
+            else:
+                # No formatting present, use as-is
+                prompt_text = raw_input
 
             # Show clean initiation message
             await pip.stream(f'🎪 Simon Says: Sending your prompt to the LLM...', role='system')
