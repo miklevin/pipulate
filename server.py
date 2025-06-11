@@ -1061,7 +1061,7 @@ class Pipulate:
                         words = message.split()
                         for i, word in enumerate(words):
                             await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
-                            await asyncio.sleep(0.05)
+                            await asyncio.sleep(0.0125)
                 else:
                     await chat.broadcast(message)
                 
@@ -4047,7 +4047,7 @@ async def send_startup_environment_message():
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system')
+                await pipulate.message_queue.add(pipulate, env_message, verbatim=True, role='system', spaces_after=2)
                 logger.debug(f"Successfully sent startup environment message (attempt {attempt + 1})")
                 break
             except Exception as e:
