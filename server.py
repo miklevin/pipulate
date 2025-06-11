@@ -1036,7 +1036,7 @@ class Pipulate:
             return f'<a href="{url}" target="_blank">{url}</a>'
         return re.sub(url_pattern, replace_url, text)
 
-    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=1, simulate_typing=True):
+    async def stream(self, message, verbatim=False, role='user', spaces_before=None, spaces_after=None, simulate_typing=True):
         """Stream a message to the chat interface.
         
         This is now the single source of truth for conversation history management.
@@ -1049,10 +1049,19 @@ class Pipulate:
         
         if verbatim:
             try:
-                logger.debug("🔍 DEBUG: Processing verbatim message")
+                # Safety check: ensure chat instance is available
+                if self.chat is None:
+                    logger.warning("Chat instance not available yet, queuing message for later")
+                    return message
+                
+
+                # Handle spacing before the message
                 if spaces_before:
                     message = '<br>' * spaces_before + message
-                if spaces_after:
+                # Handle spacing after the message - default to 2 for verbatim messages unless explicitly set to 0
+                if spaces_after is None:
+                    spaces_after = 2  # Default for verbatim messages - use 2 for more visible spacing
+                if spaces_after and spaces_after > 0:
                     message = message + '<br>' * spaces_after
                 
                 if simulate_typing:
@@ -1061,7 +1070,7 @@ class Pipulate:
                     # Just send the whole message with line breaks converted to HTML
                     if '\n' in message:
                         message_with_breaks = message.replace('\n', '<br>')
-                        await chat.broadcast(message_with_breaks)
+                        await self.chat.broadcast(message_with_breaks)
                     else:
                         # Original word-by-word typing for single-line messages
                         # Handle <br> tags at the end of the message properly
@@ -1073,17 +1082,17 @@ class Pipulate:
                             br_tags = br_match.group(1)
                             words = base_message.split()
                             for i, word in enumerate(words):
-                                await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
                                 await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                             # Send the <br> tags after the words
-                            await chat.broadcast(br_tags)
+                            await self.chat.broadcast(br_tags)
                         else:
                             words = message.split()
                             for i, word in enumerate(words):
-                                await chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
+                                await self.chat.broadcast(word + (' ' if i < len(words) - 1 else ''))
                                 await asyncio.sleep(PCONFIG['CHAT_CONFIG']['TYPING_DELAY'])
                 else:
-                    await chat.broadcast(message)
+                    await self.chat.broadcast(message)
                 
                 logger.debug(f'Verbatim message sent: {message}')
                 return message
@@ -1093,11 +1102,11 @@ class Pipulate:
         
         # Logic for interruptible LLM streams
         try:
-            await chat.broadcast('%%STREAM_START%%')
+            await self.chat.broadcast('%%STREAM_START%%')
             conversation_history = list(global_conversation_history)
             response_text = ''
             async for chunk in chat_with_llm(MODEL, conversation_history):
-                await chat.broadcast(chunk)
+                await self.chat.broadcast(chunk)
                 response_text += chunk
             
             # Append the final response from the assistant
@@ -1110,7 +1119,7 @@ class Pipulate:
             logger.error(f'Error in LLM stream: {e}', exc_info=True)
             raise
         finally:
-            await chat.broadcast('%%STREAM_END%%')
+            await self.chat.broadcast('%%STREAM_END%%')
             logger.debug("LLM stream finished or cancelled, sent %%STREAM_END%%")
             logger.debug(f"🔍 DEBUG: === ENDING pipulate.stream ({'verbatim' if verbatim else 'LLM'}) ===")
 
@@ -2284,6 +2293,8 @@ if not os.path.exists('plugins'):
     os.makedirs('plugins')
     logger.debug('Created plugins directory')
 chat = Chat(app, id_suffix='', pipulate_instance=pipulate)
+# Critical: Set the chat reference back to pipulate so stream() method works
+pipulate.set_chat(chat)
 
 def build_endpoint_messages(endpoint):
     endpoint_messages = {}
