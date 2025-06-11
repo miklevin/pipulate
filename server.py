@@ -238,7 +238,51 @@ PCONFIG = {
             'USER_INPUT': '👤',
             'GREETING': '💬',
             'WORKFLOW': '🔄',
-            'INPUT_FORM': '📝'
+            'INPUT_FORM': '📝',
+            
+            # Code and Development Indicators
+            'PYTHON_CODE': '🐍',           # Python code snippets and headers
+            'CODE_SNIPPET': '✂️',         # Code snippet indicator
+            'JUPYTER_NOTEBOOK': '📓',     # Jupyter notebook related
+            'API_CALL': '🔌',             # API endpoint calls
+            'DEBUG_CODE': '🐛',           # Debugging code sections
+            
+            # File and Data Operations
+            'DOWNLOAD': '⬇️',             # Download operations
+            'UPLOAD': '⬆️',               # Upload operations
+            'FILE_FOLDER': '📂',          # File/folder operations
+            'CSV_FILE': '📊',             # CSV and data files
+            'JSON_DATA': '📄',            # JSON and structured data
+            
+            # Analysis and Processing
+            'ANALYSIS': '🔍',             # Data analysis and discovery
+            'PROCESSING': '⚙️',          # Background processing
+            'OPTIMIZATION': '🎯',        # Optimization results
+            'GRAPH_NETWORK': '🌐',       # Network/graph visualization
+            'VISUALIZATION': '📈',       # Charts and visualizations
+            
+            # Search Console and SEO
+            'SEARCH_CONSOLE': '🔍',      # Google Search Console
+            'SEO_DATA': '📊',            # SEO metrics and data
+            'CRAWL_DATA': '🕷️',         # Website crawling
+            'WEB_LOGS': '📝',            # Web server logs
+            
+            # Workflow Status
+            'STEP_COMPLETE': '✅',       # Step completion
+            'STEP_PROGRESS': '🔄',      # Step in progress
+            'STEP_ERROR': '❌',          # Step error
+            'STEP_WARNING': '⚠️',       # Step warning
+            'REVERT': '↩️',              # Revert action
+            'FINALIZE': '🔒',           # Finalize workflow
+            'UNFINALIZE': '🔓'          # Unfinalize workflow
+        },
+        'CONSOLE_MESSAGES': {
+            # Server console log messages - centralized for consistency
+            'PYTHON_SNIPPET_INTRO': '{python_emoji} Python (httpx) Snippet {snippet_emoji}:',
+            'API_CALL_LOG': 'API Call: {method} {url}',
+            'FILE_GENERATED': 'Generated file: {filename}',
+            'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
+            'ERROR_OCCURRED': 'Error in {context}: {error_message}'
         },
         'MESSAGES': {
             'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
@@ -905,7 +949,14 @@ class Pipulate:
             except TypeError:
                 log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
         if python_command:
-            log_entry_parts.append(f'  🐍 Python (httpx) Snippet ✂️:\n{python_command}')
+            # Use centralized emoji configuration for console messages
+            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            log_entry_parts.append(f'  {snippet_intro}\n{python_command}')
             log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
         if estimated_rows is not None:
             log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
