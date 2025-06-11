@@ -251,7 +251,7 @@ Do not say anything else. Just output the exact MCP block above."""
                     display_value,
                     name="simon_says_prompt",
                     required=True,
-                    style='min-height: 300px; width: 100%; font-family: monospace; white-space: pre; overflow-wrap: normal; overflow-x: auto;'
+                    style='min-height: 450px; width: 100%; font-family: monospace; white-space: pre-wrap; overflow-wrap: break-word;'
                 ),
                 Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;'),
                 hx_post=f'/{app_name}/{step_id}_submit',
