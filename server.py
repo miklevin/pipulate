@@ -905,7 +905,7 @@ class Pipulate:
             except TypeError:
                 log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
         if python_command:
-            log_entry_parts.append(f'  Python (httpx) Snippet:\n{python_command}')
+            log_entry_parts.append(f'  🐍 Python (httpx) Snippet ✂️:\n{python_command}')
             log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
         if estimated_rows is not None:
             log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
