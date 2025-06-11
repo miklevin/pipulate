@@ -285,6 +285,10 @@ PCONFIG = {
             'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
             'ERROR_OCCURRED': 'Error in {context}: {error_message}'
         },
+        'CODE_FORMATTING': {
+            # Visual dividers and separators for generated code
+            'COMMENT_DIVIDER': '# ============================================================================='
+        },
         'MESSAGES': {
             'WORKFLOW_UNLOCKED': 'Workflow unfinalized! You can now revert to any step and make changes.',
             'ALL_STEPS_COMPLETE': 'All steps complete. Ready to finalize workflow.',
@@ -988,6 +992,8 @@ class Pipulate:
         
         # Add Python snippet END marker at the very end if we had a Python snippet
         if python_snippet_info:
+            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            log_entry_parts.append(f'{comment_divider}')
             log_entry_parts.append(f'{python_snippet_info}')
         
         full_log_message = '\n'.join(log_entry_parts)
