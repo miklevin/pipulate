@@ -3750,42 +3750,39 @@ def redirect_handler(request):
 @rt('/poke', methods=['POST'])
 async def poke_chatbot():
     """
-    Triggers the MCP proof-of-concept by prompting the LLM to use the
-    'get_activity_suggestion' tool. Each request is unique to prevent conversation history issues.
+    Triggers the MCP proof-of-concept. All messages are now sent through the
+    message queue to ensure correct order in the UI.
     """
     logger.debug('🔧 MCP external API tool call initiated via Poke button.')
 
-    # Generate unique identifiers to ensure each request is fresh
+    # Message 1: The user-facing "fetching" message. Send it through the queue.
+    fetching_message = "🐱 Fetching a random cat fact... Check server console for logs."
+    await pipulate.message_queue.add(pipulate, fetching_message, verbatim=True, role='system')
+
+    # Message 2: The one-shot prompt for the LLM. Also sent through the queue.
     import time
     import random
     timestamp = int(time.time())
     session_id = random.randint(1000, 9999)
-    
+
     one_shot_mcp_prompt = f"""You are a helpful assistant with a tool that can fetch random cat facts. When the user wants a cat fact, you must use this tool.
-
-To use the tool, you MUST stop generating conversational text and output an MCP request block. 
-
+To use the tool, you MUST stop generating conversational text and output an MCP request block.
 Here is the only tool you have available:
-
 Tool Name: `get_cat_fact`
 Description: Fetches a random cat fact from an external API.
 Parameters: None
-
 ---
-
 🆔 Request ID: {session_id} | ⏰ Timestamp: {timestamp}
-
 The user wants to learn something interesting about cats. Use the `get_cat_fact` tool by generating this EXACT MCP request block:
-
 <mcp-request>
   <tool name="get_cat_fact" />
 </mcp-request>
-
 Do not say anything else. Just output the exact MCP block above."""
 
-    # This part remains the same
-    asyncio.create_task(pipulate.stream(one_shot_mcp_prompt, verbatim=False, role='user'))
-    return "🐱 Fetching a random cat fact... Check server console for logs."
+    await pipulate.message_queue.add(pipulate, one_shot_mcp_prompt, verbatim=False, role='user')
+
+    # Return an empty response, as content is now delivered via WebSocket.
+    return ""
 
 @rt('/open-folder', methods=['GET'])
 async def open_folder_endpoint(request):
