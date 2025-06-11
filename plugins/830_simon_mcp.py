@@ -30,19 +30,23 @@ class SimonSaysMcpWidget:
     UI_CONSTANTS = {
         'SHARED': {
             'FONT_SIZE': '0.9rem',
-            'FONT_FAMILY': 'monospace'
-        },
-        'PROMPT_TEXTAREA': {
+            'FONT_FAMILY': 'monospace',
+            'LINE_HEIGHT': '1.5',
+            'PADDING': '0.75rem',
             'MIN_HEIGHT': '450px',
+            'WIDTH': '100%',
             'WHITE_SPACE': 'pre-wrap',
             'OVERFLOW_WRAP': 'break-word',
-            'WIDTH': '100%'
+            'BORDER_RADIUS': '4px'
         },
-        'DISPLAY_CONTENT': {
-            'WHITE_SPACE': 'pre-wrap',
-            'OVERFLOW_WRAP': 'break-word',
-            'MAX_HEIGHT': '400px',
-            'OVERFLOW_Y': 'auto'
+        'INPUT_STYLE': {
+            'BORDER': '1px solid var(--pico-form-element-border-color)',
+            'BACKGROUND_COLOR': 'var(--pico-form-element-background-color)'
+        },
+        'DISPLAY_STYLE': {
+            'BORDER': '1px solid var(--pico-muted-border-color)',
+            'BACKGROUND_COLOR': 'var(--pico-card-background-color)',
+            'COLOR': 'var(--pico-color)'
         }
     }
     # Additional class-level constants can be merged here by manage_class_attributes.py
@@ -217,17 +221,39 @@ class SimonSaysMcpWidget:
         await self.message_queue.add(pip, message, verbatim=True)
         return pip.run_all_cells(app_name, current_steps_to_pass_helpers)
 
-    def _get_textarea_style(self):
-        """Generate consistent textarea style from UI constants."""
+    def _get_base_style(self):
+        """Generate base style shared by both input and display."""
         shared = self.UI_CONSTANTS['SHARED']
-        textarea = self.UI_CONSTANTS['PROMPT_TEXTAREA']
-        return f"min-height: {textarea['MIN_HEIGHT']}; width: {textarea['WIDTH']}; font-family: {shared['FONT_FAMILY']}; font-size: {shared['FONT_SIZE']}; white-space: {textarea['WHITE_SPACE']}; overflow-wrap: {textarea['OVERFLOW_WRAP']};"
+        return (f"min-height: {shared['MIN_HEIGHT']}; "
+                f"width: {shared['WIDTH']}; "
+                f"font-family: {shared['FONT_FAMILY']}; "
+                f"font-size: {shared['FONT_SIZE']}; "
+                f"line-height: {shared['LINE_HEIGHT']}; "
+                f"padding: {shared['PADDING']}; "
+                f"white-space: {shared['WHITE_SPACE']}; "
+                f"overflow-wrap: {shared['OVERFLOW_WRAP']}; "
+                f"border-radius: {shared['BORDER_RADIUS']}; ")
+
+    def _get_textarea_style(self):
+        """Generate textarea input style with form element colors."""
+        base = self._get_base_style()
+        input_style = self.UI_CONSTANTS['INPUT_STYLE']
+        return (base + 
+                f"border: {input_style['BORDER']}; "
+                f"background-color: {input_style['BACKGROUND_COLOR']};")
 
     def _get_display_style(self):
-        """Generate consistent display style from UI constants."""
-        shared = self.UI_CONSTANTS['SHARED']
-        display = self.UI_CONSTANTS['DISPLAY_CONTENT']
-        return f"font-size: {shared['FONT_SIZE']}; font-family: {shared['FONT_FAMILY']}; white-space: {display['WHITE_SPACE']}; overflow-wrap: {display['OVERFLOW_WRAP']}; max-height: {display['MAX_HEIGHT']}; overflow-y: {display['OVERFLOW_Y']};"
+        """Generate display style with readable card colors."""
+        base = self._get_base_style()
+        display_style = self.UI_CONSTANTS['DISPLAY_STYLE']
+        return (base + 
+                f"border: {display_style['BORDER']}; "
+                f"background-color: {display_style['BACKGROUND_COLOR']}; "
+                f"color: {display_style['COLOR']};")
+                
+    def _get_consistent_style(self):
+        """Deprecated - use _get_display_style() or _get_textarea_style() instead."""
+        return self._get_display_style()
 
     # --- START_STEP_BUNDLE: step_01 ---
     async def step_01(self, request):
@@ -337,8 +363,17 @@ Do not say anything else. Just output the exact MCP block above."""
                 steps=steps
             )
             
-            # Use chain_reverter to trigger the next step automatically
-            return pip.chain_reverter(step_id, step_index, steps, app_name, f"LLM Interaction: '{prompt_text[:40]}...'")
+            # Use display_revert_widget to show the full content, not just abbreviated label
+            next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+            revert_widget = pip.display_revert_widget(
+                step_id=step_id, 
+                app_name=app_name, 
+                message=f"{step.show}: Interaction Complete",
+                widget=Pre(interaction_summary, style=self._get_display_style()),
+                steps=steps
+            )
+            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+            return Div(revert_widget, next_step_trigger, id=step_id)
 
         except Exception as e:
             error_msg = f'Error during MCP interaction processing: {str(e)}'
