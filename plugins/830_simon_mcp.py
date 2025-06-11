@@ -101,22 +101,54 @@ class SimonSaysMcpWidget:
 
     async def finalize(self, request):
         pip, db, app_name = self.pipulate, self.db, self.APP_NAME
-        # Use self.steps as it's the definitive list including 'finalize'
         pipeline_id = db.get('pipeline_id', 'unknown')
-
         finalize_step_obj = next(s for s in self.steps if s.id == 'finalize')
         finalize_data = pip.get_step_data(pipeline_id, finalize_step_obj.id, {})
+        state = pip.read_state(pipeline_id)
 
         if request.method == 'GET':
+            # STEP PHASE: Finalize (already finalized)
             if finalize_step_obj.done in finalize_data:
-                return Card(H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), Form(Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']), hx_post=f'/{app_name}/unfinalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
+                return Card(
+                    H3(self.ui['MESSAGES']['WORKFLOW_LOCKED']), 
+                    Form(
+                        Button(self.ui['BUTTON_LABELS']['UNLOCK'], type='submit', cls=self.ui['BUTTON_STYLES']['OUTLINE']), 
+                        hx_post=f'/{app_name}/unfinalize', 
+                        hx_target=f'#{app_name}-container'
+                    ), 
+                    id=finalize_step_obj.id
+                )
+            
+            # Check if all data steps are complete  
+            data_steps = [step for step in self.steps if step.id != 'finalize']
+            all_data_steps_complete = True
+            
+            for step in data_steps:
+                step_data = pip.get_step_data(pipeline_id, step.id, {})
+                if not (step.done in step_data and step_data.get(step.done)):
+                    all_data_steps_complete = False
+                    break
+            
+            # STEP PHASE: Get Input (show finalize button when all steps complete)
+            if all_data_steps_complete:
+                return Card(
+                    H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), 
+                    P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), 
+                    Form(
+                        Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), 
+                        hx_post=f'/{app_name}/finalize', 
+                        hx_target=f'#{app_name}-container'
+                    ), 
+                    id=finalize_step_obj.id
+                )
             else:
-                # Check if all data steps (all steps in self.steps *before* 'finalize') are complete
-                all_data_steps_complete = all(pip.get_step_data(pipeline_id, step.id, {}).get(step.done) for step in self.steps if step.id != 'finalize')
-                if all_data_steps_complete:
-                    return Card(H3(self.ui['MESSAGES']['FINALIZE_QUESTION']), P(self.ui['MESSAGES']['FINALIZE_HELP'], cls='text-secondary'), Form(Button(self.ui['BUTTON_LABELS']['FINALIZE'], type='submit', cls=self.ui['BUTTON_STYLES']['PRIMARY']), hx_post=f'/{app_name}/finalize', hx_target=f'#{app_name}-container'), id=finalize_step_obj.id)
-                else:
-                    return Div(id=finalize_step_obj.id)
+                # Still waiting for steps to complete - show progress
+                return Card(
+                    H3("🔄 Workflow In Progress"),
+                    P("Complete all steps to finalize this workflow"),
+                    id=finalize_step_obj.id
+                )
+        
         elif request.method == 'POST':
             await pip.finalize_workflow(pipeline_id)
             await self.message_queue.add(pip, self.step_messages['finalize']['complete'], verbatim=True)
@@ -167,30 +199,36 @@ class SimonSaysMcpWidget:
         """ Handles GET request for Step 1: Displays the Simon Says textarea form. """
         pip, db, steps, app_name = (self.pipulate, self.db, self.steps, self.app_name)
         step_id = 'step_01'
-        step = self.steps[self.steps_indices[step_id]]
+        step_index = self.steps_indices[step_id] # Ensure we have the index
+        step = self.steps[step_index]
+        next_step_id = steps[step_index + 1].id if step_index + 1 < len(steps) else 'finalize'
+
         pipeline_id = db.get('pipeline_id', 'unknown')
         state = pip.read_state(pipeline_id)
         step_data = pip.get_step_data(pipeline_id, step_id, {})
         interaction_result = step_data.get(step.done, '')
         finalize_data = pip.get_step_data(pipeline_id, 'finalize', {})
 
+        # Phase 1: Finalized View
         if 'finalized' in finalize_data and interaction_result:
-            return Div(
-                pip.finalized_content(
-                    message=f"🔒 {step.show}: Interaction Complete",
-                    content=Pre(interaction_result, cls='code-block-container')
-                ),
-                id=step_id
+            locked_content = pip.finalized_content(
+                message=f"🔒 {step.show}: Interaction Complete",
+                content=Pre(interaction_result, cls='code-block-container')
             )
+            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+            return Div(locked_content, next_step_trigger, id=step_id)
+
+        # Phase 2: Revert View
         elif interaction_result and state.get('_revert_target') != step_id:
-            return Div(
-                pip.display_revert_widget(
-                    step_id=step_id, app_name=app_name, message=f"{step.show}: Interaction Log",
-                    widget=Pre(interaction_result, cls='code-block-container'),
-                    steps=steps
-                ),
-                id=step_id
+            revert_widget = pip.display_revert_widget(
+                step_id=step_id, app_name=app_name, message=f"{step.show}: Interaction Log",
+                widget=Pre(interaction_result, cls='code-block-container'),
+                steps=steps
             )
+            next_step_trigger = Div(id=next_step_id, hx_get=f'/{app_name}/{next_step_id}', hx_trigger='load')
+            return Div(revert_widget, next_step_trigger, id=step_id)
+
+        # Phase 3: Get Input View
         else:
             await self.message_queue.add(pip, "Let's play Simon Says with the LLM. Edit the prompt below and see if you can get it to make a tool call!", verbatim=True)
             
@@ -208,7 +246,6 @@ The user wants to learn something interesting about cats. Use the `get_cat_fact`
 
 Do not say anything else. Just output the exact MCP block above."""
             display_value = interaction_result if step.refill and interaction_result else simon_says_prompt
-
             form_content = Form(
                 Textarea(
                     display_value,
@@ -221,6 +258,7 @@ Do not say anything else. Just output the exact MCP block above."""
                 hx_target=f'#{step_id}'
             )
             
+            # This phase correctly breaks the chain, waiting for user input.
             return Div(
                 Card(H3(f'🎪 {step.show}'), form_content),
                 id=step_id
@@ -245,14 +283,6 @@ Do not say anything else. Just output the exact MCP block above."""
             # Show immediate feedback
             await pip.stream(f'🤖 Okay, Simon Says... I\'m sending your instructions to the LLM. Let\'s see what happens...', role='system')
 
-            # Store the user's prompt
-            processed_val = await pip.set_step_data(
-                pipeline_id=db.get('pipeline_id', 'unknown'),
-                step_id=step_id,
-                step_value=prompt_text,
-                steps=steps
-            )
-
             # Prepare messages for LLM interaction
             messages = [
                 {'role': 'system', 'content': 'You are a helpful assistant capable of making tool calls when needed.'},
@@ -263,8 +293,17 @@ Do not say anything else. Just output the exact MCP block above."""
             async for chunk in pip.process_llm_interaction(MODEL, messages):
                 await pip.stream(chunk, verbatim=True, role='assistant', simulate_typing=False)
 
+            # Store a summary for the revert state
+            interaction_summary = f"--- Simon Says Prompt ---\n{prompt_text}\n\n--- Result ---\nCheck the chat panel and server logs for the detailed interaction and observability report."
+            await pip.set_step_data(
+                pipeline_id=db.get('pipeline_id', 'unknown'),
+                step_id=step_id,
+                step_value=interaction_summary,
+                steps=steps
+            )
+            
             # Use chain_reverter to trigger the next step automatically
-            return pip.chain_reverter(step_id, step_index, steps, app_name, f'LLM Interaction: {prompt_text[:50]}...')
+            return pip.chain_reverter(step_id, step_index, steps, app_name, f"LLM Interaction: '{prompt_text[:40]}...'")
 
         except Exception as e:
             error_msg = f'Error during MCP interaction processing: {str(e)}'

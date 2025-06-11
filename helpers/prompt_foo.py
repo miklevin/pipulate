@@ -35,10 +35,10 @@ FILES_TO_INCLUDE_RAW = """\
 # CORE FILES & DOCS (Setting the stage)
 # README.md        <-- Main GitHub README sets the tone
 # flake.nix        <-- NixOS configuration for the project (Infrastructure as Code / IaC)
-requirements.txt <-- Python package dependencies for the project
+# requirements.txt <-- Python package dependencies for the project
 server.py        <-- Main server file for the project
-/home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
-/home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
+# /home/mike/repos/Pipulate.com/install.sh      <-- The install script for the project & magic behind magic cookies
+# /home/mike/repos/Pipulate.com/development.md  <-- Pipulate.com Development notes for https://github.com/miklevin/pipulate/
 
 ## SPECIFIC FILES NECESSARY FOR CURRENT PROJECT AND PROMPT (Defining the challenge)
 /home/mike/repos/pipulate/plugins/830_simon_mcp.py
@@ -51,11 +51,11 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/plugins/060_tasks.py     <-- The main BaseCrud inheriting plugin that copy/pastes to completely automatically create a new one.
 
 ## HELPER SCRIPTS (Why WET can work)
-/home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
-/home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
-/home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
+# /home/mike/repos/pipulate/plugins/310_workflow_genesis.py       <-- The templating plugin that creates new workflows from scratch
+# /home/mike/repos/pipulate/helpers/create_workflow.py          <-- Creates a new workflow (copies 900_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/splice_workflow_step.py     <-- Splices a step into a workflow (copies 900_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/manage_class_attributes.py  <-- The script that manages class attributes (copies 900_blank_placeholder.py)
+# /home/mike/repos/pipulate/helpers/swap_workflow_step.py       <-- THE SCRIPT THAT WAS JUST MADE AND MAY HAVE PROBLEMS
 # /home/mike/repos/pipulate/helpers/prompt_foo.py               <-- This script (used to generate the manifest)
 
 ## CUSTOM STATIC RESOURCES (Supporting characters)
@@ -75,8 +75,8 @@ server.py        <-- Main server file for the project
 # /home/mike/repos/pipulate/.cursor/rules/01_philosophy.mdc
 # /home/mike/repos/pipulate/.cursor/rules/02_architecture_overview.mdc
 # /home/mike/repos/pipulate/.cursor/rules/03_environment_and_installation.mdc
-# /home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
-# /home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
+/home/mike/repos/pipulate/.cursor/rules/04_workflow_core.mdc
+/home/mike/repos/pipulate/.cursor/rules/05_chain_reaction_pattern.mdc
 # /home/mike/repos/pipulate/.cursor/rules/06_workflow_creation_helpers.mdc
 # /home/mike/repos/pipulate/.cursor/rules/07_key_system.mdc
 # /home/mike/repos/pipulate/.cursor/rules/08_ui_and_htmx.mdc
