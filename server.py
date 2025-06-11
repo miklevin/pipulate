@@ -278,7 +278,8 @@ PCONFIG = {
         },
         'CONSOLE_MESSAGES': {
             # Server console log messages - centralized for consistency
-            'PYTHON_SNIPPET_INTRO': '{python_emoji} Python (httpx) Snippet {snippet_emoji}:',
+            'PYTHON_SNIPPET_INTRO': '{python_emoji} Python (httpx) Snippet BEGIN {snippet_emoji}:',
+            'PYTHON_SNIPPET_END': '{python_emoji} Python (httpx) Snippet END {snippet_emoji}',
             'API_CALL_LOG': 'API Call: {method} {url}',
             'FILE_GENERATED': 'Generated file: {filename}',
             'PROCESSING_COMPLETE': 'Processing complete for: {operation}',
@@ -956,7 +957,11 @@ class Pipulate:
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
-            log_entry_parts.append(f'  {snippet_intro}\n{python_command}')
+            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            log_entry_parts.append(f'  {snippet_intro}\n{python_command}\n  {snippet_end}')
             log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
         if estimated_rows is not None:
             log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
