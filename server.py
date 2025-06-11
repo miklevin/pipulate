@@ -938,21 +938,30 @@ class Pipulate:
             plugin_instance.app.route(path, methods=current_methods)(handler)
 
     async def log_api_call_details(self, pipeline_id: str, step_id: str, call_description: str, method: str, url: str, headers: dict, payload: Optional[dict]=None, response_status: Optional[int]=None, response_preview: Optional[str]=None, curl_command: Optional[str]=None, python_command: Optional[str]=None, estimated_rows: Optional[int]=None, actual_rows: Optional[int]=None, file_path: Optional[str]=None, file_size: Optional[str]=None, notes: Optional[str]=None):
+        """Log complete API call details for extreme observability and Jupyter reproduction.
+        
+        This provides the same level of transparency for API calls as is used in BQL query logging,
+        including copy-paste ready Python code for Jupyter notebook reproduction.
         """
-        Logs detailed information about an API call related to a workflow.
-        This serves as a hook for future, more sophisticated logging or UI display.
-        """
-        log_entry_parts = [f'API CALL INFO for Pipeline: {pipeline_id}, Step: {step_id}, Description: {call_description}', f'  Request: {method.upper()} {url}']
-        logged_headers = headers.copy()
-        if 'Authorization' in logged_headers:
-            logged_headers['Authorization'] = 'Token f{YOUR_BOTIFY_API_TOKEN}'
-        log_entry_parts.append(f'  Headers:\n{json.dumps(logged_headers, indent=2)}')
+        log_entry_parts = []
+        log_entry_parts.append(f'  [API Call] {call_description or "API Request"}')
+        log_entry_parts.append(f'  Pipeline ID: {pipeline_id}')
+        log_entry_parts.append(f'  Step ID: {step_id}')
+        log_entry_parts.append(f'  Method: {method}')
+        log_entry_parts.append(f'  URL: {url}')
+        if headers:
+            headers_preview = {k: v for k, v in headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
+            if len(headers_preview) != len(headers):
+                headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(headers) - len(headers_preview)} hidden'
+            log_entry_parts.append(f'  Headers: {json.dumps(headers_preview, indent=2)}')
         if payload:
             try:
-                payload_str = json.dumps(payload, indent=2)
-                log_entry_parts.append(f'  Payload:\n{payload_str}')
-            except TypeError:
-                log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
+                pretty_payload = json.dumps(payload, indent=2)
+                log_entry_parts.append(f'  Payload:\n{pretty_payload}')
+            except Exception:
+                log_entry_parts.append(f'  Payload: {payload}')
+        if curl_command:
+            log_entry_parts.append(f'  cURL Command:\n{curl_command}')
         if python_command:
             # Use centralized emoji configuration for console messages
             python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
@@ -994,9 +1003,236 @@ class Pipulate:
         full_log_message = '\n'.join(log_entry_parts)
         logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
         is_bql = 'bql' in (call_description or '').lower() or 'botify query language' in (call_description or '').lower()
-        logger.bind(api_call=True, bql_api_call=is_bql).info(full_log_message)
+
+    async def log_mcp_call_details(self, operation_id: str, tool_name: str, operation_type: str, mcp_block: str=None, request_payload: Optional[dict]=None, response_data: Optional[dict]=None, response_status: Optional[int]=None, external_api_url: Optional[str]=None, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, external_api_response: Optional[dict]=None, external_api_status: Optional[int]=None, execution_time_ms: Optional[float]=None, notes: Optional[str]=None):
+        """Log complete MCP operation details for extreme observability and Jupyter reproduction.
+        
+        This provides the same level of transparency for MCP operations as the BQL query logging,
+        including copy-paste ready Python code for external API reproduction.
+        
+        Args:
+            operation_id: Unique identifier for this MCP operation
+            tool_name: Name of the MCP tool being executed
+            operation_type: Type of operation (tool_execution, api_call, etc.)
+            mcp_block: Raw MCP block that triggered the operation
+            request_payload: Payload sent to MCP tool executor
+            response_data: Response from MCP tool executor
+            response_status: HTTP status from MCP tool executor
+            external_api_url: URL of external API called (if any)
+            external_api_method: HTTP method for external API
+            external_api_headers: Headers sent to external API
+            external_api_payload: Payload sent to external API
+            external_api_response: Response from external API
+            external_api_status: HTTP status from external API
+            execution_time_ms: Total execution time in milliseconds
+            notes: Additional context or notes
+        """
+        log_entry_parts = []
+        log_entry_parts.append(f'  [MCP Operation] {operation_type.title()} - {tool_name}')
+        log_entry_parts.append(f'  Operation ID: {operation_id}')
+        log_entry_parts.append(f'  Tool Name: {tool_name}')
+        log_entry_parts.append(f'  Operation Type: {operation_type}')
+        log_entry_parts.append(f'  Timestamp: {self.get_timestamp()}')
+        
+        if execution_time_ms is not None:
+            log_entry_parts.append(f'  Execution Time: {execution_time_ms:.2f}ms')
+        
+        # MCP Block Details
+        if mcp_block:
+            log_entry_parts.append(f'  MCP Block:')
+            # Indent each line of the MCP block for better readability
+            indented_block = '\n'.join(f'    {line}' for line in mcp_block.strip().split('\n'))
+            log_entry_parts.append(indented_block)
+        
+        # Internal MCP Tool Executor Request
+        if request_payload:
+            log_entry_parts.append(f'  MCP Tool Executor Request:')
+            log_entry_parts.append(f'    URL: http://127.0.0.1:5001/mcp-tool-executor')
+            log_entry_parts.append(f'    Method: POST')
+            try:
+                pretty_payload = json.dumps(request_payload, indent=4)
+                # Indent the JSON for consistency
+                indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
+                log_entry_parts.append(f'    Payload:\n{indented_payload}')
+            except Exception:
+                log_entry_parts.append(f'    Payload: {request_payload}')
+        
+        # Internal MCP Tool Executor Response
+        if response_data or response_status:
+            log_entry_parts.append(f'  MCP Tool Executor Response:')
+            if response_status:
+                log_entry_parts.append(f'    Status: {response_status}')
+            if response_data:
+                try:
+                    pretty_response = json.dumps(response_data, indent=4)
+                    # Indent the JSON for consistency
+                    indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
+                    log_entry_parts.append(f'    Response:\n{indented_response}')
+                except Exception:
+                    log_entry_parts.append(f'    Response: {response_data}')
+        
+        # External API Call Details (the actual external service)
+        if external_api_url:
+            log_entry_parts.append(f'  External API Call:')
+            log_entry_parts.append(f'    URL: {external_api_url}')
+            log_entry_parts.append(f'    Method: {external_api_method}')
+            
+            if external_api_headers:
+                # Redact sensitive headers
+                headers_preview = {k: v for k, v in external_api_headers.items() if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
+                if len(headers_preview) != len(external_api_headers):
+                    headers_preview['<REDACTED_AUTH_HEADERS>'] = f'{len(external_api_headers) - len(headers_preview)} hidden'
+                log_entry_parts.append(f'    Headers: {json.dumps(headers_preview, indent=4)}')
+            
+            if external_api_payload:
+                try:
+                    pretty_payload = json.dumps(external_api_payload, indent=4)
+                    indented_payload = '\n'.join(f'    {line}' for line in pretty_payload.split('\n'))
+                    log_entry_parts.append(f'    Payload:\n{indented_payload}')
+                except Exception:
+                    log_entry_parts.append(f'    Payload: {external_api_payload}')
+            
+            if external_api_status:
+                log_entry_parts.append(f'    Response Status: {external_api_status}')
+            
+            if external_api_response:
+                try:
+                    pretty_response = json.dumps(external_api_response, indent=4)
+                    indented_response = '\n'.join(f'    {line}' for line in pretty_response.split('\n'))
+                    log_entry_parts.append(f'    Response:\n{indented_response}')
+                except Exception:
+                    log_entry_parts.append(f'    Response: {external_api_response}')
+        
+        # Generate copy-paste ready Python code for Jupyter reproduction
+        if external_api_url:
+            python_code = self._generate_mcp_python_code(
+                tool_name=tool_name,
+                external_api_url=external_api_url,
+                external_api_method=external_api_method,
+                external_api_headers=external_api_headers,
+                external_api_payload=external_api_payload,
+                operation_id=operation_id
+            )
+            
+            # Use centralized emoji configuration for console messages
+            python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
+            snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
+            snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            snippet_end = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_END'].format(
+                python_emoji=python_emoji, 
+                snippet_emoji=snippet_emoji
+            )
+            
+            # Add Python snippet with complete BEGIN/END block
+            log_entry_parts.append(f'{snippet_intro}\n{python_code}')
+            log_entry_parts.append('# Note: This code reproduces the external API call made by the MCP tool.')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{snippet_end}')
+        
+        if notes:
+            log_entry_parts.append(f'  Notes: {notes}')
+        
+        full_log_message = '\n'.join(log_entry_parts)
+        logger.info(f'\n🚀 === MCP OPERATION TRANSPARENCY ===\n{full_log_message}\n🚀 === END MCP TRANSPARENCY ===')
+
+    def _generate_mcp_python_code(self, tool_name: str, external_api_url: str, external_api_method: str='GET', external_api_headers: Optional[dict]=None, external_api_payload: Optional[dict]=None, operation_id: str=None) -> str:
+        """Generate copy-paste ready Python code for reproducing MCP external API calls in Jupyter.
+        
+        This mirrors the pattern used in BQL query logging but for MCP operations.
+        """
+        lines = []
+        lines.append(f'# MCP Tool Reproduction: {tool_name}')
+        if operation_id:
+            lines.append(f'# Operation ID: {operation_id}')
+        lines.append(f'# Generated at: {self.get_timestamp()}')
+        lines.append('')
+        lines.append('import aiohttp')
+        lines.append('import asyncio')
+        lines.append('import json')
+        lines.append('from pprint import pprint')
+        lines.append('')
+        lines.append('async def reproduce_mcp_call():')
+        lines.append('    """Reproduce the external API call made by the MCP tool."""')
+        lines.append('    ')
+        lines.append(f'    url = "{external_api_url}"')
+        lines.append(f'    method = "{external_api_method.upper()}"')
+        lines.append('    ')
+        
+        # Headers
+        if external_api_headers:
+            lines.append('    headers = {')
+            for key, value in external_api_headers.items():
+                if key.lower() in ['authorization', 'cookie', 'x-api-key']:
+                    lines.append(f'        "{key}": "REDACTED_FOR_SECURITY",')
+                else:
+                    lines.append(f'        "{key}": "{value}",')
+            lines.append('    }')
+        else:
+            lines.append('    headers = {}')
+        lines.append('    ')
+        
+        # Payload
+        if external_api_payload and external_api_method.upper() in ['POST', 'PUT', 'PATCH']:
+            lines.append('    payload = {')
+            try:
+                for key, value in external_api_payload.items():
+                    if isinstance(value, str):
+                        lines.append(f'        "{key}": "{value}",')
+                    else:
+                        lines.append(f'        "{key}": {json.dumps(value)},')
+            except Exception:
+                lines.append(f'        # Payload: {external_api_payload}')
+            lines.append('    }')
+        else:
+            lines.append('    payload = None')
+        lines.append('    ')
+        
+        # Async session and request
+        lines.append('    async with aiohttp.ClientSession() as session:')
+        if external_api_method.upper() == 'GET':
+            lines.append('        async with session.get(url, headers=headers) as response:')
+        elif external_api_method.upper() == 'POST':
+            lines.append('        async with session.post(url, headers=headers, json=payload) as response:')
+        elif external_api_method.upper() == 'PUT':
+            lines.append('        async with session.put(url, headers=headers, json=payload) as response:')
+        elif external_api_method.upper() == 'DELETE':
+            lines.append('        async with session.delete(url, headers=headers) as response:')
+        else:
+            lines.append(f'        async with session.request("{external_api_method.upper()}", url, headers=headers, json=payload) as response:')
+        
+        lines.append('            print(f"Status: {response.status}")')
+        lines.append('            print(f"Headers: {dict(response.headers)}")')
+        lines.append('            ')
+        lines.append('            if response.content_type == "application/json":')
+        lines.append('                data = await response.json()')
+        lines.append('                print("JSON Response:")')
+        lines.append('                pprint(data)')
+        lines.append('                return data')
+        lines.append('            else:')
+        lines.append('                text = await response.text()')
+        lines.append('                print("Text Response:")')
+        lines.append('                print(text)')
+        lines.append('                return text')
+        lines.append('')
+        lines.append('# Run the async function')
+        lines.append('# In Jupyter: await reproduce_mcp_call()')
+        lines.append('# In script: asyncio.run(reproduce_mcp_call())')
+        lines.append('if __name__ == "__main__":')
+        lines.append('    result = asyncio.run(reproduce_mcp_call())')
+        lines.append('    print("\\nFinal result:")')
+        lines.append('    pprint(result)')
+        
+        return '\n'.join(lines)
 
     def fmt(self, endpoint: str) -> str:
+        """Format an endpoint string into a human-readable form."""
+        if endpoint in friendly_names:
+            return friendly_names[endpoint]
+        return title_name(endpoint)
         """Format an endpoint string into a human-readable form."""
         if endpoint in friendly_names:
             return friendly_names[endpoint]
@@ -1835,6 +2071,10 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
     Parses an MCP block, executes the tool, and directly formats and sends
     the result to the UI, bypassing a second LLM call for reliability.
     """
+    import uuid
+    start_time = time.time()
+    operation_id = str(uuid.uuid4())[:8]
+    
     try:
         logger.debug("🔍 DEBUG: === STARTING execute_and_respond_to_tool_call ===")
         
@@ -1850,9 +2090,34 @@ async def execute_and_respond_to_tool_call(conversation_history: list, mcp_block
         async with aiohttp.ClientSession() as session:
             url = "http://127.0.0.1:5001/mcp-tool-executor"
             payload = {"tool": tool_name, "params": {}}
+            
+            mcp_request_start = time.time()
             async with session.post(url, json=payload) as response:
+                mcp_request_end = time.time()
+                execution_time_ms = (mcp_request_end - start_time) * 1000
+                
+                tool_result = await response.json() if response.status == 200 else {}
+                
+                # Log the complete MCP operation with extreme observability
+                await pipulate.log_mcp_call_details(
+                    operation_id=operation_id,
+                    tool_name=tool_name,
+                    operation_type="tool_execution",
+                    mcp_block=mcp_block,
+                    request_payload=payload,
+                    response_data=tool_result,
+                    response_status=response.status,
+                    external_api_url="https://catfact.ninja/fact",  # This will be enhanced to be dynamic
+                    external_api_method="GET",
+                    external_api_headers=None,
+                    external_api_payload=None,
+                    external_api_response=tool_result.get("result") if response.status == 200 else None,
+                    external_api_status=200 if tool_result.get("status") == "success" else None,
+                    execution_time_ms=execution_time_ms,
+                    notes=f"MCP tool execution for {tool_name} via poke endpoint"
+                )
+                
                 if response.status == 200:
-                    tool_result = await response.json()
                     logger.success(f"🔧 MCP CLIENT: Tool '{tool_name}' executed successfully.")
 
                     if tool_result.get("status") == "success":
@@ -3676,9 +3941,13 @@ async def save_split_sizes(request):
 async def mcp_tool_executor_endpoint(request):
     """
     This endpoint now acts as a generic tool executor.
-    For this PoC, it specifically handles the 'get_activity_suggestion' tool
-    by calling the external Bored API.
+    For this PoC, it specifically handles the 'get_cat_fact' tool
+    by calling the external Cat Fact API.
     """
+    import uuid
+    start_time = time.time()
+    operation_id = str(uuid.uuid4())[:8]
+    
     try:
         data = await request.json()
         tool_name = data.get("tool")
@@ -3689,13 +3958,36 @@ async def mcp_tool_executor_endpoint(request):
         if tool_name == "get_cat_fact":
             # Call the external Cat Fact API - 100% external, no fallbacks
             async with aiohttp.ClientSession() as session:
-                url = "https://catfact.ninja/fact"
-                logger.info(f"🔧 MCP SERVER: Calling external API: {url}")
+                external_url = "https://catfact.ninja/fact"
+                logger.info(f"🔧 MCP SERVER: Calling external API: {external_url}")
                 
-                async with session.get(url) as response:
+                external_start_time = time.time()
+                async with session.get(external_url) as response:
+                    external_end_time = time.time()
+                    external_execution_time = (external_end_time - external_start_time) * 1000
+                    
                     if response.status == 200:
                         cat_fact_result = await response.json()
                         logger.success(f"🔧 MCP SERVER: Received cat fact from API: {cat_fact_result.get('fact')}")
+                        
+                        # Log detailed external API call information
+                        await pipulate.log_mcp_call_details(
+                            operation_id=f"{operation_id}-ext",
+                            tool_name=tool_name,
+                            operation_type="external_api_call",
+                            mcp_block=None,
+                            request_payload=data,
+                            response_data={"status": "success", "result": cat_fact_result},
+                            response_status=200,
+                            external_api_url=external_url,
+                            external_api_method="GET",
+                            external_api_headers=None,
+                            external_api_payload=None,
+                            external_api_response=cat_fact_result,
+                            external_api_status=response.status,
+                            execution_time_ms=external_execution_time,
+                            notes=f"External Cat Fact API call from MCP tool executor"
+                        )
                         
                         # Return the cat fact in our standard format
                         return JSONResponse({
@@ -3703,11 +3995,29 @@ async def mcp_tool_executor_endpoint(request):
                             "result": cat_fact_result
                         })
                     else:
+                        error_response = {"status": "error", "message": f"External API returned status {response.status}"}
                         logger.error(f"🔧 MCP SERVER: Cat Fact API returned status {response.status}")
-                        return JSONResponse({
-                            "status": "error", 
-                            "message": f"External API returned status {response.status}"
-                        }, status_code=503)
+                        
+                        # Log failed external API call
+                        await pipulate.log_mcp_call_details(
+                            operation_id=f"{operation_id}-ext-fail",
+                            tool_name=tool_name,
+                            operation_type="external_api_call_failed",
+                            mcp_block=None,
+                            request_payload=data,
+                            response_data=error_response,
+                            response_status=503,
+                            external_api_url=external_url,
+                            external_api_method="GET",
+                            external_api_headers=None,
+                            external_api_payload=None,
+                            external_api_response=None,
+                            external_api_status=response.status,
+                            execution_time_ms=external_execution_time,
+                            notes=f"Failed external Cat Fact API call - status {response.status}"
+                        )
+                        
+                        return JSONResponse(error_response, status_code=503)
         else:
             logger.warning(f"🔧 MCP SERVER: Unknown tool requested: {tool_name}")
             return JSONResponse({"status": "error", "message": "Tool not found"}, status_code=404)
