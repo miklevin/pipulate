@@ -364,8 +364,6 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Select ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/select_all",
-                           hx_target=f"#{self.LIST_ID}",
-                           hx_swap="outerHTML",
                            cls="secondary",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
                     Button(Img(src='/static/feather/square.svg', 
@@ -373,8 +371,6 @@ class CrudUI(PluginIdentityManager):
                               style='width: 14px; height: 14px; margin-right: 0.25rem; filter: brightness(0) invert(1);'),
                            "Deselect ALL", 
                            hx_post=f"{self.ENDPOINT_PREFIX}/deselect_all",
-                           hx_target=f"#{self.LIST_ID}",
-                           hx_swap="outerHTML",
                            cls="secondary outline",
                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem; display: flex; align-items: center;"),
                     Button(Img(src='/static/feather/chevrons-down.svg', 
@@ -418,32 +414,18 @@ class CrudUI(PluginIdentityManager):
                     role.done = True
                     self.table.update(role)
             
-            # Get updated roles list
-            roles_list = await self.render_roles_list()
-            
-            # Get the updated Default button
-            from fasthtml.common import HTMLResponse, to_xml
-            import json
-            
-            updated_button = await self.update_default_button(request)
-            
-            # Add hx-swap-oob attribute
-            if hasattr(updated_button, 'attrs'):
-                updated_button.attrs['hx-swap-oob'] = 'true'
-            else:
-                updated_button.attrs = {'hx-swap-oob': 'true'}
-            
-            # Combine roles list and button update
-            roles_html = str(to_xml(roles_list))
-            button_html = str(to_xml(updated_button))
-            combined_html = roles_html + button_html
-            
-            response = HTMLResponse(combined_html)
-            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            # Return HX-Refresh header to trigger full page reload
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
             return response
         except Exception as e:
             logger.error(f"Error in select_all_roles: {e}")
-            return await self.render_roles_list()
+            # Even on error, trigger page refresh to show current state
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
 
     async def deselect_all_roles(self, request):
         """Deselect all roles except Core (which stays selected)."""  
@@ -456,32 +438,18 @@ class CrudUI(PluginIdentityManager):
                     role.done = False
                     self.table.update(role)
             
-            # Get updated roles list
-            roles_list = await self.render_roles_list()
-            
-            # Get the updated Default button
-            from fasthtml.common import HTMLResponse, to_xml
-            import json
-            
-            updated_button = await self.update_default_button(request)
-            
-            # Add hx-swap-oob attribute
-            if hasattr(updated_button, 'attrs'):
-                updated_button.attrs['hx-swap-oob'] = 'true'
-            else:
-                updated_button.attrs = {'hx-swap-oob': 'true'}
-            
-            # Combine roles list and button update
-            roles_html = str(to_xml(roles_list))
-            button_html = str(to_xml(updated_button))
-            combined_html = roles_html + button_html
-            
-            response = HTMLResponse(combined_html)
-            response.headers['HX-Trigger'] = json.dumps({'refreshAppMenu': {}})
+            # Return HX-Refresh header to trigger full page reload
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
             return response
         except Exception as e:
             logger.error(f"Error in deselect_all_roles: {e}")
-            return await self.render_roles_list()
+            # Even on error, trigger page refresh to show current state
+            from fasthtml.common import HTMLResponse
+            response = HTMLResponse('')
+            response.headers['HX-Refresh'] = 'true'
+            return response
 
     async def select_default_roles(self, request):
         """Reset roles to DEFAULT_ACTIVE_ROLES configuration and original sort order."""
