@@ -953,12 +953,11 @@ class Pipulate:
                 log_entry_parts.append(f'  Payload:\n{payload_str}')
             except TypeError:
                 log_entry_parts.append('  Payload: (Omitted due to non-serializable content)')
-        # Store Python snippet info for later (will add END marker at the very end)
-        python_snippet_info = None
         if python_command:
             # Use centralized emoji configuration for console messages
             python_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['PYTHON_CODE']
             snippet_emoji = PCONFIG['UI_CONSTANTS']['EMOJIS']['CODE_SNIPPET']
+            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
             snippet_intro = PCONFIG['UI_CONSTANTS']['CONSOLE_MESSAGES']['PYTHON_SNIPPET_INTRO'].format(
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
@@ -967,9 +966,11 @@ class Pipulate:
                 python_emoji=python_emoji, 
                 snippet_emoji=snippet_emoji
             )
+            # Add Python snippet with complete BEGIN/END block
             log_entry_parts.append(f'{snippet_intro}\n{python_command}')
-            log_entry_parts.append('  Note: The API token should be loaded from a secure file location.')
-            python_snippet_info = snippet_end
+            log_entry_parts.append('# Note: The API token should be loaded from a secure file location.')
+            log_entry_parts.append(f'{comment_divider}')
+            log_entry_parts.append(f'{snippet_end}')
         if estimated_rows is not None:
             log_entry_parts.append(f'  Estimated Rows (from pre-check): {estimated_rows:,}')
         if actual_rows is not None:
@@ -989,12 +990,6 @@ class Pipulate:
             log_entry_parts.append(f'  Associated File Size: {file_size}')
         if notes:
             log_entry_parts.append(f'  Notes: {notes}')
-        
-        # Add Python snippet END marker at the very end if we had a Python snippet
-        if python_snippet_info:
-            comment_divider = PCONFIG['UI_CONSTANTS']['CODE_FORMATTING']['COMMENT_DIVIDER']
-            log_entry_parts.append(f'{comment_divider}')
-            log_entry_parts.append(f'{python_snippet_info}')
         
         full_log_message = '\n'.join(log_entry_parts)
         logger.debug(f'\n--- API Call Log ---\n{full_log_message}\n--- End API Call Log ---')
