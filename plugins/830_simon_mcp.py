@@ -253,7 +253,7 @@ Do not say anything else. Just output the exact MCP block above."""
                     required=True,
                     style='min-height: 450px; width: 100%; font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: break-word;'
                 ),
-                Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;'),
+                Button('Play Simon Says ▸', type='submit', cls='primary', style='margin-top: 1rem;', **{'hx-on:click': 'this.setAttribute("aria-busy", "true")'}),
                 hx_post=f'/{app_name}/{step_id}_submit',
                 hx_target=f'#{step_id}'
             )
